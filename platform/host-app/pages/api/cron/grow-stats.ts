@@ -10,6 +10,7 @@
 
 import type { NextApiResponse } from "next";
 import { createHandler } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 export default createHandler({
   auth: "cron",
@@ -59,7 +60,7 @@ export default createHandler({
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
-        console.error("Stats growth error:", error);
+        logger.error("Stats growth error", error);
         res.status(500).json({ error: "Failed to update stats" });
       }
     },

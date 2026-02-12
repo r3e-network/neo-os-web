@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
+import { logger } from "@/lib/logger";
 
 type ReviewAction = "approve" | "reject" | "request_changes";
 
@@ -97,7 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Review action error:", error);
+    logger.error("Review action error", error);
     return res.status(500).json({ error: "Failed to update review status" });
   }
 }

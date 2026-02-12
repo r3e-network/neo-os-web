@@ -47,7 +47,7 @@ vi.mock("../../utils/neo-rpc", () => ({
 
 // Mock i18n
 vi.mock("@shared/utils/i18n", () => ({
-  createT: (translations: any) => (key: string) => translations[key]?.en || key,
+  createT: (translations: Record<string, Record<string, string>>) => (key: string) => translations[key]?.en || key,
 }));
 
 import { getBlockCount, getBlock, searchBlockchain } from "../../utils/neo-rpc";
@@ -220,7 +220,7 @@ describe("Explorer MiniApp", () => {
     });
 
     it("should clear previous results when searching", () => {
-      const searchResult = ref<any>(null);
+      const searchResult = ref<Record<string, unknown> | null>(null);
       searchResult.value = { type: "Block", hash: "0xtest" };
       expect(searchResult.value).not.toBeNull();
 
@@ -236,7 +236,7 @@ describe("Explorer MiniApp", () => {
 
       try {
         await getBlockCount("mainnet");
-      } catch (error: any) {
+      } catch (error: unknown) {
         status.value = { msg: `RPC connection failed (mainnet)`, type: "error" };
       }
 
@@ -252,8 +252,9 @@ describe("Explorer MiniApp", () => {
 
       try {
         await searchBlockchain("mainnet", "invalid");
-      } catch (error: any) {
-        status.value = { msg: error.message || "Not found", type: "error" };
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Not found";
+        status.value = { msg: message, type: "error" };
       }
 
       expect(status.value?.type).toBe("error");

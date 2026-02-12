@@ -6,6 +6,7 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 interface AppCardStats {
   users: number;
@@ -44,7 +45,7 @@ export default async function handler(
       .select("app_id, total_unique_users, total_transactions, view_count");
 
     if (error) {
-      console.error("Miniapp card stats query error:", error);
+      logger.error("Miniapp card stats query error", error);
       const fallback = cardStatsCache?.data || {};
       res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
       return res.status(200).json({ stats: fallback, cached: true });
@@ -69,7 +70,7 @@ export default async function handler(
     res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     res.status(200).json({ stats });
   } catch (error) {
-    console.error("Miniapp card stats error:", error);
+    logger.error("Miniapp card stats error", error);
     const fallback = cardStatsCache?.data || {};
     res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     return res.status(200).json({ stats: fallback, cached: true });

@@ -38,7 +38,7 @@ defineProps<{
   roundId: number;
   lastBuyerLabel: string;
   isRoundActive: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const formatNum = (n: number) => {
@@ -109,7 +109,7 @@ const formatNum = (n: number) => {
   font-family: $font-mono;
   color: var(--text-primary);
   &.active {
-    color: #34d399;
+    color: var(--doom-success);
     text-shadow: 0 0 5px rgba(52, 211, 153, 0.5);
   }
 }

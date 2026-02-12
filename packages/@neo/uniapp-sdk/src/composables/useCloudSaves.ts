@@ -4,6 +4,8 @@
  */
 import { ref, onMounted } from "vue";
 import { waitForSDK } from "../bridge";
+import { apiGet, apiFetch } from "../api";
+import { toError } from "../utils";
 
 export interface CloudSave {
   slot_name: string;
@@ -39,25 +41,18 @@ export function useCloudSaves(options: CloudSaveOptions = {}) {
 
     try {
       const sdk = await waitForSDK();
-      const address = await sdk.wallet.getAddress();
       const appId = sdk.getConfig?.().appId || "unknown";
 
-      const response = await fetch(`/api/miniapps/${appId}/cloud-saves`, {
-        headers: { "x-wallet-address": address },
-      });
-
-      if (!response.ok) throw new Error("Failed to load saves");
-
-      const data = await response.json();
-      saves.value = data.saves || [];
+      const data = await apiGet<{ saves: CloudSave[] }>(`/api/miniapps/${appId}/cloud-saves`);
+      saves.value = data?.saves || [];
 
       const targetSlot = slotName || slot;
       currentSave.value = saves.value.find((s) => s.slot_name === targetSlot) || null;
       lastSyncedAt.value = new Date();
 
       return currentSave.value;
-    } catch (e) {
-      error.value = e as Error;
+    } catch (e: unknown) {
+      error.value = toError(e);
       return null;
     } finally {
       isLoading.value = false;
@@ -73,31 +68,23 @@ export function useCloudSaves(options: CloudSaveOptions = {}) {
 
     try {
       const sdk = await waitForSDK();
-      const address = await sdk.wallet.getAddress();
       const appId = sdk.getConfig?.().appId || "unknown";
 
-      const response = await fetch(`/api/miniapps/${appId}/cloud-saves`, {
+      const result = await apiFetch<{ save: CloudSave }>(`/api/miniapps/${appId}/cloud-saves`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": address,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slot_name: slotName || slot,
           save_data: data,
           client_timestamp: new Date().toISOString(),
         }),
       });
-
-      if (!response.ok) throw new Error("Failed to save");
-
-      const result = await response.json();
       currentSave.value = result.save;
       lastSyncedAt.value = new Date();
 
       return true;
-    } catch (e) {
-      error.value = e as Error;
+    } catch (e: unknown) {
+      error.value = toError(e);
       return false;
     } finally {
       isSaving.value = false;
@@ -112,19 +99,13 @@ export function useCloudSaves(options: CloudSaveOptions = {}) {
     error.value = null;
     try {
       const sdk = await waitForSDK();
-      const address = await sdk.wallet.getAddress();
       const appId = sdk.getConfig?.().appId || "unknown";
 
-      const response = await fetch(`/api/miniapps/${appId}/cloud-saves`, {
+      await apiFetch(`/api/miniapps/${appId}/cloud-saves`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "x-wallet-address": address,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slot_name: slotName || slot }),
       });
-
-      if (!response.ok) throw new Error("Failed to delete");
 
       saves.value = saves.value.filter((s) => s.slot_name !== (slotName || slot));
       if (currentSave.value?.slot_name === (slotName || slot)) {
@@ -132,8 +113,8 @@ export function useCloudSaves(options: CloudSaveOptions = {}) {
       }
 
       return true;
-    } catch (e) {
-      error.value = e as Error;
+    } catch (e: unknown) {
+      error.value = toError(e);
       return false;
     } finally {
       isDeleting.value = false;

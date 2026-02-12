@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
 
 // CoinGecko API - same as neo-treasury.pages.dev
 const COINGECKO_API =
@@ -63,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const prices = await fetchPrices();
     return res.status(200).json(prices);
   } catch (error) {
-    console.error("[Price API] Error:", error);
+    logger.error("[Price API] Error", error);
     return res.status(500).json({ error: "Failed to fetch prices" });
   }
 }

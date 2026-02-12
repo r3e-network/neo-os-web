@@ -1,23 +1,17 @@
 <template>
-  <ResponsiveLayout 
-    :desktop-breakpoint="1024" 
-    class="theme-unbreakable-vault" 
-    :tabs="navTabs" 
-    :active-tab="activeTab" 
-    @tab-change="activeTab = $event">
+  <MiniAppTemplate
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="breaker.status.value"
+    class="theme-unbreakable-vault"
+    @tab-change="activeTab = $event"
+  >
     <template #desktop-sidebar>
-      <view class="desktop-sidebar">
-        <text class="sidebar-title">{{ t('overview') }}</text>
-      </view>
+      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
     </template>
 
-    <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
-
-    <view v-if="activeTab === 'create'" class="tab-content scrollable">
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-3 text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
-
+    <template #content>
       <VaultCreate
         :t="t"
         v-model:bounty="bounty"
@@ -27,7 +21,7 @@
         v-model:secret="secret"
         v-model:secretConfirm="secretConfirm"
         :secret-hash="secretHash"
-        :loading="isLoading"
+        :loading="isCreating"
         :min-bounty="MIN_BOUNTY"
         @create="createVault"
       />
@@ -42,66 +36,53 @@
         :title="t('myVaults')"
         :empty-text="t('noRecentVaults')"
         :vaults="myVaults"
-        @select="selectVault"
+        @select="breaker.selectVault"
       />
-    </view>
+    </template>
 
-    <view v-if="activeTab === 'break'" class="tab-content scrollable">
-      <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-3 text-center">
-        <text class="font-bold">{{ status.msg }}</text>
-      </NeoCard>
-
+    <template #tab-break>
       <NeoCard variant="erobo-neo">
         <view class="form-group">
           <view class="input-group">
             <text class="input-label">{{ t("vaultIdLabel") }}</text>
-            <NeoInput v-model="vaultIdInput" type="number" :placeholder="t('vaultIdPlaceholder')" />
+            <NeoInput v-model="breaker.vaultIdInput.value" type="number" :placeholder="t('vaultIdPlaceholder')" />
           </view>
 
-          <NeoButton variant="secondary" block :loading="isLoading" @click="loadVault">
+          <NeoButton variant="secondary" block :loading="breaker.isLoading.value" @click="breaker.loadVault">
             {{ t("loadVault") }}
           </NeoButton>
 
           <view class="input-group">
             <text class="input-label">{{ t("secretAttemptLabel") }}</text>
-            <NeoInput v-model="attemptSecret" :placeholder="t('secretAttemptPlaceholder')" />
+            <NeoInput v-model="breaker.attemptSecret.value" :placeholder="t('secretAttemptPlaceholder')" />
           </view>
 
-          <text class="helper-text">{{ t("attemptFeeNote").replace("{fee}", attemptFeeDisplay) }}</text>
+          <text class="helper-text">{{ t("attemptFeeNote").replace("{fee}", breaker.attemptFeeDisplay.value) }}</text>
 
           <NeoButton
             variant="primary"
             size="lg"
             block
-            :loading="isLoading"
-            :disabled="!canAttempt || isLoading"
-            @click="attemptBreak">
-            {{ isLoading ? t("attempting") : t("attemptBreak") }}
+            :loading="breaker.isLoading.value"
+            :disabled="!breaker.canAttempt.value || breaker.isLoading.value"
+            @click="breaker.attemptBreak"
+          >
+            {{ breaker.isLoading.value ? t("attempting") : t("attemptBreak") }}
           </NeoButton>
         </view>
       </NeoCard>
 
-      <VaultDetails v-if="vaultDetails" :t="t" :details="vaultDetails" />
+      <VaultDetails v-if="breaker.vaultDetails.value" :t="t" :details="breaker.vaultDetails.value" />
 
       <VaultList
         :t="t"
         :title="t('recentVaults')"
         :empty-text="t('noRecentVaults')"
-        :vaults="recentVaults"
-        @select="selectVault"
+        :vaults="breaker.recentVaults.value"
+        @select="breaker.selectVault"
       />
-    </view>
-
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docSubtitle')"
-        :description="t('docDescription')"
-        :steps="docSteps"
-        :features="docFeatures"
-      />
-    </view>
-  </ResponsiveLayout>
+    </template>
+  </MiniAppTemplate>
 </template>
 
 <script setup lang="ts">
@@ -110,11 +91,14 @@ import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { sha256Hex } from "@shared/utils/hash";
-import { normalizeScriptHash, parseInvokeResult, parseStackItem, addressToScriptHash } from "@shared/utils/neo";
-import { bytesToHex, formatAddress, formatGas, toFixed8 } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
-import { ResponsiveLayout, NeoDoc, NeoButton, NeoInput, NeoCard, ChainWarning } from "@shared/components";
+import { normalizeScriptHash, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
+import { toFixed8 } from "@shared/utils/format";
+import { useContractAddress } from "@shared/composables/useContractAddress";
+import { MiniAppTemplate, NeoButton, NeoInput, NeoCard, SidebarPanel } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { useVaultBreaker } from "@/composables/useVaultBreaker";
 import VaultCreate from "./components/VaultCreate.vue";
 import VaultList from "./components/VaultList.vue";
 import VaultDetails from "./components/VaultDetails.vue";
@@ -123,20 +107,46 @@ const { t } = useI18n();
 
 const APP_ID = "miniapp-unbreakablevault";
 const MIN_BOUNTY = 1;
-const ATTEMPT_FEE = 0.1;
 
-const { address, connect, chainType, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
-const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+const { address, connect, invokeContract } = useWallet() as WalletSDK;
+const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
+const { processPayment, isLoading: isCreating } = usePaymentFlow(APP_ID);
 const { list: listEvents } = useEvents();
 
-const activeTab = ref("create");
-const navTabs = computed(() => [
-  { id: "create", icon: "lock", label: t("create") },
-  { id: "break", icon: "key", label: t("break") },
-  { id: "docs", icon: "book", label: t("docs") },
+const breaker = useVaultBreaker(APP_ID, t);
+
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "custom",
+  tabs: [
+    { key: "create", labelKey: "create", icon: "🔒", default: true },
+    { key: "break", labelKey: "break", icon: "🔑" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
+  },
+};
+
+const appState = computed(() => ({}));
+
+const sidebarItems = computed(() => [
+  { label: t("create"), value: myVaults.value.length },
+  { label: t("break"), value: breaker.recentVaults.value.length },
+  { label: "Difficulty", value: vaultDifficulty.value },
+  { label: "Attempt Fee", value: `${breaker.attemptFeeDisplay.value} GAS` },
 ]);
 
-const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
+const activeTab = ref("create");
 
 const bounty = ref("");
 const vaultTitle = ref("");
@@ -147,81 +157,7 @@ const secretConfirm = ref("");
 const secretHash = ref("");
 const createdVaultId = ref<string | null>(null);
 
-const vaultIdInput = ref("");
-const attemptSecret = ref("");
-const vaultDetails = ref<{
-  id: string;
-  creator: string;
-  bounty: number;
-  attempts: number;
-  broken: boolean;
-  expired: boolean;
-  status: string;
-  winner: string;
-  attemptFee: number;
-  difficultyName: string;
-  expiryTime: number;
-  remainingDays: number;
-} | null>(null);
-
-const recentVaults = ref<{ id: string; creator: string; bounty: number }[]>([]);
 const myVaults = ref<{ id: string; bounty: number; created: number }[]>([]);
-
-const canAttempt = computed(() => {
-  const status = vaultDetails.value?.status;
-  return Boolean(
-    vaultIdInput.value &&
-    attemptSecret.value.trim() &&
-    vaultDetails.value &&
-    String(vaultDetails.value.id) === String(vaultIdInput.value) &&
-    status === "active",
-  );
-});
-
-const toNumber = (value: unknown) => {
-  const num = Number(value ?? 0);
-  return Number.isFinite(num) ? num : 0;
-};
-
-const attemptFeeDisplay = computed(() => {
-  const fallback = toFixed8(ATTEMPT_FEE);
-  const fee = vaultDetails.value?.attemptFee ?? fallback;
-  return formatGas(fee);
-});
-
-const toHex = (value: string) => {
-  if (!value) return "";
-  if (typeof TextEncoder === "undefined") {
-    return Array.from(value)
-      .map((char) => char.charCodeAt(0).toString(16).padStart(2, "0"))
-      .join("");
-  }
-  return bytesToHex(new TextEncoder().encode(value));
-};
-
-const ensureContractAddress = async () => {
-  if (!requireNeoChain(chainType, t)) throw new Error(t("wrongChain"));
-  const contract = await getContractAddress();
-  if (!contract) throw new Error(t("contractUnavailable"));
-  return contract;
-};
-
-const loadRecentVaults = async () => {
-  try {
-    const res = await listEvents({ app_id: APP_ID, event_name: "VaultCreated", limit: 12 });
-    const vaults = res.events
-      .map((evt: any) => {
-        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
-        const id = String(values[0] ?? "");
-        const creator = String(values[1] ?? "");
-        const bountyValue = Number(values[2] ?? 0);
-        if (!id) return null;
-        return { id, creator, bounty: bountyValue };
-      })
-      .filter(Boolean) as { id: string; creator: string; bounty: number }[];
-    recentVaults.value = vaults;
-  } catch {}
-};
 
 const loadMyVaults = async () => {
   if (!address.value) {
@@ -232,8 +168,8 @@ const loadMyVaults = async () => {
     const res = await listEvents({ app_id: APP_ID, event_name: "VaultCreated", limit: 50 });
     const myHash = normalizeScriptHash(addressToScriptHash(address.value));
     const vaults = res.events
-      .map((evt: any) => {
-        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+      .map((evt: Record<string, unknown>) => {
+        const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
         const id = String(values[0] ?? "");
         const creator = String(values[1] ?? "");
         const bountyValue = Number(values[2] ?? 0);
@@ -242,17 +178,19 @@ const loadMyVaults = async () => {
         return {
           id,
           bounty: bountyValue,
-          created: evt.created_at ? new Date(evt.created_at).getTime() : Date.now(),
+          created: evt.created_at ? new Date(evt.created_at as string).getTime() : Date.now(),
         };
       })
       .filter(Boolean) as { id: string; bounty: number; created: number }[];
     myVaults.value = vaults.sort((a, b) => b.created - a.created);
-  } catch {}
+  } catch (_e: unknown) {
+    // My vaults load failure is non-critical
+  }
 };
 
 const createVault = async () => {
-  if (isLoading.value) return;
-  status.value = null;
+  if (isCreating.value) return;
+  breaker.clearStatus();
   try {
     if (!address.value) await connect();
     if (!address.value) throw new Error(t("connectWallet"));
@@ -273,99 +211,25 @@ const createVault = async () => {
         { type: "String", value: vaultDescription.value.trim().slice(0, 300) },
         { type: "Integer", value: String(receiptId) },
       ],
-      contract,
+      contract
     );
-    const vaultId = String((res as any)?.result || (res as any)?.stack?.[0]?.value || "");
+    const resRecord = res as Record<string, unknown>;
+    const stackArr = resRecord?.stack as unknown[] | undefined;
+    const firstStackItem = stackArr?.[0] as Record<string, unknown> | undefined;
+    const vaultId = String(resRecord?.result || firstStackItem?.value || "");
     createdVaultId.value = vaultId || createdVaultId.value;
-    status.value = { msg: t("vaultCreated"), type: "success" };
+    breaker.setStatus(t("vaultCreated"), "success");
     bounty.value = "";
     vaultTitle.value = "";
     vaultDescription.value = "";
     vaultDifficulty.value = 1;
     secret.value = "";
     secretConfirm.value = "";
-    await loadRecentVaults();
+    await breaker.loadRecentVaults();
     await loadMyVaults();
-  } catch (e: any) {
-    status.value = { msg: e?.message || t("vaultCreateFailed"), type: "error" };
+  } catch (e: unknown) {
+    breaker.setStatus(formatErrorMessage(e, t("vaultCreateFailed")), "error");
   }
-};
-
-const loadVault = async () => {
-  if (!vaultIdInput.value) return;
-  status.value = null;
-  try {
-    const contract = await ensureContractAddress();
-    const res = await invokeRead({
-      contractAddress: contract,
-      operation: "GetVaultDetails",
-      args: [{ type: "Integer", value: vaultIdInput.value }],
-    });
-    const parsed = parseInvokeResult(res);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(t("vaultNotFound"));
-    const data = parsed as Record<string, unknown>;
-    const creator = String(data.creator || "");
-    const creatorHash = normalizeScriptHash(creator);
-    if (!creatorHash || /^0+$/.test(creatorHash)) throw new Error(t("vaultNotFound"));
-    const status = String(data.status || "");
-    const expired = Boolean(data.expired);
-    const broken = Boolean(data.broken);
-    vaultDetails.value = {
-      id: vaultIdInput.value,
-      creator,
-      bounty: toNumber(data.bounty),
-      attempts: toNumber(data.attemptCount),
-      broken,
-      expired,
-      status: status || (broken ? "broken" : expired ? "expired" : "active"),
-      winner: String(data.winner || ""),
-      attemptFee: toNumber(data.attemptFee),
-      difficultyName: String(data.difficultyName || ""),
-      expiryTime: toNumber(data.expiryTime),
-      remainingDays: toNumber(data.remainingDays),
-    };
-  } catch (e: any) {
-    status.value = { msg: e?.message || t("loadFailed"), type: "error" };
-    vaultDetails.value = null;
-  }
-};
-
-const attemptBreak = async () => {
-  if (!canAttempt.value || isLoading.value) return;
-  status.value = null;
-  try {
-    if (!address.value) await connect();
-    if (!address.value) throw new Error(t("connectWallet"));
-    const contract = await ensureContractAddress();
-    const feeBase = vaultDetails.value?.attemptFee ?? toFixed8(ATTEMPT_FEE);
-    const { receiptId, invoke } = await processPayment(formatGas(feeBase), `vault:attempt:${vaultIdInput.value}`);
-    if (!receiptId) throw new Error(t("receiptMissing"));
-    const res = await invoke(
-      "attemptBreak",
-      [
-        { type: "Integer", value: vaultIdInput.value },
-        { type: "Hash160", value: address.value as string },
-        { type: "ByteArray", value: toHex(attemptSecret.value) },
-        { type: "Integer", value: String(receiptId) },
-      ],
-      contract,
-    );
-    const success = Boolean((res as any)?.stack?.[0]?.value ?? (res as any)?.result);
-    status.value = {
-      msg: success ? t("broken") : t("vaultAttemptFailed"),
-      type: success ? "success" : "error",
-    };
-    attemptSecret.value = "";
-    await loadVault();
-    await loadRecentVaults();
-  } catch (e: any) {
-    status.value = { msg: e?.message || t("vaultAttemptFailed"), type: "error" };
-  }
-};
-
-const selectVault = (id: string) => {
-  vaultIdInput.value = id;
-  loadVault();
 };
 
 watch(secret, async (value) => {
@@ -373,16 +237,9 @@ watch(secret, async (value) => {
 });
 
 onMounted(() => {
-  loadRecentVaults();
+  breaker.loadRecentVaults();
   loadMyVaults();
 });
-
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-]);
 </script>
 
 <style lang="scss" scoped>
@@ -484,11 +341,6 @@ const docFeatures = computed(() => [
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
 .form-group {
   display: flex;
   flex-direction: column;
@@ -532,19 +384,5 @@ const docFeatures = computed(() => [
   font-weight: 800;
   color: var(--vault-text-strong);
   margin-top: 8px;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 </style>

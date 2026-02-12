@@ -12,3 +12,12 @@ $trustanchor-gradient: var(--erobo-gradient);
 $trustanchor-stats-bg: rgba(159, 157, 243, 0.1);
 $trustanchor-card-border: rgba(255, 255, 255, 0.1);
 $trustanchor-input-bg: rgba(255, 255, 255, 0.1);
+
+:global(.theme-trustanchor) {
+  --trustanchor-success: #22c55e;
+}
+
+:global(.theme-light .theme-trustanchor),
+:global([data-theme="light"] .theme-trustanchor) {
+  --trustanchor-success: #16a34a;
+}

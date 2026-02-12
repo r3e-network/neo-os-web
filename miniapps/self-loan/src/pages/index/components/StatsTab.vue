@@ -2,19 +2,19 @@
   <view class="tab-content scrollable">
     <NeoCard variant="erobo">
       <view class="flex flex-col gap-3">
-        <NeoCard variant="default" flat class="flex justify-between items-center p-3 border-none!">
+        <NeoCard variant="default" flat class="flex items-center justify-between border-none! p-3">
           <text class="stat-label">{{ t("totalLoans") }}</text>
           <text class="stat-value">{{ stats.totalLoans }}</text>
         </NeoCard>
-        <NeoCard variant="default" flat class="flex justify-between items-center p-3 border-none!">
+        <NeoCard variant="default" flat class="flex items-center justify-between border-none! p-3">
           <text class="stat-label">{{ t("totalBorrowed") }}</text>
           <text class="stat-value">{{ fmt(stats.totalBorrowed, 2) }} GAS</text>
         </NeoCard>
-        <NeoCard variant="default" flat class="flex justify-between items-center p-3 border-none!">
+        <NeoCard variant="default" flat class="flex items-center justify-between border-none! p-3">
           <text class="stat-label">{{ t("totalRepaid") }}</text>
           <text class="stat-value">{{ fmt(stats.totalRepaid, 2) }} GAS</text>
         </NeoCard>
-        <NeoCard variant="default" flat class="flex justify-between items-center p-3 border-none!">
+        <NeoCard variant="default" flat class="flex items-center justify-between border-none! p-3">
           <text class="stat-label">{{ t("avgLoanSize") }}</text>
           <text class="stat-value"
             >{{ stats.totalLoans > 0 ? fmt(stats.totalBorrowed / stats.totalLoans, 2) : 0 }} GAS</text
@@ -37,9 +37,9 @@ import { formatNumber } from "@shared/utils/format";
 import { NeoCard } from "@shared/components";
 
 const props = defineProps<{
-  stats: any;
-  loanHistory: any[];
-  t: (key: string) => string;
+  stats: Record<string, unknown>;
+  loanHistory: Record<string, unknown>[];
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const fmt = (n: number, d = 2) => formatNumber(n, d);
@@ -82,7 +82,9 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
   border-bottom: $border-width-sm dashed var(--border-color);
   font-size: $font-size-sm;
   color: var(--text-primary);
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .stat-label {

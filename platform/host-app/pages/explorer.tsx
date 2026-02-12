@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -80,6 +80,66 @@ export default function ExplorerPage() {
   const [showChainMenu, setShowChainMenu] = useState(false);
 
   const currentChain = EXPLORER_CHAINS.find((c) => c.id === selectedChain) || EXPLORER_CHAINS[0];
+  const chainMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close chain menu on outside click or Escape
+  useEffect(() => {
+    if (!showChainMenu) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowChainMenu(false);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (chainMenuRef.current && !chainMenuRef.current.contains(e.target as Node)) {
+        setShowChainMenu(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showChainMenu]);
+
+  const handleChainKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!showChainMenu) {
+        if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+          e.preventDefault();
+          setShowChainMenu(true);
+        }
+        return;
+      }
+
+      const currentIndex = EXPLORER_CHAINS.findIndex((c) => c.id === selectedChain);
+
+      switch (e.key) {
+        case "ArrowDown": {
+          e.preventDefault();
+          const nextIndex = (currentIndex + 1) % EXPLORER_CHAINS.length;
+          setSelectedChain(EXPLORER_CHAINS[nextIndex].id);
+          break;
+        }
+        case "ArrowUp": {
+          e.preventDefault();
+          const prevIndex = (currentIndex - 1 + EXPLORER_CHAINS.length) % EXPLORER_CHAINS.length;
+          setSelectedChain(EXPLORER_CHAINS[prevIndex].id);
+          break;
+        }
+        case "Enter":
+        case " ":
+          e.preventDefault();
+          setShowChainMenu(false);
+          break;
+      }
+    },
+    [showChainMenu, selectedChain],
+  );
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -119,9 +179,13 @@ export default function ExplorerPage() {
         {/* Chain Selector and Search Bar */}
         <div className="flex gap-2 mb-8 max-w-2xl mx-auto">
           {/* Chain Selector */}
-          <div className="relative">
+          <div className="relative" ref={chainMenuRef}>
             <button
               onClick={() => setShowChainMenu(!showChainMenu)}
+              onKeyDown={handleChainKeyDown}
+              aria-label="Select blockchain network"
+              aria-expanded={showChainMenu}
+              aria-haspopup="listbox"
               className="flex items-center gap-2 px-4 py-2 border rounded-md bg-background hover:bg-accent min-w-[160px]"
             >
               <img src={currentChain.icon} alt={currentChain.name} className="w-5 h-5" />
@@ -130,10 +194,16 @@ export default function ExplorerPage() {
             </button>
 
             {showChainMenu && (
-              <div className="absolute top-full left-0 mt-1 w-full bg-background border rounded-md shadow-lg z-50">
+              <div
+                role="listbox"
+                aria-label="Blockchain networks"
+                className="absolute top-full left-0 mt-1 w-full bg-background border rounded-md shadow-lg z-50"
+              >
                 {EXPLORER_CHAINS.map((chain) => (
                   <button
                     key={chain.id}
+                    role="option"
+                    aria-selected={selectedChain === chain.id}
                     onClick={() => {
                       setSelectedChain(chain.id);
                       setShowChainMenu(false);

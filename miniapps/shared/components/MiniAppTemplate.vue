@@ -23,15 +23,30 @@
     </NeoCard>
 
     <!-- Default / Content Tab -->
-    <view v-if="activeTab === defaultTabKey" class="tab-content">
+    <view
+      v-if="activeTab === defaultTabKey"
+      class="tab-content"
+      role="tabpanel"
+      :id="`tabpanel-${defaultTabKey}`"
+      :aria-labelledby="`tab-${defaultTabKey}`"
+    >
       <component :is="contentSlotComponent">
         <slot name="content" />
+        <template #operation>
+          <slot name="operation" />
+        </template>
       </component>
     </view>
 
     <!-- Dynamic tab slots -->
     <template v-for="tab in nonDefaultTabs" :key="tab.key">
-      <view v-if="activeTab === tab.key" class="tab-content scrollable">
+      <view
+        v-if="activeTab === tab.key"
+        class="tab-content scrollable"
+        role="tabpanel"
+        :id="`tabpanel-${tab.key}`"
+        :aria-labelledby="`tab-${tab.key}`"
+      >
         <!-- Auto-generated stats tab -->
         <template v-if="tab.key === 'stats' && hasStats && !hasSlot(`tab-stats`)">
           <NeoCard variant="erobo">
@@ -74,6 +89,7 @@ import {
   DashboardSlot,
   SwapInterfaceSlot,
   TimerHeroSlot,
+  TwoColumnSlot,
 } from "./content-slots";
 
 /**
@@ -147,6 +163,7 @@ const contentSlotMap: Record<string, unknown> = {
   dashboard: DashboardSlot,
   "swap-interface": SwapInterfaceSlot,
   "timer-hero": TimerHeroSlot,
+  "two-column": TwoColumnSlot,
   custom: "view",
 };
 

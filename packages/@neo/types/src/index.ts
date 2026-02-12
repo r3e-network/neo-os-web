@@ -1,6 +1,6 @@
 /**
  * Neo MiniApp TypeScript Types
- * 
+ *
  * This package provides TypeScript types for Neo MiniApps.
  * Types are maintained in sync with @neo/uniapp-sdk.
  */
@@ -31,8 +31,8 @@ export interface PayGASResponse {
 export interface VoteBNEOResponse {
   request_id: string;
   user_id: string;
-  intent: "vote";
-  constraints: { settlement: "NATIVE_TOKEN" };
+  intent: "governance";
+  constraints: { governance: "BNEO_ONLY" | "NEO_ONLY" };
   chain_id: ChainId;
   chain_type: ChainType;
   invocation: InvocationIntent;
@@ -41,10 +41,12 @@ export interface VoteBNEOResponse {
 }
 
 export interface InvocationIntent {
-  script: string;
-  script_hash: string;
-  operation: string;
-  args?: (string | number | boolean | null)[];
+  chain_id: ChainId;
+  chain_type: ChainType;
+  contract_address: string;
+  method: string;
+  params?: unknown[];
+  args?: unknown[];
 }
 
 export interface PaymentResult {
@@ -62,36 +64,48 @@ export interface PaymentState {
   error?: string;
 }
 
+/** Contract invocation parameters — accepts multiple naming conventions for flexibility */
+export interface ContractInvokeOptions {
+  /** Script hash of the contract (canonical Neo N3 identifier) */
+  scriptHash?: string;
+  /** Alias for scriptHash */
+  contractAddress?: string;
+  /** Alias for scriptHash */
+  contractHash?: string;
+  /** Contract method / operation name */
+  method?: string;
+  /** Alias for method */
+  operation?: string;
+  /** Invocation arguments */
+  args?: unknown[];
+  /** Target chain */
+  chainId?: ChainId;
+  /** Chain type */
+  chainType?: ChainType;
+  /** Allow additional provider-specific options */
+  [key: string]: unknown;
+}
+
 export interface WalletSDK {
   address: import("vue").Ref<string | null>;
-  chainType: import("vue").Ref<ChainType>;
-  chainId: import("vue").Ref<string>;
+  chainType: import("vue").Ref<ChainType | null>;
+  chainId: import("vue").Ref<string | null>;
   isConnected: import("vue").Ref<boolean>;
-  connect: () => Promise<string | null>;
-  disconnect: () => void;
-  invokeRead: (options: {
-    contractAddress: string;
-    operation: string;
-    args?: unknown[];
-  }) => Promise<unknown>;
-  invokeContract: (options: {
-    scriptHash: string;
-    operation: string;
-    args?: unknown[];
-  }) => Promise<{ txid: string; receiptId?: string }>;
-  switchChain: (chainType: ChainType) => Promise<boolean>;
+  connect: () => Promise<void>;
+  invokeRead: (options: ContractInvokeOptions) => Promise<unknown>;
+  invokeContract: (
+    options: ContractInvokeOptions & { args: unknown[] }
+  ) => Promise<{ txid: string; receiptId?: string }>;
+  invokeIntent: (requestId: string) => Promise<unknown>;
+  signMessage: (message: string) => Promise<unknown>;
+  switchChain: (chainId: string) => Promise<void>;
   getContractAddress: () => Promise<string | null>;
-  formatAddress: (address: string, options?: { length?: number }) => string;
-  parseAddress: (address: string) => string;
+  getBalance: (token?: string) => Promise<string | Record<string, string>>;
+  getTransactions: (limit?: number) => Promise<unknown[]>;
 }
 
 export interface EventsSDK {
-  list: (options: {
-    app_id: string;
-    event_name: string;
-    limit?: number;
-    after_id?: string;
-  }) => Promise<{
+  list: (options: { app_id: string; event_name: string; limit?: number; after_id?: string }) => Promise<{
     events: Array<{
       id: string;
       state: Record<string, unknown>;
@@ -104,8 +118,61 @@ export interface EventsSDK {
 }
 
 export interface PaymentsSDK {
-  payGAS: (
-    amount: string,
-    memo: string,
-  ) => Promise<PaymentResult>;
+  payGAS: (amount: string, memo: string) => Promise<PaymentResult>;
+}
+
+/** Result from a contract invocation */
+export interface InvokeResult {
+  txid: string;
+  txHash?: string;
+  receiptId?: string;
+}
+
+/** Async operation options for composables */
+export interface AsyncOperationOptions {
+  /** Context label for error messages */
+  context?: string;
+  /** Timeout in milliseconds */
+  timeoutMs?: number;
+  /** Error callback */
+  onError?: (error: Error) => void;
+  /** Success callback */
+  onSuccess?: (data: unknown) => void;
+  /** Whether to set loading state (default: true) */
+  setLoading?: boolean;
+  /** Whether to rethrow errors (default: false) */
+  rethrow?: boolean;
+}
+
+/** Result of an async operation */
+export type AsyncOperationResult<T> = { success: true; data: T } | { success: false; error: Error };
+
+/** State shape for async operations */
+export interface AsyncOperationState {
+  isLoading: boolean;
+  error: Error | null;
+}
+
+/** Game state for game-like miniapps */
+export interface GameState {
+  wins: number;
+  losses: number;
+  totalGames: number;
+  winRate: number;
+}
+
+/** Neo Governance Candidate */
+export interface Candidate {
+  address: string;
+  publicKey: string;
+  name?: string;
+  votes: string;
+  active: boolean;
+}
+
+/** Candidates list response */
+export interface CandidatesResponse {
+  candidates: Candidate[];
+  totalVotes: string;
+  blockHeight: number;
 }

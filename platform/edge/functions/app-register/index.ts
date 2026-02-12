@@ -70,8 +70,9 @@ export async function handler(req: Request): Promise<Response> {
   try {
     core = await parseMiniAppManifestCore(manifest);
     canonical = canonicalizeMiniAppManifest(manifest);
-  } catch (e) {
-    return errorResponse("VAL_001", { message: (e as Error).message }, req);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return errorResponse("VAL_001", { message }, req);
   }
 
   const upsertErr = await upsertMiniAppManifest({

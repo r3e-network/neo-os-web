@@ -5,7 +5,7 @@
       <text class="balance-text">{{ t("balance") }}: {{ formatAmount(balance) }}</text>
     </view>
     <view class="token-input-row">
-      <view class="token-select" @click="$emit('select-token')">
+      <view class="token-select" role="button" :aria-label="`${t('balance')}: ${symbol}`" tabindex="0" @click="$emit('select-token')" @keydown.enter="$emit('select-token')">
         <AppIcon :name="symbol.toLowerCase()" :size="32" />
         <view class="token-info">
           <text class="token-symbol">{{ symbol }}</text>

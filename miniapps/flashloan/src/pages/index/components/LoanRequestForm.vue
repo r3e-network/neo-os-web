@@ -1,10 +1,10 @@
 <template>
   <NeoCard variant="erobo" class="loan-card">
-    <view class="tabs">
-      <view :class="['tab', { active: activeTab === 'lookup' }]" @click="activeTab = 'lookup'">
+    <view class="tabs" role="tablist">
+      <view :class="['tab', { active: activeTab === 'lookup' }]" role="tab" tabindex="0" :aria-selected="activeTab === 'lookup'" :aria-label="t('tabLookup')" @click="activeTab = 'lookup'">
         <text>{{ t("tabLookup") }}</text>
       </view>
-      <view :class="['tab', { active: activeTab === 'create' }]" @click="activeTab = 'create'">
+      <view :class="['tab', { active: activeTab === 'create' }]" role="tab" tabindex="0" :aria-selected="activeTab === 'create'" :aria-label="t('tabCreate')" @click="activeTab = 'create'">
         <text>{{ t("tabCreate") }}</text>
       </view>
     </view>
@@ -201,7 +201,7 @@ const handleRequestLoan = async () => {
   
   &.active {
     color: var(--text-primary);
-    border-bottom-color: #00e599;
+    border-bottom-color: var(--flash-success);
   }
 }
 
@@ -251,13 +251,13 @@ const handleRequestLoan = async () => {
   text-align: right;
 
   &.pending {
-    color: #f59e0b;
+    color: var(--flash-pending);
   }
   &.success {
-    color: #00e599;
+    color: var(--flash-success);
   }
   &.failed {
-    color: #ef4444;
+    color: var(--flash-danger);
   }
 }
 
@@ -304,7 +304,7 @@ const handleRequestLoan = async () => {
 
 .info-text {
   font-size: 11px;
-  color: #00e599;
+  color: var(--flash-success);
   line-height: 1.5;
 }
 </style>

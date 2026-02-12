@@ -25,7 +25,7 @@ interface VersionListProps {
 }
 
 const statusConfig: Record<string, { color: string; labelKey: string }> = {
-  draft: { color: "text-gray-500", labelKey: "developer.status.draft" },
+  draft: { color: "text-erobo-ink-soft", labelKey: "developer.status.draft" },
   pending_review: { color: "text-yellow-500", labelKey: "developer.status.inReview" },
   approved: { color: "text-blue-500", labelKey: "developer.status.approved" },
   published: { color: "text-green-500", labelKey: "developer.status.published" },
@@ -47,7 +47,7 @@ export function VersionList({ versions, onPublish }: VersionListProps) {
 
   if (versions.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="text-center py-12 text-erobo-ink-soft">
         <Upload size={48} className="mx-auto mb-4 opacity-50" />
         <p>
           {t("developer.noVersionsTitle")} {t("developer.noVersionsSubtitle")}
@@ -64,12 +64,12 @@ export function VersionList({ versions, onPublish }: VersionListProps) {
           <div
             key={v.id}
             className={`rounded-xl p-4 border ${
-              v.is_current ? "bg-neo/5 border-neo/30" : "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10"
+              v.is_current ? "bg-neo/5 border-neo/30" : "bg-white dark:bg-white/5 border-erobo-purple/10 dark:border-white/10"
             }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="font-mono font-bold text-lg text-gray-900 dark:text-white">v{v.version}</div>
+                <div className="font-mono font-bold text-lg text-erobo-ink dark:text-white">v{v.version}</div>
                 {v.is_current && (
                   <span className="px-2 py-0.5 rounded-full text-xs bg-neo text-white">
                     {t("developer.current")}
@@ -101,9 +101,9 @@ export function VersionList({ versions, onPublish }: VersionListProps) {
               </div>
             </div>
 
-            {v.release_notes && <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{v.release_notes}</p>}
+            {v.release_notes && <p className="mt-2 text-sm text-erobo-ink-soft dark:text-slate-400">{v.release_notes}</p>}
 
-            <div className="mt-2 flex items-center gap-4 text-xs text-gray-400">
+            <div className="mt-2 flex items-center gap-4 text-xs text-erobo-ink-soft/60">
               <span className="flex items-center gap-1">
                 <Clock size={12} />
                 {t("developer.created", { date: new Date(v.created_at).toLocaleDateString(locale) })}

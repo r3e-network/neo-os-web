@@ -7,7 +7,7 @@
           <text class="bar-text-glass">{{ collateralUtilization }}%</text>
         </view>
       </view>
-      
+
       <view class="info-grid-glass">
         <view class="info-box-glass">
           <text class="info-label">{{ t("locked") }}</text>
@@ -27,10 +27,10 @@ import { formatNumber } from "@shared/utils/format";
 import { NeoCard } from "@shared/components";
 
 const props = defineProps<{
-  loan: any;
+  loan: Record<string, unknown>;
   availableCollateral: number;
   collateralUtilization: number;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const fmt = (n: number, d = 2) => formatNumber(n, d);
@@ -57,7 +57,7 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
 
 .bar-fill-glass {
   height: 100%;
-  background: linear-gradient(90deg, #059669, #00e599);
+  background: linear-gradient(90deg, var(--checkbook-success-deep), var(--checkbook-success));
   border-radius: 99px;
   display: flex;
   align-items: center;
@@ -70,7 +70,10 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
 
 .bar-shine {
   position: absolute;
-  top: 0; left: 0; bottom: 0; right: 0;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   transform: skewX(-20deg) translateX(-150%);
   animation: shine 2.5s infinite;
@@ -111,13 +114,23 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
   font-size: 14px;
   font-weight: 700;
   font-family: $font-mono;
-  &.locked { color: #fde047; }
-  &.available { color: #00e599; }
+  &.locked {
+    color: var(--checkbook-warning);
+  }
+  &.available {
+    color: var(--checkbook-success);
+  }
 }
 
 @keyframes shine {
-  0% { transform: skewX(-20deg) translateX(-150%); }
-  50% { transform: skewX(-20deg) translateX(250%); }
-  100% { transform: skewX(-20deg) translateX(250%); }
+  0% {
+    transform: skewX(-20deg) translateX(-150%);
+  }
+  50% {
+    transform: skewX(-20deg) translateX(250%);
+  }
+  100% {
+    transform: skewX(-20deg) translateX(250%);
+  }
 }
 </style>

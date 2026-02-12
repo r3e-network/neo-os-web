@@ -98,7 +98,7 @@ const formattedReward = computed(() => {
 .congrats-text {
   font-size: 10px;
   font-weight: 800;
-  color: #10b981;
+  color: var(--turtle-primary);
   letter-spacing: 5px;
   text-align: center;
   display: block;
@@ -106,7 +106,7 @@ const formattedReward = computed(() => {
 
 .glow-line {
   height: 2px;
-  background: linear-gradient(90deg, transparent, #10b981, transparent);
+  background: linear-gradient(90deg, transparent, var(--turtle-primary), transparent);
   margin-top: 8px;
   opacity: 0.5;
 }
@@ -144,7 +144,7 @@ const formattedReward = computed(() => {
   font-weight: 900;
   color: var(--turtle-overlay-text);
   
-  &.gold { color: #fbbf24; }
+  &.gold { color: var(--turtle-accent); }
 }
 
 @keyframes card-appear {
@@ -162,7 +162,7 @@ const formattedReward = computed(() => {
   position: absolute;
   width: 4px;
   height: 4px;
-  background: #10b981;
+  background: var(--turtle-primary);
   border-radius: 50%;
   
   &:nth-child(4n) { top: 20%; left: 30%; animation-delay: 0s; }

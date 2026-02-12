@@ -107,7 +107,7 @@ defineProps<{
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 
   &.active {
-    border-color: #00e599;
+    border-color: var(--flash-success);
     background: radial-gradient(circle, rgba(0, 229, 153, 0.1) 0%, rgba(20, 20, 30, 0.9) 70%);
     box-shadow: 0 0 20px rgba(0, 229, 153, 0.2);
   }
@@ -139,7 +139,7 @@ defineProps<{
   letter-spacing: 0.1em;
   
   &.highlight {
-    color: #00e599;
+    color: var(--flash-success);
     text-shadow: 0 0 10px rgba(0, 229, 153, 0.4);
   }
 }
@@ -167,7 +167,7 @@ defineProps<{
   position: absolute;
   top: 0; bottom: 0;
   width: 40%;
-  background: linear-gradient(90deg, transparent, #00e599, transparent);
+  background: linear-gradient(90deg, transparent, var(--flash-success), transparent);
   animation: connector-flow 1.5s infinite linear;
   
   &.delay {

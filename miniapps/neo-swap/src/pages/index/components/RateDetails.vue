@@ -1,12 +1,12 @@
 <template>
   <view class="rate-card">
-    <view class="rate-header" @click="showDetails = !showDetails">
+    <view class="rate-header" role="button" :aria-expanded="showDetails" :aria-label="t('exchangeRate')" tabindex="0" @click="showDetails = !showDetails" @keydown.enter="showDetails = !showDetails">
       <view class="rate-info">
         <text class="rate-label">{{ t("exchangeRate") }}</text>
         <text class="rate-value">1 {{ fromSymbol }} ≈ {{ exchangeRate }} {{ toSymbol }}</text>
       </view>
       <view class="rate-actions">
-        <AppIcon name="history" :size="20" class="refresh-icon" @click.stop="$emit('refresh')" />
+        <AppIcon name="history" :size="20" class="refresh-icon" role="button" :aria-label="t('exchangeRate')" tabindex="0" @click.stop="$emit('refresh')" @keydown.enter.stop="$emit('refresh')" />
         <AppIcon name="chevron-right" :size="16" :rotate="showDetails ? 270 : 90" />
       </view>
     </view>
@@ -137,9 +137,9 @@ const priceImpactClass = computed(() => {
   font-weight: 700;
   color: var(--text-primary);
 
-  &.impact-low { color: #10b981; }
-  &.impact-medium { color: #F59E0B; }
-  &.impact-high { color: #EF4444; }
+  &.impact-low { color: var(--swap-impact-low); }
+  &.impact-medium { color: var(--swap-impact-medium); }
+  &.impact-high { color: var(--swap-impact-high); }
   &.impact-na { color: var(--text-secondary); }
 }
 </style>

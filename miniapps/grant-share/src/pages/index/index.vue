@@ -9,9 +9,7 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -63,7 +61,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
+import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 
 import { useGrantProposals } from "@/composables/useGrantProposals";
@@ -118,10 +116,16 @@ const appState = computed(() => ({
   displayedProposals: displayedProposals.value,
 }));
 
-function goToDetail(grant: any) {
+const sidebarItems = computed(() => [
+  { label: t("totalPool"), value: formatCount(totalProposals.value) },
+  { label: t("activeProjects"), value: formatCount(activeProposals.value) },
+  { label: t("yourShare"), value: formatCount(displayedProposals.value) },
+]);
+
+function goToDetail(grant: Record<string, unknown>) {
   try {
     uni.setStorageSync("current_grant_detail", grant);
-  } catch (e) {
+  } catch (_e: unknown) {
     // Storage save failed - continue anyway
   }
   uni.navigateTo({
@@ -220,24 +224,6 @@ onMounted(() => {
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 
 @media (max-width: 767px) {
   .app-container {

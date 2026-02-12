@@ -88,6 +88,16 @@ export function scriptHashToAddress(scriptHash: string): string {
 }
 
 /**
+ * Coerce an unknown caught value into a proper Error instance.
+ * Avoids unsafe `as Error` casts in catch blocks.
+ */
+export function toError(value: unknown): Error {
+  if (value instanceof Error) return value;
+  if (typeof value === "string") return new Error(value);
+  return new Error(String(value));
+}
+
+/**
  * Delay execution
  */
 export function delay(ms: number): Promise<void> {
@@ -97,17 +107,13 @@ export function delay(ms: number): Promise<void> {
 /**
  * Retry a function with exponential backoff
  */
-export async function retry<T>(
-  fn: () => Promise<T>,
-  maxRetries = 3,
-  baseDelay = 1000
-): Promise<T> {
+export async function retry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 1000): Promise<T> {
   let lastError: Error | undefined;
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn();
     } catch (error) {
-      lastError = error as Error;
+      lastError = toError(error);
       if (i < maxRetries - 1) {
         await delay(baseDelay * Math.pow(2, i));
       }

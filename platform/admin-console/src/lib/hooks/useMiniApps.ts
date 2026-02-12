@@ -1,44 +1,45 @@
 // =============================================================================
 // React Query Hooks - MiniApps
+// Queries go through server-side API routes (not direct Supabase client)
 // =============================================================================
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabaseClient } from "@/lib/api-client";
 import { getAdminAuthHeaders } from "@/lib/admin-client";
 import type { MiniApp } from "@/types";
 
-/**
- * Fetch all MiniApps
- */
-async function fetchMiniApps(): Promise<MiniApp[]> {
-  return supabaseClient.query<MiniApp[]>("miniapps", {
-    select: "*",
-    order: "created_at.desc",
-  });
-}
+type MiniAppsResponse = {
+  miniapps: MiniApp[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 
 /**
- * Fetch single MiniApp by ID
+ * Fetch MiniApps via server-side API route
  */
-async function fetchMiniApp(appId: string): Promise<MiniApp> {
-  const result = await supabaseClient.query<MiniApp[]>("miniapps", {
-    select: "*",
-    app_id: `eq.${appId}`,
+async function fetchMiniApps(page: number, pageSize: number): Promise<MiniAppsResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
   });
-  if (!result || result.length === 0) {
-    throw new Error(`MiniApp ${appId} not found`);
+  const response = await fetch(`/api/miniapps?${params.toString()}`, {
+    headers: getAdminAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch MiniApps");
   }
-  return result[0];
+  return response.json();
 }
 
 /**
- * Hook to fetch all MiniApps
+ * Hook to fetch all MiniApps with pagination
  */
-export function useMiniApps() {
+export function useMiniApps(page = 1, pageSize = 50) {
   return useQuery({
-    queryKey: ["miniapps"],
-    queryFn: fetchMiniApps,
+    queryKey: ["miniapps", page, pageSize],
+    queryFn: () => fetchMiniApps(page, pageSize),
     staleTime: 60000,
+    select: (data) => data,
   });
 }
 
@@ -48,7 +49,20 @@ export function useMiniApps() {
 export function useMiniApp(appId: string) {
   return useQuery({
     queryKey: ["miniapps", appId],
-    queryFn: () => fetchMiniApp(appId),
+    queryFn: async () => {
+      const params = new URLSearchParams({ app_id: appId, pageSize: "1" });
+      const response = await fetch(`/api/miniapps?${params.toString()}`, {
+        headers: getAdminAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch MiniApp ${appId}`);
+      }
+      const data: MiniAppsResponse = await response.json();
+      if (!data.miniapps.length) {
+        throw new Error(`MiniApp ${appId} not found`);
+      }
+      return data.miniapps[0];
+    },
     enabled: !!appId,
     staleTime: 60000,
   });

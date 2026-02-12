@@ -3,27 +3,7 @@
     <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="sidebar-info">
-          <text class="sidebar-title">{{ t("popularPairs") }}</text>
-          <view class="pair-list">
-            <view
-              v-for="pair in popularPairs"
-              :key="pair.id"
-              class="pair-item"
-              :class="{ active: selectedPair === pair.id }"
-              @click="selectedPair = pair.id"
-            >
-              <view class="pair-icons">
-                <image :src="pair.fromIcon" class="pair-icon" :alt="pair.fromSymbol || t('tokenIcon')" />
-                <image :src="pair.toIcon" class="pair-icon overlap" :alt="pair.toSymbol || t('tokenIcon')" />
-              </view>
-              <view class="pair-info">
-                <text class="pair-name">{{ pair.name }}</text>
-                <text class="pair-rate">{{ pair.rate }}</text>
-              </view>
-            </view>
-          </view>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <!-- Swap Tab (default) -->
@@ -40,17 +20,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
+import { ref, computed } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import SwapTab from "./components/SwapTab.vue";
 import PoolTab from "./components/PoolTab.vue";
 
 const { t } = useI18n();
-const { chainType } = useWallet() as WalletSDK;
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "swap-interface",
@@ -79,17 +56,6 @@ const templateConfig: MiniAppTemplateConfig = {
 const activeTab = ref("swap");
 const selectedPair = ref("neo-gas");
 
-// Responsive layout
-const windowWidth = ref(window.innerWidth);
-const isMobile = computed(() => windowWidth.value < 768);
-const isDesktop = computed(() => windowWidth.value >= 1024);
-
-const handleResize = () => {
-  windowWidth.value = window.innerWidth;
-};
-onMounted(() => window.addEventListener("resize", handleResize));
-onUnmounted(() => window.removeEventListener("resize", handleResize));
-
 const popularPairs = [
   {
     id: "neo-gas",
@@ -117,17 +83,21 @@ const popularPairs = [
 const appState = computed(() => ({
   selectedPair: selectedPair.value,
 }));
+
+const sidebarItems = computed(() => [
+  { label: t("tabSwap"), value: selectedPair.value.toUpperCase() },
+  { label: t("popularPairs"), value: popularPairs.length },
+  { label: "Rate", value: popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "-" },
+]);
 </script>
 
 <style lang="scss" scoped>
-.theme-neo-swap {
-  --swap-primary: #00a651;
-  --swap-secondary: #008f45;
-  --swap-bg: #0a0a0f;
-  --swap-card-bg: rgba(255, 255, 255, 0.05);
-  --swap-text: #ffffff;
-  --swap-text-secondary: rgba(255, 255, 255, 0.7);
-  --swap-border: rgba(255, 255, 255, 0.1);
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@import "./neo-swap-theme.scss";
+
+:global(page) {
+  background: var(--swap-bg-start);
 }
 
 .tab-content {
@@ -138,17 +108,6 @@ const appState = computed(() => ({
   }
 }
 
-// Desktop Sidebar
-.sidebar-info {
-  .sidebar-title {
-    font-size: 12px;
-    color: var(--swap-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 16px;
-    display: block;
-  }
-}
 
 .pair-list {
   display: flex;

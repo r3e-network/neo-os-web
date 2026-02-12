@@ -14,7 +14,7 @@ const props = defineProps<{
   epochEndTime: number;
   epochTotalVotes: number;
   currentStrategy: string;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const formatNeo = (value: number) => formatNumber(value / 1e8, 2);

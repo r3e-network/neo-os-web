@@ -5,34 +5,7 @@ import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
-
-interface TemplateItem {
-  id: string;
-  issuer: string;
-  name: string;
-  issuerName: string;
-  category: string;
-  maxSupply: bigint;
-  issued: bigint;
-  description: string;
-  active: boolean;
-}
-
-interface CertificateItem {
-  tokenId: string;
-  templateId: string;
-  owner: string;
-  templateName: string;
-  issuerName: string;
-  category: string;
-  description: string;
-  recipientName: string;
-  achievement: string;
-  memo: string;
-  issuedTime: number;
-  revoked: boolean;
-  revokedTime: number;
-}
+import type { TemplateItem, CertificateItem } from "@/types";
 
 export function useCertificates() {
   const { t } = useI18n();
@@ -62,7 +35,7 @@ export function useCertificates() {
     }
   };
 
-  const parseTemplate = (raw: any, id: string): TemplateItem | null => {
+  const parseTemplate = (raw: Record<string, unknown>, id: string): TemplateItem | null => {
     if (!raw || typeof raw !== "object") return null;
     return {
       id,
@@ -77,7 +50,7 @@ export function useCertificates() {
     };
   };
 
-  const parseCertificate = (raw: any, tokenId: string): CertificateItem | null => {
+  const parseCertificate = (raw: Record<string, unknown>, tokenId: string): CertificateItem | null => {
     if (!raw || typeof raw !== "object") return null;
     return {
       tokenId,
@@ -112,7 +85,7 @@ export function useCertificates() {
   const fetchTemplateIds = async (issuerAddress: string) => {
     const contract = await ensureContractAddress();
     const result = await invokeRead({
-      contractAddress: contract,
+      scriptHash: contract,
       operation: "GetIssuerTemplates",
       args: [
         { type: "Hash160", value: issuerAddress },
@@ -132,12 +105,13 @@ export function useCertificates() {
   const fetchTemplateDetails = async (templateId: string) => {
     const contract = await ensureContractAddress();
     const details = await invokeRead({
-      contractAddress: contract,
+      scriptHash: contract,
       operation: "GetTemplateDetails",
       args: [{ type: "Integer", value: templateId }],
     });
-    const parsed = parseInvokeResult(details) as any;
-    return parseTemplate(parsed, templateId);
+    const parsed = parseInvokeResult(details);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parseTemplate(parsed as Record<string, unknown>, templateId);
   };
 
   const refreshTemplates = async () => {
@@ -146,7 +120,8 @@ export function useCertificates() {
       const ids = await fetchTemplateIds(address.value);
       const details = await Promise.all(ids.map(fetchTemplateDetails));
       templates.value = details.filter(Boolean) as TemplateItem[];
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: template refresh */
       templates.value = [];
     }
   };
@@ -156,7 +131,7 @@ export function useCertificates() {
     try {
       const contract = await ensureContractAddress();
       const tokenResult = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "TokensOf",
         args: [{ type: "Hash160", value: address.value }],
       });
@@ -170,13 +145,14 @@ export function useCertificates() {
       const details = await Promise.all(
         tokenIds.map(async (tokenId) => {
           const detailResult = await invokeRead({
-            contractAddress: contract,
+            scriptHash: contract,
             operation: "GetCertificateDetails",
             args: [{ type: "ByteArray", value: encodeTokenId(tokenId) }],
           });
-          const detailParsed = parseInvokeResult(detailResult) as any;
-          return parseCertificate(detailParsed, tokenId);
-        }),
+          const detailParsed = parseInvokeResult(detailResult);
+          if (!detailParsed || typeof detailParsed !== "object" || Array.isArray(detailParsed)) return null;
+          return parseCertificate(detailParsed as Record<string, unknown>, tokenId);
+        })
       );
 
       certificates.value = details.filter(Boolean) as CertificateItem[];
@@ -185,11 +161,14 @@ export function useCertificates() {
           if (!certQrs[cert.tokenId]) {
             try {
               certQrs[cert.tokenId] = await QRCode.toDataURL(cert.tokenId, { margin: 1 });
-            } catch {}
+            } catch {
+              /* QR generation is non-critical */
+            }
           }
-        }),
+        })
       );
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: certificate refresh */
       certificates.value = [];
     }
   };

@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { mount, VueWrapper } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 import Index from "./index.vue";
 
@@ -36,7 +36,7 @@ vi.mock("@shared/composables/usePaymentFlow", () => ({
       Promise.resolve({
         receiptId: "test-receipt",
         invoke: vi.fn(() => Promise.resolve({ txid: "test-txid" })),
-      }),
+      })
     ),
     waitForEvent: vi.fn(() => Promise.resolve({ state: [] })),
   }),
@@ -66,7 +66,7 @@ vi.mock("@shared/components", () => ({
 }));
 
 describe("Timestamp Proof Page", () => {
-  let wrapper: any;
+  let wrapper: VueWrapper;
 
   beforeEach(() => {
     wrapper = mount(Index, {

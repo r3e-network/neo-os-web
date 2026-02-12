@@ -61,20 +61,20 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
                     <ChainBadge key={chainId} chainId={chainId} size="xs" />
                   ))}
                   {supportedChains.length > 3 && (
-                    <span className="text-[10px] text-erobo-ink-soft/60 dark:text-gray-500">
+                    <span className="text-[10px] text-erobo-ink-soft/60 dark:text-slate-500">
                       +{supportedChains.length - 3}
                     </span>
                   )}
                 </div>
               )}
             </div>
-            <p className="text-sm font-light text-erobo-ink-soft/80 dark:text-gray-400 truncate tracking-wide group-hover:text-erobo-ink dark:group-hover:text-gray-300">
+            <p className="text-sm font-light text-erobo-ink-soft/80 dark:text-slate-400 truncate tracking-wide group-hover:text-erobo-ink dark:group-hover:text-slate-300">
               {appDesc}
             </p>
           </div>
 
           {/* Stats */}
-          <div className="hidden sm:flex items-center gap-8 text-[11px] font-bold uppercase text-erobo-ink-soft/70 dark:text-gray-400">
+          <div className="hidden sm:flex items-center gap-8 text-[11px] font-bold uppercase text-erobo-ink-soft/70 dark:text-slate-400">
             <div
               className="flex items-center gap-2 group-hover:text-erobo-purple transition-colors"
               title={t("miniapps.stats.activeUsers")}

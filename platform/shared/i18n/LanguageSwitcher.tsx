@@ -17,7 +17,8 @@ export function LanguageSwitcher({ className = "", showLabel = true }: LanguageS
       <select
         value={locale}
         onChange={(e) => setLocale(e.target.value as typeof locale)}
-        className="px-2 py-1 text-sm border rounded bg-white dark:bg-gray-800"
+        className="rounded border bg-white px-2 py-1 text-sm dark:bg-gray-800"
+        aria-label="Switch language"
       >
         {locales.map((loc) => (
           <option key={loc} value={loc}>
@@ -41,8 +42,9 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
   return (
     <button
       onClick={toggle}
-      className={`px-3 py-1 text-sm border rounded hover:bg-gray-100 ${className}`}
+      className={`rounded border px-3 py-1 text-sm hover:bg-gray-100 ${className}`}
       title="Switch Language"
+      aria-label="Switch language"
     >
       {localeNames[locale]}
     </button>

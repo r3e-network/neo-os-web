@@ -66,22 +66,22 @@ const formatNum = (n: number) => formatNumber(n, 4);
 .live-dot {
   width: 4px;
   height: 4px;
-  background: #00e599;
+  background: var(--flash-success);
   border-radius: 50%;
-  box-shadow: 0 0 5px #00e599;
+  box-shadow: 0 0 5px var(--flash-success);
   animation: pulse 1.5s infinite;
 }
 
 .live-text {
   font-size: 8px;
   font-weight: 700;
-  color: #00e599;
+  color: var(--flash-success);
   letter-spacing: 0.1em;
 }
 
 .lightning-badge {
   background: rgba(0, 229, 153, 0.2);
-  color: #00e599;
+  color: var(--flash-success);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -115,7 +115,7 @@ const formatNum = (n: number) => formatNumber(n, 4);
 
   &.gas {
     background: rgba(0, 229, 153, 0.15);
-    color: #00e599;
+    color: var(--flash-success);
     border: 1px solid rgba(0, 229, 153, 0.3);
   }
 }

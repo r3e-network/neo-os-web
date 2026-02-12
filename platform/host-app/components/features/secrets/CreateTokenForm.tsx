@@ -51,7 +51,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
       <h4 className="font-semibold">Create New Secret</h4>
       <div className="mt-3 space-y-3">
         <div>
-          <label className="block text-sm text-gray-600">Secret Type</label>
+          <label className="block text-sm text-erobo-ink-soft">Secret Type</label>
           <div className="mt-1 grid grid-cols-3 gap-2">
             {SECRET_TYPES.map((type) => (
               <button
@@ -59,7 +59,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
                 type="button"
                 onClick={() => setSecretType(type.value)}
                 className={`rounded border p-2 text-left text-sm ${
-                  secretType === type.value ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                  secretType === type.value ? "border-blue-500 bg-blue-50" : "border-erobo-purple/10"
                 }`}
               >
                 <span className="text-lg">{type.icon}</span>
@@ -69,7 +69,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           </div>
         </div>
         <div>
-          <label className="block text-sm text-gray-600">Secret Name</label>
+          <label className="block text-sm text-erobo-ink-soft">Secret Name</label>
           <input
             type="text"
             value={name}
@@ -79,7 +79,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-600">Secret Value</label>
+          <label className="block text-sm text-erobo-ink-soft">Secret Value</label>
           <div className="relative mt-1">
             <input
               type={showValue ? "text" : "password"}
@@ -91,14 +91,14 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
             <button
               type="button"
               onClick={() => setShowValue(!showValue)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-erobo-ink-soft"
             >
               {showValue ? "🙈" : "👁"}
             </button>
           </div>
         </div>
         <div>
-          <label className="block text-sm text-gray-600">App Scope</label>
+          <label className="block text-sm text-erobo-ink-soft">App Scope</label>
           <input
             type="text"
             value={appId}
@@ -106,7 +106,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
             placeholder="Leave empty for global access"
             className="mt-1 w-full rounded border px-3 py-2"
           />
-          <p className="mt-1 text-xs text-gray-500">Restrict to specific MiniApp or leave empty for all apps</p>
+          <p className="mt-1 text-xs text-erobo-ink-soft">Restrict to specific MiniApp or leave empty for all apps</p>
         </div>
       </div>
       <div className="mt-4 flex gap-2">

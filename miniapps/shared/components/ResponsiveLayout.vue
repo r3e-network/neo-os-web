@@ -92,7 +92,7 @@ const props = withDefaults(
     layout: "default",
     showBack: false,
     desktopBreakpoint: 1024,
-  },
+  }
 );
 
 const emit = defineEmits<{
@@ -161,11 +161,11 @@ const handleTabChange = (tabId: string): void => {
 };
 
 /**
- * Watch for breakpoint changes and log for debugging
+ * Watch for breakpoint changes
  */
 watch(isDesktop, (newValue, oldValue) => {
   if (oldValue !== newValue && isClient.value) {
-    console.log(`[ResponsiveLayout] Layout mode changed: ${newValue ? "desktop" : "mobile"} (${window.innerWidth}px)`);
+    // Breakpoint changed — layout will re-render automatically
   }
 });
 

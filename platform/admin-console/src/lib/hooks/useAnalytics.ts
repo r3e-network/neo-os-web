@@ -1,14 +1,14 @@
 // =============================================================================
 // React Query Hooks - Analytics
+// All queries go through server-side API routes
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
-import { supabaseClient } from "@/lib/api-client";
 import { getAdminAuthHeaders } from "@/lib/admin-client";
 import type { AnalyticsData, MiniAppUsage } from "@/types";
 
 /**
- * Fetch analytics overview data
+ * Fetch analytics overview data via server-side API route
  */
 async function fetchAnalytics(): Promise<AnalyticsData> {
   const response = await fetch("/api/analytics", { headers: getAdminAuthHeaders() });
@@ -19,17 +19,16 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
 }
 
 /**
- * Fetch MiniApp usage data
+ * Fetch MiniApp usage data via server-side API route
  */
 async function fetchMiniAppUsage(days = 30): Promise<MiniAppUsage[]> {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-
-  return supabaseClient.query<MiniAppUsage[]>("miniapp_usage", {
-    select: "*",
-    usage_date: `gte.${startDate.toISOString().split("T")[0]}`,
-    order: "usage_date.desc",
+  const response = await fetch(`/api/analytics/usage?days=${days}`, {
+    headers: getAdminAuthHeaders(),
   });
+  if (!response.ok) {
+    throw new Error("Failed to fetch usage data");
+  }
+  return response.json();
 }
 
 /**

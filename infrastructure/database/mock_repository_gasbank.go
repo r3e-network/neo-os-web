@@ -110,6 +110,20 @@ func (m *MockRepository) GetGasBankTransactions(ctx context.Context, accountID s
 	return result, nil
 }
 
+func (m *MockRepository) ExistsTransactionByReference(ctx context.Context, accountID, referenceID, txType string) (bool, error) {
+	if err := m.checkError(); err != nil {
+		return false, err
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for _, tx := range m.gasBankTransactions {
+		if tx.AccountID == accountID && tx.ReferenceID == referenceID && tx.TxType == txType {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (m *MockRepository) DeductFeeAtomic(ctx context.Context, userID string, amount int64, tx *GasBankTransaction) (int64, error) {
 	if err := m.checkError(); err != nil {
 		return 0, err

@@ -8,12 +8,10 @@
       @tab-change="activeTab = $event"
     >
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
-      <!-- Main Tab (default) -->
+      <!-- Main Tab (default) — LEFT panel -->
       <template #content>
         <ErrorBoundary
           @error="handleBoundaryError"
@@ -46,24 +44,11 @@
             </NeoCard>
           </view>
 
-          <BorrowForm
-            v-model="core.collateralAmount.value"
-            v-model:selectedTier="core.selectedTier.value"
-            :terms="core.borrowTerms.value"
-            :ltv-options="core.ltvOptions.value"
-            :platform-fee-bps="core.platformFeeBps.value"
-            :is-loading="core.isLoading.value"
-            :is-connected="!!core.address.value"
-            :validation-error="validationError"
-            :t="t as any"
-            @takeLoan="handleTakeLoan"
-          />
-
           <CollateralStatus
             :loan="core.loan.value"
             :available-collateral="core.neoBalance.value"
             :collateral-utilization="core.collateralUtilization.value"
-            :t="t as any"
+            :t="t"
           />
 
           <PositionSummary
@@ -71,14 +56,30 @@
             :terms="core.positionTerms.value"
             :health-factor="core.healthFactor.value"
             :current-l-t-v="core.currentLTV.value"
-            :t="t as any"
+            :t="t"
           />
         </ErrorBoundary>
       </template>
 
+      <!-- Main Tab — RIGHT panel -->
+      <template #operation>
+        <BorrowForm
+          v-model="core.collateralAmount.value"
+          v-model:selectedTier="core.selectedTier.value"
+          :terms="core.borrowTerms.value"
+          :ltv-options="core.ltvOptions.value"
+          :platform-fee-bps="core.platformFeeBps.value"
+          :is-loading="core.isLoading.value"
+          :is-connected="!!core.address.value"
+          :validation-error="validationError"
+          :t="t"
+          @takeLoan="handleTakeLoan"
+        />
+      </template>
+
       <!-- Stats Tab -->
       <template #tab-stats>
-        <StatsTab :stats="history.stats.value" :loan-history="history.loanHistory.value" :t="t as any" />
+        <StatsTab :stats="history.stats.value" :loan-history="history.loanHistory.value" :t="t" />
       </template>
     </MiniAppTemplate>
   </view>
@@ -88,23 +89,25 @@
 import { ref, computed, onMounted } from "vue";
 import { toFixedDecimals } from "@shared/utils/format";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import PositionSummary from "./components/PositionSummary.vue";
 import CollateralStatus from "./components/CollateralStatus.vue";
 import BorrowForm from "./components/BorrowForm.vue";
 import StatsTab from "./components/StatsTab.vue";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useSelfLoanCore } from "@/composables/useSelfLoanCore";
 import { useSelfLoanHistory } from "@/composables/useSelfLoanHistory";
 
 const { t } = useI18n();
-const { handleError, getUserMessage, canRetry, clearError } = useErrorHandler();
+const { handleError, canRetry, clearError } = useErrorHandler();
 const core = useSelfLoanCore();
 const history = useSelfLoanHistory();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "main", labelKey: "main", icon: "💰", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
@@ -134,41 +137,36 @@ const appState = computed(() => ({
   isConnected: !!core.address.value,
 }));
 
-const errorMessage = ref<string | null>(null);
+const sidebarItems = computed(() => [
+  { label: "Has Loan", value: core.loan.value ? "Yes" : "No" },
+  { label: "NEO Balance", value: core.neoBalance.value ?? "—" },
+  { label: "Health Factor", value: core.healthFactor.value ?? "—" },
+  { label: "Current LTV", value: core.currentLTV.value != null ? `${core.currentLTV.value}%` : "—" },
+]);
+
+const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
+const errorMessage = computed(() => errorStatus.value?.msg ?? null);
 const canRetryError = ref(false);
 const validationError = ref<string | null>(null);
 const lastOperation = ref<string | null>(null);
 
-let errorClearTimer: ReturnType<typeof setTimeout> | null = null;
-
-const showError = (msg: string, retryable = false) => {
-  errorMessage.value = msg;
-  canRetryError.value = retryable;
-  if (errorClearTimer) clearTimeout(errorClearTimer);
-  errorClearTimer = setTimeout(() => {
-    errorMessage.value = null;
-    canRetryError.value = false;
-    errorClearTimer = null;
-  }, 5000);
-};
-
 const connectWallet = async () => {
   try {
     await core.connect();
-  } catch (e) {
+  } catch (e: unknown) {
     handleError(e, { operation: "connectWallet" });
-    showError(getUserMessage(e));
+    setErrorStatus(formatErrorMessage(e, t("error")), "error");
   }
 };
 
 const handleBoundaryError = (error: Error) => {
   handleError(error, { operation: "selfLoanBoundaryError" });
-  showError(t("selfLoanErrorFallback"));
+  setErrorStatus(t("selfLoanErrorFallback"), "error");
 };
 
 const resetAndReload = async () => {
   clearError();
-  errorMessage.value = null;
+  clearErrorStatus();
   canRetryError.value = false;
   await fetchData();
 };
@@ -185,7 +183,7 @@ const handleTakeLoan = async (): Promise<void> => {
   const validation = core.validateCollateral(core.collateralAmount.value, core.neoBalance.value);
   if (validation) {
     validationError.value = validation;
-    core.status.value = { msg: validation, type: "error" };
+    core.setStatus(validation, "error");
     return;
   }
   validationError.value = null;
@@ -200,15 +198,15 @@ const handleTakeLoan = async (): Promise<void> => {
   if (!core.address.value) {
     try {
       await core.connect();
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "connectBeforeTakeLoan" });
-      core.status.value = { msg: getUserMessage(e), type: "error" };
+      core.setStatus(formatErrorMessage(e, t("error")), "error");
       return;
     }
   }
 
   if (!core.address.value) {
-    core.status.value = { msg: t("connectWallet"), type: "error" };
+    core.setStatus(t("connectWallet"), "error");
     return;
   }
 
@@ -228,16 +226,17 @@ const handleTakeLoan = async (): Promise<void> => {
       ],
     });
 
-    core.status.value = { msg: t("loanApproved").replace("{amount}", core.fmt(netBorrow, 2)), type: "success" };
+    core.setStatus(t("loanApproved").replace("{amount}", core.fmt(netBorrow, 2)), "success");
     core.collateralAmount.value = "";
     await fetchData();
-  } catch (e: any) {
+  } catch (e: unknown) {
     handleError(e, { operation: "takeLoan", metadata: { collateral, tier: core.selectedTier.value } });
-    const userMsg = getUserMessage(e);
+    const userMsg = formatErrorMessage(e, t("error"));
     const retryable = canRetry(e);
-    core.status.value = { msg: userMsg, type: "error" };
+    core.setStatus(userMsg, "error");
     if (retryable) {
-      showError(userMsg, true);
+      setErrorStatus(userMsg, "error");
+      canRetryError.value = true;
     }
   } finally {
     core.isLoading.value = false;
@@ -254,9 +253,10 @@ const fetchData = async () => {
     await core.fetchBalance();
     await core.loadPlatformStats();
     await history.loadHistory();
-  } catch (e) {
+  } catch (e: unknown) {
     handleError(e, { operation: "fetchData" });
-    showError(getUserMessage(e), canRetry(e));
+    setErrorStatus(formatErrorMessage(e, t("error")), "error");
+    canRetryError.value = canRetry(e);
   }
 };
 
@@ -395,22 +395,4 @@ onMounted(() => {
   font-weight: bold;
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

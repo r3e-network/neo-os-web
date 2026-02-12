@@ -34,7 +34,7 @@ export const NNTNewsFeed: FC<NNTNewsFeedProps> = ({ limit = 5, className, onArti
     return (
       <div className={cn("animate-pulse space-y-3", className)}>
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-20 bg-gray-100 dark:bg-white/5 rounded-xl" />
+          <div key={i} className="h-20 bg-erobo-purple/10 dark:bg-white/5 rounded-xl" />
         ))}
       </div>
     );
@@ -50,7 +50,7 @@ export const NNTNewsFeed: FC<NNTNewsFeedProps> = ({ limit = 5, className, onArti
       <div className="flex items-center justify-between px-2 mb-3">
         <div className="flex items-center gap-2">
           <Newspaper size={16} className="text-neo" />
-          <span className="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+          <span className="text-sm font-bold uppercase tracking-wider text-erobo-ink dark:text-white">
             {t("news.latestNews")}
           </span>
         </div>
@@ -58,7 +58,7 @@ export const NNTNewsFeed: FC<NNTNewsFeedProps> = ({ limit = 5, className, onArti
           href="https://neonewstoday.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-gray-500 dark:text-white/50 hover:text-neo flex items-center gap-1"
+          className="text-xs text-erobo-ink-soft dark:text-white/50 hover:text-neo flex items-center gap-1"
         >
           NNT <ExternalLink size={10} />
         </a>
@@ -81,27 +81,27 @@ const NNTArticleItem: FC<{ article: NNTArticle; onClick: () => void }> = ({ arti
       onClick={onClick}
       className={cn(
         "w-full text-left p-3 rounded-xl border transition-all",
-        "bg-white/80 dark:bg-white/5 border-gray-200 dark:border-white/10",
-        "hover:bg-gray-50 dark:hover:bg-white/10 hover:border-neo/30",
+        "bg-white/80 dark:bg-white/5 border-erobo-purple/10 dark:border-white/10",
+        "hover:bg-erobo-purple/5 dark:hover:bg-white/10 hover:border-neo/30",
         "cursor-pointer group",
       )}
     >
       <div className="flex gap-3">
         {/* Thumbnail */}
         {article.imageUrl && (
-          <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
+          <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-erobo-purple/10 dark:bg-white/5">
             <img src={article.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
           </div>
         )}
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-neo transition-colors">
+          <h4 className="text-sm font-semibold text-erobo-ink dark:text-white line-clamp-2 group-hover:text-neo transition-colors">
             {article.title}
           </h4>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[10px] font-medium text-neo bg-neo/10 px-1.5 py-0.5 rounded">{article.category}</span>
-            <span className="text-[10px] text-gray-400 dark:text-white/40 flex items-center gap-1">
+            <span className="text-[10px] text-erobo-ink-soft/60 dark:text-white/40 flex items-center gap-1">
               <Clock size={10} />
               {formatTimeAgoShort(article.pubDate, { t: tCommon, locale })}
             </span>

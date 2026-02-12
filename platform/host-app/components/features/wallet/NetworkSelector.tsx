@@ -79,16 +79,16 @@ export function ChainSelector({
         </span>
         <ChevronDown
           size={12}
-          className={cn("transition-transform text-gray-400 group-hover:text-erobo-purple", showMenu && "rotate-180")}
+          className={cn("transition-transform text-erobo-ink-soft/60 group-hover:text-erobo-purple", showMenu && "rotate-180")}
         />
       </button>
 
       {showMenu && (
         <div className="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-white/90 dark:bg-erobo-bg-dark/95 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.2)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
           <div className="p-2">
-            <div className="text-[10px] font-bold uppercase text-erobo-ink-soft/70 dark:text-gray-500 px-3 py-2 tracking-wider flex items-center gap-2">
+            <div className="text-[10px] font-bold uppercase text-erobo-ink-soft/70 dark:text-slate-500 px-3 py-2 tracking-wider flex items-center gap-2">
               {t("network.selectChain") || "Select Chain"}
-              <span className="flex-1 h-px bg-gray-200 dark:bg-white/10"></span>
+              <span className="flex-1 h-px bg-erobo-purple/10 dark:bg-white/10"></span>
             </div>
 
             <div className="space-y-1 max-h-[60vh] overflow-y-auto custom-scrollbar">
@@ -106,7 +106,7 @@ export function ChainSelector({
                       "flex items-center gap-3 w-full px-3 py-2.5 text-left rounded-xl transition-all duration-200",
                       isActive
                         ? "bg-erobo-purple/10 text-erobo-purple"
-                        : "hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200",
+                        : "hover:bg-erobo-purple/10 dark:hover:bg-white/5 text-erobo-ink dark:text-slate-200",
                     )}
                   >
                     <div className="relative w-5 h-5 flex items-center justify-center">
@@ -121,13 +121,13 @@ export function ChainSelector({
 
             {showSettings && (
               <>
-                <div className="border-t border-gray-200 dark:border-white/10 my-2" />
+                <div className="border-t border-erobo-purple/10 dark:border-white/10 my-2" />
                 <button
                   onClick={() => {
                     setShowMenu(false);
                     onSettingsClick?.();
                   }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-left rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500 dark:text-gray-400 hover:text-erobo-purple dark:hover:text-erobo-purple"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-left rounded-xl hover:bg-erobo-purple/10 dark:hover:bg-white/5 transition-colors text-erobo-ink-soft dark:text-slate-400 hover:text-erobo-purple dark:hover:text-erobo-purple"
                 >
                   <Settings size={14} />
                   <span className="text-sm font-medium">{t("network.rpcSettings") || "RPC Settings"}</span>

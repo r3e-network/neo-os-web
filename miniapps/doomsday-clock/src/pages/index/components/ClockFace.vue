@@ -41,7 +41,7 @@ defineProps<{
   countdown: string;
   dangerProgress: number;
   currentEventDescription: string;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 </script>
 
@@ -77,25 +77,25 @@ defineProps<{
   letter-spacing: 0.05em;
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(4px);
-  
+
   &.low {
     background: rgba(16, 185, 129, 0.2);
-    color: #34d399;
+    color: var(--doom-safe);
     border-color: rgba(16, 185, 129, 0.3);
   }
   &.medium {
     background: rgba(245, 158, 11, 0.2);
-    color: #fbbf24;
+    color: var(--doom-warn-light);
     border-color: rgba(245, 158, 11, 0.3);
   }
   &.high {
     background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
+    color: var(--doom-danger-light);
     border-color: rgba(239, 68, 68, 0.3);
   }
   &.critical {
     background: rgba(239, 68, 68, 0.3);
-    color: #fee2e2;
+    color: var(--doom-danger-light);
     border-color: rgba(239, 68, 68, 0.5);
     box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
     animation: pulse-red 1s infinite alternate;
@@ -103,8 +103,12 @@ defineProps<{
 }
 
 @keyframes pulse-red {
-  0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.4); }
-  100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.8); }
+  0% {
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
+  }
 }
 
 .clock-display-glass {
@@ -124,14 +128,14 @@ defineProps<{
   font-family: $font-mono;
   line-height: 1;
   letter-spacing: 0.05em;
-  background: linear-gradient(180deg, #ffffff, #a5b4fc);
+  background: linear-gradient(180deg, var(--doom-white), var(--doom-indigo-light));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 0 8px rgba(165, 180, 252, 0.5));
-  
+
   &.critical {
-    background: linear-gradient(180deg, #fff, #f87171);
+    background: linear-gradient(180deg, var(--doom-white), var(--doom-danger-light));
     -webkit-background-clip: text;
     background-clip: text;
     filter: drop-shadow(0 0 10px rgba(248, 113, 113, 0.6));
@@ -142,8 +146,14 @@ defineProps<{
 }
 
 @keyframes time-pulse {
-  0% { opacity: 0.8; transform: scale(0.98); }
-  100% { opacity: 1; transform: scale(1.02); }
+  0% {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
 }
 
 .danger-meter-glass {
@@ -173,19 +183,28 @@ defineProps<{
   height: 100%;
   transition: width 0.3s ease;
   /* Gradient driven by state classes */
-  background: linear-gradient(90deg, #34d399, #f59e0b, #ef4444); 
-  &.low { background: linear-gradient(90deg, #34d399, #10b981); }
-  &.medium { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
-  &.high { background: linear-gradient(90deg, #f87171, #ef4444); }
-  &.critical { background: linear-gradient(90deg, #ef4444, #b91c1c); box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+  background: linear-gradient(90deg, var(--doom-safe), var(--doom-amber), var(--doom-red));
+  &.low {
+    background: linear-gradient(90deg, var(--doom-safe), var(--doom-green));
+  }
+  &.medium {
+    background: linear-gradient(90deg, var(--doom-warn-light), var(--doom-amber));
+  }
+  &.high {
+    background: linear-gradient(90deg, var(--doom-danger-light), var(--doom-red));
+  }
+  &.critical {
+    background: linear-gradient(90deg, var(--doom-red), var(--doom-red-deep));
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  }
 }
 .meter-indicator-glass {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #fff;
-  box-shadow: 0 0 5px #fff;
+  background: var(--doom-white);
+  box-shadow: 0 0 5px var(--doom-white);
   transform: translateX(-50%);
 }
 

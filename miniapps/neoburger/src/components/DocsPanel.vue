@@ -14,7 +14,7 @@
     <view class="card doc-link-card fade-up delay-1">
       <text class="section-title">{{ t("docsLinkTitle") }}</text>
       <text class="section-text">{{ t("docsLinkText") }}</text>
-      <text class="doc-link" @click="emit('openDocs', t('docsUrl'))">{{ t("docsUrl") }}</text>
+      <text class="doc-link" role="link" tabindex="0" :aria-label="t('docsLinkTitle')" @click="emit('openDocs', t('docsUrl'))">{{ t("docsUrl") }}</text>
     </view>
   </view>
 </template>

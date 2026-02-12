@@ -4,13 +4,11 @@
       :config="templateConfig"
       :state="appState"
       :t="t"
-      :status-message="game.status"
+      :status-message="statusMsg"
       @tab-change="activeTab = $event"
     >
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -32,11 +30,11 @@
             </NeoCard>
           </view>
           <NeoCard
-            v-if="game.status"
-            :variant="game.status.type === 'error' ? 'danger' : 'success'"
+            v-if="statusMsg"
+            :variant="statusMsg.type === 'error' ? 'danger' : 'success'"
             class="mb-4 text-center"
           >
-            <text class="font-bold">{{ game.status.msg }}</text>
+            <text class="font-bold">{{ statusMsg.msg }}</text>
           </NeoCard>
           <NeoCard v-if="game.canClaim" variant="success" class="mb-4 text-center">
             <text class="mb-2 block text-xl font-bold">{{ t("youWon") }}</text>
@@ -51,7 +49,7 @@
             :estimated-cost="game.estimatedCost"
             :is-paying="game.isPaying"
             :validation-error="game.keyValidationError"
-            :t="t as any"
+            :t="t"
             @buy="handleBuyKeys"
           />
           <ClockFace
@@ -61,7 +59,7 @@
             :countdown="timer.countdown"
             :danger-progress="timer.dangerProgress"
             :current-event-description="currentEventDescription"
-            :t="t as any"
+            :t="t"
           />
         </ErrorBoundary>
       </template>
@@ -73,12 +71,12 @@
           :round-id="game.roundId"
           :last-buyer-label="game.lastBuyerLabel"
           :is-round-active="game.isRoundActive"
-          :t="t as any"
+          :t="t"
         />
       </template>
 
       <template #tab-history>
-        <HistoryList :history="game.history" :t="t as any" />
+        <HistoryList :history="game.history" :t="t" />
       </template>
     </MiniAppTemplate>
   </view>
@@ -88,20 +86,31 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { formatNumber } from "@shared/utils/format";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
-import { useErrorHandler } from "@shared/composables/useErrorHandler";
-import { useDoomsdayGame } from "@/composables/useDoomsdayGame";
-import { useDoomsdayTimer } from "@/composables/useDoomsdayTimer";
 import ClockFace from "./components/ClockFace.vue";
 import GameStats from "./components/GameStats.vue";
 import BuyKeysCard from "./components/BuyKeysCard.vue";
 import HistoryList from "./components/HistoryList.vue";
+import { useDoomsdayActions } from "@/composables/useDoomsdayActions";
 
 const { t } = useI18n();
-const { handleError, getUserMessage, canRetry, clearError } = useErrorHandler();
-const game = useDoomsdayGame();
-const timer = useDoomsdayTimer();
+
+const {
+  game,
+  timer,
+  errorMessage,
+  canRetryError,
+  statusMsg,
+  currentEventDescription,
+  connectWallet,
+  handleBoundaryError,
+  resetAndReload,
+  retryLastOperation,
+  handleBuyKeys,
+  handleClaimPrize,
+  refreshData,
+} = useDoomsdayActions();
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "timer-hero",
@@ -134,165 +143,14 @@ const appState = computed(() => ({
   isRoundActive: game.isRoundActive.value,
 }));
 
-const errorMessage = ref<string | null>(null);
-const canRetryError = ref(false);
-const lastOperation = ref<string | null>(null);
-let errorClearTimer: ReturnType<typeof setTimeout> | null = null;
+const sidebarItems = computed(() => [
+  { label: t("tabStats"), value: `#${game.roundId.value}` },
+  { label: "Total Pot", value: `${formatNumber(game.totalPot.value, 2)} GAS` },
+  { label: "Your Keys", value: game.userKeys.value },
+  { label: "Time Left", value: timer.countdown.value },
+]);
+
 let interval: ReturnType<typeof setInterval> | null = null;
-
-const showError = (msg: string, retryable = false) => {
-  errorMessage.value = msg;
-  canRetryError.value = retryable;
-  if (errorClearTimer) clearTimeout(errorClearTimer);
-  errorClearTimer = setTimeout(() => {
-    errorMessage.value = null;
-    canRetryError.value = false;
-    errorClearTimer = null;
-  }, 5000);
-};
-
-const currentEventDescription = computed(() => {
-  if (!game.isRoundActive.value) return t("inactiveRound");
-  return game.lastBuyer.value ? `${game.lastBuyerLabel.value} ${t("winnerDeclared")}` : t("roundStarted");
-});
-
-const connectWallet = async () => {
-  try {
-    await game.connect();
-  } catch (e) {
-    handleError(e, { operation: "connectWallet" });
-    showError(getUserMessage(e));
-  }
-};
-const handleBoundaryError = (error: Error) => {
-  handleError(error, { operation: "doomsdayBoundaryError" });
-  showError(t("doomsdayErrorFallback"));
-};
-const resetAndReload = async () => {
-  clearError();
-  errorMessage.value = null;
-  canRetryError.value = false;
-  await refreshData();
-};
-const retryLastOperation = () => {
-  if (lastOperation.value === "buyKeys") handleBuyKeys();
-  else if (lastOperation.value === "claimPrize") handleClaimPrize();
-};
-
-const showStatus = (msg: string, type: string) => {
-  game.status.value = { msg, type };
-  setTimeout(() => (game.status.value = null), 4000);
-};
-
-const handleBuyKeys = async () => {
-  if (game.isPaying.value) return;
-  const validation = game.validateKeyCount(game.keyCount.value);
-  if (validation) {
-    game.keyValidationError.value = validation;
-    showStatus(validation, "error");
-    return;
-  }
-  game.keyValidationError.value = null;
-  const count = Math.max(0, Math.floor(Number(game.keyCount.value) || 0));
-  if (count <= 0) {
-    showStatus(t("error"), "error");
-    return;
-  }
-  if (!game.address.value) {
-    try {
-      await game.connect();
-    } catch (e) {
-      handleError(e, { operation: "connectBeforeBuyKeys" });
-      showError(getUserMessage(e));
-      return;
-    }
-  }
-  if (!game.address.value) {
-    showError(t("connectWalletToPlay"));
-    return;
-  }
-  lastOperation.value = "buyKeys";
-  try {
-    await game.ensureContractAddress();
-    const costRaw = game.calculateKeyCostFormula(BigInt(count), game.totalKeysInRound.value);
-    const costGas = Number(costRaw) / 1e8;
-    const { receiptId, invoke } = await game.processPayment(costGas.toString(), `keys:${game.roundId.value}:${count}`);
-    if (!receiptId) throw new Error(t("receiptMissing"));
-    await invoke(
-      "buyKeysWithCost",
-      [
-        { type: "Hash160", value: game.address.value as string },
-        { type: "Integer", value: count },
-        { type: "Integer", value: costRaw.toString() },
-        { type: "Integer", value: String(receiptId) },
-      ],
-      game.contractAddress.value as string
-    );
-    game.keyCount.value = "1";
-    showStatus(t("keysPurchased"), "success");
-    await refreshData();
-  } catch (e: any) {
-    handleError(e, { operation: "buyKeys", metadata: { count, roundId: game.roundId.value } });
-    const userMsg = getUserMessage(e);
-    const retryable = canRetry(e);
-    showStatus(userMsg, "error");
-    if (retryable) showError(userMsg, true);
-  }
-};
-
-const handleClaimPrize = async () => {
-  if (game.isClaiming.value) return;
-  if (!game.address.value) {
-    try {
-      await game.connect();
-    } catch (e) {
-      handleError(e, { operation: "connectBeforeClaim" });
-      showError(getUserMessage(e));
-      return;
-    }
-  }
-  if (!game.address.value) {
-    showError(t("connectWalletToPlay"));
-    return;
-  }
-  lastOperation.value = "claimPrize";
-  try {
-    game.isClaiming.value = true;
-    await game.ensureContractAddress();
-    await game.invokeContract({
-      scriptHash: game.contractAddress.value as string,
-      operation: "checkAndEndRound",
-      args: [],
-    });
-    showStatus(t("prizeClaimed"), "success");
-    await refreshData();
-  } catch (e: any) {
-    handleError(e, { operation: "claimPrize" });
-    const userMsg = getUserMessage(e);
-    const retryable = canRetry(e);
-    showStatus(userMsg, "error");
-    if (retryable) showError(userMsg, true);
-  } finally {
-    game.isClaiming.value = false;
-  }
-};
-
-const refreshData = async () => {
-  try {
-    game.loading.value = true;
-    const remainingSeconds = await game.loadRoundData();
-    const endTime = remainingSeconds > 0 ? Date.now() + remainingSeconds * 1000 : 0;
-    timer.setEndTime(endTime);
-    timer.isRoundActive.value = game.isRoundActive.value;
-    await game.loadUserKeys();
-    await game.loadHistory();
-  } catch (e: any) {
-    handleError(e, { operation: "refreshData" });
-    showStatus(getUserMessage(e), "error");
-  } finally {
-    game.loading.value = false;
-  }
-};
 
 onMounted(async () => {
   await refreshData();
@@ -303,7 +161,6 @@ watch(game.address, async () => await game.loadUserKeys());
 
 onUnmounted(() => {
   if (interval) clearInterval(interval);
-  if (errorClearTimer) clearTimeout(errorClearTimer);
 });
 </script>
 
@@ -445,21 +302,5 @@ onUnmounted(() => {
       background: var(--doom-hover) !important;
     }
   }
-}
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 </style>

@@ -8,13 +8,13 @@
 
       <view class="share-options">
         <text class="options-title">{{ t("shareOptions") }}</text>
-        <view class="option-list">
-          <view class="option-item" @click="shareMethod = 'link'">
-            <view :class="['option-radio', { active: shareMethod === 'link' }]"></view>
+        <view class="option-list" role="radiogroup" :aria-label="t('shareOptions')">
+          <view class="option-item" role="radio" tabindex="0" :aria-checked="shareMethod === 'link'" :aria-label="t('shareViaLink')" @click="shareMethod = 'link'">
+            <view :class="['option-radio', { active: shareMethod === 'link' }]" aria-hidden="true"></view>
             <text class="option-label">{{ t("shareViaLink") }}</text>
           </view>
-          <view class="option-item" @click="shareMethod = 'address'">
-            <view :class="['option-radio', { active: shareMethod === 'address' }]"></view>
+          <view class="option-item" role="radio" tabindex="0" :aria-checked="shareMethod === 'address'" :aria-label="t('shareToAddress')" @click="shareMethod = 'address'">
+            <view :class="['option-radio', { active: shareMethod === 'address' }]" aria-hidden="true"></view>
             <text class="option-label">{{ t("shareToAddress") }}</text>
           </view>
         </view>
@@ -43,13 +43,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { NeoModal, NeoButton, NeoInput } from "@shared/components";
-
-interface PhotoItem {
-  id: string;
-  data: string;
-  encrypted: boolean;
-  createdAt: number;
-}
+import type { PhotoItem } from "@/types";
 
 const props = defineProps<{
   t: (key: string) => string;

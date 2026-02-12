@@ -85,14 +85,14 @@ defineProps<{
   
   &.up {
     background: rgba(0, 229, 153, 0.1);
-    color: #00E599;
+    color: var(--treasury-positive);
     border: 1px solid rgba(0, 229, 153, 0.2);
     box-shadow: 0 0 10px rgba(0, 229, 153, 0.1);
   }
   
   &.down {
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--treasury-negative);
     border: 1px solid rgba(239, 68, 68, 0.2);
     box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
   }

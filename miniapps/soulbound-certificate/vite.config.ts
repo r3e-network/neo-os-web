@@ -1,4 +1,4 @@
 import { createAppConfig } from "../vite.shared";
 
-// @ts-expect-error __dirname is provided by Vite at runtime
+declare const __dirname: string;
 export default createAppConfig(__dirname);

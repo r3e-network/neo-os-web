@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "GET") {
@@ -24,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.json(data);
     } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        console.error("GrantShares Proxy Error Details:", {
+        logger.error("GrantShares Proxy Error Details", {
             message: err.message,
             stack: err.stack,
             cause: (err as { cause?: unknown }).cause

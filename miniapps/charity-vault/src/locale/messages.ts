@@ -66,6 +66,7 @@ export const messages = {
 
   // Recent Donations
   recentDonations: { en: "Recent Donations", zh: "最近捐赠" },
+  youLabel: { en: "You", zh: "你" },
   anonymous: { en: "Anonymous", zh: "匿名" },
   donated: { en: "donated", zh: "捐赠了" },
   justNow: { en: "just now", zh: "刚刚" },
@@ -99,6 +100,7 @@ export const messages = {
   multisigAddresses: { en: "Multi-sig Addresses (optional)", zh: "多重签名地址（可选）" },
   multisigInfo: { en: "Additional addresses required to withdraw funds", zh: "提取资金时需要的额外地址" },
   addAddress: { en: "Add Address", zh: "添加地址" },
+  neoAddressPlaceholder: { en: "NEO address", zh: "NEO 地址" },
   campaignCreated: { en: "Campaign created successfully!", zh: "活动创建成功！" },
   fillRequiredFields: { en: "Please fill all required fields", zh: "请填写所有必填字段" },
   invalidTargetAmount: { en: "Invalid target amount", zh: "无效的目标金额" },

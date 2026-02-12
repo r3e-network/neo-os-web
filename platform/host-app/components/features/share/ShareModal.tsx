@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { X, Copy, Check, Link2, QrCode, Twitter, MessageCircle, Download, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from "@/lib/logger";
 
 export interface ShareModalProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ export function ShareModal({ isOpen, onClose, url, title, description = "", icon
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy:", err);
+      logger.error("Failed to copy:", err);
     }
   }, [url]);
 

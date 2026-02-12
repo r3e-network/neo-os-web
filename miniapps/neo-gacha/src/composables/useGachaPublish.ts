@@ -2,10 +2,10 @@ import { ref } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { parseInvokeResult, normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
+import { parseInvokeResult, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
-import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 const APP_ID = "miniapp-neo-gacha";
 
@@ -31,7 +31,6 @@ interface MachineData {
 
 export function useGachaPublish() {
   const { t } = useI18n();
-  const { handleError } = useErrorHandler();
   const { address, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
   const { waitForEvent } = usePaymentFlow(APP_ID);
 
@@ -68,9 +67,9 @@ export function useGachaPublish() {
   const publishMachine = async (
     machineData: MachineData,
     options: {
-      requireAddress: () => Promise<boolean>,
-      setStatus: (msg: string, variant: "danger" | "success" | "warning") => void,
-      onSuccess?: () => Promise<void>
+      requireAddress: () => Promise<boolean>;
+      setStatus: (msg: string, variant: "danger" | "success" | "warning") => void;
+      onSuccess?: () => Promise<void>;
     }
   ) => {
     if (isPublishing.value) return;
@@ -99,15 +98,15 @@ export function useGachaPublish() {
         ],
       });
 
-      const createTxId = String((createTx as any)?.txid || (createTx as any)?.txHash || "");
+      const createResult = createTx as unknown as Record<string, unknown> | undefined;
+      const createTxId = String(createResult?.txid || createResult?.txHash || "");
       const createdEvent = createTxId ? await waitForEvent(createTxId, "MachineCreated") : null;
       if (!createdEvent) {
         throw new Error(t("createPending"));
       }
 
-      const createdValues = Array.isArray((createdEvent as any)?.state)
-        ? (createdEvent as any).state.map(parseStackItem)
-        : [];
+      const evtRecord = createdEvent as unknown as Record<string, unknown> | null;
+      const createdValues = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
       const machineId = String(createdValues[1] ?? "");
       if (!machineId) {
         throw new Error(t("createPending"));
@@ -119,7 +118,7 @@ export function useGachaPublish() {
         if (!assetHash) {
           throw new Error(t("invalidAsset"));
         }
-        
+
         let amountRaw = "0";
         if (assetTypeValue === 1) {
           let decimals = 8;
@@ -130,6 +129,7 @@ export function useGachaPublish() {
             });
             decimals = numberFrom(parseInvokeResult(decimalsRes));
           } catch {
+            /* Token decimals read failed — default to 8 */
             decimals = 8;
           }
           amountRaw = toRawAmount(item.amount, decimals);
@@ -152,7 +152,8 @@ export function useGachaPublish() {
           ],
         });
 
-        const itemTxId = String((itemTx as any)?.txid || (itemTx as any)?.txHash || "");
+        const itemResult = itemTx as unknown as Record<string, unknown> | undefined;
+        const itemTxId = String(itemResult?.txid || itemResult?.txHash || "");
         if (itemTxId) {
           await waitForEvent(itemTxId, "MachineItemAdded");
         }
@@ -160,8 +161,8 @@ export function useGachaPublish() {
 
       options.setStatus(t("publishSuccess"), "success");
       if (options.onSuccess) await options.onSuccess();
-    } catch (e: any) {
-      options.setStatus(e?.message || t("error"), "danger");
+    } catch (e: unknown) {
+      options.setStatus(formatErrorMessage(e, t("error")), "danger");
       throw e;
     } finally {
       isPublishing.value = false;

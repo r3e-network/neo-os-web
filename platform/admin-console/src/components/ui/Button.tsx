@@ -18,9 +18,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary: "bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-600",
-      secondary: "bg-gray-200 text-gray-900 hover:bg-gray-300 focus-visible:ring-gray-500",
+      secondary: "bg-muted text-foreground hover:bg-muted/80 focus-visible:ring-muted-foreground",
       danger: "bg-danger-600 text-white hover:bg-danger-700 focus-visible:ring-danger-600",
-      ghost: "hover:bg-gray-100 text-gray-700 focus-visible:ring-gray-500",
+      ghost: "hover:bg-muted/50 text-foreground/70 focus-visible:ring-muted-foreground",
     };
 
     const sizes = {
@@ -55,7 +55,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
-  },
+  }
 );
 
 Button.displayName = "Button";

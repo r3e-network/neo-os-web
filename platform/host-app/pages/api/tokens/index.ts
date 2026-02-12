@@ -9,6 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { randomBytes, createHash } from "crypto";
 import { createHandler } from "@/lib/api";
 import { createTokenBody } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 
 export default createHandler({
   auth: "wallet",
@@ -33,13 +34,13 @@ async function handleGet(db: SupabaseClient, walletAddress: string, res: NextApi
       .limit(100);
 
     if (error) {
-      console.error("Failed to fetch tokens:", error);
+      logger.error("Failed to fetch tokens", error);
       return res.status(500).json({ error: "Failed to fetch tokens" });
     }
 
     return res.status(200).json({ tokens: data || [] });
   } catch (error) {
-    console.error("Tokens fetch error:", error);
+    logger.error("Tokens fetch error", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -64,13 +65,13 @@ async function handlePost(db: SupabaseClient, walletAddress: string, req: NextAp
     });
 
     if (error) {
-      console.error("Failed to create token:", error);
+      logger.error("Failed to create token", error);
       return res.status(500).json({ error: "Failed to create token" });
     }
 
     return res.status(201).json({ token, tokenPrefix });
   } catch (error) {
-    console.error("Token creation error:", error);
+    logger.error("Token creation error", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

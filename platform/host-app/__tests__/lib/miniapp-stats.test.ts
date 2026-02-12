@@ -86,7 +86,7 @@ afterAll(() => {
 // ---------------------------------------------------------------------------
 
 describe("Collector", () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-var-requires -- require() needed for Jest module re-import after mock setup
   const { statsCache, CACHE_TTL } = require("@/lib/miniapp-stats/collector");
 
   afterEach(() => {

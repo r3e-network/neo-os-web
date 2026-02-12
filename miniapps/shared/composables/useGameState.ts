@@ -21,10 +21,7 @@ export interface GameStateOptions {
 }
 
 /** Reactive game state interface for Vue composables */
-export interface GameState extends Omit<
-  GameStateType,
-  "wins" | "losses" | "totalGames" | "winRate"
-> {
+export interface GameState extends Omit<GameStateType, "wins" | "losses" | "totalGames" | "winRate"> {
   /** Number of wins (reactive) */
   wins: Ref<number>;
   /** Number of losses (reactive) */
@@ -54,14 +51,12 @@ export function useGameState(options: GameStateOptions = {}): GameState {
     return Math.round((wins.value / totalGames.value) * 100);
   });
 
-  const recordWin = (amount?: number) => {
+  const recordWin = (_amount?: number) => {
     wins.value++;
-    // Could track total amount won
   };
 
-  const recordLoss = (amount?: number) => {
+  const recordLoss = (_amount?: number) => {
     losses.value++;
-    // Could track total amount lost
   };
 
   const reset = () => {

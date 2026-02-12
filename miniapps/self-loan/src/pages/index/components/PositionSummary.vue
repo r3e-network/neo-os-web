@@ -3,14 +3,14 @@
     <view class="health-section">
       <text class="section-label">{{ t("healthFactor") }}</text>
       <view class="health-gauge-glass">
-        <view class="gauge-ring" :style="{ background: healthGradient }"></view>
+        <view class="gauge-ring" :class="healthGradientClass"></view>
         <view class="gauge-inner">
           <text class="gauge-value">{{ healthFactor.toFixed(2) }}</text>
           <text class="gauge-label" :class="healthStatusClass">{{ healthStatus }}</text>
         </view>
-        <view class="gauge-glow" :style="{ background: healthGlowColor }"></view>
+        <view class="gauge-glow" :class="healthGradientClass"></view>
       </view>
-      
+
       <view class="health-legend">
         <view class="legend-item">
           <view class="legend-dot safe"></view>
@@ -58,11 +58,11 @@ import { formatNumber } from "@shared/utils/format";
 import { NeoCard } from "@shared/components";
 
 const props = defineProps<{
-  loan: any;
-  terms: any;
+  loan: Record<string, unknown>;
+  terms: Record<string, unknown>;
   healthFactor: number;
   currentLTV: number;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const fmt = (n: number, d = 2) => formatNumber(n, d);
@@ -81,18 +81,11 @@ const healthStatusClass = computed(() => {
   return "text-danger";
 });
 
-const healthGradient = computed(() => {
+const healthGradientClass = computed(() => {
   const hf = props.healthFactor;
-  if (hf >= 2.0) return "conic-gradient(#00e599 0% 75%, rgba(255,255,255,0.1) 75% 100%)";
-  if (hf >= 1.5) return "conic-gradient(#fde047 0% 50%, rgba(255,255,255,0.1) 50% 100%)";
-  return "conic-gradient(#ef4444 0% 25%, rgba(255,255,255,0.1) 25% 100%)";
-});
-
-const healthGlowColor = computed(() => {
-  const hf = props.healthFactor;
-  if (hf >= 2.0) return "#00e599";
-  if (hf >= 1.5) return "#fde047";
-  return "#ef4444";
+  if (hf >= 2.0) return "health-safe";
+  if (hf >= 1.5) return "health-warning";
+  return "health-danger";
 });
 </script>
 
@@ -100,7 +93,10 @@ const healthGlowColor = computed(() => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.health-section { margin-bottom: $spacing-6; text-align: center; }
+.health-section {
+  margin-bottom: $spacing-6;
+  text-align: center;
+}
 
 .section-label {
   display: block;
@@ -131,6 +127,16 @@ const healthGlowColor = computed(() => {
   border-radius: 50%;
   mask: radial-gradient(transparent 60%, black 61%);
   -webkit-mask: radial-gradient(transparent 60%, black 61%);
+
+  &.health-safe {
+    background: conic-gradient(var(--checkbook-success) 0% 75%, rgba(255, 255, 255, 0.1) 75% 100%);
+  }
+  &.health-warning {
+    background: conic-gradient(var(--checkbook-warning) 0% 50%, rgba(255, 255, 255, 0.1) 50% 100%);
+  }
+  &.health-danger {
+    background: conic-gradient(var(--checkbook-danger) 0% 25%, rgba(255, 255, 255, 0.1) 25% 100%);
+  }
 }
 
 .gauge-inner {
@@ -155,10 +161,19 @@ const healthGlowColor = computed(() => {
   font-weight: 700;
   margin-top: 4px;
   letter-spacing: 0.05em;
-  
-  &.text-safe { color: #00e599; text-shadow: 0 0 10px rgba(0, 229, 153, 0.4); }
-  &.text-warning { color: #fde047; text-shadow: 0 0 10px rgba(253, 224, 71, 0.4); }
-  &.text-danger { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+
+  &.text-safe {
+    color: var(--checkbook-success);
+    text-shadow: 0 0 10px rgba(0, 229, 153, 0.4);
+  }
+  &.text-warning {
+    color: var(--checkbook-warning);
+    text-shadow: 0 0 10px rgba(253, 224, 71, 0.4);
+  }
+  &.text-danger {
+    color: var(--checkbook-danger);
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+  }
 }
 
 .gauge-glow {
@@ -168,6 +183,10 @@ const healthGlowColor = computed(() => {
   filter: blur(20px);
   opacity: 0.2;
   z-index: 0;
+
+  &.health-safe { background: var(--checkbook-success); }
+  &.health-warning { background: var(--checkbook-warning); }
+  &.health-danger { background: var(--checkbook-danger); }
 }
 
 .health-legend {
@@ -177,17 +196,34 @@ const healthGlowColor = computed(() => {
   margin-top: 16px;
 }
 
-.legend-item { display: flex; align-items: center; gap: 6px; }
-
-.legend-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  &.safe { background: #00e599; box-shadow: 0 0 5px #00e599; }
-  &.warning { background: #fde047; box-shadow: 0 0 5px #fde047; }
-  &.danger { background: #ef4444; box-shadow: 0 0 5px #ef4444; }
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.legend-text { font-size: 10px; color: var(--text-secondary); }
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  &.safe {
+    background: var(--checkbook-success);
+    box-shadow: 0 0 5px var(--checkbook-success);
+  }
+  &.warning {
+    background: var(--checkbook-warning);
+    box-shadow: 0 0 5px var(--checkbook-warning);
+  }
+  &.danger {
+    background: var(--checkbook-danger);
+    box-shadow: 0 0 5px var(--checkbook-danger);
+  }
+}
+
+.legend-text {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
 
 .metrics-grid {
   display: grid;
@@ -205,19 +241,36 @@ const healthGlowColor = computed(() => {
   gap: 4px;
 }
 
-.metric-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+.metric-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
 
 .metric-value {
   font-size: 18px;
   font-weight: 800;
   line-height: 1.2;
   font-family: $font-mono;
-  
-  &.borrowed { color: #fde047; }
-  &.collateral { color: #00e599; }
-  &.ltv { color: #3b82f6; }
-  &.rate { color: var(--text-primary); }
+
+  &.borrowed {
+    color: var(--checkbook-warning);
+  }
+  &.collateral {
+    color: var(--checkbook-success);
+  }
+  &.ltv {
+    color: var(--checkbook-info);
+  }
+  &.rate {
+    color: var(--text-primary);
+  }
 }
 
-.metric-unit { font-size: 9px; color: var(--text-secondary); }
+.metric-unit {
+  font-size: 9px;
+  color: var(--text-secondary);
+}
 </style>

@@ -79,15 +79,16 @@ export async function handler(req: Request): Promise<Response> {
   );
   if (vrfResult instanceof Response) return vrfResult;
 
-  const responseId = String((vrfResult as any)?.request_id ?? "").trim();
+  const vrfRecord = vrfResult as Record<string, unknown>;
+  const responseId = String(vrfRecord?.request_id ?? "").trim();
   if (responseId && responseId !== requestId) {
     return errorResponse("SERVER_002", { message: "vrf request_id mismatch" }, req);
   }
 
-  const randomnessHex = String((vrfResult as any)?.randomness ?? "").trim();
-  const signatureHex = String((vrfResult as any)?.signature ?? "").trim();
-  const publicKeyHex = String((vrfResult as any)?.public_key ?? "").trim();
-  const attestationHex = String((vrfResult as any)?.attestation_hash ?? "").trim();
+  const randomnessHex = String(vrfRecord?.randomness ?? "").trim();
+  const signatureHex = String(vrfRecord?.signature ?? "").trim();
+  const publicKeyHex = String(vrfRecord?.public_key ?? "").trim();
+  const attestationHex = String(vrfRecord?.attestation_hash ?? "").trim();
   if (!/^[0-9a-fA-F]+$/.test(randomnessHex) || randomnessHex.length < 2) {
     return errorResponse("SERVER_002", { message: "invalid randomness output" }, req);
   }

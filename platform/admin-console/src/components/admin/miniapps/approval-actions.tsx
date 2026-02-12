@@ -70,7 +70,7 @@ export function ApprovalActions({ submissionId, onSuccess }: ApprovalActionsProp
 
   if (action) {
     return (
-      <div className="flex flex-col gap-2 rounded bg-gray-50 p-3 dark:bg-gray-800">
+      <div className="bg-muted/30 flex flex-col gap-2 rounded p-3">
         <div className="flex gap-2">
           <Button
             size="sm"

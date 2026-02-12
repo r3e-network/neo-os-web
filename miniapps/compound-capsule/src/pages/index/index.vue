@@ -10,24 +10,26 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
+      <!-- Main Tab — LEFT panel -->
       <template #content>
         <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
           <text class="status-msg font-bold">{{ status.msg }}</text>
         </NeoCard>
 
+        <RewardClaim :position="position" />
+      </template>
+
+      <!-- Main Tab — RIGHT panel -->
+      <template #operation>
         <CapsuleCreate
           v-model="selectedPeriod"
           :is-loading="isLoading"
           :min-lock-days="MIN_LOCK_DAYS"
           @create="createCapsule"
         />
-
-        <RewardClaim :position="position" />
       </template>
 
       <template #tab-stats>
@@ -58,14 +60,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
+import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
+import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CapsuleCreate from "./components/CapsuleCreate.vue";
 import RewardClaim from "./components/RewardClaim.vue";
@@ -77,7 +81,7 @@ const isLoading = ref(false);
 const { t, locale } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "main", labelKey: "main", icon: "💊", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
@@ -107,8 +111,12 @@ const appState = computed(() => ({
   totalAccrued: stats.value.totalAccrued,
 }));
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
+const sidebarItems = computed(() => [
+  { label: t("totalCapsules"), value: stats.value.totalCapsules },
+  { label: t("totalLocked"), value: `${fmt(stats.value.totalLocked, 0)} NEO` },
+  { label: t("totalAccrued"), value: `${fmt(stats.value.totalAccrued, 4)} GAS` },
+]);
+
 type Vault = { totalLocked: number; totalCapsules: number };
 type Position = { deposited: number; earned: number; capsules: number };
 type Capsule = {
@@ -121,19 +129,8 @@ type Capsule = {
   status: "Ready" | "Locked";
 };
 
-const { address, connect, chainType, getContractAddress, invokeContract, invokeRead } = useWallet() as WalletSDK;
-const contractAddress = ref<string | null>(null);
-
-const ensureContractAddress = async () => {
-  if (!requireNeoChain(chainType, t)) {
-    throw new Error(t("wrongChain"));
-  }
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  if (!contractAddress.value) throw new Error(t("contractUnavailable"));
-  return contractAddress.value;
-};
+const { address, connect, chainType, invokeContract, invokeRead } = useWallet() as WalletSDK;
+const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
 
 const MIN_LOCK_DAYS = 7;
 
@@ -141,7 +138,7 @@ const vault = ref<Vault>({ totalLocked: 0, totalCapsules: 0 });
 const position = ref<Position>({ deposited: 0, earned: 0, capsules: 0 });
 const stats = ref({ totalCapsules: 0, totalLocked: 0, totalAccrued: 0 });
 const activeCapsules = ref<Capsule[]>([]);
-const status = ref<Status | null>(null);
+const { status, setStatus, clearStatus } = useStatusMessage();
 const selectedPeriod = ref<number>(30);
 
 const fmt = (n: number, d = 2) => formatNumber(n, d);
@@ -172,12 +169,12 @@ const fetchData = async () => {
   try {
     const contract = await ensureContractAddress();
     const totalResult = await invokeRead({
-      contractAddress: contract,
+      scriptHash: contract,
       operation: "TotalCapsules",
       args: [],
     });
     const totalCapsules = Number(parseInvokeResult(totalResult) || 0);
-    const lockedResult = await invokeRead({ contractAddress: contract, operation: "TotalLocked", args: [] });
+    const lockedResult = await invokeRead({ scriptHash: contract, operation: "TotalLocked", args: [] });
     const platformLocked = Number(parseInvokeResult(lockedResult) || 0);
     const userCapsules: Capsule[] = [];
     let userLocked = 0;
@@ -187,13 +184,13 @@ const fetchData = async () => {
 
     for (let i = 1; i <= totalCapsules; i++) {
       const capsuleResult = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "GetCapsuleDetails",
         args: [{ type: "Integer", value: i.toString() }],
       });
       const parsed = parseInvokeResult(capsuleResult);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        const data = parsed as Record<string, any>;
+        const data = parsed as Record<string, unknown>;
         const owner = normalizeScriptHash(String(data?.owner ?? ""));
         const principal = Number(data?.principal || 0);
         const unlockTime = Number(data?.unlockTime || 0);
@@ -224,17 +221,14 @@ const fetchData = async () => {
     activeCapsules.value = userCapsules;
     position.value = { deposited: userLocked, earned: userAccrued, capsules: userCapsules.length };
     stats.value = { totalCapsules: userCapsules.length, totalLocked: userLocked, totalAccrued: userAccrued };
-  } catch (e: any) {
-    status.value = { msg: e?.message || t("loadFailed"), type: "error" };
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("loadFailed")), "error");
   }
 };
 
-onMounted(() => {
-  fetchData();
-});
 watch(address, () => {
   fetchData();
-});
+}, { immediate: true });
 
 const createCapsule = async (): Promise<void> => {
   if (isLoading.value) return;
@@ -263,10 +257,10 @@ const createCapsule = async (): Promise<void> => {
       ],
     });
 
-    status.value = { msg: t("capsuleCreated"), type: "success" };
+    setStatus(t("capsuleCreated"), "success");
     await fetchData();
-  } catch (e: any) {
-    status.value = { msg: e.message || t("contractUnavailable"), type: "error" };
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("contractUnavailable")), "error");
   } finally {
     isLoading.value = false;
   }
@@ -290,10 +284,10 @@ const unlockCapsule = async (capsuleId: string) => {
       args: [{ type: "Integer", value: capsuleId }],
     });
 
-    status.value = { msg: t("capsuleUnlocked"), type: "success" };
+    setStatus(t("capsuleUnlocked"), "success");
     await fetchData();
-  } catch (e: any) {
-    status.value = { msg: e.message || t("unlockFailed"), type: "error" };
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("unlockFailed")), "error");
   } finally {
     isLoading.value = false;
   }
@@ -393,22 +387,4 @@ const unlockCapsule = async (capsuleId: string) => {
   font-family: "Cinzel", serif;
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

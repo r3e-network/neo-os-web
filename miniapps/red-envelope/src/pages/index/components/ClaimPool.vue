@@ -131,11 +131,6 @@ const handleClaim = (poolId: string) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 
-$gold: #f1c40f;
-$gold-dark: #d4ac0d;
-$premium-red: #c0392b;
-$premium-red-dark: #922b21;
-
 .claim-pool {
   display: flex;
   flex-direction: column;
@@ -151,7 +146,7 @@ $premium-red-dark: #922b21;
 .section-title {
   font-size: 18px;
   font-weight: 700;
-  color: $gold;
+  color: var(--envelope-gold);
 }
 
 .pool-input-row {
@@ -161,7 +156,7 @@ $premium-red-dark: #922b21;
 }
 
 .error-msg {
-  color: #e74c3c;
+  color: var(--red-envelope-error);
   font-size: 13px;
 }
 
@@ -170,9 +165,9 @@ $premium-red-dark: #922b21;
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background: rgba($gold, 0.1);
+  background: var(--red-envelope-gold-glow);
   border-radius: 10px;
-  border: 1px solid rgba($gold, 0.3);
+  border: 1px solid var(--red-envelope-gold-border);
 }
 
 .success-icon {
@@ -180,7 +175,7 @@ $premium-red-dark: #922b21;
 }
 
 .success-text {
-  color: $gold;
+  color: var(--envelope-gold);
   font-weight: 600;
   font-size: 14px;
 }
@@ -225,7 +220,7 @@ $premium-red-dark: #922b21;
   padding: 16px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 14px;
-  border: 1px solid rgba($gold, 0.2);
+  border: 1px solid var(--red-envelope-gold-glow);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -243,7 +238,7 @@ $premium-red-dark: #922b21;
 
 .pool-id {
   font-weight: 700;
-  color: $gold;
+  color: var(--envelope-gold);
   font-size: 15px;
 }
 
@@ -268,7 +263,7 @@ $premium-red-dark: #922b21;
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, $gold, $gold-dark);
+  background: linear-gradient(90deg, var(--envelope-gold), var(--envelope-gold-dark));
   border-radius: 3px;
   transition: width 0.3s;
 }

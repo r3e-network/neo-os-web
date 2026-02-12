@@ -589,8 +589,11 @@ func addressFromScriptHash(hash []byte) string {
 // confirmDeposit marks a deposit as confirmed and credits the user's balance.
 // Uses atomic database operation to ensure consistency between balance update and transaction record.
 func (s *Service) confirmDeposit(ctx context.Context, deposit *database.DepositRequest) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// Use per-user lock instead of global mutex for better concurrency.
+	// Different users' deposits can now be confirmed in parallel.
+	userLock := s.getUserLock(deposit.UserID)
+	userLock.Lock()
+	defer userLock.Unlock()
 
 	// Check for idempotency - skip if already processed
 	if s.depositTransactionExists(ctx, deposit.UserID, deposit.ID) {
@@ -641,7 +644,7 @@ func (s *Service) depositTransactionExists(ctx context.Context, accountID, depos
 		return false
 	}
 
-	txs, err := s.db.GetGasBankTransactions(ctx, accountID, 1000)
+	exists, err := s.db.ExistsTransactionByReference(ctx, accountID, depositID, string(TxTypeDeposit))
 	if err != nil {
 		s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
 			"account_id": accountID,
@@ -650,13 +653,7 @@ func (s *Service) depositTransactionExists(ctx context.Context, accountID, depos
 		return false
 	}
 
-	for _, tx := range txs {
-		if tx.ReferenceID == depositID && tx.TxType == string(TxTypeDeposit) {
-			return true
-		}
-	}
-
-	return false
+	return exists
 }
 
 // cleanupExpiredDeposits marks expired pending deposits as expired.

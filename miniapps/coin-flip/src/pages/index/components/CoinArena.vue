@@ -120,16 +120,16 @@ const statusText = computed(() => {
   position: absolute;
   top: 20px;
   right: -50px;
-  background: #ef4444;
+  background: var(--coin-loss);
   padding: 8px 60px;
   transform: rotate(45deg);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   align-items: center;
-  
+
   &.won {
-    background: #10b981;
+    background: var(--coin-win);
   }
 }
 
@@ -137,14 +137,14 @@ const statusText = computed(() => {
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 2px;
-  color: #fff;
+  color: var(--coin-white);
 }
 
 .outcome-tag {
   font-size: 8px;
   font-weight: 700;
   opacity: 0.8;
-  color: #fff;
+  color: var(--coin-white);
 }
 
 @keyframes rotate {

@@ -52,7 +52,7 @@ vi.mock("@shared/composables/usePaymentFlow", () => ({
       Promise.resolve({
         receiptId: "test-receipt-123",
         invoke: vi.fn(() => Promise.resolve({ txid: "test-txid-456" })),
-      }),
+      })
     ),
     waitForEvent: vi.fn(() => Promise.resolve({ state: [] })),
   }),
@@ -199,7 +199,7 @@ describe("Prediction Market Page", () => {
 
       const filtered = wrapper.vm.filteredMarkets;
       expect(filtered.length).toBe(2);
-      expect(filtered.every((m: any) => m.category === "crypto")).toBe(true);
+      expect(filtered.every((m: Record<string, unknown>) => m.category === "crypto")).toBe(true);
     });
   });
 
@@ -363,7 +363,7 @@ describe("Prediction Market Page", () => {
     it("should provide all category options", () => {
       const categories = wrapper.vm.categories;
       expect(categories.length).toBeGreaterThan(0);
-      expect(categories.some((c: any) => c.id === "crypto")).toBe(true);
+      expect(categories.some((c: Record<string, unknown>) => c.id === "crypto")).toBe(true);
     });
   });
 

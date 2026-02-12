@@ -1,13 +1,15 @@
 <template>
-  <view class="neo-stats">
+  <view class="neo-stats" role="list" aria-label="Statistics">
     <view
       v-for="stat in stats"
       :key="stat.label"
       class="neo-stats__item"
       :class="`neo-stats__item--${stat.variant || 'default'}`"
+      role="listitem"
+      :aria-label="`${stat.label}: ${stat.value}`"
     >
-      <text class="neo-stats__value">{{ stat.value }}</text>
-      <text class="neo-stats__label">{{ stat.label }}</text>
+      <text class="neo-stats__value" aria-hidden="true">{{ stat.value }}</text>
+      <text class="neo-stats__label" aria-hidden="true">{{ stat.label }}</text>
     </view>
   </view>
 </template>
@@ -93,6 +95,16 @@ defineProps<{
     color: var(--text-secondary, rgba(255, 255, 255, 0.5));
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-stats__item {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
   }
 }
 </style>

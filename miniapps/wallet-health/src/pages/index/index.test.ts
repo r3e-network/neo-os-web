@@ -272,14 +272,14 @@ describe("Wallet Health Index Page", () => {
     it("displays connection status", () => {
       const stats = wrapper.findComponent({ name: "NeoStats" });
       const statsData = stats.props("stats");
-      const connectionStat = statsData.find((s: any) => s.label === "Connection");
+      const connectionStat = statsData.find((s: Record<string, unknown>) => s.label === "Connection");
       expect(connectionStat).toBeDefined();
     });
 
     it("displays network status", () => {
       const stats = wrapper.findComponent({ name: "NeoStats" });
       const statsData = stats.props("stats");
-      const networkStat = statsData.find((s: any) => s.label === "Network");
+      const networkStat = statsData.find((s: Record<string, unknown>) => s.label === "Network");
       expect(networkStat).toBeDefined();
     });
   });

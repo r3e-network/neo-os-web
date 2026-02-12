@@ -69,7 +69,7 @@ defineEmits(["close"]);
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 6px;
-  color: #fbbf24;
+  color: var(--coin-gold);
   text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
 }
 
@@ -106,9 +106,9 @@ defineEmits(["close"]);
       position: absolute;
       top: -2px; left: 50%;
       width: 10px; height: 10px;
-      background: #fbbf24;
+      background: var(--coin-gold);
       border-radius: 50%;
-      box-shadow: 0 0 20px #fbbf24;
+      box-shadow: 0 0 20px var(--coin-gold);
     }
   }
 
@@ -117,7 +117,7 @@ defineEmits(["close"]);
     flex-direction: column;
     align-items: center;
     
-    .amount { font-size: 64px; font-weight: 900; color: #fff; line-height: 1; }
+    .amount { font-size: 64px; font-weight: 900; color: var(--coin-white); line-height: 1; }
     .unit { font-size: 16px; font-weight: 700; color: rgba(255, 255, 255, 0.6); letter-spacing: 2px; }
   }
 }
@@ -125,7 +125,7 @@ defineEmits(["close"]);
 .win-label {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--coin-white);
   opacity: 0.8;
 }
 
@@ -139,9 +139,9 @@ defineEmits(["close"]);
 }
 
 .is-win {
-  .congrats-text { color: #00e599; text-shadow: 0 0 20px #00e599; }
-  .reward-circle .glow-ring::before { background: #00e599; box-shadow: 0 0 20px #00e599; }
-  .amount { color: #00e599; }
+  .congrats-text { color: var(--coin-success); text-shadow: 0 0 20px var(--coin-success); }
+  .reward-circle .glow-ring::before { background: var(--coin-success); box-shadow: 0 0 20px var(--coin-success); }
+  .amount { color: var(--coin-success); }
 }
 
 @keyframes entry-pulse {
@@ -164,10 +164,10 @@ defineEmits(["close"]);
   position: absolute;
   top: 50%; left: 50%;
   width: 4px; height: 4px;
-  background: #00e599;
+  background: var(--coin-success);
   border-radius: 50%;
-  
-  &:nth-child(even) { background: #fde047; }
+
+  &:nth-child(even) { background: var(--coin-gold); }
   
   @for $i from 1 through 20 {
     &:nth-child(#{$i}) {

@@ -6,6 +6,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHandler } from "@/lib/api";
 import { discoveryQueueBody } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 
 export default createHandler({
   auth: "wallet",
@@ -28,7 +29,7 @@ async function handleGet(db: SupabaseClient, walletAddress: string, res: NextApi
     if (error) throw error;
     return res.status(200).json({ queue: data || [] });
   } catch (error) {
-    console.error("Get discovery queue error:", error);
+    logger.error("Get discovery queue error", error);
     return res.status(500).json({ error: "Failed to get queue" });
   }
 }
@@ -45,7 +46,7 @@ async function handleAction(db: SupabaseClient, walletAddress: string, req: Next
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Update discovery action error:", error);
+    logger.error("Update discovery action error", error);
     return res.status(500).json({ error: "Failed to update" });
   }
 }

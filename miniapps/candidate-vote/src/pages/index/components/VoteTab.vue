@@ -9,7 +9,7 @@
       :epoch-end-time="epochEndTime"
       :epoch-total-votes="epochTotalVotes"
       :current-strategy="currentStrategy"
-      :t="t as any"
+      :t="t"
     />
 
     <CandidateList
@@ -17,7 +17,7 @@
       :selected-candidate="selectedCandidate"
       :total-votes="totalVotes"
       :is-loading="candidatesLoading"
-      :t="t as any"
+      :t="t"
       @select="selectCandidate"
     />
 
@@ -25,7 +25,7 @@
       v-model:voteWeight="localVoteWeight"
       :selected-candidate="selectedCandidate"
       :is-loading="isLoading"
-      :t="t as any"
+      :t="t"
       @register="$emit('registerVote')"
     />
 
@@ -33,7 +33,7 @@
       :pending-rewards-value="pendingRewardsValue"
       :has-claimed="hasClaimed"
       :is-loading="isLoading"
-      :t="t as any"
+      :t="t"
       @claim="$emit('claimRewards')"
     />
   </view>
@@ -62,7 +62,7 @@ const props = defineProps<{
   selectedCandidate: Candidate | null;
   totalVotes: string;
   candidatesLoading: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const emit = defineEmits(["registerVote", "claimRewards", "update:voteWeight", "selectCandidate"]);
@@ -73,7 +73,7 @@ watch(
   () => props.voteWeight,
   (newVal) => {
     localVoteWeight.value = newVal;
-  },
+  }
 );
 
 watch(localVoteWeight, (newVal) => {

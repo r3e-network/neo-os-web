@@ -39,7 +39,12 @@
             :key="cat.id"
             class="category-option"
             :class="{ active: formData.category === cat.id }"
+            role="button"
+            tabindex="0"
+            :aria-pressed="formData.category === cat.id"
             @click="formData.category = cat.id"
+            @keydown.enter="formData.category = cat.id"
+            @keydown.space.prevent="formData.category = cat.id"
           >
             <text>{{ cat.label }}</text>
           </view>
@@ -50,7 +55,7 @@
       <view class="form-field">
         <text class="field-label">{{ t("endDate") }} *</text>
         <view class="date-input-container">
-          <input v-model="formData.endDateStr" type="datetime-local" class="field-input" />
+          <input v-model="formData.endDateStr" type="datetime-local" class="field-input" :aria-label="t('endDate')" />
         </view>
       </view>
 
@@ -96,14 +101,16 @@ interface Props {
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  submit: [data: {
-    question: string;
-    description: string;
-    category: string;
-    endDate: number;
-    oracle: string;
-    initialLiquidity: number;
-  }];
+  submit: [
+    data: {
+      question: string;
+      description: string;
+      category: string;
+      endDate: number;
+      oracle: string;
+      initialLiquidity: number;
+    },
+  ];
 }>();
 
 const formData = reactive({

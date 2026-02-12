@@ -207,12 +207,12 @@ const emitClaim = (project: ProjectItem) => emit("claim", project);
 
 .status-pill.inactive {
   background: rgba(148, 163, 184, 0.2);
-  color: #94a3b8;
+  color: var(--qf-muted);
 }
 
 .status-pill.claimed {
   background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  color: var(--qf-success-alt);
 }
 
 .empty-state {

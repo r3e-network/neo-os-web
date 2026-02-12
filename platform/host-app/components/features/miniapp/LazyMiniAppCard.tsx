@@ -43,11 +43,11 @@ export function LazyMiniAppCard({ app }: LazyMiniAppCardProps) {
 
 function CardPlaceholder({ name: _name }: { name: string }) {
   return (
-    <div className="h-full rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse">
-      <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-t-xl" />
+    <div className="h-full rounded-xl bg-erobo-purple/10 dark:bg-erobo-bg-card animate-pulse">
+      <div className="h-48 bg-erobo-purple/10 dark:bg-white/10 rounded-t-xl" />
       <div className="p-5">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+        <div className="h-6 bg-erobo-purple/10 dark:bg-white/10 rounded w-3/4 mb-2" />
+        <div className="h-4 bg-erobo-purple/10 dark:bg-white/10 rounded w-full" />
       </div>
     </div>
   );

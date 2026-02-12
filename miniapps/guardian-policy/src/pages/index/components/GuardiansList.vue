@@ -100,7 +100,7 @@ defineProps<{
   transition: all 0.3s;
   
   &.active {
-    border-color: #00e599;
+    border-color: var(--ops-success);
     animation: spin-slow 10s linear infinite;
   }
 }
@@ -145,7 +145,7 @@ defineProps<{
   justify-content: center;
   
   &.active .status-dot {
-    background: #00e599;
+    background: var(--ops-success);
     box-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
   }
 }

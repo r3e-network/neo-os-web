@@ -1,8 +1,8 @@
 <template>
   <view class="campaign-detail">
     <!-- Back Button -->
-    <view class="back-button" @click="$emit('back')">
-      <text class="back-icon">←</text>
+    <view class="back-button" role="button" tabindex="0" :aria-label="t('campaigns')" @click="$emit('back')">
+      <text class="back-icon" aria-hidden="true">←</text>
       <text>{{ t("campaigns") }}</text>
     </view>
 
@@ -10,14 +10,14 @@
     <view class="detail-header">
       <view class="detail-category">{{ getCategoryLabel(campaign.category) }}</view>
       <view class="detail-title">{{ campaign.title }}</view>
-      <view class="detail-organizer">{{ t("organizer") }}: {{ shortenAddress(campaign.organizer) }}</view>
+      <view class="detail-organizer">{{ t("organizer") }}: {{ formatAddress(campaign.organizer) }}</view>
 
       <view class="progress-section">
         <view class="progress-bar">
           <view class="progress-fill" :style="{ width: progressPercent + '%' }" />
         </view>
         <view class="progress-info">
-          <text class="raised">{{ formatAmount(campaign.raaisedAmount) }} GAS</text>
+          <text class="raised">{{ formatAmount(campaign.raisedAmount) }} GAS</text>
           <text class="target">of {{ formatAmount(campaign.targetAmount) }} GAS</text>
           <text class="percent">{{ progressPercent.toFixed(0) }}%</text>
         </view>
@@ -34,12 +34,14 @@
     <view class="donations-section">
       <view class="section-title">{{ t("recentDonations") }}</view>
       <view v-if="recentDonations.length === 0" class="empty-state">
-        <text>No donations yet</text>
+        <text>{{ t("noDonations") }}</text>
       </view>
       <view v-else class="donations-list">
         <view v-for="donation in recentDonations" :key="donation.id" class="donation-item">
           <view class="donor-info">
-            <text class="donor-name">{{ donation.donor === address ? "You" : shortenAddress(donation.donor) }}</text>
+            <text class="donor-name">{{
+              donation.donor === address ? t("youLabel") : formatAddress(donation.donor)
+            }}</text>
             <text class="donation-amount">{{ formatAmount(donation.amount) }} GAS</text>
           </view>
           <text v-if="donation.message" class="donation-message">{{ donation.message }}</text>
@@ -58,6 +60,10 @@
           :key="amount"
           class="amount-chip"
           :class="{ active: donationForm.amount === amount }"
+          role="button"
+          tabindex="0"
+          :aria-label="amount + ' GAS'"
+          :aria-pressed="donationForm.amount === amount"
           @click="donationForm.amount = amount"
         >
           <text>{{ amount }} GAS</text>
@@ -69,7 +75,7 @@
           v-model.number="donationForm.amount"
           type="number"
           class="amount-input"
-          placeholder="Custom amount"
+          :placeholder="t('customAmount')"
           min="0.1"
           step="0.1"
         />
@@ -98,25 +104,9 @@
 
 <script setup lang="ts">
 import { reactive, computed, inject } from "vue";
-
-interface CharityCampaign {
-  id: number;
-  title: string;
-  category: string;
-  organizer: string;
-  targetAmount: number;
-  raisedAmount: number;
-  endTime: number;
-  status: string;
-}
-
-interface Donation {
-  id: number;
-  donor: string;
-  amount: number;
-  message: string;
-  timestamp: number;
-}
+import { formatAddress } from "@shared/utils/format";
+import { getCategoryLabel } from "@/utils/labels";
+import type { CharityCampaign, Donation } from "@/types";
 
 interface Props {
   campaign: CharityCampaign;
@@ -129,7 +119,7 @@ const props = defineProps<Props>();
 
 const address = inject("address") as { value: string };
 
-defineEmits<{
+const emit = defineEmits<{
   back: [];
   donate: [data: { amount: number; message: string }];
 }>();
@@ -146,24 +136,6 @@ const progressPercent = computed(() => {
 
 const formatAmount = (amount: number): string => {
   return amount.toFixed(2);
-};
-
-const shortenAddress = (addr: string): string => {
-  if (addr.length <= 12) return addr;
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
-};
-
-const getCategoryLabel = (category: string): string => {
-  const labels: Record<string, string> = {
-    disaster: "Disaster Relief",
-    education: "Education",
-    health: "Healthcare",
-    environment: "Environment",
-    poverty: "Poverty Relief",
-    animals: "Animal Welfare",
-    other: "Other",
-  };
-  return labels[category] || "Other";
 };
 
 const formatTime = (timestamp: number): string => {
@@ -184,7 +156,7 @@ const isValidDonation = (): boolean => {
 
 const submitDonation = () => {
   if (!isValidDonation()) return;
-  props.$emit("donate", {
+  emit("donate", {
     amount: donationForm.amount,
     message: donationForm.message,
   });

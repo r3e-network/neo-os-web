@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Key, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/react";
+import { logger } from "@/lib/logger";
 
 interface Secret {
   id: number;
@@ -32,7 +33,7 @@ export function SecretManagement({ walletAddress }: SecretManagementProps) {
       const data = await response.json();
       setSecrets(data.secrets || []);
     } catch (error) {
-      console.error("Failed to load secrets:", error);
+      logger.error("Failed to load secrets:", error);
     } finally {
       setLoading(false);
     }
@@ -57,7 +58,7 @@ export function SecretManagement({ walletAddress }: SecretManagementProps) {
       });
       await loadSecrets();
     } catch (error) {
-      console.error("Failed to delete secret:", error);
+      logger.error("Failed to delete secret:", error);
     }
   };
 
@@ -68,7 +69,7 @@ export function SecretManagement({ walletAddress }: SecretManagementProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+            <CardTitle className="text-erobo-ink dark:text-white flex items-center gap-2">
               <Key size={20} className="text-neo" />
               {t("account.secrets.title")}
             </CardTitle>
@@ -114,16 +115,16 @@ export function SecretManagement({ walletAddress }: SecretManagementProps) {
 
 function SecretItem({ secret, onDelete }: { secret: Secret; onDelete: (id: number) => void }) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-dark-900/50 border border-gray-200 dark:border-white/5 transition-colors hover:bg-gray-100 dark:hover:bg-dark-900/80">
+    <div className="flex items-center justify-between p-4 rounded-xl bg-erobo-purple/5 dark:bg-dark-900/50 border border-erobo-purple/10 dark:border-white/5 transition-colors hover:bg-erobo-purple/10 dark:hover:bg-dark-900/80">
       <div className="flex-1">
-        <p className="text-sm font-medium text-gray-900 dark:text-white">{secret.secret_name}</p>
+        <p className="text-sm font-medium text-erobo-ink dark:text-white">{secret.secret_name}</p>
         {secret.description && <p className="text-xs text-slate-500 mt-1">{secret.description}</p>}
       </div>
       <Button
         variant="ghost"
         size="sm"
         onClick={() => onDelete(secret.id)}
-        className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
+        className="text-erobo-ink-soft/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
       >
         <Trash2 size={16} />
       </Button>
@@ -179,11 +180,11 @@ function CreateSecretForm({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-md w-full border border-gray-200 dark:border-white/10 shadow-2xl">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{t("account.secrets.create")}</h3>
+      <div className="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-md w-full border border-erobo-purple/10 dark:border-white/10 shadow-2xl">
+        <h3 className="text-lg font-semibold text-erobo-ink dark:text-white mb-6">{t("account.secrets.create")}</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5 block">
+            <label className="text-sm font-medium text-erobo-ink dark:text-slate-300 mb-1.5 block">
               {t("account.secrets.name")}
             </label>
             <Input
@@ -191,11 +192,11 @@ function CreateSecretForm({
               onChange={(e) => setName(e.target.value)}
               placeholder="API_KEY"
               required
-              className="bg-white dark:bg-dark-800 border-gray-200 dark:border-white/10"
+              className="bg-white dark:bg-dark-800 border-erobo-purple/10 dark:border-white/10"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5 block">
+            <label className="text-sm font-medium text-erobo-ink dark:text-slate-300 mb-1.5 block">
               {t("account.secrets.value")}
             </label>
             <Input
@@ -203,21 +204,21 @@ function CreateSecretForm({
               onChange={(e) => setValue(e.target.value)}
               type="password"
               required
-              className="bg-white dark:bg-dark-800 border-gray-200 dark:border-white/10"
+              className="bg-white dark:bg-dark-800 border-erobo-purple/10 dark:border-white/10"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5 block">
+            <label className="text-sm font-medium text-erobo-ink dark:text-slate-300 mb-1.5 block">
               {t("account.secrets.description")}
             </label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-white dark:bg-dark-800 border-gray-200 dark:border-white/10"
+              className="bg-white dark:bg-dark-800 border-erobo-purple/10 dark:border-white/10"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5 block">
+            <label className="text-sm font-medium text-erobo-ink dark:text-slate-300 mb-1.5 block">
               {t("account.secrets.password")}
             </label>
             <Input
@@ -225,7 +226,7 @@ function CreateSecretForm({
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               required
-              className="bg-white dark:bg-dark-800 border-gray-200 dark:border-white/10"
+              className="bg-white dark:bg-dark-800 border-erobo-purple/10 dark:border-white/10"
             />
           </div>
           {error && (

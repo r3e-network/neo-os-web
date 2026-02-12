@@ -32,7 +32,7 @@ defineProps<{
   totalBurned: number;
   rank: number;
   estimatedReward: number;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const formatNum = (n: number) => {
@@ -68,7 +68,7 @@ const formatNum = (n: number) => {
   font-size: 14px;
   font-weight: 700;
   font-family: $font-mono;
-  color: #9f9df3;
+  color: var(--burn-purple);
   text-shadow: 0 0 10px rgba(159, 157, 243, 0.3);
 }
 </style>

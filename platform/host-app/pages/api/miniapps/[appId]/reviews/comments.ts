@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { SocialComment } from "@/components/types";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
@@ -48,7 +49,7 @@ async function getComments(appId: string, req: NextApiRequest, res: NextApiRespo
   const { data: comments, error, count } = await query;
 
   if (error) {
-    console.error("Failed to fetch comments:", error);
+    logger.error("Failed to fetch comments", error);
     return res.status(500).json({ error: "Failed to fetch comments" });
   }
 
@@ -103,7 +104,7 @@ async function createComment(appId: string, req: NextApiRequest, res: NextApiRes
     .single();
 
   if (error) {
-    console.error("Failed to create comment:", error);
+    logger.error("Failed to create comment", error);
     return res.status(500).json({ error: "Failed to create comment" });
   }
 

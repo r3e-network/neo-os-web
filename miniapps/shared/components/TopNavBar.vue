@@ -1,5 +1,5 @@
 <template>
-  <view class="top-navbar" role="navigation" :aria-label="title">
+  <view class="top-navbar" role="navigation" :aria-label="title || 'Top navigation'">
     <view class="nav-left">
       <view
         v-if="showBack"
@@ -106,5 +106,15 @@ defineEmits<{
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-btn {
+    transition: none;
+
+    &:active {
+      transform: none;
+    }
+  }
 }
 </style>

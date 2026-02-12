@@ -18,7 +18,11 @@
         v-for="item in items"
         :key="item.id"
         class="history-card"
+        role="button"
+        :aria-label="shorten(item.scriptHash) + ' — ' + statusLabel(item.status)"
+        tabindex="0"
         @click="$emit('select', item.id)"
+        @keydown.enter="$emit('select', item.id)"
       >
         <view class="history-icon">
           <text class="icon-text">{{ getStatusIcon(item.status) }}</text>

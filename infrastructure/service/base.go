@@ -32,7 +32,7 @@ type BaseConfig struct {
 // It provides a consistent foundation for all marble services with:
 // - Safe stop channel management (sync.Once prevents double-close panic)
 // - Optional hydration hook for loading state on startup
-// - Background worker management
+// - Background worker management with WaitGroup for graceful shutdown
 // - Statistics provider for /info endpoint
 type BaseService struct {
 	*marble.Service
@@ -40,6 +40,7 @@ type BaseService struct {
 	// Lifecycle management
 	stopCh   chan struct{}
 	stopOnce sync.Once
+	wg       sync.WaitGroup // tracks running worker goroutines for graceful shutdown
 
 	// Extensibility hooks
 	hydrate func(context.Context) error
@@ -242,17 +243,23 @@ func (b *BaseService) Start(ctx context.Context) error {
 
 	for _, w := range b.workers {
 		worker := w
-		go worker(ctx)
+		b.wg.Add(1)
+		go func() {
+			defer b.wg.Done()
+			worker(ctx)
+		}()
 	}
 	return nil
 }
 
 // Stop signals workers and stops the underlying marble.Service.
 // This method is idempotent - calling it multiple times is safe due to sync.Once.
+// It waits for all background workers to finish before stopping the underlying service.
 func (b *BaseService) Stop() error {
 	b.stopOnce.Do(func() {
 		close(b.stopCh)
 	})
+	b.wg.Wait()
 	return b.Service.Stop()
 }
 

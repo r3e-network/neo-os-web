@@ -7,6 +7,7 @@ import { normalizeScriptHash, addressToScriptHash, parseInvokeResult, parseStack
 import { useI18n } from "@/composables/useI18n";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { HistoryEvent } from "../pages/index/components/HistoryList.vue";
 
 const APP_ID = "miniapp-doomsday-clock";
@@ -28,17 +29,17 @@ export function useDoomsdayGame() {
   const userKeys = ref(0);
   const keyCount = ref("1");
   const keyValidationError = ref<string | null>(null);
-  const status = ref<{ msg: string; type: string } | null>(null);
+  const { status, setStatus, clearStatus } = useStatusMessage();
   const history = ref<HistoryEvent[]>([]);
   const loading = ref(false);
   const isClaiming = ref(false);
   const totalKeysInRound = ref(0n);
 
   const lastBuyerLabel = computed(() => (lastBuyer.value ? formatAddress(lastBuyer.value) : "--"));
-  
+
   const lastBuyerHash = computed(() => normalizeScriptHash(String(lastBuyer.value || "")));
   const addressHash = computed(() => (address.value ? addressToScriptHash(address.value) : ""));
-  
+
   const canClaim = computed(() => {
     return (
       !isRoundActive.value &&
@@ -82,7 +83,7 @@ export function useDoomsdayGame() {
       });
       const data = parseInvokeResult(statusRes);
       if (data && typeof data === "object") {
-        const statusMap = data as Record<string, any>;
+        const statusMap = data as Record<string, unknown>;
         roundId.value = Number(statusMap.roundId || 0);
         totalPot.value = parseGas(statusMap.pot);
         isRoundActive.value = Boolean(statusMap.active);
@@ -91,7 +92,7 @@ export function useDoomsdayGame() {
         return Number(statusMap.remainingTime || 0);
       }
       return 0;
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "loadRoundData" });
       throw e;
     }
@@ -112,13 +113,13 @@ export function useDoomsdayGame() {
         ],
       });
       userKeys.value = Number(parseInvokeResult(res) || 0);
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "loadUserKeys", metadata: { roundId: roundId.value } });
       userKeys.value = 0;
     }
   };
 
-  const parseEventDate = (raw: any) => {
+  const parseEventDate = (raw: unknown) => {
     const date = raw ? new Date(raw) : new Date();
     if (Number.isNaN(date.getTime())) return new Date().toLocaleString();
     return date.toLocaleString();
@@ -134,7 +135,7 @@ export function useDoomsdayGame() {
 
       const items: HistoryEvent[] = [];
 
-      keysRes.events.forEach((evt: any) => {
+      keysRes.events.forEach((evt: Record<string, unknown>) => {
         const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
         const player = String(values[0] || "");
         const keys = Number(values[1] || 0);
@@ -147,7 +148,7 @@ export function useDoomsdayGame() {
         });
       });
 
-      winnerRes.events.forEach((evt: any) => {
+      winnerRes.events.forEach((evt: Record<string, unknown>) => {
         const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
         const winner = String(values[0] || "");
         const prize = parseGas(values[1]);
@@ -160,7 +161,7 @@ export function useDoomsdayGame() {
         });
       });
 
-      roundRes.events.forEach((evt: any) => {
+      roundRes.events.forEach((evt: Record<string, unknown>) => {
         const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
         const round = Number(values[0] || 0);
         const end = Number(values[1] || 0) * 1000;
@@ -174,7 +175,7 @@ export function useDoomsdayGame() {
       });
 
       history.value = items.sort((a, b) => b.id - a.id);
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "loadHistory" });
       history.value = [];
     }
@@ -200,6 +201,8 @@ export function useDoomsdayGame() {
     keyCount,
     keyValidationError,
     status,
+    setStatus,
+    clearStatus,
     history,
     loading,
     isClaiming,

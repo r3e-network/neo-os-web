@@ -33,7 +33,12 @@ export function PublishTrigger({ submissionId, onSuccess }: PublishTriggerProps)
     setError(null);
     setSuccess(null);
 
-    const payload: Record<string, unknown> = {
+    const payload: {
+      submission_id: string;
+      entry_url: string;
+      cdn_base_url: string;
+      assets_selected?: { icon?: string; banner?: string };
+    } = {
       submission_id: submissionId,
       entry_url: entryUrl,
       cdn_base_url: cdnBaseUrl,

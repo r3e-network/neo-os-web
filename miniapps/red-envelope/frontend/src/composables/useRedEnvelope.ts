@@ -129,7 +129,8 @@ export function useRedEnvelope() {
       const data = parseInvokeResult(res) as Record<string, unknown>;
       if (!data || !data.creator) return null;
       return mapEnvelopeData(envelopeId, data);
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: envelope state fetch */
       return null;
     }
   };
@@ -156,8 +157,8 @@ export function useRedEnvelope() {
       }
       const results = await Promise.all(promises);
       envelopes.value = results.filter(Boolean) as EnvelopeItem[];
-    } catch {
-      // silent
+    } catch (e: unknown) {
+      /* non-critical: envelope list load */
     } finally {
       loadingEnvelopes.value = false;
     }

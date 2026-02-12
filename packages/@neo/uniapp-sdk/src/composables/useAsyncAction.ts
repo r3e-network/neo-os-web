@@ -3,6 +3,7 @@
  * Eliminates repeated loading/error state management pattern
  */
 import { ref, type Ref } from "vue";
+import { toError } from "../utils";
 
 export interface AsyncActionState {
   isLoading: Ref<boolean>;
@@ -19,7 +20,7 @@ export interface AsyncActionResult<T, Args extends unknown[] = unknown[]> extend
  * @returns Object with isLoading, error refs and execute function
  */
 export function useAsyncAction<T, Args extends unknown[]>(
-  action: (...args: Args) => Promise<T>,
+  action: (...args: Args) => Promise<T>
 ): AsyncActionResult<T, Args> {
   const isLoading = ref(false);
   const error = ref<Error | null>(null);
@@ -29,8 +30,8 @@ export function useAsyncAction<T, Args extends unknown[]>(
     error.value = null;
     try {
       return await action(...args);
-    } catch (e) {
-      error.value = e as Error;
+    } catch (e: unknown) {
+      error.value = toError(e);
       throw e;
     } finally {
       isLoading.value = false;

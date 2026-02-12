@@ -28,7 +28,7 @@ describe("useScratchCard", () => {
             { type: "Integer", value: 0 },
           ],
         });
-        return { ticketId: (result as any).receiptId };
+        return { ticketId: (result as Record<string, unknown>).receiptId };
       };
 
       const result = await buyTicket(1);

@@ -97,8 +97,9 @@ export async function handler(req: Request): Promise<Response> {
   let amount: bigint;
   try {
     amount = parseDecimalToInt(String(body.amount_gas), 8);
-  } catch (e) {
-    return validationError("amount_gas", `amount_gas invalid: ${(e as Error).message}`, req);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return validationError("amount_gas", `amount_gas invalid: ${message}`, req);
   }
 
   if (amount <= 0n) return validationError("amount_gas", "amount must be > 0", req);

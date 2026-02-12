@@ -1,13 +1,8 @@
 <template>
   <view class="founders-section">
     <text class="section-title">{{ t("founders") }}</text>
-    
-    <view 
-      v-for="cat in categories" 
-      :key="cat.name" 
-      class="founder-item"
-      @click="$emit('select', cat.name)"
-    >
+
+    <view v-for="cat in categories" :key="cat.name" class="founder-item" role="button" tabindex="0" :aria-label="cat.name" @click="$emit('select', cat.name)">
       <view class="founder-main">
         <view class="founder-icon">
           <AppIcon name="user" :size="32" />
@@ -21,7 +16,7 @@
           <AppIcon name="chevron-right" :size="20" class="arrow" />
         </view>
       </view>
-      
+
       <view class="founder-breakdown">
         <view class="breakdown-item">
           <text class="b-label">NEO</text>
@@ -42,15 +37,15 @@ import type { CategoryBalance } from "@/utils/treasury";
 
 defineProps<{
   categories: CategoryBalance[];
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["select"]);
 
 const formatNum = (n: number, decimals = 0): string => {
-  return n.toLocaleString("en-US", { 
+  return n.toLocaleString("en-US", {
     minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals 
+    maximumFractionDigits: decimals,
   });
 };
 </script>
@@ -81,14 +76,14 @@ const formatNum = (n: number, decimals = 0): string => {
   cursor: pointer;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  
+
   &:hover {
     transform: translateY(-4px);
     border-color: rgba(159, 157, 243, 0.4);
     background: linear-gradient(135deg, rgba(159, 157, 243, 0.1) 0%, rgba(123, 121, 209, 0.06) 100%);
     box-shadow: 0 12px 40px rgba(159, 157, 243, 0.2);
   }
-  
+
   &:active {
     transform: scale(0.98);
   }
@@ -107,7 +102,7 @@ const formatNum = (n: number, decimals = 0): string => {
   background: var(--bg-card, rgba(255, 255, 255, 0.05));
   border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
   border-radius: 50%;
-  color: #00E599;
+  color: var(--treasury-neo-green);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -161,7 +156,7 @@ const formatNum = (n: number, decimals = 0): string => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
+
   &:first-child {
     border-right: 1px solid rgba(255, 255, 255, 0.05);
   }
@@ -188,9 +183,11 @@ const formatNum = (n: number, decimals = 0): string => {
 
 .founder-item:hover .arrow {
   transform: translateX(4px);
-  color: #00E599;
+  color: var(--treasury-neo-green);
   opacity: 1;
 }
 
-.mb-4 { margin-bottom: 24px; }
+.mb-4 {
+  margin-bottom: 24px;
+}
 </style>

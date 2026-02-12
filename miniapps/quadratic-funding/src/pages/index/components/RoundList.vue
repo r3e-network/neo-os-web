@@ -206,7 +206,7 @@ const emitSelect = (round: RoundItem) => emit("select", round);
 
 .status-pill.upcoming {
   background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+  color: var(--qf-info);
 }
 
 .status-pill.ended {
@@ -216,12 +216,12 @@ const emitSelect = (round: RoundItem) => emit("select", round);
 
 .status-pill.finalized {
   background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  color: var(--qf-success);
 }
 
 .status-pill.cancelled {
   background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
+  color: var(--qf-danger);
 }
 
 .empty-state {

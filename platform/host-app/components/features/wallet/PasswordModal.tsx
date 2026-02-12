@@ -84,7 +84,7 @@ export function PasswordModal({ open, onClose, onSubmit, title, description }: P
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-erobo-ink-soft hover:text-erobo-ink"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>

@@ -15,17 +15,12 @@
         @input="onInput"
       />
     </view>
-    <view v-if="showMax" class="max-btn" @click="$emit('max')">{{ t("max") }}</view>
+    <view v-if="showMax" class="max-btn" role="button" :aria-label="t('max')" tabindex="0" @click="$emit('max')" @keydown.enter="$emit('max')">{{ t("max") }}</view>
   </view>
 </template>
 
 <script setup lang="ts">
-interface Token {
-  symbol: string;
-  hash: string;
-  balance: number;
-  decimals: number;
-}
+import type { Token } from "@/types";
 
 const props = defineProps<{
   t: (key: string) => string;
@@ -47,7 +42,7 @@ function formatBalance(balance: number): string {
   return balance.toFixed(4);
 }
 
-function onInput(e: any) {
+function onInput(e: Record<string, unknown>) {
   emit("update:modelValue", e.detail?.value || e.target?.value || "");
 }
 </script>
@@ -85,7 +80,7 @@ function onInput(e: any) {
   font-size: 11px;
   font-weight: 600;
   color: var(--swap-text-subtle);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
 }
 
 .token-row {
@@ -102,7 +97,7 @@ function onInput(e: any) {
   font-weight: 700;
   color: var(--swap-text);
   text-align: right;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 
   &::placeholder {
     color: var(--swap-text-dim);

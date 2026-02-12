@@ -6,6 +6,7 @@
 
 import { invokeRead, type StackItem } from "./rpc-functions";
 import type { ChainId } from "./types";
+import { logger } from "@/lib/logger";
 
 // ============================================================================
 // Multi-Chain Contract Configuration
@@ -142,7 +143,7 @@ export async function getGameState(contractAddress: string, chainId: ChainId): P
       roundId: Number(parseInteger(roundRes.stack[0])),
     };
   } catch (err) {
-    console.warn("getGameState failed:", contractAddress, err);
+    logger.warn("getGameState failed:", contractAddress, err);
   }
   return { currentMultiplier: 1.0, playerCount: 0, totalBets: "0", roundId: 0 };
 }
@@ -179,7 +180,7 @@ export async function getVotingState(contractAddress: string | undefined, chainI
       return { proposalId, title, options, totalVotes, endTime };
     }
   } catch (err) {
-    console.warn("getVotingState failed:", hash, err);
+    logger.warn("getVotingState failed:", hash, err);
   }
   return { proposalId: 0, title: "No Active Proposal", options: [], totalVotes: 0, endTime: 0 };
 }
@@ -203,7 +204,7 @@ export async function getContractStats(contractAddress: string, chainId: ChainId
       };
     }
   } catch (err) {
-    console.warn("getContractStats failed:", contractAddress, err);
+    logger.warn("getContractStats failed:", contractAddress, err);
   }
   return { totalValueLocked: "0", totalTransactions: 0, uniqueUsers: 0 };
 }

@@ -49,13 +49,7 @@
 
 <script setup lang="ts">
 import { NeoButton, NeoCard } from "@shared/components";
-
-interface HistoryItem {
-  id: string;
-  hash: string;
-  time: string;
-  forgotten?: boolean;
-}
+import type { HistoryItem } from "@/types";
 
 defineProps<{
   history: HistoryItem[];

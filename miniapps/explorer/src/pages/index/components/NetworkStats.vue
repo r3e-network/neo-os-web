@@ -15,7 +15,7 @@ import { NeoCard, NeoStats, type StatItem } from "@shared/components";
 defineProps<{
   mainnetStats: StatItem[];
   testnetStats: StatItem[];
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 </script>
 
@@ -28,6 +28,10 @@ defineProps<{
   flex-direction: column;
   gap: 16px;
 }
-.flex-1 { flex: 1; }
-.mb-6 { margin-bottom: 24px; }
+.flex-1 {
+  flex: 1;
+}
+.mb-6 {
+  margin-bottom: 24px;
+}
 </style>

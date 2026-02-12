@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/chain"
 )
 
 type Allowlist struct {
@@ -79,19 +81,7 @@ func (a *Allowlist) Allows(contractAddress, method string) bool {
 }
 
 func normalizeContractAddress(raw string) string {
-	raw = strings.TrimSpace(raw)
-	raw = strings.TrimPrefix(raw, "0x")
-	raw = strings.TrimPrefix(raw, "0X")
-	raw = strings.ToLower(strings.TrimSpace(raw))
-	if len(raw) != 40 {
-		return ""
-	}
-	for _, ch := range raw {
-		if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') {
-			return ""
-		}
-	}
-	return raw
+	return chain.NormalizeContractAddress(raw)
 }
 
 func canonicalizeMethodName(method string) string {

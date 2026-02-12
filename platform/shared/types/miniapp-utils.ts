@@ -1,7 +1,17 @@
 // Shared MiniApp Utilities
 import type { MiniAppCategory, MiniAppInfo, MiniAppPermissions } from "./miniapp";
 
-const VALID_CATEGORIES: MiniAppCategory[] = ["gaming", "defi", "governance", "utility", "social", "nft"];
+const VALID_CATEGORIES: MiniAppCategory[] = [
+  "gaming",
+  "defi",
+  "governance",
+  "utility",
+  "social",
+  "nft",
+  "creative",
+  "security",
+  "tools",
+];
 
 export function normalizeCategory(value: unknown): MiniAppCategory {
   if (typeof value === "string" && VALID_CATEGORIES.includes(value as MiniAppCategory)) {
@@ -19,6 +29,7 @@ export function normalizePermissions(value: unknown): MiniAppPermissions {
     rng: Boolean(v.rng),
     datafeed: Boolean(v.datafeed),
     confidential: Boolean(v.confidential),
+    automation: Boolean(v.automation),
   };
 }
 

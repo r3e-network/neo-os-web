@@ -142,7 +142,7 @@ const handleGetAddress: BridgeHandler = async ({ sdk, walletAddress, params }) =
         return account;
       }
     }
-  } catch (e) {
+  } catch {
     // Ignore if multi-chain store lookup fails
   }
 

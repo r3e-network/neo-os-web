@@ -20,7 +20,7 @@ import { NeoCard } from "@shared/components";
 
 defineProps<{
   readingsCount: number;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 </script>
 
@@ -34,7 +34,9 @@ defineProps<{
   padding: 16px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   align-items: center;
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .stat-label-glass {
@@ -49,7 +51,7 @@ defineProps<{
   font-weight: 700;
   font-family: $font-mono;
   font-size: 16px;
-  color: #34d399; /* Green for values */
+  color: var(--tarot-stat-value);
   text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
 }
 </style>

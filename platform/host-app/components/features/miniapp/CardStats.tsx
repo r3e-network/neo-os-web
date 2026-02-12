@@ -15,7 +15,7 @@ export function StatItem({ icon, value, label, iconBgClass = "bg-erobo-purple/10
     <div className="flex items-center gap-1.5" title={label}>
       <div className={`p-1 rounded-full ${iconBgClass}`}>{icon}</div>
       <div className="flex flex-col">
-        <span suppressHydrationWarning className="text-xs font-bold text-erobo-ink dark:text-gray-200 leading-none">
+        <span suppressHydrationWarning className="text-xs font-bold text-erobo-ink dark:text-slate-200 leading-none">
           {formatNumber(value)}
         </span>
         <span className="text-[9px] text-erobo-ink-soft/60 uppercase font-medium leading-none mt-0.5">{label}</span>

@@ -1,5 +1,5 @@
 <template>
-  <view class="blur-glow" :style="glowStyle">
+  <view class="blur-glow" :style="glowStyle" aria-hidden="true">
     <view class="blur-glow__effect" :style="effectStyle" />
     <view class="blur-glow__content">
       <slot />
@@ -77,6 +77,12 @@ const effectStyle = computed(() => ({
   &__content {
     position: relative;
     z-index: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blur-glow__effect {
+    transition: none;
   }
 }
 </style>

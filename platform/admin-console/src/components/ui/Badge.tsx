@@ -12,11 +12,11 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
   ({ className, variant = "default", children, ...props }, ref) => {
     const variants = {
-      success: "bg-success-50 text-success-700 ring-success-600/20",
-      warning: "bg-warning-50 text-warning-700 ring-warning-600/20",
-      danger: "bg-danger-50 text-danger-700 ring-danger-600/20",
-      info: "bg-primary-50 text-primary-700 ring-primary-600/20",
-      default: "bg-gray-50 text-gray-700 ring-gray-600/20",
+      success: "bg-emerald-400/10 text-emerald-400 ring-emerald-400/20",
+      warning: "bg-amber-400/10 text-amber-400 ring-amber-400/20",
+      danger: "bg-red-400/10 text-red-400 ring-red-400/20",
+      info: "bg-primary-400/10 text-primary-400 ring-primary-400/20",
+      default: "bg-muted/30 text-muted-foreground ring-border/20",
     };
 
     return (
@@ -25,14 +25,14 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
         className={cn(
           "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
           variants[variant],
-          className,
+          className
         )}
         {...props}
       >
         {children}
       </span>
     );
-  },
+  }
 );
 
 Badge.displayName = "Badge";

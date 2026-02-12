@@ -1,14 +1,18 @@
 <template>
   <view class="neo-input" :class="{ 'neo-input--error': error, 'neo-input--disabled': disabled }">
-    <text v-if="label" class="neo-input__label">{{ label }}</text>
+    <text v-if="label" :id="`${inputId}-label`" class="neo-input__label">{{ label }}</text>
     <view class="neo-input__wrapper">
       <textarea
         v-if="type === 'textarea'"
+        :id="inputId"
         :value="modelValue"
         :placeholder="placeholder"
         :disabled="disabled"
+        :aria-label="ariaLabel || (!label ? placeholder : undefined)"
+        :aria-labelledby="label ? `${inputId}-label` : undefined"
         :aria-describedby="error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined"
-        :aria-invalid="!!error"
+        :aria-invalid="!!error || undefined"
+        :aria-required="required || undefined"
         class="neo-input__field neo-input__textarea"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         @focus="$emit('focus', $event)"
@@ -16,12 +20,16 @@
       />
       <input
         v-else
+        :id="inputId"
         :value="modelValue"
         :type="type"
         :placeholder="placeholder"
         :disabled="disabled"
+        :aria-label="ariaLabel || (!label ? placeholder : undefined)"
+        :aria-labelledby="label ? `${inputId}-label` : undefined"
         :aria-describedby="error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined"
-        :aria-invalid="!!error"
+        :aria-invalid="!!error || undefined"
+        :aria-required="required || undefined"
         class="neo-input__field"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         @focus="$emit('focus', $event)"
@@ -53,6 +61,9 @@ defineProps<{
   hint?: string;
   error?: string;
   disabled?: boolean;
+  required?: boolean;
+  /** Accessibility label for screen readers - use when no visible label is provided */
+  ariaLabel?: string;
 }>();
 
 defineEmits<{
@@ -167,6 +178,12 @@ defineEmits<{
       background: rgba(255, 255, 255, 0.02);
       border-color: rgba(255, 255, 255, 0.05);
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-input__wrapper {
+    transition: none;
   }
 }
 </style>

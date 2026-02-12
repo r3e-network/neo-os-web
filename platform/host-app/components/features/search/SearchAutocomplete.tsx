@@ -142,7 +142,7 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
     <div className={cn("relative", className)}>
       {/* Search Input */}
       <div className="relative group">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-erobo-purple transition-colors" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-erobo-ink-soft/60 group-focus-within:text-erobo-purple transition-colors" />
         <input
           ref={inputRef}
           type="text"
@@ -154,7 +154,7 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || t("actions.search")}
-          className="w-full h-10 pl-10 pr-10 text-sm bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 rounded-full focus:bg-white dark:focus:bg-black focus:border-erobo-purple/50 focus:ring-4 focus:ring-erobo-purple/10 transition-all outline-none text-erobo-ink dark:text-white placeholder-gray-500"
+          className="w-full h-10 pl-10 pr-10 text-sm bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 rounded-full focus:bg-white dark:focus:bg-black focus:border-erobo-purple/50 focus:ring-4 focus:ring-erobo-purple/10 transition-all outline-none text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
         />
         {query && (
           <button
@@ -163,7 +163,7 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
               setResults([]);
               inputRef.current?.focus();
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-erobo-ink dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-erobo-ink-soft/60 hover:text-erobo-ink dark:hover:text-white rounded-full hover:bg-erobo-purple/10 dark:hover:bg-white/10 transition-colors"
           >
             <X size={14} />
           </button>
@@ -178,7 +178,7 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
         >
           {/* Loading State */}
           {isLoading && (
-            <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
+            <div className="px-4 py-3 text-sm text-erobo-ink-soft flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-erobo-purple/30 border-t-erobo-purple rounded-full animate-spin" />
               {t("search.searching") || "Searching..."}
             </div>
@@ -187,7 +187,7 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
           {/* Search Results */}
           {!isLoading && results.length > 0 && (
             <div className="py-2">
-              <div className="px-4 py-1 text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+              <div className="px-4 py-1 text-[10px] font-bold uppercase text-erobo-ink-soft/60 tracking-wider">
                 {t("search.apps") || "Apps"}
               </div>
               {results.map((result, idx) => (
@@ -210,9 +210,9 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
                   />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-erobo-ink dark:text-white truncate">{result.name}</div>
-                    <div className="text-xs text-gray-500 truncate">{result.category}</div>
+                    <div className="text-xs text-erobo-ink-soft truncate">{result.category}</div>
                   </div>
-                  <ArrowRight size={14} className="text-gray-400" />
+                  <ArrowRight size={14} className="text-erobo-ink-soft/60" />
                 </Link>
               ))}
             </div>
@@ -220,8 +220,8 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
 
           {/* Suggestions */}
           {!isLoading && suggestions.length > 0 && (
-            <div className="py-2 border-t border-gray-100 dark:border-white/5">
-              <div className="px-4 py-1 text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+            <div className="py-2 border-t border-erobo-purple/5 dark:border-white/5">
+              <div className="px-4 py-1 text-[10px] font-bold uppercase text-erobo-ink-soft/60 tracking-wider">
                 {t("search.suggestions") || "Suggestions"}
               </div>
               {suggestions.map((suggestion, idx) => (
@@ -244,7 +244,7 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
           {!query.trim() && recentSearches.length > 0 && (
             <div className="py-2">
               <div className="px-4 py-1 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                <span className="text-[10px] font-bold uppercase text-erobo-ink-soft/60 tracking-wider">
                   {t("search.recent") || "Recent"}
                 </span>
                 <button onClick={clearSearches} className="text-[10px] text-erobo-purple hover:underline">
@@ -257,7 +257,7 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
                   onClick={() => handleSubmit(recent.query)}
                   className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-erobo-peach/30 dark:hover:bg-white/5 transition-colors"
                 >
-                  <Clock size={14} className="text-gray-400" />
+                  <Clock size={14} className="text-erobo-ink-soft/60" />
                   <span className="text-sm text-erobo-ink dark:text-white">{recent.query}</span>
                 </button>
               ))}
@@ -266,7 +266,7 @@ export function SearchAutocomplete({ className, placeholder, onSearch }: SearchA
 
           {/* No Results */}
           {!isLoading && query.trim() && results.length === 0 && suggestions.length === 0 && (
-            <div className="px-4 py-6 text-center text-sm text-gray-500">
+            <div className="px-4 py-6 text-center text-sm text-erobo-ink-soft">
               {t("search.noResults") || "No apps found"}
             </div>
           )}

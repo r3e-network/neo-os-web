@@ -1,5 +1,5 @@
 <template>
-  <view class="tombstone-card" @click="$emit('click')">
+  <view class="tombstone-card" role="button" tabindex="0" :aria-label="memorial.name + ' (' + memorial.birthYear + '-' + memorial.deathYear + ')'" @click="$emit('click')">
     <view class="tombstone-top">
       <view class="photo-frame" v-if="memorial.photoHash">
         <image :src="memorial.photoHash" mode="aspectFill" :alt="memorial.name || t('memorialPhoto')" />
@@ -17,14 +17,7 @@
 </template>
 
 <script setup lang="ts">
-interface Memorial {
-  id: number;
-  name: string;
-  photoHash: string;
-  birthYear: number;
-  deathYear: number;
-  hasRecentTribute: boolean;
-}
+import type { Memorial } from "@/types";
 
 defineProps<{
   memorial: Memorial;

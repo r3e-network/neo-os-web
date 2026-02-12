@@ -67,10 +67,10 @@ const getCourtLabel = (num?: number) => {
 }
 
 /* Suit Colors */
-.wands .pip-icon, .wands .court-icon { color: #ff5f5f; text-shadow: 0 0 5px rgba(255, 95, 95, 0.5); }
-.cups .pip-icon, .cups .court-icon { color: #5fafff; text-shadow: 0 0 5px rgba(95, 175, 255, 0.5); }
-.swords .pip-icon, .swords .court-icon { color: #e0e0e0; text-shadow: 0 0 5px rgba(224, 224, 224, 0.5); }
-.pentacles .pip-icon, .pentacles .court-icon { color: #ffd700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+.wands .pip-icon, .wands .court-icon { color: var(--tarot-suit-wands); text-shadow: 0 0 5px rgba(255, 95, 95, 0.5); }
+.cups .pip-icon, .cups .court-icon { color: var(--tarot-suit-cups); text-shadow: 0 0 5px rgba(95, 175, 255, 0.5); }
+.swords .pip-icon, .swords .court-icon { color: var(--tarot-suit-swords); text-shadow: 0 0 5px rgba(224, 224, 224, 0.5); }
+.pentacles .pip-icon, .pentacles .court-icon { color: var(--tarot-suit-pentacles); text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
 
 /* Major Arcana */
 .major-frame {

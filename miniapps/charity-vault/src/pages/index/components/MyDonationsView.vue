@@ -32,14 +32,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-
-interface Donation {
-  id: number;
-  campaignId: number;
-  amount: number;
-  message: string;
-  timestamp: number;
-}
+import type { Donation } from "@/types";
 
 interface Props {
   donations: Donation[];

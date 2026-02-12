@@ -118,9 +118,9 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
   return (
     <div className="relative group rounded-2xl bg-erobo-ink/95 dark:bg-black/50 border border-erobo-ink/60 dark:border-white/10 overflow-hidden my-6">
       <div className="flex items-center justify-between px-4 py-2 border-b border-erobo-ink/60 dark:border-white/10 bg-erobo-ink/80">
-        <span className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">{language}</span>
+        <span className="text-[10px] text-erobo-ink-soft font-mono uppercase tracking-widest">{language}</span>
         <button onClick={handleCopy} className="p-1.5 rounded-md hover:bg-white/5 transition-colors">
-          {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-gray-500" />}
+          {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-erobo-ink-soft" />}
         </button>
       </div>
       <pre className="p-5 overflow-x-auto text-sm leading-relaxed scrollbar-thin scrollbar-thumb-white/10">
@@ -185,7 +185,7 @@ export default function DocsPage() {
         setActiveItem(section);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- docSections is derived from t, only re-run on query change
   }, [router.query.section]);
 
   // Auto-close mobile menu on item select
@@ -200,6 +200,22 @@ export default function DocsPage() {
     <Layout>
       <Head>
         <title>{t("docs.title")} | NeoHub</title>
+        <meta
+          name="description"
+          content="Complete documentation for the NeoHub MiniApp platform. Learn about TEE security, SDK integration, APIs, and building decentralized apps on Neo N3."
+        />
+        <meta property="og:title" content={`${t("docs.title")} | NeoHub`} />
+        <meta
+          property="og:description"
+          content="Complete documentation for the NeoHub MiniApp platform. Learn about TEE security, SDK integration, APIs, and building decentralized apps on Neo N3."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://miniapp.neo.org/docs" />
+        <meta property="og:image" content="https://miniapp.neo.org/og-image.png" />
+        <meta property="og:site_name" content="NeoHub" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${t("docs.title")} | NeoHub`} />
+        <meta name="twitter:description" content="Complete documentation for the NeoHub MiniApp platform." />
       </Head>
 
       <div className="relative flex flex-col lg:flex-row min-h-screen bg-transparent">
@@ -211,7 +227,7 @@ export default function DocsPage() {
         <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-white/60 dark:border-white/10 sticky top-16 z-30 bg-white/70 dark:bg-black/40 backdrop-blur-md">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg bg-white/80 dark:bg-white/10 text-erobo-ink-soft dark:text-gray-300 border border-white/60 dark:border-white/10"
+            className="p-2 rounded-lg bg-white/80 dark:bg-white/10 text-erobo-ink-soft dark:text-slate-300 border border-white/60 dark:border-white/10"
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -245,7 +261,7 @@ export default function DocsPage() {
                             "w-full flex items-center px-8 py-2 text-[14px] rounded-lg transition-all",
                             isActive
                               ? "bg-erobo-purple/10 text-erobo-purple font-semibold"
-                              : "text-erobo-ink-soft dark:text-gray-300 hover:text-erobo-ink dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10",
+                              : "text-erobo-ink-soft dark:text-slate-300 hover:text-erobo-ink dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/10",
                           )}
                         >
                           {item.title}
@@ -308,7 +324,9 @@ export default function DocsPage() {
                   }}
                   className="group flex flex-col items-end gap-2 text-right"
                 >
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t("docs.navNext")}</span>
+                  <span className="text-xs font-bold text-erobo-ink-soft/60 uppercase tracking-widest">
+                    {t("docs.navNext")}
+                  </span>
                   <span className="text-lg font-bold text-erobo-ink dark:text-white group-hover:text-erobo-purple transition-colors flex items-center gap-2">
                     {t("docs.navNextTopic")}{" "}
                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -581,7 +599,7 @@ function SecurityModelContent({ t }: { t: HostTranslationFunction }) {
             </div>
           </div>
           <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-full bg-erobo-purple/10 flex items-center justify-center shrink-0">
               <Lock size={20} className="text-blue-400" />
             </div>
             <div>
@@ -649,7 +667,7 @@ function ArchitectureDetail({ id, t }: { id: string; t: HostTranslationFunction 
         </div>
         <div className="p-8 rounded-2xl erobo-card">
           <h4 className="font-bold mb-4 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-blue-500" /> {t("docs.architecture.confidentiality")}
+            <div className="w-2 h-2 rounded-full bg-erobo-purple" /> {t("docs.architecture.confidentiality")}
           </h4>
           <p className="text-sm text-erobo-ink-soft/80 m-0">{confidentiality}</p>
         </div>

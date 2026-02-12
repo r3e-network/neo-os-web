@@ -3,8 +3,7 @@
     <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <SidebarKarmaCard :karma="userKarma" :rank="userRank" />
-        <SidebarQuickActions :has-checked-in="hasCheckedIn" :is-checking-in="isCheckingIn" @check-in="dailyCheckIn" />
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <!-- Leaderboard Tab (default) -->
@@ -44,10 +43,12 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { parseInvokeResult } from "@shared/utils/neo";
-import { requireNeoChain } from "@shared/utils/chain";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import LeaderboardSection, { type LeaderboardEntry } from "./components/LeaderboardSection.vue";
 import CheckInSection from "./components/CheckInSection.vue";
@@ -95,8 +96,7 @@ const appState = computed(() => ({
 }));
 const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
 const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
-
-const contractAddress = ref<string | null>(null);
+const { contractAddress, ensureSafe: ensureContractAddress } = useContractAddress(t);
 const leaderboard = ref<LeaderboardEntry[]>([]);
 const userKarma = ref(0);
 const userRank = ref(0);
@@ -105,13 +105,22 @@ const hasCheckedIn = ref(false);
 const nextCheckInTime = ref("-");
 const isCheckingIn = ref(false);
 const isGiving = ref(false);
-const errorMessage = ref<string | null>(null);
+const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
+const errorMessage = computed(() => errorStatus.value?.msg ?? null);
 const giveKarmaFormRef = ref<InstanceType<typeof GiveKarmaForm> | null>(null);
+
+const sidebarItems = computed(() => [
+  { label: t("leaderboard"), value: `#${userRank.value || "-"}` },
+  { label: "Karma", value: userKarma.value },
+  { label: "Streak", value: checkInStreak.value },
+  { label: t("profile"), value: userBadges.value.filter((b) => b.unlocked).length },
+]);
 
 const isDesktop = computed(() => {
   try {
     return window.innerWidth >= 768;
   } catch {
+    /* SSR/non-browser environment — default to mobile layout */
     return false;
   }
 });
@@ -160,14 +169,6 @@ const computedAchievements = computed<Achievement[]>(() => [
   { id: "philanthropist", name: t("philanthropist"), progress: "0/100", percent: 0, unlocked: false },
 ]);
 
-const ensureContractAddress = async (): Promise<boolean> => {
-  if (!requireNeoChain(chainType, t)) return false;
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  return !!contractAddress.value;
-};
-
 const loadLeaderboard = async () => {
   if (!(await ensureContractAddress())) return;
   try {
@@ -178,22 +179,21 @@ const loadLeaderboard = async () => {
     });
     const parsed = parseInvokeResult(result) as unknown[];
     if (Array.isArray(parsed)) {
-      leaderboard.value = parsed.map((e: any) => ({
-        address: String(e.address || ""),
-        karma: Number(e.karma || 0),
-      }));
+      leaderboard.value = parsed.map((e: unknown) => {
+        const entry = e as Record<string, unknown>;
+        return {
+          address: String(entry.address || ""),
+          karma: Number(entry.karma || 0),
+        };
+      });
     }
-    const userEntry = leaderboard.value.find((e: any) => e.address === address.value);
+    const userEntry = leaderboard.value.find((e) => e.address === address.value);
     if (userEntry) {
       userKarma.value = userEntry.karma;
       userRank.value = leaderboard.value.indexOf(userEntry) + 1;
     }
-  } catch (e: any) {
-    leaderboard.value = [
-      { address: "0x1234...5678", karma: 1500 },
-      { address: "0xabcd...efgh", karma: 1200 },
-      { address: "0x9876...5432", karma: 980 },
-    ];
+  } catch (e: unknown) {
+    setErrorStatus(formatErrorMessage(e, t("leaderboardError")), "error");
   }
 };
 
@@ -206,15 +206,18 @@ const loadUserState = async () => {
       args: [{ type: "Hash160", value: address.value }],
     });
     if (state) {
-      hasCheckedIn.value = (state as any).checkedIn || false;
-      checkInStreak.value = Number((state as any).streak || 0);
+      const parsed = state as Record<string, unknown>;
+      hasCheckedIn.value = Boolean(parsed.checkedIn) || false;
+      checkInStreak.value = Number(parsed.streak || 0);
     }
-  } catch (e: any) {}
+  } catch (_e: unknown) {
+    // User state load failure is non-critical
+  }
 };
 
 const dailyCheckIn = async () => {
   if (!address.value) {
-    showError(t("connectWallet"));
+    setErrorStatus(t("connectWallet"), "error");
     return;
   }
   if (!(await ensureContractAddress())) return;
@@ -233,8 +236,8 @@ const dailyCheckIn = async () => {
       checkInStreak.value += 1;
       await loadLeaderboard();
     }
-  } catch (e: any) {
-    showError(e.message || t("error"));
+  } catch (e: unknown) {
+    setErrorStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     isCheckingIn.value = false;
   }
@@ -262,16 +265,11 @@ const handleGiveKarma = async (data: { address: string; amount: number; reason: 
       giveKarmaFormRef.value?.reset();
       await loadLeaderboard();
     }
-  } catch (e: any) {
-    showError(e.message || t("error"));
+  } catch (e: unknown) {
+    setErrorStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     isGiving.value = false;
   }
-};
-
-const showError = (msg: string) => {
-  errorMessage.value = msg;
-  setTimeout(() => (errorMessage.value = null), 5000);
 };
 
 onMounted(async () => {
@@ -282,16 +280,12 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-.theme-social-karma {
-  --karma-primary: #f59e0b;
-  --karma-secondary: #8b5cf6;
-  --karma-success: #10b981;
-  --karma-bg: #0f0f23;
-  --karma-card-bg: rgba(255, 255, 255, 0.05);
-  --karma-text: #ffffff;
-  --karma-text-secondary: rgba(255, 255, 255, 0.7);
-  --karma-text-muted: rgba(255, 255, 255, 0.5);
-  --karma-border: rgba(255, 255, 255, 0.1);
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@import "./social-karma-theme.scss";
+
+:global(page) {
+  background: var(--karma-bg);
 }
 
 .tab-content {
@@ -314,7 +308,7 @@ onMounted(async () => {
   left: 50%;
   transform: translateX(-50%);
   padding: 14px 24px;
-  background: #ef4444;
+  background: var(--karma-danger);
   color: white;
   border-radius: 12px;
   font-weight: 600;

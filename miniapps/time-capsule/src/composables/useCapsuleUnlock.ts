@@ -5,6 +5,7 @@ import { useI18n } from "@/composables/useI18n";
 import { requireNeoChain } from "@shared/utils/chain";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Capsule } from "../pages/index/components/CapsuleList.vue";
 
 const APP_ID = "miniapp-time-capsule";
@@ -43,6 +44,7 @@ export function useCapsuleUnlock() {
       }
       return normalized;
     } catch {
+      /* Local storage parse failure — start with empty content map */
       return {};
     }
   };
@@ -70,7 +72,7 @@ export function useCapsuleUnlock() {
   };
 
   const listAllEvents = async (eventName: string) => {
-    const events: any[] = [];
+    const events: unknown[] = [];
     let afterId: string | undefined;
     let hasMore = true;
     while (hasMore) {
@@ -120,8 +122,8 @@ export function useCapsuleUnlock() {
       } else {
         onStatus?.(t("capsuleRevealed"), "success");
       }
-    } catch (e: any) {
-      onStatus?.(e.message || t("error"), "error");
+    } catch (e: unknown) {
+      onStatus?.(formatErrorMessage(e, t("error")), "error");
     } finally {
       isProcessing.value = false;
     }
@@ -143,7 +145,10 @@ export function useCapsuleUnlock() {
       }
 
       const contract = await ensureContractAddress();
-      const { receiptId, invoke: invokeWithReceipt } = await processPayment(FISH_FEE, `time-capsule:fish:${Date.now()}`);
+      const { receiptId, invoke: invokeWithReceipt } = await processPayment(
+        FISH_FEE,
+        `time-capsule:fish:${Date.now()}`
+      );
 
       await invokeWithReceipt(contract, "fish", [
         { type: "Hash160", value: address.value },
@@ -164,8 +169,8 @@ export function useCapsuleUnlock() {
       } else {
         onStatus?.(t("fishNone"), "success");
       }
-    } catch (e: any) {
-      onStatus?.(e.message || t("error"), "error");
+    } catch (e: unknown) {
+      onStatus?.(formatErrorMessage(e, t("error")), "error");
     } finally {
       isProcessing.value = false;
     }

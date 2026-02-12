@@ -26,7 +26,7 @@ const props = defineProps<{
   pendingRewardsValue: number;
   hasClaimed: boolean;
   isLoading: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["claim"]);
@@ -69,7 +69,7 @@ const formattedPendingRewards = computed(() => `${formatToken(props.pendingRewar
   font-size: 28px;
   font-weight: 800;
   font-family: $font-family;
-  color: #00E599;
+  color: var(--candidate-neo-green);
   text-shadow: 0 0 20px rgba(0, 229, 153, 0.4);
   letter-spacing: -0.02em;
 }

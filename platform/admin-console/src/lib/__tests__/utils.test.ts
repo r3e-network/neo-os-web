@@ -88,27 +88,27 @@ describe("Utility Functions", () => {
 
   describe("getStatusColor", () => {
     it("should return correct color for healthy status", () => {
-      expect(getStatusColor("healthy")).toBe("text-success-600 bg-success-50");
+      expect(getStatusColor("healthy")).toBe("text-emerald-400 bg-emerald-400/10");
     });
 
     it("should return correct color for unhealthy status", () => {
-      expect(getStatusColor("unhealthy")).toBe("text-danger-600 bg-danger-50");
+      expect(getStatusColor("unhealthy")).toBe("text-red-400 bg-red-400/10");
     });
 
     it("should return correct color for unknown status", () => {
-      expect(getStatusColor("unknown")).toBe("text-gray-600 bg-gray-50");
+      expect(getStatusColor("unknown")).toBe("text-muted-foreground bg-muted/30");
     });
 
     it("should return correct color for active status", () => {
-      expect(getStatusColor("active")).toBe("text-success-600 bg-success-50");
+      expect(getStatusColor("active")).toBe("text-emerald-400 bg-emerald-400/10");
     });
 
     it("should return correct color for disabled status", () => {
-      expect(getStatusColor("disabled")).toBe("text-danger-600 bg-danger-50");
+      expect(getStatusColor("disabled")).toBe("text-red-400 bg-red-400/10");
     });
 
     it("should return correct color for pending status", () => {
-      expect(getStatusColor("pending")).toBe("text-warning-600 bg-warning-50");
+      expect(getStatusColor("pending")).toBe("text-amber-400 bg-amber-400/10");
     });
   });
 });

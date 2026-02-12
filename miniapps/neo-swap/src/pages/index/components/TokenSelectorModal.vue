@@ -1,12 +1,12 @@
 <template>
-  <view v-if="show" class="modal-overlay" @click="$emit('close')">
+  <view v-if="show" class="modal-overlay" role="dialog" aria-modal="true" :aria-label="t('selectToken')" @click="$emit('close')">
     <view class="modal-content scale-in" @click.stop>
       <view class="modal-header">
         <text class="modal-title">{{ t("selectToken") }}</text>
-        <AppIcon name="x" :size="24" class="close-btn" @click="$emit('close')" />
+        <AppIcon name="x" :size="24" class="close-btn" role="button" :aria-label="t('selectToken')" tabindex="0" @click="$emit('close')" @keydown.enter="$emit('close')" />
       </view>
-      <scroll-view scroll-y class="token-list">
-        <view v-for="token in tokens" :key="token.symbol" class="token-option" @click="$emit('select', token)">
+      <scroll-view scroll-y class="token-list" role="listbox" :aria-label="t('selectToken')">
+        <view v-for="token in tokens" :key="token.symbol" class="token-option" role="option" :aria-selected="token.symbol === currentSymbol" :aria-label="token.symbol" tabindex="0" @click="$emit('select', token)" @keydown.enter="$emit('select', token)">
           <AppIcon :name="token.symbol.toLowerCase()" :size="32" />
           <view class="token-info">
             <text class="token-name">{{ token.symbol }}</text>

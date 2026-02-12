@@ -22,16 +22,18 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import type { WalletSDK } from "@neo/types";
 import { NeoCard, NeoStats, NeoButton } from "@shared/components";
 import { useDatafeed, useWallet } from "@neo/uniapp-sdk";
 import type { StatItem } from "@shared/components/NeoStats.vue";
+import type { UniAppGlobals } from "@shared/types/globals";
 
 const props = defineProps<{
   t: (key: string) => string;
 }>();
 
 const { getPrice } = useDatafeed();
-const { getContractAddress } = useWallet() as any;
+const { getContractAddress } = useWallet() as WalletSDK;
 
 const neoPrice = ref<number | null>(null);
 const gasPrice = ref<number | null>(null);
@@ -55,18 +57,23 @@ const loadPrices = async () => {
     const gas = await getPrice("GAS-USD");
     if (neo?.price) neoPrice.value = Number(neo.price);
     if (gas?.price) gasPrice.value = Number(gas.price);
-  } catch {
+  } catch (e: unknown) {
+    /* non-critical: pool price load */
   }
 };
 
 const openDex = () => {
   const url = "https://flamingo.finance";
-  const uniApi = (globalThis as any)?.uni;
+  const uniApi = (globalThis as unknown as UniAppGlobals)?.uni as
+    | Record<string, (...args: unknown[]) => void>
+    | undefined;
   if (uniApi?.openURL) {
     uniApi.openURL({ url });
     return;
   }
-  const plusApi = (globalThis as any)?.plus;
+  const plusApi = (globalThis as unknown as UniAppGlobals)?.plus as
+    | Record<string, Record<string, (...args: unknown[]) => void>>
+    | undefined;
   if (plusApi?.runtime?.openURL) {
     plusApi.runtime.openURL(url);
     return;

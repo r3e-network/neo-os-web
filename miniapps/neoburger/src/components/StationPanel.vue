@@ -12,7 +12,7 @@
     <view v-if="mode === 'burger'" class="station-card">
       <view class="station-header">
         <text class="station-title">{{ t("burgerStation") }}</text>
-        <view class="station-learn" @click="emit('learnMore')">
+        <view class="station-learn" role="button" tabindex="0" :aria-label="t('learnMore')" @click="emit('learnMore')">
           <image class="learn-icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('learnMore')" />
           <text>{{ t("learnMore") }}</text>
         </view>

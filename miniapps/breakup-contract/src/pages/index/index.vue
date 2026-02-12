@@ -9,9 +9,7 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -19,7 +17,11 @@
           <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4 text-center">
             <text class="status-msg font-bold">{{ status.msg }}</text>
           </NeoCard>
+        </view>
+      </template>
 
+      <template #operation>
+        <view class="app-container">
           <!-- Create Contract Tab -->
           <CreateContractForm
             v-model:partnerAddress="partnerAddress"
@@ -29,7 +31,7 @@
             v-model:terms="contractTerms"
             :address="address"
             :is-loading="isLoading"
-            :t="t as any"
+            :t="t"
             @create="createContract"
           />
         </view>
@@ -37,13 +39,7 @@
 
       <template #tab-contracts>
         <view class="app-container">
-          <ContractList
-            :contracts="contracts"
-            :address="address"
-            :t="t as any"
-            @sign="signContract"
-            @break="breakContract"
-          />
+          <ContractList :contracts="contracts" :address="address" :t="t" @sign="signContract" @break="breakContract" />
         </view>
       </template>
     </MiniAppTemplate>
@@ -51,23 +47,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { parseGas, toFixed8 } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { ref, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
+import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CreateContractForm from "./components/CreateContractForm.vue";
 import ContractList from "./components/ContractList.vue";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useBreakupContract } from "./composables/useBreakupContract";
 
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "create", labelKey: "tabCreate", icon: "💔", default: true },
     { key: "contracts", labelKey: "tabContracts", icon: "📋" },
@@ -90,286 +81,23 @@ const templateConfig: MiniAppTemplateConfig = {
 
 const activeTab = ref<string>("create");
 
-const appState = computed(() => ({
-  contracts: contracts.value.length,
-}));
-
-const APP_ID = "miniapp-breakupcontract";
-const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
-const { list: listEvents } = useEvents();
-const { processPayment, isLoading } = usePaymentFlow(APP_ID);
-const contractAddress = ref<string | null>(null);
-
-const partnerAddress = ref("");
-const stakeAmount = ref("");
-const duration = ref("");
-const contractTitle = ref("");
-const contractTerms = ref("");
-const status = ref<{ msg: string; type: string } | null>(null);
-
-type ContractStatus = "pending" | "active" | "broken" | "ended";
-interface RelationshipContractView {
-  id: number;
-  party1: string;
-  party2: string;
-  partner: string;
-  title: string;
-  terms: string;
-  stake: number;
-  stakeRaw: string;
-  progress: number;
-  daysLeft: number;
-  status: ContractStatus;
-}
-
-const contracts = ref<RelationshipContractView[]>([]);
-
-const ensureContractAddress = async () => {
-  if (!requireNeoChain(chainType, t)) {
-    throw new Error(t("wrongChain"));
-  }
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  if (!contractAddress.value) {
-    throw new Error(t("contractUnavailable"));
-  }
-  return contractAddress.value;
-};
-
-const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
-
-const listAllEvents = async (eventName: string) => {
-  const events: any[] = [];
-  let afterId: string | undefined;
-  let hasMore = true;
-  while (hasMore) {
-    const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 50, after_id: afterId });
-    events.push(...res.events);
-    hasMore = Boolean(res.has_more && res.last_id);
-    afterId = res.last_id || undefined;
-  }
-  return events;
-};
-
-const parseContract = (id: number, data: any): RelationshipContractView | null => {
-  if (!data || typeof data !== "object") return null;
-  const details = Array.isArray(data)
-    ? {
-        party1: data[0],
-        party2: data[1],
-        stake: data[2],
-        party1Signed: data[3],
-        party2Signed: data[4],
-        createdTime: data[5],
-        startTime: data[6],
-        duration: data[7],
-        signDeadline: data[8],
-        active: data[9],
-        completed: data[10],
-        cancelled: data[11],
-        title: data[12],
-        terms: data[13],
-        milestonesReached: data[14],
-        totalPenaltyPaid: data[15],
-        breakupInitiator: data[16],
-      }
-    : (data as Record<string, any>);
-
-  const party1 = String(details.party1 ?? "");
-  const party2 = String(details.party2 ?? "");
-  const stakeRaw = String(details.stake ?? "0");
-  const party2Signed = Boolean(details.party2Signed);
-  const startTimeSeconds = Number(details.startTime ?? 0);
-  const durationSeconds = Number(details.duration ?? 0);
-  const active = Boolean(details.active);
-  const completed = Boolean(details.completed);
-  const cancelled = Boolean(details.cancelled);
-  const title = String(details.title ?? "");
-  const terms = String(details.terms ?? "");
-
-  const startTimeMs = startTimeSeconds * 1000;
-  const durationMs = durationSeconds * 1000;
-  const now = Date.now();
-  const endTime = startTimeMs + durationMs;
-  const elapsed = startTimeMs > 0 ? Math.max(0, Math.min(durationMs, now - startTimeMs)) : 0;
-  const computedProgress = durationMs > 0 ? Math.round((elapsed / durationMs) * 100) : 0;
-  const progressPercent = Number(details.progressPercent ?? 0);
-  const progress = progressPercent > 0 ? Math.min(100, Math.max(0, Math.floor(progressPercent))) : computedProgress;
-  const remainingSeconds = Number(details.remainingTime ?? 0);
-  const daysLeft =
-    remainingSeconds > 0
-      ? Math.max(0, Math.ceil(remainingSeconds / 86400))
-      : durationMs > 0
-        ? Math.max(0, Math.ceil((endTime - now) / 86400000))
-        : 0;
-
-  let status: ContractStatus = "pending";
-  if (active) status = "active";
-  else if (completed) status = "broken";
-  else if (party2Signed || cancelled) status = "ended";
-
-  const partner = address.value && address.value === party1 ? party2 : party1;
-
-  return {
-    id,
-    party1,
-    party2,
-    partner,
-    title,
-    terms,
-    stake: parseGas(stakeRaw),
-    stakeRaw,
-    progress,
-    daysLeft,
-    status,
-  };
-};
-
-const loadContracts = async () => {
-  try {
-    await ensureContractAddress();
-    const createdEvents = await listAllEvents("ContractCreated");
-    const ids = new Set<number>();
-    createdEvents.forEach((evt) => {
-      const values = Array.isArray((evt as any)?.state) ? (evt as any).state.map(parseStackItem) : [];
-      const id = Number(values[0] ?? 0);
-      if (id > 0) ids.add(id);
-    });
-
-    const contractViews: RelationshipContractView[] = [];
-    for (const id of Array.from(ids).sort((a, b) => b - a)) {
-      const res = await invokeRead({
-        contractAddress: contractAddress.value!,
-        operation: "GetContractDetails",
-        args: [{ type: "Integer", value: id }],
-      });
-      const parsed = parseContract(id, parseInvokeResult(res));
-      if (parsed) contractViews.push(parsed);
-    }
-    contracts.value = contractViews;
-  } catch (e) {
-    status.value = { msg: t("loadFailed"), type: "error" };
-  }
-};
-
-const createContract = async () => {
-  if (isLoading.value) return;
-  const partnerValue = partnerAddress.value.trim();
-  if (!partnerValue) {
-    status.value = { msg: t("partnerRequired"), type: "error" };
-    return;
-  }
-  if (!isValidNeoAddress(partnerValue)) {
-    status.value = { msg: t("partnerInvalid"), type: "error" };
-    return;
-  }
-  if (!stakeAmount.value) {
-    status.value = { msg: t("error"), type: "error" };
-    return;
-  }
-  const stake = parseFloat(stakeAmount.value);
-  const durationDays = parseInt(duration.value, 10);
-  const titleValue = contractTitle.value.trim();
-  const termsValue = contractTerms.value.trim();
-  if (!Number.isFinite(stake) || stake < 1 || !Number.isFinite(durationDays) || durationDays < 30) {
-    status.value = { msg: t("error"), type: "error" };
-    return;
-  }
-  if (!titleValue) {
-    status.value = { msg: t("titleRequired"), type: "error" };
-    return;
-  }
-  if (titleValue.length > 100) {
-    status.value = { msg: t("titleTooLong"), type: "error" };
-    return;
-  }
-  if (termsValue.length > 2000) {
-    status.value = { msg: t("termsTooLong"), type: "error" };
-    return;
-  }
-  try {
-    if (!address.value) {
-      await connect();
-    }
-    if (!address.value) {
-      throw new Error(t("error"));
-    }
-    await ensureContractAddress();
-    const { receiptId, invoke } = await processPayment(stakeAmount.value, `contract:${partnerValue.slice(0, 10)}`);
-    if (!receiptId) {
-      throw new Error(t("receiptMissing"));
-    }
-    await invoke(
-      "createContract",
-      [
-        { type: "Hash160", value: address.value },
-        { type: "Hash160", value: partnerValue },
-        { type: "Integer", value: toFixed8(stakeAmount.value) },
-        { type: "Integer", value: durationDays },
-        { type: "String", value: titleValue },
-        { type: "String", value: termsValue },
-        { type: "Integer", value: receiptId },
-      ],
-      contractAddress.value!
-    );
-    status.value = { msg: t("contractCreated"), type: "success" };
-    partnerAddress.value = "";
-    stakeAmount.value = "";
-    duration.value = "";
-    contractTitle.value = "";
-    contractTerms.value = "";
-    await loadContracts();
-  } catch (e: any) {
-    status.value = { msg: e.message || t("error"), type: "error" };
-  }
-};
-
-const signContract = async (contract: RelationshipContractView) => {
-  if (isLoading.value || !address.value) return;
-  try {
-    await ensureContractAddress();
-    const { receiptId, invoke } = await processPayment(contract.stake.toFixed(8), `contract:sign:${contract.id}`);
-    if (!receiptId) {
-      throw new Error(t("receiptMissing"));
-    }
-    await invoke(
-      "signContract",
-      [
-        { type: "Integer", value: contract.id },
-        { type: "Hash160", value: address.value },
-        { type: "Integer", value: receiptId },
-      ],
-      contractAddress.value!
-    );
-    status.value = { msg: t("contractSigned"), type: "success" };
-    await loadContracts();
-  } catch (e: any) {
-    status.value = { msg: e.message || t("error"), type: "error" };
-  }
-};
-
-const breakContract = async (contract: RelationshipContractView) => {
-  if (!address.value) {
-    status.value = { msg: t("error"), type: "error" };
-    return;
-  }
-  try {
-    await ensureContractAddress();
-    await invokeContract({
-      contractAddress: contractAddress.value!,
-      operation: "TriggerBreakup",
-      args: [
-        { type: "Integer", value: contract.id },
-        { type: "Hash160", value: address.value },
-      ],
-    });
-    status.value = { msg: t("contractBroken"), type: "error" };
-    await loadContracts();
-  } catch (e: any) {
-    status.value = { msg: e.message || t("error"), type: "error" };
-  }
-};
+const {
+  address,
+  partnerAddress,
+  stakeAmount,
+  duration,
+  contractTitle,
+  contractTerms,
+  appState,
+  sidebarItems,
+  contracts,
+  status,
+  isLoading,
+  loadContracts,
+  createContract,
+  signContract,
+  breakContract,
+} = useBreakupContract(t);
 
 onMounted(() => {
   loadContracts();
@@ -425,10 +153,6 @@ onMounted(() => {
   z-index: 10;
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 /* Neon Heartbreak Component Overrides */
 :deep(.neo-card) {
@@ -473,17 +197,4 @@ onMounted(() => {
 }
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

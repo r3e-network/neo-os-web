@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { LeaderboardEntry } from "@/components/features/gamification/types";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -29,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error("Supabase error:", error);
+      logger.error("Supabase error", error);
       return res.status(500).json({ error: "Failed to fetch leaderboard" });
     }
 
@@ -50,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       hasMore: offset + limit < total,
     });
   } catch (err) {
-    console.error("Leaderboard API error:", err);
+    logger.error("Leaderboard API error", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

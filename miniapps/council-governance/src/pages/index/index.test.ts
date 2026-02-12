@@ -175,7 +175,7 @@ describe("Council Governance - Business Logic", () => {
 
   describe("Proposal Selection", () => {
     it("should select proposal", () => {
-      const selectedProposal = ref<any>(null);
+      const selectedProposal = ref<Record<string, unknown> | null>(null);
       const proposal = { id: 1, title: "Test" };
 
       selectedProposal.value = proposal;
@@ -183,7 +183,7 @@ describe("Council Governance - Business Logic", () => {
     });
 
     it("should clear selection", () => {
-      const selectedProposal = ref<any>({ id: 1 });
+      const selectedProposal = ref<Record<string, unknown> | null>({ id: 1 });
       selectedProposal.value = null;
       expect(selectedProposal.value).toBeNull();
     });
@@ -287,7 +287,7 @@ describe("Council Governance - Business Logic", () => {
 
   describe("Create Proposal Functionality", () => {
     it("should create proposal with correct properties", () => {
-      const activeProposals: any[] = [];
+      const activeProposals: Record<string, unknown>[] = [];
       const newProposal = {
         type: 0,
         title: "Test Proposal",

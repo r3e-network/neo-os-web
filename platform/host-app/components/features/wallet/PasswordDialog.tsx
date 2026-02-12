@@ -75,9 +75,9 @@ export function PasswordDialog({
               id="remember"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-neo focus:ring-neo accent-[#00E599]"
+              className="h-4 w-4 rounded border-erobo-purple/15 text-neo focus:ring-neo accent-[#00E599]"
             />
-            <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer select-none">
+            <label htmlFor="remember" className="text-sm text-erobo-ink-soft cursor-pointer select-none">
               Remember for 30 minutes
             </label>
           </div>

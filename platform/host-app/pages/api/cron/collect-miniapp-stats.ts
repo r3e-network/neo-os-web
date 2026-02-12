@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getChainRegistry } from "@/lib/chains/registry";
 import type { ChainId } from "@/lib/chains/types";
 import { createHandler } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 /** Validate chain ID using registry */
 function validateChainId(value: string | undefined): ChainId | null {
@@ -77,7 +78,7 @@ export default createHandler({
           results,
         });
       } catch (error) {
-        console.error("Cron error:", error);
+        logger.error("Cron error", error);
         res.status(500).json({ error: "Collection failed" });
       }
     },

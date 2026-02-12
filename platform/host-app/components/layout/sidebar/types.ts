@@ -1,4 +1,4 @@
-import { getThemeColors } from "../../styles";
+import type { getThemeColors } from "../../styles";
 
 export interface ServiceContract {
   name: string;

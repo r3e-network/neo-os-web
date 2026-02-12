@@ -212,7 +212,7 @@ const getRankClass = (index: number) => {
 
   &.selected {
     background: rgba(0, 229, 153, 0.1);
-    border-color: #00e599;
+    border-color: var(--candidate-neo-green);
     box-shadow: 0 0 15px rgba(0, 229, 153, 0.1);
   }
 
@@ -236,17 +236,17 @@ const getRankClass = (index: number) => {
   color: var(--text-secondary, rgba(255, 255, 255, 0.5));
 
   &.rank-gold {
-    background: linear-gradient(135deg, #ffd700, #fdb931);
+    background: var(--candidate-medal-gold);
     color: black;
     box-shadow: 0 2px 5px rgba(253, 185, 49, 0.3);
   }
   &.rank-silver {
-    background: linear-gradient(135deg, #e0e0e0, #bdbdbd);
+    background: var(--candidate-medal-silver);
     color: black;
     box-shadow: 0 2px 5px rgba(189, 189, 189, 0.3);
   }
   &.rank-bronze {
-    background: linear-gradient(135deg, #cd7f32, #a0522d);
+    background: var(--candidate-medal-bronze);
     color: var(--text-primary);
     box-shadow: 0 2px 5px rgba(160, 82, 45, 0.3);
   }
@@ -265,7 +265,7 @@ const getRankClass = (index: number) => {
 }
 
 .your-vote-badge {
-  background: linear-gradient(135deg, #00e599, #00b377);
+  background: var(--candidate-step-gradient);
   padding: 2px 8px;
   border-radius: 99px;
   flex-shrink: 0;
@@ -321,8 +321,8 @@ const getRankClass = (index: number) => {
 .selected-indicator {
   width: 20px;
   height: 20px;
-  background: #00e599;
-  color: black;
+  background: var(--candidate-selected-bg);
+  color: var(--candidate-selected-text);
   border-radius: 50%;
   display: flex;
   align-items: center;

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Newspaper, TrendingUp, Zap, Calendar } from "lucide-react";
 import { cn, formatTimeAgoShort } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/react";
+import { logger } from "@/lib/logger";
 
 interface NewsItem {
   id: string;
@@ -38,7 +39,7 @@ export function NewsSection() {
           setNews(data.news || []);
         }
       } catch (err) {
-        console.error("Failed to fetch news:", err);
+        logger.error("Failed to fetch news:", err);
       } finally {
         setLoading(false);
       }
@@ -50,7 +51,7 @@ export function NewsSection() {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          <div key={i} className="h-24 bg-erobo-purple/10 dark:bg-erobo-bg-card rounded-lg animate-pulse" />
         ))}
       </div>
     );
@@ -59,8 +60,8 @@ export function NewsSection() {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-4">
-        <Newspaper size={20} className="text-gray-700 dark:text-gray-300" />
-        <h3 className="font-bold text-gray-900 dark:text-white">{t("news.latestNews")}</h3>
+        <Newspaper size={20} className="text-erobo-ink dark:text-slate-300" />
+        <h3 className="font-bold text-erobo-ink dark:text-white">{t("news.latestNews")}</h3>
       </div>
 
       {news.map((item) => {
@@ -70,7 +71,7 @@ export function NewsSection() {
         return (
           <Card
             key={item.id}
-            className="p-4 hover:shadow-md transition-shadow cursor-pointer border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+            className="p-4 hover:shadow-md transition-shadow cursor-pointer border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-erobo-bg-dark"
           >
             <div className="flex items-start gap-3">
               <div className={cn("p-2 rounded-lg", config.color)}>
@@ -78,12 +79,12 @@ export function NewsSection() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <h4 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-1">{item.title}</h4>
-                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                  <h4 className="font-semibold text-sm text-erobo-ink dark:text-white line-clamp-1">{item.title}</h4>
+                  <span className="text-xs text-erobo-ink-soft whitespace-nowrap">
                     {formatTimeAgoShort(item.timestamp, { t: tCommon, locale })}
                   </span>
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{item.summary}</p>
+                <p className="text-xs text-erobo-ink-soft dark:text-slate-400 line-clamp-2">{item.summary}</p>
               </div>
             </div>
           </Card>

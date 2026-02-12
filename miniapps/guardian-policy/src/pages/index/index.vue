@@ -9,9 +9,7 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -19,60 +17,76 @@
           <text class="font-bold">{{ status.msg }}</text>
         </NeoCard>
 
+        <!-- Policy Rules -->
+        <PoliciesList :policies="gp.policies" :t="t" @claim="gp.requestClaim" />
+      </template>
+
+      <template #operation>
         <!-- Create New Policy -->
         <CreatePolicyForm
-          v-model:assetType="assetType"
-          v-model:policyType="policyType"
-          v-model:coverage="coverage"
-          v-model:threshold="threshold"
-          v-model:startPrice="startPrice"
-          :premium="premiumDisplay"
+          v-model:assetType="gp.assetType"
+          v-model:policyType="gp.policyType"
+          v-model:coverage="gp.coverage"
+          v-model:threshold="gp.threshold"
+          v-model:startPrice="gp.startPrice"
+          :premium="gp.premiumDisplay"
           :is-fetching-price="isFetchingPrice"
           :t="t"
-          @fetchPrice="fetchPrice"
-          @create="createPolicy"
+          @fetchPrice="onFetchPrice"
+          @create="gp.createPolicy"
         />
-
-        <!-- Policy Rules -->
-        <PoliciesList :policies="policies" :t="t" @claim="requestClaim" />
       </template>
 
       <template #tab-stats>
-        <StatsCard :stats="stats" :t="t" />
+        <StatsCard :stats="gp.stats" :t="t" />
 
         <!-- Action History -->
-        <ActionHistory :action-history="actionHistory" :t="t" />
+        <ActionHistory :action-history="gp.actionHistory" :t="t" />
       </template>
     </MiniAppTemplate>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useWallet, useEvents, useDatafeed } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
+import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
-import { requireNeoChain } from "@shared/utils/chain";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useAllEvents } from "@shared/composables/useAllEvents";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useGuardianPolicyContract } from "@/composables/useGuardianPolicyContract";
 
-import PoliciesList, { type Policy, type Level } from "./components/PoliciesList.vue";
+import PoliciesList from "./components/PoliciesList.vue";
 import CreatePolicyForm from "./components/CreatePolicyForm.vue";
 import StatsCard from "./components/StatsCard.vue";
-import ActionHistory, { type ActionHistoryItem } from "./components/ActionHistory.vue";
+import ActionHistory from "./components/ActionHistory.vue";
 
 const { t } = useI18n();
-const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+const wallet = useWallet() as WalletSDK;
+const { address } = wallet;
 const { list: listEvents } = useEvents();
 const { getPrice, isLoading: isFetchingPrice } = useDatafeed();
 const APP_ID = "miniapp-guardianpolicy";
 const { processPayment } = usePaymentFlow(APP_ID);
-const contractAddress = ref<string | null>(null);
+const { ensure: ensureContractAddress } = useContractAddress(t);
+const { status, setStatus } = useStatusMessage();
+const { listAllEvents } = useAllEvents(listEvents, APP_ID);
+
+const gp = useGuardianPolicyContract(
+  wallet,
+  ensureContractAddress,
+  listAllEvents,
+  processPayment,
+  setStatus,
+  t,
+);
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "main", labelKey: "main", icon: "📋", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
@@ -97,344 +111,22 @@ const templateConfig: MiniAppTemplateConfig = {
 const activeTab = ref("main");
 
 const appState = computed(() => ({
-  totalPolicies: stats.value.totalPolicies,
-  activePolicies: stats.value.activePolicies,
-  claimedPolicies: stats.value.claimedPolicies,
+  totalPolicies: gp.stats.value.totalPolicies,
+  activePolicies: gp.stats.value.activePolicies,
+  claimedPolicies: gp.stats.value.claimedPolicies,
 }));
 
-const policies = ref<Policy[]>([]);
-const actionHistory = ref<ActionHistoryItem[]>([]);
-const assetType = ref("");
-const policyType = ref(1);
-const coverage = ref("");
-const threshold = ref("");
-const startPrice = ref("");
-const priceDecimals = ref(8);
-const status = ref<{ msg: string; type: string } | null>(null);
+const sidebarItems = computed(() => [
+  { label: "Policies", value: gp.stats.value.totalPolicies },
+  { label: "Active", value: gp.stats.value.activePolicies },
+  { label: "Claimed", value: gp.stats.value.claimedPolicies },
+]);
 
-const premiumDisplay = computed(() => {
-  const amount = parseFloat(coverage.value);
-  if (!Number.isFinite(amount) || amount <= 0) return "0";
-  return (amount * 0.05).toFixed(2);
-});
-
-const stats = computed(() => ({
-  totalPolicies: policies.value.length,
-  activePolicies: policies.value.filter((p) => p.active && !p.claimed).length,
-  claimedPolicies: policies.value.filter((p) => p.claimed).length,
-  totalCoverage: policies.value.reduce((sum, p) => sum + (p.coverageValue || 0), 0),
-}));
-
-const ownerMatches = (value: unknown) => {
-  if (!address.value) return false;
-  const val = String(value || "");
-  if (val === address.value) return true;
-  const normalized = normalizeScriptHash(val);
-  const addrHash = addressToScriptHash(address.value);
-  return Boolean(normalized && addrHash && normalized === addrHash);
-};
-
-const ensureContractAddress = async () => {
-  if (!requireNeoChain(chainType, t)) {
-    throw new Error(t("wrongChain"));
-  }
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  if (!contractAddress.value) {
-    throw new Error(t("contractUnavailable"));
-  }
-  return contractAddress.value;
-};
-
-const formatWithDecimals = (value: string, decimals: number) => {
-  const cleaned = String(value || "").replace(/[^\d]/g, "");
-  if (!cleaned) return "0";
-  const padded = cleaned.padStart(decimals + 1, "0");
-  const whole = padded.slice(0, -decimals);
-  const frac = padded.slice(-decimals).replace(/0+$/, "");
-  return frac ? `${whole}.${frac}` : whole;
-};
-
-const toInteger = (value: string, decimals: number) => {
-  const normalized = String(value || "").trim();
-  const [wholeRaw, fracRaw = ""] = normalized.split(".");
-  const whole = wholeRaw.replace(/[^\d]/g, "") || "0";
-  const frac = fracRaw.replace(/[^\d]/g, "");
-  const padded = (frac + "0".repeat(decimals)).slice(0, decimals);
-  const combined = `${whole}${padded}`.replace(/^0+/, "");
-  return combined || "0";
-};
-
-const listAllEvents = async (eventName: string) => {
-  const events: any[] = [];
-  let afterId: string | undefined;
-  let hasMore = true;
-  while (hasMore) {
-    const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 50, after_id: afterId });
-    events.push(...res.events);
-    hasMore = Boolean(res.has_more && res.last_id);
-    afterId = res.last_id || undefined;
-  }
-  return events;
-};
-
-const levelFromThreshold = (thresholdPercent: number): Level => {
-  if (thresholdPercent <= 10) return "critical";
-  if (thresholdPercent <= 20) return "high";
-  if (thresholdPercent <= 30) return "medium";
-  return "low";
-};
-
-const parsePolicyStruct = (raw: unknown) => {
-  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    const data = raw as Record<string, unknown>;
-    return {
-      holder: data.holder,
-      assetType: String(data.assetType || ""),
-      coverage: Number(data.coverage || 0),
-      premium: Number(data.premium || 0),
-      startPrice: String(data.startPrice || "0"),
-      threshold: Number(data.thresholdPercent || 0),
-      startTime: Number(data.startTime || 0),
-      endTime: Number(data.endTime || 0),
-      active: Boolean(data.active),
-      claimed: Boolean(data.claimed),
-    };
-  }
-  const data = Array.isArray(raw) ? raw : [];
-  return {
-    holder: data[0],
-    assetType: String(data[1] || ""),
-    coverage: Number(data[2] || 0),
-    premium: Number(data[3] || 0),
-    startPrice: String(data[4] || "0"),
-    threshold: Number(data[5] || 0),
-    startTime: Number(data[6] || 0),
-    endTime: Number(data[7] || 0),
-    active: Boolean(data[8]),
-    claimed: Boolean(data[9]),
-  };
-};
-
-const fetchPolicies = async () => {
-  if (!address.value) return;
-  const createdEvents = await listAllEvents("PolicyCreated");
-  const policyIds = createdEvents
-    .map((evt) => {
-      const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
-      return {
-        id: String(values[0] || ""),
-        holder: values[1],
-      };
-    })
-    .filter((entry) => entry.id && ownerMatches(entry.holder))
-    .map((entry) => entry.id);
-
-  const uniqueIds = Array.from(new Set(policyIds));
-  const contract = await ensureContractAddress();
-  const policyList: Policy[] = [];
-
-  for (const id of uniqueIds) {
-    const res = await invokeRead({
-      contractAddress: contract,
-      operation: "GetPolicyDetails",
-      args: [{ type: "Integer", value: id }],
-    });
-    const parsed = parseInvokeResult(res);
-    const data = parsePolicyStruct(parsed);
-    if (!data.assetType) continue;
-
-    const coverageGas = data.coverage / 1e8;
-    const endTimeMs = data.endTime > 1e12 ? data.endTime : data.endTime * 1000;
-    const endDate = endTimeMs ? new Date(endTimeMs).toISOString().split("T")[0] : t("notAvailable");
-    const description = t("policyDescription", {
-      coverage: coverageGas.toFixed(2),
-      threshold: data.threshold,
-      date: endDate,
-    });
-
-    policyList.push({
-      id,
-      name: data.assetType,
-      description,
-      active: data.active,
-      claimed: data.claimed,
-      level: levelFromThreshold(data.threshold),
-      coverageValue: coverageGas,
-    });
-  }
-
-  policies.value = policyList;
-};
-
-const fetchHistory = async () => {
-  const [createdEvents, claimEvents, processedEvents] = await Promise.all([
-    listAllEvents("PolicyCreated"),
-    listAllEvents("ClaimRequested"),
-    listAllEvents("ClaimProcessed"),
-  ]);
-
-  const history: ActionHistoryItem[] = [];
-  const userPolicyIds = new Set<string>();
-
-  createdEvents.forEach((evt) => {
-    const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
-    const policyId = String(values[0] || "");
-    const holder = values[1];
-    if (!policyId || !ownerMatches(holder)) return;
-    userPolicyIds.add(policyId);
-    history.push({
-      id: evt.id,
-      action: `${t("policyCreated")} #${policyId}`,
-      time: new Date(evt.created_at || Date.now()).toLocaleString(),
-      type: "create",
-    });
-  });
-
-  claimEvents.forEach((evt) => {
-    const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
-    const policyId = String(values[0] || "");
-    if (!policyId || !userPolicyIds.has(policyId)) return;
-    history.push({
-      id: evt.id,
-      action: `${t("requestClaim")} #${policyId}`,
-      time: new Date(evt.created_at || Date.now()).toLocaleString(),
-      type: "claim",
-    });
-  });
-
-  processedEvents.forEach((evt) => {
-    const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
-    const policyId = String(values[0] || "");
-    const approved = Boolean(values[2]);
-    const payout = Number(values[3] || 0) / 1e8;
-    if (!policyId || !userPolicyIds.has(policyId)) return;
-    history.push({
-      id: evt.id,
-      action: `${t("claimProcessed")} #${policyId} · ${approved ? "Approved" : "Denied"} · ${payout.toFixed(2)} GAS`,
-      time: new Date(evt.created_at || Date.now()).toLocaleString(),
-      type: "processed",
-    });
-  });
-
-  actionHistory.value = history.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 20);
-};
-
-const refreshData = async () => {
-  try {
-    if (!address.value) {
-      await connect();
-    }
-    if (!address.value) return;
-    await fetchPolicies();
-    await fetchHistory();
-  } catch {}
-};
-
-const fetchPrice = async () => {
-  if (!assetType.value) {
-    status.value = { msg: t("fillAllFields"), type: "error" };
-    return;
-  }
-  try {
-    const symbol = assetType.value.trim().replace("/", "-");
-    const price = await getPrice(symbol);
-    if (price?.price) {
-      priceDecimals.value = price.decimals ?? 8;
-      startPrice.value = formatWithDecimals(price.price, priceDecimals.value);
-      status.value = { msg: t("priceFetched"), type: "success" };
-    }
-  } catch (e: any) {
-    status.value = { msg: e.message || t("error"), type: "error" };
-  }
-};
-
-const createPolicy = async () => {
-  if (!assetType.value || !coverage.value || !threshold.value || !startPrice.value) {
-    status.value = { msg: t("fillAllFields"), type: "error" };
-    return;
-  }
-
-  const coverageInt = toInteger(coverage.value, 8);
-  const startPriceInt = toInteger(startPrice.value, priceDecimals.value);
-  const thresholdPercent = Math.floor(Number(threshold.value));
-  const selectedPolicyType = Number(policyType.value);
-
-  if (
-    Number(coverageInt) <= 0 ||
-    Number(startPriceInt) <= 0 ||
-    thresholdPercent <= 0 ||
-    thresholdPercent > 50 ||
-    selectedPolicyType < 1 ||
-    selectedPolicyType > 3
-  ) {
-    status.value = { msg: t("fillAllFields"), type: "error" };
-    return;
-  }
-
-  try {
-    status.value = { msg: t("creatingPolicy"), type: "loading" };
-    if (!address.value) {
-      await connect();
-    }
-    if (!address.value) throw new Error(t("error"));
-
-    const contract = await ensureContractAddress();
-    const { receiptId, invoke } = await processPayment(premiumDisplay.value || "0", `policy:${assetType.value.trim()}`);
-    if (!receiptId) throw new Error(t("receiptMissing"));
-    await invoke(
-      "createPolicy",
-      [
-        { type: "Hash160", value: address.value },
-        { type: "String", value: assetType.value.trim() },
-        { type: "Integer", value: String(selectedPolicyType) },
-        { type: "Integer", value: coverageInt },
-        { type: "Integer", value: startPriceInt },
-        { type: "Integer", value: String(thresholdPercent) },
-        { type: "Integer", value: String(receiptId) },
-      ],
-      contract
-    );
-    status.value = { msg: t("policyCreated"), type: "success" };
-    assetType.value = "";
-    coverage.value = "";
-    threshold.value = "";
-    startPrice.value = "";
-    await refreshData();
-  } catch (e: any) {
-    status.value = { msg: e.message || t("error"), type: "error" };
-  }
-};
-
-const requestClaim = async (policyId: string) => {
-  if (!policyId) return;
-  try {
-    status.value = { msg: t("claimRequested"), type: "loading" };
-    if (!address.value) {
-      await connect();
-    }
-    if (!address.value) throw new Error(t("error"));
-    const contract = await ensureContractAddress();
-    await invokeContract({
-      scriptHash: contract,
-      operation: "RequestClaim",
-      args: [{ type: "Integer", value: policyId }],
-    });
-    status.value = { msg: t("claimRequested"), type: "success" };
-    await refreshData();
-  } catch (e: any) {
-    status.value = { msg: e.message || t("error"), type: "error" };
-  }
-};
-
-onMounted(() => {
-  refreshData();
-});
+const onFetchPrice = () => gp.fetchPrice(getPrice);
 
 watch(address, () => {
-  refreshData();
-});
+  gp.refreshData();
+}, { immediate: true });
 </script>
 
 <style lang="scss" scoped>
@@ -532,23 +224,6 @@ watch(address, () => {
   margin-right: 8px;
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

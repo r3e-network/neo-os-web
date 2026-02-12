@@ -8,7 +8,7 @@
       <text class="threshold-total">/ {{ totalSigners }}</text>
     </view>
 
-    <slider :value="threshold" :min="1" :max="totalSigners" activeColor="var(--multisig-accent)" @change="onChange" />
+    <slider :value="threshold" :min="1" :max="totalSigners" activeColor="var(--multisig-accent)" :aria-label="title" aria-valuemin="1" :aria-valuemax="totalSigners" :aria-valuenow="threshold" @change="onChange" />
 
     <view class="actions row">
       <NeoButton variant="secondary" @click="$emit('back')">{{ backLabel }}</NeoButton>
@@ -31,7 +31,7 @@ const props = defineProps<{
 
 const emit = defineEmits(["back", "next", "update:threshold"]);
 
-const onChange = (e: any) => {
+const onChange = (e: { detail: { value: number } }) => {
   emit("update:threshold", e.detail.value);
 };
 </script>

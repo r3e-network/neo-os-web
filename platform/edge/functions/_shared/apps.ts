@@ -169,7 +169,7 @@ export async function upsertMiniAppManifest(input: {
   if (loadErr) return error(500, `failed to load app registry: ${loadErr.message}`, "DB_ERROR", input.req);
 
   if (existing) {
-    if (String((existing as any)?.developer_user_id ?? "") !== input.developerUserId) {
+    if (String((existing as Record<string, unknown>)?.developer_user_id ?? "") !== input.developerUserId) {
       return error(403, "app_id already registered by another developer", "APP_OWNER_MISMATCH", input.req);
     }
     if (input.mode === "register") {
@@ -183,8 +183,9 @@ export async function upsertMiniAppManifest(input: {
   try {
     enforceMiniAppAssetPolicy(input.canonicalManifest);
     canonical = canonicalizeMiniAppManifest(input.canonicalManifest);
-  } catch (e) {
-    return error(400, (e as Error).message, "MANIFEST_INVALID", input.req);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return error(400, message, "MANIFEST_INVALID", input.req);
   }
   const permissions = (canonical.permissions as Record<string, unknown> | undefined) ?? {};
   const limits = (canonical.limits as Record<string, unknown> | undefined) ?? {};
@@ -257,8 +258,8 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
   try {
     enforceMiniAppAssetPolicy(row.manifest ?? {});
     canonical = canonicalizeMiniAppManifest(row.manifest ?? {});
-  } catch (e) {
-    const detail = (e as Error).message;
+  } catch (e: unknown) {
+    const detail = e instanceof Error ? e.message : String(e);
     return error(500, `stored manifest invalid: ${detail}`, "APP_MANIFEST_INVALID", req);
   }
 
@@ -274,8 +275,9 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
       dailyGasCapPerUser: parseGasLimit(limitsRaw.daily_gas_cap_per_user, "manifest.limits.daily_gas_cap_per_user"),
       governanceCap: parseNeoLimit(limitsRaw.governance_cap, "manifest.limits.governance_cap"),
     };
-  } catch (e) {
-    return error(500, (e as Error).message, "APP_LIMITS_INVALID", req);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return error(500, message, "APP_LIMITS_INVALID", req);
   }
 
   const manifestHash = String(row.manifest_hash ?? "");

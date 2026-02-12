@@ -37,7 +37,7 @@ export function LinkedIdentitiesList({ identities, canUnlink, onUnlink, onLinkNe
   };
 
   if (identities.length === 0) {
-    return <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t("account.neohub.noIdentities")}</div>;
+    return <div className="text-center py-8 text-erobo-ink-soft dark:text-slate-400">{t("account.neohub.noIdentities")}</div>;
   }
 
   return (
@@ -45,15 +45,15 @@ export function LinkedIdentitiesList({ identities, canUnlink, onUnlink, onLinkNe
       {identities.map((identity) => (
         <div
           key={identity.id}
-          className="flex items-center justify-between p-4 border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
+          className="flex items-center justify-between p-4 border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
         >
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 dark:bg-white/10 text-gray-700 dark:text-gray-300">
+            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-erobo-purple/5 dark:bg-white/10 text-erobo-ink dark:text-slate-300">
               {providerIcons[identity.provider] || <Chrome size={20} />}
             </div>
             <div>
-              <div className="font-bold text-sm text-gray-900 dark:text-white">{providerNames[identity.provider] || identity.provider}</div>
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
+              <div className="font-bold text-sm text-erobo-ink dark:text-white">{providerNames[identity.provider] || identity.provider}</div>
+              <div className="text-xs font-medium text-erobo-ink-soft dark:text-slate-400 truncate max-w-[200px]">
                 {identity.email || identity.name || identity.providerUserId}
               </div>
             </div>
@@ -61,7 +61,7 @@ export function LinkedIdentitiesList({ identities, canUnlink, onUnlink, onLinkNe
 
           <div className="flex items-center gap-3">
             {identity.lastUsedAt && (
-              <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-erobo-ink-soft/60 dark:text-slate-500">
                 <Clock size={12} />
                 {new Date(identity.lastUsedAt).toLocaleDateString(locale)}
               </div>
@@ -72,7 +72,7 @@ export function LinkedIdentitiesList({ identities, canUnlink, onUnlink, onLinkNe
                 variant="ghost"
                 size="sm"
                 onClick={() => setUnlinkingId(identity.id)}
-                className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                className="text-erobo-ink-soft/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
                 title="Unlink account"
               >
                 <Trash2 size={16} />
@@ -83,7 +83,7 @@ export function LinkedIdentitiesList({ identities, canUnlink, onUnlink, onLinkNe
       ))}
 
       {onLinkNew && (
-        <Button variant="outline" onClick={onLinkNew} className="w-full mt-4 border-dashed border-gray-300 dark:border-white/20 hover:border-neo hover:text-neo dark:hover:text-neo hover:bg-neo/5">
+        <Button variant="outline" onClick={onLinkNew} className="w-full mt-4 border-dashed border-erobo-purple/15 dark:border-white/20 hover:border-neo hover:text-neo dark:hover:text-neo hover:bg-neo/5">
           <Plus size={16} className="mr-2" />
           {t("account.neohub.linkNew")}
         </Button>

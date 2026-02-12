@@ -1,14 +1,14 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
+import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber, parseGas, toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
+import { parseInvokeResult } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
-export type StatusType = "success" | "error";
-export type Status = { msg: string; type: StatusType };
+export type { StatusType, StatusMessage as Status } from "@shared/composables/useStatusMessage";
 export type Terms = { ltvPercent: number; minDurationHours: number };
 export type Loan = {
   borrowed: number;
@@ -49,7 +49,7 @@ export function useSelfLoanCore() {
 
   const loan = ref<Loan>({ borrowed: 0, collateralLocked: 0, active: false });
   const collateralAmount = ref<string>("");
-  const status = ref<Status | null>(null);
+  const { status, setStatus, clearStatus } = useStatusMessage();
 
   const fmt = (n: number, d = 2) => formatNumber(n, d);
   const toNumber = (value: unknown) => {
@@ -144,7 +144,7 @@ export function useSelfLoanCore() {
     try {
       const contract = await ensureContractAddress();
       const res = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "GetLoanDetails",
         args: [{ type: "Integer", value: String(loanId) }],
       });
@@ -166,7 +166,7 @@ export function useSelfLoanCore() {
         id: loanId,
         ltvPercent,
       };
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "loadLoanPosition", metadata: { loanId } });
       loan.value = { borrowed: 0, collateralLocked: 0, active: false };
     }
@@ -175,7 +175,7 @@ export function useSelfLoanCore() {
   const loadPlatformStats = async () => {
     try {
       const contract = await ensureContractAddress();
-      const statsRes = await invokeRead({ contractAddress: contract, operation: "GetPlatformStats" });
+      const statsRes = await invokeRead({ scriptHash: contract, operation: "GetPlatformStats" });
       const parsed = parseInvokeResult(statsRes);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         const data = parsed as Record<string, unknown>;
@@ -188,7 +188,7 @@ export function useSelfLoanCore() {
           platformFeeBps: feeBps > 0 ? feeBps : platformStats.value.platformFeeBps,
         };
       }
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "loadPlatformStats" });
     }
   };
@@ -207,6 +207,8 @@ export function useSelfLoanCore() {
     loan,
     collateralAmount,
     status,
+    setStatus,
+    clearStatus,
     selectedTier,
     ltvOptions,
     selectedLtvPercent,

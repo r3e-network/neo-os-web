@@ -3,17 +3,7 @@
     <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="handleTabChange">
       <!-- Desktop Sidebar - Stats -->
       <template #desktop-sidebar>
-        <MarketStats
-          :totalMarkets="markets.length"
-          :totalVolume="totalVolume"
-          :activeTraders="activeTraders"
-          :categories="categories"
-          :selectedCategory="filters.category"
-          :t="t"
-          :getCategoryCount="getCategoryCount"
-          :formatCurrency="formatCurrency"
-          @selectCategory="setCategory"
-        />
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <!-- Markets Tab (default content) -->
@@ -77,7 +67,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppTemplate } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { usePredictionMarkets, type PredictionMarket } from "@/composables/usePredictionMarkets";
@@ -156,6 +146,7 @@ const isDesktop = computed(() => {
   try {
     return window.innerWidth >= 768;
   } catch {
+    /* SSR/non-browser environment — default to mobile layout */
     return false;
   }
 });
@@ -177,6 +168,14 @@ const appState = computed(() => ({
   portfolioValue: portfolioValue.value,
   totalPnL: totalPnL.value,
 }));
+
+const sidebarItems = computed(() => [
+  { label: t("markets"), value: markets.value.length },
+  { label: "Volume", value: `${formatCurrency(totalVolume.value)} GAS` },
+  { label: "Traders", value: activeTraders.value },
+  { label: t("portfolioValue"), value: `${formatCurrency(portfolioValue.value)} GAS` },
+  { label: t("totalPnL"), value: `${totalPnL.value > 0 ? "+" : ""}${formatCurrency(totalPnL.value)} GAS` },
+]);
 
 const handleTabChange = (tab: string) => {
   activeTab.value = tab;
@@ -208,7 +207,7 @@ const claimWinnings = async (marketId: number) => {
   await doClaim(marketId, t);
 };
 
-const createMarket = async (marketData: any) => {
+const createMarket = async (marketData: Record<string, unknown>) => {
   isCreating.value = true;
   await doCreate(marketData, t);
   isCreating.value = false;
@@ -224,15 +223,12 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.theme-prediction-market {
-  --pm-primary: #6366f1;
-  --pm-success: #10b981;
-  --pm-danger: #ef4444;
-  --pm-bg: #0f0f1a;
-  --pm-card-bg: rgba(255, 255, 255, 0.05);
-  --pm-text: #ffffff;
-  --pm-text-secondary: rgba(255, 255, 255, 0.7);
-  --pm-border: rgba(255, 255, 255, 0.1);
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@import "./prediction-market-theme.scss";
+
+:global(page) {
+  background: var(--predict-bg);
 }
 
 .tab-content {
@@ -298,7 +294,7 @@ onMounted(() => {
   left: 50%;
   transform: translateX(-50%);
   padding: 14px 24px;
-  background: #ef4444;
+  background: var(--predict-danger);
   color: white;
   border-radius: 12px;
   font-weight: 600;

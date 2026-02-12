@@ -36,9 +36,9 @@
       <view v-else class="card-face card-back">
         <view class="card-back-pattern">
           <view class="neo-logo-container">
-             <!-- Neo N3 Logo SVG -->
+             <!-- Neo N3 Logo SVG — uses currentColor to inherit from .neo-logo-container -->
              <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M168 356V156h52l124 152V156h52v200h-52L220 208v148z" fill="#00E599" />
+                <path d="M168 356V156h52l124 152V156h52v200h-52L220 208v148z" fill="currentColor" />
              </svg>
           </view>
           <text class="pattern-stars">✨</text>
@@ -58,7 +58,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import CardFace from './CardFace.vue';
 
 export interface Card {
@@ -96,8 +95,6 @@ const toRoman = (num: number): string => {
 
 $card-width: 110px;
 $card-height: 170px;
-$primary-color: #00E599; // Neo Green
-$accent-color: #582CA9; // Deep Purple
 
 .tarot-card {
   width: $card-width;
@@ -107,7 +104,7 @@ $accent-color: #582CA9; // Deep Purple
   position: relative;
   
   &:hover .card-inner {
-     box-shadow: 0 0 20px rgba($primary-color, 0.4);
+     box-shadow: 0 0 20px rgba(var(--tarot-neo-green-rgb), 0.4);
   }
 }
 
@@ -146,8 +143,8 @@ $accent-color: #582CA9; // Deep Purple
   background: linear-gradient(135deg, rgba(20, 10, 40, 0.95) 0%, rgba(40, 20, 70, 0.95) 100%);
   transform: rotateY(180deg); // Initially hidden
   padding: 8px;
-  box-shadow: inset 0 0 15px rgba($primary-color, 0.2);
-  border: 1px solid rgba($primary-color, 0.5);
+  box-shadow: inset 0 0 15px rgba(var(--tarot-neo-green-rgb), 0.2);
+  border: 1px solid rgba(var(--tarot-neo-green-rgb), 0.5);
   
   &.wands { border-color: rgba(255, 95, 95, 0.5); box-shadow: inset 0 0 15px rgba(255, 95, 95, 0.2); }
   &.cups { border-color: rgba(95, 175, 255, 0.5); box-shadow: inset 0 0 15px rgba(95, 175, 255, 0.2); }
@@ -157,7 +154,7 @@ $accent-color: #582CA9; // Deep Purple
   .card-border-decoration {
     position: absolute;
     top: 4px; left: 4px; right: 4px; bottom: 4px;
-    border: 1px solid rgba($primary-color, 0.3);
+    border: 1px solid rgba(var(--tarot-neo-green-rgb), 0.3);
     border-radius: 8px;
     pointer-events: none;
   }
@@ -166,7 +163,7 @@ $accent-color: #582CA9; // Deep Purple
 .corner-star {
    position: absolute;
    font-size: 8px;
-   color: $primary-color;
+   color: var(--tarot-neo-green);
    opacity: 0.8;
 }
 .top-left { top: 6px; left: 6px; }
@@ -218,9 +215,9 @@ $accent-color: #582CA9; // Deep Purple
    font-size: 10px;
    font-weight: bold;
    text-transform: uppercase;
-   color: #fff;
+   color: var(--tarot-button-text);
    letter-spacing: 0.05em;
-   background: rgba($accent-color, 0.4);
+   background: rgba(var(--tarot-deep-purple-rgb), 0.4);
    padding: 4px;
    border-radius: 4px;
 }
@@ -228,14 +225,14 @@ $accent-color: #582CA9; // Deep Purple
 .blockchain-hash {
    font-family: 'Courier New', monospace;
    font-size: 6px;
-   color: rgba($primary-color, 0.7);
+   color: rgba(var(--tarot-neo-green-rgb), 0.7);
    opacity: 0.6;
 }
 
 /* Back Style */
 .card-back {
-  background: linear-gradient(135deg, #1a0b2e 0%, #000000 100%);
-  border: 1px solid rgba($primary-color, 0.3);
+  background: var(--tarot-card-back-gradient);
+  border: 1px solid rgba(var(--tarot-neo-green-rgb), 0.3);
   
   .pattern-text {
      font-size: 8px;
@@ -247,7 +244,8 @@ $accent-color: #582CA9; // Deep Purple
   .neo-logo-container {
      width: 50px;
      height: 50px;
-     filter: drop-shadow(0 0 8px rgba($primary-color, 0.6));
+     color: var(--tarot-neo-green);
+     filter: drop-shadow(0 0 8px rgba(var(--tarot-neo-green-rgb), 0.6));
      
      svg {
        width: 100%;
@@ -279,7 +277,7 @@ $accent-color: #582CA9; // Deep Purple
    
    .line {
       position: absolute;
-      background: $primary-color;
+      background: var(--tarot-neo-green);
    }
    
    .line-1 { width: 1px; height: 30%; top: 0; left: 20%; }

@@ -115,6 +115,7 @@ async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
       const data = await res.json();
       if (data.result) return data.result;
     } catch {
+      /* RPC endpoint unreachable — try next */
     }
   }
   throw new Error("All RPC endpoints failed");
@@ -148,7 +149,7 @@ export async function fetchPrices(): Promise<PriceData> {
 // Fetch balances for a list of addresses
 async function fetchAddressBalances(
   addresses: string[],
-  labelPrefix: string,
+  labelPrefix: string
 ): Promise<{ wallets: WalletBalance[]; totalNeo: number; totalGas: number }> {
   const wallets: WalletBalance[] = [];
   let totalNeo = 0;
@@ -166,7 +167,7 @@ async function fetchAddressBalances(
       });
       totalNeo += balance.neo;
       totalGas += balance.gas;
-    } catch (e) {
+    } catch (e: unknown) {
       wallets.push({ address, label: `${labelPrefix} Wallet ${i + 1}`, neo: 0, gas: 0 });
     }
   }

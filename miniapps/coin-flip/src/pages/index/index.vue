@@ -28,6 +28,11 @@
         :fireworks-active="showWinOverlay"
         @tab-change="activeTab = $event"
       >
+        <!-- Desktop Sidebar -->
+        <template #desktop-sidebar>
+          <SidebarPanel :title="t('overview')" :items="sidebarItems" />
+        </template>
+
         <!-- Game content -->
         <template #content>
           <!-- Wallet Connection Warning -->
@@ -95,34 +100,34 @@
 
 <script setup lang="ts">
 import "../../static/coin-flip.css";
-import { ref, computed, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { formatNumber, sleep, toFixed8 } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
-import { sha256Hex, sha256HexFromHex } from "@shared/utils/hash";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoStats, NeoButton, type StatItem, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoStats, NeoButton, SidebarPanel, type StatItem, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
-import { audioManager } from "../../utils/audio";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { useGameState } from "@shared/composables/useGameState";
-import { useErrorHandler } from "@shared/composables/useErrorHandler";
-
-import CoinArena, { type GameResult } from "./components/CoinArena.vue";
+import CoinArena from "./components/CoinArena.vue";
 import BetControls from "./components/BetControls.vue";
 import ResultOverlay from "./components/ResultOverlay.vue";
+import { useCoinFlipGame } from "./composables/useCoinFlipGame";
 
 const { t } = useI18n();
-const { handleError, getUserMessage, canRetry, clearError, lastCategory } = useErrorHandler();
+const wallet = useWallet() as WalletSDK;
+const { address } = wallet;
+
+const {
+  betAmount, choice, totalWon, isFlipping, result, displayOutcome,
+  showWinOverlay, winAmount, errorMessage, validationError, canRetryError,
+  canBet, wins, losses, totalGames, formatNum,
+  connectWallet, resetGame, handleBoundaryError, retryOperation, handleFlip,
+} = useCoinFlipGame(wallet, t);
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "game-board",
   tabs: [
-    { key: "game", labelKey: "game", icon: "🎮", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
+    { key: "game", labelKey: "game", icon: "\uD83C\uDFAE", default: true },
+    { key: "stats", labelKey: "stats", icon: "\uD83D\uDCCA" },
+    { key: "docs", labelKey: "docs", icon: "\uD83D\uDCD6" },
   ],
   features: {
     fireworks: true,
@@ -142,82 +147,6 @@ const templateConfig: MiniAppTemplateConfig = {
 
 const activeTab = ref("game");
 
-const APP_ID = "miniapp-coinflip";
-const SCRIPT_NAME = "flip-coin";
-const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
-const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
-
-const betAmount = ref("1");
-const choice = ref<"heads" | "tails">("heads");
-const { wins, losses, winRate, totalGames, recordWin, recordLoss } = useGameState();
-const totalWon = ref(0);
-const isFlipping = ref(false);
-const result = ref<GameResult | null>(null);
-const displayOutcome = ref<"heads" | "tails" | null>(null);
-const showWinOverlay = ref(false);
-const winAmount = ref("0");
-const contractAddress = ref<string | null>(null);
-const flipScriptHash = ref<string | null>(null);
-const errorMessage = ref<string | null>(null);
-const validationError = ref<string | null>(null);
-const canRetryError = ref(false);
-const lastOperation = ref<string | null>(null);
-
-// Timer tracking for cleanup
-let errorClearTimer: ReturnType<typeof setTimeout> | null = null;
-
-const formatNum = (n: number) => formatNumber(n, 2);
-
-const MAX_BET = 100;
-const MIN_BET = 0.05;
-
-const hexToBigInt = (hex: string): bigint => {
-  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
-  return BigInt("0x" + cleanHex);
-};
-
-const hashSeed = async (seed: string): Promise<string> => {
-  const raw = String(seed ?? "").trim();
-  const cleaned = raw.replace(/^0x/i, "");
-  const isHex = cleaned.length > 0 && /^[0-9a-fA-F]+$/.test(cleaned);
-  return isHex ? sha256HexFromHex(cleaned) : sha256Hex(raw);
-};
-
-const simulateCoinFlip = async (
-  seed: string,
-  playerChoice: boolean
-): Promise<{ won: boolean; outcome: "heads" | "tails" }> => {
-  const hashHex = await hashSeed(seed);
-  const rand = hexToBigInt(hashHex);
-  const resultFlip = rand % BigInt(2) === BigInt(0);
-  const won = resultFlip === playerChoice;
-  const outcome = resultFlip ? "heads" : "tails";
-  return { won, outcome };
-};
-
-// Enhanced input validation
-const validateBetAmount = (amount: string): string | null => {
-  const num = parseFloat(amount);
-  if (isNaN(num)) {
-    return t("invalidAmountNumber");
-  }
-  if (num < MIN_BET) {
-    return t("minBetError").replace("{min}", String(MIN_BET));
-  }
-  if (num > MAX_BET) {
-    return t("maxBetError").replace("{max}", String(MAX_BET));
-  }
-  if (!/^\d+(\.\d{1,8})?$/.test(amount)) {
-    return t("invalidAmountDecimals");
-  }
-  return null;
-};
-
-const canBet = computed(() => {
-  const n = parseFloat(betAmount.value);
-  return n >= MIN_BET && n <= MAX_BET && !validationError.value;
-});
-
 const gameStats = computed<StatItem[]>(() => [
   { label: t("totalGames"), value: wins.value + losses.value },
   { label: t("wins"), value: wins.value, variant: "success" },
@@ -225,244 +154,29 @@ const gameStats = computed<StatItem[]>(() => [
   { label: t("totalWon"), value: `${formatNum(totalWon.value)} GAS`, variant: "accent" },
 ]);
 
-// Reactive state bridge for MiniAppTemplate
+const sidebarItems = computed(() => [
+  { label: t("totalGames"), value: totalGames.value },
+  { label: t("wins"), value: wins.value },
+  { label: t("losses"), value: losses.value },
+  { label: t("totalWon"), value: `${formatNum(totalWon.value)} GAS` },
+]);
+
 const appState = computed(() => ({
   totalGames: wins.value + losses.value,
   wins: wins.value,
   losses: losses.value,
   totalWon: totalWon.value,
 }));
-
-const showError = (msg: string, retryable = false) => {
-  errorMessage.value = msg;
-  canRetryError.value = retryable;
-  if (errorClearTimer) clearTimeout(errorClearTimer);
-  errorClearTimer = setTimeout(() => {
-    errorMessage.value = null;
-    canRetryError.value = false;
-    errorClearTimer = null;
-  }, 5000);
-};
-
-const ensureContractAddress = async () => {
-  if (!requireNeoChain(chainType, t)) {
-    throw new Error(t("wrongChainMessage"));
-  }
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  if (!contractAddress.value) {
-    throw new Error(t("contractUnavailable"));
-  }
-  return contractAddress.value;
-};
-
-const ensureScriptHash = async () => {
-  if (flipScriptHash.value) return flipScriptHash.value;
-  const contract = await ensureContractAddress();
-
-  try {
-    const info = await invokeRead({ scriptHash: contract, operation: "getFlipScriptInfo" });
-    const parsed = parseInvokeResult(info);
-    let hash = "";
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      hash = String((parsed as Record<string, unknown>).hash ?? "");
-    }
-    if (!hash) {
-      const direct = await invokeRead({
-        scriptHash: contract,
-        operation: "getScriptHash",
-        args: [{ type: "String", value: SCRIPT_NAME }],
-      });
-      const parsedDirect = parseInvokeResult(direct);
-      hash = Array.isArray(parsedDirect) ? String(parsedDirect[0] ?? "") : String(parsedDirect ?? "");
-    }
-    if (!hash) {
-      throw new Error(t("scriptHashMissing"));
-    }
-    flipScriptHash.value = hash.replace(/^0x/i, "");
-    return flipScriptHash.value;
-  } catch (e) {
-    handleError(e, { operation: "ensureScriptHash", metadata: { contract } });
-    throw e;
-  }
-};
-
-const connectWallet = async () => {
-  try {
-    await connect();
-  } catch (e) {
-    handleError(e, { operation: "connectWallet" });
-    showError(getUserMessage(e));
-  }
-};
-
-const resetGame = () => {
-  isFlipping.value = false;
-  result.value = null;
-  displayOutcome.value = null;
-  showWinOverlay.value = false;
-  clearError();
-};
-
-const handleBoundaryError = (error: Error) => {
-  handleError(error, { operation: "boundaryError" });
-  showError(t("gameErrorFallback"));
-};
-
-const retryOperation = () => {
-  if (lastOperation.value === "flip") {
-    handleFlip();
-  }
-};
-
-const handleFlip = async () => {
-  // Validate inputs
-  const validation = validateBetAmount(betAmount.value);
-  if (validation) {
-    validationError.value = validation;
-    showError(validation);
-    return;
-  }
-  validationError.value = null;
-
-  // Check wallet connection
-  if (!address.value) {
-    try {
-      await connect();
-    } catch (e) {
-      handleError(e, { operation: "connectBeforeFlip" });
-      showError(t("connectWalletToPlay"));
-      return;
-    }
-  }
-
-  if (!address.value) {
-    showError(t("connectWalletToPlay"));
-    return;
-  }
-
-  if (isFlipping.value || !canBet.value) return;
-
-  isFlipping.value = true;
-  result.value = null;
-  displayOutcome.value = null;
-  showWinOverlay.value = false;
-  lastOperation.value = "flip";
-
-  try {
-    const contract = await ensureContractAddress();
-
-    const amountBase = toFixed8(betAmount.value);
-    if (amountBase === "0") {
-      throw new Error(t("invalidBetAmount"));
-    }
-
-    // Process payment and get invoke function
-    const { receiptId, invoke: invokeWithReceipt } = await processPayment(
-      betAmount.value,
-      `coinflip:${choice.value}:${betAmount.value}`
-    );
-
-    // Initiate bet using the invoke function from payment flow
-    const initiateResult = (await invokeWithReceipt("initiateBet", [
-      { type: "Hash160", value: address.value as string },
-      { type: "Integer", value: amountBase },
-      { type: "Boolean", value: choice.value === "heads" },
-      { type: "Integer", value: String(receiptId) },
-    ])) as { txid: string; receiptId: string };
-
-    const initiateTxid = initiateResult.txid;
-    const initiatedEvent = initiateTxid ? await waitForEvent(initiateTxid, "BetInitiated") : null;
-    if (!initiatedEvent) {
-      throw new Error(t("betPending"));
-    }
-
-    const initiatedValues = Array.isArray((initiatedEvent as any)?.state)
-      ? (initiatedEvent as any).state.map(parseStackItem)
-      : [];
-    const betId = String(initiatedValues[1] ?? "");
-    const seed = String(initiatedValues[4] ?? "");
-    if (!betId || !seed) {
-      throw new Error(t("betMissing"));
-    }
-
-    audioManager.play("flip");
-    const playerChoice = choice.value === "heads";
-    const simulated = await simulateCoinFlip(seed, playerChoice);
-
-    displayOutcome.value = simulated.outcome;
-    await sleep(400);
-    isFlipping.value = false;
-    result.value = { won: simulated.won, outcome: simulated.outcome.toUpperCase() };
-
-    if (simulated.won) audioManager.play("win");
-    else audioManager.play("lose");
-
-    const scriptHash = await ensureScriptHash();
-
-    try {
-      const settleTx = await invokeContract({
-        scriptHash: contract,
-        operation: "settleBet",
-        args: [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: betId },
-          { type: "Boolean", value: simulated.won },
-          { type: "ByteArray", value: scriptHash },
-        ],
-      });
-
-      const settleTxid = String((settleTx as any)?.txid || (settleTx as any)?.txHash || "");
-      if (settleTxid) {
-        const resolvedEvent = await waitForEvent(settleTxid, "BetResolved");
-        if (resolvedEvent) {
-          const values = Array.isArray((resolvedEvent as any)?.state)
-            ? (resolvedEvent as any).state.map(parseStackItem)
-            : [];
-          const payoutRaw = values[3];
-          const payoutValue = Number(payoutRaw || 0) / 1e8;
-
-          if (simulated.won) {
-            recordWin(payoutValue);
-            totalWon.value += payoutValue;
-            winAmount.value = payoutValue.toFixed(2);
-            showWinOverlay.value = true;
-          } else {
-            recordLoss();
-          }
-        }
-      }
-    } catch (settleError) {
-      // Log settlement error but don't block user - bet was already placed
-      handleError(settleError, { operation: "settleBet", metadata: { betId, won: simulated.won } });
-      if (simulated.won) {
-        recordWin(0);
-      } else {
-        recordLoss();
-      }
-    }
-  } catch (e: unknown) {
-    handleError(e, { operation: "flip", metadata: { betAmount: betAmount.value, choice: choice.value } });
-    const userMsg = getUserMessage(e);
-    const retryable = canRetry(e);
-    showError(userMsg, retryable);
-    isFlipping.value = false;
-  }
-};
-
-onUnmounted(() => {
-  if (errorClearTimer) {
-    clearTimeout(errorClearTimer);
-    errorClearTimer = null;
-  }
-});
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./coin-flip-theme.scss";
+
+:global(page) {
+  background: var(--coin-bg-primary);
+}
 
 .tab-content {
   padding: 20px;
@@ -532,11 +246,6 @@ onUnmounted(() => {
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
 :deep(.neo-stats) {
   .stat-card {
     background: var(--coin-stat-bg);
@@ -546,20 +255,5 @@ onUnmounted(() => {
     font-weight: 900;
     letter-spacing: -1px;
   }
-}
-
-// Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 </style>

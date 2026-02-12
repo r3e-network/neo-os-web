@@ -29,14 +29,14 @@ export function HeroSection() {
             {t("hero.badge")}
           </div>
 
-          <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold text-gray-900 dark:text-white mb-10 tracking-tight leading-[1.1]">
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold text-erobo-ink dark:text-white mb-10 tracking-tight leading-[1.1]">
             {t("hero.title")} <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-erobo-purple to-erobo-pink inline-block mt-2 drop-shadow-2xl">
               {t("hero.titleHighlight")}
             </span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-gray-600 dark:text-white/60 max-w-3xl mx-auto mb-16 leading-normal font-medium tracking-tight">
+          <p className="text-xl md:text-2xl text-erobo-ink-soft dark:text-white/60 max-w-3xl mx-auto mb-16 leading-normal font-medium tracking-tight">
             {t("hero.subtitle")}
           </p>
 
@@ -53,7 +53,7 @@ export function HeroSection() {
               <Button
                 variant="outline"
                 size="lg"
-                className="border border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white font-bold px-10 h-16 rounded-full backdrop-blur-md hover:bg-gray-200 dark:hover:bg-white/10 transition-all hover:scale-105 text-lg"
+                className="border border-erobo-purple/15 dark:border-white/20 bg-erobo-purple/10 dark:bg-white/5 text-erobo-ink dark:text-white font-bold px-10 h-16 rounded-full backdrop-blur-md hover:bg-erobo-purple/15 dark:hover:bg-white/10 transition-all hover:scale-105 text-lg"
               >
                 {t("hero.howItWorks")} <FileText className="ml-2" size={20} strokeWidth={2.5} />
               </Button>
@@ -61,17 +61,17 @@ export function HeroSection() {
           </div>
 
           {/* Tech stack badges */}
-          <div className="mt-20 flex flex-wrap justify-center items-center gap-8 text-gray-500 dark:text-white/50 transition-all duration-700">
+          <div className="mt-20 flex flex-wrap justify-center items-center gap-8 text-erobo-ink-soft dark:text-white/50 transition-all duration-700">
             <div className="flex items-center gap-2">
               <Code2 size={20} />
-              <span className="font-bold tracking-tight text-lg bg-clip-text text-transparent bg-gradient-to-r from-gray-700 to-gray-900 dark:from-white dark:to-white/70">{t("hero.sgxEnabled")}</span>
+              <span className="font-bold tracking-tight text-lg bg-clip-text text-transparent bg-gradient-to-r from-erobo-ink to-erobo-ink dark:from-white dark:to-white/70">{t("hero.sgxEnabled")}</span>
             </div>
-            <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-white/20" />
+            <div className="w-1.5 h-1.5 rounded-full bg-erobo-purple/15 dark:bg-white/20" />
             <div className="flex items-center gap-2">
               <Shield size={20} />
-              <span className="font-bold tracking-tight text-lg bg-clip-text text-transparent bg-gradient-to-r from-gray-700 to-gray-900 dark:from-white dark:to-white/70">{t("hero.teeTrusted")}</span>
+              <span className="font-bold tracking-tight text-lg bg-clip-text text-transparent bg-gradient-to-r from-erobo-ink to-erobo-ink dark:from-white dark:to-white/70">{t("hero.teeTrusted")}</span>
             </div>
-            <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-white/20" />
+            <div className="w-1.5 h-1.5 rounded-full bg-erobo-purple/15 dark:bg-white/20" />
             <div className="flex items-center gap-2 text-[#00E599]">
               <Rocket size={20} />
               <span className="font-bold tracking-tight text-lg text-[#00E599] dropshadow-neo">{t("hero.neoNative")}</span>

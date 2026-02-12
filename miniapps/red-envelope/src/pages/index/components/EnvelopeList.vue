@@ -8,6 +8,8 @@
         :key="env.id"
         class="glass-envelope"
         :class="{ disabled: !env.canClaim }"
+        role="button"
+        :aria-label="`${env.name || env.from} - ${env.totalAmount.toFixed(2)} GAS`"
         @click="$emit('claim', env)"
       >
         <view class="envelope-content">
@@ -42,8 +44,8 @@
             >
               {{ env.expired ? t("expired") : env.ready ? t("ready") : t("notReady") }}
             </text>
-            <view class="share-btn" @click.stop="$emit('share', env)">
-              <text>🔗</text>
+            <view class="share-btn" role="button" aria-label="Share" @click.stop="$emit('share', env)">
+              <text aria-hidden="true">🔗</text>
             </view>
           </view>
         </view>
@@ -90,10 +92,6 @@ const formatAddress = (addr: string): string => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-$gold: #f1c40f;
-$premium-red-light: #e74c3c;
-$premium-red-dark: #922b21;
-
 .envelope-list {
   display: flex;
   flex-direction: column;
@@ -101,7 +99,7 @@ $premium-red-dark: #922b21;
 }
 
 .glass-envelope {
-  background: linear-gradient(135deg, $premium-red-light 0%, $premium-red-dark 100%);
+  background: linear-gradient(135deg, var(--envelope-premium-red-light) 0%, var(--envelope-premium-red-dark) 100%);
   border: 1px solid rgba(255, 230, 230, 0.2);
   border-radius: 12px;
   padding: 16px;
@@ -114,7 +112,7 @@ $premium-red-dark: #922b21;
   &:hover:not(.disabled) {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-    border-color: rgba($gold, 0.5);
+    border-color: var(--red-envelope-gold-border);
   }
 
   &.disabled {
@@ -136,19 +134,19 @@ $premium-red-dark: #922b21;
 .envelope-icon {
   width: 48px;
   height: 48px;
-  background: $gold;
+  background: var(--envelope-gold);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid var(--text-primary);
 }
 
 .envelope-symbol {
   font-size: 24px;
   font-weight: 700;
-  color: $premium-red-dark; /* Red text on gold background */
+  color: var(--envelope-premium-red-dark); /* Red text on gold background */
 }
 
 .envelope-info {
@@ -162,7 +160,7 @@ $premium-red-dark: #922b21;
   font-family: $font-mono;
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   opacity: 0.9;
 }
 
@@ -174,9 +172,9 @@ $premium-red-dark: #922b21;
 .envelope-name {
   font-size: 16px;
   font-weight: 800;
-  color: $gold;
+  color: var(--envelope-gold);
   margin-bottom: 2px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .best-luck {
@@ -185,10 +183,10 @@ $premium-red-dark: #922b21;
   gap: 4px;
   margin-top: 4px;
   padding: 4px 8px;
-  background: rgba($gold, 0.2);
+  background: var(--red-envelope-gold-glow);
   border-radius: 6px;
   width: fit-content;
-  border: 1px solid rgba($gold, 0.3);
+  border: 1px solid var(--red-envelope-gold-border);
 }
 
 .best-luck-icon {
@@ -198,7 +196,7 @@ $premium-red-dark: #922b21;
 .best-luck-text {
   font-size: 10px;
   font-weight: 700;
-  color: $gold;
+  color: var(--envelope-gold);
 }
 
 .status-badge {
@@ -212,14 +210,14 @@ $premium-red-dark: #922b21;
 
   &.status-ready {
     background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
+    color: var(--red-envelope-success);
     border: 1px solid rgba(46, 204, 113, 0.3);
   }
 
   &.status-pending {
-    background: rgba($gold, 0.2);
-    color: $gold;
-    border: 1px solid rgba($gold, 0.3);
+    background: var(--red-envelope-gold-glow);
+    color: var(--envelope-gold);
+    border: 1px solid var(--red-envelope-gold-border);
   }
 
   &.status-expired {
@@ -250,12 +248,12 @@ $premium-red-dark: #922b21;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.3);
     transform: scale(1.1);
   }
-  
+
   text {
     font-size: 14px;
     filter: grayscale(1) brightness(2);

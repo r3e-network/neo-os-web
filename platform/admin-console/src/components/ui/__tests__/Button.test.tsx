@@ -21,7 +21,7 @@ describe("Button Component", () => {
   it("should apply secondary variant", () => {
     render(<Button variant="secondary">Secondary</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("bg-gray-200");
+    expect(button).toHaveClass("bg-muted");
   });
 
   it("should apply danger variant", () => {
@@ -33,7 +33,7 @@ describe("Button Component", () => {
   it("should apply ghost variant", () => {
     render(<Button variant="ghost">Ghost</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("hover:bg-gray-100");
+    expect(button).toHaveClass("hover:bg-muted/50");
   });
 
   it("should apply small size", () => {

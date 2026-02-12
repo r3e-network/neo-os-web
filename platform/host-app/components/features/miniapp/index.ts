@@ -15,3 +15,5 @@ export { ScreenshotGallery, type Screenshot } from "./ScreenshotGallery";
 export { VersionHistory, type VersionInfo } from "./VersionHistory";
 export { PermissionsCard, type MiniAppPermissions } from "./PermissionsCard";
 export { ActionButtons } from "./ActionButtons";
+export { CategorySidebar } from "./CategorySidebar";
+export { FilterBar } from "./FilterBar";

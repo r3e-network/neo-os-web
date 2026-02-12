@@ -61,7 +61,7 @@ export function FilterSidebar({ sections, selected, onChange, isOpen, onClose }:
             onClick={onClose}
             className="lg:hidden p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           >
-            <X size={20} className="text-erobo-ink-soft dark:text-gray-400" />
+            <X size={20} className="text-erobo-ink-soft dark:text-slate-400" />
           </button>
         )}
       </div>
@@ -70,13 +70,13 @@ export function FilterSidebar({ sections, selected, onChange, isOpen, onClose }:
         <div key={section.id} className="mb-6">
           <button
             onClick={() => toggleSection(section.id)}
-            className="flex items-center justify-between w-full text-left py-2 text-sm font-semibold text-erobo-ink-soft dark:text-gray-300 hover:text-erobo-purple dark:hover:text-erobo-purple transition-colors"
+            className="flex items-center justify-between w-full text-left py-2 text-sm font-semibold text-erobo-ink-soft dark:text-slate-300 hover:text-erobo-purple dark:hover:text-erobo-purple transition-colors"
           >
             {section.label}
             {expanded[section.id] ? (
-              <ChevronDown size={18} className="text-gray-500 dark:text-gray-400" strokeWidth={2} />
+              <ChevronDown size={18} className="text-erobo-ink-soft dark:text-slate-400" strokeWidth={2} />
             ) : (
-              <ChevronRight size={18} className="text-gray-500 dark:text-gray-400" strokeWidth={2} />
+              <ChevronRight size={18} className="text-erobo-ink-soft dark:text-slate-400" strokeWidth={2} />
             )}
           </button>
 
@@ -91,7 +91,7 @@ export function FilterSidebar({ sections, selected, onChange, isOpen, onClose }:
                       "flex items-center justify-between gap-3 px-3 py-2 rounded-xl cursor-pointer text-sm transition-all border",
                       isSelected
                         ? "bg-erobo-purple/10 text-erobo-purple border-erobo-purple/30"
-                        : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft dark:text-gray-400 border-white/60 dark:border-erobo-purple/10 hover:bg-erobo-peach/30 dark:hover:bg-white/10 hover:text-erobo-ink dark:hover:text-white",
+                        : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft dark:text-slate-400 border-white/60 dark:border-erobo-purple/10 hover:bg-erobo-peach/30 dark:hover:bg-white/10 hover:text-erobo-ink dark:hover:text-white",
                     )}
                   >
                     <input
@@ -114,7 +114,7 @@ export function FilterSidebar({ sections, selected, onChange, isOpen, onClose }:
                       <span className="truncate">{option.label}</span>
                     </div>
                     {option.count !== undefined && (
-                      <span className="text-xs font-mono text-gray-400">{option.count}</span>
+                      <span className="text-xs font-mono text-erobo-ink-soft/60">{option.count}</span>
                     )}
                   </label>
                 );

@@ -1,7 +1,7 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { formatAddress, parseGas } from "@shared/utils/format";
+import { parseGas } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { normalizeScriptHash, addressToScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";

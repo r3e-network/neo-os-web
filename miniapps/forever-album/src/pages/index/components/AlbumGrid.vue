@@ -4,16 +4,24 @@
       <text>{{ t("loading") }}</text>
     </view>
     <view v-else class="gallery-grid">
-      <view v-for="photo in photos" :key="photo.id" class="photo-item" @click="$emit('view', photo)">
+      <view
+        v-for="photo in photos"
+        :key="photo.id"
+        class="photo-item"
+        role="button"
+        tabindex="0"
+        :aria-label="photo.encrypted ? t('encrypted') : t('albumPhoto')"
+        @click="$emit('view', photo)"
+      >
         <image v-if="!photo.encrypted" :src="photo.data" mode="aspectFill" class="photo-img" :alt="t('albumPhoto')" />
         <view v-else class="photo-locked">
           <text class="lock-label">{{ t("encrypted") }}</text>
         </view>
-        <view v-if="photo.encrypted" class="lock-icon">{{ t("encrypted") }}</view>
+        <view v-if="photo.encrypted" class="lock-icon" aria-hidden="true">{{ t("encrypted") }}</view>
       </view>
 
-      <view class="photo-item placeholder" @click="$emit('upload')">
-        <text class="plus-icon">+</text>
+      <view class="photo-item placeholder" role="button" tabindex="0" :aria-label="t('addPhoto')" @click="$emit('upload')">
+        <text class="plus-icon" aria-hidden="true">+</text>
         <text class="add-label">{{ t("addPhoto") }}</text>
       </view>
     </view>
@@ -27,13 +35,7 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
-
-interface PhotoItem {
-  id: string;
-  data: string;
-  encrypted: boolean;
-  createdAt: number;
-}
+import type { PhotoItem } from "@/types";
 
 defineProps<{
   t: (key: string) => string;

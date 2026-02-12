@@ -5,12 +5,14 @@
       <text class="empty-text">{{ emptyText }}</text>
     </view>
     <view v-else class="vault-list">
-      <view v-for="vault in vaults" :key="vault.id" class="vault-item" @click="$emit('select', vault.id)">
+      <view v-for="vault in vaults" :key="vault.id" class="vault-item" role="button" tabindex="0" :aria-label="`Vault #${vault.id}`" @click="$emit('select', vault.id)">
         <view class="vault-meta">
           <text class="vault-id">#{{ vault.id }}</text>
           <text class="vault-bounty">{{ formatGas(vault.bounty) }} GAS</text>
         </view>
-        <text class="vault-creator mono">{{ vault.creator ? shortenAddress(vault.creator) : formatDate(vault.created) }}</text>
+        <text class="vault-creator mono">{{
+          vault.creator ? formatAddress(vault.creator) : formatDate(vault.created)
+        }}</text>
       </view>
     </view>
   </NeoCard>
@@ -18,6 +20,7 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { formatAddress, formatGas } from "@shared/utils/format";
 
 interface Vault {
   id: string;
@@ -36,15 +39,6 @@ defineProps<{
 defineEmits<{
   (e: "select", id: string): void;
 }>();
-
-const shortenAddress = (addr: string): string => {
-  if (!addr || addr.length < 10) return addr;
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
-};
-
-const formatGas = (value: number): string => {
-  return value.toFixed(4);
-};
 
 const formatDate = (ts?: number): string => {
   if (!ts) return "";

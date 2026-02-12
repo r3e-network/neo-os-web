@@ -46,6 +46,7 @@ export const disassembleScript = (script: string): string[] => {
   try {
     return sc.OpToken.fromScript(cleaned).map((token) => token.prettyPrint());
   } catch {
+    /* Invalid script bytes — return empty disassembly */
     return [];
   }
 };

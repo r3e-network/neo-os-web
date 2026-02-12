@@ -1,7 +1,7 @@
 import { ref, computed, onMounted } from "vue";
 import { PRODUCTION_ORIGINS, DEV_ORIGINS } from "../config";
 
-export type Locale = "en" | "zh";
+export type Locale = "en" | "zh" | "ja" | "ko";
 
 /** Allowed origins for postMessage-based locale changes */
 const ALLOWED_ORIGINS: ReadonlySet<string> = new Set([...PRODUCTION_ORIGINS, ...DEV_ORIGINS]);
@@ -16,7 +16,11 @@ let listenersAttached = false;
 
 function normalizeLocale(value?: string | null): Locale {
   if (!value) return "en";
-  return value.toLowerCase().startsWith("zh") ? "zh" : "en";
+  const lower = value.toLowerCase();
+  if (lower.startsWith("zh")) return "zh";
+  if (lower.startsWith("ja")) return "ja";
+  if (lower.startsWith("ko")) return "ko";
+  return "en";
 }
 
 function readQueryLocale(): string | null {
@@ -49,6 +53,7 @@ function resolveInitialLocale(): Locale {
  */
 export function resetI18nState(): void {
   initialized = false;
+  listenersAttached = false;
   currentLocale.value = "en";
 }
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -118,7 +116,7 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
               </div>
             </div>
 
-            <p className="text-sm text-erobo-ink-soft/80 dark:text-gray-400 line-clamp-2 leading-relaxed mb-6 flex-1 font-normal">
+            <p className="text-sm text-erobo-ink-soft/80 dark:text-slate-400 line-clamp-2 leading-relaxed mb-6 flex-1 font-normal">
               {appDesc}
             </p>
 

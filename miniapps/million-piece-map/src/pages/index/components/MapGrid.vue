@@ -7,12 +7,12 @@
       </view>
 
       <view class="zoom-controls">
-        <view class="zoom-btn" @click="$emit('zoomOut')">
-          <text>-</text>
+        <view class="zoom-btn" role="button" tabindex="0" :aria-label="t('zoomOut') || 'Zoom out'" @click="$emit('zoomOut')">
+          <text aria-hidden="true">-</text>
         </view>
         <text class="zoom-level">{{ zoomLevel }}x</text>
-        <view class="zoom-btn" @click="$emit('zoomIn')">
-          <text>+</text>
+        <view class="zoom-btn" role="button" tabindex="0" :aria-label="t('zoomIn') || 'Zoom in'" @click="$emit('zoomIn')">
+          <text aria-hidden="true">+</text>
         </view>
       </view>
 
@@ -28,6 +28,9 @@
               tile.isYours && 'pixel-yours',
             ]"
             :style="{ backgroundColor: getTileColor(tile) }"
+            role="button"
+            tabindex="0"
+            :aria-label="`${t('coordinates')} ${i} — ${tile.isYours ? t('yourTerritory') : tile.owned ? t('othersTerritory') : t('available')}`"
             @click="$emit('selectTile', i)"
           >
             <view v-if="tile.selected" class="pixel-cursor"></view>

@@ -4,6 +4,7 @@ import { useWallet } from "@/composables/useWallet";
 import { useRedEnvelope } from "@/composables/useRedEnvelope";
 import { useI18n } from "@/composables/useI18n";
 import { extractError } from "@/utils/format";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 const { t } = useI18n();
 const { connected, connect } = useWallet();
@@ -15,7 +16,7 @@ const expiryHours = ref("168");
 const message = ref("");
 const minNeo = ref("100");
 const minHoldDays = ref("2");
-const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
+const { status, setStatus, clearStatus } = useStatusMessage();
 
 const canSubmit = computed(() => {
   const a = Number(amount.value);
@@ -35,7 +36,7 @@ const handleSubmit = async () => {
     await connect();
     return;
   }
-  status.value = null;
+  clearStatus();
   try {
     const txid = await createEnvelope({
       totalGas: Number(amount.value),
@@ -45,12 +46,12 @@ const handleSubmit = async () => {
       minNeo: Number(minNeo.value) || 100,
       minHoldDays: Number(minHoldDays.value) || 2,
     });
-    status.value = { msg: `TX: ${txid.slice(0, 12)}...`, type: "success" };
+    setStatus(`TX: ${txid.slice(0, 12)}...`, "success");
     amount.value = "";
     count.value = "";
     message.value = "";
   } catch (e: unknown) {
-    status.value = { msg: extractError(e), type: "error" };
+    setStatus(extractError(e), "error");
   }
 };
 </script>

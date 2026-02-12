@@ -16,7 +16,7 @@ vi.mock("@neo/uniapp-sdk", () => ({
 
 // Mock i18n
 vi.mock("@shared/utils/i18n", () => ({
-  createT: (translations: any) => (key: string) => translations[key]?.en || key,
+  createT: (translations: Record<string, Record<string, string>>) => (key: string) => translations[key]?.en || key,
 }));
 
 import { useWallet, usePayments } from "@neo/uniapp-sdk";
@@ -29,7 +29,7 @@ describe("Neo-NS MiniApp", () => {
     vi.clearAllMocks();
     const wallet = useWallet();
     const payments = usePayments("miniapp-neo-ns");
-    payGAS = payments.payGAS as any;
+    payGAS = payments.payGAS as unknown as ReturnType<typeof vi.fn>;
     address = wallet.address;
   });
 
@@ -66,7 +66,7 @@ describe("Neo-NS MiniApp", () => {
 
     it("should clear result when query is empty", () => {
       const searchQuery = ref("");
-      const searchResult = ref<any>({ available: true, price: 10 });
+      const searchResult = ref<Record<string, unknown> | null>({ available: true, price: 10 });
 
       if (!searchQuery.value) {
         searchResult.value = null;
@@ -277,8 +277,8 @@ describe("Neo-NS MiniApp", () => {
 
       try {
         await payGAS("50", "nns:register:test");
-      } catch (e: any) {
-        statusMessage.value = e?.message || "Error";
+      } catch (e: unknown) {
+        statusMessage.value = e instanceof Error ? e.message : "Error";
         statusType.value = "error";
       }
 
@@ -294,8 +294,8 @@ describe("Neo-NS MiniApp", () => {
 
       try {
         await payGAS("10", "nns:renew:alice.neo");
-      } catch (e: any) {
-        statusMessage.value = e?.message || "Error";
+      } catch (e: unknown) {
+        statusMessage.value = e instanceof Error ? e.message : "Error";
         statusType.value = "error";
       }
 

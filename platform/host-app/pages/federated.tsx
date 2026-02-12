@@ -62,7 +62,7 @@ export default function FederatedMiniApp() {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run SDK install when appId changes
   }, [appId]);
 
   return (

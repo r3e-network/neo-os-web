@@ -119,7 +119,7 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
             {wallet.features.map((feature) => (
               <span
                 key={feature}
-                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-erobo-peach/40 dark:bg-white/10 text-erobo-ink dark:text-gray-300"
+                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-erobo-peach/40 dark:bg-white/10 text-erobo-ink dark:text-slate-300"
               >
                 <CheckCircle2 className="h-3 w-3 text-erobo-purple" />
                 {t(`download.featureLabels.${feature}`)}
@@ -183,7 +183,7 @@ function WalletCard({ wallet, t }: { wallet: WalletInfo; t: (key: string) => str
         </div>
 
         {/* Website Link */}
-        <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="pt-2 border-t border-erobo-purple/10 dark:border-white/10">
           <a
             href={wallet.links.website}
             target="_blank"

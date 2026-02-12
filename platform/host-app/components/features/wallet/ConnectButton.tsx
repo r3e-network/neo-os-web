@@ -32,22 +32,22 @@ export function ConnectButton() {
 
     return (
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-3 bg-white dark:bg-white/10 px-4 py-2 border border-gray-200 dark:border-white/10 rounded-full shadow-sm hover:border-gray-300 dark:hover:border-white/20 transition-all duration-300 group">
+        <div className="flex items-center gap-3 bg-white dark:bg-white/10 px-4 py-2 border border-erobo-purple/10 dark:border-white/10 rounded-full shadow-sm hover:border-erobo-purple/20 dark:hover:border-white/20 transition-all duration-300 group">
           <div className="h-2 w-2 rounded-full bg-neo shadow-[0_0_8px_rgba(0,229,153,0.6)]" />
-          <span className="text-sm font-bold text-gray-900 dark:text-white font-mono tracking-tight">
+          <span className="text-sm font-bold text-erobo-ink dark:text-white font-mono tracking-tight">
             {address.slice(0, 6)}...{address.slice(-4)}
           </span>
-          <div className="h-4 w-px bg-gray-200 dark:bg-white/20" />
-          <span className="text-xs text-gray-600 dark:text-gray-300 font-medium tabular-nums">
+          <div className="h-4 w-px bg-erobo-purple/10 dark:bg-white/20" />
+          <span className="text-xs text-erobo-ink-soft dark:text-slate-300 font-medium tabular-nums">
             {displayBalance} {nativeSymbol}
           </span>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors ml-1"
+            className="p-1 hover:bg-erobo-purple/10 dark:hover:bg-white/10 rounded-full transition-colors ml-1"
             title="Refresh balance"
           >
-            <RefreshCw size={12} className={`text-gray-500 dark:text-gray-400 ${refreshing ? "animate-spin" : ""}`} />
+            <RefreshCw size={12} className={`text-erobo-ink-soft dark:text-slate-400 ${refreshing ? "animate-spin" : ""}`} />
           </button>
         </div>
         <NetworkSelector compact />
@@ -55,7 +55,7 @@ export function ConnectButton() {
           variant="ghost"
           size="sm"
           onClick={disconnect}
-          className="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full px-4"
+          className="text-erobo-ink-soft dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full px-4"
         >
           {t("wallet.disconnect")}
         </Button>
@@ -86,20 +86,20 @@ export function ConnectButton() {
       </Button>
 
       {showMenu && (
-        <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-gray-200 dark:border-white/10 bg-white/90 dark:bg-[#111]/90 backdrop-blur-xl p-2 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-          <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 px-3 py-2 tracking-wider flex items-center gap-2">
-            <span className="flex-1 h-px bg-gray-200 dark:bg-white/10"></span>
+        <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-erobo-purple/10 dark:border-white/10 bg-white/90 dark:bg-[#111]/90 backdrop-blur-xl p-2 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+          <div className="text-[10px] font-bold uppercase text-erobo-ink-soft dark:text-slate-400 px-3 py-2 tracking-wider flex items-center gap-2">
+            <span className="flex-1 h-px bg-erobo-purple/10 dark:bg-white/10"></span>
             {t("wallet.selectWallet")}
-            <span className="flex-1 h-px bg-gray-200 dark:bg-white/10"></span>
+            <span className="flex-1 h-px bg-erobo-purple/10 dark:bg-white/10"></span>
           </div>
           <div className="space-y-1">
             {walletOptions.map((wallet) => (
               <button
                 key={wallet.id}
                 onClick={() => handleConnect(wallet.id)}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-colors group"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm hover:bg-erobo-purple/5 dark:hover:bg-white/10 transition-colors group"
               >
-                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 p-1.5 flex items-center justify-center border border-gray-200 dark:border-white/5 group-hover:border-gray-300 dark:group-hover:border-white/20 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-erobo-purple/10 dark:bg-white/5 p-1.5 flex items-center justify-center border border-erobo-purple/10 dark:border-white/5 group-hover:border-erobo-purple/20 dark:group-hover:border-white/20 transition-colors">
                   <img
                     src={wallet.icon}
                     alt={wallet.name}
@@ -110,10 +110,10 @@ export function ConnectButton() {
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-bold text-gray-900 dark:text-white group-hover:text-neo transition-colors">
+                  <span className="font-bold text-erobo-ink dark:text-white group-hover:text-neo transition-colors">
                     {wallet.name}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Connect to {wallet.name}</span>
+                  <span className="text-xs text-erobo-ink-soft dark:text-slate-400">Connect to {wallet.name}</span>
                 </div>
               </button>
             ))}

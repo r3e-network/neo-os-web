@@ -41,7 +41,7 @@ export function Footer() {
                 Neo<span className="text-erobo-purple">Hub</span>
               </span>
             </div>
-            <p className="text-sm font-medium text-erobo-ink-soft/80 dark:text-gray-400 leading-relaxed max-w-xs">
+            <p className="text-sm font-medium text-erobo-ink-soft/80 dark:text-slate-400 leading-relaxed max-w-xs">
               {t("footer.tagline")}
             </p>
           </div>
@@ -56,7 +56,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm font-medium text-erobo-ink-soft/80 dark:text-gray-400 hover:text-erobo-purple transition-colors"
+                    className="text-sm font-medium text-erobo-ink-soft/80 dark:text-slate-400 hover:text-erobo-purple transition-colors"
                   >
                     {t(link.labelKey)}
                   </Link>
@@ -75,7 +75,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm font-medium text-erobo-ink-soft/80 dark:text-gray-400 hover:text-erobo-purple transition-colors"
+                    className="text-sm font-medium text-erobo-ink-soft/80 dark:text-slate-400 hover:text-erobo-purple transition-colors"
                   >
                     {t(link.labelKey)}
                   </Link>
@@ -96,7 +96,7 @@ export function Footer() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-medium text-erobo-ink-soft/80 dark:text-gray-400 hover:text-erobo-purple transition-colors"
+                    className="text-sm font-medium text-erobo-ink-soft/80 dark:text-slate-400 hover:text-erobo-purple transition-colors"
                   >
                     {t(link.labelKey)}
                   </a>
@@ -108,7 +108,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="border-t border-white/60 dark:border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p suppressHydrationWarning className="text-sm font-medium text-erobo-ink-soft/70 dark:text-gray-500">
+          <p suppressHydrationWarning className="text-sm font-medium text-erobo-ink-soft/70 dark:text-slate-500">
             © {new Date().getFullYear()} R3E Network. {t("footer.rights")}
           </p>
           {/* Powered by Neo Badge */}
@@ -118,7 +118,7 @@ export function Footer() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#00E599]/10 border border-[#00E599]/30 hover:bg-[#00E599]/20 transition-all group"
           >
-            <span className="text-sm font-medium text-erobo-ink-soft/80 dark:text-gray-400 group-hover:text-[#00E599] transition-colors">
+            <span className="text-sm font-medium text-erobo-ink-soft/80 dark:text-slate-400 group-hover:text-[#00E599] transition-colors">
               {t("footer.poweredBy")}
             </span>
             <img src="/chains/neo.svg" alt="Neo" className="h-5 w-5" />

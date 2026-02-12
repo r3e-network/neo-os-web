@@ -50,7 +50,8 @@ async function loadHandler(name: string): Promise<EdgeHandler | null> {
   if (handlers.has(name)) return handlers.get(name) ?? null;
 
   const mod = await import(`./functions/${name}/index.ts`);
-  const candidate: unknown = (mod as any)?.handler ?? (mod as any)?.default;
+  const modRecord = mod as Record<string, unknown>;
+  const candidate: unknown = modRecord?.handler ?? modRecord?.default;
   if (typeof candidate !== "function") return null;
 
   const h = candidate as EdgeHandler;
@@ -67,16 +68,20 @@ Deno.serve({ port }, async (req) => {
 
   const url = new URL(req.url);
   if (url.pathname === "/" || url.pathname === "/health") {
-    return json({
-      status: "ok",
-      port,
-      routes: {
-        preferred_base_url: `http://localhost:${port}${FUNCTIONS_PREFIX.replace(/\/$/, "")}`,
-        rpc_compat_base_url: `http://localhost:${port}${RPC_PREFIX.replace(/\/$/, "")}`,
-        also_supported: `http://localhost:${port}`,
+    return json(
+      {
+        status: "ok",
+        port,
+        routes: {
+          preferred_base_url: `http://localhost:${port}${FUNCTIONS_PREFIX.replace(/\/$/, "")}`,
+          rpc_compat_base_url: `http://localhost:${port}${RPC_PREFIX.replace(/\/$/, "")}`,
+          also_supported: `http://localhost:${port}`,
+        },
+        functions: Array.from(available).sort(),
       },
-      functions: Array.from(available).sort(),
-    }, {}, req);
+      {},
+      req
+    );
   }
 
   const { name, ok } = parseFunctionName(url.pathname);
@@ -85,8 +90,9 @@ Deno.serve({ port }, async (req) => {
   let handler: EdgeHandler | null;
   try {
     handler = await loadHandler(name);
-  } catch (e) {
-    return error(500, `failed to load function: ${(e as Error).message}`, "LOAD_FAILED", req);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return error(500, `failed to load function: ${message}`, "LOAD_FAILED", req);
   }
 
   if (!handler) return error(500, "function missing handler export", "BAD_FUNCTION", req);

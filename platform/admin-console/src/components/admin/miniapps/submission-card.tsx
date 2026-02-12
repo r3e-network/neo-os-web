@@ -70,7 +70,7 @@ export function SubmissionCard({ submission, onRefresh }: SubmissionCardProps) {
             {submission.error_count > 0 && <Badge variant="danger">{submission.error_count} errors</Badge>}
           </div>
 
-          <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-muted-foreground space-y-1 text-sm">
             <p>
               <span className="font-medium">Repository:</span>{" "}
               <a
@@ -81,7 +81,7 @@ export function SubmissionCard({ submission, onRefresh }: SubmissionCardProps) {
               >
                 {submission.repo_owner}/{submission.repo_name}
               </a>
-              {submission.subfolder && <span className="text-gray-500"> ({submission.subfolder})</span>}
+              {submission.subfolder && <span className="text-muted-foreground/70"> ({submission.subfolder})</span>}
             </p>
             <p>
               <span className="font-medium">Branch:</span> {submission.branch}
@@ -99,7 +99,7 @@ export function SubmissionCard({ submission, onRefresh }: SubmissionCardProps) {
           </div>
 
           {showDetails && (
-            <div className="mt-4 space-y-2 rounded bg-gray-50 p-3 text-sm dark:bg-gray-800">
+            <div className="bg-muted/30 mt-4 space-y-2 rounded p-3 text-sm">
               <div>
                 <span className="font-medium">Manifest:</span>{" "}
                 {submission.assets_detected.manifest ? (
@@ -153,7 +153,11 @@ export function SubmissionCard({ submission, onRefresh }: SubmissionCardProps) {
           {canPublish && <PublishTrigger submissionId={submission.id} onSuccess={onRefresh} />}
 
           {submission.git_url && (
-            <Button variant="ghost" size="sm" onClick={() => window.open(submission.git_url, "_blank")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open(submission.git_url, "_blank", "noopener,noreferrer")}
+            >
               View Repo
             </Button>
           )}

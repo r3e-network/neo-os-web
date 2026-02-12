@@ -1,10 +1,5 @@
 <template>
-  <AppLayout
-    :class="layoutClass"
-    :tabs="navTabs"
-    :active-tab="activeTab"
-    @tab-change="handleTabChange"
-  >
+  <AppLayout :class="layoutClass" :tabs="navTabs" :active-tab="activeTab" @tab-change="handleTabChange">
     <!-- Chain Warning Slot (default position) -->
     <template v-if="!hideChainWarning">
       <slot name="chain-warning">
@@ -12,6 +7,7 @@
           :title="chainWarningTitle"
           :message="chainWarningMessage"
           :button-text="chainWarningButtonText"
+          role="alert"
           @switch="emit('chain-switch')"
           @switch-complete="emit('chain-switch-complete')"
           @switch-error="emit('chain-switch-error', $event)"
@@ -20,7 +16,9 @@
     </template>
 
     <!-- Main Content Slot -->
-    <slot :active-tab="activeTab" />
+    <view role="region" aria-label="App content">
+      <slot :active-tab="activeTab" />
+    </view>
   </AppLayout>
 </template>
 

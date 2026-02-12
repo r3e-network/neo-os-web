@@ -83,7 +83,7 @@ export function useRedEnvelopeOpen() {
   const fetchEnvelopeDetails = async (
     contract: string,
     envelopeId: string,
-    eventData?: Record<string, unknown>,
+    eventData?: Record<string, unknown>
   ): Promise<EnvelopeItem | null> => {
     try {
       const res = await invokeRead({
@@ -135,7 +135,8 @@ export function useRedEnvelopeOpen() {
         expiryTime,
         parentEnvelopeId: String(parsed.parentEnvelopeId ?? ""),
       };
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: envelope details fetch */
       return null;
     }
   };
@@ -160,7 +161,8 @@ export function useRedEnvelopeOpen() {
       const seen = new Set<string>();
       const list = await Promise.all(
         res.events.map(async (evt: unknown) => {
-          const values = Array.isArray((evt as any)?.state) ? (evt as any).state.map(parseStackItem) : [];
+          const evtRecord = evt as unknown as Record<string, unknown>;
+          const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
           const envelopeId = String(values[0] ?? "");
           if (!envelopeId || seen.has(envelopeId)) return null;
           seen.add(envelopeId);
@@ -171,13 +173,15 @@ export function useRedEnvelopeOpen() {
             packetCount: Number(values[3] ?? 0),
             envelopeType: Number(values[4] ?? 0),
           });
-        }),
+        })
       );
 
       const allItems = (list.filter(Boolean) as EnvelopeItem[]).sort((a, b) => Number(b.id) - Number(a.id));
 
       envelopes.value = allItems.filter((item) => item.type !== "claim");
-      pools.value = envelopes.value.filter((item) => item.type === "lucky" && item.active && !item.expired && !item.depleted);
+      pools.value = envelopes.value.filter(
+        (item) => item.type === "lucky" && item.active && !item.expired && !item.depleted
+      );
 
       const myAddress = String(address.value || "");
       claims.value = allItems
@@ -191,8 +195,8 @@ export function useRedEnvelopeOpen() {
           opened: item.openedCount > 0 || !item.active || item.remainingAmount <= 0,
           message: String(item.message || ""),
         }));
-    } catch {
-      // Silent fail
+    } catch (e: unknown) {
+      /* non-critical: envelope list load */
     } finally {
       loadingEnvelopes.value = false;
       loadingClaims.value = false;
@@ -222,7 +226,8 @@ export function useRedEnvelopeOpen() {
         args: [{ type: "Integer", value: claimId }],
       });
       return parseClaimData(parseInvokeResult(res));
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: claim state fetch */
       return null;
     }
   };
@@ -231,7 +236,8 @@ export function useRedEnvelopeOpen() {
     try {
       const contract = await ensureContractAddress();
       return fetchEnvelopeDetails(contract, poolId);
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: pool state fetch */
       return null;
     }
   };
@@ -249,7 +255,8 @@ export function useRedEnvelopeOpen() {
       ],
     });
 
-    return { txid: String((tx as any)?.txid || (tx as any)?.txHash || "") };
+    const result = tx as unknown as Record<string, unknown> | undefined;
+    return { txid: String(result?.txid || result?.txHash || "") };
   };
 
   const openClaim = async (claimId: string): Promise<{ txid: string }> => {
@@ -265,7 +272,8 @@ export function useRedEnvelopeOpen() {
       ],
     });
 
-    return { txid: String((tx as any)?.txid || (tx as any)?.txHash || "") };
+    const result = tx as unknown as Record<string, unknown> | undefined;
+    return { txid: String(result?.txid || result?.txHash || "") };
   };
 
   const transferClaim = async (claimId: string, to: string): Promise<{ txid: string }> => {
@@ -282,7 +290,8 @@ export function useRedEnvelopeOpen() {
       ],
     });
 
-    return { txid: String((tx as any)?.txid || (tx as any)?.txHash || "") };
+    const result = tx as unknown as Record<string, unknown> | undefined;
+    return { txid: String(result?.txid || result?.txHash || "") };
   };
 
   const reclaimPool = async (poolId: string): Promise<{ txid: string }> => {
@@ -298,7 +307,8 @@ export function useRedEnvelopeOpen() {
       ],
     });
 
-    return { txid: String((tx as any)?.txid || (tx as any)?.txHash || "") };
+    const result = tx as unknown as Record<string, unknown> | undefined;
+    return { txid: String(result?.txid || result?.txHash || "") };
   };
 
   return {

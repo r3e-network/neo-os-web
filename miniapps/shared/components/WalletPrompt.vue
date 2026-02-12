@@ -1,6 +1,6 @@
 <template>
   <NeoModal :visible="visible" :title="t('wpTitle')" variant="warning" :closeable="true" @close="$emit('close')">
-    <view class="wallet-prompt">
+    <view class="wallet-prompt" role="alert" aria-live="polite">
       <text class="wallet-prompt__desc">
         {{ message || t("wpDescription") }}
       </text>

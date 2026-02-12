@@ -69,7 +69,7 @@ defineProps<{
   queryInput: string;
   queryResult: RecordItem | null;
   isLoading: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["update:queryInput", "query"]);
@@ -111,8 +111,8 @@ defineEmits(["update:queryInput", "query"]);
 }
 
 .result-badge {
-  background: #00E599;
-  color: black;
+  background: var(--noir-status-active);
+  color: var(--noir-text);
   font-size: 10px;
   font-weight: 800;
   padding: 2px 6px;
@@ -142,7 +142,10 @@ defineEmits(["update:queryInput", "query"]);
   font-size: 13px;
   color: var(--text-primary);
   font-weight: 500;
-  &.mono { font-family: $font-mono; font-size: 11px; }
+  &.mono {
+    font-family: $font-mono;
+    font-size: 11px;
+  }
 }
 
 .word-break {

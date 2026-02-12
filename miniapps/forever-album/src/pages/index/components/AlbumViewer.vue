@@ -22,13 +22,7 @@
 
 <script setup lang="ts">
 import { NeoModal, NeoButton } from "@shared/components";
-
-interface PhotoItem {
-  id: string;
-  data: string;
-  encrypted: boolean;
-  createdAt: number;
-}
+import type { PhotoItem } from "@/types";
 
 const props = defineProps<{
   t: (key: string) => string;

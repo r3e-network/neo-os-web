@@ -15,8 +15,8 @@ vi.mock("@shared/utils/i18n", () => ({
 }));
 
 describe("Garden of Neo MiniApp", () => {
-  let mockPayGAS: any;
-  let mockIsLoading: any;
+  let mockPayGAS: ReturnType<typeof vi.fn>;
+  let mockIsLoading: ReturnType<typeof ref<boolean>>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -151,8 +151,9 @@ describe("Garden of Neo MiniApp", () => {
       const plots = ref([{ id: "1", plant: { icon: "🌻", name: "Sunflower", growth: 100 } }]);
       const totalHarvested = ref(0);
 
-      const selectPlot = (plot: any) => {
-        if (plot.plant?.growth >= 100) {
+      const selectPlot = (plot: Record<string, unknown>) => {
+        const plant = plot.plant as Record<string, unknown> | null;
+        if (plant && (plant.growth as number) >= 100) {
           plot.plant = null;
           totalHarvested.value++;
         }
@@ -168,8 +169,9 @@ describe("Garden of Neo MiniApp", () => {
       const plots = ref([{ id: "1", plant: { icon: "🌻", name: "Sunflower", growth: 80 } }]);
       const totalHarvested = ref(0);
 
-      const selectPlot = (plot: any) => {
-        if (plot.plant?.growth >= 100) {
+      const selectPlot = (plot: Record<string, unknown>) => {
+        const plant = plot.plant as Record<string, unknown> | null;
+        if (plant && (plant.growth as number) >= 100) {
           plot.plant = null;
           totalHarvested.value++;
         }

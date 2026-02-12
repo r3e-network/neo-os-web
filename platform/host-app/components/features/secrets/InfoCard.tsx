@@ -6,7 +6,7 @@ export function InfoCard() {
       <CardHeader>
         <CardTitle>About Secret Tokens</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm text-gray-600">
+      <CardContent className="space-y-3 text-sm text-erobo-ink-soft">
         <p>
           Secret tokens allow MiniApps to access confidential data stored in the TEE (Trusted Execution Environment).
         </p>

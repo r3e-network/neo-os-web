@@ -11,7 +11,7 @@
     </template>
 
     <view class="crack-overlay" v-if="contract.status === 'broken'"></view>
-    
+
     <view class="contract-content">
       <view class="relationship-connector">
         <view class="avatar me">
@@ -19,7 +19,7 @@
         </view>
         <view class="connection-line" :class="contract.status">
           <view class="heart-node">
-            <text class="heart-icon">{{ contract.status === 'broken' ? '💔' : '❤️' }}</text>
+            <text class="heart-icon">{{ contract.status === "broken" ? "💔" : "❤️" }}</text>
           </view>
         </view>
         <view class="avatar partner">
@@ -84,40 +84,31 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoCard, NeoButton } from "@shared/components";
+import type { RelationshipContractView } from "@/types";
 
 const getContractVariant = (status: string) => {
   switch (status) {
-    case 'active': return 'erobo-neo';
-    case 'broken': return 'danger';
-    case 'pending': return 'warning';
-    default: return 'erobo';
+    case "active":
+      return "erobo-neo";
+    case "broken":
+      return "danger";
+    case "pending":
+      return "warning";
+    default:
+      return "erobo";
   }
 };
-
-interface RelationshipContractView {
-  id: number;
-  party1: string;
-  party2: string;
-  partner: string;
-  title: string;
-  terms: string;
-  stake: number;
-  stakeRaw: string;
-  progress: number;
-  daysLeft: number;
-  status: "pending" | "active" | "broken" | "ended";
-}
 
 const props = defineProps<{
   contract: RelationshipContractView;
   address: string | null;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["sign", "break"]);
 
 const canSign = computed(() =>
-  Boolean(props.address && props.contract.status === "pending" && props.contract.party2 === props.address),
+  Boolean(props.address && props.contract.status === "pending" && props.contract.party2 === props.address)
 );
 </script>
 
@@ -128,12 +119,12 @@ const canSign = computed(() =>
 .contract-card {
   position: relative;
   transition: all 0.3s;
-  
+
   &.broken {
-    border-color: #ef4444;
+    border-color: var(--heartbreak-danger);
     box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
   }
-  
+
   &.active {
     box-shadow: 0 0 20px rgba(255, 105, 180, 0.2);
   }
@@ -141,7 +132,10 @@ const canSign = computed(() =>
 
 .crack-overlay {
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 L20 40 L10 60 L40 50 L60 80 L80 40 L100 0' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='1'/%3E%3C/svg%3E");
   background-size: cover;
   opacity: 0.3;
@@ -158,25 +152,39 @@ const canSign = computed(() =>
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
 
-  &.active { border-color: #ff6b6b; color: #ff6b6b; }
-  &.broken { border-color: #ef4444; color: #ef4444; }
-  &.pending { border-color: #fde047; color: #fde047; }
+  &.active {
+    border-color: var(--heartbreak-love);
+    color: var(--heartbreak-love);
+  }
+  &.broken {
+    border-color: var(--heartbreak-danger);
+    color: var(--heartbreak-danger);
+  }
+  &.pending {
+    border-color: var(--heartbreak-warning);
+    color: var(--heartbreak-warning);
+  }
 }
 
 .status-indicator {
   position: relative;
-  width: 8px; height: 8px;
+  width: 8px;
+  height: 8px;
 }
 
 .pulse-dot {
-  width: 8px; height: 8px;
+  width: 8px;
+  height: 8px;
   background: currentColor;
   border-radius: 50%;
 }
 
 .pulse-ring {
   position: absolute;
-  top: -4px; left: -4px; right: -4px; bottom: -4px;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
   border: 1px solid currentColor;
   border-radius: 50%;
   opacity: 0;
@@ -210,7 +218,8 @@ const canSign = computed(() =>
 }
 
 .avatar {
-  width: 40px; height: 40px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
   display: flex;
@@ -232,22 +241,23 @@ const canSign = computed(() =>
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &.active {
-    background: linear-gradient(90deg, #ff6b6b, #ff9f43);
+    background: var(--breakup-danger-gradient);
     box-shadow: 0 0 10px rgba(255, 107, 107, 0.4);
   }
-  
+
   &.broken {
     background: transparent;
-    border-top: 2px dashed #ef4444;
+    border-top: 2px dashed var(--heartbreak-danger);
   }
 }
 
 .heart-node {
-  background: #1a1a1a;
+  background: var(--heartbreak-heart-node-bg);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  width: 24px; height: 24px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -255,7 +265,9 @@ const canSign = computed(() =>
   z-index: 2;
 }
 
-.heart-icon { font-size: 12px; }
+.heart-icon {
+  font-size: 12px;
+}
 
 .info-grid-glass {
   display: grid;
@@ -286,9 +298,9 @@ const canSign = computed(() =>
   font-weight: 700;
   color: var(--text-primary);
   font-family: $font-mono;
-  
+
   &.stake {
-    color: #00e599;
+    color: var(--heartbreak-success);
     text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
   }
 }
@@ -306,8 +318,18 @@ const canSign = computed(() =>
   margin-bottom: 8px;
 }
 
-.progress-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
-.progress-val { font-size: 10px; font-weight: 700; color: #ff6b6b; font-family: $font-mono; }
+.progress-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+.progress-val {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--heartbreak-love);
+  font-family: $font-mono;
+}
 
 .progress-track-glass {
   height: 6px;
@@ -318,14 +340,17 @@ const canSign = computed(() =>
 
 .progress-fill-glass {
   height: 100%;
-  background: linear-gradient(90deg, #ff6b6b, #ff9f43);
+  background: var(--breakup-danger-gradient);
   position: relative;
 }
 
 .shimmer {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
   transform: translateX(-100%);
   animation: glimmer 2s infinite;
 }
@@ -354,12 +379,22 @@ const canSign = computed(() =>
 }
 
 @keyframes ripple {
-  0% { transform: scale(1); opacity: 0.5; }
-  100% { transform: scale(2.5); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
 }
 
 @keyframes glimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 </style>

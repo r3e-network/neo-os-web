@@ -177,7 +177,7 @@
 import { NeoCard, AppIcon } from "@shared/components";
 
 defineProps<{
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
   contractAddress?: string | null;
   networkLabel?: string;
 }>();
@@ -240,7 +240,7 @@ defineProps<{
   }
   &.highlight {
     color: var(--neo-green);
-    background: black;
+    background: var(--flash-code-bg);
     padding: 2px 6px;
     display: inline-block;
     align-self: flex-start;
@@ -248,10 +248,10 @@ defineProps<{
 }
 
 .hash-box {
-  background: var(--bg-elevated, #f5f5f5);
-  border: 1px solid var(--border-color, black);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
   padding: $spacing-3;
-  color: var(--text-primary, #000);
+  color: var(--text-primary);
 }
 
 .hash-value {
@@ -266,10 +266,10 @@ defineProps<{
 
 .method-card {
   padding: $spacing-4;
-  background: var(--bg-elevated, #fafafa);
-  border: 2px solid var(--border-color, black);
+  background: var(--bg-elevated);
+  border: 2px solid var(--border-color);
   margin-bottom: $spacing-4;
-  color: var(--text-primary, #000);
+  color: var(--text-primary);
   &:last-child {
     margin-bottom: 0;
   }
@@ -293,7 +293,7 @@ defineProps<{
   font-size: 9px;
   font-weight: $font-weight-black;
   padding: 2px 8px;
-  border: 1px solid black;
+  border: 1px solid var(--flash-badge-border);
   text-transform: uppercase;
 
   &.write {
@@ -312,7 +312,7 @@ defineProps<{
 }
 
 .method-params {
-  background: black;
+  background: var(--flash-code-bg);
   color: var(--text-primary);
   padding: $spacing-3;
 }
@@ -382,8 +382,8 @@ defineProps<{
 }
 
 .warning-box {
-  background: #fff4e5;
-  border: 2px solid #ffa500;
+  background: var(--flash-warning-box-bg);
+  border: 2px solid var(--flash-warning-box-border);
   padding: $spacing-4;
   display: flex;
   gap: $spacing-3;
@@ -393,7 +393,7 @@ defineProps<{
 .warning-text {
   font-size: 11px;
   font-weight: $font-weight-bold;
-  color: #663c00;
+  color: var(--flash-warning-box-text);
 }
 
 .mt-4 {

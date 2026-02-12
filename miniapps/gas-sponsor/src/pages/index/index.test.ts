@@ -270,7 +270,7 @@ describe("Gas Sponsor - Free GAS Distribution", () => {
     });
 
     it("should add transaction to history", () => {
-      const history: any[] = [];
+      const history: Record<string, unknown>[] = [];
       const newTx = {
         type: "received",
         title: "Gas Sponsored",
@@ -327,7 +327,7 @@ describe("Gas Sponsor - Free GAS Distribution", () => {
 
   describe("Transaction History", () => {
     it("should display empty state when no transactions", () => {
-      const transactions: any[] = [];
+      const transactions: Record<string, unknown>[] = [];
       const isEmpty = transactions.length === 0;
 
       expect(isEmpty).toBe(true);
@@ -349,7 +349,7 @@ describe("Gas Sponsor - Free GAS Distribution", () => {
 
   describe("Top Sponsors", () => {
     it("should display empty state when no sponsors", () => {
-      const sponsors: any[] = [];
+      const sponsors: Record<string, unknown>[] = [];
       const isEmpty = sponsors.length === 0;
 
       expect(isEmpty).toBe(true);

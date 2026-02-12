@@ -1,5 +1,5 @@
 <template>
-  <view class="campaign-card" @click="$emit('click')">
+  <view class="campaign-card" role="button" tabindex="0" :aria-label="campaign.title" @click="$emit('click')">
     <view class="card-header">
       <view class="campaign-category">{{ getCategoryLabel(campaign.category) }}</view>
       <view class="campaign-status" :class="`status-${campaign.status}`">
@@ -8,7 +8,7 @@
     </view>
 
     <view class="campaign-title">{{ campaign.title }}</view>
-    <view class="campaign-organizer">{{ t("organizer") }}: {{ shortenAddress(campaign.organizer) }}</view>
+    <view class="campaign-organizer">{{ t("organizer") }}: {{ formatAddress(campaign.organizer) }}</view>
 
     <view class="progress-section">
       <view class="progress-bar">
@@ -35,18 +35,9 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-
-interface CharityCampaign {
-  id: number;
-  title: string;
-  category: string;
-  organizer: string;
-  targetAmount: number;
-  raisedAmount: number;
-  donorCount: number;
-  endTime: number;
-  status: string;
-}
+import { formatAddress } from "@shared/utils/format";
+import { getCategoryLabel } from "@/utils/labels";
+import type { CharityCampaign } from "@/types";
 
 interface Props {
   campaign: CharityCampaign;
@@ -67,24 +58,6 @@ const progressPercent = computed(() => {
 const formatAmount = (amount: number): string => {
   if (amount >= 1000) return (amount / 1000).toFixed(1) + "k";
   return amount.toFixed(2);
-};
-
-const shortenAddress = (address: string): string => {
-  if (address.length <= 12) return address;
-  return address.slice(0, 6) + "..." + address.slice(-4);
-};
-
-const getCategoryLabel = (category: string): string => {
-  const labels: Record<string, string> = {
-    disaster: "Disaster Relief",
-    education: "Education",
-    health: "Healthcare",
-    environment: "Environment",
-    poverty: "Poverty Relief",
-    animals: "Animal Welfare",
-    other: "Other",
-  };
-  return labels[category] || "Other";
 };
 
 const getStatusLabel = (status: string): string => {

@@ -90,12 +90,22 @@ import { ref } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 
 const props = defineProps<{
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
   status: { msg: string; type: string } | null;
 }>();
 
 const emit = defineEmits<{
-  (e: "submit", proposal: any): void;
+  (
+    e: "submit",
+    proposal: {
+      type: number;
+      title: string;
+      description: string;
+      policyMethod: string;
+      policyValue: string;
+      duration: number;
+    }
+  ): void;
 }>();
 
 const newProposal = ref({
@@ -126,7 +136,8 @@ function handleSubmit() {
   emit("submit", { ...newProposal.value });
 }
 
-defineExpose({ reset: () => {
+defineExpose({
+  reset: () => {
     newProposal.value = {
       type: 0,
       title: "",
@@ -135,14 +146,17 @@ defineExpose({ reset: () => {
       policyValue: "",
       duration: 604800,
     };
-}});
+  },
+});
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.tab-content { padding: 20px; }
+.tab-content {
+  padding: 20px;
+}
 
 .status-card {
   margin-bottom: 24px;
@@ -172,10 +186,10 @@ defineExpose({ reset: () => {
 }
 
 .method-grid {
-  display: grid; 
+  display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px; 
-  margin-bottom: 16px; 
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .method-btn {
@@ -188,6 +202,10 @@ defineExpose({ reset: () => {
   }
 }
 
-.mb-6 { margin-bottom: 24px; }
-.mb-8 { margin-bottom: 32px; }
+.mb-6 {
+  margin-bottom: 24px;
+}
+.mb-8 {
+  margin-bottom: 32px;
+}
 </style>

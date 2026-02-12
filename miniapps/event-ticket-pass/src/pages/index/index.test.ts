@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ref, computed, reactive } from "vue";
+import { ref, reactive } from "vue";
 
 // Mock @neo/uniapp-sdk
 vi.mock("@neo/uniapp-sdk", () => ({

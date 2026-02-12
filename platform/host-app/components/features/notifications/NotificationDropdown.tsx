@@ -35,7 +35,7 @@ export function NotificationDropdown() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
+        className="relative p-2 text-erobo-ink-soft hover:text-erobo-ink dark:text-slate-400 dark:hover:text-white"
       >
         <Bell size={20} />
         {unreadCount > 0 && (
@@ -48,7 +48,7 @@ export function NotificationDropdown() {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+          <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-erobo-bg-dark border border-erobo-purple/10 dark:border-white/10 rounded-lg shadow-lg z-50">
             <NotificationHeader onMarkAllRead={handleMarkAllRead} unreadCount={unreadCount} />
             <NotificationList notifications={notifications} loading={loading} onMarkRead={handleMarkRead} />
           </div>

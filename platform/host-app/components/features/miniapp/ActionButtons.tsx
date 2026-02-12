@@ -129,7 +129,7 @@ export function ActionButtons({
           "flex items-center justify-center rounded-xl transition-all",
           "bg-white/70 dark:bg-white/10 border border-white/60 dark:border-white/10",
           "hover:bg-white dark:hover:bg-white/20 hover:border-erobo-purple/30",
-          "text-erobo-ink-soft dark:text-gray-400",
+          "text-erobo-ink-soft dark:text-slate-400",
           size === "sm" ? "w-8 h-8" : size === "md" ? "w-10 h-10" : "w-12 h-12"
         )}
         title={t("detail.share") || "Share"}
@@ -146,7 +146,7 @@ export function ActionButtons({
           "border",
           isWishlisted
             ? "bg-erobo-pink/10 border-erobo-pink/30 text-erobo-pink"
-            : "bg-white/70 dark:bg-white/10 border-white/60 dark:border-white/10 text-erobo-ink-soft dark:text-gray-400 hover:bg-white dark:hover:bg-white/20 hover:border-erobo-pink/30",
+            : "bg-white/70 dark:bg-white/10 border-white/60 dark:border-white/10 text-erobo-ink-soft dark:text-slate-400 hover:bg-white dark:hover:bg-white/20 hover:border-erobo-pink/30",
           size === "sm" ? "w-8 h-8" : size === "md" ? "w-10 h-10" : "w-12 h-12"
         )}
         title={t("detail.wishlist") || "Add to Wishlist"}

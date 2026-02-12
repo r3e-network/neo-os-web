@@ -18,7 +18,7 @@ onUnmounted(() => {
 @use "@shared/styles/variables.scss" as *;
 
 page {
-  background: linear-gradient(180deg, #0a0d14 0%, #121620 50%, #1a2035 100%);
+  background: var(--memorial-bg-gradient);
   height: 100%;
   font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 }

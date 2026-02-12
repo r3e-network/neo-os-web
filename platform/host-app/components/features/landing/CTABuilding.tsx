@@ -19,14 +19,14 @@ export function CTABuilding() {
           {t("landing.cta.badge")}
         </div>
 
-        <h2 className="text-6xl md:text-8xl font-bold text-gray-900 dark:text-white mb-10 tracking-tight leading-[1.1]">
+        <h2 className="text-6xl md:text-8xl font-bold text-erobo-ink dark:text-white mb-10 tracking-tight leading-[1.1]">
           {t("landing.cta.title")} <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-neo to-blue-500 inline-block mt-2 drop-shadow-2xl">
             {t("landing.cta.titleHighlight")}
           </span>
         </h2>
 
-        <p className="text-xl md:text-2xl text-gray-600 dark:text-white/60 max-w-3xl mx-auto mb-16 leading-relaxed font-medium">
+        <p className="text-xl md:text-2xl text-erobo-ink-soft dark:text-white/60 max-w-3xl mx-auto mb-16 leading-relaxed font-medium">
           {t("landing.cta.subtitle")}
         </p>
 
@@ -43,7 +43,7 @@ export function CTABuilding() {
             <Button
               variant="outline"
               size="lg"
-              className="border border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white font-bold px-10 h-16 rounded-full backdrop-blur-md hover:bg-gray-200 dark:hover:bg-white/10 transition-all hover:scale-105 text-lg"
+              className="border border-erobo-purple/15 dark:border-white/20 bg-erobo-purple/10 dark:bg-white/5 text-erobo-ink dark:text-white font-bold px-10 h-16 rounded-full backdrop-blur-md hover:bg-erobo-purple/15 dark:hover:bg-white/10 transition-all hover:scale-105 text-lg"
             >
               {t("landing.cta.readDocs")} <FileText className="ml-2" size={20} strokeWidth={2.5} />
             </Button>
@@ -52,7 +52,7 @@ export function CTABuilding() {
             <Button
               variant="ghost"
               size="lg"
-              className="text-gray-900 dark:text-white font-bold px-10 h-16 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-all text-lg group"
+              className="text-erobo-ink dark:text-white font-bold px-10 h-16 rounded-full hover:bg-erobo-purple/10 dark:hover:bg-white/5 transition-all text-lg group"
             >
               {t("landing.cta.tryPlayground")}{" "}
               <Play

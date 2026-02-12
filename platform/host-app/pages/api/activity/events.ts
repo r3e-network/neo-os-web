@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "@/lib/edge";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { ChainId } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 interface EventFilters {
   appId?: string;
@@ -17,7 +18,7 @@ interface EventFilters {
  */
 async function fetchFromSupabase(filters: EventFilters) {
   if (!supabaseAdmin) {
-    console.error("Supabase admin client not configured");
+    logger.error("Supabase admin client not configured");
     return { events: [], has_more: false };
   }
 
@@ -46,7 +47,7 @@ async function fetchFromSupabase(filters: EventFilters) {
   const { data, error } = await query;
 
   if (error) {
-    console.error("Supabase query error:", error);
+    logger.error("Supabase query error", error);
     return { events: [], has_more: false };
   }
 

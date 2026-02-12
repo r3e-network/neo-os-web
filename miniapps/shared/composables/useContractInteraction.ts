@@ -19,7 +19,7 @@
  * ```
  */
 
-import { ref, type Ref } from "vue";
+import { ref } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import { handleAsync } from "@shared/utils/errorHandling";
 import type { InvokeResult as WalletInvokeResult } from "@neo/types";
@@ -51,7 +51,7 @@ export interface InvokeError {
 type ContractCallResult<T = unknown> = InvokeResult<T> | InvokeError;
 
 export function useContractInteraction(scriptHash: string) {
-  const { invokeContract, invokeRead } = useWallet() as any;
+  const { invokeContract, invokeRead } = useWallet();
 
   const isLoading = ref(false);
   const error = ref<Error | null>(null);
@@ -62,7 +62,7 @@ export function useContractInteraction(scriptHash: string) {
   const invoke = async <T = unknown>(
     operation: string,
     args: ContractArg[],
-    options: InvokeOptions = {},
+    options: InvokeOptions = {}
   ): Promise<ContractCallResult<T>> => {
     const { setLoading: shouldSetLoading = true, context, onError } = options;
 
@@ -79,10 +79,7 @@ export function useContractInteraction(scriptHash: string) {
         });
 
         // Extract txid/hash from result
-        const data =
-          (result as WalletInvokeResult)?.txid ||
-          (result as any)?.txHash ||
-          result;
+        const data = (result as WalletInvokeResult)?.txid || (result as Record<string, unknown>)?.txHash || result;
         return data as T;
       },
       {
@@ -93,7 +90,7 @@ export function useContractInteraction(scriptHash: string) {
             onError(err);
           }
         },
-      },
+      }
     ).finally(() => {
       if (shouldSetLoading) {
         isLoading.value = false;
@@ -107,7 +104,7 @@ export function useContractInteraction(scriptHash: string) {
   const read = async <T = unknown>(
     operation: string,
     args: ContractArg[] = [],
-    options: InvokeOptions = {},
+    options: InvokeOptions = {}
   ): Promise<ContractCallResult<T>> => {
     const { setLoading: shouldSetLoading = true, context, onError } = options;
 
@@ -133,7 +130,7 @@ export function useContractInteraction(scriptHash: string) {
             onError(err);
           }
         },
-      },
+      }
     ).finally(() => {
       if (shouldSetLoading) {
         isLoading.value = false;

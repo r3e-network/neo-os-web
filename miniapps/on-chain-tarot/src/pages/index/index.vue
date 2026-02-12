@@ -9,9 +9,7 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <!-- Game Tab (default) -->
@@ -33,7 +31,7 @@
             :drawn="drawn"
             :has-drawn="hasDrawn"
             :is-loading="isLoading"
-            :t="t as any"
+            :t="t"
             @draw="draw"
             @reset="reset"
             @flip="flipCard"
@@ -45,22 +43,24 @@
 
       <!-- Stats Tab -->
       <template #tab-stats>
-        <StatisticsTab :readings-count="readingsCount" :t="t as any" />
+        <StatisticsTab :readings-count="readingsCount" :t="t" />
       </template>
     </MiniAppTemplate>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { parseStackItem } from "@shared/utils/neo";
-import { requireNeoChain } from "@shared/utils/chain";
-import { MiniAppTemplate } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 import AppStatus from "./components/AppStatus.vue";
 import GameArea from "./components/GameArea.vue";
@@ -98,28 +98,38 @@ const appState = computed(() => ({
   readingsCount: readingsCount.value,
   hasDrawn: hasDrawn.value,
 }));
+const sidebarItems = computed(() => [
+  { label: t("readings"), value: readingsCount.value },
+  { label: t("cardsDrawn"), value: drawn.value.length },
+  { label: t("allRevealed"), value: allFlipped.value ? t("yes") : t("no") },
+]);
+
 const APP_ID = "miniapp-onchaintarot";
-const { address, connect, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
+const { address, connect, invokeContract } = useWallet() as WalletSDK;
 const { processPayment, isLoading } = usePaymentFlow(APP_ID);
 const { list: listEvents } = useEvents();
+const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
 
 // Use the imported full deck
 const tarotDeck = TAROT_DECK;
 
 const drawn = ref<Card[]>([]);
-const status = ref<{ msg: string; type: string } | null>(null);
+const { status, setStatus, clearStatus } = useStatusMessage();
 const hasDrawn = computed(() => drawn.value.length === 3);
 const allFlipped = computed(() => drawn.value.every((c) => c.flipped));
 const readingsCount = ref(0);
-const contractAddress = ref<string | null>(null);
 const question = ref("");
+const pollingTimers: ReturnType<typeof setTimeout>[] = [];
 
 const waitForEvent = async (txid: string, eventName: string) => {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
     const match = res.events.find((evt) => evt.tx_hash === txid);
     if (match) return match;
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 1500);
+      pollingTimers.push(timer);
+    });
   }
   return null;
 };
@@ -128,30 +138,23 @@ const waitForReading = async (readingId: string) => {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const res = await listEvents({ app_id: APP_ID, event_name: "ReadingCompleted", limit: 25 });
     const match = res.events.find((evt) => {
-      const values = Array.isArray((evt as any)?.state) ? (evt as any).state.map(parseStackItem) : [];
+      const evtRecord = evt as unknown as Record<string, unknown>;
+      const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
       return String(values[0] ?? "") === String(readingId);
     });
     if (match) return match;
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => {
+      const timer = setTimeout(resolve, 1500);
+      pollingTimers.push(timer);
+    });
   }
   return null;
-};
-
-const ensureContractAddress = async () => {
-  if (!requireNeoChain(chainType, t)) {
-    throw new Error(t("wrongChain"));
-  }
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  if (!contractAddress.value) throw new Error(t("contractUnavailable"));
-  return contractAddress.value;
 };
 
 const draw = async () => {
   if (isLoading.value) return;
   try {
-    status.value = { msg: t("drawingCards"), type: "loading" };
+    setStatus(t("drawingCards"), "loading");
     if (!address.value) await connect();
     if (!address.value) throw new Error(t("connectWallet"));
     const contract = await ensureContractAddress();
@@ -177,15 +180,19 @@ const draw = async () => {
     );
     const requestedEvt = txid ? await waitForEvent(txid, "ReadingRequested") : null;
     if (!requestedEvt) throw new Error(t("readingPending"));
-    const requestedValues = Array.isArray((requestedEvt as any)?.state)
-      ? (requestedEvt as any).state.map(parseStackItem)
+    const requestedRecord = requestedEvt as unknown as Record<string, unknown>;
+    const requestedValues = Array.isArray(requestedRecord?.state)
+      ? (requestedRecord.state as unknown[]).map(parseStackItem)
       : [];
     const readingId = String(requestedValues[0] ?? "");
     if (!readingId) throw new Error(t("readingPending"));
 
     const completedEvt = await waitForReading(readingId);
     if (!completedEvt) throw new Error(t("readingPending"));
-    const values = Array.isArray((completedEvt as any)?.state) ? (completedEvt as any).state.map(parseStackItem) : [];
+    const completedRecord = completedEvt as unknown as Record<string, unknown>;
+    const values = Array.isArray(completedRecord?.state)
+      ? (completedRecord.state as unknown[]).map(parseStackItem)
+      : [];
     const cards = Array.isArray(values[2]) ? values[2].map((v) => Number(v)) : [];
     drawn.value = cards.map((cardId: number) => {
       const card = tarotDeck.find((item) => item.id === cardId);
@@ -196,9 +203,9 @@ const draw = async () => {
     });
     readingsCount.value += 1;
     question.value = "";
-    status.value = { msg: t("cardsDrawn"), type: "success" };
-  } catch (e: any) {
-    status.value = { msg: e.message || t("error"), type: "error" };
+    setStatus(t("cardsDrawn"), "success");
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("error")), "error");
   }
 };
 
@@ -210,7 +217,7 @@ const flipCard = (index: number) => {
 
 const reset = () => {
   drawn.value = [];
-  status.value = null;
+  clearStatus();
 };
 
 const getReading = () => {
@@ -223,13 +230,19 @@ const loadReadingCount = async () => {
   try {
     const res = await listEvents({ app_id: APP_ID, event_name: "ReadingCompleted", limit: 50 });
     readingsCount.value = res.events.length;
-  } catch {
+  } catch (e: unknown) {
+    /* non-critical: reading count is cosmetic */
     readingsCount.value = Math.max(readingsCount.value, 0);
   }
 };
 
 onMounted(async () => {
   await loadReadingCount();
+});
+
+onUnmounted(() => {
+  pollingTimers.forEach((timer) => clearTimeout(timer));
+  pollingTimers.length = 0;
 });
 </script>
 
@@ -339,10 +352,6 @@ onMounted(async () => {
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 /* Enhancing components for Mystical Feel */
 :deep(.neo-card) {
@@ -369,17 +378,4 @@ onMounted(async () => {
 }
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

@@ -48,7 +48,7 @@ const props = withDefaults(
   {
     size: 20,
     decorative: true,
-  },
+  }
 );
 
 /**
@@ -215,10 +215,12 @@ onMounted(() => {
   const hasText = props.name in textMappings;
 
   if (!hasEmoji && !hasText) {
-    console.warn(
-      `[AppIcon] Unknown icon name "${props.name}". Using fallback (first letter). ` +
-        `Available icons: ${[...Object.keys(iconEmojis), ...Object.keys(textMappings)].sort().join(", ")}`,
-    );
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[AppIcon] Unknown icon name "${props.name}". Using fallback (first letter). ` +
+          `Available icons: ${[...Object.keys(iconEmojis), ...Object.keys(textMappings)].sort().join(", ")}`
+      );
+    }
   }
 });
 </script>

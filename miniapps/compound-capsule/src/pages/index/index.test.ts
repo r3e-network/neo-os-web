@@ -62,7 +62,7 @@ vi.mock("@shared/components", () => ({
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("Compound Capsule MiniApp", () => {
-  let wrapper: VueWrapper<any>;
+  let wrapper: VueWrapper;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -104,7 +104,7 @@ describe("Compound Capsule MiniApp", () => {
           { type: "Integer", value: "10" },
           { type: "Integer", value: "30" },
         ],
-      }),
+      })
     );
     expect(wrapper.vm.status.msg).toBe("Capsule created");
     expect(wrapper.vm.amount).toBe("");

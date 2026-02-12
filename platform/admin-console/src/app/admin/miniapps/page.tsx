@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SubmissionList } from "@/components/admin/miniapps/submission-list";
 import { Button } from "@/components/ui/Button";
 
@@ -18,31 +18,37 @@ export default function DistributedMiniAppsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Distributed MiniApps</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage Git submissions and the published registry
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">Distributed MiniApps</h1>
+          <p className="text-muted-foreground">Manage Git submissions and the published registry</p>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700">
+      <div className="border-border/20 flex border-b" role="tablist" aria-label="MiniApp management tabs">
         <button
+          id="tab-submissions"
+          role="tab"
+          aria-selected={activeTab === "submissions"}
+          aria-controls="panel-submissions"
           onClick={() => setActiveTab("submissions")}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "submissions"
               ? "border-b-2 border-primary-600 text-primary-600"
-              : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           External Submissions
         </button>
         <button
+          id="tab-registry"
+          role="tab"
+          aria-selected={activeTab === "registry"}
+          aria-controls="panel-registry"
           onClick={() => setActiveTab("registry")}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "registry"
               ? "border-b-2 border-primary-600 text-primary-600"
-              : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Registry View
@@ -51,7 +57,7 @@ export default function DistributedMiniAppsPage() {
 
       {/* Tab Content */}
       {activeTab === "submissions" && (
-        <div>
+        <div id="panel-submissions" role="tabpanel" aria-labelledby="tab-submissions">
           <div className="mb-4 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
             <h3 className="mb-1 text-sm font-semibold text-blue-900 dark:text-blue-300">
               External Developer Submissions
@@ -66,7 +72,7 @@ export default function DistributedMiniAppsPage() {
       )}
 
       {activeTab === "registry" && (
-        <div>
+        <div id="panel-registry" role="tabpanel" aria-labelledby="tab-registry">
           <div className="mb-4 rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
             <h3 className="mb-1 text-sm font-semibold text-purple-900 dark:text-purple-300">Unified Registry View</h3>
             <p className="text-xs text-purple-700 dark:text-purple-400">
@@ -136,28 +142,25 @@ function RegistryView() {
       </div>
 
       {loading ? (
-        <div className="p-8 text-center text-gray-500">Loading...</div>
+        <div className="text-muted-foreground p-8 text-center">Loading...</div>
       ) : error ? (
         <div className="p-8 text-center text-red-600 dark:text-red-400">{error}</div>
       ) : miniapps.length === 0 ? (
-        <div className="p-8 text-center text-gray-500">No published miniapps found.</div>
+        <div className="text-muted-foreground p-8 text-center">No published miniapps found.</div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {miniapps.map((app) => (
-            <div
-              key={`${app.source_type}-${app.app_id}`}
-              className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
-            >
+            <div key={`${app.source_type}-${app.app_id}`} className="border-border/20 rounded-lg border p-4">
               <div className="mb-2 flex items-start justify-between">
                 <div className="flex-1">
                   <h4 className="font-semibold">{app.name || app.app_id}</h4>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">{app.category}</p>
+                  <p className="text-muted-foreground text-xs">{app.category}</p>
                 </div>
                 <span className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
                   {app.source_type}
                 </span>
               </div>
-              <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+              <div className="text-muted-foreground space-y-1 text-xs">
                 <p className="truncate">
                   <span className="font-medium">Entry:</span>{" "}
                   <a
@@ -182,7 +185,7 @@ function RegistryView() {
                     </a>
                   </p>
                 )}
-                <p className="text-xs text-gray-500">Updated: {new Date(app.updated_at).toLocaleString()}</p>
+                <p className="text-muted-foreground/70 text-xs">Updated: {new Date(app.updated_at).toLocaleString()}</p>
               </div>
             </div>
           ))}

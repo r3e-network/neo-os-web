@@ -1,5 +1,8 @@
 <template>
   <ResponsiveLayout :desktop-breakpoint="1024" :title="t('docsTab')" :show-top-nav="true" show-back @back="goBack">
+    <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4 text-center">
+      <text>{{ status.msg }}</text>
+    </NeoCard>
     <NeoDoc
       :title="t('docTitle')"
       :subtitle="t('docSubtitle')"
@@ -17,13 +20,7 @@
         </view>
         <view class="contract-value-row">
           <text class="contract-value">{{ contractAddress || t("contractUnavailable") }}</text>
-          <NeoButton
-            size="sm"
-            variant="secondary"
-            :disabled="!contractAddress"
-            class="copy-btn"
-            @click="copyContract"
-          >
+          <NeoButton size="sm" variant="secondary" :disabled="!contractAddress" class="copy-btn" @click="copyContract">
             {{ t("copy") }}
           </NeoButton>
         </view>
@@ -34,12 +31,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import type { WalletSDK } from "@neo/types";
 import { useWallet } from "@neo/uniapp-sdk";
 import { ResponsiveLayout, NeoButton, NeoCard, NeoDoc } from "@shared/components";
 import { useI18n } from "@/composables/useI18n";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 const { t } = useI18n();
-const { chainId, appChainId, getContractAddress } = useWallet() as any;
+const { status, setStatus } = useStatusMessage(5000);
+const { chainId, appChainId, getContractAddress } = useWallet() as WalletSDK;
 const contractAddress = ref<string | null>(null);
 
 const networkLabel = computed(() => {
@@ -69,10 +69,10 @@ const copyContract = () => {
   uni.setClipboardData({
     data: contractAddress.value,
     success: () => {
-      uni.showToast({ title: t("copied"), icon: "success" });
+      setStatus(t("copied"), "success");
     },
     fail: () => {
-      uni.showToast({ title: t("copyFailed"), icon: "none" });
+      setStatus(t("copyFailed"), "error");
     },
   });
 };
@@ -124,7 +124,7 @@ const goBack = () => {
 .contract-badge__text {
   font-size: 10px;
   font-weight: 700;
-  color: #00e599;
+  color: var(--album-accent, #00e599);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }

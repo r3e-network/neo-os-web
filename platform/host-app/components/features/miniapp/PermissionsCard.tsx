@@ -141,7 +141,7 @@ export function PermissionsCard({ permissions, className, compact = false }: Per
             <h3 className="font-bold text-erobo-ink dark:text-white text-sm">
               {t("detail.permissions") || "Permissions"}
             </h3>
-            <p className="text-xs text-erobo-ink-soft/60 dark:text-gray-500">
+            <p className="text-xs text-erobo-ink-soft/60 dark:text-slate-500">
               {enabledPermissions.length} of {permissionInfoList.length} enabled
             </p>
           </div>
@@ -180,7 +180,7 @@ export function PermissionsCard({ permissions, className, compact = false }: Per
               {/* Enabled Permissions */}
               {enabledPermissions.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="text-xs font-bold text-erobo-ink-soft/60 dark:text-gray-500 uppercase tracking-wider mb-3">
+                  <h4 className="text-xs font-bold text-erobo-ink-soft/60 dark:text-slate-500 uppercase tracking-wider mb-3">
                     Enabled
                   </h4>
                   <div className="space-y-2">
@@ -230,14 +230,14 @@ export function PermissionsCard({ permissions, className, compact = false }: Per
               {/* Disabled Permissions */}
               {disabledPermissions.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="text-xs font-bold text-erobo-ink-soft/60 dark:text-gray-500 uppercase tracking-wider mb-3">
+                  <h4 className="text-xs font-bold text-erobo-ink-soft/60 dark:text-slate-500 uppercase tracking-wider mb-3">
                     Not Requested
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {disabledPermissions.map((perm) => (
                       <div
                         key={perm.key}
-                        className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10 text-erobo-ink-soft/50 dark:text-gray-500"
+                        className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/50 dark:bg-white/5 border border-white/60 dark:border-white/10 text-erobo-ink-soft/50 dark:text-slate-500"
                       >
                         <perm.icon size={12} />
                         <span className="text-xs">{perm.label}</span>
@@ -252,7 +252,7 @@ export function PermissionsCard({ permissions, className, compact = false }: Per
               <div className="mt-4 p-3 rounded-lg bg-erobo-purple/5 border border-erobo-purple/20">
                 <div className="flex items-start gap-2">
                   <Shield size={14} className="text-erobo-purple mt-0.5" />
-                  <p className="text-xs text-erobo-ink-soft/70 dark:text-gray-400">
+                  <p className="text-xs text-erobo-ink-soft/70 dark:text-slate-400">
                     {t("detail.permissionsNote") || "All permissions are enforced by the platform. MiniApps cannot access features without explicit permission."}
                   </p>
                 </div>

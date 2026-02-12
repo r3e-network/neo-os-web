@@ -43,7 +43,7 @@
           </view>
 
           <view class="position-actions">
-            <view v-if="hasWinningPosition(pos)" class="claim-button" @click="$emit('claim', pos.marketId)">
+            <view v-if="hasWinningPosition(pos)" class="claim-button" role="button" tabindex="0" :aria-label="t('claimWinnings')" @click="$emit('claim', pos.marketId)">
               <text>{{ t("claimWinnings") }}</text>
             </view>
           </view>
@@ -75,7 +75,7 @@
             </view>
           </view>
 
-          <view v-if="order.status === 'open'" class="order-cancel" @click="$emit('cancelOrder', order.id)">
+          <view v-if="order.status === 'open'" class="order-cancel" role="button" tabindex="0" :aria-label="t('cancelOrder')" @click="$emit('cancelOrder', order.id)">
             <text>{{ t("cancelOrder") }}</text>
           </view>
         </view>
@@ -86,25 +86,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-
-interface MarketPosition {
-  marketId: number;
-  outcome: "yes" | "no";
-  shares: number;
-  avgPrice: number;
-  currentValue?: number;
-  pnl?: number;
-}
-
-interface MarketOrder {
-  id: number;
-  marketId: number;
-  orderType: "buy" | "sell";
-  outcome: "yes" | "no";
-  price: number;
-  shares: number;
-  status: string;
-}
+import type { MarketPosition, MarketOrder } from "@/types";
 
 interface Props {
   positions: MarketPosition[];

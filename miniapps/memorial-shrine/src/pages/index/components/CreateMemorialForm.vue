@@ -2,15 +2,15 @@
   <view class="create-form">
     <text class="title">✨ {{ t("createTitle") }}</text>
     <text class="desc">{{ t("createDesc") }}</text>
-    
+
     <view class="form-group">
       <text class="label">{{ t("labelName") }} *</text>
       <input v-model="form.name" :placeholder="t('placeholderName')" class="input" />
     </view>
-    
+
     <view class="form-group">
       <text class="label">{{ t("labelPhoto") }}</text>
-      <view class="photo-upload" @click="uploadPhoto">
+      <view class="photo-upload" role="button" tabindex="0" :aria-label="t('uploadPhoto')" @click="uploadPhoto">
         <view class="photo-preview" v-if="photoPreview">
           <image :src="photoPreview" mode="aspectFill" :alt="t('photoPreview')" />
         </view>
@@ -20,7 +20,7 @@
         </view>
       </view>
     </view>
-    
+
     <view class="form-row">
       <view class="form-group half">
         <text class="label">{{ t("labelBirth") }}</text>
@@ -31,23 +31,27 @@
         <input v-model.number="form.deathYear" type="number" placeholder="2024" class="input" />
       </view>
     </view>
-    
+
     <view class="form-group">
       <text class="label">{{ t("labelRelation") }}</text>
       <input v-model="form.relationship" :placeholder="t('placeholderRelation')" class="input" />
     </view>
-    
+
     <view class="form-group">
       <text class="label">{{ t("labelBio") }}</text>
       <textarea v-model="form.biography" :placeholder="t('placeholderBio')" class="textarea" :maxlength="2000" />
     </view>
-    
+
     <view class="form-group">
       <text class="label">{{ t("labelObituary") }}</text>
       <textarea v-model="form.obituary" :placeholder="t('placeholderObituary')" class="textarea" :maxlength="1000" />
     </view>
-    
-    <view class="submit-btn" @click="submit" :class="{ disabled: isSubmitting }">
+
+    <view v-if="status" class="status-bar" :class="status.type">
+      <text class="status-text">{{ status.msg }}</text>
+    </view>
+
+    <view class="submit-btn" role="button" tabindex="0" :aria-label="isSubmitting ? t('creating') : t('createBtn')" @click="submit" :class="{ disabled: isSubmitting }">
       <text>{{ isSubmitting ? t("creating") : t("createBtn") }}</text>
     </view>
   </view>
@@ -58,18 +62,23 @@ import { ref, reactive } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import { useI18n } from "@/composables/useI18n";
 import { requireNeoChain } from "@shared/utils/chain";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+
+import type { WalletSDK } from "@neo/types";
 
 const { t } = useI18n();
 
 const props = defineProps<{
-// t removed
+  // t removed
 }>();
 
 const emit = defineEmits<{
-  created: [data: any];
+  created: [data: Record<string, unknown>];
 }>();
 
-const { address, connect, invokeContract, getContractAddress, chainType } = useWallet() as any;
+const { address, connect, invokeContract, getContractAddress, chainType } = useWallet() as WalletSDK;
+const { status, setStatus } = useStatusMessage(5000);
 
 const form = reactive({
   name: "",
@@ -91,7 +100,7 @@ const uploadPhoto = async () => {
       sizeType: ["compressed"],
       sourceType: ["album", "camera"],
     });
-    
+
     if (res.tempFilePaths?.[0]) {
       photoPreview.value = res.tempFilePaths[0];
       // In production, upload to IPFS and get hash
@@ -106,20 +115,20 @@ const submit = async () => {
   if (isSubmitting.value) return;
   if (!requireNeoChain(chainType, t)) return;
   if (!form.name.trim()) {
-    uni.showToast({ title: t("nameRequired"), icon: "none" });
+    setStatus(t("nameRequired"), "error");
     return;
   }
-  
+
   isSubmitting.value = true;
-  
+
   try {
     if (!address.value) await connect();
     if (!address.value) throw new Error(t("connectWallet"));
-    
+
     const contract = await getContractAddress();
-    
+
     await invokeContract({
-      contractAddress: contract,
+      scriptHash: contract,
       operation: "createMemorial",
       args: [
         { type: "Hash160", value: address.value },
@@ -132,10 +141,10 @@ const submit = async () => {
         { type: "String", value: form.obituary },
       ],
     });
-    
-    uni.showToast({ title: t("createSuccess"), icon: "success" });
+
+    setStatus(t("createSuccess"), "success");
     emit("created", { ...form });
-    
+
     // Reset form
     Object.assign(form, {
       name: "",
@@ -147,9 +156,8 @@ const submit = async () => {
       obituary: "",
     });
     photoPreview.value = "";
-    
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || t("error"), icon: "error" });
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     isSubmitting.value = false;
   }
@@ -157,7 +165,6 @@ const submit = async () => {
 </script>
 
 <style lang="scss" scoped>
-
 .create-form {
   max-width: 500px;
   margin: 0 auto;
@@ -186,7 +193,7 @@ const submit = async () => {
 
 .form-group {
   margin-bottom: 16px;
-  
+
   &.half {
     flex: 1;
   }
@@ -204,7 +211,8 @@ const submit = async () => {
   margin-bottom: 6px;
 }
 
-.input, .textarea {
+.input,
+.textarea {
   width: 100%;
   padding: 10px 12px;
   background: var(--shrine-input-bg);
@@ -239,9 +247,14 @@ const submit = async () => {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  
-  .icon { font-size: 24px; }
-  .text { font-size: 11px; color: var(--shrine-muted); }
+
+  .icon {
+    font-size: 24px;
+  }
+  .text {
+    font-size: 11px;
+    color: var(--shrine-muted);
+  }
 }
 
 .submit-btn {
@@ -250,15 +263,37 @@ const submit = async () => {
   border-radius: 10px;
   text-align: center;
   margin-top: 8px;
-  
+
   text {
     font-size: 15px;
     font-weight: 600;
     color: var(--shrine-button-text);
   }
-  
+
   &.disabled {
     opacity: 0.6;
+  }
+}
+
+.status-bar {
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  text-align: center;
+
+  &.success {
+    background: var(--shrine-gold-soft);
+    border: 1px solid var(--shrine-gold);
+  }
+  &.error {
+    background: rgba(220, 38, 38, 0.15);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+  }
+
+  .status-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--shrine-text);
   }
 }
 </style>

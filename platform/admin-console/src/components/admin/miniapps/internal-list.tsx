@@ -66,13 +66,13 @@ export function InternalList() {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Internal MiniApps</h2>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600 dark:text-gray-400">{miniapps.length} apps</span>
+          <span className="text-muted-foreground text-sm">{miniapps.length} apps</span>
           <InternalSync onSuccess={fetchInternal} />
         </div>
       </div>
 
       {miniapps.length === 0 ? (
-        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+        <div className="text-muted-foreground p-8 text-center">
           No internal miniapps found. Sync from repository to populate.
         </div>
       ) : (
@@ -83,7 +83,7 @@ export function InternalList() {
                 <h3 className="font-semibold">{app.app_id}</h3>
                 <Badge className="bg-green-500/20 text-green-700 dark:text-green-400">{app.status}</Badge>
               </div>
-              <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-muted-foreground space-y-1 text-sm">
                 <p>
                   <span className="font-medium">Path:</span> {app.subfolder}
                 </p>
@@ -130,7 +130,7 @@ export function InternalList() {
                     </a>
                   </p>
                 )}
-                <p className="text-xs text-gray-500">Updated: {new Date(app.updated_at).toLocaleString()}</p>
+                <p className="text-muted-foreground/70 text-xs">Updated: {new Date(app.updated_at).toLocaleString()}</p>
               </div>
             </Card>
           ))}

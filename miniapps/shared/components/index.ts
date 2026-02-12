@@ -23,7 +23,7 @@
 // All new development should use Vue components below.
 // Migration guide: Replace <Card /> with <NeoCard />, <Button /> with <NeoButton />, etc.
 //
-// TODO: Remove in v3.0 - See https://github.com/anomalyco/miniapps/issues/XXX
+// @deprecated Legacy re-exports maintained for backward compatibility
 // export { Card } from "./Card";
 // export { StatBox } from "./StatBox";
 // export { StatsGrid } from "./StatsGrid";
@@ -36,6 +36,7 @@
 export { default as AppLayout } from "./AppLayout.vue";
 export { default as MiniAppLayout } from "./MiniAppLayout.vue";
 export { default as DesktopLayout } from "./DesktopLayout.vue";
+export { default as DesktopSidebar } from "./DesktopSidebar.vue";
 export { default as ResponsiveLayout } from "./ResponsiveLayout.vue";
 
 // ============================================================================
@@ -70,6 +71,7 @@ export { default as ChainWarning } from "./ChainWarning.vue";
 
 export { default as ErrorBoundary } from "./ErrorBoundary.vue";
 export { default as Fireworks } from "./Fireworks.vue";
+export { default as SidebarPanel } from "./SidebarPanel.vue";
 
 // ============================================================================
 // Vue Components - Template System

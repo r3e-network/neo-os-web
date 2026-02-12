@@ -238,7 +238,7 @@ describe("Neo Swap - Token Exchange", () => {
         expect.objectContaining({
           contractAddress: "0x77b4349e5a62b3f77390afa50962096d66b0ab99",
           operation: "swapTokenInForTokenOut",
-        }),
+        })
       );
     });
 
@@ -292,7 +292,7 @@ describe("Neo Swap - Token Exchange", () => {
 
       try {
         await mockGetPrice("NEO/USD");
-      } catch (e) {
+      } catch (e: unknown) {
         // Fallback to mock price
         const fallbackRate = "8.5";
         expect(fallbackRate).toBe("8.5");

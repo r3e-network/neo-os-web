@@ -77,11 +77,13 @@ describe("Forever Album Index Page", () => {
             props: ["visible", "title", "closeable"],
           },
           NeoInput: {
-            template: '<input class="neo-input-stub" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            template:
+              '<input class="neo-input-stub" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
             props: ["modelValue", "type", "placeholder"],
           },
           WalletPrompt: {
-            template: '<div class="wallet-prompt-stub" :visible="visible" @close="$emit(\'close\')" @connect="$emit(\'connect\')" />',
+            template:
+              '<div class="wallet-prompt-stub" :visible="visible" @close="$emit(\'close\')" @connect="$emit(\'connect\')" />',
             props: ["visible"],
           },
           ChainWarning: {
@@ -206,7 +208,7 @@ describe("Forever Album Index Page", () => {
 
   describe("Photo Item Interface", () => {
     it("defines PhotoItem interface", () => {
-      const photo: any = {
+      const photo: Record<string, unknown> = {
         id: "test-123",
         data: "data:image/png;base64,abc123",
         encrypted: false,

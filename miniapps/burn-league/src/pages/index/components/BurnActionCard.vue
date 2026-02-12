@@ -24,7 +24,7 @@ defineProps<{
   burnAmount: string;
   estimatedReward: number;
   isLoading: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["update:burnAmount", "burn"]);
@@ -64,7 +64,7 @@ const formatNum = (n: number) => {
   font-size: 14px;
   font-weight: 800;
   font-family: $font-family;
-  color: #F97316;
+  color: var(--burn-orange);
   text-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
 }
 

@@ -9,8 +9,8 @@ interface NotificationHeaderProps {
 
 export function NotificationHeader({ onMarkAllRead, unreadCount }: NotificationHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-      <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+    <div className="flex items-center justify-between px-4 py-3 border-b border-erobo-purple/10 dark:border-white/10">
+      <h3 className="font-semibold text-erobo-ink dark:text-white">Notifications</h3>
       {unreadCount > 0 && (
         <button
           onClick={onMarkAllRead}

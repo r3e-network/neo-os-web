@@ -24,6 +24,7 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { formatAddress } from "@shared/utils/format";
 
 const props = defineProps<{
   loading: boolean;
@@ -33,7 +34,7 @@ const props = defineProps<{
   t: (key: string) => string;
 }>();
 
-const shortenAddress = (addr: string) => (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : props.t("notConnected"));
+const shortenAddress = (addr: string) => (addr ? formatAddress(addr) : props.t("notConnected"));
 const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
 </script>
 

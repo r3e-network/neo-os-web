@@ -52,25 +52,25 @@ export default function DeveloperPage() {
       icon: Code2,
       title: t("developer.features.sdk"),
       desc: t("developer.features.sdkDesc"),
-      color: "from-blue-500 to-cyan-500",
+      color: "from-erobo-purple to-erobo-sky",
     },
     {
       icon: Shield,
       title: t("developer.features.tee"),
       desc: t("developer.features.teeDesc"),
-      color: "from-purple-500 to-pink-500",
+      color: "from-erobo-pink to-erobo-purple",
     },
     {
       icon: Dice5,
       title: t("developer.features.vrf"),
       desc: t("developer.features.vrfDesc"),
-      color: "from-green-500 to-emerald-500",
+      color: "from-neo to-erobo-mint",
     },
     {
       icon: TrendingUp,
       title: t("developer.features.oracles"),
       desc: t("developer.features.oraclesDesc"),
-      color: "from-orange-500 to-yellow-500",
+      color: "from-erobo-peach to-erobo-pink",
     },
   ];
 
@@ -131,10 +131,29 @@ export default function DeveloperPage() {
     <Layout>
       <Head>
         <title>Developer Portal - Neo MiniApp Platform</title>
+        <meta
+          name="description"
+          content="Build decentralized MiniApps on Neo N3. Access SDK tools, TEE security, VRF random numbers, oracle data feeds, and submit your app to the NeoHub marketplace."
+        />
+        <meta property="og:title" content="Developer Portal - Neo MiniApp Platform" />
+        <meta
+          property="og:description"
+          content="Build decentralized MiniApps on Neo N3. Access SDK tools, TEE security, VRF random numbers, oracle data feeds, and submit your app to the NeoHub marketplace."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://miniapp.neo.org/developer" />
+        <meta property="og:image" content="https://miniapp.neo.org/og-image.png" />
+        <meta property="og:site_name" content="NeoHub" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Developer Portal - Neo MiniApp Platform" />
+        <meta
+          name="twitter:description"
+          content="Build decentralized MiniApps on Neo N3 with SDK tools, TEE security, and oracle data feeds."
+        />
       </Head>
 
       {/* Hero Section */}
-      <section className="bg-white dark:bg-[#050505] border-b border-gray-200 dark:border-white/10 py-20 relative overflow-hidden">
+      <section className="bg-white dark:bg-erobo-bg-deeper border-b border-erobo-purple/10 dark:border-white/10 py-20 relative overflow-hidden">
         {/* Background Glow */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-neo/20 to-transparent rounded-full blur-[120px] pointer-events-none -mr-48 -mt-48 opacity-60" />
 
@@ -149,10 +168,12 @@ export default function DeveloperPage() {
               <Rocket size={16} strokeWidth={2} />
               {t("developer.badge")}
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
+            <h1 className="text-4xl md:text-6xl font-bold text-erobo-ink dark:text-white leading-tight">
               {t("developer.title")}
             </h1>
-            <p className="mt-6 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">{t("developer.subtitle")}</p>
+            <p className="mt-6 text-lg text-erobo-ink-soft dark:text-slate-400 max-w-2xl mx-auto">
+              {t("developer.subtitle")}
+            </p>
             <div className="mt-10 flex flex-wrap justify-center gap-4">
               <Link href="/developer/dashboard">
                 <Button size="lg" className="bg-neo text-white rounded-xl hover:bg-neo/90 transition-all font-medium">
@@ -163,14 +184,14 @@ export default function DeveloperPage() {
               <Link href="/docs">
                 <Button
                   size="lg"
-                  className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all font-medium"
+                  className="bg-erobo-bg-dark dark:bg-white text-white dark:text-erobo-ink rounded-xl hover:bg-erobo-bg-card dark:hover:bg-erobo-purple/10 transition-all font-medium"
                 >
                   {t("developer.readDocumentation")}
                 </Button>
               </Link>
               <Button
                 size="lg"
-                className="bg-white dark:bg-white/5 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-xl hover:bg-neo/10 hover:text-neo hover:border-neo/20 transition-all font-medium"
+                className="bg-white dark:bg-white/5 text-erobo-ink dark:text-white border border-erobo-purple/10 dark:border-white/10 rounded-xl hover:bg-neo/10 hover:text-neo hover:border-neo/20 transition-all font-medium"
                 onClick={() => setShowForm(true)}
               >
                 {t("developer.submitMiniApp")}
@@ -181,7 +202,7 @@ export default function DeveloperPage() {
       </section>
 
       {/* Quick Start & Submit Cards */}
-      <section className="py-24 px-4 bg-gray-50 dark:bg-[#050505]">
+      <section className="py-24 px-4 bg-erobo-purple/5 dark:bg-[#050505]">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-8 md:grid-cols-2">
             {/* Quick Start Card */}
@@ -189,25 +210,25 @@ export default function DeveloperPage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="rounded-2xl p-10 bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-xl hover:border-neo/40 transition-all"
+              className="rounded-2xl p-10 bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-erobo-purple/10 dark:border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-xl hover:border-neo/40 transition-all"
             >
               <div className="flex items-center gap-6 mb-8">
                 <div className="w-16 h-16 rounded-xl bg-neo/10 border border-neo/20 flex items-center justify-center">
                   <Code2 className="text-neo" size={32} strokeWidth={2} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t("developer.quickStart")}</h2>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">{t("developer.quickStartDesc")}</p>
+                  <h2 className="text-2xl font-bold text-erobo-ink dark:text-white">{t("developer.quickStart")}</h2>
+                  <p className="text-erobo-ink-soft dark:text-slate-400 text-sm">{t("developer.quickStartDesc")}</p>
                 </div>
               </div>
-              <div className="rounded-xl bg-gray-900 dark:bg-black border border-gray-200 dark:border-white/10 p-6 font-mono text-sm overflow-x-auto mb-6">
-                <div className="text-gray-500">// {t("developer.installSdkComment")}</div>
+              <div className="rounded-xl bg-erobo-bg-dark dark:bg-black border border-erobo-purple/10 dark:border-white/10 p-6 font-mono text-sm overflow-x-auto mb-6">
+                <div className="text-erobo-ink-soft">// {t("developer.installSdkComment")}</div>
                 <div className="text-neo">$ npm install @meshminiapp/sdk</div>
-                <div className="text-gray-500 mt-4">// {t("developer.createAppComment")}</div>
+                <div className="text-erobo-ink-soft mt-4">// {t("developer.createAppComment")}</div>
                 <div className="text-neo">$ npx create-miniapp my-app</div>
               </div>
               <Link href="/docs">
-                <Button className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-all">
+                <Button className="w-full bg-erobo-bg-dark dark:bg-white text-white dark:text-erobo-ink rounded-xl font-medium hover:bg-erobo-bg-card dark:hover:bg-erobo-purple/10 transition-all">
                   {t("developer.readDocumentation")}
                   <ChevronRight size={16} className="ml-2" />
                 </Button>
@@ -219,25 +240,25 @@ export default function DeveloperPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="rounded-2xl p-10 bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-xl hover:border-neo/40 transition-all"
+              className="rounded-2xl p-10 bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-erobo-purple/10 dark:border-white/10 shadow-lg hover:-translate-y-1 hover:shadow-xl hover:border-neo/40 transition-all"
             >
               <div className="flex items-center gap-6 mb-8">
-                <div className="w-16 h-16 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                  <Rocket className="text-purple-500" size={32} strokeWidth={2} />
+                <div className="w-16 h-16 rounded-xl bg-erobo-purple/10 border border-erobo-purple/20 flex items-center justify-center">
+                  <Rocket className="text-erobo-purple" size={32} strokeWidth={2} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t("developer.submitYourApp")}</h2>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">{t("developer.submitYourAppDesc")}</p>
+                  <h2 className="text-2xl font-bold text-erobo-ink dark:text-white">{t("developer.submitYourApp")}</h2>
+                  <p className="text-erobo-ink-soft dark:text-slate-400 text-sm">{t("developer.submitYourAppDesc")}</p>
                 </div>
               </div>
-              <p className="text-gray-900 dark:text-white font-medium mb-6">{t("developer.readyToLaunch")}</p>
+              <p className="text-erobo-ink dark:text-white font-medium mb-6">{t("developer.readyToLaunch")}</p>
               <ul className="space-y-3 mb-8">
                 {[
                   t("developer.reviewSteps.securityReview"),
                   t("developer.reviewSteps.performanceTesting"),
                   t("developer.reviewSteps.marketplaceListing"),
                 ].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                  <li key={item} className="flex items-center gap-3 text-sm text-erobo-ink-soft/80 dark:text-slate-400">
                     <div className="w-2 h-2 rounded-full bg-neo" />
                     {item}
                   </li>
@@ -259,8 +280,8 @@ export default function DeveloperPage() {
       <section className="py-16 px-4">
         <div className="mx-auto max-w-7xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{t("developer.platformFeatures")}</h2>
-            <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold text-erobo-ink dark:text-white">{t("developer.platformFeatures")}</h2>
+            <p className="mt-4 text-erobo-ink-soft/80 dark:text-slate-400 max-w-2xl mx-auto">
               Everything you need to build powerful decentralized applications
             </p>
           </div>
@@ -271,15 +292,15 @@ export default function DeveloperPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 * idx }}
-                className="group rounded-2xl p-6 bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-lg hover:shadow-xl hover:-translate-y-1 hover:border-neo/40 transition-all"
+                className="group rounded-2xl p-6 bg-white dark:bg-[#080808]/80 backdrop-blur-xl border border-erobo-purple/10 dark:border-white/10 shadow-lg hover:shadow-xl hover:-translate-y-1 hover:border-neo/40 transition-all"
               >
                 <div
                   className={`w-14 h-14 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-6 group-hover:scale-105 transition-transform`}
                 >
                   <f.icon className="text-white" size={28} strokeWidth={2} />
                 </div>
-                <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{f.desc}</p>
+                <h3 className="font-bold text-lg text-erobo-ink dark:text-white mb-2">{f.title}</h3>
+                <p className="text-sm text-erobo-ink-soft dark:text-slate-400">{f.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -287,11 +308,11 @@ export default function DeveloperPage() {
       </section>
 
       {/* SDK Examples Section */}
-      <section className="py-20 px-4 bg-gray-50 dark:bg-[#050505]">
+      <section className="py-20 px-4 bg-erobo-purple/5 dark:bg-[#050505]">
         <div className="mx-auto max-w-7xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">SDK Examples</h2>
-            <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold text-erobo-ink dark:text-white">SDK Examples</h2>
+            <p className="mt-4 text-erobo-ink-soft/80 dark:text-slate-400 max-w-2xl mx-auto">
               Get started quickly with these code examples
             </p>
           </div>
@@ -302,14 +323,16 @@ export default function DeveloperPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 overflow-hidden"
+              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-erobo-purple/10 dark:border-white/10 overflow-hidden"
             >
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
-                <h3 className="font-bold text-gray-900 dark:text-white">Wallet Integration</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Connect and interact with user wallets</p>
+              <div className="px-6 py-4 border-b border-erobo-purple/10 dark:border-white/10 bg-erobo-purple/5 dark:bg-white/5">
+                <h3 className="font-bold text-erobo-ink dark:text-white">Wallet Integration</h3>
+                <p className="text-sm text-erobo-ink-soft dark:text-slate-400">
+                  Connect and interact with user wallets
+                </p>
               </div>
               <div className="p-6">
-                <pre className="rounded-xl bg-gray-900 dark:bg-black p-4 overflow-x-auto text-sm">
+                <pre className="rounded-xl bg-erobo-bg-dark dark:bg-black p-4 overflow-x-auto text-sm">
                   <code className="text-slate-300 font-mono">{`import { waitForSDK } from "@r3e/uniapp-sdk";
 
 // Initialize SDK
@@ -333,14 +356,14 @@ const result = await sdk.wallet.requestPayment({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 overflow-hidden"
+              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-erobo-purple/10 dark:border-white/10 overflow-hidden"
             >
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
-                <h3 className="font-bold text-gray-900 dark:text-white">VRF Random Numbers</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Generate verifiable random numbers</p>
+              <div className="px-6 py-4 border-b border-erobo-purple/10 dark:border-white/10 bg-erobo-purple/5 dark:bg-white/5">
+                <h3 className="font-bold text-erobo-ink dark:text-white">VRF Random Numbers</h3>
+                <p className="text-sm text-erobo-ink-soft dark:text-slate-400">Generate verifiable random numbers</p>
               </div>
               <div className="p-6">
-                <pre className="rounded-xl bg-gray-900 dark:bg-black p-4 overflow-x-auto text-sm">
+                <pre className="rounded-xl bg-erobo-bg-dark dark:bg-black p-4 overflow-x-auto text-sm">
                   <code className="text-slate-300 font-mono">{`// Request random number
 const random = await sdk.vrf.requestRandom({
   min: 1,
@@ -359,14 +382,14 @@ console.log("Proof:", random.proof);`}</code>
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 overflow-hidden"
+              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-erobo-purple/10 dark:border-white/10 overflow-hidden"
             >
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
-                <h3 className="font-bold text-gray-900 dark:text-white">Oracle Data Feeds</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Access real-time price data</p>
+              <div className="px-6 py-4 border-b border-erobo-purple/10 dark:border-white/10 bg-erobo-purple/5 dark:bg-white/5">
+                <h3 className="font-bold text-erobo-ink dark:text-white">Oracle Data Feeds</h3>
+                <p className="text-sm text-erobo-ink-soft dark:text-slate-400">Access real-time price data</p>
               </div>
               <div className="p-6">
-                <pre className="rounded-xl bg-gray-900 dark:bg-black p-4 overflow-x-auto text-sm">
+                <pre className="rounded-xl bg-erobo-bg-dark dark:bg-black p-4 overflow-x-auto text-sm">
                   <code className="text-slate-300 font-mono">{`// Get price feed
 const price = await sdk.oracle.getPrice({
   pair: "NEO/USD",
@@ -384,14 +407,14 @@ console.log("Updated:", price.timestamp);`}</code>
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 overflow-hidden"
+              className="rounded-2xl bg-white dark:bg-[#080808]/80 border border-erobo-purple/10 dark:border-white/10 overflow-hidden"
             >
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
-                <h3 className="font-bold text-gray-900 dark:text-white">TEE Secrets</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Secure secret management</p>
+              <div className="px-6 py-4 border-b border-erobo-purple/10 dark:border-white/10 bg-erobo-purple/5 dark:bg-white/5">
+                <h3 className="font-bold text-erobo-ink dark:text-white">TEE Secrets</h3>
+                <p className="text-sm text-erobo-ink-soft dark:text-slate-400">Secure secret management</p>
               </div>
               <div className="p-6">
-                <pre className="rounded-xl bg-gray-900 dark:bg-black p-4 overflow-x-auto text-sm">
+                <pre className="rounded-xl bg-erobo-bg-dark dark:bg-black p-4 overflow-x-auto text-sm">
                   <code className="text-slate-300 font-mono">{`// Store secret in TEE
 await sdk.secrets.set({
   key: "api_key",
@@ -421,8 +444,8 @@ const secret = await sdk.secrets.get("api_key");`}</code>
       <section className="py-20 px-4">
         <div className="mx-auto max-w-7xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">API Reference</h2>
-            <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold text-erobo-ink dark:text-white">API Reference</h2>
+            <p className="mt-4 text-erobo-ink-soft/80 dark:text-slate-400 max-w-2xl mx-auto">
               Comprehensive API documentation for all platform services
             </p>
           </div>
@@ -443,15 +466,15 @@ const secret = await sdk.secrets.get("api_key");`}</code>
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: idx * 0.05 }}
-                  className="p-4 rounded-xl bg-white dark:bg-[#080808]/80 border border-gray-200 dark:border-white/10 hover:border-neo/40 hover:shadow-lg transition-all cursor-pointer group"
+                  className="p-4 rounded-xl bg-white dark:bg-[#080808]/80 border border-erobo-purple/10 dark:border-white/10 hover:border-neo/40 hover:shadow-lg transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{api.icon}</span>
                     <div>
-                      <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-neo transition-colors">
+                      <h4 className="font-bold text-erobo-ink dark:text-white group-hover:text-neo transition-colors">
                         {api.name}
                       </h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{api.desc}</p>
+                      <p className="text-xs text-erobo-ink-soft dark:text-slate-400">{api.desc}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -502,20 +525,20 @@ const secret = await sdk.secrets.get("api_key");`}</code>
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-white dark:bg-[#080808] border-l border-gray-200 dark:border-white/10 shadow-2xl overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-white dark:bg-[#080808] border-l border-erobo-purple/10 dark:border-white/10 shadow-2xl overflow-y-auto"
             >
               {/* Panel Header */}
-              <div className="sticky top-0 z-10 bg-white/95 dark:bg-[#080808]/95 backdrop-blur-xl border-b border-gray-200 dark:border-white/10 px-6 py-4">
+              <div className="sticky top-0 z-10 bg-white/95 dark:bg-[#080808]/95 backdrop-blur-xl border-b border-erobo-purple/10 dark:border-white/10 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t("developer.form.title")}</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("developer.form.subtitle")}</p>
+                    <h2 className="text-xl font-bold text-erobo-ink dark:text-white">{t("developer.form.title")}</h2>
+                    <p className="text-sm text-erobo-ink-soft dark:text-slate-400">{t("developer.form.subtitle")}</p>
                   </div>
                   <button
                     onClick={() => setShowForm(false)}
-                    className="p-2 rounded-lg border border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
+                    className="p-2 rounded-lg border border-erobo-purple/10 dark:border-white/10 hover:bg-erobo-purple/10 dark:hover:bg-white/10 transition-all"
                   >
-                    <X className="text-gray-500 dark:text-gray-400" size={20} strokeWidth={2} />
+                    <X className="text-erobo-ink-soft dark:text-slate-400" size={20} strokeWidth={2} />
                   </button>
                 </div>
               </div>
@@ -524,14 +547,14 @@ const secret = await sdk.secrets.get("api_key");`}</code>
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* App Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                     {t("developer.form.appName")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     placeholder={t("developer.form.appNamePlaceholder")}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                    className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
@@ -539,14 +562,14 @@ const secret = await sdk.secrets.get("api_key");`}</code>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                     {t("developer.form.description")} <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     required
                     rows={3}
                     placeholder={t("developer.form.descriptionPlaceholder")}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400 resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50 resize-none"
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                   />
@@ -555,27 +578,27 @@ const secret = await sdk.secrets.get("api_key");`}</code>
                 {/* Chinese Metadata (Required) */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                       {t("developer.form.appNameZh")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       placeholder={t("developer.form.appNameZhPlaceholder")}
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                      className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                       value={form.name_zh}
                       onChange={(e) => setForm({ ...form, name_zh: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                       {t("developer.form.descriptionZh")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       placeholder={t("developer.form.descriptionZhPlaceholder")}
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                      className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                       value={form.description_zh}
                       onChange={(e) => setForm({ ...form, description_zh: e.target.value })}
                     />
@@ -585,24 +608,24 @@ const secret = await sdk.secrets.get("api_key");`}</code>
                 {/* Icon & Category */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                       {t("developer.form.icon")}
                     </label>
                     <input
                       type="text"
                       placeholder={t("developer.form.iconPlaceholder")}
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white text-center text-2xl placeholder-gray-400"
+                      className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-erobo-ink dark:text-white text-center text-2xl placeholder-erobo-ink-soft/50"
                       value={form.icon}
                       onChange={(e) => setForm({ ...form, icon: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                       {t("developer.form.category")}
                     </label>
                     <div className="relative">
                       <select
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all appearance-none cursor-pointer text-gray-900 dark:text-white"
+                        className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all appearance-none cursor-pointer text-erobo-ink dark:text-white"
                         value={form.category}
                         onChange={(e) => setForm({ ...form, category: e.target.value as FormData["category"] })}
                       >
@@ -612,7 +635,7 @@ const secret = await sdk.secrets.get("api_key");`}</code>
                           </option>
                         ))}
                       </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500 dark:text-gray-400">
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-erobo-ink-soft dark:text-slate-400">
                         ▼
                       </div>
                     </div>
@@ -621,14 +644,14 @@ const secret = await sdk.secrets.get("api_key");`}</code>
 
                 {/* Entry URL */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                     {t("developer.form.entryUrl")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="url"
                     required
                     placeholder={t("developer.form.entryUrlPlaceholder")}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                    className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                     value={form.entry_url}
                     onChange={(e) => setForm({ ...form, entry_url: e.target.value })}
                   />
@@ -636,28 +659,28 @@ const secret = await sdk.secrets.get("api_key");`}</code>
 
                 {/* Build Artifact URL */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                     {t("developer.form.buildUrl")}
                   </label>
                   <input
                     type="url"
                     placeholder={t("developer.form.buildUrlPlaceholder")}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                    className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                     value={form.build_url}
                     onChange={(e) => setForm({ ...form, build_url: e.target.value })}
                   />
-                  <p className="mt-2 text-xs text-gray-500">{t("developer.form.buildUrlHelp")}</p>
+                  <p className="mt-2 text-xs text-erobo-ink-soft">{t("developer.form.buildUrlHelp")}</p>
                 </div>
 
                 {/* Supported Chains */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                     {t("developer.form.supportedChains")}
                   </label>
                   <input
                     type="text"
                     placeholder={t("developer.form.supportedChainsPlaceholder")}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                    className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                     value={form.supported_chains}
                     onChange={(e) => setForm({ ...form, supported_chains: e.target.value })}
                   />
@@ -665,45 +688,45 @@ const secret = await sdk.secrets.get("api_key");`}</code>
 
                 {/* Contracts JSON */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                     {t("developer.form.contractsJson")}
                   </label>
                   <textarea
                     rows={4}
                     placeholder={t("developer.form.contractsJsonPlaceholder")}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all font-mono text-sm text-gray-900 dark:text-white placeholder-gray-400"
+                    className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all font-mono text-sm text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                     value={form.contracts_json}
                     onChange={(e) => setForm({ ...form, contracts_json: e.target.value })}
                   />
                 </div>
 
                 {/* Developer Info */}
-                <div className="pt-4 border-t border-gray-200 dark:border-white/10">
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                <div className="pt-4 border-t border-erobo-purple/10 dark:border-white/10">
+                  <h3 className="text-sm font-medium text-erobo-ink dark:text-slate-300 mb-4">
                     {t("developer.form.developerInfo")}
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                         {t("developer.form.developerName")}
                       </label>
                       <input
                         type="text"
                         placeholder={t("developer.form.developerNamePlaceholder")}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-gray-900 dark:text-white placeholder-gray-400"
+                        className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                         value={form.developer_name}
                         onChange={(e) => setForm({ ...form, developer_name: e.target.value })}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                         {t("developer.form.neoAddress")} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         required
                         placeholder={t("developer.form.neoAddressPlaceholder")}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all font-mono text-sm text-gray-900 dark:text-white placeholder-gray-400"
+                        className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo transition-all font-mono text-sm text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                         value={form.developer_address}
                         onChange={(e) => setForm({ ...form, developer_address: e.target.value })}
                       />
@@ -730,7 +753,7 @@ const secret = await sdk.secrets.get("api_key");`}</code>
                     type="button"
                     variant="ghost"
                     onClick={() => setShowForm(false)}
-                    className="flex-1 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 font-medium transition-all"
+                    className="flex-1 border border-erobo-purple/10 dark:border-white/10 text-erobo-ink dark:text-slate-300 rounded-xl hover:bg-erobo-purple/10 dark:hover:bg-white/10 font-medium transition-all"
                   >
                     {t("developer.form.cancel")}
                   </Button>

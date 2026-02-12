@@ -12,9 +12,15 @@
   --burn-danger-bg: #2a0000;
   --burn-danger-border: #ff0000;
   --burn-button-gradient: linear-gradient(45deg, #ff4500, #ff0000);
+  --burn-purple: #9f9df3;
   --burn-button-text: #ffffff;
   --burn-button-shadow: 4px 4px 0 #550000;
   --burn-button-shadow-press: 2px 2px 0 #550000;
+  --burn-flame-orange: #f97316;
+  --burn-flame-red: #ef4444;
+  --burn-flame-amber: #f59e0b;
+  --burn-coral: #ff6b6b;
+  --burn-gold-bright: #ffd93d;
 }
 
 :global(.theme-light .theme-burn-league),
@@ -32,7 +38,13 @@
   --burn-danger-bg: #ffe5e5;
   --burn-danger-border: #f87171;
   --burn-button-gradient: linear-gradient(45deg, #ff6a2e, #e13a0c);
+  --burn-purple: #8b89e0;
   --burn-button-text: #ffffff;
   --burn-button-shadow: 4px 4px 0 rgba(228, 61, 15, 0.35);
   --burn-button-shadow-press: 2px 2px 0 rgba(228, 61, 15, 0.35);
+  --burn-flame-orange: #ea580c;
+  --burn-flame-red: #dc2626;
+  --burn-flame-amber: #d97706;
+  --burn-coral: #e05252;
+  --burn-gold-bright: #eab308;
 }

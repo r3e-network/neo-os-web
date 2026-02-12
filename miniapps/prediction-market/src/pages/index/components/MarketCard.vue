@@ -1,5 +1,5 @@
 <template>
-  <view class="market-card" @click="$emit('click')">
+  <view class="market-card" role="button" tabindex="0" :aria-label="market.question" @click="$emit('click')">
     <view class="market-header">
       <view class="market-category">{{ getCategoryLabel(market.category) }}</view>
       <view class="market-status" :class="`status-${market.status}`">
@@ -33,16 +33,7 @@
 </template>
 
 <script setup lang="ts">
-interface PredictionMarket {
-  id: number;
-  question: string;
-  category: string;
-  endTime: number;
-  status: string;
-  yesPrice: number;
-  noPrice: number;
-  totalVolume: number;
-}
+import type { PredictionMarket } from "@/types";
 
 interface Props {
   market: PredictionMarket;

@@ -1,11 +1,11 @@
 <template>
   <view class="recent-section">
     <text class="section-title-neo mb-4">{{ t("recentTransactions") }}</text>
-    
+
     <!-- Skeleton State -->
     <view v-if="loading && transactions.length === 0">
-      <view v-for="i in 5" :key="i" class="mb-3 skeleton-tx-card">
-        <view class="flex justify-between items-center w-full">
+      <view v-for="i in 5" :key="i" class="skeleton-tx-card mb-3">
+        <view class="flex w-full items-center justify-between">
           <view class="skeleton-line w-40"></view>
           <view class="skeleton-line w-20"></view>
         </view>
@@ -31,9 +31,9 @@
 import { NeoCard } from "@shared/components";
 
 defineProps<{
-  transactions: any[];
+  transactions: { hash: string; vmState: string; blockIndex: number; blockTime: string; sender: string }[];
   loading?: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["viewTx"]);
@@ -56,7 +56,7 @@ const truncateHash = (hash: string) => {
 .section-title-neo {
   font-size: 11px;
   font-weight: 700;
-  color: #00E599;
+  color: var(--matrix-success);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -70,17 +70,17 @@ const truncateHash = (hash: string) => {
   font-weight: 700;
   text-transform: uppercase;
   border-radius: 100px;
-  
+
   &.HALT {
     background: rgba(0, 229, 153, 0.1);
-    color: #00E599;
+    color: var(--matrix-success);
     border: 1px solid rgba(0, 229, 153, 0.2);
     box-shadow: 0 0 10px rgba(0, 229, 153, 0.1);
   }
-  
+
   &.FAULT {
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--matrix-error);
     border: 1px solid rgba(239, 68, 68, 0.2);
     box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
   }
@@ -99,7 +99,6 @@ const truncateHash = (hash: string) => {
   font-weight: 500;
 }
 
-
 .tx-item-content-neo {
   display: flex;
   justify-content: space-between;
@@ -112,8 +111,12 @@ const truncateHash = (hash: string) => {
   align-items: center;
   gap: 8px;
 }
-.mb-3 { margin-bottom: 12px; }
-.mb-4 { margin-bottom: 16px; }
+.mb-3 {
+  margin-bottom: 12px;
+}
+.mb-4 {
+  margin-bottom: 16px;
+}
 
 .skeleton-tx-card {
   padding: 20px;
@@ -129,21 +132,29 @@ const truncateHash = (hash: string) => {
   border-radius: 4px;
   position: relative;
   overflow: hidden;
-  
+
   &::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
     animation: shimmer 1.5s infinite;
   }
 }
 
 @keyframes shimmer {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 
-.w-40 { width: 160px; }
-.w-20 { width: 80px; }
+.w-40 {
+  width: 160px;
+}
+.w-20 {
+  width: 80px;
+}
 </style>

@@ -150,7 +150,7 @@ interface DialogContentProps {
 
 export function DialogContent({ children, className }: DialogContentProps) {
   return (
-    <div className={cn("bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl", className)}>
+    <div className={cn("bg-white dark:bg-erobo-bg-card rounded-lg p-6 max-w-md w-full mx-4 shadow-xl", className)}>
       {children}
     </div>
   );
@@ -181,7 +181,7 @@ interface DialogTitleProps {
 export function DialogTitle({ children, className }: DialogTitleProps) {
   const titleId = useContext(DialogLabelContext);
   return (
-    <h3 id={titleId} className={cn("text-lg font-semibold text-gray-900 dark:text-white", className)}>
+    <h3 id={titleId} className={cn("text-lg font-semibold text-erobo-ink dark:text-white", className)}>
       {children}
     </h3>
   );
@@ -197,5 +197,5 @@ interface DialogDescriptionProps {
 }
 
 export function DialogDescription({ children, className }: DialogDescriptionProps) {
-  return <p className={cn("text-sm text-gray-600 dark:text-gray-300 mt-1", className)}>{children}</p>;
+  return <p className={cn("text-sm text-erobo-ink-soft dark:text-slate-300 mt-1", className)}>{children}</p>;
 }

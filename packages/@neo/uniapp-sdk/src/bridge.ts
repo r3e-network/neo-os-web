@@ -491,7 +491,7 @@ export function initWalletStateListener(): (() => void) | null {
     walletStateListeners.forEach((listener) => {
       try {
         listener(currentWalletState);
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("[MiniApp SDK] Wallet state listener error:", e);
       }
     });

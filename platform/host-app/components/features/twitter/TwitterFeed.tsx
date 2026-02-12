@@ -36,7 +36,7 @@ export function TwitterFeed() {
     return (
       <div className="animate-pulse space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-lg bg-gray-200" />
+          <div key={i} className="h-24 rounded-lg bg-erobo-purple/10" />
         ))}
       </div>
     );
@@ -50,17 +50,17 @@ export function TwitterFeed() {
           href={tweet.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:shadow-sm"
+          className="block rounded-lg border border-erobo-purple/10 bg-white p-4 transition hover:border-blue-300 hover:shadow-sm"
         >
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500 text-white">N</div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900">{tweet.author}</span>
-                <span className="text-sm text-gray-500">@Neo_Blockchain</span>
-                <span suppressHydrationWarning className="text-sm text-gray-400">· {formatTime(tweet.created_at)}</span>
+                <span className="font-semibold text-erobo-ink">{tweet.author}</span>
+                <span className="text-sm text-erobo-ink-soft">@Neo_Blockchain</span>
+                <span suppressHydrationWarning className="text-sm text-erobo-ink-soft/60">· {formatTime(tweet.created_at)}</span>
               </div>
-              <p className="mt-1 text-gray-700">{tweet.text}</p>
+              <p className="mt-1 text-erobo-ink">{tweet.text}</p>
             </div>
           </div>
         </a>

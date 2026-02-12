@@ -59,11 +59,11 @@ export function MiniAppLoader({ app }: { app: MiniAppInfo }) {
         </div>
 
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight">{app.name}</h2>
-          <p className="text-xs uppercase tracking-[0.3em] text-gray-500 dark:text-white/60">MiniApp Launch</p>
+          <h2 className="text-3xl font-semibold text-erobo-ink dark:text-white tracking-tight">{app.name}</h2>
+          <p className="text-xs uppercase tracking-[0.3em] text-erobo-ink-soft dark:text-white/60">MiniApp Launch</p>
         </div>
 
-        <div className="w-56 h-2 rounded-full bg-gray-200/70 dark:bg-white/10 overflow-hidden">
+        <div className="w-56 h-2 rounded-full bg-erobo-purple/10/70 dark:bg-white/10 overflow-hidden">
           <motion.div
             initial={{ width: "0%" }}
             animate={{ width: "100%" }}
@@ -79,7 +79,7 @@ export function MiniAppLoader({ app }: { app: MiniAppInfo }) {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-white/70"
+              className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-erobo-ink-soft dark:text-white/70"
             >
               {msgIndex === LOADING_MESSAGES.length - 1 ? (
                 <Zap size={14} className="text-neo" strokeWidth={2.5} />
@@ -91,12 +91,12 @@ export function MiniAppLoader({ app }: { app: MiniAppInfo }) {
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-gray-400 dark:text-white/40">
+        <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-erobo-ink-soft/60 dark:text-white/40">
           <span className="flex items-center gap-1">
             <ShieldCheck size={12} className="text-neo" />
             Secure Sandbox
           </span>
-          <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-white/20" />
+          <span className="w-1 h-1 rounded-full bg-erobo-purple/15 dark:bg-white/20" />
           <span className="flex items-center gap-1">
             <Lock size={12} className="text-erobo-purple" />
             Isolated

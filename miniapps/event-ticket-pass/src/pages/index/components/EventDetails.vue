@@ -44,19 +44,7 @@
 
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
-
-interface EventItem {
-  id: string;
-  creator: string;
-  name: string;
-  venue: string;
-  startTime: number;
-  endTime: number;
-  maxSupply: bigint;
-  minted: bigint;
-  notes: string;
-  active: boolean;
-}
+import type { EventItem } from "@/types";
 
 const props = defineProps<{
   t: (key: string) => string;
@@ -163,6 +151,6 @@ const formatSchedule = (startTime: number, endTime: number) => {
 
 .status-pill.inactive {
   background: rgba(148, 163, 184, 0.2);
-  color: #94a3b8;
+  color: var(--ticket-muted);
 }
 </style>

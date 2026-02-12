@@ -18,6 +18,8 @@
   --karma-input-focus: #f59e0b;
   --karma-btn-primary: #f59e0b;
   --karma-btn-primary-hover: #d97706;
+  --karma-danger: #ef4444;
+  --karma-rank-gradient: linear-gradient(135deg, #fbbf24, #f59e0b);
 }
 
 :global(.theme-light .theme-social-karma),
@@ -39,4 +41,6 @@
   --karma-input-bg: #ffffff;
   --karma-input-border: #cbd5e1;
   --karma-input-focus: #f59e0b;
+  --karma-danger: #dc2626;
+  --karma-rank-gradient: linear-gradient(135deg, #f59e0b, #d97706);
 }

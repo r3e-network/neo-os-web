@@ -8,6 +8,7 @@ import { statsCache, CACHE_TTL } from "./collector";
 import { supabaseAdmin, isSupabaseConfigured } from "../supabase";
 import { getLotteryState, getContractStats } from "../chains/contract-queries";
 import type { ChainId } from "../chains/types";
+import { logger } from "../logger";
 
 /** Get DB client — all functions guard with isSupabaseConfigured first */
 function db() {
@@ -29,13 +30,13 @@ export async function ensureStatsExist(appId: string, chainId: ChainId): Promise
     });
 
     if (error) {
-      console.warn(`[stats] Lazy creation failed for ${appId}/${chainId}:`, error.message);
+      logger.warn(`[stats] Lazy creation failed for ${appId}/${chainId}`, error.message);
       return false;
     }
 
     return data === true;
   } catch (err) {
-    console.warn(`[stats] Exception in lazy creation:`, err);
+    logger.warn("[stats] Exception in lazy creation", err);
     return false;
   }
 }
@@ -119,12 +120,7 @@ export async function getMiniAppStats(appId: string, chainId: ChainId): Promise<
 
   // Try to fetch from database
   if (isSupabaseConfigured) {
-    const { data } = await supabase
-      .from("miniapp_stats")
-      .select("*")
-      .eq("app_id", appId)
-      .eq("chain_id", chainId)
-      .single();
+    const { data } = await db().from("miniapp_stats").select("*").eq("app_id", appId).eq("chain_id", chainId).single();
 
     if (data) {
       const stats = mapDbToStats(data);
@@ -136,7 +132,7 @@ export async function getMiniAppStats(appId: string, chainId: ChainId): Promise<
     await ensureStatsExist(appId, chainId);
 
     // Try fetching again after lazy creation
-    const { data: newData } = await supabase
+    const { data: newData } = await db()
       .from("miniapp_stats")
       .select("*")
       .eq("app_id", appId)
@@ -169,7 +165,7 @@ export async function getBatchStats(appIds: string[], chainId: ChainId): Promise
   const { data, error } = await db().from("miniapp_stats").select("*").in("app_id", appIds).eq("chain_id", chainId);
 
   if (error) {
-    console.error("Failed to fetch batch stats:", error);
+    logger.error("Failed to fetch batch stats", error);
     return result;
   }
 
@@ -218,7 +214,7 @@ export async function getAggregatedBatchStats(appIds: string[]): Promise<Record<
   const { data, error } = await db().from("miniapp_stats").select("*").in("app_id", uncachedAppIds);
 
   if (error) {
-    console.error("Failed to fetch aggregated batch stats:", error);
+    logger.error("Failed to fetch aggregated batch stats", error);
     return result;
   }
 
@@ -314,7 +310,7 @@ export async function getLiveStatus(
       status.volume24h = stats.totalValueLocked;
     }
   } catch (err) {
-    console.warn("getLiveStatus partial failure:", err);
+    logger.warn("getLiveStatus partial failure", err);
   }
 
   return status;

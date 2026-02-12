@@ -35,17 +35,17 @@ export function CreateVersionForm({ onSubmit, onCancel }: CreateVersionFormProps
   };
 
   return (
-    <div className="rounded-2xl p-6 bg-white dark:bg-erobo-bg-surface border border-gray-200 dark:border-white/10">
+    <div className="rounded-2xl p-6 bg-white dark:bg-erobo-bg-surface border border-erobo-purple/10 dark:border-white/10">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Create New Version</h3>
-        <button onClick={onCancel} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg">
-          <X size={20} className="text-gray-500" />
+        <h3 className="text-lg font-bold text-erobo-ink dark:text-white">Create New Version</h3>
+        <button onClick={onCancel} className="p-2 hover:bg-erobo-purple/10 dark:hover:bg-white/10 rounded-lg">
+          <X size={20} className="text-erobo-ink-soft" />
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
             Version Number <span className="text-red-500">*</span>
           </label>
           <input
@@ -54,12 +54,12 @@ export function CreateVersionForm({ onSubmit, onCancel }: CreateVersionFormProps
             placeholder="1.0.0"
             value={version}
             onChange={(e) => setVersion(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white"
+            className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-erobo-ink dark:text-white"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
             Entry URL <span className="text-red-500">*</span>
           </label>
           <input
@@ -68,30 +68,30 @@ export function CreateVersionForm({ onSubmit, onCancel }: CreateVersionFormProps
             placeholder="https://your-app.com/index.html"
             value={entryUrl}
             onChange={(e) => setEntryUrl(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white"
+            className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-erobo-ink dark:text-white"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Build Artifact URL</label>
+          <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">Build Artifact URL</label>
           <input
             type="url"
             placeholder="https://your-cdn.com/builds/app-v1.zip"
             value={buildUrl}
             onChange={(e) => setBuildUrl(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white"
+            className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-erobo-ink dark:text-white"
           />
-          <p className="mt-2 text-xs text-gray-500">Optional: link to a downloadable build package for admin review.</p>
+          <p className="mt-2 text-xs text-erobo-ink-soft">Optional: link to a downloadable build package for admin review.</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Release Notes</label>
+          <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">Release Notes</label>
           <textarea
             rows={4}
             placeholder="What's new in this version..."
             value={releaseNotes}
             onChange={(e) => setReleaseNotes(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white resize-none"
+            className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-erobo-ink dark:text-white resize-none"
           />
         </div>
 

@@ -1,20 +1,37 @@
 import type { NextPageContext } from "next";
+import Head from "next/head";
 
 type ErrorProps = {
   statusCode: number;
 };
 
 function Error({ statusCode }: ErrorProps) {
+  const is404 = statusCode === 404;
+  const title = is404 ? "Page not found" : "Something went wrong";
+  const message = is404
+    ? "The page you're looking for doesn't exist or has been moved."
+    : "An unexpected error occurred on the server. Please try again later.";
+
   return (
-    <div style={containerStyle}>
-      <div style={contentStyle}>
-        <h1 style={codeStyle}>{statusCode}</h1>
-        <p style={messageStyle}>{statusCode === 404 ? "Page not found" : "An error occurred on the server"}</p>
-        <a href="/" style={linkStyle}>
-          Go back home
-        </a>
+    <>
+      <Head>
+        <title>{`${statusCode} - ${title} | NeoHub`}</title>
+      </Head>
+      <div style={containerStyle}>
+        {/* Background glow effect */}
+        <div style={glowStyle} />
+        <div style={contentStyle}>
+          <div style={codeWrapperStyle}>
+            <h1 style={codeStyle}>{statusCode}</h1>
+          </div>
+          <h2 style={titleStyle}>{title}</h2>
+          <p style={messageStyle}>{message}</p>
+          <a href="/" style={linkStyle}>
+            Back to NeoHub
+          </a>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -25,39 +42,83 @@ Error.getInitialProps = ({ res, err }: NextPageContext) => {
 
 export default Error;
 
+/* E-Robo Design System colors:
+ * --erobo-purple: #9f9df3
+ * --erobo-purple-dark: #7b79d1
+ * --erobo-ink: #1b1b2f
+ * --erobo-ink-soft: #4a4a63
+ * --erobo-mint: #d8f2e2
+ * --erobo-peach: #f8d7c2
+ */
+
 const containerStyle: React.CSSProperties = {
   minHeight: "100vh",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "#050810",
+  background: "#0a0a1a",
   color: "#e4e4e7",
+  position: "relative",
+  overflow: "hidden",
+};
+
+const glowStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -60%)",
+  width: 500,
+  height: 500,
+  borderRadius: "50%",
+  background: "radial-gradient(circle, rgba(159,157,243,0.15) 0%, transparent 70%)",
+  pointerEvents: "none",
 };
 
 const contentStyle: React.CSSProperties = {
   textAlign: "center",
   padding: 32,
+  position: "relative",
+  zIndex: 1,
+};
+
+const codeWrapperStyle: React.CSSProperties = {
+  marginBottom: 8,
 };
 
 const codeStyle: React.CSSProperties = {
-  fontSize: 72,
-  fontWeight: 700,
+  fontSize: 96,
+  fontWeight: 800,
   margin: 0,
-  color: "#00d4aa",
+  background: "linear-gradient(135deg, #9f9df3, #7b79d1)",
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  letterSpacing: "-0.02em",
+};
+
+const titleStyle: React.CSSProperties = {
+  fontSize: 24,
+  fontWeight: 700,
+  margin: "0 0 12px",
+  color: "#e4e4e7",
 };
 
 const messageStyle: React.CSSProperties = {
-  fontSize: 18,
-  color: "#a1a1aa",
-  margin: "16px 0 24px",
+  fontSize: 16,
+  color: "#4a4a63",
+  margin: "0 0 32px",
+  maxWidth: 400,
+  lineHeight: 1.6,
 };
 
 const linkStyle: React.CSSProperties = {
   display: "inline-block",
-  padding: "12px 24px",
-  background: "#00d4aa",
-  color: "#000",
-  borderRadius: 8,
+  padding: "14px 32px",
+  background: "linear-gradient(135deg, #9f9df3, #7b79d1)",
+  color: "#1b1b2f",
+  borderRadius: 12,
   fontWeight: 600,
+  fontSize: 15,
   textDecoration: "none",
+  transition: "transform 0.2s, box-shadow 0.2s",
+  boxShadow: "0 4px 20px rgba(159, 157, 243, 0.3)",
 };

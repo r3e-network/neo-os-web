@@ -42,6 +42,7 @@
   --predict-btn-primary-hover: #2563eb;
   --predict-btn-secondary: #374151;
   --predict-btn-secondary-hover: #4b5563;
+  --predict-text-bright: #fff;
 }
 
 :global(.theme-light .theme-prediction-market),
@@ -77,4 +78,5 @@
   --predict-input-bg: #ffffff;
   --predict-input-border: #d1d5db;
   --predict-input-focus: #3b82f6;
+  --predict-text-bright: #fff;
 }

@@ -19,6 +19,10 @@ export const messages = {
         en: "Convert",
         zh: "转换"
     },
+    docs: {
+        en: "Docs",
+        zh: "文档"
+    },
     docTitle: {
         en: "Neo Convert Documentation",
         zh: "Neo 转换工具文档"

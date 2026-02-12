@@ -7,6 +7,8 @@
   --escrow-accent-strong: #fbbf24;
   --escrow-text: #fef3c7;
   --escrow-muted: rgba(254, 243, 199, 0.65);
+  --escrow-completed: #22c55e;
+  --escrow-cancelled: #f87171;
 }
 
 :global(.theme-light .theme-milestone-escrow),
@@ -19,4 +21,6 @@
   --escrow-accent-strong: #b45309;
   --escrow-text: #1c1917;
   --escrow-muted: rgba(28, 25, 23, 0.6);
+  --escrow-completed: #16a34a;
+  --escrow-cancelled: #dc2626;
 }

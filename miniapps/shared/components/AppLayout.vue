@@ -3,7 +3,7 @@
     <view class="aspect-wrapper">
       <view class="app-layout" role="application" aria-label="Application layout">
         <TopNavBar v-if="showTopNav" :title="title ?? ''" :show-back="showBack" @back="handleBack" />
-        <view :class="['app-content', !allowScroll && 'no-scroll']" :tabindex="allowScroll ? -1 : 0">
+        <view :class="['app-content', !allowScroll && 'no-scroll']" role="main" :tabindex="allowScroll ? -1 : 0">
           <slot />
         </view>
         <NavBar
@@ -110,16 +110,18 @@ onMounted(() => {
   if (props.tabs && props.tabs.length > 0 && props.activeTab) {
     const activeTabExists = props.tabs.some((t) => t.id === props.activeTab);
     if (!activeTabExists) {
-      console.warn(
-        `[AppLayout] Active tab "${props.activeTab}" not found in tabs array. ` +
-          `Available tabs: ${props.tabs.map((t) => t.id).join(", ")}`
-      );
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[AppLayout] Active tab "${props.activeTab}" not found in tabs array. ` +
+            `Available tabs: ${props.tabs.map((t) => t.id).join(", ")}`
+        );
+      }
     }
   }
 
-  // Log embedded mode for debugging
+  // Embedded mode detection complete
   if (isEmbedded.value) {
-    console.log("[AppLayout] Running in embedded mode");
+    // Running in embedded mode — no-op in production
   }
 });
 </script>

@@ -64,21 +64,14 @@
         <text class="signature-label">{{ t("signatureLabel") }}</text>
         <view class="signature-pad-glass">
           <view class="sign-line"></view>
-          <text class="signature-text mono" :class="{ 'signed': !!address }">
+          <text class="signature-text mono" :class="{ signed: !!address }">
             {{ address ? `✍️ ${address}` : t("connectWallet") }}
           </text>
           <view class="biometric-scan" v-if="address"></view>
         </view>
       </view>
 
-      <NeoButton 
-        variant="primary" 
-        size="lg" 
-        block 
-        :loading="isLoading" 
-        @click="$emit('create')"
-        class="create-btn"
-      >
+      <NeoButton variant="primary" size="lg" block :loading="isLoading" @click="$emit('create')" class="create-btn">
         <text class="btn-text">{{ isLoading ? t("creating") : t("createBtn") }}</text>
       </NeoButton>
     </view>
@@ -96,11 +89,17 @@ defineProps<{
   terms: string;
   address: string | null;
   isLoading: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
-defineEmits(["update:partnerAddress", "update:stakeAmount", "update:duration", "update:title", "update:terms", "create"]);
-
+defineEmits([
+  "update:partnerAddress",
+  "update:stakeAmount",
+  "update:duration",
+  "update:title",
+  "update:terms",
+  "create",
+]);
 </script>
 
 <style lang="scss" scoped>
@@ -120,16 +119,16 @@ defineEmits(["update:partnerAddress", "update:stakeAmount", "update:duration", "
   border-bottom: 1px solid rgba(255, 105, 180, 0.3);
   margin-bottom: 24px;
   position: relative;
-  
+
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: -1px;
     left: 0;
     width: 40%;
     height: 1px;
-    background: #ff6b6b;
-    box-shadow: 0 0 10px #ff6b6b;
+    background: var(--heartbreak-love);
+    box-shadow: 0 0 10px var(--heartbreak-love);
   }
 }
 
@@ -143,7 +142,7 @@ defineEmits(["update:partnerAddress", "update:stakeAmount", "update:duration", "
   font-weight: 800;
   font-size: 16px;
   text-transform: uppercase;
-  color: #ff6b6b;
+  color: var(--heartbreak-love);
   letter-spacing: 0.1em;
   text-shadow: 0 0 10px rgba(255, 107, 107, 0.4);
 }
@@ -152,7 +151,7 @@ defineEmits(["update:partnerAddress", "update:stakeAmount", "update:duration", "
   font-size: 9px;
   font-family: $font-mono;
   background: rgba(255, 107, 107, 0.1);
-  color: #ff6b6b;
+  color: var(--heartbreak-love);
   padding: 2px 6px;
   border-radius: 4px;
   align-self: flex-start;
@@ -197,13 +196,15 @@ defineEmits(["update:partnerAddress", "update:stakeAmount", "update:duration", "
   height: 8px;
   border-color: var(--text-muted);
   border-style: solid;
-  
+
   &.top-left {
-    top: -1px; left: -1px;
+    top: -1px;
+    left: -1px;
     border-width: 1px 0 0 1px;
   }
   &.bottom-right {
-    bottom: -1px; right: -1px;
+    bottom: -1px;
+    right: -1px;
     border-width: 0 1px 1px 0;
   }
 }
@@ -225,7 +226,9 @@ defineEmits(["update:partnerAddress", "update:stakeAmount", "update:duration", "
   margin-bottom: 24px;
 }
 
-.full-width { grid-column: span 2; }
+.full-width {
+  grid-column: span 2;
+}
 
 .form-label {
   font-size: 10px;
@@ -274,14 +277,14 @@ defineEmits(["update:partnerAddress", "update:stakeAmount", "update:duration", "
 }
 
 .signature-text {
-  font-family: 'Dancing Script', cursive, serif; /* Fallback to serif/cursive */
+  font-family: "Dancing Script", cursive, serif; /* Fallback to serif/cursive */
   font-size: 16px;
   color: var(--text-muted);
   z-index: 2;
   transition: all 0.3s;
-  
+
   &.signed {
-    color: #ff6b6b;
+    color: var(--heartbreak-love);
     font-size: 14px;
     font-family: $font-mono;
     text-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
@@ -291,7 +294,10 @@ defineEmits(["update:partnerAddress", "update:stakeAmount", "update:duration", "
 
 .biometric-scan {
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 107, 107, 0.1), transparent);
   transform: translateX(-100%);
   animation: scan 2s infinite linear;
@@ -302,12 +308,20 @@ defineEmits(["update:partnerAddress", "update:stakeAmount", "update:duration", "
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes scan {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
 </style>

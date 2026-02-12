@@ -26,7 +26,7 @@ defineProps<{
   keyCount: string;
   estimatedCost: string;
   isPaying: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["update:keyCount", "buy"]);
@@ -67,7 +67,7 @@ defineEmits(["update:keyCount", "buy"]);
   font-size: 18px;
   font-weight: $font-weight-bold;
   font-family: $font-mono;
-  color: #34d399;
+  color: var(--doom-success);
 }
 
 .hint-text-glass {

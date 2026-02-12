@@ -2,6 +2,8 @@
   <view
     :class="['gradient-card', `gradient-card--${variant}`, { 'gradient-card--hoverable': hoverable }]"
     :style="cardStyle"
+    role="region"
+    :aria-label="ariaLabel || undefined"
     @click="hoverable && $emit('click', $event)"
   >
     <view v-if="glow" class="gradient-card__glow" :style="glowStyle" />
@@ -22,13 +24,16 @@ const props = withDefaults(
     hoverable?: boolean;
     glow?: boolean;
     glowIntensity?: number;
+    /** Accessibility label for screen readers */
+    ariaLabel?: string;
   }>(),
   {
     variant: "glass",
     hoverable: false,
     glow: false,
     glowIntensity: 0.3,
-  },
+    ariaLabel: undefined,
+  }
 );
 
 defineEmits<{
@@ -113,6 +118,21 @@ const glowStyle = computed(() => ({
 
   &--bitcoin {
     border-color: rgba(255, 228, 195, 0.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-card {
+    transition: none;
+
+    &--hoverable {
+      &:hover {
+        transform: none;
+      }
+      &:active {
+        transform: none;
+      }
+    }
   }
 }
 </style>

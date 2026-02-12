@@ -8,6 +8,12 @@
   --heritage-card-bg: rgba(255, 255, 255, 0.04);
   --heritage-card-border: rgba(255, 255, 255, 0.08);
   --heritage-divider: rgba(255, 255, 255, 0.12);
+  --heritage-success: #00e599;
+  --heritage-purple: #9f9df3;
+  --heritage-gold: #ffde59;
+  --heritage-danger: #ef4444;
+  --heritage-muted: #94a3b8;
+  --heritage-on-success: #000;
 }
 
 :global(.theme-light .theme-heritage-trust),
@@ -21,4 +27,10 @@
   --heritage-card-bg: rgba(255, 255, 255, 0.9);
   --heritage-card-border: rgba(15, 23, 42, 0.1);
   --heritage-divider: rgba(15, 23, 42, 0.12);
+  --heritage-success: #00c07a;
+  --heritage-purple: #7c7ae0;
+  --heritage-gold: #eab308;
+  --heritage-danger: #dc2626;
+  --heritage-muted: #64748b;
+  --heritage-on-success: #000;
 }

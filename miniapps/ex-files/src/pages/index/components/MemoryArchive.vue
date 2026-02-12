@@ -1,18 +1,16 @@
 <template>
   <view class="archive-section">
-
-      <view class="filter-chips">
-        <text
-          v-for="cat in categories"
-          :key="cat.id"
-          class="filter-chip"
-          :class="{ active: selectedCategory === cat.id }"
-          @click="selectedCategory = cat.id"
-        >
-          {{ cat.label }}
-        </text>
-      </view>
-
+    <view class="filter-chips">
+      <text
+        v-for="cat in categories"
+        :key="cat.id"
+        class="filter-chip"
+        :class="{ active: selectedCategory === cat.id }"
+        @click="selectedCategory = cat.id"
+      >
+        {{ cat.label }}
+      </text>
+    </view>
 
     <view v-if="filteredRecords.length === 0" class="empty-state">
       <text>{{ t("noRecords") }}</text>
@@ -38,15 +36,15 @@
         </template>
 
         <view class="file-body">
-          <text class="file-title font-bold block mb-2">{{ t("record") }} #{{ record.id }}</text>
-          <view class="file-meta flex justify-between mb-2">
+          <text class="file-title mb-2 block font-bold">{{ t("record") }} #{{ record.id }}</text>
+          <view class="file-meta mb-2 flex justify-between">
             <text class="file-date text-xs">{{ record.date }}</text>
           </view>
           <text class="file-desc text-sm opacity-80">{{ record.hashShort }}</text>
         </view>
 
         <template #footer>
-          <view class="file-footer-neo flex justify-between items-center w-full">
+          <view class="file-footer-neo flex w-full items-center justify-between">
             <text class="file-id text-xs opacity-60">{{ t("recordId") }}: {{ record.id }}</text>
             <text class="view-label font-bold">{{ t("tapToView") }} →</text>
           </view>
@@ -63,7 +61,7 @@ import type { RecordItem } from "./QueryRecordForm.vue";
 
 const props = defineProps<{
   sortedRecords: RecordItem[];
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["view"]);
@@ -114,10 +112,10 @@ const getCategoryLabel = (id?: number) => {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  
+
   &.active {
     background: rgba(159, 157, 243, 0.2);
-    border-color: #9f9df3;
+    border-color: var(--noir-highlight);
     color: white;
   }
 }
@@ -130,15 +128,36 @@ const getCategoryLabel = (id?: number) => {
   margin-bottom: $spacing-4;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-.section-icon { font-size: 20px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
-.section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-primary); }
-
-.file-body { padding: $spacing-2 0; }
-.file-title {
-  font-size: 16px; font-weight: 700; text-transform: uppercase; color: var(--text-primary);
-  margin-bottom: 8px; letter-spacing: 0.05em;
+.section-icon {
+  font-size: 20px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
-.file-date { font-size: 10px; font-weight: 600; opacity: 0.6; font-family: $font-mono; color: var(--text-primary); }
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+}
+
+.file-body {
+  padding: $spacing-2 0;
+}
+.file-title {
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+.file-date {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.6;
+  font-family: $font-mono;
+  color: var(--text-primary);
+}
 
 .status-badge {
   padding: 4px 8px;
@@ -146,8 +165,15 @@ const getCategoryLabel = (id?: number) => {
   font-size: 10px;
   text-transform: uppercase;
   font-weight: 700;
-  &.active { background: rgba(0, 229, 153, 0.1); color: #00E599; border: 1px solid rgba(0, 229, 153, 0.2); }
-  &.inactive { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); }
+  &.active {
+    background: rgba(0, 229, 153, 0.1);
+    color: var(--noir-status-active);
+    border: 1px solid rgba(0, 229, 153, 0.2);
+  }
+  &.inactive {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+  }
 }
 
 .cat-badge {
@@ -156,17 +182,34 @@ const getCategoryLabel = (id?: number) => {
   font-size: 10px;
   text-transform: uppercase;
   font-weight: 700;
-  background: rgba(159, 157, 243, 0.1); 
-  color: #9f9df3; 
+  background: rgba(159, 157, 243, 0.1);
+  color: var(--noir-highlight);
   border: 1px solid rgba(159, 157, 243, 0.2);
 }
 
 .file-footer-neo {
-  display: flex; justify-content: space-between; align-items: center; padding-top: $spacing-3;
-  border-top: 1px solid rgba(255, 255, 255, 0.1); margin-top: $spacing-3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: $spacing-3;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: $spacing-3;
 }
-.view-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #9f9df3; }
-.file-id { color: var(--text-secondary); font-family: $font-mono; }
+.view-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--noir-highlight);
+}
+.file-id {
+  color: var(--text-secondary);
+  font-family: $font-mono;
+}
 
-.empty-state { text-align: center; padding: 32px; opacity: 0.5; font-style: italic; }
+.empty-state {
+  text-align: center;
+  padding: 32px;
+  opacity: 0.5;
+  font-style: italic;
+}
 </style>

@@ -5,12 +5,7 @@
     </view>
     <NeoCard v-for="p in proposals" :key="p.id" class="mb-6" variant="erobo" @click="$emit('select', p)">
       <view class="proposal-header-neo">
-        <text
-          :class="[
-            'status-badge-neo',
-            getStatusClass(p.status),
-          ]"
-        >
+        <text :class="['status-badge-neo', getStatusClass(p.status)]">
           {{ getStatusText(p.status) }}
         </text>
         <text class="proposal-id-neo">#{{ p.id }}</text>
@@ -28,8 +23,16 @@
 import { NeoCard } from "@shared/components";
 
 const props = defineProps<{
-  proposals: any[];
-  t: (key: string) => string;
+  proposals: {
+    id: number;
+    type: number;
+    title: string;
+    description: string;
+    yesVotes: number;
+    noVotes: number;
+    status: number;
+  }[];
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const STATUS_PASSED = 2;
@@ -65,8 +68,13 @@ const getStatusText = (status: number) => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.tab-content { padding: 20px; }
-.scrollable { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.tab-content {
+  padding: 20px;
+}
+.scrollable {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 
 .empty-state {
   text-align: center;
@@ -92,27 +100,28 @@ const getStatusText = (status: number) => {
   border-radius: 99px;
   letter-spacing: 0.05em;
 
-  &.passed { 
-    background: rgba(0, 229, 153, 0.1); 
-    color: #00E599; 
-    border: 1px solid rgba(0, 229, 153, 0.2); 
+  &.passed {
+    background: rgba(0, 229, 153, 0.1);
+    color: var(--senate-success);
+    border: 1px solid rgba(0, 229, 153, 0.2);
     box-shadow: 0 0 10px rgba(0, 229, 153, 0.1);
   }
-  &.rejected { 
-    background: rgba(239, 68, 68, 0.1); 
-    color: #ef4444; 
-    border: 1px solid rgba(239, 68, 68, 0.2); 
+  &.rejected {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--senate-danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
     box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
   }
-  &.revoked, &.expired { 
-    background: rgba(255, 255, 255, 0.1); 
-    color: var(--text-secondary, rgba(255, 255, 255, 0.6)); 
-    border: 1px solid rgba(255, 255, 255, 0.1); 
+  &.revoked,
+  &.expired {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  &.executed { 
-    background: rgba(112, 0, 255, 0.1); 
-    color: #7000FF; 
-    border: 1px solid rgba(112, 0, 255, 0.2); 
+  &.executed {
+    background: rgba(112, 0, 255, 0.1);
+    color: var(--senate-executed);
+    border: 1px solid rgba(112, 0, 255, 0.2);
     box-shadow: 0 0 10px rgba(112, 0, 255, 0.1);
   }
 }
@@ -144,8 +153,14 @@ const getStatusText = (status: number) => {
   text-transform: uppercase;
 }
 
-.text-success { color: #00E599; }
-.text-danger { color: #ef4444; }
+.text-success {
+  color: var(--senate-success);
+}
+.text-danger {
+  color: var(--senate-danger);
+}
 
-.mb-6 { margin-bottom: 24px; }
+.mb-6 {
+  margin-bottom: 24px;
+}
 </style>

@@ -12,3 +12,4 @@ export { default as FormPanelSlot } from "./form-panel.vue";
 export { default as DashboardSlot } from "./dashboard.vue";
 export { default as SwapInterfaceSlot } from "./swap-interface.vue";
 export { default as TimerHeroSlot } from "./timer-hero.vue";
+export { default as TwoColumnSlot } from "./two-column.vue";

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -43,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (error) throw error;
     return res.status(200).json({ success: true, status: "active" });
   } catch (error) {
-    console.error("[Automation] Enable error:", error);
+    logger.error("[Automation] Enable error", error);
     return res.status(500).json({ error: String(error) });
   }
 }

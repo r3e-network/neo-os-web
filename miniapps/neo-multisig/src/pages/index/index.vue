@@ -2,9 +2,7 @@
   <view class="theme-neo-multisig">
     <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="handleTabChange">
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -16,18 +14,6 @@
           </view>
 
           <HeroSection :title="t('appTitle')" :headline="t('homeTitle')" :subtitle="t('homeSubtitle')" />
-
-          <MainCard
-            v-model="idInput"
-            :create-title="t('createCta')"
-            :create-desc="t('createDesc')"
-            :divider-text="t('dividerOr')"
-            :load-label="t('loadTitle')"
-            :load-placeholder="t('loadPlaceholder')"
-            :load-button-text="t('loadButton')"
-            @create="navigateToCreate"
-            @load="loadTransaction"
-          />
 
           <ActivitySection
             :items="history"
@@ -52,13 +38,29 @@
           />
         </view>
       </template>
+
+      <template #operation>
+        <view class="multisig-container">
+          <MainCard
+            v-model="idInput"
+            :create-title="t('createCta')"
+            :create-desc="t('createDesc')"
+            :divider-text="t('dividerOr')"
+            :load-label="t('loadTitle')"
+            :load-placeholder="t('loadPlaceholder')"
+            :load-button-text="t('loadButton')"
+            @create="navigateToCreate"
+            @load="loadTransaction"
+          />
+        </view>
+      </template>
     </MiniAppTemplate>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { MiniAppTemplate } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useMultisigHistory } from "@/composables/useMultisigHistory";
@@ -73,7 +75,7 @@ const { history, pendingCount, completedCount } = useMultisigHistory();
 const { getStatusIcon, statusLabel, shorten, formatDate } = useMultisigUI();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "home", labelKey: "tabHome", icon: "🏠", default: true },
     { key: "docs", labelKey: "tabDocs", icon: "📖" },
@@ -89,6 +91,12 @@ const appState = computed(() => ({
   pending: pendingCount.value,
   completed: completedCount.value,
 }));
+const sidebarItems = computed(() => [
+  { label: "Total Txs", value: history.value.length },
+  { label: t("statPending"), value: pendingCount.value },
+  { label: t("statCompleted"), value: completedCount.value },
+]);
+
 const idInput = ref("");
 
 const handleTabChange = (tabId: string) => {
@@ -117,6 +125,10 @@ const openHistory = (id: string) => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./neo-multisig-theme.scss";
+
+:global(page) {
+  background: var(--multi-bg-start);
+}
 
 .multisig-container {
   position: relative;
@@ -177,21 +189,6 @@ const openHistory = (id: string) => {
     transform: translate(30px, -20px);
   }
 }
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 @media (max-width: 767px) {
   .multisig-container {
     padding: 12px;

@@ -77,21 +77,21 @@ export function PasswordVerificationModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="password-verify-title"
-        className="relative w-full max-w-md bg-white dark:bg-erobo-bg-deeper border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-md bg-white dark:bg-erobo-bg-deeper border border-erobo-purple/10 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+        <div className="flex items-center justify-between p-6 border-b border-erobo-purple/5 dark:border-white/5 bg-erobo-purple/5/50 dark:bg-white/5">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-neo/10 rounded-full text-neo">
               <Lock size={20} />
             </div>
-            <h3 id="password-verify-title" className="text-lg font-bold text-gray-900 dark:text-white">
+            <h3 id="password-verify-title" className="text-lg font-bold text-erobo-ink dark:text-white">
               {title || t("account.neohub.passwordVerification")}
             </h3>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            className="text-erobo-ink-soft/60 hover:text-erobo-ink dark:hover:text-white transition-colors"
           >
             <X size={20} />
           </button>
@@ -99,7 +99,7 @@ export function PasswordVerificationModal({
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">{description || t("account.neohub.enterPassword")}</p>
+          <p className="text-sm text-erobo-ink-soft dark:text-slate-400">{description || t("account.neohub.enterPassword")}</p>
 
           <div className="space-y-1.5">
             <Input

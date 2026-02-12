@@ -1,6 +1,7 @@
 import React from "react";
 import type { AppProps } from "next/app";
 import { QueryProvider } from "@/lib/query";
+import { TRPCProvider } from "@/components/providers/TRPCProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -15,12 +16,14 @@ export default function App({ Component, pageProps, router }: AppProps) {
     <ErrorBoundary>
       <I18nProvider>
         <QueryProvider>
-          <ThemeProvider>
-            <WalletDialogProvider>
-              <WalletAutoReconnect />
-              <Component {...pageProps} />
-            </WalletDialogProvider>
-          </ThemeProvider>
+          <TRPCProvider>
+            <ThemeProvider>
+              <WalletDialogProvider>
+                <WalletAutoReconnect />
+                <Component {...pageProps} />
+              </WalletDialogProvider>
+            </ThemeProvider>
+          </TRPCProvider>
         </QueryProvider>
       </I18nProvider>
     </ErrorBoundary>

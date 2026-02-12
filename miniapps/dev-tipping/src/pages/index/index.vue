@@ -10,17 +10,21 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
+      <!-- Main Tab — LEFT panel -->
       <template #content>
         <view class="app-container">
           <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4">
             <text class="text-glass text-center font-bold">{{ status.msg }}</text>
           </NeoCard>
+        </view>
+      </template>
 
+      <!-- Main Tab — RIGHT panel -->
+      <template #operation>
+        <view class="app-container">
           <TipForm
             :developers="developers"
             v-model="selectedDevId"
@@ -52,7 +56,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
+import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useDevTippingStats, type Developer } from "@/composables/useDevTippingStats";
@@ -65,12 +69,12 @@ const { t } = useI18n();
 const APP_ID = "miniapp-dev-tipping";
 
 const { developers, recentTips, totalDonated, formatNum, loadDevelopers, loadRecentTips } = useDevTippingStats();
-const { address, isLoading, status, sendTip } = useDevTippingWallet(APP_ID);
+const { address, isLoading, status, setStatus, sendTip } = useDevTippingWallet(APP_ID);
 
 const activeTab = ref<string>("send");
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "send", labelKey: "sendTip", icon: "💰", default: true },
     { key: "developers", labelKey: "developers", icon: "👨‍💻" },
@@ -98,6 +102,12 @@ const appState = computed(() => ({
   developerCount: developers.value.length,
 }));
 
+const sidebarItems = computed(() => [
+  { label: t("developers"), value: developers.value.length },
+  { label: "Total Donated", value: formatNum(totalDonated.value) },
+  { label: "Recent Tips", value: recentTips.value.length },
+]);
+
 const selectedDevId = ref<number | null>(null);
 const tipAmount = ref("1");
 const tipMessage = ref("");
@@ -111,7 +121,7 @@ const refreshData = async () => {
 
 const handleSelectDev = (dev: Developer) => {
   selectedDevId.value = dev.id;
-  status.value = { msg: `${t("selected")} ${dev.name}`, type: "success" };
+  setStatus(`${t("selected")} ${dev.name}`, "success");
   activeTab.value = "send";
 };
 
@@ -230,22 +240,4 @@ onMounted(() => {
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getChainRegistry } from "@/lib/chains/registry";
 import type { ChainId } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 // Explorer Search API - proxies to Edge Function or queries indexer directly
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -51,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error("Explorer search error:", error);
+    logger.error("Explorer search error", error);
     return res.status(500).json({ error: "Search failed" });
   }
 }

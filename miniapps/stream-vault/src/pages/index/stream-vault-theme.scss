@@ -7,6 +7,8 @@
   --stream-accent-strong: #22d3ee;
   --stream-text: #e2e8f0;
   --stream-muted: rgba(226, 232, 240, 0.6);
+  --stream-success: #22c55e;
+  --stream-danger: #f87171;
 }
 
 :global(.theme-light .theme-stream-vault),
@@ -19,4 +21,6 @@
   --stream-accent-strong: #0284c7;
   --stream-text: #0f172a;
   --stream-muted: rgba(15, 23, 42, 0.6);
+  --stream-success: #16a34a;
+  --stream-danger: #ef4444;
 }

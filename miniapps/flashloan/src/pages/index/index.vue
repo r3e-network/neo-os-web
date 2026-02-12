@@ -8,9 +8,7 @@
   >
     <!-- Desktop Sidebar -->
     <template #desktop-sidebar>
-      <view class="desktop-sidebar">
-        <text class="sidebar-title">{{ t("overview") }}</text>
-      </view>
+      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
     </template>
 
     <template #content>
@@ -50,18 +48,20 @@
       <LoanCalculator :t="t" />
     </template>
 
-    <template #tab-flashloan-docs>
+    <template #tab-docs>
       <FlashloanDocs :t="t" :contract-address="contractAddress" />
     </template>
   </MiniAppTemplate>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoButton, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 import { useFlashloanCore } from "@/composables/useFlashloanCore";
 import LoanRequest from "./components/LoanRequest.vue";
@@ -70,7 +70,7 @@ import LoanCalculator from "./components/LoanCalculator.vue";
 import FlashloanDocs from "./components/FlashloanDocs.vue";
 
 const { t } = useI18n();
-const { handleError, getUserMessage, canRetry, clearError } = useErrorHandler();
+const { handleError, canRetry, clearError } = useErrorHandler();
 
 const {
   address,
@@ -100,7 +100,7 @@ const templateConfig: MiniAppTemplateConfig = {
   tabs: [
     { key: "main", labelKey: "main", icon: "⚡", default: true },
     { key: "stats", labelKey: "tabStats", icon: "📊" },
-    { key: "flashloan-docs", labelKey: "docs", icon: "📖" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
   features: {
     fireworks: false,
@@ -115,40 +115,35 @@ const appState = computed(() => ({
   isLoading: isLoading.value,
   poolBalance: poolBalance.value,
 }));
-const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
-const errorMessage = ref<string | null>(null);
+
+const sidebarItems = computed(() => [
+  { label: "Pool Balance", value: poolBalance.value ?? "—" },
+  { label: "Recent Loans", value: recentLoans.value.length },
+  { label: "Total Loans", value: stats.value?.totalLoans ?? 0 },
+  { label: "Total Volume", value: stats.value?.totalVolume ?? "—" },
+]);
+const { status, setStatus, clearStatus } = useStatusMessage();
+const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
+const errorMessage = computed(() => errorStatus.value?.msg ?? null);
 const canRetryError = ref(false);
-
-let errorClearTimer: ReturnType<typeof setTimeout> | null = null;
-
-const showError = (msg: string, retryable = false) => {
-  errorMessage.value = msg;
-  canRetryError.value = retryable;
-  if (errorClearTimer) clearTimeout(errorClearTimer);
-  errorClearTimer = setTimeout(() => {
-    errorMessage.value = null;
-    canRetryError.value = false;
-    errorClearTimer = null;
-  }, 5000);
-};
 
 const connectWallet = async () => {
   try {
     await connect();
-  } catch (e) {
+  } catch (e: unknown) {
     handleError(e, { operation: "connectWallet" });
-    showError(getUserMessage(e));
+    setErrorStatus(formatErrorMessage(e, t("error")), "error");
   }
 };
 
 const handleBoundaryError = (error: Error) => {
   handleError(error, { operation: "flashloanBoundaryError" });
-  showError(t("flashloanErrorFallback"));
+  setErrorStatus(t("flashloanErrorFallback"), "error");
 };
 
 const resetAndReload = async () => {
   clearError();
-  errorMessage.value = null;
+  clearErrorStatus();
   canRetryError.value = false;
   await fetchData();
 };
@@ -169,7 +164,7 @@ const handleLookup = async () => {
   const validation = validateLoanId(loanIdInput.value);
   if (validation) {
     validationError.value = validation;
-    status.value = { msg: validation, type: "error" };
+    setStatus(validation, "error");
     return;
   }
   validationError.value = null;
@@ -183,7 +178,7 @@ const handleLookup = async () => {
 
     try {
       const res = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "getLoan",
         args: [{ type: "Integer", value: String(loanId) }],
       });
@@ -192,22 +187,23 @@ const handleLookup = async () => {
       const details = buildLoanDetails(parsed, loanId);
       if (!details) {
         loanDetails.value = null;
-        status.value = { msg: t("loanNotFound"), type: "error" };
+        setStatus(t("loanNotFound"), "error");
         return;
       }
 
       loanDetails.value = details;
-      status.value = { msg: t("loanStatusLoaded"), type: "success" };
-    } catch (e) {
+      setStatus(t("loanStatusLoaded"), "success");
+    } catch (e: unknown) {
       handleError(e, { operation: "lookupLoan", metadata: { loanId } });
       throw e;
     }
-  } catch (e: any) {
-    const userMsg = getUserMessage(e);
+  } catch (e: unknown) {
+    const userMsg = formatErrorMessage(e, t("error"));
     const retryable = canRetry(e);
-    status.value = { msg: userMsg, type: "error" };
+    setStatus(userMsg, "error");
     if (retryable) {
-      showError(userMsg, true);
+      setErrorStatus(userMsg, "error");
+      canRetryError.value = true;
     }
   } finally {
     isLoading.value = false;
@@ -218,28 +214,28 @@ const handleRequestLoan = async (data: { amount: string; callbackContract: strin
   if (!address.value) {
     try {
       await connect();
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "connectBeforeRequestLoan" });
-      status.value = { msg: getUserMessage(e), type: "error" };
+      setStatus(formatErrorMessage(e, t("error")), "error");
       return;
     }
   }
 
   if (!address.value) {
-    status.value = { msg: t("connectWallet"), type: "error" };
+    setStatus(t("connectWallet"), "error");
     return;
   }
 
   const validation = validateLoanRequest(data);
   if (validation) {
     validationError.value = validation;
-    status.value = { msg: validation, type: "error" };
+    setStatus(validation, "error");
     return;
   }
   validationError.value = null;
 
   isLoading.value = true;
-  status.value = null;
+  clearStatus();
   lastOperation.value = "requestLoan";
 
   try {
@@ -257,23 +253,23 @@ const handleRequestLoan = async (data: { amount: string; callbackContract: strin
       ],
     });
 
-    status.value = { msg: t("loanRequested"), type: "success" };
+    setStatus(t("loanRequested"), "success");
     await fetchData();
-  } catch (e: any) {
+  } catch (e: unknown) {
     handleError(e, { operation: "requestLoan", metadata: { amount: data.amount } });
-    const userMsg = getUserMessage(e);
+    const userMsg = formatErrorMessage(e, t("error"));
     const retryable = canRetry(e);
-    status.value = { msg: userMsg, type: "error" };
+    setStatus(userMsg, "error");
     if (retryable) {
-      showError(userMsg, true);
+      setErrorStatus(userMsg, "error");
+      canRetryError.value = true;
     }
   } finally {
     isLoading.value = false;
   }
 };
 
-onMounted(() => fetchData());
-watch(chainType, () => fetchData());
+watch(chainType, () => fetchData(), { immediate: true });
 </script>
 
 <style lang="scss" scoped>
@@ -354,22 +350,4 @@ watch(chainType, () => fetchData());
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

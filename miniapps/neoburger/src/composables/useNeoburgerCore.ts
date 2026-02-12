@@ -24,7 +24,9 @@ export function useNeoburgerCore() {
     try {
       const contract = await getContractAddress();
       if (contract) BNEO_CONTRACT.value = contract;
-    } catch {}
+    } catch (e: unknown) {
+      /* non-critical: bNEO contract resolution */
+    }
     return BNEO_CONTRACT.value;
   }
 
@@ -43,7 +45,9 @@ export function useNeoburgerCore() {
       const bneo = await getBalance(bneoContract);
       neoBalance.value = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
       bNeoBalance.value = typeof bneo === "string" ? parseFloat(bneo) || 0 : typeof bneo === "number" ? bneo : 0;
-    } catch {}
+    } catch (e: unknown) {
+      /* non-critical: wallet balance fetch */
+    }
   }
 
   async function handleStake(amount: string) {
@@ -64,7 +68,8 @@ export function useNeoburgerCore() {
         ],
       });
       return true;
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: stake operation failed */
       return false;
     }
   }
@@ -88,7 +93,8 @@ export function useNeoburgerCore() {
         ],
       });
       return true;
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: unstake operation failed */
       return false;
     }
   }
@@ -102,7 +108,8 @@ export function useNeoburgerCore() {
       if (!bneoContract) return false;
       await sdk.invoke("invokeFunction", { contract: bneoContract, method: "claim", args: [] });
       return true;
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: claim rewards failed */
       return false;
     }
   }

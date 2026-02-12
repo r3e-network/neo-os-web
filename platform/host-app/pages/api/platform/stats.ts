@@ -9,6 +9,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { getNeoBurgerStats } from "@/lib/neoburger";
 // Chain ID must be provided by caller - no environment defaults
 import miniappsData from "@/data/miniapps.json";
+import { logger } from "@/lib/logger";
 
 // Calculate total apps from miniapps.json
 function getTotalAppsCount(): number {
@@ -67,8 +68,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const neoBurgerStats = await getNeoBurgerStats("neo-n3-mainnet");
       stakingApr = neoBurgerStats.apr;
-    } catch (e) {
-      console.warn("Failed to fetch NeoBurger APR:", e);
+    } catch (e: unknown) {
+      logger.warn("Failed to fetch NeoBurger APR", e);
     }
 
     let stats: PlatformStats;
@@ -148,8 +149,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     res.status(200).json({ ...stats, chainId });
-  } catch (error) {
-    console.error("Stats API error:", error);
+  } catch (error: unknown) {
+    logger.error("Stats API error", error);
     res.status(500).json({ error: "Failed to fetch stats" });
   }
 }

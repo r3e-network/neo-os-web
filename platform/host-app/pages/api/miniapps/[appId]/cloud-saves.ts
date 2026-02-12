@@ -6,6 +6,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!supabaseAdmin) {
@@ -47,7 +48,7 @@ async function handleGet(db: SupabaseClient, res: NextApiResponse, appId: string
 
     return res.status(200).json({ saves: data || [] });
   } catch (error) {
-    console.error("Get saves error:", error);
+    logger.error("Get saves error", error);
     return res.status(500).json({ error: "Failed to get saves" });
   }
 }
@@ -87,7 +88,7 @@ async function handleSave(
 
     return res.status(200).json({ save: data });
   } catch (error) {
-    console.error("Save error:", error);
+    logger.error("Save error", error);
     return res.status(500).json({ error: "Failed to save" });
   }
 }

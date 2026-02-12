@@ -88,7 +88,7 @@ defineProps<{
   gap: 24px;
 }
 
-.text-gold { color: #FCD34D; filter: drop-shadow(0 0 8px rgba(252, 211, 77, 0.5)); }
+.text-gold { color: var(--red-envelope-gold-warm); filter: drop-shadow(0 0 8px rgba(252, 211, 77, 0.5)); }
 .text-white { color: var(--text-primary); filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5)); }
 
 .glow-animate {

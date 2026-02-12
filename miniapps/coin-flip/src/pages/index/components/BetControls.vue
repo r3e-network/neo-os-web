@@ -126,20 +126,20 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
 
   &.heads.heads {
     background: linear-gradient(135deg, rgba(0, 229, 153, 0.2) 0%, rgba(0, 229, 153, 0.05) 100%);
-    border-color: #00e599;
+    border-color: var(--coin-success);
     box-shadow: 0 10px 30px rgba(0, 229, 153, 0.2);
     transform: scale(1.05);
-    .symbol-ring { border-color: #00e599; color: #00e599; box-shadow: 0 0 15px rgba(0, 229, 153, 0.3); }
-    .choice-name { color: #00e599; text-shadow: 0 0 10px rgba(0, 229, 153, 0.5); }
+    .symbol-ring { border-color: var(--coin-success); color: var(--coin-success); box-shadow: 0 0 15px rgba(0, 229, 153, 0.3); }
+    .choice-name { color: var(--coin-success); text-shadow: 0 0 10px rgba(0, 229, 153, 0.5); }
   }
 
   &.tails.tails {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);
-    border-color: #3b82f6;
+    border-color: var(--coin-blue);
     box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
     transform: scale(1.05);
-    .symbol-ring { border-color: #3b82f6; color: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-    .choice-name { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+    .symbol-ring { border-color: var(--coin-blue); color: var(--coin-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+    .choice-name { color: var(--coin-blue); text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
   }
 
   &.inactive {
@@ -178,7 +178,7 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
   border-radius: 99px;
   font-size: 11px;
   font-weight: 700;
-  color: #00e599;
+  color: var(--coin-success);
   border: 1px solid rgba(0, 229, 153, 0.2);
   .unit { opacity: 0.7; margin-left: 4px; }
 }
@@ -202,10 +202,10 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
   .amount-unit { font-size: 9px; opacity: 0.6; color: var(--coin-text-secondary); text-transform: uppercase; }
 
   &.selected {
-    background: #00e599;
-    border-color: #00e599;
+    background: var(--coin-success);
+    border-color: var(--coin-success);
     box-shadow: 0 0 20px rgba(0, 229, 153, 0.4);
-    .amount-val, .amount-unit { color: #000; }
+    .amount-val, .amount-unit { color: var(--coin-black); }
   }
 }
 
@@ -219,7 +219,7 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
     text-transform: uppercase;
     letter-spacing: 2px;
     border-radius: 16px;
-    background: linear-gradient(135deg, #00e599 0%, #008f5d 100%);
+    background: var(--flip-cta-gradient);
     box-shadow: 0 10px 30px rgba(0, 229, 153, 0.3);
     border: none;
     z-index: 2;
@@ -231,7 +231,7 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
     left: 4px;
     right: 4px;
     height: 20px;
-    background: #005f3e;
+    background: var(--coin-btn-shadow);
     border-radius: 16px;
     z-index: 1;
   }

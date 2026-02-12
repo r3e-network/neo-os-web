@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -55,6 +56,13 @@ func NewCORSMiddleware(cfg *CORSConfig) *CORSMiddleware {
 			allowAll = true
 			break
 		}
+	}
+
+	// SECURITY: Wildcard origin with credentials is forbidden by the CORS spec.
+	// Browsers will reject the response. When credentials are enabled, reflect
+	// the request's Origin header instead of sending a literal "*".
+	if allowAll && cfgValue.AllowCredentials {
+		log.Println("[WARN] CORS: AllowCredentials=true with wildcard origin '*' is insecure and violates the CORS spec; requests will reflect the Origin header instead of '*'")
 	}
 
 	return &CORSMiddleware{

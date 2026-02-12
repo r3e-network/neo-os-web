@@ -135,7 +135,7 @@ func (s *Service) handleGetTransactions(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	limit := 50 // Default limit
+	_, limit := httputil.PaginationParams(r, 50, 200)
 	txs, err := s.db.GetGasBankTransactions(r.Context(), account.ID, limit)
 	if err != nil {
 		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to get transactions")
@@ -219,8 +219,8 @@ func validateReleaseFundsRequest(req *ReleaseFundsRequest) error {
 	if req.UserID == "" {
 		return fmt.Errorf("user_id is required")
 	}
-	if req.Amount < 0 {
-		return fmt.Errorf("amount must be non-negative")
+	if req.Amount <= 0 {
+		return fmt.Errorf("amount must be positive")
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
 import type { TaskStatusResponse } from "@/lib/db/types";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<TaskStatusResponse>) {
   if (req.method !== "GET") {
@@ -58,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       recentLogs: logs || [],
     });
   } catch (error) {
-    console.error("[Automation] Status error:", error);
+    logger.error("[Automation] Status error", error);
     return res.status(500).json({ task: null, schedule: null, recentLogs: [] });
   }
 }

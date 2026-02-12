@@ -7,6 +7,7 @@
   --ticket-accent-strong: #fbbf24;
   --ticket-text: #e2e8f0;
   --ticket-muted: rgba(226, 232, 240, 0.6);
+  --ticket-danger: #f87171;
 }
 
 :global(.theme-light .theme-event-ticket-pass),
@@ -19,4 +20,5 @@
   --ticket-accent-strong: #c2410c;
   --ticket-text: #1e293b;
   --ticket-muted: rgba(30, 41, 59, 0.6);
+  --ticket-danger: #ef4444;
 }

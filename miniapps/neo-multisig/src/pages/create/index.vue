@@ -1,7 +1,7 @@
 <template>
   <view class="page-container">
     <view class="nav-header">
-      <text class="back-btn" @click="goBack">←</text>
+      <text class="back-btn" role="button" :aria-label="t('buttonBack') || 'Go back'" tabindex="0" @click="goBack" @keydown.enter="goBack">←</text>
       <view class="nav-text">
         <text class="title">{{ t("createTitle") }}</text>
         <text class="subtitle">{{ t("appSubtitle") }}</text>
@@ -52,18 +52,28 @@
 
         <view class="form-group">
           <text class="label">{{ t("chainLabel") }}</text>
-          <view class="pill-group">
+          <view class="pill-group" role="radiogroup" :aria-label="t('chainLabel')">
             <view
               class="pill"
               :class="{ active: form.selectedChain === 'neo-n3-mainnet' }"
+              role="radio"
+              :aria-checked="form.selectedChain === 'neo-n3-mainnet'"
+              :aria-label="t('chainMainnet')"
+              tabindex="0"
               @click="setChain('neo-n3-mainnet')"
+              @keydown.enter="setChain('neo-n3-mainnet')"
             >
               <text>{{ t("chainMainnet") }}</text>
             </view>
             <view
               class="pill"
               :class="{ active: form.selectedChain === 'neo-n3-testnet' }"
+              role="radio"
+              :aria-checked="form.selectedChain === 'neo-n3-testnet'"
+              :aria-label="t('chainTestnet')"
+              tabindex="0"
               @click="setChain('neo-n3-testnet')"
+              @keydown.enter="setChain('neo-n3-testnet')"
             >
               <text>{{ t("chainTestnet") }}</text>
             </view>
@@ -72,9 +82,9 @@
 
         <view class="form-group">
           <text class="label">{{ t("assetLabel") }}</text>
-          <view class="asset-toggle">
-            <text :class="{ active: form.asset === 'GAS' }" @click="form.asset = 'GAS'">{{ t("assetGas") }}</text>
-            <text :class="{ active: form.asset === 'NEO' }" @click="form.asset = 'NEO'">{{ t("assetNeo") }}</text>
+          <view class="asset-toggle" role="radiogroup" :aria-label="t('assetLabel')">
+            <text :class="{ active: form.asset === 'GAS' }" role="radio" :aria-checked="form.asset === 'GAS'" :aria-label="t('assetGas')" tabindex="0" @click="form.asset = 'GAS'" @keydown.enter="form.asset = 'GAS'">{{ t("assetGas") }}</text>
+            <text :class="{ active: form.asset === 'NEO' }" role="radio" :aria-checked="form.asset === 'NEO'" :aria-label="t('assetNeo')" tabindex="0" @click="form.asset = 'NEO'" @keydown.enter="form.asset = 'NEO'">{{ t("assetNeo") }}</text>
           </view>
         </view>
 
@@ -224,6 +234,25 @@ const handleSubmit = async () => {
   background: var(--bg-body);
   min-height: 100vh;
   color: var(--text-primary);
+}
+
+:global(.theme-light) .page-container,
+:global([data-theme="light"]) .page-container {
+  --multisig-accent-soft: rgba(0, 229, 153, 0.18);
+  --multisig-accent-strong: rgba(0, 229, 153, 0.22);
+  --multisig-accent-text: #0b0c16;
+  --multisig-surface: rgba(15, 23, 42, 0.04);
+  --multisig-surface-strong: rgba(15, 23, 42, 0.08);
+  --multisig-border: rgba(15, 23, 42, 0.12);
+  --multisig-border-subtle: rgba(15, 23, 42, 0.08);
+  --multisig-divider: rgba(15, 23, 42, 0.1);
+  --multisig-pill-bg: rgba(15, 23, 42, 0.04);
+  --multisig-pill-active-bg: rgba(0, 229, 153, 0.18);
+  --multisig-pill-active-text: var(--text-primary);
+  --multisig-remove: var(--status-error);
+  --multisig-highlight: var(--status-success);
+  --multisig-input-bg: rgba(15, 23, 42, 0.04);
+  --multisig-input-text: var(--text-primary);
 }
 
 .nav-header {

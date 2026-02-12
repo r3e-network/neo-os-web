@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 )
 
@@ -72,7 +73,7 @@ func (t *Transaction) rollback(ctx context.Context, stepsExecuted int) {
 		if step.Compensation != nil {
 			if err := step.Compensation(ctx); err != nil {
 				// Log compensation failure but continue with other compensations
-				fmt.Printf("compensation failed for step %s: %v\n", step.Name, err)
+				slog.Error("compensation failed", "step", step.Name, "error", err)
 			}
 		}
 	}
@@ -176,7 +177,7 @@ func (t *TwoPhaseCommit) rollback(ctx context.Context, steps []TwoPhaseStep, pha
 
 		if shouldRollback {
 			if err := step.Rollback(ctx); err != nil {
-				fmt.Printf("rollback failed for %s: %v\n", step.Name, err)
+				slog.Error("rollback failed", "step", step.Name, "phase", phase, "error", err)
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 import { ref, computed } from "vue";
 import { useI18n } from "@/composables/useI18n";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 export interface SignerEntry {
   id: number;
@@ -8,6 +9,7 @@ export interface SignerEntry {
 
 export function useSignerManagement(initialSigners: string[] = ["", ""]) {
   const { t } = useI18n();
+  const { status, setStatus, clearStatus } = useStatusMessage();
 
   const signers = ref<string[]>([...initialSigners]);
   const threshold = ref(1);
@@ -46,7 +48,7 @@ export function useSignerManagement(initialSigners: string[] = ["", ""]) {
   const validateSigners = (): boolean => {
     const trimmed = signers.value.map((s) => s.trim());
     if (trimmed.some((s) => !s)) {
-      uni.showToast({ title: t("toastInvalidSigners"), icon: "none" });
+      setStatus(t("toastInvalidSigners"), "error");
       return false;
     }
     return true;
@@ -56,6 +58,9 @@ export function useSignerManagement(initialSigners: string[] = ["", ""]) {
     signers,
     threshold,
     signerEntries,
+    status,
+    setStatus,
+    clearStatus,
     addSigner,
     removeSigner,
     updateSigner,

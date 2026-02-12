@@ -29,10 +29,7 @@
 </template>
 
 <script setup lang="ts">
-interface Category {
-  id: string;
-  label: string;
-}
+import type { Category } from "@/types";
 
 interface Props {
   totalMarkets: number;

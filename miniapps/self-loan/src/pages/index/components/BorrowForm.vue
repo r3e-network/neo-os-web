@@ -33,7 +33,7 @@
         <text :class="['ltv-value', getLTVClass()]">{{ calculatedLTV }}%</text>
       </view>
       <view class="ltv-track">
-        <view class="ltv-fill-glass" :style="{ width: calculatedLTV + '%', background: getLTVColor() }">
+        <view class="ltv-fill-glass" :class="getLTVColorClass()" :style="{ width: calculatedLTV + '%' }">
           <view class="ltv-glimmer"></view>
         </view>
         <view class="ltv-marker" style="left: 50%"></view>
@@ -80,21 +80,19 @@ import { NeoInput, NeoButton, NeoCard } from "@shared/components";
 
 const props = defineProps<{
   modelValue: string;
-  terms: any;
+  terms: Record<string, unknown>;
   isLoading: boolean;
   ltvOptions: { tier: number; percent: number; label: string; desc?: string }[];
   selectedTier: number;
   platformFeeBps?: number;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const emit = defineEmits(["update:modelValue", "update:selectedTier", "takeLoan"]);
 
 const fmt = (n: number, d = 2) => formatNumber(n, d);
 
-const selectedOption = computed(
-  () => props.ltvOptions.find((option) => option.tier === props.selectedTier),
-);
+const selectedOption = computed(() => props.ltvOptions.find((option) => option.tier === props.selectedTier));
 const ltvPercent = computed(() => Number(selectedOption.value?.percent ?? props.terms?.ltvPercent ?? 20));
 const collateralAmount = computed(() => parseFloat(props.modelValue || "0") || 0);
 const estimatedBorrow = computed(() => (collateralAmount.value * ltvPercent.value) / 100);
@@ -118,11 +116,11 @@ const getLTVClass = () => {
   return "danger";
 };
 
-const getLTVColor = () => {
+const getLTVColorClass = () => {
   const ltv = calculatedLTV.value;
-  if (ltv <= 50) return "linear-gradient(90deg, #059669, #00e599)";
-  if (ltv <= 66.7) return "linear-gradient(90deg, #ca8a04, #fde047)";
-  return "linear-gradient(90deg, #b91c1c, #ef4444)";
+  if (ltv <= 50) return "ltv-safe";
+  if (ltv <= 66.7) return "ltv-warning";
+  return "ltv-danger";
 };
 </script>
 
@@ -130,7 +128,9 @@ const getLTVColor = () => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.input-section { margin-bottom: $spacing-6; }
+.input-section {
+  margin-bottom: $spacing-6;
+}
 
 .tier-section {
   margin-bottom: $spacing-6;
@@ -162,7 +162,7 @@ const getLTVColor = () => {
 }
 
 .tier-card.active {
-  border-color: #3b82f6;
+  border-color: var(--checkbook-info);
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
   background: rgba(59, 130, 246, 0.12);
 }
@@ -219,9 +219,18 @@ const getLTVColor = () => {
   font-size: 20px;
   font-weight: 900;
   font-family: $font-mono;
-  &.safe { color: #00e599; text-shadow: 0 0 10px rgba(0, 229, 153, 0.3); }
-  &.warning { color: #fde047; text-shadow: 0 0 10px rgba(253, 224, 71, 0.3); }
-  &.danger { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+  &.safe {
+    color: var(--checkbook-success);
+    text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
+  }
+  &.warning {
+    color: var(--checkbook-warning);
+    text-shadow: 0 0 10px rgba(253, 224, 71, 0.3);
+  }
+  &.danger {
+    color: var(--checkbook-danger);
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  }
 }
 
 .ltv-track {
@@ -238,25 +247,44 @@ const getLTVColor = () => {
   border-radius: 4px;
   position: relative;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.ltv-safe {
+    background: linear-gradient(90deg, var(--checkbook-success-deep), var(--checkbook-success));
+  }
+  &.ltv-warning {
+    background: linear-gradient(90deg, var(--checkbook-warning-deep), var(--checkbook-warning));
+  }
+  &.ltv-danger {
+    background: linear-gradient(90deg, var(--checkbook-danger-deep), var(--checkbook-danger));
+  }
 }
 
 .ltv-glimmer {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   transform: translateX(-100%);
   animation: glimmer 2s infinite;
 }
 
 .ltv-marker {
-  position: absolute; top: 0; bottom: 0; width: 1px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
   background: rgba(255, 255, 255, 0.2);
   z-index: 1;
 }
 
 .ltv-labels {
-  display: flex; justify-content: space-between;
-  font-size: 9px; color: var(--text-secondary); font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .calculator-receipt {
@@ -268,18 +296,32 @@ const getLTVColor = () => {
 }
 
 .calc-row {
-  display: flex; justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
   margin-bottom: 8px;
 }
 
-.calc-label { font-size: 11px; color: var(--text-secondary); }
+.calc-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
 
 .calc-value {
-  font-size: 12px; font-weight: 700; font-family: $font-mono;
-  &.collateral-req { color: #fde047; }
-  &.payment { color: #00e599; }
-  &.fee { color: #f97316; }
-  &.total { color: #3b82f6; }
+  font-size: 12px;
+  font-weight: 700;
+  font-family: $font-mono;
+  &.collateral-req {
+    color: var(--checkbook-warning);
+  }
+  &.payment {
+    color: var(--checkbook-success);
+  }
+  &.fee {
+    color: var(--checkbook-orange);
+  }
+  &.total {
+    color: var(--checkbook-info);
+  }
 }
 
 .calc-divider {
@@ -288,16 +330,24 @@ const getLTVColor = () => {
   margin: 8px 0;
 }
 
-.borrow-btn { margin-top: 4px; }
+.borrow-btn {
+  margin-top: 4px;
+}
 
 .note-glass {
-  display: block; margin-top: 12px;
-  font-size: 10px; color: var(--text-secondary);
+  display: block;
+  margin-top: 12px;
+  font-size: 10px;
+  color: var(--text-secondary);
   text-align: center;
 }
 
 @keyframes glimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 </style>

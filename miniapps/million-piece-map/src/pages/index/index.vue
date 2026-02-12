@@ -9,9 +9,7 @@
       @tab-change="activeTab = $event"
     >
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -70,11 +68,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoStats, type StatItem } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, type StatItem } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useMapTiles } from "@/composables/useMapTiles";
 import { useMapInteractions } from "@/composables/useMapInteractions";
@@ -136,19 +134,22 @@ const { isPurchasing, zoomLevel, status, zoomIn, zoomOut, purchaseTile } = useMa
   loadTiles
 );
 
+const sidebarItems = computed(() => [
+  { label: t("tilesOwned"), value: ownedTiles.value },
+  { label: t("mapControl"), value: `${coverage.value}%` },
+  { label: t("gasSpent"), value: `${formatNum(totalSpent.value)} GAS` },
+  { label: "Tile Price", value: `${TILE_PRICE} GAS` },
+]);
+
 const statsData = computed<StatItem[]>(() => [
   { label: t("owned"), value: ownedTiles.value, variant: "accent" },
   { label: t("spent"), value: `${formatNum(totalSpent.value)} GAS`, variant: "default" },
   { label: t("coverage"), value: `${coverage.value}%`, variant: "success" },
 ]);
 
-onMounted(async () => {
-  await loadTiles();
-});
-
 watch(address, async () => {
   await loadTiles();
-});
+}, { immediate: true });
 </script>
 
 <style lang="scss" scoped>
@@ -195,25 +196,6 @@ watch(address, async () => {
   text-transform: uppercase;
   color: var(--text-secondary);
   margin-top: 4px;
-}
-
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 :global(.theme-million-piece) :deep(.neo-card) {

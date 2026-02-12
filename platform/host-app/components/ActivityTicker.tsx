@@ -73,13 +73,13 @@ export const ActivityTicker: FC<ActivityTickerProps> = ({
   const displayActivities = activities.slice(0, maxItems);
 
   return (
-    <div className="bg-white/80 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-sm overflow-hidden">
-      <div className="flex justify-between items-center px-4 py-3 bg-gray-50/50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
-        <span className="text-sm font-bold uppercase tracking-widest text-gray-900 dark:text-white flex items-center gap-2">
+    <div className="bg-white/80 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-sm overflow-hidden">
+      <div className="flex justify-between items-center px-4 py-3 bg-erobo-purple/5/50 dark:bg-white/5 border-b border-erobo-purple/10 dark:border-white/10">
+        <span className="text-sm font-bold uppercase tracking-widest text-erobo-ink dark:text-white flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-neo animate-pulse shadow-[0_0_10px_#00E599]" />
           {displayTitle}
         </span>
-        <span className="text-xs font-semibold font-mono text-gray-500 dark:text-white/60 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full border border-gray-200 dark:border-white/10">
+        <span className="text-xs font-semibold font-mono text-erobo-ink-soft dark:text-white/60 bg-white dark:bg-white/5 px-2 py-0.5 rounded-full border border-erobo-purple/10 dark:border-white/10">
           {activities.length} {t("activity.events")}
         </span>
       </div>
@@ -91,7 +91,7 @@ export const ActivityTicker: FC<ActivityTickerProps> = ({
         onMouseLeave={() => setIsPaused(false)}
       >
         {displayActivities.length === 0 ? (
-          <div className="p-8 text-center text-sm font-medium uppercase opacity-60 italic text-gray-500 dark:text-white/50">
+          <div className="p-8 text-center text-sm font-medium uppercase opacity-60 italic text-erobo-ink-soft dark:text-white/50">
             {t("activity.waiting")}
           </div>
         ) : (
@@ -147,7 +147,7 @@ const ActivityItem: FC<{
   return (
     <div
       className={cn(
-        "relative z-10 flex gap-3 px-4 py-3 border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group",
+        "relative z-10 flex gap-3 px-4 py-3 border-b border-erobo-purple/5 dark:border-white/5 hover:bg-erobo-purple/5 dark:hover:bg-white/5 transition-colors group",
         isClickable && "cursor-pointer",
       )}
       onClick={onClick}
@@ -155,24 +155,24 @@ const ActivityItem: FC<{
       tabIndex={isClickable ? 0 : undefined}
       onKeyDown={isClickable ? (e) => e.key === "Enter" && onClick?.() : undefined}
     >
-      <div className="w-10 h-10 flex-shrink-0 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full flex items-center justify-center text-lg text-gray-600 dark:text-white/80 shadow-none group-hover:scale-105 transition-transform">
+      <div className="w-10 h-10 flex-shrink-0 bg-erobo-purple/10 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 rounded-full flex items-center justify-center text-lg text-erobo-ink-soft dark:text-white/80 shadow-none group-hover:scale-105 transition-transform">
         {activity.app_icon || icon}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-start gap-2">
-          <span className="text-xs font-bold uppercase leading-tight truncate text-gray-900 dark:text-white">
+          <span className="text-xs font-bold uppercase leading-tight truncate text-erobo-ink dark:text-white">
             {activity.title}
           </span>
-          <span className="text-[10px] font-bold font-mono text-gray-400 dark:text-white/50 px-1 leading-4">
+          <span className="text-[10px] font-bold font-mono text-erobo-ink-soft/60 dark:text-white/50 px-1 leading-4">
             {formatTimeAgoShort(activity.timestamp, { t: tCommon, locale })}
           </span>
         </div>
-        <div className="text-[11px] font-medium text-gray-500 dark:text-white/60 truncate mt-1 group-hover:text-gray-700 dark:group-hover:text-white/80">
+        <div className="text-[11px] font-medium text-erobo-ink-soft dark:text-white/60 truncate mt-1 group-hover:text-erobo-ink dark:group-hover:text-white/80">
           {activity.description}
         </div>
         {activity.tx_hash && (
           <div className="flex items-center gap-2 mt-2">
-            <span className="text-[9px] font-bold font-mono bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 border border-gray-200 dark:border-white/10 rounded-sm hover:bg-gray-200 dark:hover:bg-white/10 cursor-help text-gray-500 dark:text-white/60">
+            <span className="text-[9px] font-bold font-mono bg-erobo-purple/10 dark:bg-white/5 px-1.5 py-0.5 border border-erobo-purple/10 dark:border-white/10 rounded-sm hover:bg-erobo-purple/15 dark:hover:bg-white/10 cursor-help text-erobo-ink-soft dark:text-white/60">
               #: {truncateHash(activity.tx_hash)}
             </span>
             {statusClass && (

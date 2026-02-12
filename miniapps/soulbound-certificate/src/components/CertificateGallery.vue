@@ -38,22 +38,7 @@
 import { NeoCard, NeoButton } from "@shared/components";
 import CertificateCard from "./CertificateCard.vue";
 import { useI18n } from "@/composables/useI18n";
-
-interface CertificateItem {
-  tokenId: string;
-  templateId: string;
-  owner: string;
-  templateName: string;
-  issuerName: string;
-  category: string;
-  description: string;
-  recipientName: string;
-  achievement: string;
-  memo: string;
-  issuedTime: number;
-  revoked: boolean;
-  revokedTime: number;
-}
+import type { CertificateItem } from "@/types";
 
 defineProps<{
   certificates: CertificateItem[];
@@ -70,3 +55,28 @@ defineEmits<{
 
 const { t } = useI18n();
 </script>
+
+<style lang="scss" scoped>
+.templates-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.certificate-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+</style>

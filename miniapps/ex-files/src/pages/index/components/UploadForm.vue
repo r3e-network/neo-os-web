@@ -4,7 +4,7 @@
       <text class="upload-icon">📤</text>
     </template>
 
-    <text class="upload-subtitle mb-6 text-center block opacity-70">{{ t("uploadSubtitle") }}</text>
+    <text class="upload-subtitle mb-6 block text-center opacity-70">{{ t("uploadSubtitle") }}</text>
 
     <NeoInput
       :modelValue="recordContent"
@@ -59,7 +59,7 @@ const props = defineProps<{
   recordCategory: number;
   isLoading: boolean;
   canCreate: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["update:recordContent", "update:recordRating", "update:recordCategory", "create"]);
@@ -86,7 +86,7 @@ const categories = computed(() => [
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
-  border-left: 2px solid #00E599;
+  border-left: 2px solid var(--noir-status-active);
   padding-left: 12px;
   text-align: left !important;
   background: rgba(0, 229, 153, 0.05);
@@ -105,7 +105,7 @@ const categories = computed(() => [
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  color: #9f9df3;
+  color: var(--noir-highlight);
   letter-spacing: 0.05em;
 }
 
@@ -113,7 +113,7 @@ const categories = computed(() => [
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #666;
+  color: var(--noir-label-muted);
 }
 
 .category-options {
@@ -124,19 +124,19 @@ const categories = computed(() => [
 
 .category-option {
   padding: 8px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--noir-option-border);
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.5);
-  
+
   &.active {
-    background: #333;
-    color: #f0f0f0;
-    border-color: #333;
-    box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+    background: var(--noir-option-active-bg);
+    color: var(--noir-option-active-text);
+    border-color: var(--noir-option-active-bg);
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
   }
 }
 </style>

@@ -3,6 +3,7 @@
  * GET /api/nnt-news - Fetch latest articles from Neo News Today RSS feed
  */
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
 
 interface NNTArticle {
   id: string;
@@ -34,7 +35,7 @@ async function fetchNNTFeed(): Promise<NNTArticle[]> {
     });
 
     if (!response.ok) {
-      console.error("NNT RSS fetch failed:", response.status);
+      logger.error("NNT RSS fetch failed", response.status);
       return cachedArticles;
     }
 
@@ -46,7 +47,7 @@ async function fetchNNTFeed(): Promise<NNTArticle[]> {
 
     return articles;
   } catch (error) {
-    console.error("NNT RSS fetch error:", error);
+    logger.error("NNT RSS fetch error", error);
     return cachedArticles;
   }
 }
@@ -141,7 +142,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sourceUrl: "https://neonewstoday.com",
     });
   } catch (error) {
-    console.error("NNT News API error:", error);
+    logger.error("NNT News API error", error);
     return res.status(500).json({ error: "Failed to fetch news", articles: [] });
   }
 }

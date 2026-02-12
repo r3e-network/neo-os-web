@@ -11,6 +11,7 @@ import { AppCard } from "@/components/features/developer";
 import { Plus, Package, BarChart3, Settings } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
+import { logger } from "@/lib/logger";
 
 interface App {
   app_id: string;
@@ -31,7 +32,6 @@ export default function DeveloperDashboard() {
   useEffect(() => {
     if (!address) return;
     void fetchApps();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
   const fetchApps = async () => {
@@ -43,7 +43,7 @@ export default function DeveloperDashboard() {
       const data = await res.json();
       setApps(data.apps || []);
     } catch (err) {
-      console.error("Failed to fetch apps:", err);
+      logger.error("Failed to fetch apps:", err);
     } finally {
       setLoading(false);
     }
@@ -57,9 +57,11 @@ export default function DeveloperDashboard() {
         </Head>
         <div className="min-h-[60vh] flex items-center justify-center">
           <div className="text-center">
-            <Package size={64} className="mx-auto mb-4 text-gray-400" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Connect Your Wallet</h2>
-            <p className="text-gray-500 mb-6">Connect your Neo wallet to access the developer dashboard</p>
+            <Package size={64} className="mx-auto mb-4 text-erobo-ink-soft/60 dark:text-slate-500" />
+            <h2 className="text-2xl font-bold text-erobo-ink dark:text-white mb-2">Connect Your Wallet</h2>
+            <p className="text-erobo-ink-soft dark:text-slate-400 mb-6">
+              Connect your Neo wallet to access the developer dashboard
+            </p>
           </div>
         </div>
       </Layout>
@@ -76,8 +78,8 @@ export default function DeveloperDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Apps</h1>
-            <p className="text-gray-500 mt-1">Manage your MiniApps and track performance</p>
+            <h1 className="text-3xl font-bold text-erobo-ink dark:text-white">My Apps</h1>
+            <p className="text-erobo-ink-soft dark:text-slate-400 mt-1">Manage your MiniApps and track performance</p>
           </div>
           <Link href="/developer/apps/new">
             <Button className="bg-neo text-white hover:bg-neo/90">
@@ -89,18 +91,18 @@ export default function DeveloperDashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <StatCard icon={Package} label="Total Apps" value={apps.length} color="from-blue-500 to-cyan-500" />
+          <StatCard icon={Package} label="Total Apps" value={apps.length} color="from-erobo-purple to-erobo-sky" />
           <StatCard
             icon={BarChart3}
             label="Published"
             value={apps.filter((a) => a.status === "published").length}
-            color="from-green-500 to-emerald-500"
+            color="from-neo to-erobo-mint"
           />
           <StatCard
             icon={Settings}
             label="In Review"
             value={apps.filter((a) => a.status === "pending_review").length}
-            color="from-yellow-500 to-orange-500"
+            color="from-erobo-peach to-erobo-pink"
           />
         </div>
 
@@ -108,7 +110,7 @@ export default function DeveloperDashboard() {
         {loading ? (
           <div className="grid gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse" />
+              <div key={i} className="h-32 rounded-2xl bg-erobo-purple/5 dark:bg-white/5 animate-pulse" />
             ))}
           </div>
         ) : apps.length === 0 ? (
@@ -137,14 +139,14 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="rounded-2xl p-6 bg-white dark:bg-[#080808] border border-gray-200 dark:border-white/10">
+    <div className="rounded-2xl p-6 bg-white dark:bg-erobo-bg-card border border-erobo-purple/10 dark:border-white/10">
       <div className="flex items-center gap-4">
         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center`}>
           <Icon className="text-white" size={24} />
         </div>
         <div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
-          <div className="text-sm text-gray-500">{label}</div>
+          <div className="text-2xl font-bold text-erobo-ink dark:text-white">{value}</div>
+          <div className="text-sm text-erobo-ink-soft dark:text-slate-400">{label}</div>
         </div>
       </div>
     </div>
@@ -153,10 +155,10 @@ function StatCard({
 
 function EmptyState() {
   return (
-    <div className="text-center py-16 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10">
-      <Package size={64} className="mx-auto mb-4 text-gray-400" />
-      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No apps yet</h3>
-      <p className="text-gray-500 mb-6">Create your first MiniApp to get started</p>
+    <div className="text-center py-16 rounded-2xl border-2 border-dashed border-erobo-purple/20 dark:border-white/10">
+      <Package size={64} className="mx-auto mb-4 text-erobo-ink-soft/60 dark:text-slate-500" />
+      <h3 className="text-xl font-bold text-erobo-ink dark:text-white mb-2">No apps yet</h3>
+      <p className="text-erobo-ink-soft dark:text-slate-400 mb-6">Create your first MiniApp to get started</p>
       <Link href="/developer/apps/new">
         <Button className="bg-neo text-white hover:bg-neo/90">
           <Plus size={18} className="mr-2" />

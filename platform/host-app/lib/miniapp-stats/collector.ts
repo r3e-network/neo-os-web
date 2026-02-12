@@ -6,6 +6,7 @@
 import type { MiniAppStats, ContractEvent } from "./types";
 import type { ChainId } from "../chains/types";
 import { getChainRpcUrl } from "../chains/rpc-functions";
+import { logger } from "@/lib/logger";
 
 // Cache for stats (refreshed periodically)
 const statsCache = new Map<string, { stats: MiniAppStats; timestamp: number }>();
@@ -54,7 +55,7 @@ async function getNeoContractEvents(
       }
     }
   } catch (err) {
-    console.warn("collectRecentEvents RPC fallback failed:", err);
+    logger.warn("collectRecentEvents RPC fallback failed:", err);
   }
 
   return events;

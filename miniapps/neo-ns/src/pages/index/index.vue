@@ -4,16 +4,17 @@
       :config="templateConfig"
       :state="appState"
       :t="t"
-      :status-message="statusMessage ? { msg: statusMessage, type: statusType } : null"
+      :status-message="status"
       @tab-change="activeTab = $event"
     >
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
+      </template>
+
+      <template #operation>
         <view class="app-container">
           <DomainRegister :t="t" :nns-contract="NNS_CONTRACT" @status="showStatus" @refresh="loadMyDomains" />
         </view>
@@ -44,17 +45,20 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { parseInvokeResult } from "@shared/utils/neo";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import DomainRegister from "./components/DomainRegister.vue";
 import DomainManagement from "./components/DomainManagement.vue";
 import ManageDomain from "./components/ManageDomain.vue";
+import type { Domain } from "@/types";
 
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "register", labelKey: "tabRegister", icon: "➕", default: true },
     { key: "domains", labelKey: "tabDomains", icon: "📁" },
@@ -80,31 +84,26 @@ const APP_ID = "miniapp-neo-ns";
 const NNS_CONTRACT = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
 const { address, connect, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
 
-interface Domain {
-  name: string;
-  owner: string;
-  expiry: number;
-  target?: string;
-}
-
 const activeTab = ref("register");
 const appState = computed(() => ({
   domainCount: myDomains.value.length,
   walletConnected: !!address.value,
 }));
 
+const sidebarItems = computed(() => {
+  const expiringSoon = myDomains.value.filter((d) => d.expiry > 0 && d.expiry - Date.now() < 30 * 86400000).length;
+  return [
+    { label: t("tabDomains"), value: myDomains.value.length },
+    { label: "Wallet", value: address.value ? t("connected") : t("disconnected") },
+    { label: "Expiring Soon", value: expiringSoon },
+  ];
+});
+
 const loading = ref(false);
-const statusMessage = ref("");
-const statusType = ref<"success" | "error">("success");
+const { status, setStatus: showStatus, clearStatus } = useStatusMessage();
 const myDomains = ref<Domain[]>([]);
 
 const managingDomain = ref<Domain | null>(null);
-
-function showStatus(msg: string, type: "success" | "error") {
-  statusMessage.value = msg;
-  statusType.value = type;
-  setTimeout(() => (statusMessage.value = ""), 3000);
-}
 
 function showManage(domain: Domain) {
   managingDomain.value = domain;
@@ -131,8 +130,8 @@ async function handleRenew(domain: Domain) {
 
     showStatus(domain.name + " " + t("renewed"), "success");
     await loadMyDomains();
-  } catch (e: any) {
-    showStatus(e.message || t("renewalFailed"), "error");
+  } catch (e: unknown) {
+    showStatus(formatErrorMessage(e, t("renewalFailed")), "error");
   } finally {
     loading.value = false;
   }
@@ -158,8 +157,8 @@ async function handleSetTarget(targetAddress: string) {
     });
 
     showStatus(t("targetSet"), "success");
-  } catch (e: any) {
-    showStatus(e.message || t("error"), "error");
+  } catch (e: unknown) {
+    showStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     loading.value = false;
   }
@@ -186,8 +185,8 @@ async function handleTransfer(transferAddress: string) {
     showStatus(t("transferred"), "success");
     managingDomain.value = null;
     await loadMyDomains();
-  } catch (e: any) {
-    showStatus(e.message || t("error"), "error");
+  } catch (e: unknown) {
+    showStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     loading.value = false;
   }
@@ -211,7 +210,7 @@ async function loadMyDomains() {
 
   try {
     const tokensResult = await invokeRead({
-      contractHash: NNS_CONTRACT,
+      scriptHash: NNS_CONTRACT,
       operation: "tokensOf",
       args: [{ type: "Hash160", value: address.value }],
     });
@@ -226,11 +225,11 @@ async function loadMyDomains() {
     for (const tokenId of tokens) {
       try {
         const propsResult = await invokeRead({
-          contractHash: NNS_CONTRACT,
+          scriptHash: NNS_CONTRACT,
           operation: "properties",
           args: [{ type: "ByteArray", value: tokenId }],
         });
-        const props = parseInvokeResult(propsResult) as Record<string, any>;
+        const props = parseInvokeResult(propsResult) as Record<string, unknown>;
         if (props) {
           let name = "";
           try {
@@ -247,11 +246,14 @@ async function loadMyDomains() {
             target: props.target ? String(props.target) : undefined,
           });
         }
-      } catch {}
+      } catch {
+        /* Individual domain property fetch failure — skip this domain */
+      }
     }
 
     myDomains.value = domains.sort((a, b) => b.expiry - a.expiry);
-  } catch (e: any) {
+  } catch (e: unknown) {
+    /* non-critical: domain list fetch */
     myDomains.value = [];
   }
 }
@@ -305,22 +307,4 @@ watch(address, async (newAddr) => {
   flex: 1;
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

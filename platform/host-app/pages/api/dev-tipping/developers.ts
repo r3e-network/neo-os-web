@@ -6,6 +6,7 @@
 
 import { createHandler } from "@/lib/api/create-handler";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
+import { logger } from "@/lib/logger";
 
 interface Developer {
   id: number;
@@ -36,7 +37,7 @@ export default createHandler({
         .order("total_tips", { ascending: false });
 
       if (error) {
-        console.error("[dev-tipping] Failed to fetch developers:", error);
+        logger.error("[dev-tipping] Failed to fetch developers", error);
         return res.status(500).json({ error: "Failed to fetch developers" });
       }
 
@@ -80,7 +81,7 @@ export default createHandler({
         });
 
         if (tipError) {
-          console.error("[dev-tipping] Failed to record tip:", tipError);
+          logger.error("[dev-tipping] Failed to record tip", tipError);
           return res.status(500).json({ error: "Failed to record tip" });
         }
 
@@ -91,7 +92,7 @@ export default createHandler({
         });
 
         if (updateError) {
-          console.warn("[dev-tipping] Failed to update developer stats:", updateError);
+          logger.warn("[dev-tipping] Failed to update developer stats");
         }
 
         // Invalidate cache

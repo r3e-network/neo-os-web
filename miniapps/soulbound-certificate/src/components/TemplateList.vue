@@ -39,18 +39,7 @@
 import { NeoCard, NeoButton } from "@shared/components";
 import TemplateCard from "./TemplateCard.vue";
 import { useI18n } from "@/composables/useI18n";
-
-interface TemplateItem {
-  id: string;
-  issuer: string;
-  name: string;
-  issuerName: string;
-  category: string;
-  maxSupply: bigint;
-  issued: bigint;
-  description: string;
-  active: boolean;
-}
+import type { TemplateItem } from "@/types";
 
 defineProps<{
   templates: TemplateItem[];
@@ -68,3 +57,28 @@ defineEmits<{
 
 const { t } = useI18n();
 </script>
+
+<style lang="scss" scoped>
+.templates-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.template-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+</style>

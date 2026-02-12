@@ -1,12 +1,16 @@
 <template>
   <view class="page-container">
     <view class="nav-header">
-      <text class="back-btn" @click="goHome">←</text>
+      <text class="back-btn" role="button" :aria-label="t('back') || 'Go back'" tabindex="0" @click="goHome" @keydown.enter="goHome">←</text>
       <view class="nav-text">
         <text class="title">{{ t("signTitle") }}</text>
         <text class="subtitle">{{ t("appSubtitle") }}</text>
       </view>
     </view>
+
+    <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4 text-center">
+      <text>{{ status.msg }}</text>
+    </NeoCard>
 
     <view v-if="loading" class="loading">{{ t("loading") }}</view>
     <view v-else-if="error" class="error">{{ error }}</view>
@@ -25,70 +29,30 @@
         </text>
       </NeoCard>
 
-      <NeoCard class="details-card">
-        <text class="card-title">{{ t("detailsTitle") }}</text>
-        <view class="detail-row">
-          <text class="label">{{ t("detailId") }}</text>
-          <text class="value copy" @click="copy(request.id)">{{ request.id }} ({{ t("copy") }})</text>
-        </view>
-        <view class="detail-row">
-          <text class="label">{{ t("detailMemo") }}</text>
-          <text class="value">{{ request.memo || t("detailMemoNone") }}</text>
-        </view>
-        <view class="detail-row">
-          <text class="label">{{ t("detailChain") }}</text>
-          <text class="value">{{ chainLabel }}</text>
-        </view>
-        <view class="raw-data">
-          <text class="label">{{ t("detailRawTx") }}</text>
-          <textarea class="raw-input" :value="request.transaction_hex" disabled />
-        </view>
-      </NeoCard>
+      <TransactionDetails
+        :t="t"
+        :request="request"
+        :chain-label="chainLabel"
+        @copy="copy"
+      />
 
-      <NeoCard class="signers-card">
-        <text class="card-title">{{ t("signersTitle") }}</text>
-        <view class="signer-list">
-          <view v-for="signer in orderedSigners" :key="signer.publicKey" class="signer-row">
-            <view class="signer-info">
-              <text class="signer-key">{{ shorten(signer.publicKey) }}</text>
-              <text class="signer-address">{{ shorten(signer.address) }}</text>
-              <text v-if="hasSigned(signer.publicKey)" class="badge signed">{{ t("badgeSigned") }}</text>
-              <text v-else class="badge pending">{{ t("badgePending") }}</text>
-            </view>
-          </view>
-        </view>
-      </NeoCard>
+      <SignersList
+        :t="t"
+        :signers="orderedSigners"
+        :has-signed="hasSigned"
+      />
 
-      <view class="actions">
-        <NeoButton
-          v-if="!isComplete && !hasUserSigned"
-          variant="primary"
-          size="lg"
-          block
-          @click="sign"
-          :disabled="isProcessing"
-        >
-          {{ isProcessing ? t("buttonSigning") : t("buttonSign") }}
-        </NeoButton>
-
-        <NeoButton
-          v-if="isComplete && request.status !== 'broadcasted'"
-          variant="success"
-          size="lg"
-          block
-          @click="broadcast"
-          :disabled="isProcessing"
-        >
-          {{ isProcessing ? t("buttonBroadcasting") : t("buttonBroadcast") }}
-        </NeoButton>
-
-        <view v-if="broadcastTxId" class="broadcast-success">
-          <text class="success-text">{{ t("broadcastedTitle") }}</text>
-          <text class="tx-id" @click="copy(broadcastTxId)">
-            {{ t("broadcastedTxid") }}: {{ broadcastTxId }}
-          </text>
-        </view>
-      </view>
+      <SignActions
+        :t="t"
+        :is-complete="isComplete"
+        :has-user-signed="hasUserSigned"
+        :is-processing="isProcessing"
+        :status="request.status"
+        :broadcast-tx-id="broadcastTxId"
+        @sign="sign"
+        @broadcast="broadcast"
+        @copy="copy"
+      />
     </view>
   </view>
 </template>
@@ -96,10 +60,12 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard } from "@shared/components";
 import { useI18n } from "@/composables/useI18n";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { api, type MultisigRequest } from "../../services/api";
 import { useWallet } from "@neo/uniapp-sdk";
+import type { WalletSDK } from "@neo/types";
 import { tx } from "@cityofzion/neon-core";
 import {
   buildVerificationScript,
@@ -110,9 +76,13 @@ import {
   normalizePublicKey,
   verifySignature,
 } from "../../utils/multisig";
+import TransactionDetails from "./components/TransactionDetails.vue";
+import SignersList from "./components/SignersList.vue";
+import SignActions from "./components/SignActions.vue";
 
 const { t } = useI18n();
-const { address, signMessage } = useWallet() as any;
+const { address, signMessage } = useWallet() as WalletSDK;
+const { status, setStatus } = useStatusMessage(5000);
 
 const request = ref<MultisigRequest | null>(null);
 const loading = ref(true);
@@ -120,7 +90,7 @@ const error = ref("");
 const isProcessing = ref(false);
 const broadcastTxId = ref("");
 
-onLoad((query: any) => {
+onLoad((query: Record<string, string>) => {
   if (query.id) {
     loadRequest(query.id);
   } else {
@@ -133,7 +103,7 @@ const loadRequest = async (id: string) => {
   try {
     request.value = await api.get(id);
     broadcastTxId.value = request.value?.broadcast_txid || "";
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = t("toastLoadFailed");
   } finally {
     loading.value = false;
@@ -154,7 +124,8 @@ const orderedSigners = computed(() => {
       publicKey: key,
       address: getPublicKeyAddress(key),
     }));
-  } catch (e) {
+  } catch (e: unknown) {
+    /* non-critical: verification script parse */
     return [];
   }
 });
@@ -179,11 +150,9 @@ const hasSigned = (signer: string) => {
   return !!request.value?.signatures?.[signer];
 };
 
-const shorten = (str: string) => (str ? str.slice(0, 6) + "..." + str.slice(-4) : "");
-
 const copy = (str: string) => {
   uni.setClipboardData({ data: str });
-  uni.showToast({ title: t("copied"), icon: "none" });
+  setStatus(t("copied"), "success");
 };
 
 const statusLabel = (status: string) => {
@@ -211,30 +180,32 @@ const sign = async () => {
     const networkMagic = getNetworkMagic(request.value.chain_id);
     const message = txn.getMessageForSigning(networkMagic);
 
-    const res: any = await signMessage(message);
+    const res = (await signMessage(message)) as { publicKey?: string; data?: string } | null;
     if (!res || !res.publicKey || !res.data) {
-      uni.showToast({ title: t("toastSignFailed"), icon: "none" });
+      setStatus(t("toastSignFailed"), "error");
       return;
     }
 
     const pubKey = normalizePublicKey(res.publicKey);
-    const signature = String(res.data || "").replace(/^0x/i, "").toLowerCase();
+    const signature = String(res.data || "")
+      .replace(/^0x/i, "")
+      .toLowerCase();
 
     if (!request.value.signers.includes(pubKey)) {
-      uni.showToast({ title: t("toastNotSigner"), icon: "none" });
+      setStatus(t("toastNotSigner"), "error");
       return;
     }
 
     if (!verifySignature(message, signature, pubKey)) {
-      uni.showToast({ title: t("toastSignatureInvalid"), icon: "none" });
+      setStatus(t("toastSignatureInvalid"), "error");
       return;
     }
 
     const updated = await api.addSignature(request.value.id, pubKey, signature);
     request.value = updated;
-    uni.showToast({ title: t("toastSignSuccess"), icon: "success" });
-  } catch (e: any) {
-    uni.showToast({ title: t("toastSignFailed"), icon: "none" });
+    setStatus(t("toastSignSuccess"), "success");
+  } catch (e: unknown) {
+    setStatus(t("toastSignFailed"), "error");
   } finally {
     isProcessing.value = false;
   }
@@ -245,7 +216,7 @@ const broadcast = async () => {
   isProcessing.value = true;
   try {
     if (!isComplete.value) {
-      uni.showToast({ title: t("toastNotEnoughSignatures"), icon: "none" });
+      setStatus(t("toastNotEnoughSignatures"), "error");
       return;
     }
 
@@ -255,7 +226,7 @@ const broadcast = async () => {
     if (currentHeight >= txn.validUntilBlock) {
       await api.updateStatus(request.value.id, "expired");
       request.value.status = "expired";
-      uni.showToast({ title: t("toastExpired"), icon: "none" });
+      setStatus(t("toastExpired"), "error");
       return;
     }
 
@@ -266,7 +237,7 @@ const broadcast = async () => {
       .filter((sig): sig is string => !!sig);
 
     if (orderedSigs.length < request.value.threshold) {
-      uni.showToast({ title: t("toastNotEnoughSignatures"), icon: "none" });
+      setStatus(t("toastNotEnoughSignatures"), "error");
       return;
     }
 
@@ -281,15 +252,15 @@ const broadcast = async () => {
     request.value = updated;
 
     const history = uni.getStorageSync("multisig_history") ? JSON.parse(uni.getStorageSync("multisig_history")) : [];
-    const index = history.findIndex((item: any) => item.id === request.value?.id);
+    const index = history.findIndex((item: { id: string; status?: string }) => item.id === request.value?.id);
     if (index >= 0) {
       history[index].status = "broadcasted";
       uni.setStorageSync("multisig_history", JSON.stringify(history));
     }
 
-    uni.showToast({ title: t("toastBroadcastSuccess"), icon: "success" });
-  } catch (e: any) {
-    uni.showToast({ title: t("toastBroadcastFailed"), icon: "none" });
+    setStatus(t("toastBroadcastSuccess"), "success");
+  } catch (e: unknown) {
+    setStatus(t("toastBroadcastFailed"), "error");
   } finally {
     isProcessing.value = false;
   }
@@ -381,11 +352,21 @@ const broadcast = async () => {
   text-transform: uppercase;
   font-weight: 700;
 
-  &.pending { color: var(--status-warning); }
-  &.ready { color: var(--status-info); }
-  &.broadcasted { color: var(--multisig-accent); }
-  &.cancelled { color: var(--status-error); }
-  &.expired { color: var(--text-muted); }
+  &.pending {
+    color: var(--status-warning);
+  }
+  &.ready {
+    color: var(--status-info);
+  }
+  &.broadcasted {
+    color: var(--multisig-accent);
+  }
+  &.cancelled {
+    color: var(--status-error);
+  }
+  &.expired {
+    color: var(--text-muted);
+  }
 }
 
 .progress-bar {
@@ -405,109 +386,5 @@ const broadcast = async () => {
 .progress-text {
   font-size: 12px;
   color: var(--text-secondary);
-}
-
-.details-card,
-.signers-card {
-  margin-bottom: 24px;
-  padding: 24px;
-}
-
-.card-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  display: block;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 14px;
-}
-
-.label {
-  color: var(--text-secondary);
-}
-
-.value {
-  font-family: $font-mono;
-  text-align: right;
-}
-
-.raw-data {
-  margin-top: 16px;
-}
-
-.raw-input {
-  width: 100%;
-  height: 80px;
-  background: var(--multisig-input-bg);
-  border: 1px solid var(--multisig-border);
-  border-radius: 8px;
-  padding: 8px;
-  font-size: 10px;
-  font-family: $font-mono;
-  color: var(--text-secondary);
-}
-
-.signer-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 12px;
-  background: var(--multisig-surface);
-  border-radius: 8px;
-}
-
-.signer-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.signer-key {
-  font-family: $font-mono;
-  font-size: 12px;
-}
-
-.signer-address {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.badge {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-top: 6px;
-
-  &.signed { background: var(--multisig-accent-strong); color: var(--multisig-accent-text); }
-  &.pending { background: var(--multisig-surface-strong); color: var(--text-secondary); }
-}
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.broadcast-success {
-  margin-top: 16px;
-  text-align: center;
-}
-
-.success-text {
-  color: var(--multisig-accent);
-  font-weight: 700;
-}
-
-.tx-id {
-  font-size: 12px;
-  color: var(--text-secondary);
-  text-decoration: underline;
-  display: block;
-  margin-top: 4px;
 }
 </style>

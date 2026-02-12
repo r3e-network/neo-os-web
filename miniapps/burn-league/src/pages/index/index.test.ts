@@ -16,7 +16,7 @@ vi.mock("@neo/uniapp-sdk", () => ({
 
 // Mock i18n
 vi.mock("@shared/utils/i18n", () => ({
-  createT: (translations: any) => (key: string) => translations[key]?.en || key,
+  createT: (translations: Record<string, Record<string, string>>) => (key: string) => translations[key]?.en || key,
 }));
 
 import { usePayments } from "@neo/uniapp-sdk";
@@ -28,7 +28,7 @@ describe("Burn-League MiniApp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const payments = usePayments("miniapp-burn-league");
-    payGAS = payments.payGAS as any;
+    payGAS = payments.payGAS as unknown as ReturnType<typeof vi.fn>;
     isLoading = payments.isLoading;
   });
 
@@ -124,8 +124,8 @@ describe("Burn-League MiniApp", () => {
 
       try {
         await payGAS(burnAmount.value, "burn");
-      } catch (e: any) {
-        status.value = { msg: e?.message || "Error", type: "error" };
+      } catch (e: unknown) {
+        status.value = { msg: e instanceof Error ? e.message : "Error", type: "error" };
       }
 
       expect(status.value).toEqual({ msg: "Insufficient balance", type: "error" });

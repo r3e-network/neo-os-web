@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 export interface UserAnalytics {
   wallet: string;
@@ -45,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const analytics = await fetchUserAnalytics(wallet);
     return res.status(200).json(analytics);
   } catch (err) {
-    console.error("User analytics error:", err);
+    logger.error("User analytics error", err);
     return res.status(500).json({ error: "Failed to fetch user analytics" });
   }
 }

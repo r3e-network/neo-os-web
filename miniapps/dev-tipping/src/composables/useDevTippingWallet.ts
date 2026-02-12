@@ -1,16 +1,17 @@
-import { ref } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export function useDevTippingWallet(APP_ID: string) {
   const { address, connect, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
   const { processPayment, isLoading } = usePaymentFlow(APP_ID);
   
   const MIN_TIP = 0.001;
-  const status = ref<{ msg: string; type: string } | null>(null);
+  const { status, setStatus, clearStatus } = useStatusMessage();
 
   const ensureContractAddress = async () => {
     if (!requireNeoChain(chainType, (key: string) => key)) {
@@ -71,11 +72,11 @@ export function useDevTippingWallet(APP_ID: string) {
         contract,
       );
 
-      status.value = { msg: t("tipSent"), type: "success" };
+      setStatus(t("tipSent"), "success");
       if (onSuccess) onSuccess();
       return true;
-    } catch (e: any) {
-      status.value = { msg: e.message || t("error"), type: "error" };
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
       return false;
     }
   };
@@ -84,6 +85,8 @@ export function useDevTippingWallet(APP_ID: string) {
     address,
     isLoading,
     status,
+    setStatus,
+    clearStatus,
     sendTip,
     ensureContractAddress,
   };

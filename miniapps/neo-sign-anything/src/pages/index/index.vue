@@ -2,48 +2,19 @@
   <view class="theme-neo-sign-anything">
     <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="onTabChange">
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
         <view class="container">
+          <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4 text-center">
+            <text>{{ status.msg }}</text>
+          </NeoCard>
+
           <view class="header">
             <text class="title">{{ t("signTitle") }}</text>
             <text class="subtitle">{{ t("signDesc") }}</text>
           </view>
-
-          <NeoCard variant="erobo">
-            <view class="input-group">
-              <text class="label">{{ t("messageLabel") }}</text>
-              <textarea v-model="message" class="textarea" :placeholder="t('messagePlaceholder')" maxlength="1000" />
-              <view class="char-count">{{ message.length }}/1000</view>
-            </view>
-
-            <view class="actions">
-              <NeoButton
-                variant="primary"
-                block
-                :loading="isSigning"
-                @click="signMessage"
-                :disabled="!message || !address"
-              >
-                {{ t("signBtn") }}
-              </NeoButton>
-
-              <NeoButton
-                variant="ghost"
-                block
-                :loading="isBroadcasting"
-                @click="broadcastMessage"
-                :disabled="!message || !address"
-                style="margin-top: 12px"
-              >
-                {{ t("broadcastBtn") }}
-              </NeoButton>
-            </view>
-          </NeoCard>
 
           <view v-if="signature" class="result-card">
             <NeoCard variant="erobo-neo">
@@ -75,24 +46,55 @@
           </view>
         </view>
       </template>
+
+      <template #operation>
+        <view class="container">
+          <NeoCard variant="erobo">
+            <view class="input-group">
+              <text class="label">{{ t("messageLabel") }}</text>
+              <textarea v-model="message" class="textarea" :placeholder="t('messagePlaceholder')" maxlength="1000" />
+              <view class="char-count">{{ message.length }}/1000</view>
+            </view>
+
+            <view class="actions">
+              <NeoButton
+                variant="primary"
+                block
+                :loading="isSigning"
+                @click="signMessage"
+                :disabled="!message || !address"
+              >
+                {{ t("signBtn") }}
+              </NeoButton>
+
+              <NeoButton
+                variant="ghost"
+                block
+                :loading="isBroadcasting"
+                @click="broadcastMessage"
+                :disabled="!message || !address"
+                style="margin-top: 12px"
+              >
+                {{ t("broadcastBtn") }}
+              </NeoButton>
+            </view>
+          </NeoCard>
+        </view>
+      </template>
     </MiniAppTemplate>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { MiniAppTemplate, NeoCard, NeoButton } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { requireNeoChain } from "@shared/utils/chain";
 import { useI18n } from "@/composables/useI18n";
+import { useSignAnything } from "./composables/useSignAnything";
 
-// i18n
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "home", labelKey: "home", icon: "🏠", default: true },
     { key: "docs", labelKey: "docs", icon: "📖" },
@@ -103,130 +105,32 @@ const templateConfig: MiniAppTemplateConfig = {
   },
 };
 
-// State
-const message = ref("");
-const signature = ref("");
-const txHash = ref("");
-const isSigning = ref(false);
-const isBroadcasting = ref(false);
-const currentTab = ref("home");
-const appState = computed(() => ({
-  walletConnected: !!address.value,
-  hasSigned: !!signature.value,
-}));
-
-const { address, connect, signMessage: signWithWallet, invokeContract, chainType } = useWallet() as WalletSDK;
-const MAX_MESSAGE_BYTES = 1024;
-
-const getMessageBytes = (value: string): number => {
-  if (typeof TextEncoder !== "undefined") {
-    return new TextEncoder().encode(value).length;
-  }
-  return encodeURIComponent(value).replace(/%[0-9A-F]{2}/g, "x").length;
-};
-
-const onTabChange = (tabId: string) => {
-  if (tabId === "docs") {
-    uni.navigateTo({ url: "/pages/docs/index" });
-  } else {
-    currentTab.value = tabId;
-  }
-};
-
-const signMessage = async () => {
-  if (!message.value) return;
-  if (!requireNeoChain(chainType, t)) return;
-
-  isSigning.value = true;
-  signature.value = "";
-  txHash.value = ""; // clear previous results
-
-  try {
-    if (!address.value) {
-      await connect();
-    }
-    if (!address.value) {
-      throw new Error(t("connectWallet"));
-    }
-
-    const result = await signWithWallet(message.value);
-
-    // The result might be an object { signature, publicKey, salt } or just signature string
-    // depending on the bridge implementation. Let's assume standard response.
-    if (typeof result === "string") {
-      signature.value = result;
-    } else if (result && typeof result === "object" && (result as any).signature) {
-      signature.value = (result as any).signature;
-    } else {
-      signature.value = JSON.stringify(result);
-    }
-  } catch (err: any) {
-    uni.showToast({ title: err.message || t("signFailed"), icon: "none" });
-  } finally {
-    isSigning.value = false;
-  }
-};
-
-const broadcastMessage = async () => {
-  if (!message.value) return;
-  if (!requireNeoChain(chainType, t)) return;
-  if (getMessageBytes(message.value) > MAX_MESSAGE_BYTES) {
-    uni.showToast({ title: t("messageTooLong"), icon: "none" });
-    return;
-  }
-
-  isBroadcasting.value = true;
-  txHash.value = "";
-  signature.value = ""; // clear previous results
-
-  try {
-    if (!address.value) {
-      await connect();
-    }
-    if (!address.value) {
-      throw new Error(t("connectWallet"));
-    }
-
-    // Broadcast by sending a 0 GAS transfer to self with message in data.
-    const result = await invokeContract({
-      scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
-      operation: "transfer",
-      args: [
-        { type: "Hash160", value: address.value },
-        { type: "Hash160", value: address.value },
-        { type: "Integer", value: "0" },
-        { type: "String", value: message.value },
-      ],
-    });
-
-    if (result && (result as any).txid) {
-      txHash.value = (result as any).txid;
-    } else if (typeof result === "string") {
-      txHash.value = result;
-    } else {
-      txHash.value = t("txPending");
-    }
-  } catch (err: any) {
-    uni.showToast({ title: err.message || t("broadcastFailed"), icon: "none" });
-  } finally {
-    isBroadcasting.value = false;
-  }
-};
-
-const copyToClipboard = (text: string) => {
-  uni.setClipboardData({
-    data: text,
-    success: () => {
-      uni.showToast({ title: t("copySuccess"), icon: "none" });
-    },
-  });
-};
+const {
+  address,
+  message,
+  signature,
+  txHash,
+  isSigning,
+  isBroadcasting,
+  status,
+  appState,
+  sidebarItems,
+  onTabChange,
+  signMessage,
+  broadcastMessage,
+  copyToClipboard,
+} = useSignAnything(t);
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./neo-sign-anything-theme.scss";
+@import "./sign-anything-components";
+
+:global(page) {
+  background: var(--bg-primary);
+}
 
 .container {
   padding: 24px;
@@ -273,107 +177,6 @@ const copyToClipboard = (text: string) => {
   line-height: 1.4;
 }
 
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-}
-
-.textarea {
-  width: 100%;
-  height: 120px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 12px;
-  color: var(--text-primary);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.char-count {
-  text-align: right;
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.result-card {
-  animation: slideIn 0.3s ease-out;
-}
-
-.result-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.result-title {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.copy-btn {
-  background: var(--bg-secondary);
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.copy-text {
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.result-text {
-  font-family: monospace;
-  font-size: 12px;
-  word-break: break-all;
-  color: var(--text-primary);
-  background: var(--bg-secondary);
-  padding: 8px;
-  border-radius: 8px;
-}
-
-.success-msg {
-  display: block;
-  margin-top: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--sign-success);
-}
-
-.connect-prompt {
-  text-align: center;
-  margin-top: 24px;
-}
-
-.connect-text {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Mobile-specific styles */
 @media (max-width: 767px) {
   .container {
@@ -404,17 +207,4 @@ const copyToClipboard = (text: string) => {
 }
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

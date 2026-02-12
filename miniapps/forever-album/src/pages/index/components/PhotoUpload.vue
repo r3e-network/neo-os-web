@@ -4,13 +4,11 @@
       <view class="upload-grid">
         <view v-for="item in images" :key="item.id" class="upload-item">
           <image :src="item.dataUrl" mode="aspectFill" class="upload-img" :alt="t('uploadPreview')" />
-          <view class="remove-btn" @click.stop="$emit('remove', item.id)">×</view>
+          <view class="remove-btn" role="button" :aria-label="t('cancel')" @click.stop="$emit('remove', item.id)"
+            >×</view
+          >
         </view>
-        <view
-          v-if="images.length < maxPhotos"
-          class="upload-item upload-placeholder"
-          @click="$emit('choose')"
-        >
+        <view v-if="images.length < maxPhotos" class="upload-item upload-placeholder" role="button" tabindex="0" :aria-label="t('selectMore')" @click="$emit('choose')">
           <text class="upload-plus">+</text>
           <text class="upload-tip">{{ t("selectMore") }}</text>
         </view>
@@ -54,12 +52,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { NeoModal, NeoButton, NeoInput } from "@shared/components";
-
-interface UploadItem {
-  id: string;
-  dataUrl: string;
-  size: number;
-}
+import type { UploadItem } from "@/types";
 
 const props = defineProps<{
   t: (key: string) => string;

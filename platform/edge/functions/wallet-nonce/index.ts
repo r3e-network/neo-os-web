@@ -37,15 +37,18 @@ export async function handler(req: Request): Promise<Response> {
       const nonce = crypto.randomUUID();
       const timestamp = Math.floor(Date.now() / 1000);
       const expiresAt = timestamp + NONCE_TTL_SECONDS;
-      const message =
-        `Sign this message to bind your Neo N3 wallet to your account.\n\nUser: ${auth.userId}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
+      const message = `Sign this message to bind your Neo N3 wallet to your account.\n\nUser: ${auth.userId}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
 
       // Store nonce with creation timestamp for expiration validation
-      const ensured = await ensureUserRow(auth, {
-        nonce,
-        nonce_created_at: new Date().toISOString(),
-      }, req);
-      
+      const ensured = await ensureUserRow(
+        auth,
+        {
+          nonce,
+          nonce_created_at: new Date().toISOString(),
+        },
+        req
+      );
+
       if (ensured instanceof Response) {
         // If it's a conflict error, retry with a new nonce
         if (ensured.status === 409) {
@@ -56,12 +59,12 @@ export async function handler(req: Request): Promise<Response> {
       }
 
       return json({ nonce, message, expires_at: expiresAt, ttl_seconds: NONCE_TTL_SECONDS }, {}, req);
-    } catch (e) {
+    } catch (e: unknown) {
       lastError = e instanceof Error ? e : new Error(String(e));
       console.error(`Nonce generation attempt ${attempt + 1} failed:`, lastError.message);
       // Brief delay before retry
       if (attempt < MAX_NONCE_RETRIES - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
       }
     }
   }

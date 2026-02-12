@@ -2,6 +2,8 @@ import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "./useI18n";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult } from "@shared/utils/neo";
 import type { RoundItem } from "../pages/index/components/RoundList.vue";
@@ -21,39 +23,30 @@ export function useQuadraticRounds() {
   const isAddingMatching = ref(false);
   const isFinalizing = ref(false);
   const isClaimingUnused = ref(false);
-  const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
+  const { status, setStatus } = useStatusMessage();
 
-  const selectedRound = computed(() =>
-    rounds.value.find((round) => round.id === selectedRoundId.value) || null
-  );
+  const selectedRound = computed(() => rounds.value.find((round) => round.id === selectedRoundId.value) || null);
 
   const canManageSelectedRound = computed(() => {
     if (!selectedRound.value || !address.value) return false;
-    return selectedRound.value.creator === address.value &&
-           !selectedRound.value.cancelled &&
-           !selectedRound.value.finalized;
+    return (
+      selectedRound.value.creator === address.value && !selectedRound.value.cancelled && !selectedRound.value.finalized
+    );
   });
 
   const canFinalizeSelectedRound = computed(() => {
     if (!selectedRound.value || !address.value) return false;
-    return selectedRound.value.creator === address.value &&
-           !selectedRound.value.cancelled &&
-           !selectedRound.value.finalized;
+    return (
+      selectedRound.value.creator === address.value && !selectedRound.value.cancelled && !selectedRound.value.finalized
+    );
   });
 
   const canClaimUnused = computed(() => {
     if (!selectedRound.value || !address.value) return false;
-    return selectedRound.value.creator === address.value &&
-           selectedRound.value.finalized &&
-           !selectedRound.value.cancelled;
+    return (
+      selectedRound.value.creator === address.value && selectedRound.value.finalized && !selectedRound.value.cancelled
+    );
   });
-
-  const setStatus = (msg: string, type: "success" | "error") => {
-    status.value = { msg, type };
-    setTimeout(() => {
-      if (status.value?.msg === msg) status.value = null;
-    }, 4000);
-  };
 
   const ensureContractAddress = async () => {
     if (!requireNeoChain(chainType, t, undefined, { silent: true })) {
@@ -85,14 +78,15 @@ export function useQuadraticRounds() {
     return Math.floor(parsed / 1000);
   };
 
-  const parseRound = (raw: any, id: string): RoundItem | null => {
+  const parseRound = (raw: Record<string, unknown>, id: string): RoundItem | null => {
     if (!raw || typeof raw !== "object") return null;
     const matchingPool = parseBigInt(raw.matchingPool);
     const matchingAllocated = parseBigInt(raw.matchingAllocated);
     const matchingWithdrawn = parseBigInt(raw.matchingWithdrawn);
-    const matchingRemaining = raw.matchingRemaining !== undefined
-      ? parseBigInt(raw.matchingRemaining)
-      : matchingPool - matchingAllocated - matchingWithdrawn;
+    const matchingRemaining =
+      raw.matchingRemaining !== undefined
+        ? parseBigInt(raw.matchingRemaining)
+        : matchingPool - matchingAllocated - matchingWithdrawn;
 
     return {
       id,
@@ -113,9 +107,12 @@ export function useQuadraticRounds() {
   const fetchRoundIds = async () => {
     const contract = await ensureContractAddress();
     const result = await invokeRead({
-      contractAddress: contract,
+      scriptHash: contract,
       operation: "getRounds",
-      args: [{ type: "Integer", value: "0" }, { type: "Integer", value: "30" }],
+      args: [
+        { type: "Integer", value: "0" },
+        { type: "Integer", value: "30" },
+      ],
     });
     const parsed = parseInvokeResult(result);
     if (!Array.isArray(parsed)) return [] as string[];
@@ -128,12 +125,13 @@ export function useQuadraticRounds() {
   const fetchRoundDetails = async (roundId: string) => {
     const contract = await ensureContractAddress();
     const details = await invokeRead({
-      contractAddress: contract,
+      scriptHash: contract,
       operation: "getRoundDetails",
       args: [{ type: "Integer", value: roundId }],
     });
-    const parsed = parseInvokeResult(details) as any;
-    return parseRound(parsed, roundId);
+    const parsed = parseInvokeResult(details);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parseRound(parsed as Record<string, unknown>, roundId);
   };
 
   const refreshRounds = async () => {
@@ -146,8 +144,8 @@ export function useQuadraticRounds() {
       if (!selectedRoundId.value && rounds.value.length > 0) {
         selectedRoundId.value = rounds.value[0].id;
       }
-    } catch (e: any) {
-      setStatus(e.message || t("contractMissing"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRefreshingRounds.value = false;
     }
@@ -219,8 +217,8 @@ export function useQuadraticRounds() {
 
       setStatus(t("roundCreated"), "success");
       await refreshRounds();
-    } catch (e: any) {
-      setStatus(e.message || t("contractMissing"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isCreatingRound.value = false;
     }
@@ -261,8 +259,8 @@ export function useQuadraticRounds() {
 
       setStatus(t("matchingAdded"), "success");
       await refreshRounds();
-    } catch (e: any) {
-      setStatus(e.message || t("contractMissing"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isAddingMatching.value = false;
     }
@@ -283,7 +281,12 @@ export function useQuadraticRounds() {
 
     const projectIdsArray = parseJsonArray(projectIdsRaw.trim());
     const matchedArray = parseJsonArray(matchedRaw.trim());
-    if (!projectIdsArray || !matchedArray || projectIdsArray.length !== matchedArray.length || projectIdsArray.length === 0) {
+    if (
+      !projectIdsArray ||
+      !matchedArray ||
+      projectIdsArray.length !== matchedArray.length ||
+      projectIdsArray.length === 0
+    ) {
       setStatus(t("invalidRound"), "error");
       return;
     }
@@ -320,8 +323,8 @@ export function useQuadraticRounds() {
 
       setStatus(t("roundFinalized"), "success");
       await refreshRounds();
-    } catch (e: any) {
-      setStatus(e.message || t("contractMissing"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isFinalizing.value = false;
     }
@@ -348,8 +351,8 @@ export function useQuadraticRounds() {
 
       setStatus(t("unusedClaimed"), "success");
       await refreshRounds();
-    } catch (e: any) {
-      setStatus(e.message || t("contractMissing"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isClaimingUnused.value = false;
     }
@@ -357,12 +360,18 @@ export function useQuadraticRounds() {
 
   const roundStatusLabel = (statusValue: string) => {
     switch (statusValue) {
-      case "upcoming": return t("roundStatusUpcoming");
-      case "active": return t("roundStatusActive");
-      case "ended": return t("roundStatusEnded");
-      case "finalized": return t("roundStatusFinalized");
-      case "cancelled": return t("roundStatusCancelled");
-      default: return statusValue || t("roundStatusActive");
+      case "upcoming":
+        return t("roundStatusUpcoming");
+      case "active":
+        return t("roundStatusActive");
+      case "ended":
+        return t("roundStatusEnded");
+      case "finalized":
+        return t("roundStatusFinalized");
+      case "cancelled":
+        return t("roundStatusCancelled");
+      default:
+        return statusValue || t("roundStatusActive");
     }
   };
 

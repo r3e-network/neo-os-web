@@ -81,19 +81,19 @@ export function truncate(str: string, length: number): string {
  * Get status color class
  */
 export function getStatusColor(
-  status: "healthy" | "unhealthy" | "unknown" | "active" | "disabled" | "pending",
+  status: "healthy" | "unhealthy" | "unknown" | "active" | "disabled" | "pending"
 ): string {
   switch (status) {
     case "healthy":
     case "active":
-      return "text-success-600 bg-success-50";
+      return "text-emerald-400 bg-emerald-400/10";
     case "pending":
-      return "text-warning-600 bg-warning-50";
+      return "text-amber-400 bg-amber-400/10";
     case "unhealthy":
     case "disabled":
-      return "text-danger-600 bg-danger-50";
+      return "text-red-400 bg-red-400/10";
     case "unknown":
     default:
-      return "text-gray-600 bg-gray-50";
+      return "text-muted-foreground bg-muted/30";
   }
 }

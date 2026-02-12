@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ref, computed } from "vue";
+import { ref } from "vue";
 
 // ============================================================
 // MOCKS - Using shared test utilities
@@ -558,7 +558,7 @@ describe("Error Handling", () => {
       voteRecordMock({
         method: "POST",
         body: JSON.stringify({ entrantId: "1", voter: "0x123", amount: 1 }),
-      }),
+      })
     ).rejects.toThrow("Server error");
   });
 });
@@ -636,7 +636,7 @@ describe("Integration: Full Vote Flow", () => {
 
 describe("Edge Cases", () => {
   it("should handle empty leaderboard", () => {
-    const leaderboard: any[] = [];
+    const leaderboard: Record<string, unknown>[] = [];
     expect(leaderboard).toHaveLength(0);
   });
 

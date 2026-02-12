@@ -33,6 +33,16 @@
   --lottery-glow-text: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 40px rgba(255, 255, 255, 0.1);
   --lottery-ticket-icon: #ffffff;
   --lottery-ticket-shadow: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+
+  /* ScratchModal */
+  --lottery-win-color: #4ade80;
+  --lottery-win-glow: rgba(74, 222, 128, 0.3);
+  --scratch-cover-start: #d4d4d4;
+  --scratch-cover-mid: #ececec;
+  --scratch-cover-dot: rgba(0, 0, 0, 0.05);
+  --scratch-cover-text: #666666;
+  --scratch-cover-strong: #444444;
+  --scratch-cover-shadow: rgba(255, 255, 255, 0.5);
 }
 
 :global(.theme-light .theme-lottery),
@@ -71,4 +81,14 @@
   --lottery-glow-text: 0 0 16px rgba(15, 23, 42, 0.15), 0 0 30px rgba(15, 23, 42, 0.08);
   --lottery-ticket-icon: #111827;
   --lottery-ticket-shadow: drop-shadow(0 0 8px rgba(15, 23, 42, 0.2));
+
+  /* ScratchModal */
+  --lottery-win-color: #16a34a;
+  --lottery-win-glow: rgba(22, 163, 74, 0.25);
+  --scratch-cover-start: #e5e7eb;
+  --scratch-cover-mid: #f3f4f6;
+  --scratch-cover-dot: rgba(15, 23, 42, 0.06);
+  --scratch-cover-text: #4b5563;
+  --scratch-cover-strong: #374151;
+  --scratch-cover-shadow: rgba(255, 255, 255, 0.7);
 }

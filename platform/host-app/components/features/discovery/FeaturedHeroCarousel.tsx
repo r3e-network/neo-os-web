@@ -178,7 +178,7 @@ function HighlightBadge({ type, t }: { type: string; t: (key: string) => string 
   const config: Record<string, { bg: string; text: string; label: string }> = {
     new: { bg: "bg-green-500", text: "text-white", label: t("featured.new") },
     trending: { bg: "bg-orange-500", text: "text-white", label: t("featured.trending") },
-    popular: { bg: "bg-blue-500", text: "text-white", label: t("featured.popular") },
+    popular: { bg: "bg-erobo-purple", text: "text-white", label: t("featured.popular") },
     promoted: { bg: "bg-erobo-purple", text: "text-white", label: t("featured.promoted") },
   };
   const { bg, text, label } = config[type] || config.promoted;

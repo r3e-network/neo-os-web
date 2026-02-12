@@ -5,7 +5,7 @@
         <text class="usd-sign">$</text>
         <text class="usd-amount">{{ formatNum(totalUsd) }}</text>
       </view>
-      
+
       <view class="token-split">
         <view class="token-item">
           <text class="token-label">NEO</text>
@@ -17,9 +17,9 @@
           <text class="token-value">{{ formatNum(totalGas, 2) }}</text>
         </view>
       </view>
-      
+
       <view class="last-updated">
-        <text>{{ t('lastUpdated') }}: {{ formatTime(lastUpdated) }}</text>
+        <text>{{ t("lastUpdated") }}: {{ formatTime(lastUpdated) }}</text>
       </view>
     </view>
   </NeoCard>
@@ -33,13 +33,13 @@ defineProps<{
   totalNeo: number;
   totalGas: number;
   lastUpdated: number;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const formatNum = (n: number, decimals = 0): string => {
-  return n.toLocaleString("en-US", { 
+  return n.toLocaleString("en-US", {
     minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals 
+    maximumFractionDigits: decimals,
   });
 };
 
@@ -75,7 +75,7 @@ const formatTime = (ts: number): string => {
 .usd-sign {
   font-size: 24px;
   font-weight: 700;
-  color: #00E599;
+  color: var(--treasury-neo-green);
   margin-top: 8px;
   text-shadow: 0 0 15px rgba(0, 229, 153, 0.4);
 }
@@ -108,7 +108,7 @@ const formatTime = (ts: number): string => {
   flex-direction: column;
   align-items: center;
   transition: all 0.2s;
-  
+
   &:hover {
     transform: translateY(-2px);
   }

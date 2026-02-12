@@ -10,6 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { validateCsrfToken } from "@/lib/csrf";
 import { createHandler } from "@/lib/api";
 import { addCollectionBody } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 
 export default createHandler({
   auth: "wallet",
@@ -35,7 +36,7 @@ async function handleGet(db: SupabaseClient, walletAddress: string, req: NextApi
     .range(offset, offset + limit - 1);
 
   if (error) {
-    console.error("Failed to fetch collections:", error);
+    logger.error("Failed to fetch collections", error);
     return res.status(500).json({ collections: [], error: "Failed to fetch collections" });
   }
 
@@ -63,7 +64,7 @@ async function handlePost(db: SupabaseClient, walletAddress: string, req: NextAp
     if (error.code === "23505") {
       return res.status(409).json({ collections: [], error: "Already collected" });
     }
-    console.error("Failed to add collection:", error);
+    logger.error("Failed to add collection", error);
     return res.status(500).json({ collections: [], error: "Failed to add collection" });
   }
 

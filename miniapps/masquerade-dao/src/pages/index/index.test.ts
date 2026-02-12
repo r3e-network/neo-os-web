@@ -15,8 +15,8 @@ vi.mock("@shared/utils/i18n", () => ({
 }));
 
 describe("Masquerade DAO MiniApp", () => {
-  let mockPayGAS: any;
-  let mockIsLoading: any;
+  let mockPayGAS: ReturnType<typeof vi.fn>;
+  let mockIsLoading: ReturnType<typeof ref<boolean>>;
 
   beforeEach(async () => {
     vi.clearAllMocks();

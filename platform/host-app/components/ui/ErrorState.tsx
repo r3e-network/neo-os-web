@@ -32,12 +32,7 @@ export function ErrorState({
           {message && <p className="text-xs text-red-400/80 mt-0.5 truncate">{message}</p>}
         </div>
         {onRetry && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRetry}
-            className="text-red-500 hover:bg-red-500/10"
-          >
+          <Button variant="ghost" size="sm" onClick={onRetry} className="text-red-500 hover:bg-red-500/10">
             <RefreshCw size={14} />
           </Button>
         )}
@@ -57,7 +52,7 @@ export function ErrorState({
             <AlertCircle size={40} className="text-red-500" />
           </div>
           <h1 className="text-2xl font-bold text-erobo-ink dark:text-white mb-2">{title}</h1>
-          <p className="text-erobo-ink-soft/70 dark:text-gray-400 mb-8">{message}</p>
+          <p className="text-erobo-ink-soft/70 dark:text-slate-400 mb-8">{message}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             {onRetry && (
               <Button onClick={onRetry} className="erobo-btn">
@@ -88,18 +83,13 @@ export function ErrorState({
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={cn(
-        "rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center",
-        className
-      )}
+      className={cn("rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center", className)}
     >
       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
         <AlertCircle size={32} className="text-red-500" />
       </div>
       <h3 className="text-lg font-bold text-erobo-ink dark:text-white mb-2">{title}</h3>
-      <p className="text-sm text-erobo-ink-soft/70 dark:text-gray-400 mb-6 max-w-sm mx-auto">
-        {message}
-      </p>
+      <p className="text-sm text-erobo-ink-soft/70 dark:text-slate-400 mb-6 max-w-sm mx-auto">{message}</p>
       <div className="flex gap-3 justify-center">
         {onRetry && (
           <Button onClick={onRetry} size="sm" className="erobo-btn">

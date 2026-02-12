@@ -88,8 +88,8 @@ describe("Time Capsule MiniApp", () => {
 
       try {
         await mockPayGAS("0.2", "time-capsule:bury:123");
-      } catch (e: any) {
-        status.value = { msg: e.message || "error", type: "error" };
+      } catch (e: unknown) {
+        status.value = { msg: e instanceof Error ? e.message : "error", type: "error" };
       }
 
       expect(status.value?.type).toBe("error");

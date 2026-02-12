@@ -1,13 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "@/lib/edge";
 import { supabaseAdmin } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 /**
  * Fetch transactions from Supabase simulation_txs table (fallback)
  */
 async function fetchFromSupabase(appId?: string, limit = 20, afterId?: string, chainId?: string) {
   if (!supabaseAdmin) {
-    console.error("Supabase admin client not configured");
+    logger.error("Supabase admin client not configured");
     return { transactions: [], has_more: false };
   }
 
@@ -30,7 +31,7 @@ async function fetchFromSupabase(appId?: string, limit = 20, afterId?: string, c
   const { data, error } = await query;
 
   if (error) {
-    console.error("Supabase query error:", error);
+    logger.error("Supabase query error", error);
     return { transactions: [], has_more: false };
   }
 
@@ -93,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const data = await upstream.json();
     return res.status(200).json(data);
   } catch (err) {
-    console.error("Transactions API error:", err);
+    logger.error("Transactions API error", err);
     return res.status(200).json({ transactions: [], has_more: false });
   }
 }

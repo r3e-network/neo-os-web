@@ -43,8 +43,9 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
 
   // Automatically listen for language changes from the host app
   if (typeof window !== "undefined") {
-    window.addEventListener("languageChange", (event: any) => {
-      const newLang = event.detail?.language;
+    window.addEventListener("languageChange", (event: Event) => {
+      const customEvt = event as CustomEvent<Record<string, unknown>>;
+      const newLang = customEvt.detail?.language;
       if (newLang) {
         setLocale(newLang);
       }

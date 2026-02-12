@@ -132,7 +132,7 @@ export function LiveChat({ appId, walletAddress, userName, mode = "floating" }: 
       {isOpen && (
         <div
           className={cn(
-            "flex flex-col rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden",
+            "flex flex-col rounded-2xl border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-erobo-bg-dark shadow-2xl overflow-hidden",
             isInline ? "w-full max-h-[400px]" : "fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[480px]",
           )}
         >
@@ -151,9 +151,9 @@ export function LiveChat({ appId, walletAddress, userName, mode = "floating" }: 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {loading && messages.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">Loading...</div>
+              <div className="text-center text-erobo-ink-soft py-8">Loading...</div>
             ) : messages.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-erobo-ink-soft py-8">
                 <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 <p>No messages yet</p>
                 <p className="text-xs mt-1">Be the first to say hi!</p>
@@ -165,7 +165,7 @@ export function LiveChat({ appId, walletAddress, userName, mode = "floating" }: 
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="p-3 border-t border-erobo-purple/10 dark:border-white/10">
             {walletAddress ? (
               <div className="flex items-center gap-2">
                 <input
@@ -176,7 +176,7 @@ export function LiveChat({ appId, walletAddress, userName, mode = "floating" }: 
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message..."
                   maxLength={500}
-                  className="flex-1 h-10 px-4 text-sm rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 h-10 px-4 text-sm rounded-full border border-erobo-purple/10 dark:border-white/10 bg-erobo-purple/5 dark:bg-erobo-bg-card text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   onClick={sendMessage}
@@ -187,7 +187,7 @@ export function LiveChat({ appId, walletAddress, userName, mode = "floating" }: 
                 </button>
               </div>
             ) : (
-              <div className="text-center text-sm text-gray-500 py-2">Connect wallet to chat</div>
+              <div className="text-center text-sm text-erobo-ink-soft py-2">Connect wallet to chat</div>
             )}
           </div>
         </div>
@@ -198,7 +198,7 @@ export function LiveChat({ appId, walletAddress, userName, mode = "floating" }: 
 
 function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolean }) {
   if (message.type === "system") {
-    return <div className="text-center text-xs text-gray-500 py-1">{message.content}</div>;
+    return <div className="text-center text-xs text-erobo-ink-soft py-1">{message.content}</div>;
   }
 
   if (message.type === "tip") {
@@ -219,10 +219,10 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
       </div>
       <div className={cn("max-w-[70%]", isOwn && "text-right")}>
         <div className="flex items-center gap-2 mb-0.5">
-          <span className={cn("text-xs font-medium text-gray-700 dark:text-gray-300", isOwn && "order-2")}>
+          <span className={cn("text-xs font-medium text-erobo-ink dark:text-slate-300", isOwn && "order-2")}>
             {message.userName}
           </span>
-          <span suppressHydrationWarning className={cn("text-xs text-gray-400", isOwn && "order-1")}>
+          <span suppressHydrationWarning className={cn("text-xs text-erobo-ink-soft/60", isOwn && "order-1")}>
             {timeAgo(message.timestamp)}
           </span>
         </div>
@@ -231,7 +231,7 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
             "inline-block px-3 py-2 rounded-2xl text-sm",
             isOwn
               ? "bg-emerald-500 text-white rounded-tr-sm"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-tl-sm",
+              : "bg-erobo-purple/10 dark:bg-erobo-bg-card text-erobo-ink dark:text-white rounded-tl-sm",
           )}
         >
           {message.content}

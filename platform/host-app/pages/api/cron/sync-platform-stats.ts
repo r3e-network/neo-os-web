@@ -11,6 +11,7 @@ import type { NextApiResponse } from "next";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getChainRegistry } from "@/lib/chains/registry";
 import { createHandler } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 interface ChainSyncResult {
   chain_id: string;
@@ -145,7 +146,7 @@ export default createHandler({
         const result = await syncPlatformStats(ctx.db);
         res.status(200).json(result);
       } catch (error) {
-        console.error("Sync error:", error);
+        logger.error("Sync error", error);
         res.status(500).json({ error: "Sync failed" });
       }
     },

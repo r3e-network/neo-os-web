@@ -109,7 +109,7 @@ export function AppDetailHeader({ app, stats, description }: Props) {
                 ? "bg-erobo-purple/10 text-erobo-purple border-erobo-purple/30"
                 : statusKey === "maintenance"
                   ? "bg-erobo-peach/40 text-erobo-ink border-white/60"
-                  : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft/70 dark:text-gray-400 border-white/60 dark:border-white/10"
+                  : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft/70 dark:text-slate-400 border-white/60 dark:border-white/10"
             }`}
           >
             <span
@@ -149,21 +149,21 @@ export function AppDetailHeader({ app, stats, description }: Props) {
         {stats && (
           <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-white/30 dark:border-white/10">
             {stats.total_users != null && stats.total_users > 0 && (
-              <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-gray-400">
+              <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-slate-400">
                 <Users size={14} className="text-erobo-purple" />
                 <span className="font-semibold">{stats.total_users.toLocaleString(locale)}</span>
                 <span className="text-xs opacity-70">{t("detail.users")}</span>
               </div>
             )}
             {stats.total_transactions != null && stats.total_transactions > 0 && (
-              <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-gray-400">
+              <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-slate-400">
                 <Activity size={14} className="text-erobo-pink" />
                 <span className="font-semibold">{stats.total_transactions.toLocaleString(locale)}</span>
                 <span className="text-xs opacity-70">{t("detail.txs")}</span>
               </div>
             )}
             {stats.view_count != null && stats.view_count > 0 && (
-              <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-gray-400">
+              <div className="flex items-center gap-1.5 text-sm text-erobo-ink-soft/70 dark:text-slate-400">
                 <Eye size={14} className="text-erobo-mint" />
                 <span className="font-semibold">{stats.view_count.toLocaleString(locale)}</span>
                 <span className="text-xs opacity-70">{t("detail.views")}</span>

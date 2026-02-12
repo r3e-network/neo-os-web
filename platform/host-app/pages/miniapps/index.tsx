@@ -489,7 +489,7 @@ export default function MiniAppsPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-erobo-ink dark:text-white">{t("miniapps.title")}</h1>
-                <span className="text-sm text-erobo-ink-soft/70 dark:text-gray-400">
+                <span className="text-sm text-erobo-ink-soft/70 dark:text-slate-400">
                   {filteredAndSortedApps.length} {t("miniapps.apps")}
                 </span>
               </div>
@@ -508,14 +508,14 @@ export default function MiniAppsPage() {
               <div className="relative">
                 <button
                   onClick={() => setShowSortMenu(!showSortMenu)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-erobo-ink-soft dark:text-gray-300 border border-white/60 dark:border-white/10 bg-white/70 dark:bg-white/5 rounded-full hover:bg-erobo-peach/30 dark:hover:bg-white/10 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-erobo-ink-soft dark:text-slate-300 border border-white/60 dark:border-white/10 bg-white/70 dark:bg-white/5 rounded-full hover:bg-erobo-peach/30 dark:hover:bg-white/10 transition-all"
                 >
                   <currentSort.icon size={16} strokeWidth={2} />
                   {currentSort.label}
                   <ChevronDown
                     size={16}
                     strokeWidth={2}
-                    className={cn("transition-transform text-gray-400", showSortMenu && "rotate-180")}
+                    className={cn("transition-transform text-erobo-ink-soft/60", showSortMenu && "rotate-180")}
                   />
                 </button>
 
@@ -532,7 +532,7 @@ export default function MiniAppsPage() {
                           "flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors text-left",
                           sortBy === option.value
                             ? "bg-erobo-purple/10 text-erobo-purple"
-                            : "text-erobo-ink-soft dark:text-gray-400 hover:bg-erobo-peach/30 dark:hover:bg-white/5 hover:text-erobo-ink dark:hover:text-white",
+                            : "text-erobo-ink-soft dark:text-slate-400 hover:bg-erobo-peach/30 dark:hover:bg-white/5 hover:text-erobo-ink dark:hover:text-white",
                         )}
                       >
                         <option.icon size={16} strokeWidth={2} />
@@ -551,7 +551,7 @@ export default function MiniAppsPage() {
                     "p-2 transition-all",
                     viewMode === "list"
                       ? "bg-erobo-purple/10 text-erobo-purple"
-                      : "text-gray-400 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/10",
+                      : "text-erobo-ink-soft/60 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/10",
                   )}
                   title="List view"
                 >
@@ -563,7 +563,7 @@ export default function MiniAppsPage() {
                     "p-2 transition-all",
                     viewMode === "grid"
                       ? "bg-erobo-purple/10 text-erobo-purple"
-                      : "text-gray-400 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/10",
+                      : "text-erobo-ink-soft/60 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/10",
                   )}
                   title="Card view"
                 >
@@ -583,7 +583,7 @@ export default function MiniAppsPage() {
             )}
 
             {searchQuery && (
-              <p className="mb-6 text-base text-erobo-ink-soft/70 dark:text-gray-400">
+              <p className="mb-6 text-base text-erobo-ink-soft/70 dark:text-slate-400">
                 {t("miniapps.resultsFor")} "
                 <span className="text-erobo-ink dark:text-white font-medium bg-erobo-peach/40 px-1.5 py-0.5 rounded-full">
                   {searchQuery}
@@ -598,7 +598,7 @@ export default function MiniAppsPage() {
                   <MiniAppListItem key={app.app_id} app={app} />
                 ))}
                 {filteredAndSortedApps.length === 0 && (
-                  <div className="py-16 text-center text-erobo-ink-soft/70 dark:text-gray-400 text-base">
+                  <div className="py-16 text-center text-erobo-ink-soft/70 dark:text-slate-400 text-base">
                     {t("miniapps.noApps")}
                   </div>
                 )}
@@ -612,7 +612,7 @@ export default function MiniAppsPage() {
               <div className="mt-12 text-center">
                 <button
                   onClick={() => setDisplayCount((prev) => prev + PAGE_SIZE)}
-                  className="px-6 py-2.5 text-sm font-medium text-erobo-ink-soft dark:text-gray-300 bg-white/70 dark:bg-white/5 border border-white/60 dark:border-erobo-purple/20 rounded-full hover:bg-erobo-peach/30 dark:hover:bg-white/10 hover:border-erobo-purple/40 hover:shadow-[0_0_20px_rgba(159,157,243,0.2)] transition-all"
+                  className="px-6 py-2.5 text-sm font-medium text-erobo-ink-soft dark:text-slate-300 bg-white/70 dark:bg-white/5 border border-white/60 dark:border-erobo-purple/20 rounded-full hover:bg-erobo-peach/30 dark:hover:bg-white/10 hover:border-erobo-purple/40 hover:shadow-[0_0_20px_rgba(159,157,243,0.2)] transition-all"
                 >
                   {t("miniapps.loadMore")} ({filteredAndSortedApps.length - displayCount} {t("miniapps.remaining")})
                 </button>

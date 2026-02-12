@@ -35,23 +35,7 @@
 import { computed } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { formatGas, formatAddress } from "@shared/utils/format";
-
-export interface StreamItem {
-  id: string;
-  creator: string;
-  beneficiary: string;
-  asset: string;
-  assetSymbol: "NEO" | "GAS";
-  totalAmount: bigint;
-  releasedAmount: bigint;
-  remainingAmount: bigint;
-  rateAmount: bigint;
-  intervalDays: number;
-  status: "active" | "completed" | "cancelled";
-  claimable: bigint;
-  title: string;
-  notes: string;
-}
+import type { StreamItem, StreamStatus } from "@/types";
 
 const props = defineProps<{
   stream: StreamItem;
@@ -59,8 +43,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-
-type StreamStatus = "active" | "completed" | "cancelled";
 
 const metrics = computed(() => {
   if (props.isCreator) {
@@ -132,12 +114,12 @@ const statusLabel = (statusValue: StreamStatus) => {
 
 .status-pill.completed {
   background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  color: var(--stream-success);
 }
 
 .status-pill.cancelled {
   background: rgba(248, 113, 113, 0.2);
-  color: #f87171;
+  color: var(--stream-danger);
 }
 
 .vault-metrics {

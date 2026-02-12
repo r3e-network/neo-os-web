@@ -54,8 +54,9 @@ export async function handler(req: Request): Promise<Response> {
   let value: string;
   try {
     value = await decryptSecretValue(encryptedBase64);
-  } catch (e) {
-    return errorResponse("SERVER_001", { message: `failed to decrypt secret: ${(e as Error).message}` }, req);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return errorResponse("SERVER_001", { message: `failed to decrypt secret: ${message}` }, req);
   }
 
   return json(

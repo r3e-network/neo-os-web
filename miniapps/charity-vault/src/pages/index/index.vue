@@ -3,23 +3,7 @@
     <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="sidebar-stats">
-          <text class="sidebar-title">{{ t("totalRaised") }}</text>
-          <text class="sidebar-value">{{ totalRaised }} GAS</text>
-        </view>
-
-        <view class="sidebar-categories">
-          <text class="sidebar-title">{{ t("categories") }}</text>
-          <view
-            v-for="cat in categories"
-            :key="cat.id"
-            class="category-item"
-            :class="{ active: selectedCategory === cat.id }"
-            @click="selectedCategory = cat.id"
-          >
-            <text class="category-name">{{ cat.label }}</text>
-          </view>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -57,6 +41,10 @@
         </view>
       </template>
 
+      <template #operation>
+        <!-- List-only view: no operation panel needed -->
+      </template>
+
       <template #tab-donate>
         <CampaignDetail
           v-if="selectedCampaign"
@@ -77,7 +65,7 @@
       </template>
 
       <template #tab-create>
-        <CreateCampaignForm :is-creating="isCreating" :t="t as (key: string) => string" @submit="createCampaign" />
+        <CreateCampaignForm :is-creating="isCreating" :t="t as (key: string) => string" @submit="handleCreateCampaign" />
       </template>
     </MiniAppTemplate>
 
@@ -90,24 +78,39 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { parseInvokeResult } from "@shared/utils/neo";
-import { requireNeoChain } from "@shared/utils/chain";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CampaignCard from "./components/CampaignCard.vue";
 import CampaignDetail from "./components/CampaignDetail.vue";
 import MyDonationsView from "./components/MyDonationsView.vue";
 import CreateCampaignForm from "./components/CreateCampaignForm.vue";
+import { useCharityContract } from "@/composables/useCharityContract";
+import type { CharityCampaign } from "@/types";
 
 const { t } = useI18n();
-const APP_ID = "miniapp-charity-vault";
+
+const {
+  selectedCampaign,
+  campaigns,
+  myDonations,
+  recentDonations,
+  selectedCategory,
+  loadingCampaigns,
+  isDonating,
+  isCreating,
+  errorMessage,
+  filteredCampaigns,
+  totalDonated,
+  totalRaised,
+  loadRecentDonations,
+  makeDonation,
+  createCampaign,
+  init,
+} = useCharityContract(t);
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "campaigns", labelKey: "campaigns", icon: "❤️", default: true },
     { key: "donate", labelKey: "myDonationsTab", icon: "💰" },
@@ -134,24 +137,16 @@ const templateConfig: MiniAppTemplateConfig = {
 
 const activeTab = ref("campaigns");
 
+const sidebarItems = computed(() => [
+  { label: t("campaigns"), value: campaigns.value.length },
+  { label: "My Donations", value: myDonations.value.length },
+  { label: t("totalRaised"), value: `${totalRaised.value.toFixed(2)} GAS` },
+]);
+
 const appState = computed(() => ({
   campaignCount: campaigns.value.length,
   totalDonated: totalDonated.value,
 }));
-const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
-const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
-
-// State
-const contractAddress = ref<string | null>(null);
-const selectedCampaign = ref<CharityCampaign | null>(null);
-const campaigns = ref<CharityCampaign[]>([]);
-const myDonations = ref<Donation[]>([]);
-const recentDonations = ref<Donation[]>([]);
-const selectedCategory = ref<string>("all");
-const loadingCampaigns = ref(false);
-const isDonating = ref(false);
-const isCreating = ref(false);
-const errorMessage = ref<string | null>(null);
 
 // Categories
 const categories = computed(() => [
@@ -165,146 +160,6 @@ const categories = computed(() => [
   { id: "other", label: t("categoryOther") },
 ]);
 
-// Filtered campaigns
-const filteredCampaigns = computed(() => {
-  if (selectedCategory.value === "all") return campaigns.value;
-  return campaigns.value.filter((c) => c.category === selectedCategory.value);
-});
-
-// Total donated
-const totalDonated = computed(() => {
-  return myDonations.value.reduce((sum, d) => sum + d.amount, 0);
-});
-
-// Interfaces
-interface CharityCampaign {
-  id: number;
-  title: string;
-  description: string;
-  story: string;
-  category: string;
-  organizer: string;
-  beneficiary: string;
-  targetAmount: number;
-  raisedAmount: number;
-  donorCount: number;
-  endTime: number;
-  createdAt: number;
-  status: "active" | "completed" | "withdrawn" | "cancelled";
-  multisigAddresses: string[];
-}
-
-interface Donation {
-  id: number;
-  campaignId: number;
-  donor: string;
-  amount: number;
-  message: string;
-  timestamp: number;
-}
-
-// Ensure contract address
-const ensureContractAddress = async (): Promise<boolean> => {
-  if (!requireNeoChain(chainType, t)) return false;
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  return !!contractAddress.value;
-};
-
-// Load campaigns
-const loadCampaigns = async () => {
-  if (!(await ensureContractAddress())) return;
-
-  try {
-    loadingCampaigns.value = true;
-    const result = await invokeRead({
-      scriptHash: contractAddress.value as string,
-      operation: "getCampaigns",
-      args: [],
-    });
-
-    const parsed = parseInvokeResult(result) as unknown[];
-    if (Array.isArray(parsed)) {
-      campaigns.value = parsed.map((c: any) => ({
-        id: Number(c.id || 0),
-        title: String(c.title || ""),
-        description: String(c.description || ""),
-        story: String(c.story || ""),
-        category: String(c.category || "other"),
-        organizer: String(c.organizer || ""),
-        beneficiary: String(c.beneficiary || ""),
-        targetAmount: Number(c.targetAmount || 0) / 1e8,
-        raisedAmount: Number(c.raisedAmount || 0) / 1e8,
-        donorCount: Number(c.donorCount || 0),
-        endTime: Number(c.endTime || 0) * 1000,
-        createdAt: Number(c.createdAt || 0) * 1000,
-        status: c.status || "active",
-        multisigAddresses: Array.isArray(c.multisigAddresses) ? c.multisigAddresses : [],
-      }));
-    }
-  } catch (e: any) {
-    showError(e.message || t("failedToLoad"));
-  } finally {
-    loadingCampaigns.value = false;
-  }
-};
-
-// Load user's donations
-const loadMyDonations = async () => {
-  if (!address.value || !(await ensureContractAddress())) return;
-
-  try {
-    const result = await invokeRead({
-      scriptHash: contractAddress.value as string,
-      operation: "getUserDonations",
-      args: [{ type: "Hash160", value: address.value }],
-    });
-
-    const parsed = parseInvokeResult(result) as unknown[];
-    if (Array.isArray(parsed)) {
-      myDonations.value = parsed.map((d: any) => ({
-        id: Number(d.id || 0),
-        campaignId: Number(d.campaignId || 0),
-        donor: String(d.donor || ""),
-        amount: Number(d.amount || 0) / 1e8,
-        message: String(d.message || ""),
-        timestamp: Number(d.timestamp || 0) * 1000,
-      }));
-    }
-  } catch (e: any) {
-    // Silent fail
-  }
-};
-
-// Load recent donations for selected campaign
-const loadRecentDonations = async (campaignId: number) => {
-  try {
-    const result = await invokeRead({
-      scriptHash: contractAddress.value as string,
-      operation: "getCampaignDonations",
-      args: [
-        { type: "Integer", value: campaignId },
-        { type: "Integer", value: 10 }, // Last 10
-      ],
-    });
-
-    const parsed = parseInvokeResult(result) as unknown[];
-    if (Array.isArray(parsed)) {
-      recentDonations.value = parsed.map((d: any) => ({
-        id: Number(d.id || 0),
-        campaignId: Number(d.campaignId || 0),
-        donor: String(d.donor || ""),
-        amount: Number(d.amount || 0) / 1e8,
-        message: String(d.message || ""),
-        timestamp: Number(d.timestamp || 0) * 1000,
-      }));
-    }
-  } catch (e: any) {
-    // Silent fail
-  }
-};
-
 // Select campaign
 const selectCampaign = async (campaign: CharityCampaign) => {
   selectedCampaign.value = campaign;
@@ -312,53 +167,8 @@ const selectCampaign = async (campaign: CharityCampaign) => {
   await loadRecentDonations(campaign.id);
 };
 
-// Make donation
-const makeDonation = async (data: { amount: number; message: string }) => {
-  if (!address.value) {
-    showError(t("connectWallet"));
-    return;
-  }
-  if (!(await ensureContractAddress())) return;
-  if (!selectedCampaign.value) return;
-
-  if (data.amount < 0.1) {
-    showError(t("minimumDonation"));
-    return;
-  }
-
-  try {
-    isDonating.value = true;
-
-    const { receiptId, invoke } = await processPayment(
-      data.amount.toFixed(8),
-      `donate:${selectedCampaign.value.id}:${data.message.slice(0, 50)}`
-    );
-
-    const tx = (await invoke(
-      "donate",
-      [
-        { type: "Integer", value: selectedCampaign.value.id },
-        { type: "Integer", value: String(receiptId) },
-        { type: "String", value: data.message },
-      ],
-      contractAddress.value as string
-    )) as { txid: string };
-
-    if (tx.txid) {
-      await waitForEvent(tx.txid, "DonationMade");
-      await loadCampaigns();
-      await loadMyDonations();
-      await loadRecentDonations(selectedCampaign.value.id);
-    }
-  } catch (e: any) {
-    showError(e.message || t("donationFailed"));
-  } finally {
-    isDonating.value = false;
-  }
-};
-
-// Create campaign
-const createCampaign = async (data: {
+// Create campaign wrapper (handles tab switch on success)
+const handleCreateCampaign = async (data: {
   title: string;
   description: string;
   story: string;
@@ -368,60 +178,15 @@ const createCampaign = async (data: {
   beneficiary: string;
   multisigAddresses: string[];
 }) => {
-  if (!address.value) {
-    showError(t("connectWallet"));
-    return;
+  const success = await createCampaign(data);
+  if (success) {
+    activeTab.value = "campaigns";
   }
-  if (!(await ensureContractAddress())) return;
-
-  try {
-    isCreating.value = true;
-
-    const endTime = Math.floor(Date.now() / 1000) + data.duration * 86400;
-
-    const { receiptId, invoke } = await processPayment("1", `create:${data.category}:${data.title.slice(0, 50)}`);
-
-    const tx = (await invoke(
-      "createCampaign",
-      [
-        { type: "String", value: data.title },
-        { type: "String", value: data.description },
-        { type: "String", value: data.story },
-        { type: "String", value: data.category },
-        { type: "Integer", value: Math.round(data.targetAmount * 1e8) },
-        { type: "Integer", value: endTime },
-        { type: "Hash160", value: data.beneficiary },
-        { type: "Array", value: data.multisigAddresses },
-        { type: "Integer", value: String(receiptId) },
-      ],
-      contractAddress.value as string
-    )) as { txid: string };
-
-    if (tx.txid) {
-      await waitForEvent(tx.txid, "CampaignCreated");
-      await loadCampaigns();
-      activeTab.value = "campaigns";
-    }
-  } catch (e: any) {
-    showError(e.message || t("creationFailed"));
-  } finally {
-    isCreating.value = false;
-  }
-};
-
-// Show error
-const showError = (msg: string) => {
-  errorMessage.value = msg;
-  setTimeout(() => {
-    errorMessage.value = null;
-  }, 5000);
 };
 
 // Initialize
 onMounted(async () => {
-  await ensureContractAddress();
-  await loadCampaigns();
-  await loadMyDonations();
+  await init();
 });
 </script>
 
@@ -430,16 +195,16 @@ onMounted(async () => {
 @use "@shared/styles/theme-base.scss" as *;
 @import "./charity-vault-theme.scss";
 
-// Tab content - works with both mobile and desktop layouts
+:global(page) {
+  background: var(--charity-bg);
+}
+
 .tab-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4, 16px);
-  color: var(--charity-text-primary, var(--text-primary, #f8fafc));
-
-  // Remove default padding - DesktopLayout provides padding
-  // For mobile AppLayout, padding is handled by the layout itself
+  color: var(--charity-text-primary, var(--text-primary));
 }
 
 .category-filter {
@@ -470,8 +235,8 @@ onMounted(async () => {
   }
 
   &.active {
-    background: var(--charity-accent, #10b981);
-    border-color: var(--charity-accent, #10b981);
+    background: var(--charity-accent);
+    border-color: var(--charity-accent);
     color: white;
   }
 }
@@ -518,10 +283,6 @@ onMounted(async () => {
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 // Reduced motion support for accessibility
 @media (prefers-reduced-motion: reduce) {

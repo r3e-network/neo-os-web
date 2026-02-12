@@ -2,9 +2,7 @@
   <ResponsiveLayout :desktop-breakpoint="1024" class="theme-grant-share">
     <view class="app-container">
       <view class="nav-header mb-4">
-        <NeoButton size="sm" variant="secondary" @click="goBack">
-          &larr; {{ t("back") }}
-        </NeoButton>
+        <NeoButton size="sm" variant="secondary" @click="goBack"> &larr; {{ t("back") }} </NeoButton>
       </view>
 
       <view v-if="loading" class="empty-state">
@@ -20,64 +18,65 @@
           <view class="header-section">
             <text class="grant-title-glass">{{ grant.title }}</text>
             <view class="meta-row mt-2">
-               <text class="grant-creator-glass">{{ t("by") }} {{ grant.proposer }}</text>
-               <view :class="['grant-badge-glass', grant.state]">
-                  <text class="badge-text">{{ getStatusLabel(grant.state) }}</text>
-               </view>
+              <text class="grant-creator-glass">{{ t("by") }} {{ grant.proposer }}</text>
+              <view :class="['grant-badge-glass', grant.state]">
+                <text class="badge-text">{{ getStatusLabel(grant.state) }}</text>
+              </view>
             </view>
             <view class="proposal-meta mt-2">
-                <text v-if="grant.onchainId !== null" class="meta-item">#{{ grant.onchainId }}</text>
-                <text v-if="grant.createdAt" class="meta-item">{{ formatDate(grant.createdAt) }}</text>
+              <text v-if="grant.onchainId !== null" class="meta-item">#{{ grant.onchainId }}</text>
+              <text v-if="grant.createdAt" class="meta-item">{{ formatDate(grant.createdAt) }}</text>
             </view>
           </view>
         </NeoCard>
 
         <NeoCard variant="erobo-neo" class="mb-4">
-            <view class="section-title-glass">{{ t("details") }}</view>
-            <view class="description-content">
-                <text class="desc-text">{{ grant.description || t("noDescription") }}</text>
-            </view>
+          <view class="section-title-glass">{{ t("details") }}</view>
+          <view class="description-content">
+            <text class="desc-text">{{ grant.description || t("noDescription") }}</text>
+          </view>
         </NeoCard>
 
         <NeoCard variant="erobo-neo" class="mb-4">
-             <view class="section-title-glass">{{ t("voting") }}</view>
-             <view class="proposal-stats">
-                <view class="stat-chip accept">{{ t("votesFor") }} {{ formatCount(grant.votesAccept) }}</view>
-                <view class="stat-chip reject">{{ t("votesAgainst") }} {{ formatCount(grant.votesReject) }}</view>
-             </view>
-             
-             <view class="mt-4 flex gap-2">
-                 <NeoButton
-                   size="sm"
-                   variant="secondary"
-                   :disabled="!grant.discussionUrl"
-                   @click="copyLink(grant.discussionUrl)"
-                 >
-                   {{ grant.discussionUrl ? t("discussionLink") : t("noDiscussion") }}
-                 </NeoButton>
-             </view>
-        </NeoCard>
+          <view class="section-title-glass">{{ t("voting") }}</view>
+          <view class="proposal-stats">
+            <view class="stat-chip accept">{{ t("votesFor") }} {{ formatCount(grant.votesAccept) }}</view>
+            <view class="stat-chip reject">{{ t("votesAgainst") }} {{ formatCount(grant.votesReject) }}</view>
+          </view>
 
+          <view class="mt-4 flex gap-2">
+            <NeoButton
+              size="sm"
+              variant="secondary"
+              :disabled="!grant.discussionUrl"
+              @click="copyLink(grant.discussionUrl)"
+            >
+              {{ grant.discussionUrl ? t("discussionLink") : t("noDiscussion") }}
+            </NeoButton>
+          </view>
+        </NeoCard>
       </view>
     </view>
   </ResponsiveLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import { useI18n } from "@/composables/useI18n";
 import { ResponsiveLayout, NeoButton, NeoCard } from "@shared/components";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import type { GrantDetail } from "@/types";
+import type { UniAppGlobals } from "@shared/types/globals";
 
 const { t, locale } = useI18n();
 const id = ref("");
 const loading = ref(true);
 const fetchError = ref(false);
-const grant = ref<any>(null);
-const statusMessage = ref("");
+const grant = ref<GrantDetail | null>(null);
+const { status, setStatus: showStatus, clearStatus } = useStatusMessage();
 
-const isLocalPreview =
-  typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
+const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
 const LOCAL_PROPOSAL_DETAIL_MOCK = {
   items: [
     {
@@ -130,44 +129,31 @@ const parseResponseData = (payload: unknown) => {
   return payload;
 };
 
-interface GrantDetail {
-  id: string;
-  title: string;
-  description: string;
-  proposer: string;
-  state: string;
-  votesAccept: number;
-  votesReject: number;
-  discussionUrl: string;
-  createdAt: string;
-  onchainId: number | null;
-}
+onLoad((options: Record<string, string> | undefined) => {
+  if (options && options.id) {
+    id.value = options.id;
 
-onLoad((options:any) => {
-    if (options && options.id) {
-        id.value = options.id;
-        
-        // Try to get from storage first to avoid proxy issues or delay
-        try {
-            const stored = uni.getStorageSync('current_grant_detail');
-            if (stored && String(stored.id) === String(options.id)) {
-                grant.value = stored;
-                loading.value = false;
-                return;
-            }
-        } catch(e) {
-            // Storage read error - silent fail
-        }
-
-        fetchGrantDetail(options.id);
-    } else {
-        fetchError.value = true;
+    // Try to get from storage first to avoid proxy issues or delay
+    try {
+      const stored = uni.getStorageSync("current_grant_detail");
+      if (stored && String(stored.id) === String(options.id)) {
+        grant.value = stored;
         loading.value = false;
+        return;
+      }
+    } catch (_e: unknown) {
+      // Storage read error - silent fail
     }
+
+    fetchGrantDetail(options.id);
+  } else {
+    fetchError.value = true;
+    loading.value = false;
+  }
 });
 
 function goBack() {
-    uni.navigateBack();
+  uni.navigateBack();
 }
 
 function decodeBase64(str: string) {
@@ -186,19 +172,20 @@ async function fetchGrantDetail(proposalId: string) {
   loading.value = true;
   fetchError.value = false;
   try {
-    let res: any = null;
+    let res: Record<string, unknown> | null = null;
 
     if (isLocalPreview) {
       const mockPayload = LOCAL_PROPOSAL_DETAIL_MOCK;
-      if (Array.isArray((mockPayload as any).items)) {
-        res = (mockPayload as any).items.find((item: any) =>
-          String(item.offchain_id || item.id || "") === String(proposalId),
-        ) || null;
+      if (Array.isArray(mockPayload.items)) {
+        res =
+          (mockPayload.items.find((item) => String(item.offchain_id || "") === String(proposalId)) as
+            | Record<string, unknown>
+            | undefined) || null;
       }
     }
 
     if (!res) {
-      res = await new Promise<any>((resolve, reject) => {
+      res = await new Promise<Record<string, unknown> | null>((resolve, reject) => {
         uni.request({
           url: `/api/grantshares/proposal?id=${proposalId}`,
           success: (r) => resolve(parseResponseData(r.data)),
@@ -208,27 +195,27 @@ async function fetchGrantDetail(proposalId: string) {
     }
 
     if (res) {
-        // Adapt response fields - assuming similar mapping to list but single object
-        // Note: The API might return the object directly or wrapped.
-        // Based on proxy implementation: `return res.json(data)`.
-        const item = res;
-        
-        grant.value = {
-            id: String(item.offchain_id || item.id || ""),
-            title: decodeBase64(item.title || ""),
-            description: decodeBase64(item.description || ""), 
-            proposer: String(item.proposer || item.proposer_address || item.proposerAddress || ""),
-            state: normalizeState(item.state || ""),
-            votesAccept: Number(item.votes_amount_accept || item.votesAmountAccept || 0),
-            votesReject: Number(item.votes_amount_reject || item.votesAmountReject || 0),
-            discussionUrl: String(item.discussion_url || item.discussionUrl || ""),
-            createdAt: String(item.offchain_creation_timestamp || item.offchainCreationTimestamp || ""),
-            onchainId: item.onchain_id ?? item.onchainId ?? null,
-        };
+      // Adapt response fields - assuming similar mapping to list but single object
+      // Note: The API might return the object directly or wrapped.
+      // Based on proxy implementation: `return res.json(data)`.
+      const item = res;
+
+      grant.value = {
+        id: String(item.offchain_id || item.id || ""),
+        title: decodeBase64(item.title || ""),
+        description: decodeBase64(item.description || ""),
+        proposer: String(item.proposer || item.proposer_address || item.proposerAddress || ""),
+        state: normalizeState(item.state || ""),
+        votesAccept: Number(item.votes_amount_accept || item.votesAmountAccept || 0),
+        votesReject: Number(item.votes_amount_reject || item.votesAmountReject || 0),
+        discussionUrl: String(item.discussion_url || item.discussionUrl || ""),
+        createdAt: String(item.offchain_creation_timestamp || item.offchainCreationTimestamp || ""),
+        onchainId: item.onchain_id ?? item.onchainId ?? null,
+      };
     } else {
-        fetchError.value = true;
+      fetchError.value = true;
     }
-  } catch (e) {
+  } catch (e: unknown) {
     fetchError.value = true;
   } finally {
     loading.value = false;
@@ -248,8 +235,8 @@ function formatDate(dateStr: string): string {
     month: "long",
     day: "numeric",
     year: "numeric",
-    hour: '2-digit',
-    minute: '2-digit'
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -267,23 +254,20 @@ function getStatusLabel(state: string): string {
   return statusMap[normalizeState(state)] || state;
 }
 
-function showStatus(_message: string) { // Simplified
-    // could implement toast
-}
-
 function copyLink(url: string) {
   if (!url) return;
-  const uniApi = (globalThis as any)?.uni;
+  const uniApi = (globalThis as unknown as UniAppGlobals)?.uni as
+    | Record<string, (...args: unknown[]) => void>
+    | undefined;
   if (uniApi?.setClipboardData) {
     uniApi.setClipboardData({
       data: url,
-      success: () => showStatus(t("linkCopied")),
-      fail: () => showStatus(t("copyFailed")),
+      success: () => showStatus(t("linkCopied"), "success"),
+      fail: () => showStatus(t("copyFailed"), "error"),
     });
     return;
   }
 }
-
 </script>
 
 <style lang="scss" scoped>
@@ -299,14 +283,14 @@ function copyLink(url: string) {
   --eco-text: #e5f8ee;
   --eco-text-muted: #9cc7b3;
   --eco-accent: #34d399;
-  
+
   --eco-chip-accept-bg: rgba(16, 185, 129, 0.2);
   --eco-chip-accept-text: #34d399;
   --eco-chip-accept-border: rgba(16, 185, 129, 0.4);
   --eco-chip-reject-bg: rgba(239, 68, 68, 0.2);
   --eco-chip-reject-text: #f87171;
   --eco-chip-reject-border: rgba(239, 68, 68, 0.4);
-  
+
   --eco-badge-review-bg: rgba(59, 130, 246, 0.2);
   --eco-badge-review-text: #60a5fa;
 
@@ -316,9 +300,35 @@ function copyLink(url: string) {
   /* Simplified palette for brevity */
 }
 
+:global(.theme-light .theme-grant-share),
+:global([data-theme="light"] .theme-grant-share) {
+  --eco-bg: #ecf3ed;
+  --eco-bg-pattern: rgba(52, 211, 153, 0.2);
+  --eco-card-bg: #ffffff;
+  --eco-card-border: #e5e7eb;
+  --eco-card-accent-border: #d1fae5;
+  --eco-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --eco-text: #1f2937;
+  --eco-text-muted: #6b7280;
+  --eco-accent: #34d399;
+
+  --eco-chip-accept-bg: #ecfdf5;
+  --eco-chip-accept-text: #059669;
+  --eco-chip-accept-border: #a7f3d0;
+  --eco-chip-reject-bg: #fef2f2;
+  --eco-chip-reject-text: #dc2626;
+  --eco-chip-reject-border: #fecaca;
+
+  --eco-badge-review-bg: #dbeafe;
+  --eco-badge-review-text: #2563eb;
+
+  --eco-meta-bg: #f3f4f6;
+  --eco-meta-text: #6b7280;
+}
+
 /* Ensure global page bg */
 :global(page) {
-    background: #0f1c15;
+  background: var(--eco-bg);
 }
 
 .app-container {
@@ -326,37 +336,37 @@ function copyLink(url: string) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #0f1c15; /* Fallback */
+  background-color: var(--eco-bg);
   min-height: 100vh;
 }
 
 .grant-title-glass {
   font-weight: 700;
   font-size: 20px;
-  color: #e5f8ee;
+  color: var(--eco-text);
 }
 .grant-creator-glass {
-    color: #9cc7b3;
-    font-size: 12px;
+  color: var(--eco-text-muted);
+  font-size: 12px;
 }
 .section-title-glass {
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 12px;
-    margin-bottom: 12px;
-    color: #9cc7b3;
-    border-left: 3px solid #34d399;
-    padding-left: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin-bottom: 12px;
+  color: var(--eco-text-muted);
+  border-left: 3px solid var(--eco-accent);
+  padding-left: 8px;
 }
 .desc-text {
-    color: #e5f8ee;
-    font-size: 14px;
-    line-height: 1.6;
+  color: var(--eco-text);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .meta-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>

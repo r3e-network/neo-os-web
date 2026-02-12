@@ -4,13 +4,14 @@
     class="neo-modal"
     role="dialog"
     aria-modal="true"
-    :aria-label="title || 'Dialog'"
+    :aria-labelledby="title ? `${modalId}-title` : undefined"
+    :aria-label="title ? undefined : 'Dialog'"
     @click.self="closeable && $emit('close')"
     @keydown.escape="closeable && $emit('close')"
   >
     <view ref="contentRef" class="neo-modal__content" :class="`neo-modal--${variant}`">
       <view v-if="title" class="neo-modal__header">
-        <text class="neo-modal__title">{{ title }}</text>
+        <text :id="`${modalId}-title`" class="neo-modal__title">{{ title }}</text>
         <view
           v-if="closeable"
           class="neo-modal__close"
@@ -54,6 +55,9 @@ defineEmits<{
 
 const contentRef = ref<HTMLElement | null>(null);
 let previouslyFocused: HTMLElement | null = null;
+
+let modalCounter = 0;
+const modalId = `neo-modal-${++modalCounter}`;
 
 watch(
   () => props.visible,
@@ -175,6 +179,20 @@ onUnmounted(() => {
   to {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-modal {
+    animation: none;
+
+    &__content {
+      animation: none;
+    }
+
+    &__close {
+      transition: none;
+    }
   }
 }
 </style>

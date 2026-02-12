@@ -3,6 +3,8 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { requireNeoChain } from "@shared/utils/chain";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export type VoteChoice = 1 | 2 | 3; // 1=for, 2=against, 3=abstain
 
@@ -19,7 +21,7 @@ export function useMasqueradeVoting(APP_ID: string) {
   
   const VOTE_FEE = 0.01;
   const proposalId = ref("");
-  const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
+  const { status, setStatus, clearStatus } = useStatusMessage();
   const myVotes = ref<Vote[]>([]);
 
   const canVote = computed(() => Boolean(proposalId.value));
@@ -39,7 +41,7 @@ export function useMasqueradeVoting(APP_ID: string) {
     t: Function
   ): Promise<boolean> => {
     if (!canVote.value || !selectedMaskId) return false;
-    status.value = null;
+    clearStatus();
     
     try {
       if (!address.value) {
@@ -73,10 +75,10 @@ export function useMasqueradeVoting(APP_ID: string) {
         timestamp: new Date().toISOString(),
       });
 
-      status.value = { msg: t("voteCast"), type: "success" };
+      setStatus(t("voteCast"), "success");
       return true;
-    } catch (e: any) {
-      status.value = { msg: e?.message || t("error"), type: "error" };
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
       return false;
     }
   };

@@ -11,7 +11,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ref, computed } from "vue";
+import { ref } from "vue";
+import type { Memorial } from "@/types";
 
 // ============================================================
 // MOCKS - Using shared test utilities
@@ -130,26 +131,6 @@ describe("Offering System", () => {
 // ============================================================
 
 describe("Memorial Data", () => {
-  interface Memorial {
-    id: number;
-    name: string;
-    photoHash: string;
-    birthYear: number;
-    deathYear: number;
-    relationship: string;
-    biography: string;
-    obituary: string;
-    hasRecentTribute: boolean;
-    offerings: {
-      incense: number;
-      candle: number;
-      flower: number;
-      fruit: number;
-      wine: number;
-      feast: number;
-    };
-  }
-
   describe("Memorial Structure", () => {
     it("should have required memorial fields", () => {
       const memorial: Memorial = {
@@ -468,7 +449,7 @@ describe("Error Handling", () => {
     const invokeMock = vi.fn().mockRejectedValue(new Error("Contract reverted"));
 
     await expect(invokeMock({ scriptHash: "0x123", operation: "createMemorial", args: [] })).rejects.toThrow(
-      "Contract reverted",
+      "Contract reverted"
     );
   });
 });
@@ -507,7 +488,7 @@ describe("Integration: Full Tribute Flow", () => {
 
 describe("Edge Cases", () => {
   it("should handle empty memorial list", () => {
-    const memorials: any[] = [];
+    const memorials: Record<string, unknown>[] = [];
     expect(memorials).toHaveLength(0);
   });
 

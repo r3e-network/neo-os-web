@@ -16,7 +16,7 @@ vi.mock("@neo/uniapp-sdk", () => ({
 
 // Mock i18n
 vi.mock("@shared/utils/i18n", () => ({
-  createT: (translations: any) => (key: string) => translations[key]?.en || key,
+  createT: (translations: Record<string, Record<string, string>>) => (key: string) => translations[key]?.en || key,
 }));
 
 import { usePayments } from "@neo/uniapp-sdk";
@@ -29,7 +29,7 @@ describe("Doomsday-Clock MiniApp", () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     const payments = usePayments("miniapp-doomsday-clock");
-    payGAS = payments.payGAS as any;
+    payGAS = payments.payGAS as unknown as ReturnType<typeof vi.fn>;
     isLoading = payments.isLoading;
   });
 
@@ -154,8 +154,8 @@ describe("Doomsday-Clock MiniApp", () => {
 
       try {
         await payGAS(stakeAmount.value, `stake:${selectedOutcome.value}`);
-      } catch (e: any) {
-        status.value = { msg: e?.message || "Error", type: "error" };
+      } catch (e: unknown) {
+        status.value = { msg: e instanceof Error ? e.message : "Error", type: "error" };
       }
 
       expect(status.value?.type).toBe("error");

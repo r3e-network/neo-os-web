@@ -7,6 +7,11 @@
     :fireworks-active="status?.type === 'success'"
     class="theme-daily-checkin"
   >
+    <!-- Desktop Sidebar -->
+    <template #desktop-sidebar>
+      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
+    </template>
+
     <!-- Main content: Timer + Check-in Button -->
     <template #content>
       <NeoButton
@@ -15,7 +20,7 @@
         block
         :disabled="!canCheckIn || isLoading"
         :loading="isLoading"
-        @click="doCheckIn"
+        @click="doCheckIn(canCheckIn)"
         class="checkin-btn"
       >
         <view class="btn-content">
@@ -51,30 +56,37 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { formatGas } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
-import { MiniAppTemplate, NeoButton, type StatItem } from "@shared/components";
+import { MiniAppTemplate, NeoButton, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CountdownHero from "./components/CountdownHero.vue";
 import StreakDisplay from "./components/StreakDisplay.vue";
 import RewardProgress from "./components/RewardProgress.vue";
 import UserRewards from "./components/UserRewards.vue";
 import StatsTab from "./components/StatsTab.vue";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useCheckinContract } from "@/composables/useCheckinContract";
 
 const { t } = useI18n();
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-const APP_ID = "miniapp-dailycheckin";
-const CHECK_IN_FEE = 0.001;
-const MS_PER_DAY = 24 * 60 * 60 * 1000; // milliseconds per day
-
-const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
-const { processPayment, isLoading } = usePaymentFlow(APP_ID);
-const { list: listEvents } = useEvents();
+const {
+  currentStreak,
+  highestStreak,
+  lastCheckInDay,
+  unclaimedRewards,
+  totalClaimed,
+  totalUserCheckins,
+  status,
+  isClaiming,
+  isLoading,
+  globalStats,
+  checkinHistory,
+  sidebarItems,
+  userStats,
+  doCheckIn,
+  claimRewards,
+  loadAll,
+} = useCheckinContract(t);
 
 // Template configuration
 const templateConfig: MiniAppTemplateConfig = {
@@ -107,31 +119,6 @@ const appState = computed(() => ({
   totalUserCheckins: totalUserCheckins.value,
 }));
 
-// User state
-const currentStreak = ref(0);
-const highestStreak = ref(0);
-const lastCheckInDay = ref(0); // UTC day number (not timestamp)
-const unclaimedRewards = ref(0);
-const totalClaimed = ref(0);
-const totalUserCheckins = ref(0);
-const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
-const isClaiming = ref(false);
-const contractAddress = ref<string | null>(null);
-
-// Global stats
-const globalStats = ref({
-  totalUsers: 0,
-  totalCheckins: 0,
-  totalRewarded: 0,
-});
-
-// History
-const checkinHistory = ref<{ streak: number; time: string; reward: number }[]>([]);
-
-// Countdown
-const now = ref(Date.now());
-let countdownInterval: ReturnType<typeof setInterval> | null = null;
-
 // Reward structure: Day 7 = 1 GAS, Day 14+ = +1.5 GAS every 7 days (cumulative)
 const milestones = [
   { day: 7, reward: 1, cumulative: 1 },
@@ -140,9 +127,12 @@ const milestones = [
   { day: 28, reward: 1.5, cumulative: 5.5 },
 ];
 
+// Countdown
+const now = ref(Date.now());
+let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
 // Global UTC countdown (same for all users)
 const currentUtcDay = computed(() => Math.floor(now.value / MS_PER_DAY));
-
 const nextUtcMidnight = computed(() => (currentUtcDay.value + 1) * MS_PER_DAY);
 
 const canCheckIn = computed(() => {
@@ -154,18 +144,13 @@ const remainingMs = computed(() => {
   return Math.max(0, nextUtcMidnight.value - now.value);
 });
 
-// Always calculate countdown progress (circle fills as time passes toward next UTC midnight)
 const countdownProgress = computed(() => {
   const circumference = 2 * Math.PI * 99; // 622
-  // Calculate how much of the day has passed (0 = start of day, 1 = end of day)
   const elapsed = MS_PER_DAY - remainingMs.value;
   const elapsedRatio = elapsed / MS_PER_DAY;
-  // Stroke offset: 0 = full circle visible, circumference = circle hidden
-  // We want circle to fill up as time passes, so offset decreases as time passes
   return circumference * (1 - elapsedRatio);
 });
 
-// Always calculate countdown time to next UTC midnight
 const countdownLabel = computed(() => {
   const totalSeconds = Math.floor(remainingMs.value / 1000);
   const hours = Math.floor(totalSeconds / 3600);
@@ -182,180 +167,12 @@ const utcTimeDisplay = computed(() => {
   return `${h}:${m}:${s}`;
 });
 
-const userStats = computed<StatItem[]>(() => [
-  { label: t("currentStreak"), value: `${currentStreak.value} ${t("days")}`, variant: "accent" },
-  { label: t("highestStreak"), value: `${highestStreak.value} ${t("days")}`, variant: "success" },
-  { label: t("totalUserCheckins"), value: totalUserCheckins.value },
-  { label: t("totalClaimed"), value: `${formatGas(totalClaimed.value)} GAS` },
-  { label: t("unclaimed"), value: `${formatGas(unclaimedRewards.value)} GAS` },
-]);
-
-const ensureContractAddress = async () => {
-  if (!requireNeoChain(chainType, t)) {
-    throw new Error(t("wrongChain"));
-  }
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  if (!contractAddress.value) throw new Error(t("contractUnavailable"));
-  return contractAddress.value;
-};
-
-const waitForEvent = async (txid: string, eventName: string): Promise<{ event: any; pending: boolean }> => {
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
-    const match = res.events.find((evt) => evt.tx_hash === txid);
-    if (match) return { event: match, pending: false };
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-  }
-  // Return pending status instead of null - transaction may still succeed
-  return { event: null, pending: true };
-};
-
-const loadUserStats = async () => {
-  if (!address.value) return;
-  try {
-    const contract = await ensureContractAddress();
-    const res = await invokeRead({
-      contractHash: contract,
-      operation: "GetUserStats",
-      args: [{ type: "Hash160", value: address.value }],
-    });
-    const data = parseInvokeResult(res);
-    if (Array.isArray(data)) {
-      currentStreak.value = Number(data[0] ?? 0);
-      highestStreak.value = Number(data[1] ?? 0);
-      lastCheckInDay.value = Number(data[2] ?? 0);
-      unclaimedRewards.value = Number(data[3] ?? 0);
-      totalClaimed.value = Number(data[4] ?? 0);
-      totalUserCheckins.value = Number(data[5] ?? 0);
-    }
-  } catch {}
-};
-
-const loadGlobalStats = async () => {
-  try {
-    const contract = await ensureContractAddress();
-    const res = await invokeRead({
-      contractHash: contract,
-      operation: "GetPlatformStats",
-      args: [],
-    });
-    const data = parseInvokeResult(res);
-    if (Array.isArray(data)) {
-      globalStats.value = {
-        totalUsers: Number(data[0] ?? 0),
-        totalCheckins: Number(data[1] ?? 0),
-        totalRewarded: Number(data[2] ?? 0),
-      };
-    }
-  } catch {}
-};
-
-const loadHistory = async () => {
-  if (!address.value) return; // Guard against null address
-  try {
-    const res = await listEvents({ app_id: APP_ID, event_name: "CheckedIn", limit: 10 });
-    const currentAddress = address.value; // Capture current address for comparison
-    checkinHistory.value = res.events
-      .filter((evt) => {
-        const values = Array.isArray((evt as any)?.state) ? (evt as any).state.map(parseStackItem) : [];
-        return String(values[0] ?? "") === currentAddress;
-      })
-      .map((evt) => {
-        const values = Array.isArray((evt as any)?.state) ? (evt as any).state.map(parseStackItem) : [];
-        return {
-          streak: Number(values[1] ?? 0),
-          time: new Date(evt.created_at || Date.now()).toLocaleString(),
-          reward: Number(values[2] ?? 0),
-        };
-      });
-  } catch {}
-};
-
-const doCheckIn = async () => {
-  if (!canCheckIn.value || isLoading.value) return;
-  status.value = null;
-
-  try {
-    if (!address.value) {
-      await connect();
-    }
-    if (!address.value) throw new Error(t("connectWallet"));
-
-    const contract = await ensureContractAddress();
-    const { receiptId, invoke } = await processPayment(String(CHECK_IN_FEE), "checkin");
-    if (!receiptId) throw new Error(t("receiptMissing"));
-
-    const tx = await invoke(
-      "checkIn",
-      [
-        { type: "Hash160", value: address.value },
-        { type: "Integer", value: String(receiptId) },
-      ],
-      contract
-    );
-
-    const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
-    );
-    const result = txid ? await waitForEvent(txid, "CheckedIn") : { event: null, pending: true };
-
-    if (result.pending) {
-      // Transaction submitted but event not yet indexed - show pending status
-      status.value = { msg: t("pendingConfirmation", { action: t("checkinSuccess") }), type: "success" };
-    } else {
-      status.value = { msg: t("checkinSuccess"), type: "success" };
-    }
-
-    await loadUserStats();
-    await loadGlobalStats();
-    await loadHistory();
-  } catch (e: any) {
-    status.value = { msg: e?.message || t("error"), type: "error" };
-  }
-};
-
-const claimRewards = async () => {
-  if (unclaimedRewards.value <= 0 || isClaiming.value) return;
-  isClaiming.value = true;
-  status.value = null;
-
-  try {
-    if (!address.value) throw new Error(t("connectWallet"));
-
-    const contract = await ensureContractAddress();
-    const { invoke } = await processPayment("0", "claim");
-    const tx = await invoke("claimRewards", [{ type: "Hash160", value: address.value }], contract);
-
-    const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
-    );
-    const result = txid ? await waitForEvent(txid, "RewardsClaimed") : { event: null, pending: true };
-
-    if (result.pending) {
-      status.value = { msg: t("pendingConfirmation", { action: t("claimSuccess") }), type: "success" };
-    } else {
-      status.value = { msg: t("claimSuccess"), type: "success" };
-    }
-
-    await loadUserStats();
-    await loadGlobalStats();
-  } catch (e: any) {
-    status.value = { msg: e?.message || t("error"), type: "error" };
-  } finally {
-    isClaiming.value = false;
-  }
-};
-
 onMounted(async () => {
   countdownInterval = setInterval(() => {
     now.value = Date.now();
   }, 1000);
 
-  await loadUserStats();
-  await loadGlobalStats();
-  await loadHistory();
+  await loadAll();
 });
 
 onUnmounted(() => {
@@ -405,8 +222,8 @@ onUnmounted(() => {
 /* Gamified/Sunrise Card Overrides */
 :deep(.neo-card) {
   background: var(--sunrise-card-bg) !important;
-  border: 2px solid var(--sunrise-card-border) !important; /* Orange-200 */
-  border-bottom: 6px solid var(--sunrise-card-border-strong) !important; /* Orange-300 */
+  border: 2px solid var(--sunrise-card-border) !important;
+  border-bottom: 6px solid var(--sunrise-card-border-strong) !important;
   border-radius: 24px !important;
   box-shadow: var(--sunrise-card-shadow) !important;
   color: var(--sunrise-text) !important;
@@ -415,8 +232,8 @@ onUnmounted(() => {
 
   &.variant-erobo-neo {
     background: var(--sunrise-card-neo-bg) !important;
-    border-color: var(--sunrise-card-neo-border) !important; /* Yellow-200 */
-    border-bottom-color: var(--sunrise-card-neo-border-strong) !important; /* Yellow-300 */
+    border-color: var(--sunrise-card-neo-border) !important;
+    border-bottom-color: var(--sunrise-card-neo-border-strong) !important;
   }
 
   &.variant-danger {
@@ -451,7 +268,7 @@ onUnmounted(() => {
   &.variant-primary {
     background: var(--sunrise-button-gradient) !important;
     border: none !important;
-    border-bottom: 4px solid var(--sunrise-button-border-strong) !important; /* Darker orange */
+    border-bottom: 4px solid var(--sunrise-button-border-strong) !important;
     color: var(--sunrise-button-text) !important;
     text-shadow: var(--sunrise-button-text-shadow);
   }
@@ -483,23 +300,6 @@ onUnmounted(() => {
   font-size: 24px;
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

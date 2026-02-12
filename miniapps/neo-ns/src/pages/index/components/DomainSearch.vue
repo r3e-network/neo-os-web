@@ -1,11 +1,6 @@
 <template>
   <view class="mb-4">
-    <NeoInput
-      v-model="localQuery"
-      :placeholder="t('searchPlaceholder')"
-      suffix=".neo"
-      @input="onSearch"
-    />
+    <NeoInput v-model="localQuery" :placeholder="t('searchPlaceholder')" suffix=".neo" @input="onSearch" />
   </view>
 
   <NeoCard
@@ -40,7 +35,7 @@
     <view v-else class="result-body taken-body">
       <view class="owner-info">
         <text class="owner-label">{{ t("owner") }}</text>
-        <text class="owner-value">{{ shortenAddress(searchResult.owner!) }}</text>
+        <text class="owner-value">{{ formatAddress(searchResult.owner!) }}</text>
       </view>
     </view>
   </NeoCard>
@@ -49,12 +44,8 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
-
-interface SearchResult {
-  available: boolean;
-  price?: number;
-  owner?: string;
-}
+import { formatAddress } from "@shared/utils/format";
+import type { SearchResult } from "@/types";
 
 const props = defineProps<{
   t: (key: string) => string;
@@ -84,11 +75,6 @@ watch(localQuery, (newVal) => {
 
 const onSearch = () => {
   emit("search");
-};
-
-const shortenAddress = (addr: string): string => {
-  if (!addr || addr.length < 10) return addr;
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
 };
 </script>
 

@@ -3,9 +3,7 @@
     <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -19,7 +17,7 @@
           <view class="obituary-banner" v-if="recentObituaries.length">
             <text class="banner-title">{{ t("obituaries") }}</text>
             <scroll-view scroll-x class="banner-scroll">
-              <view v-for="ob in recentObituaries" :key="ob.id" class="obituary-item" @click="openMemorial(ob.id)">
+              <view v-for="ob in recentObituaries" :key="ob.id" class="obituary-item" role="button" tabindex="0" :aria-label="ob.name" @click="openMemorial(ob.id)">
                 <text class="name">{{ ob.name }}</text>
                 <text class="text">{{ ob.text }}</text>
               </view>
@@ -34,6 +32,12 @@
               @click="openMemorial(memorial.id)"
             />
           </view>
+        </view>
+      </template>
+
+      <template #operation>
+        <view class="cemetery-bg">
+          <CreateMemorialForm @created="onMemorialCreated" />
         </view>
       </template>
 
@@ -82,22 +86,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { readQueryParam } from "@shared/utils/url";
-import { MiniAppTemplate } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import TombstoneCard from "./components/TombstoneCard.vue";
 import CreateMemorialForm from "./components/CreateMemorialForm.vue";
 import MemorialDetailModal from "./components/MemorialDetailModal.vue";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useMemorialActions } from "@/composables/useMemorialActions";
 
 const { t } = useI18n();
 
+const {
+  memorials,
+  visitedMemorials,
+  recentObituaries,
+  selectedMemorial,
+  shareStatus,
+  loadVisitedMemorials,
+  openMemorial,
+  closeMemorial,
+  shareMemorial,
+  checkUrlForMemorial,
+  onMemorialCreated: handleMemorialCreated,
+  onTributePaid,
+  cleanupTimers,
+} = useMemorialActions();
+
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "memorials", labelKey: "memorials", icon: "🕯️", default: true },
     { key: "tributes", labelKey: "myTributes", icon: "🙏" },
@@ -125,31 +142,13 @@ const appState = computed(() => ({
   visitedCount: visitedMemorials.value.length,
 }));
 
+const sidebarItems = computed(() => [
+  { label: t("memorials"), value: memorials.value.length },
+  { label: t("myTributes"), value: visitedMemorials.value.length },
+  { label: "Obituaries", value: recentObituaries.value.length },
+]);
+
 const activeTab = ref("memorials");
-
-const APP_ID = "miniapp-memorial-shrine";
-const { address, connect, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
-const { isLoading } = usePaymentFlow(APP_ID);
-
-interface Memorial {
-  id: number;
-  name: string;
-  photoHash: string;
-  birthYear: number;
-  deathYear: number;
-  relationship: string;
-  biography: string;
-  obituary: string;
-  hasRecentTribute: boolean;
-  offerings: {
-    incense: number;
-    candle: number;
-    flower: number;
-    fruit: number;
-    wine: number;
-    feast: number;
-  };
-}
 
 const offerings = [
   { type: 1, nameKey: "incense", icon: "🕯️", cost: 0.01 },
@@ -160,162 +159,14 @@ const offerings = [
   { type: 6, nameKey: "feast", icon: "🍱", cost: 0.5 },
 ];
 
-const memorials = ref<Memorial[]>([]);
-const visitedMemorials = ref<Memorial[]>([]);
-const recentObituaries = ref<{ id: number; name: string; text: string }[]>([]);
-const selectedMemorial = ref<Memorial | null>(null);
-const contractAddress = ref<string | null>(null);
-const shareStatus = ref<string | null>(null);
-
-const ensureContract = async () => {
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  return contractAddress.value;
-};
-
-const loadMemorials = async () => {
-  // Demo data - in production, load from contract
-  memorials.value = [
-    {
-      id: 1,
-      name: "张德明",
-      photoHash: "",
-      birthYear: 1938,
-      deathYear: 2024,
-      relationship: "父亲",
-      biography: "一生勤劳朴实，热爱家庭。",
-      obituary: "",
-      hasRecentTribute: true,
-      offerings: { incense: 128, candle: 45, flower: 56, fruit: 34, wine: 12, feast: 3 },
-    },
-    {
-      id: 2,
-      name: "李淑芬",
-      photoHash: "",
-      birthYear: 1942,
-      deathYear: 2023,
-      relationship: "母亲",
-      biography: "慈母一生为家庭奉献。",
-      obituary: "",
-      hasRecentTribute: true,
-      offerings: { incense: 89, candle: 32, flower: 67, fruit: 21, wine: 8, feast: 2 },
-    },
-    {
-      id: 3,
-      name: "王建国",
-      photoHash: "",
-      birthYear: 1950,
-      deathYear: 2022,
-      relationship: "爷爷",
-      biography: "老革命，一生正直。",
-      obituary: "",
-      hasRecentTribute: false,
-      offerings: { incense: 56, candle: 23, flower: 34, fruit: 12, wine: 5, feast: 1 },
-    },
-  ];
-
-  recentObituaries.value = [
-    { id: 1, name: "张老先生", text: "张老先生于2024年1月驾鹤西去" },
-    { id: 2, name: "李奶奶", text: "慈母李奶奶安详离世" },
-  ];
-};
-
-const loadVisitedMemorials = async () => {
-  // Demo data
-  visitedMemorials.value = memorials.value.slice(0, 2);
-};
-
-const openMemorial = (id: number) => {
-  const memorial = memorials.value.find((m) => m.id === id);
-  if (memorial) {
-    selectedMemorial.value = memorial;
-    // Update URL with memorial ID
-    updateUrlWithMemorial(id);
-  }
-};
-
-const closeMemorial = () => {
-  selectedMemorial.value = null;
-  // Clear URL param
-  if (typeof window !== "undefined") {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("id");
-    window.history.replaceState({}, "", url.toString());
-  }
-};
-
-const updateUrlWithMemorial = (id: number) => {
-  if (typeof window !== "undefined") {
-    const url = new URL(window.location.href);
-    url.searchParams.set("id", String(id));
-    window.history.replaceState({}, "", url.toString());
-  }
-};
-
-const shareMemorial = (memorial?: Memorial) => {
-  const target = memorial || selectedMemorial.value;
-  if (!target || typeof window === "undefined") return;
-
-  const shareUrl = `${window.location.origin}${window.location.pathname}?id=${target.id}`;
-
-  // Try native share API first
-  if (navigator.share) {
-    navigator
-      .share({
-        title: `${target.name} - ${t("title")}`,
-        text: `${t("tagline")} | ${target.name} (${target.birthYear}-${target.deathYear})`,
-        url: shareUrl,
-      })
-      .catch(() => {
-        // Fallback to clipboard
-        copyToClipboard(shareUrl);
-      });
-  } else {
-    copyToClipboard(shareUrl);
-  }
-};
-
-const copyToClipboard = (text: string) => {
-  uni.setClipboardData({
-    data: text,
-    success: () => {
-      shareStatus.value = t("linkCopied");
-      setTimeout(() => {
-        shareStatus.value = null;
-      }, 3000);
-    },
-  });
-};
-
-const checkUrlForMemorial = async () => {
-  const idParam = readQueryParam("id");
-  if (idParam) {
-    const id = parseInt(idParam, 10);
-    if (!isNaN(id)) {
-      // Wait for memorials to load
-      await loadMemorials();
-      const memorial = memorials.value.find((m) => m.id === id);
-      if (memorial) {
-        selectedMemorial.value = memorial;
-      }
-    }
-  }
-};
-
-const onMemorialCreated = async (data: any) => {
-  // Refresh memorials list
-  await loadMemorials();
+const onMemorialCreated = async (data: Record<string, unknown>) => {
+  await handleMemorialCreated(data);
   activeTab.value = "memorials";
 };
 
-const onTributePaid = async (memorialId: number, offeringType: number) => {
-  // Refresh memorial data
-  await loadMemorials();
-  if (selectedMemorial.value?.id === memorialId) {
-    selectedMemorial.value = memorials.value.find((m) => m.id === memorialId) || null;
-  }
-};
+onUnmounted(() => {
+  cleanupTimers();
+});
 
 onMounted(async () => {
   await checkUrlForMemorial();
@@ -326,7 +177,7 @@ onMounted(async () => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
-@import "./memorial-theme.scss";
+@import "./memorial-shrine-theme.scss";
 
 :global(page) {
   background: var(--bg-primary);
@@ -443,23 +294,6 @@ onMounted(async () => {
   color: var(--shrine-muted);
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

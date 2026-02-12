@@ -24,7 +24,7 @@ export function createMockWallet(): Partial<WalletSDK> {
     disconnect: vi.fn(() => {
       mockAddress.value = "";
     }),
-    invokeRead: vi.fn(async ({ contractAddress, operation, args }) => {
+    invokeRead: vi.fn(async ({ scriptHash, operation, args }) => {
       // Mock read contract responses
       if (operation === "GetScratchTicket") {
         return {
@@ -43,9 +43,7 @@ export function createMockWallet(): Partial<WalletSDK> {
         receiptId: "12345",
       };
     }),
-    getContractAddress: vi.fn(
-      async () => "0x0000000000000000000000000000000000000000",
-    ),
+    getContractAddress: vi.fn(async () => "0x0000000000000000000000000000000000000000"),
   };
 }
 
@@ -110,9 +108,7 @@ export function createMockEvents() {
       success: true,
       eventId: "mock-event-id",
     })),
-    list: vi.fn(async (filters?: unknown) => [
-      { id: "1", type: "test", data: {}, timestamp: Date.now() },
-    ]),
+    list: vi.fn(async (filters?: unknown) => [{ id: "1", type: "test", data: {}, timestamp: Date.now() }]),
   };
 }
 

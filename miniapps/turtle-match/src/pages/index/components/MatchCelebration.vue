@@ -34,8 +34,8 @@
       <!-- Coins -->
       <view v-for="i in 10" :key="'c' + i" class="flying-coin">
         <svg viewBox="0 0 100 100" class="holo-coin">
-          <circle cx="50" cy="50" r="45" fill="none" stroke="#fbbf24" stroke-width="2" />
-          <circle cx="50" cy="50" r="35" fill="rgba(251, 191, 36, 0.2)" stroke="#fbbf24" stroke-width="1" />
+          <circle cx="50" cy="50" r="45" fill="none" :stroke="'var(--turtle-accent)'" stroke-width="2" />
+          <circle cx="50" cy="50" r="35" fill="var(--turtle-accent-soft)" :stroke="'var(--turtle-accent)'" stroke-width="1" />
           <path d="M40 35 L60 35 L60 45 L40 65 L60 65" fill="none" stroke="white" stroke-width="5" />
         </svg>
       </view>
@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, watch, onUnmounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { TurtleColor, COLOR_CSS } from "@/shared/composables/useTurtleMatch";
 import TurtleSprite from "./TurtleSprite.vue";
@@ -68,12 +68,22 @@ const formattedReward = computed(() => {
   return gas.toFixed(3);
 });
 
+let completeTimer: ReturnType<typeof setTimeout> | null = null;
+
 watch(() => props.visible, (val) => {
+  if (completeTimer) {
+    clearTimeout(completeTimer);
+    completeTimer = null;
+  }
   if (val) {
-    setTimeout(() => {
+    completeTimer = setTimeout(() => {
       emit("complete");
     }, 2500);
   }
+});
+
+onUnmounted(() => {
+  if (completeTimer) clearTimeout(completeTimer);
 });
 </script>
 
@@ -215,7 +225,7 @@ watch(() => props.visible, (val) => {
   width: 100%;
   height: 100%;
   animation: coin-rotate 1s linear infinite;
-  filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5));
+  filter: drop-shadow(0 0 10px var(--turtle-accent-glow));
 }
 
 @keyframes coin-rotate {

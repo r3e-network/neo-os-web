@@ -1,5 +1,3 @@
-"use client";
-
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 type Theme = "dark" | "light";
@@ -36,14 +34,12 @@ function applyThemeClass(theme: Theme) {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Initialize with stored theme to prevent hydration mismatch
   const [theme, setThemeState] = useState<Theme>("dark");
-  const [, setMounted] = useState(false);
 
   // On mount, read from localStorage and sync
   useEffect(() => {
     const stored = getStoredTheme();
     setThemeState(stored);
     applyThemeClass(stored);
-    setMounted(true);
   }, []);
 
   // Listen for storage changes (cross-tab sync)

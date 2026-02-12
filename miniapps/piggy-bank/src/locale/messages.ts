@@ -48,6 +48,8 @@ export default {
   "settings.missing_config": { en: "Configuration required", zh: "需要补充配置" },
   "settings.issue_alchemy": { en: "RPC API key missing", zh: "缺少 RPC API Key" },
   "settings.issue_contract": { en: "Contract address missing", zh: "缺少合约地址" },
+  "settings.saved": { en: "Settings saved", zh: "设置已保存" },
+  "settings.error": { en: "Settings error", zh: "设置错误" },
 
   "common.confirm": { en: "Confirm", zh: "确认" },
   "common.cancel": { en: "Cancel", zh: "取消" },
@@ -65,7 +67,10 @@ export default {
     en: "ZK Piggy Bank lets you save NEP-17 tokens toward a target and lock them until a chosen date. Zero-knowledge proofs keep balances private until you decide to smash the bank. Connect a Neo N3 wallet and configure your RPC access before use.",
     zh: "零知识存钱罐允许您为目标存入 NEP-17 代币，并锁定至指定日期。零知识证明可在您砸碎存钱罐前隐藏余额。使用前请连接 Neo N3 钱包并配置 RPC。",
   },
-  docStep1: { en: "Connect a Neo N3 wallet and select mainnet or testnet.", zh: "连接 Neo N3 钱包并选择主网或测试网。" },
+  docStep1: {
+    en: "Connect a Neo N3 wallet and select mainnet or testnet.",
+    zh: "连接 Neo N3 钱包并选择主网或测试网。",
+  },
   docStep2: {
     en: "Create a new Piggy Bank with a token, target amount, and unlock date.",
     zh: "创建存钱罐，设置代币、目标金额与解锁日期。",
@@ -86,7 +91,10 @@ export default {
   docFeature3Name: { en: "Time-locked vaults", zh: "时间锁定" },
   docFeature3Desc: { en: "Funds are locked until your chosen unlock date.", zh: "资金在指定日期前无法提取。" },
   docFeature4Name: { en: "Network ready", zh: "网络兼容" },
-  docFeature4Desc: { en: "Works on Neo N3 mainnet/testnet with RPC config.", zh: "支持 Neo N3 主网/测试网并可配置 RPC。" },
+  docFeature4Desc: {
+    en: "Works on Neo N3 mainnet/testnet with RPC config.",
+    zh: "支持 Neo N3 主网/测试网并可配置 RPC。",
+  },
   docFeature5Name: { en: "Local secrets", zh: "本地密钥" },
   docFeature5Desc: { en: "Savings secrets stay on your device for safety.", zh: "存款密钥保存在本地设备以确保安全。" },
   docFeature6Name: { en: "Goal verification", zh: "目标验证" },
@@ -99,5 +107,5 @@ export default {
   wrongChain: { en: "Wrong Network", zh: "网络错误" },
   wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
   switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  error: { en: "Error", zh: "错误" }
+  error: { en: "Error", zh: "错误" },
 };

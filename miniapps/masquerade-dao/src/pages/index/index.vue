@@ -9,12 +9,23 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
+        <view class="app-container">
+          <ProposalList
+            :items="masks"
+            :selectedId="selectedMaskId"
+            :title="t('yourMasks')"
+            :emptyText="t('noMasks')"
+            :t="t"
+            @select="selectedMaskId = $event"
+          />
+        </view>
+      </template>
+
+      <template #operation>
         <view class="app-container">
           <CreateProposal
             v-model="createForm"
@@ -23,15 +34,6 @@
             :isLoading="isCreating"
             :t="t"
             @create="handleCreateMask"
-          />
-
-          <ProposalList
-            :items="masks"
-            :selectedId="selectedMaskId"
-            :title="t('yourMasks')"
-            :emptyText="t('noMasks')"
-            :t="t"
-            @select="selectedMaskId = $event"
           />
         </view>
       </template>
@@ -64,7 +66,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { MiniAppTemplate } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useMasqueradeProposals } from "@/composables/useMasqueradeProposals";
@@ -96,7 +98,7 @@ const { proposalId, status: voteStatus, isLoading: isVoting, canVote, submitVote
 const activeTab = ref("identity");
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "identity", labelKey: "identity", icon: "👤", default: true },
     { key: "vote", labelKey: "vote", icon: "🗳️" },
@@ -122,6 +124,12 @@ const appState = computed(() => ({
   totalMasks: masks.value.length,
   totalProposals: proposals.value.length,
 }));
+
+const sidebarItems = computed(() => [
+  { label: t("yourMasks"), value: masks.value.length },
+  { label: t("activeProposals"), value: proposals.value.length },
+  { label: t("identity"), value: identityHash.value ? identityHash.value.slice(0, 8) + "..." : "--" },
+]);
 
 const combinedStatus = computed(() => maskStatus.value || voteStatus.value || null);
 
@@ -265,10 +273,6 @@ onMounted(() => {
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 .status-msg {
   text-align: center;
@@ -291,19 +295,5 @@ onMounted(() => {
     border: 1px solid var(--mask-error-border);
     color: var(--mask-error-text);
   }
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 </style>

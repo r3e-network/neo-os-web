@@ -27,11 +27,11 @@ export function useHealthScore(gasOk: { value: boolean }) {
   const checklistItems = computed<ChecklistItem[]>(() =>
     checklistBase.map((item) => ({
       id: item.id,
-      title: t(item.titleKey as any),
-      desc: t(item.descKey as any),
+      title: t(item.titleKey),
+      desc: t(item.descKey),
       done: item.id === "gas" ? gasOk.value : checklistState[item.id] === true,
       auto: item.id === "gas",
-    })),
+    }))
   );
 
   const completedChecklistCount = computed(() => checklistItems.value.filter((item) => item.done).length);
@@ -80,7 +80,7 @@ export function useHealthScore(gasOk: { value: boolean }) {
         }
       }
     } catch {
-      // ignore
+      /* Local storage read is non-critical — checklist resets on failure */
     }
   };
 
@@ -88,7 +88,7 @@ export function useHealthScore(gasOk: { value: boolean }) {
     try {
       uni.setStorageSync(checklistStorageKey, JSON.stringify(checklistState));
     } catch {
-      // ignore
+      /* Local storage write is non-critical */
     }
   };
 

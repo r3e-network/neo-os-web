@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onUnmounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { TurtleColor, COLOR_CSS } from "@/shared/composables/useTurtleMatch";
 import TurtleSprite from "./TurtleSprite.vue";
@@ -58,20 +58,35 @@ const showTurtle = ref(false);
 
 const turtleColorHex = computed(() => COLOR_CSS[props.turtleColor]);
 
+let openingTimer: ReturnType<typeof setTimeout> | null = null;
+let turtleTimer: ReturnType<typeof setTimeout> | null = null;
+let completeTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearAllTimers() {
+  if (openingTimer) { clearTimeout(openingTimer); openingTimer = null; }
+  if (turtleTimer) { clearTimeout(turtleTimer); turtleTimer = null; }
+  if (completeTimer) { clearTimeout(completeTimer); completeTimer = null; }
+}
+
 watch(() => props.visible, (val) => {
+  clearAllTimers();
   if (val) {
     isOpening.value = false;
     showTurtle.value = false;
-    setTimeout(() => {
+    openingTimer = setTimeout(() => {
       isOpening.value = true;
     }, 200);
-    setTimeout(() => {
+    turtleTimer = setTimeout(() => {
       showTurtle.value = true;
     }, 1000);
-    setTimeout(() => {
+    completeTimer = setTimeout(() => {
       emit("complete");
     }, 2500);
   }
+});
+
+onUnmounted(() => {
+  clearAllTimers();
 });
 </script>
 
@@ -121,7 +136,7 @@ watch(() => props.visible, (val) => {
 .capsule-top, .capsule-bottom {
   width: 120px;
   height: 80px;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  background: linear-gradient(135deg, var(--turtle-panel-dark) 0%, var(--turtle-panel-darker) 100%);
   border: 2px solid rgba(255, 255, 255, 0.1);
   box-shadow: 
     inset 0 0 20px rgba(255, 255, 255, 0.05),
@@ -131,12 +146,12 @@ watch(() => props.visible, (val) => {
 
 .capsule-top {
   border-radius: 60px 60px 10px 10px;
-  background: linear-gradient(to bottom, #334155, #1e293b);
+  background: linear-gradient(to bottom, var(--turtle-panel-mid), var(--turtle-panel-dark));
 }
 
 .capsule-bottom {
   border-radius: 10px 10px 60px 60px;
-  background: linear-gradient(to top, #334155, #1e293b);
+  background: linear-gradient(to top, var(--turtle-panel-mid), var(--turtle-panel-dark));
 }
 
 .capsule-rim {
@@ -144,8 +159,8 @@ watch(() => props.visible, (val) => {
   bottom: 0;
   width: 100%;
   height: 8px;
-  background: #10b981;
-  box-shadow: 0 0 15px #10b981;
+  background: var(--turtle-primary);
+  box-shadow: 0 0 15px var(--turtle-primary);
 }
 
 .capsule-core {
@@ -155,13 +170,13 @@ watch(() => props.visible, (val) => {
   transform: translate(-50%, -50%);
   width: 60px;
   height: 60px;
-  background: #10b981;
+  background: var(--turtle-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.5s ease;
-  box-shadow: 0 0 30px #10b981;
+  box-shadow: 0 0 30px var(--turtle-primary);
 }
 
 .core-text {
@@ -178,7 +193,7 @@ watch(() => props.visible, (val) => {
   width: 100%;
   height: 2px;
   background: rgba(16, 185, 129, 0.4);
-  box-shadow: 0 0 10px #10b981;
+  box-shadow: 0 0 10px var(--turtle-primary);
   animation: scan-move 1s infinite alternate ease-in-out;
 }
 
@@ -212,7 +227,7 @@ watch(() => props.visible, (val) => {
   width: 4px;
   height: 0;
   background: var(--turtle-overlay-text);
-  box-shadow: 0 0 40px 10px #10b981;
+  box-shadow: 0 0 40px 10px var(--turtle-primary);
   animation: beam-grow 0.4s ease-out forwards;
 }
 

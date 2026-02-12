@@ -37,8 +37,8 @@ const CommentItem: React.FC<CommentItemProps> = memo(({ comment, onVote, onReply
   const maxDepth = 3;
 
   return (
-    <div className={`${depth > 0 ? "ml-6 pl-6 border-l border-gray-200 dark:border-white/10 my-2" : ""}`}>
-      <div className="py-4 border-b border-gray-100 dark:border-white/5 group relative">
+    <div className={`${depth > 0 ? "ml-6 pl-6 border-l border-erobo-purple/10 dark:border-white/10 my-2" : ""}`}>
+      <div className="py-4 border-b border-erobo-purple/5 dark:border-white/5 group relative">
         {/* Header */}
         <div className="flex items-center gap-2 mb-2">
           {comment.is_developer_reply && (
@@ -46,29 +46,29 @@ const CommentItem: React.FC<CommentItemProps> = memo(({ comment, onVote, onReply
               {t("reviews.developerReply")}
             </span>
           )}
-          <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+          <span className="text-[10px] font-medium text-erobo-ink-soft/60 dark:text-slate-500 uppercase tracking-wide">
             {new Date(comment.created_at).toLocaleDateString(locale)}
           </span>
         </div>
 
         {/* Content */}
-        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3 leading-relaxed">{comment.content}</p>
+        <p className="text-sm font-medium text-erobo-ink dark:text-slate-200 mb-3 leading-relaxed">{comment.content}</p>
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10 overflow-hidden h-8">
+          <div className="flex items-center bg-erobo-purple/5 dark:bg-white/5 rounded-lg border border-erobo-purple/10 dark:border-white/10 overflow-hidden h-8">
             <button
               onClick={() => onVote(comment.id, "upvote")}
-              className="px-2 h-full flex items-center justify-center text-gray-500 hover:text-neo hover:bg-white dark:hover:bg-white/10 transition-colors"
+              className="px-2 h-full flex items-center justify-center text-erobo-ink-soft hover:text-neo hover:bg-white dark:hover:bg-white/10 transition-colors"
             >
               ▲
             </button>
-            <span className="text-xs font-bold px-1 text-gray-700 dark:text-gray-300">{comment.upvotes}</span>
-            <div className="w-px h-4 bg-gray-200 dark:bg-white/10 mx-1" />
-            <span className="text-xs font-bold px-1 text-gray-700 dark:text-gray-300">{comment.downvotes}</span>
+            <span className="text-xs font-bold px-1 text-erobo-ink dark:text-slate-300">{comment.upvotes}</span>
+            <div className="w-px h-4 bg-erobo-purple/10 dark:bg-white/10 mx-1" />
+            <span className="text-xs font-bold px-1 text-erobo-ink dark:text-slate-300">{comment.downvotes}</span>
             <button
               onClick={() => onVote(comment.id, "downvote")}
-              className="px-2 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-white dark:hover:bg-white/10 transition-colors"
+              className="px-2 h-full flex items-center justify-center text-erobo-ink-soft hover:text-red-500 hover:bg-white dark:hover:bg-white/10 transition-colors"
             >
               ▼
             </button>
@@ -77,7 +77,7 @@ const CommentItem: React.FC<CommentItemProps> = memo(({ comment, onVote, onReply
           {depth < maxDepth && (
             <button
               onClick={() => setShowReplyForm(!showReplyForm)}
-              className="text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="text-xs font-bold text-erobo-ink-soft hover:text-erobo-ink dark:hover:text-white transition-colors"
             >
               {t("reviews.reply")}
             </button>
@@ -97,18 +97,18 @@ const CommentItem: React.FC<CommentItemProps> = memo(({ comment, onVote, onReply
 
       {/* Reply Form */}
       {showReplyForm && (
-        <div className="mt-4 mb-6 p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
+        <div className="mt-4 mb-6 p-4 bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 rounded-xl">
           <textarea
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder={t("reviews.replyPlaceholder")}
-            className="w-full p-3 text-sm bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-neo/20 focus:border-neo outline-none text-gray-900 dark:text-white placeholder-gray-400 min-h-[80px]"
+            className="w-full p-3 text-sm bg-white dark:bg-black/20 border border-erobo-purple/10 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-neo/20 focus:border-neo outline-none text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50 min-h-[80px]"
             maxLength={2000}
           />
           <div className="flex gap-3 mt-3 justify-end">
             <button
               onClick={() => setShowReplyForm(false)}
-              className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="px-4 py-2 text-xs font-bold text-erobo-ink-soft hover:text-erobo-ink dark:hover:text-white transition-colors"
             >
               {tCommon("actions.cancel")}
             </button>

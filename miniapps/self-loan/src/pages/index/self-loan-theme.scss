@@ -8,6 +8,14 @@
   --checkbook-danger-border: rgba(252, 165, 165, 0.6);
   --checkbook-danger-bg: rgba(127, 29, 29, 0.2);
   --checkbook-button-text: #f8fafc;
+  --checkbook-success: #00e599;
+  --checkbook-warning: #fde047;
+  --checkbook-danger: #ef4444;
+  --checkbook-info: #3b82f6;
+  --checkbook-orange: #f97316;
+  --checkbook-success-deep: #059669;
+  --checkbook-warning-deep: #ca8a04;
+  --checkbook-danger-deep: #b91c1c;
 }
 
 :global(.theme-light .theme-self-loan),
@@ -21,4 +29,10 @@
   --checkbook-danger-border: #ffcccb;
   --checkbook-danger-bg: #fff5f5;
   --checkbook-button-text: #ffffff;
+  --checkbook-success: #00c07a;
+  --checkbook-warning: #eab308;
+  --checkbook-danger: #dc2626;
+  --checkbook-success-deep: #047857;
+  --checkbook-warning-deep: #a16207;
+  --checkbook-danger-deep: #991b1b;
 }

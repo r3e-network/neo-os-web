@@ -104,12 +104,12 @@ const statusText = (status: LoanStatus) => {
   opacity: 0.6;
 }
 .loan-amount {
-  color: #00E599;
+  color: var(--flash-success);
 }
 .td-status {
   text-transform: uppercase;
-  &.success { color: #00e599; }
-  &.failed { color: #ef4444; }
+  &.success { color: var(--flash-success); }
+  &.failed { color: var(--flash-danger); }
 }
 .empty-state {
   text-align: center;

@@ -1,11 +1,12 @@
 <template>
   <view
     :class="['neo-card', `neo-card--${variant}`, { 'neo-card--hoverable': hoverable, 'neo-card--flat': flat }]"
-    :role="hoverable ? 'button' : undefined"
+    :role="hoverable ? 'button' : 'region'"
     :tabindex="hoverable ? 0 : undefined"
+    :aria-label="ariaLabel || title || undefined"
     @click="hoverable && $emit('click', $event)"
-    @keydown.enter="hoverable && $emit('click', $event as any)"
-    @keydown.space.prevent="hoverable && $emit('click', $event as any)"
+    @keydown.enter="hoverable && $emit('click', $event as unknown as MouseEvent)"
+    @keydown.space.prevent="hoverable && $emit('click', $event as unknown as MouseEvent)"
   >
     <view v-if="title || $slots.header" class="neo-card__header">
       <text v-if="title" class="neo-card__title">{{ title }}</text>
@@ -37,12 +38,15 @@ withDefaults(
     variant?: CardVariant;
     hoverable?: boolean;
     flat?: boolean;
+    /** Accessibility label for screen readers */
+    ariaLabel?: string;
   }>(),
   {
     title: undefined,
     variant: "default",
     hoverable: false,
     flat: false,
+    ariaLabel: undefined,
   }
 );
 
@@ -180,6 +184,21 @@ defineEmits<{
     padding: 16px 20px;
     border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
     background: var(--bg-secondary, rgba(0, 0, 0, 0.2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-card {
+    transition: none;
+
+    &--hoverable {
+      &:hover {
+        transform: none;
+      }
+      &:active {
+        transform: none;
+      }
+    }
   }
 }
 </style>

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { UserStats } from "@/components/features/gamification/types";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -47,7 +48,7 @@ async function getStats(wallet: string, res: NextApiResponse) {
 
     return res.status(200).json({ stats });
   } catch (err) {
-    console.error("Gamification stats error:", err);
+    logger.error("Gamification stats error", err);
     return res.status(500).json({ error: "Failed to fetch user stats" });
   }
 }

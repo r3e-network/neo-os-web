@@ -10,7 +10,7 @@
           </view>
           <text class="hero-usd">${{ formatNum(category.totalUsd) }}</text>
         </view>
-        
+
         <view class="hero-tokens">
           <view class="hero-token-item">
             <text class="token-label">NEO</text>
@@ -24,13 +24,13 @@
         </view>
       </view>
     </NeoCard>
-  
+
     <!-- Wallet List Header -->
     <view class="list-header">
       <text class="section-title">{{ t("walletList") }}</text>
       <text class="count-badge">{{ category.wallets.length }} {{ t("addresses") }}</text>
     </view>
-  
+
     <!-- Wallet List -->
     <view class="wallet-list">
       <view
@@ -47,14 +47,10 @@
           </view>
           <view class="wallet-right">
             <text class="addr-usd">${{ formatNum(walletUsd(wallet)) }}</text>
-            <AppIcon 
-              name="chevron-right" 
-              :size="16" 
-              :class="['arrow', { rotated: expandedIdx === idx }]"
-            />
+            <AppIcon name="chevron-right" :size="16" :class="['arrow', { rotated: expandedIdx === idx }]" />
           </view>
         </view>
-  
+
         <!-- Expanded Details -->
         <view v-if="expandedIdx === idx" class="wallet-details">
           <view class="detail-section">
@@ -63,7 +59,7 @@
               <text class="d-value-long">{{ wallet.address }}</text>
             </view>
           </view>
-          
+
           <view class="detail-section">
             <text class="d-label">{{ t("breakdown") }}</text>
             <view class="breakdown-grid">
@@ -89,41 +85,43 @@
 import { ref } from "vue";
 import { AppIcon, NeoCard } from "@shared/components";
 import type { CategoryBalance, PriceData } from "@/utils/treasury";
-  
+
 const props = defineProps<{
   category: CategoryBalance | null;
   prices: PriceData;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
-  
+
 const expandedIdx = ref<number | null>(null);
-  
+
 function formatNum(n: number, decimals = 0): string {
-  return n.toLocaleString("en-US", { 
+  return n.toLocaleString("en-US", {
     minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals 
+    maximumFractionDigits: decimals,
   });
 }
-  
+
 function shortAddr(addr: string): string {
   if (!addr) return "";
   return addr.slice(0, 10) + "..." + addr.slice(-8);
 }
-  
+
 function walletUsd(wallet: { neo: number; gas: number }): number {
   return wallet.neo * props.prices.neo.usd + wallet.gas * props.prices.gas.usd;
 }
-  
+
 function toggleWallet(idx: number) {
   expandedIdx.value = expandedIdx.value === idx ? null : idx;
 }
 </script>
-  
+
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.mb-6 { margin-bottom: 24px; }
+.mb-6 {
+  margin-bottom: 24px;
+}
 
 .founder-detail {
   padding-bottom: 20px;
@@ -145,7 +143,7 @@ function toggleWallet(idx: number) {
   align-items: center;
   gap: 8px;
   background: rgba(0, 229, 153, 0.1);
-  color: #00E599;
+  color: var(--treasury-neo-green);
   padding: 6px 16px;
   border: 1px solid rgba(0, 229, 153, 0.2);
   border-radius: 99px;
@@ -254,11 +252,11 @@ function toggleWallet(idx: number) {
   overflow: hidden;
   transition: all 0.2s;
   backdrop-filter: blur(10px);
-  
+
   &:active {
     transform: scale(0.99);
   }
-  
+
   &.expanded {
     background: linear-gradient(135deg, rgba(0, 229, 153, 0.08) 0%, rgba(0, 179, 119, 0.05) 100%);
     border-color: rgba(0, 229, 153, 0.3);
@@ -303,18 +301,18 @@ function toggleWallet(idx: number) {
   font-size: 15px;
   font-weight: 700;
   font-family: $font-mono;
-  color: #00E599;
+  color: var(--treasury-neo-green);
 }
 
 .arrow {
   transition: transform 0.2s;
   opacity: 0.4;
   color: var(--text-primary);
-  
+
   &.rotated {
     transform: rotate(90deg);
     opacity: 1;
-    color: #00E599;
+    color: var(--treasury-neo-green);
   }
 }
 
@@ -326,7 +324,9 @@ function toggleWallet(idx: number) {
 
 .detail-section {
   margin-bottom: 20px;
-  &:last-child { margin-bottom: 0; }
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .d-label {

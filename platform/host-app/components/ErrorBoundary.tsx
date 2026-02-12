@@ -1,6 +1,7 @@
 import type { ErrorInfo, ReactNode } from "react";
 import React, { Component } from "react";
 import * as Sentry from "@sentry/nextjs";
+import { logger } from "@/lib/logger";
 
 interface Props {
   children: ReactNode;
@@ -28,8 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to monitoring service in production
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    logger.error("ErrorBoundary caught an error", error);
 
     this.setState({
       error,
@@ -65,8 +65,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Default fallback UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-          <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-erobo-bg-dark px-4">
+          <div className="max-w-md w-full bg-white dark:bg-erobo-bg-card rounded-lg shadow-lg p-6">
             <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
               <svg
                 className="w-6 h-6 text-red-600 dark:text-red-400"
@@ -83,17 +83,17 @@ export class ErrorBoundary extends Component<Props, State> {
               </svg>
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white text-center mb-2">
+            <h2 className="text-xl font-semibold text-erobo-ink dark:text-white text-center mb-2">
               Something went wrong
             </h2>
 
-            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+            <p className="text-erobo-ink-soft dark:text-slate-400 text-center mb-6">
               We apologize for the inconvenience. The application encountered an unexpected error.
             </p>
 
             {process.env.NODE_ENV === "development" && this.state.error && (
-              <details className="mb-4 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-auto">
-                <summary className="cursor-pointer font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <details className="mb-4 p-4 bg-erobo-purple/5 dark:bg-white/5 rounded text-xs overflow-auto">
+                <summary className="cursor-pointer font-semibold text-erobo-ink dark:text-slate-300 mb-2">
                   Error Details (Development Only)
                 </summary>
                 <pre className="text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">
@@ -112,7 +112,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
               <button
                 onClick={() => (window.location.href = "/")}
-                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+                className="flex-1 px-4 py-2 bg-erobo-purple/10 hover:bg-erobo-purple/20 dark:bg-white/10 dark:hover:bg-white/20 text-erobo-ink dark:text-white rounded-lg font-medium transition-colors"
               >
                 Go Home
               </button>

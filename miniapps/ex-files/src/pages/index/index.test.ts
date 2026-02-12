@@ -169,8 +169,8 @@ describe("Ex-Files MiniApp", () => {
 
       try {
         await mockPayGAS("0.5", "upload:Project Alpha");
-      } catch (e: any) {
-        status.value = { msg: e.message || "error", type: "error" };
+      } catch (e: unknown) {
+        status.value = { msg: (e instanceof Error ? e.message : "error"), type: "error" };
       }
 
       expect(status.value?.type).toBe("error");

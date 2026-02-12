@@ -18,7 +18,7 @@ import { NeoCard } from "@shared/components";
 
 defineProps<{
   totalBurned: number;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const formatNum = (n: number) => {
@@ -59,20 +59,39 @@ const formatNum = (n: number) => {
 .flame {
   width: 40px;
   height: 60px;
-  background: radial-gradient(circle at bottom, #F97316, transparent 70%);
+  background: radial-gradient(circle at bottom, var(--burn-flame-orange), transparent 70%);
   border-radius: 50% 50% 20% 20%;
   animation: neo-flicker 2s infinite alternate ease-in-out;
   margin: 0 -10px;
   opacity: 0.7;
-  
-  &.flame-1 { animation-delay: 0s; height: 70px; background: radial-gradient(circle at bottom, #EF4444, transparent 70%); }
-  &.flame-2 { animation-delay: 0.5s; height: 90px; background: radial-gradient(circle at bottom, #F59E0B, transparent 70%); z-index: 1; }
-  &.flame-3 { animation-delay: 1.0s; height: 60px; background: radial-gradient(circle at bottom, #EF4444, transparent 70%); }
+
+  &.flame-1 {
+    animation-delay: 0s;
+    height: 70px;
+    background: radial-gradient(circle at bottom, var(--burn-flame-red), transparent 70%);
+  }
+  &.flame-2 {
+    animation-delay: 0.5s;
+    height: 90px;
+    background: radial-gradient(circle at bottom, var(--burn-flame-amber), transparent 70%);
+    z-index: 1;
+  }
+  &.flame-3 {
+    animation-delay: 1s;
+    height: 60px;
+    background: radial-gradient(circle at bottom, var(--burn-flame-red), transparent 70%);
+  }
 }
 
 @keyframes neo-flicker {
-  0% { transform: scaleY(1) translateY(0); opacity: 0.5; }
-  100% { transform: scaleY(1.2) translateY(-10px); opacity: 0.8; }
+  0% {
+    transform: scaleY(1) translateY(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scaleY(1.2) translateY(-10px);
+    opacity: 0.8;
+  }
 }
 
 .hero-content {
@@ -94,7 +113,7 @@ const formatNum = (n: number) => {
   font-size: 32px;
   font-weight: 800;
   font-family: $font-family;
-  background: linear-gradient(135deg, #FF6B6B 0%, #FFD93D 100%);
+  background: linear-gradient(135deg, var(--burn-coral) 0%, var(--burn-gold-bright) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

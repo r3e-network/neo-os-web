@@ -65,7 +65,7 @@ const formatNum = (n: number) => formatNumber(n, 2);
   right: 30px;
   width: 40px;
   height: 40px;
-  background: var(--grave-warning, #ffde59);
+  background: var(--grave-warning);
   border-radius: 50%;
   box-shadow: 0 0 20px var(--grave-warning-glow, rgba(255, 222, 89, 0.6));
   opacity: 0.8;

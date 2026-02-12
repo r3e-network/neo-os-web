@@ -15,7 +15,7 @@ const StarIcon: React.FC<{ filled: boolean; onClick?: () => void; onMouseEnter?:
     onClick={onClick}
     onMouseEnter={onMouseEnter}
     onMouseLeave={onMouseLeave}
-    className={`w-6 h-6 cursor-pointer transition-transform hover:scale-110 active:scale-90 ${filled ? "text-yellow-400" : "text-gray-200 dark:text-gray-700"} ${onClick ? "hover:text-yellow-500" : ""}`}
+    className={`w-6 h-6 cursor-pointer transition-transform hover:scale-110 active:scale-90 ${filled ? "text-yellow-400" : "text-erobo-ink-soft/40 dark:text-slate-600"} ${onClick ? "hover:text-yellow-500" : ""}`}
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -51,7 +51,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
   const displayError = error?.message || localError;
 
   return (
-    <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 p-6 rounded-2xl relative overflow-hidden">
+    <div className="bg-white dark:bg-white/5 backdrop-blur-sm border border-erobo-purple/10 dark:border-white/10 p-6 rounded-2xl relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-neo/5 rounded-full blur-2xl pointer-events-none -mr-10 -mt-10" />
 
       {displayError && (
@@ -70,7 +70,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
       )}
 
       <div className="flex items-center gap-6 mb-6">
-        <div className="text-5xl font-bold text-gray-900 dark:text-white">
+        <div className="text-5xl font-bold text-erobo-ink dark:text-white">
           {rating.avg_rating.toFixed(1)}
         </div>
         <div>
@@ -79,7 +79,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
               <StarIcon key={i} filled={i <= Math.round(rating.avg_rating)} />
             ))}
           </div>
-          <div className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+          <div className="text-xs font-semibold uppercase tracking-widest text-erobo-ink-soft dark:text-slate-400">
             {rating.total_ratings} VERIFIED RATINGS
           </div>
         </div>
@@ -90,9 +90,9 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
           const count = rating.distribution[star.toString()] || 0;
           const pct = rating.total_ratings > 0 ? (count / rating.total_ratings) * 100 : 0;
           return (
-            <div key={star} className="flex items-center gap-3 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div key={star} className="flex items-center gap-3 text-xs font-medium text-erobo-ink-soft dark:text-slate-400">
               <span className="w-3">{star}★</span>
-              <div className="flex-1 bg-gray-100 dark:bg-white/10 h-2 rounded-full overflow-hidden">
+              <div className="flex-1 bg-erobo-purple/10 dark:bg-white/10 h-2 rounded-full overflow-hidden">
                 <div className="bg-neo h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
               </div>
               <span className="w-8 text-right opacity-60">{count}</span>
@@ -101,7 +101,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
         })}
       </div>
 
-      <div className="border-t border-gray-100 dark:border-white/10 pt-6">
+      <div className="border-t border-erobo-purple/5 dark:border-white/10 pt-6">
         {canRate ? (
           isEditing ? (
             <div className="space-y-4">
@@ -120,7 +120,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
                 placeholder="Share your experience..."
-                className="w-full p-3 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-neo/20 focus:border-neo transition-all outline-none min-h-[100px] text-gray-900 dark:text-white placeholder-gray-400"
+                className="w-full p-3 text-sm bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-neo/20 focus:border-neo transition-all outline-none min-h-[100px] text-erobo-ink dark:text-white placeholder-erobo-ink-soft/50"
                 maxLength={1000}
               />
               <div className="flex gap-3">
@@ -133,7 +133,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 </button>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-4 py-2.5 text-xs font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors uppercase"
+                  className="px-4 py-2.5 text-xs font-bold text-erobo-ink-soft hover:bg-erobo-purple/10 dark:hover:bg-white/10 rounded-lg transition-colors uppercase"
                 >
                   Cancel
                 </button>
@@ -142,13 +142,13 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="w-full py-3 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border border-gray-200 dark:border-white/10"
+              className="w-full py-3 bg-erobo-purple/5 dark:bg-white/5 text-erobo-ink dark:text-white font-bold rounded-xl hover:bg-erobo-purple/10 dark:hover:bg-white/10 transition-colors border border-erobo-purple/10 dark:border-white/10"
             >
               {rating.user_rating ? "Edit Review" : "Write a Review"}
             </button>
           )
         ) : (
-          <div className="p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-center text-xs font-bold text-gray-500 uppercase">
+          <div className="p-4 bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 rounded-xl text-center text-xs font-bold text-erobo-ink-soft uppercase">
             Connect wallet to rate
           </div>
         )}

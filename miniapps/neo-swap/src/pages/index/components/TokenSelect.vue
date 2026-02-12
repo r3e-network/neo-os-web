@@ -1,18 +1,13 @@
 <template>
-  <view class="token-selector" @click="$emit('click')">
-    <image :src="getTokenIcon(token.symbol)" class="token-icon" mode="aspectFit" :alt="token.symbol || t('tokenIcon')" />
+  <view class="token-selector" role="button" :aria-label="`Select ${token.symbol}`" tabindex="0" @click="$emit('click')" @keydown.enter="$emit('click')">
+    <image :src="getTokenIcon(token.symbol)" class="token-icon" mode="aspectFit" :alt="token.symbol" />
     <text class="token-symbol">{{ token.symbol }}</text>
-    <view class="chevron">›</view>
+    <view class="chevron" aria-hidden="true">›</view>
   </view>
 </template>
 
 <script setup lang="ts">
-interface Token {
-  symbol: string;
-  hash: string;
-  balance: number;
-  decimals: number;
-}
+import type { Token } from "@/types";
 
 const props = defineProps<{
   token: Token;

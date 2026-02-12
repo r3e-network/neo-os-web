@@ -133,7 +133,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   const walletRef = useRef(wallet);
   useEffect(() => {
     walletRef.current = wallet;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- wallet object recreated each render, use primitive deps instead
   }, [connected, address, provider]);
 
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
@@ -179,7 +179,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     const sandboxAllowsSameOrigin = sandboxAttr.split(/\s+/).includes("allow-same-origin");
     const responseOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
     iframe.contentWindow.postMessage({ type: "theme-change", theme }, responseOrigin);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only push theme to iframe when theme/entryUrl changes
   }, [theme, entryUrl, federated]);
 
   useEffect(() => {
@@ -425,7 +425,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handler refs are stable, only re-bind on app/iframe change
   }, [app?.app_id, iframeSrc, app?.permissions, federated, entryUrl, chainType]);
 
   // Safety timeout: dismiss loading overlay after 10 seconds even if signals fail
@@ -436,7 +436,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       setIsIframeLoading(false);
     }, 10000);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loading timeout only resets on app/iframe state change
   }, [app?.app_id, federated, isIframeLoading]);
 
   // Listen for share requests from SDK
@@ -450,7 +450,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     };
     window.addEventListener("miniapp-share-request", handleShareRequest);
     return () => window.removeEventListener("miniapp-share-request", handleShareRequest);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- share handler only depends on app_id
   }, [app?.app_id]);
 
   // Network latency monitoring

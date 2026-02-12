@@ -61,19 +61,7 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
-
-interface Grant {
-  id: string;
-  title: string;
-  proposer: string;
-  state: string;
-  votesAccept: number;
-  votesReject: number;
-  discussionUrl: string;
-  createdAt: string;
-  comments: number;
-  onchainId: number | null;
-}
+import type { Grant } from "@/types";
 
 defineProps<{
   grants: Grant[];

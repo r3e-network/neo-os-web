@@ -17,6 +17,7 @@ import { formatTimeAgo } from "@/lib/utils";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { getLocalizedField } from "@neo/shared/i18n";
 import type { ChainId } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 interface WishlistItem {
   app_id: string;
@@ -46,7 +47,7 @@ export default function WishlistPage() {
       const data = await res.json();
       setWishlist(data.wishlist || []);
     } catch (err) {
-      console.error("Failed to fetch wishlist:", err);
+      logger.error("Failed to fetch wishlist:", err);
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ export default function WishlistPage() {
       });
       setWishlist((prev) => prev.filter((w) => w.app_id !== appId));
     } catch (err) {
-      console.error("Failed to remove:", err);
+      logger.error("Failed to remove:", err);
     }
   };
 
@@ -127,7 +128,7 @@ function LoadingSkeleton() {
   return (
     <div className="grid gap-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse" />
+        <div key={i} className="h-24 rounded-2xl bg-erobo-purple/5 dark:bg-white/5 animate-pulse" />
       ))}
     </div>
   );

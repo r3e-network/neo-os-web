@@ -1,15 +1,15 @@
 <template>
-  <view v-if="hasError" class="error-boundary">
+  <view v-if="hasError" class="error-boundary" role="alert" aria-live="assertive">
     <view class="error-container">
       <text class="error-icon">⚠️</text>
-      <text class="error-title">{{ t('errorTitle') || 'Something went wrong' }}</text>
+      <text class="error-title">{{ t("errorTitle") || "Something went wrong" }}</text>
       <text class="error-message">{{ errorMessage }}</text>
       <view class="error-actions">
         <NeoButton variant="primary" @click="handleRetry">
-          {{ t('retry') || 'Try Again' }}
+          {{ t("retry") || "Try Again" }}
         </NeoButton>
         <NeoButton variant="secondary" @click="handleReset">
-          {{ t('reset') || 'Reset' }}
+          {{ t("reset") || "Reset" }}
         </NeoButton>
       </view>
       <view v-if="showDetails" class="error-details">
@@ -21,8 +21,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onErrorCaptured, watch } from 'vue';
-import NeoButton from './NeoButton.vue';
+import { ref, onErrorCaptured } from "vue";
+import NeoButton from "./NeoButton.vue";
 
 interface Props {
   showDetails?: boolean;
@@ -42,29 +42,29 @@ const emit = defineEmits<{
 
 const hasError = ref(false);
 const error = ref<Error | null>(null);
-const errorMessage = ref('');
+const errorMessage = ref("");
 
 // Simple i18n fallback
 const t = (key: string) => {
   const messages: Record<string, string> = {
-    errorTitle: 'Something went wrong',
-    retry: 'Try Again',
-    reset: 'Reset',
+    errorTitle: "Something went wrong",
+    retry: "Try Again",
+    reset: "Reset",
   };
   return messages[key] || key;
 };
 
 onErrorCaptured((err: unknown) => {
   const capturedError = err instanceof Error ? err : new Error(String(err));
-  
+
   error.value = capturedError;
-  errorMessage.value = props.fallback || capturedError.message || 'An unexpected error occurred';
+  errorMessage.value = props.fallback || capturedError.message || "An unexpected error occurred";
   hasError.value = true;
-  
+
   // Report to parent
-  emit('error', capturedError);
+  emit("error", capturedError);
   props.onError?.(capturedError);
-  
+
   // Prevent error from propagating
   return false;
 });
@@ -72,14 +72,14 @@ onErrorCaptured((err: unknown) => {
 const handleRetry = () => {
   hasError.value = false;
   error.value = null;
-  emit('retry');
+  emit("retry");
 };
 
 const handleReset = () => {
   hasError.value = false;
   error.value = null;
-  errorMessage.value = '';
-  emit('reset');
+  errorMessage.value = "";
+  emit("reset");
 };
 
 // Allow manual error setting
@@ -88,7 +88,7 @@ const setError = (err: Error | string) => {
   error.value = errorObj;
   errorMessage.value = errorObj.message;
   hasError.value = true;
-  emit('error', errorObj);
+  emit("error", errorObj);
 };
 
 // Expose methods for parent

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
+import { logger } from "@/lib/logger";
 
 type ReviewQueueItem = {
   app_id: string;
@@ -66,7 +67,7 @@ export default async function handler(
       .order("created_at", { ascending: true });
 
     if (error) {
-      console.error("Review queue query error:", error);
+      logger.error("Review queue query error", error);
       return res.status(500).json({ error: "Failed to load review queue" });
     }
 
@@ -82,7 +83,7 @@ export default async function handler(
         .order("build_number", { ascending: false });
 
       if (buildError) {
-        console.warn("Miniapp builds query error:", buildError.message || buildError);
+        logger.warn("Miniapp builds query error", buildError.message || buildError);
       } else {
         for (const build of builds || []) {
           if (!build?.version_id) continue;
@@ -138,7 +139,7 @@ export default async function handler(
 
     return res.status(200).json({ items });
   } catch (err) {
-    console.error("Review queue error:", err);
+    logger.error("Review queue error", err);
     return res.status(500).json({ error: "Failed to load review queue" });
   }
 }

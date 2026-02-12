@@ -1,6 +1,6 @@
 <template>
-  <view v-if="luckyMessage" class="lucky-overlay" @click="$emit('close')">
-    <view class="lucky-card-glass" @click.stop>
+  <view v-if="luckyMessage" class="lucky-overlay" aria-hidden="true" @click="$emit('close')">
+    <view class="lucky-card-glass" role="dialog" aria-modal="true" :aria-label="t('congratulations')" @click.stop>
       <view class="card-glow"></view>
       
       <view class="lucky-content">
@@ -91,7 +91,7 @@ defineEmits(["close"]);
 .lucky-header {
   font-size: 18px;
   font-weight: 800;
-  color: #FCD34D;
+  color: var(--red-envelope-gold-warm);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 32px;
@@ -188,7 +188,7 @@ defineEmits(["close"]);
 }
 
 .text-gold {
-  color: #FCD34D;
+  color: var(--red-envelope-gold-warm);
   filter: drop-shadow(0 0 5px rgba(253, 224, 71, 0.5));
 }
 

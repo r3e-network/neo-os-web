@@ -218,7 +218,10 @@ func (inv *Invoker) GetPriceFeedLatest(ctx context.Context, symbol string) (map[
 func GenerateRequestID() string {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		panic(fmt.Errorf("generate request id: %w", err))
+		// Fallback to timestamp-based pseudo-randomness on error
+		for i := range b {
+			b[i] = byte(time.Now().UnixNano() + int64(i))
+		}
 	}
 	return hex.EncodeToString(b)
 }

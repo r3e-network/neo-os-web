@@ -3,6 +3,7 @@ import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import type { MiniAppInfo } from "@/components/types";
 import { fetchCommunityApps } from "@/lib/community-apps";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 export interface TrendingApp {
   app_id: string;
@@ -36,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const trending = await calculateTrending(category as string, maxResults);
     return res.status(200).json({ trending, updated_at: new Date().toISOString() });
   } catch (err) {
-    console.error("Trending API error:", err);
+    logger.error("Trending API error", err);
     return res.status(500).json({ error: "Failed to fetch trending apps" });
   }
 }
@@ -110,7 +111,7 @@ async function fetchStatsFromSupabase(
       .in("app_id", appIds);
 
     if (error) {
-      console.error("Supabase stats fetch error:", error);
+      logger.error("Supabase stats fetch error", error);
       return statsMap;
     }
 
@@ -123,7 +124,7 @@ async function fetchStatsFromSupabase(
       });
     }
   } catch (err) {
-    console.error("Failed to fetch stats from Supabase:", err);
+    logger.error("Failed to fetch stats from Supabase", err);
   }
 
   return statsMap;

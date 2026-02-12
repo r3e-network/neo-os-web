@@ -59,6 +59,9 @@
   --swap-orb-one: linear-gradient(135deg, #00ff88 0%, #00a8ff 100%);
   --swap-orb-two: linear-gradient(135deg, #9f5fff 0%, #00ff88 100%);
   --swap-input-text-glow: rgba(255, 255, 255, 0.2);
+  --swap-impact-low: #10b981;
+  --swap-impact-medium: #F59E0B;
+  --swap-impact-high: #EF4444;
 
   --bg-primary: var(--swap-bg-start);
   --bg-secondary: var(--swap-bg-mid);
@@ -129,6 +132,9 @@
   --swap-orb-one: linear-gradient(135deg, #34d399 0%, #60a5fa 100%);
   --swap-orb-two: linear-gradient(135deg, #a78bfa 0%, #34d399 100%);
   --swap-input-text-glow: rgba(15, 23, 42, 0.12);
+  --swap-impact-low: #059669;
+  --swap-impact-medium: #d97706;
+  --swap-impact-high: #dc2626;
 
   --bg-primary: var(--swap-bg-start);
   --bg-secondary: var(--swap-bg-mid);

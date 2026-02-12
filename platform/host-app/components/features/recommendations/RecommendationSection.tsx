@@ -80,7 +80,7 @@ export function RecommendationSection({ section, className }: Props) {
                   <h4 className="font-medium text-sm text-erobo-ink dark:text-white truncate group-hover:text-erobo-purple transition-colors">
                     {name}
                   </h4>
-                  <span className="text-xs text-gray-500 capitalize">{app.category}</span>
+                  <span className="text-xs text-erobo-ink-soft capitalize">{app.category}</span>
                 </div>
               </div>
             </Link>

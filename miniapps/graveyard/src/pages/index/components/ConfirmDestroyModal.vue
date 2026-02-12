@@ -75,7 +75,7 @@ defineEmits(["cancel", "confirm"]);
 .confirm-hash {
   font-family: $font-mono;
   font-size: 12px;
-  background: var(--bg-elevated, #f0f0f0);
+  background: var(--bg-elevated);
   padding: $spacing-4;
   border: 3px solid var(--border-color, black);
   word-break: break-all;

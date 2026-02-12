@@ -3,9 +3,8 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
 import { StatsBar } from "@/components/features/stats";
-import { MiniAppCard, MiniAppListItem } from "@/components/features/miniapp";
+import { MiniAppCard, MiniAppListItem, CategorySidebar, FilterBar } from "@/components/features/miniapp";
 import { ActivityTicker } from "@/components/ActivityTicker";
 import { useActivityFeed } from "@/hooks/useActivityFeed";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
@@ -13,20 +12,7 @@ import { useTranslation } from "@/lib/i18n/react";
 import { cn } from "@/lib/utils";
 import type { MiniAppInfo } from "@/components/types";
 import type { LucideIcon } from "lucide-react";
-import {
-  Shield,
-  Zap,
-  Globe,
-  LayoutGrid,
-  List,
-  Filter,
-  Gamepad2,
-  Coins,
-  Users,
-  Image,
-  Vote,
-  Wrench,
-} from "lucide-react";
+import { Shield, Zap, Globe, LayoutGrid, Filter, Gamepad2, Coins, Users, Image, Vote, Wrench } from "lucide-react";
 
 import { HeroSection } from "@/components/features/landing/HeroSection";
 import { ArchitectureSection } from "@/components/features/landing/ArchitectureSection";
@@ -40,6 +26,8 @@ import { useRecommendations } from "@/components/features/recommendations";
 import { useWalletStore } from "@/lib/wallet/store";
 import { FeaturedHeroCarousel } from "@/components/features/discovery/FeaturedHeroCarousel";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
+
+const VALID_SORT_VALUES = ["trending", "recent", "popular"] as const;
 
 // Interface for stats from API
 interface AppStats {
@@ -102,8 +90,8 @@ export default function LandingPage({
       setSelectedCategory(category);
     }
 
-    if (sort) {
-      setActiveFilter(sort as string);
+    if (sort && typeof sort === "string" && (VALID_SORT_VALUES as readonly string[]).includes(sort)) {
+      setActiveFilter(sort);
     }
 
     if (view && (view === "grid" || view === "list")) {
@@ -117,24 +105,18 @@ export default function LandingPage({
   useEffect(() => {
     if (!router.isReady || !isUrlInitialized) return;
 
-    const newQuery: Record<string, string | string[] | undefined> = { ...(router.query as Record<string, string | string[] | undefined>) };
+    const newQuery: Record<string, string | string[] | undefined> = {};
 
     if (selectedCategory !== "all") {
       newQuery.category = selectedCategory;
-    } else {
-      delete newQuery.category;
     }
 
     if (activeFilter !== "trending") {
       newQuery.sort = activeFilter;
-    } else {
-      delete newQuery.sort;
     }
 
     if (viewMode !== "grid") {
       newQuery.view = viewMode;
-    } else {
-      delete newQuery.view;
     }
 
     router.replace(
@@ -145,7 +127,7 @@ export default function LandingPage({
       undefined,
       { shallow: true },
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- omit router.replace to avoid infinite re-render loop
   }, [selectedCategory, activeFilter, viewMode, isUrlInitialized, router.isReady, router.pathname]);
 
   // Real-time global activity feed
@@ -154,11 +136,12 @@ export default function LandingPage({
   // Fetch real stats from API (skip if SSG data already provided)
   useEffect(() => {
     if (hasInitialData) return;
+    const controller = new AbortController();
     async function fetchStats() {
       try {
         const [platformRes, cardStatsRes] = await Promise.all([
-          fetch("/api/platform/stats"),
-          fetch("/api/miniapps/card-stats"),
+          fetch("/api/platform/stats", { signal: controller.signal }),
+          fetch("/api/miniapps/card-stats", { signal: controller.signal }),
         ]);
 
         if (platformRes.ok) {
@@ -172,20 +155,27 @@ export default function LandingPage({
           setAppStats(stats || {});
         }
       } catch (err) {
-        console.error("Failed to fetch stats:", err);
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // Silently handled — UI loading state covers this
       } finally {
         setLoading(false);
       }
     }
     fetchStats();
+    return () => controller.abort();
   }, [hasInitialData]);
 
   useEffect(() => {
     if (hasInitialData) return;
-    fetch("/api/miniapps/community")
+    const controller = new AbortController();
+    fetch("/api/miniapps/community", { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => setCommunityApps(data.apps || []))
-      .catch(() => setCommunityApps([]));
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setCommunityApps([]);
+      });
+    return () => controller.abort();
   }, [hasInitialData]);
 
   const appsWithStats = useMemo(() => {
@@ -281,6 +271,22 @@ export default function LandingPage({
           name="description"
           content="Discover and use secure, high-performance decentralized MiniApps on Neo N3. Powered by Neo, protected by hardware-grade TEE security."
         />
+        <meta property="og:title" content="NeoHub - The Neo N3 MiniApp Ecosystem" />
+        <meta
+          property="og:description"
+          content="Discover and use secure, high-performance decentralized MiniApps on Neo N3. Powered by Neo, protected by hardware-grade TEE security."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://miniapp.neo.org" />
+        <meta property="og:image" content="https://miniapp.neo.org/og-image.png" />
+        <meta property="og:site_name" content="NeoHub" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="NeoHub - The Neo N3 MiniApp Ecosystem" />
+        <meta
+          name="twitter:description"
+          content="Discover and use secure, high-performance decentralized MiniApps on Neo N3. Powered by Neo, protected by hardware-grade TEE security."
+        />
+        <meta name="twitter:image" content="https://miniapp.neo.org/og-image.png" />
       </Head>
 
       {/* Global E-Robo Water Wave Background */}
@@ -307,39 +313,11 @@ export default function LandingPage({
                   <Filter size={18} className="text-erobo-purple" />
                   {t("miniapps.sidebar.categories")}
                 </h3>
-                <div className="space-y-1">
-                  {categories.map((cat) => {
-                    const Icon = cat.icon;
-                    const isActive = selectedCategory === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat.id)}
-                        className={cn(
-                          "w-full flex items-center justify-between px-4 py-3 text-sm font-bold uppercase transition-all cursor-pointer rounded-lg border",
-                          isActive
-                            ? "bg-erobo-purple/10 border-erobo-purple/30 text-erobo-purple shadow-[0_0_15px_rgba(159,157,243,0.15)]"
-                            : "border-transparent text-erobo-ink-soft dark:text-white/60 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/5",
-                        )}
-                      >
-                        <span className="flex items-center gap-2">
-                          <Icon size={16} strokeWidth={2.5} />
-                          {cat.label}
-                        </span>
-                        <span
-                          className={cn(
-                            "text-[10px] px-2 py-0.5 rounded-full border",
-                            isActive
-                              ? "bg-erobo-purple/20 text-erobo-purple border-erobo-purple/30"
-                              : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft/70 dark:text-white/40 border-white/60 dark:border-white/10",
-                          )}
-                        >
-                          {cat.count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <CategorySidebar
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                />
               </div>
 
               <div>
@@ -356,56 +334,18 @@ export default function LandingPage({
             </aside>
 
             <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
-                  {[
-                    { id: "trending", label: t("miniapps.sort.trending") },
-                    { id: "recent", label: t("miniapps.sort.recent") },
-                    { id: "popular", label: t("miniapps.sort.popular") },
-                    ...recommendationSections.map((s) => ({ id: s.id, label: s.title })),
-                  ].map((filter) => (
-                    <Button
-                      key={filter.id}
-                      variant="ghost"
-                      onClick={() => setActiveFilter(filter.id)}
-                      className={cn(
-                        "h-auto rounded-full text-[10px] font-bold uppercase px-6 py-2 border transition-all hover:bg-erobo-peach/30 dark:hover:bg-white/5 whitespace-nowrap",
-                        activeFilter === filter.id
-                          ? "bg-erobo-purple/10 border-erobo-purple/30 text-erobo-purple shadow-sm dark:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-                          : "border-transparent text-erobo-ink-soft/70 dark:text-white/50 hover:text-erobo-ink dark:hover:text-white",
-                      )}
-                    >
-                      {filter.label}
-                    </Button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 ml-auto">
-                  <div className="bg-white/70 dark:bg-white/5 p-1 flex items-center border border-white/60 dark:border-white/10 rounded-full backdrop-blur-md">
-                    <button
-                      onClick={() => setViewMode("grid")}
-                      className={cn(
-                        "p-2 rounded-md transition-all",
-                        viewMode === "grid"
-                          ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm"
-                          : "text-gray-400 dark:text-white/40 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/5",
-                      )}
-                    >
-                      <LayoutGrid size={18} strokeWidth={2.5} />
-                    </button>
-                    <button
-                      onClick={() => setViewMode("list")}
-                      className={cn(
-                        "p-2 rounded-md transition-all",
-                        viewMode === "list"
-                          ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm"
-                          : "text-gray-400 dark:text-white/40 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/5",
-                      )}
-                    >
-                      <List size={18} strokeWidth={2.5} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <FilterBar
+                filters={[
+                  { id: "trending", label: t("miniapps.sort.trending") },
+                  { id: "recent", label: t("miniapps.sort.recent") },
+                  { id: "popular", label: t("miniapps.sort.popular") },
+                  ...recommendationSections.map((s) => ({ id: s.id, label: s.title })),
+                ]}
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
 
               <div
                 className={cn(
@@ -457,7 +397,7 @@ export default function LandingPage({
                   },
                   {
                     label: t("stats.stakingApr"),
-                    value: loading ? "..." : platformStats?.stakingApr ? `${platformStats.stakingApr}%` : "19.5%",
+                    value: loading ? "..." : platformStats?.stakingApr ? `${platformStats.stakingApr}%` : "\u2014",
                     icon: Coins,
                   },
                   {
@@ -503,7 +443,6 @@ export default function LandingPage({
               </ScrollReveal>
 
               <div className="flex flex-col lg:flex-row gap-8">
-                {/* Same sidebar and grid structure but purely for landing */}
                 <aside className="hidden lg:block w-72 shrink-0 space-y-8">
                   <ScrollReveal animation="slide-right" delay={0.3}>
                     <div>
@@ -511,96 +450,28 @@ export default function LandingPage({
                         <Filter size={18} className="text-erobo-purple" />
                         {t("miniapps.sidebar.categories")}
                       </h3>
-                      <div className="space-y-1">
-                        {categories.map((cat) => {
-                          const Icon = cat.icon;
-                          const isActive = selectedCategory === cat.id;
-                          return (
-                            <button
-                              key={cat.id}
-                              onClick={() => setSelectedCategory(cat.id)}
-                              className={cn(
-                                "w-full flex items-center justify-between px-4 py-3 text-sm font-bold uppercase transition-all cursor-pointer rounded-lg border",
-                                isActive
-                                  ? "bg-erobo-purple/10 border-erobo-purple/30 text-erobo-purple shadow-[0_0_15px_rgba(159,157,243,0.15)]"
-                                  : "border-transparent text-erobo-ink-soft dark:text-white/60 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/5",
-                              )}
-                            >
-                              <span className="flex items-center gap-2">
-                                <Icon size={16} strokeWidth={2.5} />
-                                {cat.label}
-                              </span>
-                              <span
-                                className={cn(
-                                  "text-[10px] px-2 py-0.5 rounded-full border",
-                                  isActive
-                                    ? "bg-erobo-purple/20 text-erobo-purple border-erobo-purple/30"
-                                    : "bg-white/70 dark:bg-white/5 text-erobo-ink-soft/70 dark:text-white/40 border-white/60 dark:border-white/10",
-                                )}
-                              >
-                                {cat.count}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <CategorySidebar
+                        categories={categories}
+                        selectedCategory={selectedCategory}
+                        onSelectCategory={setSelectedCategory}
+                      />
                     </div>
                   </ScrollReveal>
                 </aside>
 
                 <div className="flex-1">
-                  {/* Same filters and grid logic */}
                   <ScrollReveal animation="fade-up" delay={0.4}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-                      <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
-                        {[
-                          { id: "trending", label: t("miniapps.sort.trending") },
-                          { id: "recent", label: t("miniapps.sort.recent") },
-                          { id: "popular", label: t("miniapps.sort.popular") },
-                        ].map((filter) => (
-                          <Button
-                            key={filter.id}
-                            variant="ghost"
-                            onClick={() => setActiveFilter(filter.id)}
-                            className={cn(
-                              "h-auto rounded-full text-[10px] font-bold uppercase px-6 py-2 border transition-all hover:bg-erobo-peach/30 dark:hover:bg-white/5 whitespace-nowrap",
-                              activeFilter === filter.id
-                                ? "bg-erobo-purple/10 border-erobo-purple/30 text-erobo-purple shadow-sm dark:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-                                : "border-transparent text-erobo-ink-soft/70 dark:text-white/50 hover:text-erobo-ink dark:hover:text-white",
-                            )}
-                          >
-                            {filter.label}
-                          </Button>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2 ml-auto">
-                        {/* View Toggles */}
-                        <div className="bg-white/70 dark:bg-white/5 p-1 flex items-center border border-white/60 dark:border-white/10 rounded-full backdrop-blur-md">
-                          <button
-                            onClick={() => setViewMode("grid")}
-                            className={cn(
-                              "p-2 rounded-md transition-all",
-                              viewMode === "grid"
-                                ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm"
-                                : "hover:text-erobo-ink text-gray-400 dark:text-white/40",
-                            )}
-                          >
-                            <LayoutGrid size={18} strokeWidth={2.5} />
-                          </button>
-                          <button
-                            onClick={() => setViewMode("list")}
-                            className={cn(
-                              "p-2 rounded-md transition-all",
-                              viewMode === "list"
-                                ? "bg-white dark:bg-white/10 text-erobo-ink dark:text-white shadow-sm"
-                                : "hover:text-erobo-ink text-gray-400 dark:text-white/40",
-                            )}
-                          >
-                            <List size={18} strokeWidth={2.5} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <FilterBar
+                      filters={[
+                        { id: "trending", label: t("miniapps.sort.trending") },
+                        { id: "recent", label: t("miniapps.sort.recent") },
+                        { id: "popular", label: t("miniapps.sort.popular") },
+                      ]}
+                      activeFilter={activeFilter}
+                      onFilterChange={setActiveFilter}
+                      viewMode={viewMode}
+                      onViewModeChange={setViewMode}
+                    />
                   </ScrollReveal>
 
                   <div

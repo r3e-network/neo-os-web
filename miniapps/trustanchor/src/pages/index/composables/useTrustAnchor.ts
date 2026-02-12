@@ -28,7 +28,7 @@ export interface TrustAnchorStats {
 
 const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-export function useTrustAnchor(t: (key: string) => string) {
+export function useTrustAnchor(_t: (key: string) => string) {
   const { address, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
 
   const isLoading = ref(false);
@@ -41,7 +41,6 @@ export function useTrustAnchor(t: (key: string) => string) {
 
   const setError = (message: string) => {
     error.value = message;
-    console.error(`[TrustAnchor] Error: ${message}`);
   };
 
   const clearError = () => {
@@ -61,21 +60,21 @@ export function useTrustAnchor(t: (key: string) => string) {
     const result = await handleAsync(
       async () => {
         const res = await invokeRead({
-          contractAddress: CONTRACT_ADDRESS,
+          scriptHash: CONTRACT_ADDRESS,
           operation: "GetDelegationInfo",
           args: [{ type: "Hash160", value: address.value }],
         });
         return res;
       },
-      { context: "Loading delegation info", onError: (e) => setError(e.message) },
+      { context: "Loading delegation info", onError: (e: Error) => setError(e.message) }
     );
 
     if (result.success && result.data) {
-      const data = result.data as any;
+      const data = result.data as Record<string, unknown>;
       if (data.Delegatee && data.Delegatee !== "0x0000000000000000000000000000000000000000") {
         myDelegation.value = {
           delegator: address.value,
-          delegatee: data.Delegatee ?? data.delegatee,
+          delegatee: String(data.Delegatee ?? data.delegatee ?? ""),
           votingPower: Number(data.VotingPower ?? data.votingPower ?? 0) / 1e8,
           delegationTime: Number(data.DelegationTime ?? data.delegationTime ?? 0),
         };
@@ -94,13 +93,13 @@ export function useTrustAnchor(t: (key: string) => string) {
     const result = await handleAsync(
       async () => {
         const res = await invokeRead({
-          contractAddress: CONTRACT_ADDRESS,
+          scriptHash: CONTRACT_ADDRESS,
           operation: "CalculateVotingPower",
           args: [{ type: "Hash160", value: address.value }],
         });
         return res;
       },
-      { context: "Calculating voting power", onError: (e) => setError(e.message) },
+      { context: "Calculating voting power", onError: (e: Error) => setError(e.message) }
     );
 
     if (result.success && result.data) {
@@ -112,13 +111,13 @@ export function useTrustAnchor(t: (key: string) => string) {
     const result = await handleAsync(
       async () => {
         const res = await invokeRead({
-          contractAddress: CONTRACT_ADDRESS,
+          scriptHash: CONTRACT_ADDRESS,
           operation: "GetActiveAgentCount",
           args: [],
         });
         return res;
       },
-      { context: "Loading agents", onError: (e) => setError(e.message) },
+      { context: "Loading agents", onError: (e: Error) => setError(e.message) }
     );
 
     if (result.success && result.data) {
@@ -141,13 +140,13 @@ export function useTrustAnchor(t: (key: string) => string) {
     const result = await handleAsync(
       async () => {
         const res = await invokeRead({
-          contractAddress: CONTRACT_ADDRESS,
+          scriptHash: CONTRACT_ADDRESS,
           operation: "GetAgentByIndex",
           args: [{ type: "Integer", value: index }],
         });
         return res;
       },
-      { context: "Getting agent by index", onError: () => null },
+      { context: "Getting agent by index", onError: () => null }
     );
     return result.success && result.data ? result.data : null;
   };
@@ -156,25 +155,25 @@ export function useTrustAnchor(t: (key: string) => string) {
     const result = await handleAsync(
       async () => {
         const res = await invokeRead({
-          contractAddress: CONTRACT_ADDRESS,
+          scriptHash: CONTRACT_ADDRESS,
           operation: "GetAgentInfo",
           args: [{ type: "Hash160", value: agentAddress }],
         });
         return res;
       },
-      { context: "Getting agent info", onError: () => null },
+      { context: "Getting agent info", onError: () => null }
     );
 
     if (result.success && result.data) {
-      const data = result.data as any;
+      const data = result.data as Record<string, unknown>;
       return {
         address: agentAddress,
-        displayName: data.DisplayName ?? data.displayName ?? "Unknown",
-        metadataUri: data.MetadataUri ?? data.metadataUri ?? "",
+        displayName: String(data.DisplayName ?? data.displayName ?? "Unknown"),
+        metadataUri: String(data.MetadataUri ?? data.metadataUri ?? ""),
         reputationScore: Number(data.ReputationScore ?? data.reputationScore ?? 0),
         totalDelegators: Number(data.TotalDelegators ?? data.totalDelegators ?? 0),
         totalVotingPower: Number(data.TotalVotingPower ?? data.totalVotingPower ?? 0) / 1e8,
-        isActive: data.IsActive ?? data.isActive ?? true,
+        isActive: Boolean(data.IsActive ?? data.isActive ?? true),
       };
     }
     return null;
@@ -184,17 +183,18 @@ export function useTrustAnchor(t: (key: string) => string) {
     const result = await handleAsync(
       async () => {
         const [totalDelegations, totalAgents, activeAgents] = await Promise.all([
-          invokeRead({ contractAddress: CONTRACT_ADDRESS, operation: "GetTotalDelegations", args: [] }),
-          invokeRead({ contractAddress: CONTRACT_ADDRESS, operation: "GetTotalAgents", args: [] }),
-          invokeRead({ contractAddress: CONTRACT_ADDRESS, operation: "GetActiveAgentCount", args: [] }),
+          invokeRead({ scriptHash: CONTRACT_ADDRESS, operation: "GetTotalDelegations", args: [] }),
+          invokeRead({ scriptHash: CONTRACT_ADDRESS, operation: "GetTotalAgents", args: [] }),
+          invokeRead({ scriptHash: CONTRACT_ADDRESS, operation: "GetActiveAgentCount", args: [] }),
         ]);
+        const asRecord = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
         return {
-          totalDelegations: Number(totalDelegations.data ?? 0),
-          totalAgents: Number(totalAgents.data ?? 0),
-          activeAgentCount: Number(activeAgents.data ?? 0),
+          totalDelegations: Number(asRecord(totalDelegations).data ?? 0),
+          totalAgents: Number(asRecord(totalAgents).data ?? 0),
+          activeAgentCount: Number(asRecord(activeAgents).data ?? 0),
         };
       },
-      { context: "Loading stats", onError: (e) => setError(e.message) },
+      { context: "Loading stats", onError: (e: Error) => setError(e.message) }
     );
 
     if (result.success && result.data) {
@@ -226,7 +226,7 @@ export function useTrustAnchor(t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Registering as agent", onError: (e) => setError(e.message) },
+      { context: "Registering as agent", onError: (e: Error) => setError(e.message) }
     );
 
     if (result.success) {
@@ -245,7 +245,7 @@ export function useTrustAnchor(t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Unregistering as agent", onError: (e) => setError(e.message) },
+      { context: "Unregistering as agent", onError: (e: Error) => setError(e.message) }
     );
 
     if (result.success) {
@@ -264,7 +264,7 @@ export function useTrustAnchor(t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Delegating votes", onError: (e) => setError(e.message) },
+      { context: "Delegating votes", onError: (e: Error) => setError(e.message) }
     );
 
     if (result.success) {
@@ -284,7 +284,7 @@ export function useTrustAnchor(t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Revoking delegation", onError: (e) => setError(e.message) },
+      { context: "Revoking delegation", onError: (e: Error) => setError(e.message) }
     );
 
     if (result.success) {

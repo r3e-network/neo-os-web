@@ -1,6 +1,7 @@
 import type { NextApiResponse } from "next";
 import { getReadyTasks, executeTask } from "@/lib/automation/executor";
 import { createHandler } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 export default createHandler({
   auth: "cron",
@@ -21,7 +22,7 @@ export default createHandler({
           results,
         });
       } catch (error) {
-        console.error("[Cron] Executor error:", error);
+        logger.error("[Cron] Executor error", error);
         return res.status(500).json({ error: String(error) });
       }
     },

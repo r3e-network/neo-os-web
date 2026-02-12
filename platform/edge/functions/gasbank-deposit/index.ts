@@ -62,7 +62,7 @@ export async function handler(req: Request): Promise<Response> {
     .upsert({ user_id: auth.userId }, { onConflict: "user_id" })
     .select("id")
     .maybeSingle();
-  if (accErr || !(account as any)?.id) {
+  if (accErr || !(account as Record<string, unknown>)?.id) {
     return errorResponse(
       "SERVER_002",
       { message: `failed to ensure gasbank account: ${accErr?.message ?? "unknown error"}` },
@@ -75,7 +75,7 @@ export async function handler(req: Request): Promise<Response> {
     .from("deposit_requests")
     .insert({
       user_id: auth.userId,
-      account_id: (account as any).id,
+      account_id: (account as Record<string, unknown>).id,
       amount: amount.toString(),
       tx_hash: txHash,
       from_address: fromAddress,

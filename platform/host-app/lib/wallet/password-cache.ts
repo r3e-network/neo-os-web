@@ -5,8 +5,9 @@
  * SECURITY: Uses AES-GCM encryption with a session-derived key
  */
 
+import { logger } from "@/lib/logger";
+
 const CACHE_KEY = "wallet_session_auth";
-const _KEY_CACHE_KEY = "wallet_session_key";
 const SESSION_DURATION = 10 * 60 * 1000; // 10 minutes (reduced from 30 for security)
 
 interface CachedAuth {
@@ -86,7 +87,7 @@ export const PasswordCache = {
     try {
       const result = await encryptPassword(password);
       if (!result) {
-        console.warn("Encryption not available, password not cached");
+        logger.warn("Encryption not available, password not cached");
         return;
       }
 
@@ -97,8 +98,8 @@ export const PasswordCache = {
       };
 
       sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
-    } catch (e) {
-      console.warn("Failed to cache password", e);
+    } catch (e: unknown) {
+      logger.warn("Failed to cache password", e);
     }
   },
 
@@ -121,8 +122,8 @@ export const PasswordCache = {
       }
 
       return await decryptPassword(data.encrypted, data.iv);
-    } catch (e) {
-      console.warn("Failed to retrieve cached password", e);
+    } catch (e: unknown) {
+      logger.warn("Failed to retrieve cached password", e);
       sessionStorage.removeItem(CACHE_KEY);
       return null;
     }

@@ -1,65 +1,51 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" :tabs="navTabs" :active-tab="activeTab" @tab-change="activeTab = $event">
+  <MiniAppTemplate
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    class="theme-time-capsule"
+    @tab-change="activeTab = $event"
+  >
     <template #desktop-sidebar>
-      <view class="desktop-sidebar">
-        <text class="sidebar-title">{{ t('overview') }}</text>
-      </view>
+      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
     </template>
 
-    <view class="theme-time-capsule">
-      <ChainWarning :title="t('wrongChain')" :message="t('wrongChainMessage')" :button-text="t('switchToNeo')" />
+    <template #content>
+      <CapsuleList :capsules="capsules" :current-time="currentTime" :t="t" @open="handleOpen" />
+    </template>
 
-      <view v-if="activeTab === 'capsules' || activeTab === 'create'" class="app-container">
-        <NeoCard
-          v-if="status"
-          :variant="status.type === 'success' ? 'success' : status.type === 'loading' ? 'accent' : 'danger'"
-          class="mb-4 text-center">
-          <text class="status-text font-bold uppercase tracking-wider">{{ status.msg }}</text>
-        </NeoCard>
+    <template #operation>
+      <NeoCard variant="erobo-neo" class="mb-4">
+        <text class="helper-text neutral">{{ t("fishDescription") }}</text>
+        <NeoButton
+          variant="secondary"
+          size="md"
+          block
+          :loading="isBusy"
+          :disabled="isBusy"
+          class="mt-3"
+          @click="handleFish"
+        >
+          {{ t("fishButton") }}
+        </NeoButton>
+      </NeoCard>
+    </template>
 
-        <view v-if="activeTab === 'capsules'" class="tab-content">
-          <NeoCard variant="erobo-neo" class="mb-4">
-            <text class="helper-text neutral">{{ t("fishDescription") }}</text>
-            <NeoButton
-              variant="secondary"
-              size="md"
-              block
-              :loading="isBusy"
-              :disabled="isBusy"
-              class="mt-3"
-              @click="handleFish">
-              {{ t("fishButton") }}
-            </NeoButton>
-          </NeoCard>
-          <CapsuleList :capsules="capsules" :current-time="currentTime" :t="t as any" @open="handleOpen" />
-        </view>
-
-        <view v-if="activeTab === 'create'" class="tab-content">
-          <CreateCapsuleForm
-            v-model:title="newCapsule.title"
-            v-model:content="newCapsule.content"
-            v-model:days="newCapsule.days"
-            v-model:is-public="newCapsule.isPublic"
-            v-model:category="newCapsule.category"
-            :is-loading="isBusy"
-            :can-create="canCreate"
-            :t="t as any"
-            @create="handleCreate"
-          />
-        </view>
-      </view>
-
-      <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-        <NeoDoc
-          :title="t('title')"
-          :subtitle="t('docSubtitle')"
-          :description="t('docDescription')"
-          :steps="docSteps"
-          :features="docFeatures"
-        />
-      </view>
-    </view>
-  </ResponsiveLayout>
+    <template #tab-create>
+      <CreateCapsuleForm
+        v-model:title="newCapsule.title"
+        v-model:content="newCapsule.content"
+        v-model:days="newCapsule.days"
+        v-model:is-public="newCapsule.isPublic"
+        v-model:category="newCapsule.category"
+        :is-loading="isBusy"
+        :can-create="canCreate"
+        :t="t"
+        @create="handleCreate"
+      />
+    </template>
+  </MiniAppTemplate>
 </template>
 
 <script setup lang="ts">
@@ -67,8 +53,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { ResponsiveLayout, NeoDoc, NeoCard, NeoButton, ChainWarning } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useCapsuleCreation } from "@/composables/useCapsuleCreation";
 import { useCapsuleUnlock } from "@/composables/useCapsuleUnlock";
 import CapsuleList, { type Capsule } from "./components/CapsuleList.vue";
@@ -77,33 +63,66 @@ import CreateCapsuleForm from "./components/CreateCapsuleForm.vue";
 const { t } = useI18n();
 const { address } = useWallet() as WalletSDK;
 
-const docSteps = computed(() => [t("step1"), t("step2"), t("step3"), t("step4")]);
-const docFeatures = computed(() => [
-  { name: t("feature1Name"), desc: t("feature1Desc") },
-  { name: t("feature2Name"), desc: t("feature2Desc") },
-  { name: t("feature3Name"), desc: t("feature3Desc") },
-]);
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "two-column",
+  tabs: [
+    { key: "capsules", labelKey: "tabCapsules", icon: "🔒", default: true },
+    { key: "create", labelKey: "tabCreate", icon: "➕" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
+
+const appState = computed(() => ({}));
+
+const sidebarItems = computed(() => {
+  const total = capsules.value.length;
+  const locked = capsules.value.filter((c) => c.locked).length;
+  const revealed = capsules.value.filter((c) => c.revealed).length;
+  return [
+    { label: "Total Capsules", value: total },
+    { label: "Locked", value: locked },
+    { label: "Revealed", value: revealed },
+  ];
+});
 
 const activeTab = ref("capsules");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "capsules", icon: "lock", label: t("tabCapsules") },
-  { id: "create", icon: "plus", label: t("tabCreate") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
 
 const capsules = ref<Capsule[]>([]);
 const currentTime = ref(Date.now());
 const isLoadingData = ref(false);
 
 const { newCapsule, status, isBusy: createBusy, canCreate, create } = useCapsuleCreation();
-const { isBusy: unlockBusy, open, fish, ownerMatches, listAllEvents, ensureContractAddress, invokeRead, parseInvokeResult, localContent } = useCapsuleUnlock();
+const {
+  isBusy: unlockBusy,
+  open,
+  fish,
+  ownerMatches,
+  listAllEvents,
+  ensureContractAddress,
+  invokeRead,
+  parseInvokeResult,
+  localContent,
+} = useCapsuleUnlock();
 
 const isBusy = computed(() => createBusy.value || unlockBusy.value || isLoadingData.value);
 
 let countdownInterval: number | null = null;
 
 onMounted(() => {
-  fetchData();
   countdownInterval = setInterval(() => {
     currentTime.value = Date.now();
   }, 1000) as unknown as number;
@@ -117,7 +136,7 @@ onUnmounted(() => {
 
 watch(address, () => {
   fetchData();
-});
+}, { immediate: true });
 
 const toNumber = (value: unknown) => {
   const num = Number(value);
@@ -127,7 +146,7 @@ const toNumber = (value: unknown) => {
 const buildCapsuleFromDetails = (
   id: string,
   data: Record<string, unknown>,
-  fallback?: { unlockTime?: number; isPublic?: boolean },
+  fallback?: { unlockTime?: number; isPublic?: boolean }
 ) => {
   const contentHash = String(data.contentHash || "");
   const unlockTime = toNumber(data.unlockTime ?? fallback?.unlockTime ?? 0);
@@ -159,7 +178,7 @@ const fetchData = async () => {
 
     const userCapsules = await Promise.all(
       buriedEvents.map(async (evt) => {
-        const values = Array.isArray(evt?.state) ? evt.state.map((s: any) => parseInvokeResult(s)) : [];
+        const values = Array.isArray(evt?.state) ? evt.state.map((s: unknown) => parseInvokeResult(s)) : [];
         const owner = values[0];
         const id = String(values[1] || "");
         const unlockTimeEvent = toNumber(values[2] || 0);
@@ -168,7 +187,7 @@ const fetchData = async () => {
 
         try {
           const capsuleRes = await invokeRead({
-            contractAddress: contract,
+            scriptHash: contract,
             operation: "getCapsuleDetails",
             args: [{ type: "Integer", value: id }],
           });
@@ -184,16 +203,16 @@ const fetchData = async () => {
         return buildCapsuleFromDetails(
           id,
           { contentHash: "", title: "", unlockTime: unlockTimeEvent, isPublic: isPublicEvent, isRevealed: false },
-          { unlockTime: unlockTimeEvent, isPublic: isPublicEvent },
+          { unlockTime: unlockTimeEvent, isPublic: isPublicEvent }
         );
-      }),
+      })
     );
 
     let resolvedCapsules = userCapsules.filter(Boolean) as Capsule[];
 
     if (resolvedCapsules.length === 0) {
       const totalRes = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "totalCapsules",
         args: [],
       });
@@ -201,7 +220,7 @@ const fetchData = async () => {
       const discovered: Capsule[] = [];
       for (let i = 1; i <= totalCapsules; i++) {
         const capsuleRes = await invokeRead({
-          contractAddress: contract,
+          scriptHash: contract,
           operation: "getCapsuleDetails",
           args: [{ type: "Integer", value: String(i) }],
         });
@@ -215,8 +234,8 @@ const fetchData = async () => {
     }
 
     capsules.value = resolvedCapsules.sort((a, b) => Number(b.id) - Number(a.id));
-  } catch {
-    // ignore
+  } catch (e: unknown) {
+    /* non-critical: capsule data fetch */
   } finally {
     isLoadingData.value = false;
   }
@@ -229,9 +248,16 @@ const handleCreate = async () => {
   });
 };
 
+const setStatus = (msg: string, type: "success" | "error") => {
+  status.value = { msg, type };
+  setTimeout(() => {
+    if (status.value?.msg === msg) status.value = null;
+  }, 4000);
+};
+
 const handleOpen = async (cap: Capsule) => {
   await open(cap, (msg, type) => {
-    status.value = { msg, type };
+    setStatus(msg, type);
     if (type !== "error") {
       fetchData();
     }
@@ -240,7 +266,7 @@ const handleOpen = async (cap: Capsule) => {
 
 const handleFish = async () => {
   await fish((msg, type) => {
-    status.value = { msg, type };
+    setStatus(msg, type);
   });
 };
 </script>
@@ -350,22 +376,4 @@ const handleFish = async () => {
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

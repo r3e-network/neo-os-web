@@ -1,95 +1,86 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" class="theme-wallet-health" :tabs="navTabs" :active-tab="activeTab" @tab-change="onTabChange">
-    <template #desktop-sidebar>
-      <view class="desktop-sidebar">
-        <text class="sidebar-title">{{ t('overview') }}</text>
-      </view>
-    </template>
+  <view class="theme-wallet-health">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      @tab-change="onTabChange"
+    >
+      <template #desktop-sidebar>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
+      </template>
 
-    <view v-if="activeTab === 'health'" class="tab-content">
-      <RiskAlerts
-        :is-unsupported="isUnsupported"
-        :status="status"
-        :risk-label="riskLabel"
-        :risk-class="riskClass"
-        :risk-icon="riskIcon"
-        :t="t"
-        @switch-chain="switchToAppChain"
-      />
-
-      <view v-if="!address" class="empty-state">
-        <NeoCard variant="erobo" class="p-6 text-center">
-          <text class="text-sm block mb-3">{{ t("walletNotConnected") }}</text>
-          <NeoButton size="sm" variant="primary" @click="connectWallet">
-            {{ t("connectWallet") }}
-          </NeoButton>
-        </NeoCard>
-      </view>
-
-      <view v-else class="health-stack">
-        <HealthDashboard
-          :stats="healthStats"
-          :neo-display="neoDisplay"
-          :gas-display="gasDisplay"
-          :is-refreshing="isRefreshing"
+      <template #content>
+        <RiskAlerts
+          :is-unsupported="isUnsupported"
+          :status="status"
+          :risk-label="riskLabel"
+          :risk-class="riskClass"
+          :risk-icon="riskIcon"
           :t="t"
-          @refresh="refreshBalances"
+          @switch-chain="switchToAppChain"
         />
-        <Recommendations :recommendations="recommendations" :t="t" />
-      </view>
-    </view>
 
-    <view v-if="activeTab === 'checklist'" class="tab-content">
-      <NeoCard variant="erobo-neo" class="score-card">
-        <view class="score-header">
-          <text class="section-title">{{ t("sectionChecklist") }}</text>
-          <text class="score-value">{{ safetyScore }}%</text>
+        <view v-if="!address" class="empty-state">
+          <NeoCard variant="erobo" class="p-6 text-center">
+            <text class="text-sm block mb-3">{{ t("walletNotConnected") }}</text>
+            <NeoButton size="sm" variant="primary" @click="connectWallet">
+              {{ t("connectWallet") }}
+            </NeoButton>
+          </NeoCard>
         </view>
-        <view class="progress-bar">
-          <view class="progress-fill" :style="{ width: `${safetyScore}%` }" />
-        </view>
-      </NeoCard>
 
-      <NeoCard variant="erobo" class="checklist-card">
-        <view v-for="item in checklistItems" :key="item.id" class="checklist-item">
-          <view class="checklist-content">
-            <text class="checklist-title">{{ item.title }}</text>
-            <text class="checklist-desc">{{ item.desc }}</text>
+        <view v-else class="health-stack">
+          <HealthDashboard
+            :stats="healthStats"
+            :neo-display="neoDisplay"
+            :gas-display="gasDisplay"
+            :is-refreshing="isRefreshing"
+            :t="t"
+            @refresh="refreshBalances"
+          />
+          <Recommendations :recommendations="recommendations" :t="t" />
+        </view>
+      </template>
+
+      <template #tab-checklist>
+        <NeoCard variant="erobo-neo" class="score-card">
+          <view class="score-header">
+            <text class="section-title">{{ t("sectionChecklist") }}</text>
+            <text class="score-value">{{ safetyScore }}%</text>
           </view>
-          <NeoButton
-            size="sm"
-            :variant="item.done ? 'primary' : 'secondary'"
-            :disabled="item.auto"
-            @click="toggleChecklist(item.id)">
-            <AppIcon :name="item.done ? 'check' : 'x'" :size="14" />
-            <text class="checklist-action">
-              {{ item.auto ? t("autoChecked") : item.done ? t("markUndo") : t("markDone") }}
-            </text>
-          </NeoButton>
-        </view>
-      </NeoCard>
-    </view>
+          <view class="progress-bar">
+            <view class="progress-fill" :style="{ width: `${safetyScore}%` }" />
+          </view>
+        </NeoCard>
 
-    <view v-if="activeTab === 'docs'" class="tab-content scrollable">
-      <NeoDoc
-        :title="t('title')"
-        :subtitle="t('docsSubtitle')"
-        :description="t('docsDescription')"
-        :steps="[t('step1'), t('step2'), t('step3'), t('step4')]"
-        :features="[
-          { name: t('feature1Name'), desc: t('feature1Desc') },
-          { name: t('feature2Name'), desc: t('feature2Desc') },
-          { name: t('feature3Name'), desc: t('feature3Desc') },
-        ]"
-      />
-    </view>
-  </ResponsiveLayout>
+        <NeoCard variant="erobo" class="checklist-card">
+          <view v-for="item in checklistItems" :key="item.id" class="checklist-item">
+            <view class="checklist-content">
+              <text class="checklist-title">{{ item.title }}</text>
+              <text class="checklist-desc">{{ item.desc }}</text>
+            </view>
+            <NeoButton
+              size="sm"
+              :variant="item.done ? 'primary' : 'secondary'"
+              :disabled="item.auto"
+              @click="toggleChecklist(item.id)">
+              <AppIcon :name="item.done ? 'check' : 'x'" :size="14" />
+              <text class="checklist-action">
+                {{ item.auto ? t("autoChecked") : item.done ? t("markUndo") : t("markDone") }}
+              </text>
+            </NeoButton>
+          </view>
+        </NeoCard>
+      </template>
+    </MiniAppTemplate>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import { ResponsiveLayout, NeoCard, NeoButton, NeoDoc, AppIcon } from "@shared/components";
-import type { NavTab } from "@shared/components/NavBar.vue";
+import { computed, onMounted } from "vue";
+import { MiniAppTemplate, NeoCard, NeoButton, AppIcon, SidebarPanel } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useWalletAnalysis } from "@/composables/useWalletAnalysis";
 import { useHealthScore } from "@/composables/useHealthScore";
@@ -98,12 +89,37 @@ import RiskAlerts from "./components/RiskAlerts.vue";
 import Recommendations from "./components/Recommendations.vue";
 
 const { t } = useI18n();
-const activeTab = ref("health");
-const navTabs = computed<NavTab[]>(() => [
-  { id: "health", icon: "shield", label: t("tabHealth") },
-  { id: "checklist", icon: "check", label: t("tabChecklist") },
-  { id: "docs", icon: "book", label: t("docs") },
-]);
+
+const templateConfig: MiniAppTemplateConfig = {
+  contentType: "dashboard",
+  tabs: [
+    { key: "health", labelKey: "tabHealth", icon: "shield", default: true },
+    { key: "checklist", labelKey: "tabChecklist", icon: "check" },
+    { key: "docs", labelKey: "docs", icon: "book" },
+  ],
+  stats: [
+    { labelKey: "statConnection", valueKey: "connectionStatus", variant: "default" },
+    { labelKey: "statNetwork", valueKey: "networkLabel", variant: "default" },
+    { labelKey: "statNeo", valueKey: "neoBalance", variant: "accent" },
+    { labelKey: "statGas", valueKey: "gasBalance", variant: "default" },
+    { labelKey: "statScore", valueKey: "safetyScore", format: "percent", variant: "default" },
+  ],
+  features: {
+    chainWarning: true,
+    statusMessages: false,
+    fireworks: false,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docsSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
+  },
+};
 
 const {
   address,
@@ -131,6 +147,22 @@ const {
   toggleChecklist,
 } = useHealthScore(gasOk);
 
+const appState = computed(() => ({
+  connectionStatus: address.value ? t("statusConnected") : t("statusDisconnected"),
+  networkLabel: chainLabel.value,
+  neoBalance: neoDisplay.value,
+  gasBalance: gasDisplay.value,
+  safetyScore: safetyScore.value,
+}));
+
+const sidebarItems = computed(() => [
+  { label: t("statConnection"), value: address.value ? t("statusConnected") : t("statusDisconnected") },
+  { label: t("statNetwork"), value: chainLabel.value },
+  { label: t("statNeo"), value: neoDisplay.value },
+  { label: t("statGas"), value: gasDisplay.value },
+  { label: t("statScore"), value: `${safetyScore.value}%` },
+]);
+
 const healthStats = computed(() => [
   { label: t("statConnection"), value: address.value ? t("statusConnected") : t("statusDisconnected"), variant: address.value ? "success" : "danger" },
   { label: t("statNetwork"), value: chainLabel.value, variant: chainVariant.value },
@@ -140,7 +172,6 @@ const healthStats = computed(() => [
 ]);
 
 const onTabChange = async (tabId: string) => {
-  activeTab.value = tabId;
   if (tabId === "health") {
     await refreshBalances();
   }
@@ -159,13 +190,6 @@ onMounted(() => {
 :global(page) {
   background: linear-gradient(135deg, var(--health-bg-start) 0%, var(--health-bg-end) 100%);
   color: var(--health-text);
-}
-
-.tab-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .health-stack {
@@ -252,26 +276,7 @@ onMounted(() => {
 .empty-state {
   text-align: center;
 }
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 @media (max-width: 767px) {
-  .tab-content {
-    padding: 12px;
-    gap: 12px;
-  }
   .section-title {
     font-size: 16px;
   }
@@ -282,11 +287,6 @@ onMounted(() => {
 }
 
 @media (min-width: 1024px) {
-  .tab-content {
-    padding: 24px;
-    max-width: 800px;
-    margin: 0 auto;
-  }
   .health-stack {
     gap: 20px;
   }

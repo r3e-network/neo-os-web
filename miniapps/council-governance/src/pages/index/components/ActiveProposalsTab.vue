@@ -5,11 +5,11 @@
     </NeoCard>
 
     <view v-if="loading && proposals.length === 0" class="skeleton-list mt-4">
-      <NeoCard v-for="i in 3" :key="i" class="mb-6 skeleton-neo-card">
-        <view class="skeleton-line w-20 mb-4"></view>
-        <view class="skeleton-line w-full mb-2 h-6"></view>
-        <view class="skeleton-line w-full mb-4 h-6"></view>
-        <view class="skeleton-line w-full h-8 bg-glass"></view>
+      <NeoCard v-for="i in 3" :key="i" class="skeleton-neo-card mb-6">
+        <view class="skeleton-line mb-4 w-20"></view>
+        <view class="skeleton-line mb-2 h-6 w-full"></view>
+        <view class="skeleton-line mb-4 h-6 w-full"></view>
+        <view class="skeleton-line bg-glass h-8 w-full"></view>
       </NeoCard>
     </view>
 
@@ -48,7 +48,7 @@
     <NeoCard
       v-for="p in proposals"
       :key="p.id"
-      class="mb-6 erobo-proposal-card glass-panel"
+      class="erobo-proposal-card glass-panel mb-6"
       variant="erobo-neo"
       @click="$emit('select', p)"
     >
@@ -79,7 +79,7 @@
 
       <!-- Vote Distribution -->
       <view class="vote-distribution-neo">
-        <view class="neo-progress mb-3 !h-6 flex">
+        <view class="neo-progress mb-3 flex !h-6">
           <view class="bg-success !h-full" :style="{ width: getYesPercent(p) + '%' }"></view>
           <view class="bg-danger !h-full" :style="{ width: getNoPercent(p) + '%' }"></view>
         </view>
@@ -103,28 +103,36 @@ import { NeoCard, NeoButton } from "@shared/components";
 import { formatCountdown } from "@shared/utils/format";
 
 const props = defineProps<{
-  proposals: any[];
+  proposals: {
+    id: number;
+    type: number;
+    title: string;
+    yesVotes: number;
+    noVotes: number;
+    expiryTime: number;
+    status: number;
+  }[];
   status: { msg: string; type: string } | null;
   loading: boolean;
   votingPower: number;
   isCandidate: boolean;
   candidateLoaded: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const quorumThreshold = 10;
 
-const getYesPercent = (p: any) => {
+const getYesPercent = (p: { yesVotes: number; noVotes: number }) => {
   const total = p.yesVotes + p.noVotes;
   return total > 0 ? (p.yesVotes / total) * 100 : 0;
 };
 
-const getNoPercent = (p: any) => {
+const getNoPercent = (p: { yesVotes: number; noVotes: number }) => {
   const total = p.yesVotes + p.noVotes;
   return total > 0 ? (p.noVotes / total) * 100 : 0;
 };
 
-const getQuorumPercent = (p: any) => {
+const getQuorumPercent = (p: { yesVotes: number; noVotes: number }) => {
   const totalVotes = p.yesVotes + p.noVotes;
   return Math.min((totalVotes / quorumThreshold) * 100, 100);
 };
@@ -163,12 +171,12 @@ const getQuorumPercent = (p: any) => {
 .neo-progress-fill {
   height: 100%;
   border-radius: 99px;
-  background: #00e599;
+  background: var(--senate-success);
   box-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
 }
 
 .text-accent {
-  color: #00e599;
+  color: var(--senate-success);
 }
 .text-primary {
   color: var(--text-primary);
@@ -181,7 +189,7 @@ const getQuorumPercent = (p: any) => {
   gap: 8px;
   padding: 8px 16px;
   background: rgba(0, 229, 153, 0.05);
-  color: #00e599;
+  color: var(--senate-success);
   border: 1px solid rgba(0, 229, 153, 0.2);
   border-radius: 99px;
   backdrop-filter: blur(10px);
@@ -199,7 +207,7 @@ const getQuorumPercent = (p: any) => {
 .spinner-small {
   width: 14px;
   height: 14px;
-  border: 2px solid #00e599;
+  border: 2px solid var(--senate-success);
   border-top-color: transparent;
   border-radius: 50%;
   animation: rotate 0.8s linear infinite;
@@ -245,7 +253,7 @@ const getQuorumPercent = (p: any) => {
 
 .warning-banner-neo {
   background: rgba(253, 224, 71, 0.1);
-  color: #fde047;
+  color: var(--senate-warning);
   border: 1px solid rgba(253, 224, 71, 0.2);
   border-radius: 12px;
   padding: 12px;
@@ -295,7 +303,7 @@ const getQuorumPercent = (p: any) => {
   font-size: 32px;
   font-weight: 800;
   font-family: $font-family;
-  color: #00e599;
+  color: var(--senate-success);
   text-shadow: 0 0 20px rgba(0, 229, 153, 0.6);
   line-height: 1;
 }
@@ -363,12 +371,12 @@ const getQuorumPercent = (p: any) => {
 }
 
 .bg-success {
-  background: #00e599;
+  background: var(--senate-success);
   box-shadow: 0 0 10px rgba(0, 229, 153, 0.4);
 }
 
 .bg-danger {
-  background: #ef4444;
+  background: var(--senate-danger);
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
 
@@ -393,10 +401,10 @@ const getQuorumPercent = (p: any) => {
   height: 12px;
   border: 1px solid var(--border-color, black);
   &.success {
-    background: #00e599;
+    background: var(--senate-success);
   }
   &.danger {
-    background: #ef4444;
+    background: var(--senate-danger);
   }
 }
 

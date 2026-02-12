@@ -6,6 +6,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getNeoBurgerStats } from "@/lib/neoburger";
 import type { ChainId } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -24,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json(stats);
   } catch (error) {
-    console.error("NeoBurger stats API error:", error);
+    logger.error("NeoBurger stats API error", error);
     res.status(500).json({ error: "Failed to fetch NeoBurger stats" });
   }
 }

@@ -132,7 +132,7 @@ export async function handler(req: Request): Promise<Response> {
         }
 
         // Extract app_id
-        appId = (manifest as any).app_id || "";
+        appId = ((manifest as Record<string, unknown>).app_id as string) || "";
 
         // Generate manifest hash
         const manifestString = JSON.stringify(manifest);

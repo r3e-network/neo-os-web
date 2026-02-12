@@ -53,7 +53,7 @@ defineProps<{
 }
 
 .mystical-divider-glass {
-  color: #00E599;
+  color: var(--tarot-neo-green);
   font-weight: 700;
   letter-spacing: 12px;
   font-size: 20px;

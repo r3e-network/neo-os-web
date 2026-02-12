@@ -4,6 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { useI18n } from "./useI18n";
 import { toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 const APP_ID = "miniapp-redenvelope";
 
@@ -23,7 +24,7 @@ export function useRedEnvelopeCreation() {
   const expiryHours = ref("24");
   const minNeoRequired = ref("100");
   const minHoldDays = ref("2");
-  const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
+  const { status, setStatus, clearStatus } = useStatusMessage();
   const isLoading = ref(false);
 
   const defaultBlessing = computed(() => t("defaultBlessing"));
@@ -108,6 +109,8 @@ export function useRedEnvelopeCreation() {
     minNeoRequired,
     minHoldDays,
     status,
+    setStatus,
+    clearStatus,
     isLoading,
     defaultBlessing,
     ensureContractAddress,

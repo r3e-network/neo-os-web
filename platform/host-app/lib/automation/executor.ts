@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import type { AutomationTask, AutomationSchedule } from "@/lib/db/types";
+import { logger } from "@/lib/logger";
 
 /** Get DB client or throw */
 function db() {
@@ -25,7 +26,7 @@ export async function getReadyTasks(): Promise<Array<{ task: AutomationTask; sch
     .eq("task.status", "active");
 
   if (error) {
-    console.error("[Executor] Failed to get ready tasks:", error);
+    logger.error("[Executor] Failed to get ready tasks:", error);
     return [];
   }
 

@@ -7,6 +7,8 @@
   --soul-accent-strong: #22c55e;
   --soul-text: #e2e8f0;
   --soul-muted: rgba(226, 232, 240, 0.6);
+  --soul-danger: #f87171;
+  --soul-inactive: #94a3b8;
 }
 
 :global(.theme-light .theme-soulbound-certificate),
@@ -19,4 +21,6 @@
   --soul-accent-strong: #0d9488;
   --soul-text: #0f172a;
   --soul-muted: rgba(15, 23, 42, 0.6);
+  --soul-danger: #dc2626;
+  --soul-inactive: #64748b;
 }

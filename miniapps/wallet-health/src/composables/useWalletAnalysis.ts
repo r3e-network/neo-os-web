@@ -1,7 +1,9 @@
-import { computed, reactive, ref, watch } from "vue";
+import { computed, reactive, ref, unref, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatFixed8 } from "@shared/utils/format";
 import { parseInvokeResult } from "@shared/utils/neo";
@@ -14,7 +16,7 @@ export function useWalletAnalysis() {
   const { t } = useI18n();
   const { address, connect, invokeRead, chainType, switchToAppChain } = useWallet() as WalletSDK;
 
-  const status = ref<{ msg: string; type: "success" | "error" } | null>(null);
+  const { status, setStatus } = useStatusMessage();
   const isRefreshing = ref(false);
 
   const balances = reactive({
@@ -24,12 +26,12 @@ export function useWalletAnalysis() {
 
   const isUnsupported = computed(() => false);
   const chainLabel = computed(() => {
-    const value = (chainType as any)?.value ?? chainType ?? "";
+    const value = String(unref(chainType) ?? "");
     if (!value) return t("statusUnknown");
     return t("statusNeo");
   });
   const chainVariant = computed(() => {
-    const value = (chainType as any)?.value ?? chainType ?? "";
+    const value = String(unref(chainType) ?? "");
     if (!value) return "warning";
     return "accent";
   });
@@ -46,13 +48,6 @@ export function useWalletAnalysis() {
     }
   };
 
-  const setStatus = (msg: string, type: "success" | "error") => {
-    status.value = { msg, type };
-    setTimeout(() => {
-      if (status.value?.msg === msg) status.value = null;
-    }, 4000);
-  };
-
   const refreshBalances = async () => {
     if (!address.value) return;
     if (isRefreshing.value) return;
@@ -61,20 +56,20 @@ export function useWalletAnalysis() {
     try {
       isRefreshing.value = true;
       const neoResult = await invokeRead({
-        contractAddress: NEO_HASH,
+        scriptHash: NEO_HASH,
         operation: "balanceOf",
         args: [{ type: "Hash160", value: address.value }],
       });
       const gasResult = await invokeRead({
-        contractAddress: GAS_HASH,
+        scriptHash: GAS_HASH,
         operation: "balanceOf",
         args: [{ type: "Hash160", value: address.value }],
       });
 
       balances.neo = parseBigInt(parseInvokeResult(neoResult));
       balances.gas = parseBigInt(parseInvokeResult(gasResult));
-    } catch (e: any) {
-      setStatus(e.message || t("walletNotConnected"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("walletNotConnected")), "error");
     } finally {
       isRefreshing.value = false;
     }
@@ -86,8 +81,8 @@ export function useWalletAnalysis() {
       if (address.value) {
         await refreshBalances();
       }
-    } catch (e: any) {
-      setStatus(e.message || t("walletNotConnected"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("walletNotConnected")), "error");
     }
   };
 

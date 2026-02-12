@@ -59,7 +59,7 @@ defineEmits(["claim"]);
   font-family: $font-mono;
   font-size: 24px;
   font-weight: 700;
-  color: #00E599;
+  color: var(--sunrise-reward);
   text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
   margin-bottom: 4px;
 }

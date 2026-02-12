@@ -230,7 +230,7 @@ defineEmits([
   text-transform: uppercase;
   display: block;
   margin-bottom: 4px;
-  color: #ffde59;
+  color: var(--heritage-gold);
   letter-spacing: 0.1em;
 }
 
@@ -300,7 +300,7 @@ defineEmits([
 
     .toggle-knob {
       left: 22px;
-      background: #00e599;
+      background: var(--heritage-success);
       box-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
     }
   }

@@ -67,7 +67,7 @@ export function PasswordChange({ walletAddress }: PasswordChangeProps) {
   return (
     <Card className="glass-card">
       <CardHeader>
-        <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+        <CardTitle className="text-erobo-ink dark:text-white flex items-center gap-2">
           <Lock size={20} className="text-neo" />
           Change Password
         </CardTitle>

@@ -7,6 +7,7 @@
 import { createHandler } from "@/lib/api";
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { HandlerContext } from "@/lib/api/types";
+import { logger } from "@/lib/logger";
 
 export default createHandler({
   auth: "wallet",
@@ -39,7 +40,7 @@ export default createHandler({
         const { data, error, count } = await query;
 
         if (error) {
-          console.error("[Forum] threads list error:", error);
+          logger.error("[Forum] threads list error", error);
           return res.status(500).json({ error: "Failed to fetch threads" });
         }
 
@@ -88,7 +89,7 @@ export default createHandler({
           .single();
 
         if (error) {
-          console.error("[Forum] thread create error:", error);
+          logger.error("[Forum] thread create error", error);
           return res.status(500).json({ error: "Failed to create thread" });
         }
 

@@ -146,6 +146,6 @@ const canCreate = computed(() => {
   word-break: break-all;
 }
 .text-danger {
-  color: #ef4444;
+  color: var(--vault-danger);
 }
 </style>

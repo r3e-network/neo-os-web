@@ -21,10 +21,10 @@ export function SecurityFeatures() {
 
             <div className="mx-auto max-w-7xl relative z-10">
                 <div className="text-center mb-16">
-                    <h2 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 dark:text-white mb-6 leading-tight">
+                    <h2 className="text-4xl lg:text-5xl font-bold tracking-tight text-erobo-ink dark:text-white mb-6 leading-tight">
                         {t("landing.security.title")}
                     </h2>
-                    <p className="text-lg text-gray-600 dark:text-white/60 max-w-2xl mx-auto font-medium">
+                    <p className="text-lg text-erobo-ink-soft dark:text-white/60 max-w-2xl mx-auto font-medium">
                         {t("landing.security.subtitle")}
                     </p>
                 </div>
@@ -33,17 +33,17 @@ export function SecurityFeatures() {
                     {FEATURES.map((feature, idx) => (
                         <div
                             key={idx}
-                            className="p-8 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-lg transition-all hover:-translate-y-2 hover:border-gray-300 dark:hover:border-white/20 hover:shadow-xl hover:shadow-neo/5 group"
+                            className="p-8 bg-white dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-lg transition-all hover:-translate-y-2 hover:border-erobo-purple/20 dark:hover:border-white/20 hover:shadow-xl hover:shadow-neo/5 group"
                         >
                             <div
-                                className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 border border-gray-200 dark:border-white/10 bg-gradient-to-br ${feature.gradient} shadow-inner group-hover:scale-110 transition-transform`}
+                                className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 border border-erobo-purple/10 dark:border-white/10 bg-gradient-to-br ${feature.gradient} shadow-inner group-hover:scale-110 transition-transform`}
                             >
                                 <feature.icon size={24} className={feature.text} strokeWidth={2.5} />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
+                            <h3 className="text-xl font-bold text-erobo-ink dark:text-white mb-3 tracking-tight">
                                 {t(`landing.security.list.${feature.key}.title`)}
                             </h3>
-                            <p className="text-sm font-medium text-gray-500 dark:text-white/50 leading-relaxed">
+                            <p className="text-sm font-medium text-erobo-ink-soft dark:text-white/50 leading-relaxed">
                                 {t(`landing.security.list.${feature.key}.desc`)}
                             </p>
                         </div>

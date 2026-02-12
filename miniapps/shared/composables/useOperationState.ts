@@ -24,11 +24,14 @@ import { ref, type Ref } from "vue";
 import { useFormState, type FormState } from "./useFormState";
 import type { OperationBoxConfig, OperationField } from "@shared/types/template-config";
 
+/** Form values are dynamic key-value pairs driven by field config */
+type FormValues = Record<string, unknown>;
+
 export type TxState = "idle" | "confirming" | "pending" | "success" | "error";
 
 export interface OperationState {
   /** Form state (values, errors, validation) — delegated to useFormState */
-  form: FormState<Record<string, any>>;
+  form: FormState<FormValues>;
   /** Current transaction lifecycle state */
   txState: Ref<TxState>;
   /** Transaction hash on success */
@@ -36,7 +39,7 @@ export interface OperationState {
   /** Error message on failure */
   txError: Ref<string>;
   /** Submit the operation with a handler callback */
-  submit: (handler: (values: Record<string, any>) => Promise<{ txid: string }>) => Promise<void>;
+  submit: (handler: (values: FormValues) => Promise<{ txid: string }>) => Promise<void>;
   /** Reset form and transaction state */
   reset: () => void;
 }
@@ -44,8 +47,8 @@ export interface OperationState {
 /**
  * Build initial form values from field definitions
  */
-function buildInitialValues(fields: OperationField[]): Record<string, any> {
-  const values: Record<string, any> = {};
+function buildInitialValues(fields: OperationField[]): FormValues {
+  const values: FormValues = {};
   for (const field of fields) {
     if (field.default !== undefined) {
       values[field.key] = field.default;
@@ -64,7 +67,7 @@ function buildInitialValues(fields: OperationField[]): Record<string, any> {
  * Build a validation function from field definitions
  */
 function buildValidator(fields: OperationField[]) {
-  return (values: Record<string, any>): Record<string, string> | null => {
+  return (values: FormValues): Record<string, string> | null => {
     const errors: Record<string, string> = {};
 
     for (const field of fields) {
@@ -108,18 +111,13 @@ function buildValidator(fields: OperationField[]) {
 }
 
 export function useOperationState(config: OperationBoxConfig): OperationState {
-  const form = useFormState(
-    buildInitialValues(config.fields),
-    buildValidator(config.fields),
-  );
+  const form = useFormState(buildInitialValues(config.fields), buildValidator(config.fields));
 
   const txState: Ref<TxState> = ref("idle");
   const txHash: Ref<string> = ref("");
   const txError: Ref<string> = ref("");
 
-  const submit = async (
-    handler: (values: Record<string, any>) => Promise<{ txid: string }>,
-  ) => {
+  const submit = async (handler: (values: FormValues) => Promise<{ txid: string }>) => {
     // Validate form first
     form.touchAll();
     if (!form.validate()) return;
@@ -132,8 +130,8 @@ export function useOperationState(config: OperationBoxConfig): OperationState {
       const result = await handler(form.values);
       txHash.value = result.txid;
       txState.value = "success";
-    } catch (err: any) {
-      txError.value = err?.message ?? String(err);
+    } catch (err: unknown) {
+      txError.value = err instanceof Error ? err.message : String(err);
       txState.value = "error";
     }
   };

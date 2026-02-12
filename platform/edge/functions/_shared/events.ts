@@ -127,10 +127,10 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
 
   const events = (data ?? []).slice(0, limit);
   const hasMore = (data ?? []).length > limit;
-  const lastId = events.length > 0 ? String((events[events.length - 1] as any)?.id ?? "") : null;
+  const lastId = events.length > 0 ? String((events[events.length - 1] as Record<string, unknown>)?.id ?? "") : null;
 
   return {
-    events: events.map((row: any) => ({
+    events: events.map((row: Record<string, unknown>) => ({
       id: String(row.id ?? ""),
       tx_hash: String(row.tx_hash ?? ""),
       block_index: Number(row.block_index ?? 0),
@@ -138,7 +138,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
       event_name: String(row.event_name ?? ""),
       app_id: row.app_id ? String(row.app_id) : null,
       chain_id: row.chain_id ? String(row.chain_id) : null,
-      state: row.state ?? null,
+      state: (row.state as Record<string, unknown>) ?? null,
       created_at: String(row.created_at ?? ""),
     })),
     has_more: hasMore,
@@ -148,7 +148,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
 
 export async function queryTransactions(
   params: TransactionsQueryParams,
-  req?: Request,
+  req?: Request
 ): Promise<TransactionsListResponse | Response> {
   const limit = parseLimit(String(params.limit ?? ""), 100, 1000);
   const afterId = params.after_id ? String(params.after_id).trim() : undefined;
@@ -188,10 +188,13 @@ export async function queryTransactions(
 
   const transactions = (data ?? []).slice(0, limit);
   const hasMore = (data ?? []).length > limit;
-  const lastId = transactions.length > 0 ? String((transactions[transactions.length - 1] as any)?.id ?? "") : null;
+  const lastId =
+    transactions.length > 0
+      ? String((transactions[transactions.length - 1] as Record<string, unknown>)?.id ?? "")
+      : null;
 
   return {
-    transactions: transactions.map((row: any) => ({
+    transactions: transactions.map((row: Record<string, unknown>) => ({
       id: String(row.id ?? ""),
       tx_hash: row.tx_hash ? String(row.tx_hash) : null,
       request_id: String(row.request_id ?? ""),
@@ -200,7 +203,7 @@ export async function queryTransactions(
       contract_address: String(row.contract_address ?? ""),
       chain_id: row.chain_id ? String(row.chain_id) : null,
       method_name: String(row.method_name ?? ""),
-      params: row.params ?? {},
+      params: (row.params as Record<string, unknown>) ?? {},
       gas_consumed: row.gas_consumed !== null && row.gas_consumed !== undefined ? Number(row.gas_consumed) : null,
       status: String(row.status ?? ""),
       retry_count: Number(row.retry_count ?? 0),

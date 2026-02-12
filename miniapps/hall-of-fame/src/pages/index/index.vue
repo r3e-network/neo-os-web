@@ -4,115 +4,59 @@
       :config="templateConfig"
       :state="appState"
       :t="t"
-      :status-message="statusMessage ? { msg: statusMessage, type: statusType } : null"
-      :fireworks-active="!!statusMessage && statusType === 'success'"
+      :status-message="status"
+      :fireworks-active="!!status && status.type === 'success'"
       @tab-change="activeTab = $event"
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
         <view class="app-container">
           <!-- Status Message -->
           <NeoCard
-            v-if="statusMessage"
-            :variant="statusType === 'error' ? 'danger' : 'success'"
+            v-if="status"
+            :variant="status.type === 'error' ? 'danger' : 'success'"
             class="mb-4 text-center"
           >
-            <text class="font-bold tracking-wider uppercase">{{ statusMessage }}</text>
+            <text class="font-bold tracking-wider uppercase">{{ status.msg }}</text>
           </NeoCard>
 
           <!-- Category Tabs -->
-          <view class="category-tabs-glass">
-            <view
-              v-for="c in categories"
-              :key="c.id"
-              class="category-tab-glass"
-              :class="{ active: activeCategory === c.id }"
-              @click="setCategory(c.id)"
-            >
-              <text>{{ c.label }}</text>
-            </view>
-          </view>
+          <CategoryTabs
+            :categories="categories"
+            :active-category="activeCategory"
+            @select="setCategory"
+          />
 
           <!-- Period Filter -->
-          <view class="period-filter-glass">
-            <view
-              v-for="p in periods"
-              :key="p.id"
-              class="period-btn-glass"
-              :class="{ active: activePeriod === p.id }"
-              @click="setPeriod(p.id)"
-            >
-              <text>{{ p.label }}</text>
-            </view>
-          </view>
+          <PeriodFilter
+            :periods="periods"
+            :active-period="activePeriod"
+            @select="setPeriod"
+          />
 
           <!-- Leaderboard List -->
           <view class="leaderboard-list">
-            <NeoCard
+            <EntrantCard
               v-for="(entrant, index) in leaderboard"
               :key="entrant.id"
-              :variant="index === 0 ? 'erobo-neo' : 'erobo'"
-              class="entrant-card-glass"
-            >
-              <view class="entrant-inner">
-                <!-- Rank -->
-                <view class="rank-glass" :class="'rank-' + (index + 1)">
-                  <text>#{{ index + 1 }}</text>
-                </view>
-
-                <!-- Avatar -->
-                <view class="avatar-glass">
-                  <text class="avatar-text-glass">{{ entrant.name.charAt(0) }}</text>
-                </view>
-
-                <!-- Info -->
-                <view class="entrant-info">
-                  <text class="entrant-name-glass">{{ entrant.name }}</text>
-                  <view class="score-row">
-                    <text class="fire-glass">🔥</text>
-                    <text class="score-glass">{{ formatNumber(entrant.score, 0) }} GAS</text>
-                  </view>
-                </view>
-
-                <!-- Vote Button -->
-                <NeoButton
-                  variant="primary"
-                  size="sm"
-                  :disabled="!!votingId"
-                  :loading="votingId === entrant.id"
-                  @click="handleVote(entrant)"
-                >
-                  {{ t("boost") }}
-                </NeoButton>
-              </view>
-
-              <!-- Progress Bar -->
-              <view class="progress-track-glass">
-                <view
-                  class="progress-bar-glass"
-                  :class="{ gold: index === 0 }"
-                  :style="{ width: getProgressWidth(entrant.score) }"
-                >
-                  <view class="progress-glow" v-if="index === 0"></view>
-                </view>
-              </view>
-            </NeoCard>
+              :entrant="entrant"
+              :rank="index + 1"
+              :top-score="topScore"
+              :voting-id="votingId"
+              :boost-label="t('boost')"
+              @vote="handleVote"
+            />
           </view>
 
-          <NeoCard v-if="!isLoading && leaderboard.length === 0" variant="erobo" class="empty-state-card">
-            <view class="empty-state-content">
-              <text class="empty-state-title">{{
-                fetchError ? t("leaderboardUnavailable") : t("leaderboardEmpty")
-              }}</text>
-              <text v-if="fetchError" class="empty-state-subtitle">{{ t("tryAgain") }}</text>
-            </view>
-          </NeoCard>
+          <EmptyState
+            v-if="!isLoading && leaderboard.length === 0"
+            :title="fetchError ? t('leaderboardUnavailable') : t('leaderboardEmpty')"
+            :subtitle="fetchError ? t('tryAgain') : undefined"
+          />
         </view>
       </template>
     </MiniAppTemplate>
@@ -125,10 +69,17 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
-import { formatNumber } from "@shared/utils/format";
-import { MiniAppTemplate, NeoButton, NeoCard } from "@shared/components";
+import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { formatNumber } from "@shared/utils/format";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+
+import CategoryTabs from "./components/CategoryTabs.vue";
+import PeriodFilter from "./components/PeriodFilter.vue";
+import EntrantCard from "./components/EntrantCard.vue";
+import EmptyState from "./components/EmptyState.vue";
 
 const { t } = useI18n();
 
@@ -175,6 +126,13 @@ const appState = computed(() => ({
   activeCategory: activeCategory.value,
 }));
 
+const sidebarItems = computed(() => [
+  { label: t("catPeople"), value: entrants.value.filter((e) => e.category === "people").length },
+  { label: t("catCommunity"), value: entrants.value.filter((e) => e.category === "community").length },
+  { label: t("catDeveloper"), value: entrants.value.filter((e) => e.category === "developer").length },
+  { label: t("topScore"), value: topScore.value ? formatNumber(topScore.value, 0) : "—" },
+]);
+
 const categories = computed(() => [
   { id: "people", label: t("catPeople") },
   { id: "community", label: t("catCommunity") },
@@ -192,8 +150,7 @@ const activeCategory = ref<Category>("people");
 const activePeriod = ref<Period>("month");
 const entrants = ref<Entrant[]>([]);
 const votingId = ref<string | null>(null);
-const statusMessage = ref("");
-const statusType = ref<"success" | "error">("success");
+const { status, setStatus: showStatus, clearStatus } = useStatusMessage();
 const isLoading = ref(false);
 const fetchError = ref(false);
 
@@ -218,7 +175,7 @@ const fetchLeaderboard = async () => {
     const data = await response.json();
     const apiEntries = Array.isArray(data.entrants) ? data.entrants : [];
     entrants.value = apiEntries;
-  } catch (e) {
+  } catch (e: unknown) {
     entrants.value = [];
     fetchError.value = true;
   } finally {
@@ -242,16 +199,6 @@ function setPeriod(id: string) {
   fetchLeaderboard();
 }
 
-function getProgressWidth(score?: number) {
-  if (!score) return "0%";
-  return `${(score / topScore.value) * 100}%`;
-}
-
-function showStatus(message: string, type: "success" | "error") {
-  statusMessage.value = message;
-  statusType.value = type;
-  setTimeout(() => (statusMessage.value = ""), 5000);
-}
 
 async function handleVote(entrant: Entrant) {
   if (votingId.value) return;
@@ -279,8 +226,8 @@ async function handleVote(entrant: Entrant) {
     await response.json();
     await fetchLeaderboard();
     showStatus(t("voteSuccess"), "success");
-  } catch (e: any) {
-    showStatus(e.message || t("voteFailed"), "error");
+  } catch (e: unknown) {
+    showStatus(formatErrorMessage(e, t("voteFailed")), "error");
   } finally {
     votingId.value = null;
   }
@@ -390,217 +337,9 @@ onMounted(async () => {
   gap: 24px;
 }
 
-.category-tabs-glass {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  justify-content: center;
-  border-bottom: 1px solid var(--hof-divider);
-  padding-bottom: 16px;
-}
-
-.category-tab-glass {
-  padding: 8px 16px;
-  background: transparent;
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 14px;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-family: var(--hof-font);
-  letter-spacing: 0.05em;
-
-  &.active {
-    color: var(--hof-accent);
-    border-bottom: 2px solid var(--hof-accent);
-  }
-}
-
-.period-filter-glass {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.period-btn-glass {
-  padding: 4px 12px;
-  border: 1px solid var(--hof-divider);
-  border-radius: 12px;
-  font-size: 12px;
-  color: var(--text-muted);
-  cursor: pointer;
-
-  &.active {
-    background: var(--hof-accent);
-    color: var(--hof-button-text);
-    border-color: var(--hof-accent);
-  }
-}
-
 .leaderboard-list {
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.entrant-card-glass {
-  margin-bottom: 0;
-  padding: 24px;
-}
-
-.entrant-inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.rank-glass {
-  font-size: 24px;
-  font-weight: 700;
-  font-family: var(--hof-font);
-  width: 40px;
-  text-align: center;
-  color: var(--text-muted);
-
-  &.rank-1 {
-    color: var(--hof-accent);
-    font-size: 32px;
-  }
-  &.rank-2 {
-    color: var(--text-muted);
-    font-size: 28px;
-  }
-  &.rank-3 {
-    color: var(--hof-bronze);
-    font-size: 28px;
-  }
-}
-
-.avatar-glass {
-  width: 60px;
-  height: 60px;
-  background: var(--hof-avatar-bg);
-  border: 2px solid var(--hof-avatar-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.avatar-text-glass {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--hof-frame);
-  font-family: var(--hof-font);
-}
-
-.entrant-info {
-  flex: 1;
-}
-
-.entrant-name-glass {
-  font-size: 20px;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 4px;
-  color: var(--text-primary);
-  font-family: var(--hof-font);
-}
-
-.score-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.score-glass {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.progress-track-glass {
-  height: 4px;
-  background: var(--hof-progress-bg);
-  border-radius: 2px;
-  position: relative;
-  overflow: hidden;
-  margin-top: 12px;
-}
-
-.progress-bar-glass {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  background: var(--hof-progress);
-  border-radius: 2px;
-
-  &.gold {
-    background: var(--hof-progress-top);
-  }
-}
-
-.progress-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent, var(--hof-glow), transparent);
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.empty-state-card {
-  text-align: center;
-  border: 2px dashed var(--hof-empty-border) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.empty-state-content {
-  padding: 40px;
-}
-.empty-state-title {
-  font-weight: 700;
-  color: var(--text-muted);
-  font-family: var(--hof-font);
-  font-size: 18px;
-}
-.empty-state-subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 8px;
-  display: block;
-}
-
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-// Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <view v-if="active" class="fireworks-container">
+  <view v-if="active" class="fireworks-container" aria-hidden="true">
     <view v-for="i in 12" :key="i" :class="`firework firework-${i}`" :style="getFireworkStyle(i)">
       <view v-for="j in 8" :key="j" :class="`spark spark-${j}`" />
     </view>
@@ -32,7 +32,7 @@ const getFireworkStyle = (index: number) => {
   const y = 10 + Math.random() * 60;
   const delay = Math.random() * 0.5;
   const color = colors[(index - 1) % colors.length];
-  
+
   return {
     left: `${x}%`,
     top: `${y}%`,
@@ -123,6 +123,13 @@ onUnmounted(() => {
 @for $i from 1 through 12 {
   .firework-#{$i} {
     animation-delay: #{$i * 0.15}s;
+  }
+}
+
+// Disable animations for users who prefer reduced motion
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-container {
+    display: none;
   }
 }
 </style>

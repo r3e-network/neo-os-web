@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -34,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("[Automation] Unregister error:", error);
+    logger.error("[Automation] Unregister error", error);
     return res.status(500).json({ success: false, error: String(error) });
   }
 }

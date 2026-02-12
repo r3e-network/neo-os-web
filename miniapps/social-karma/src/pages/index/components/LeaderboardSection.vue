@@ -3,21 +3,21 @@
     <view class="content-card">
       <view class="card-header">
         <text class="card-title">{{ t("topContributors") }}</text>
-        <view class="refresh-btn" @click="emitRefresh">
-          <text>🔄</text>
+        <view class="refresh-btn" role="button" tabindex="0" :aria-label="t('refresh') || 'Refresh leaderboard'" @click="emitRefresh">
+          <text aria-hidden="true">🔄</text>
         </view>
       </view>
-      
+
       <view v-if="leaderboard.length === 0" class="empty-state">
         <text class="empty-icon">🏆</text>
         <text class="empty-text">{{ t("noActivity") }}</text>
         <text class="empty-subtext">{{ t("beFirst") }}</text>
       </view>
-      
+
       <view v-else class="leaderboard-list">
-        <view 
-          v-for="(entry, index) in leaderboard" 
-          :key="entry.address" 
+        <view
+          v-for="(entry, index) in leaderboard"
+          :key="entry.address"
           class="leaderboard-item"
           :class="{ 'is-me': entry.address === userAddress }"
         >
@@ -25,7 +25,7 @@
             <text>{{ index + 1 }}</text>
           </view>
           <view class="user-info">
-            <text class="user-address">{{ shortenAddress(entry.address) }}</text>
+            <text class="user-address">{{ formatAddress(entry.address) }}</text>
             <text v-if="entry.address === userAddress" class="user-tag">{{ t("you") }}</text>
           </view>
           <view class="karma-badge">
@@ -40,6 +40,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/composables/useI18n";
+import { formatAddress } from "@shared/utils/format";
 
 export interface LeaderboardEntry {
   address: string;
@@ -58,12 +59,6 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const emitRefresh = () => emit("refresh");
-
-const shortenAddress = (addr: string): string => {
-  if (!addr) return "";
-  if (addr.length <= 12) return addr;
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
-};
 </script>
 
 <style lang="scss" scoped>
@@ -104,7 +99,7 @@ const shortenAddress = (addr: string): string => {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.2);
   }
@@ -124,11 +119,11 @@ const shortenAddress = (addr: string): string => {
   background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
   transition: all 0.2s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.08);
   }
-  
+
   &.is-me {
     background: rgba(245, 158, 11, 0.15);
     border: 1px solid rgba(245, 158, 11, 0.3);
@@ -146,9 +141,9 @@ const shortenAddress = (addr: string): string => {
   font-weight: 700;
   font-size: 14px;
   color: var(--karma-text-secondary);
-  
+
   &.top-3 {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    background: var(--karma-rank-gradient);
     color: white;
   }
 }
@@ -195,13 +190,13 @@ const shortenAddress = (addr: string): string => {
 .empty-state {
   text-align: center;
   padding: 48px 24px;
-  
+
   .empty-icon {
     font-size: 48px;
     display: block;
     margin-bottom: 16px;
   }
-  
+
   .empty-text {
     font-size: 16px;
     color: var(--karma-text);
@@ -209,7 +204,7 @@ const shortenAddress = (addr: string): string => {
     display: block;
     margin-bottom: 8px;
   }
-  
+
   .empty-subtext {
     font-size: 14px;
     color: var(--karma-text-secondary);

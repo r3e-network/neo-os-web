@@ -18,10 +18,10 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
               <span className="font-medium">{token.name}</span>
               <StatusBadge status={token.status} label={t(`secrets.status.${token.status}`)} />
             </div>
-            <div className="mt-1 text-sm text-gray-500">
+            <div className="mt-1 text-sm text-erobo-ink-soft">
               {t("secrets.app")}: {token.appName || token.appId}
             </div>
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-erobo-ink-soft/60">
               {t("secrets.created")}: {formatDate(token.createdAt, locale)}
               {token.lastUsed && ` • ${t("secrets.lastUsed")}: ${formatDate(token.lastUsed, locale)}`}
             </div>

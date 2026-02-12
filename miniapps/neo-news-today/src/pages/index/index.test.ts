@@ -11,6 +11,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref, computed } from "vue";
+import type { Article } from "@/types";
 
 // Mock @neo/uniapp-sdk
 vi.mock("@neo/uniapp-sdk", () => ({
@@ -36,10 +37,8 @@ global.fetch = vi.fn(() =>
           },
         ],
       }),
-  }),
-) as any;
-
-// Mock uni API
+  })
+) as unknown as typeof fetch;
 vi.mock("uni", () => ({
   navigateTo: vi.fn(),
 }));
@@ -104,14 +103,7 @@ describe("Neo News Today MiniApp", () => {
           const rawArticles = Array.isArray(data.articles) ? data.articles : [];
 
           articles.value = rawArticles
-            .map((article: any) => ({
-              id: String(article.id || ""),
-              title: String(article.title || ""),
-              excerpt: String(article.summary || article.excerpt || ""),
-              date: String(article.pubDate || article.date || ""),
-              image: article.imageUrl || article.image || undefined,
-              url: String(article.link || article.url || ""),
-            }))
+            .map((article: Record<string, unknown>) => ({
             .filter((article: Article) => article.id && article.title && article.url);
 
           loading.value = false;
@@ -130,7 +122,7 @@ describe("Neo News Today MiniApp", () => {
     });
 
     it("should handle fetch error", async () => {
-      global.fetch = vi.fn(() => Promise.reject(new Error("Network error"))) as any;
+      global.fetch = vi.fn(() => Promise.reject(new Error("Network error"))) as unknown as typeof fetch;
 
       const loading = ref(true);
       const errorMessage = ref("");
@@ -151,15 +143,8 @@ describe("Neo News Today MiniApp", () => {
       global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
-        }),
-      ) as any;
-
-      const errorMessage = ref("");
-
-      try {
-        const res = await fetch("/api/nnt-news?limit=20");
-        if (!res.ok) {
-          throw new Error("loadFailed");
+        })
+      ) as unknown as typeof fetch;
         }
       } catch (err) {
         errorMessage.value = "loadFailed";
@@ -174,15 +159,6 @@ describe("Neo News Today MiniApp", () => {
   // ============================================================
 
   describe("Article Parsing", () => {
-    interface Article {
-      id: string;
-      title: string;
-      excerpt: string;
-      date: string;
-      image?: string;
-      url: string;
-    }
-
     it("should parse article with all fields", () => {
       const raw = {
         id: "123",
@@ -238,7 +214,7 @@ describe("Neo News Today MiniApp", () => {
         { id: "4", title: "Valid", url: "" },
       ];
 
-      const valid = rawArticles.filter((article: any) => article.id && article.title && (article.link || article.url));
+      const valid = rawArticles.filter((article: Record<string, unknown>) => article.id && article.title && (article.link || article.url));
 
       expect(valid).toHaveLength(2);
     });
@@ -484,15 +460,15 @@ describe("Neo News Today MiniApp", () => {
   describe("Error Handling", () => {
     it("should handle network timeout", async () => {
       global.fetch = vi.fn(
-        () => new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 100)),
-      ) as any;
+        () => new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 100))
+      ) as unknown as typeof fetch;
 
       const errorMessage = ref("");
 
       try {
         await fetch("/api/nnt-news?limit=20");
-      } catch (err: any) {
-        errorMessage.value = err.message || "loadFailed";
+      } catch (err: unknown) {
+        errorMessage.value = err instanceof Error ? err.message : "loadFailed";
       }
 
       expect(errorMessage.value).toBeTruthy();
@@ -503,8 +479,8 @@ describe("Neo News Today MiniApp", () => {
         Promise.resolve({
           ok: true,
           json: () => Promise.reject(new SyntaxError("Unexpected token")),
-        }),
-      ) as any;
+        })
+      ) as unknown as typeof fetch;
 
       const articles = ref<Article[]>([]);
 
@@ -523,8 +499,8 @@ describe("Neo News Today MiniApp", () => {
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ data: "not an array" }),
-        }),
-      ) as any;
+        })
+      ) as unknown as typeof fetch;
 
       const articles = ref<Article[]>([]);
 
@@ -557,7 +533,7 @@ describe("Neo News Today MiniApp", () => {
       const filtered = articles.value.filter(
         (a) =>
           a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          a.excerpt.toLowerCase().includes(searchTerm.toLowerCase()),
+          a.excerpt.toLowerCase().includes(searchTerm.toLowerCase())
       );
 
       expect(filtered).toHaveLength(2);
@@ -655,8 +631,8 @@ describe("Neo News Today MiniApp", () => {
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ articles: mockArticles }),
-        }),
-      ) as any;
+        })
+      ) as unknown as typeof fetch;
 
       // 3. Process articles
       const articles = ref<Article[]>([]);
@@ -664,7 +640,7 @@ describe("Neo News Today MiniApp", () => {
       const data = await res.json();
 
       articles.value = (data.articles || [])
-        .map((article: any) => ({
+        .map((article: Record<string, unknown>) => ({
           id: String(article.id || ""),
           title: String(article.title || ""),
           excerpt: String(article.summary || ""),
@@ -808,13 +784,3 @@ describe("Neo News Today MiniApp", () => {
     });
   });
 });
-
-// Type definitions
-interface Article {
-  id: string;
-  title: string;
-  excerpt: string;
-  date: string;
-  image?: string;
-  url: string;
-}

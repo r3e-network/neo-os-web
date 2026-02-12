@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ref, computed } from "vue";
+import { ref } from "vue";
 
 // ============================================================
 // MOCKS - Using shared test utilities
@@ -358,9 +358,9 @@ describe("Contract Interactions", () => {
   let wallet: {
     address: { value: string | null };
     chainType: { value: string };
-    invokeContract: any;
-    invokeRead: any;
-    __mocks: { invokeContract: any; invokeRead: any };
+    invokeContract: ReturnType<typeof vi.fn>;
+    invokeRead: ReturnType<typeof vi.fn>;
+    __mocks: { invokeContract: ReturnType<typeof vi.fn>; invokeRead: ReturnType<typeof vi.fn> };
   };
 
   beforeEach(() => {
@@ -569,7 +569,7 @@ describe("Error Handling", () => {
     const invokeMock = vi.fn().mockRejectedValue(new Error("Contract reverted"));
 
     await expect(invokeMock({ scriptHash: "0x123", operation: "createLoan", args: [] })).rejects.toThrow(
-      "Contract reverted",
+      "Contract reverted"
     );
   });
 
@@ -723,7 +723,9 @@ describe("Performance", () => {
     for (let i = 0; i < iterations; i++) {
       const collateralLocked = 100;
       const ltvPercent = 30;
-      const healthFactor = isZeroBorrowed(borrowedValue) ? 999 : (collateralLocked * (ltvPercent / 100)) / borrowedValue;
+      const healthFactor = isZeroBorrowed(borrowedValue)
+        ? 999
+        : (collateralLocked * (ltvPercent / 100)) / borrowedValue;
     }
 
     const elapsed = performance.now() - start;

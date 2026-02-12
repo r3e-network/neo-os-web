@@ -7,6 +7,7 @@
 import { createHandler } from "@/lib/api";
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { HandlerContext } from "@/lib/api/types";
+import { logger } from "@/lib/logger";
 
 export default createHandler({
   auth: "wallet",
@@ -26,7 +27,7 @@ export default createHandler({
           .order("created_at", { ascending: true });
 
         if (error) {
-          console.error("[Forum] replies list error:", error);
+          logger.error("[Forum] replies list error", error);
           return res.status(500).json({ error: "Failed to fetch replies" });
         }
 
@@ -63,7 +64,7 @@ export default createHandler({
           .single();
 
         if (error) {
-          console.error("[Forum] reply create error:", error);
+          logger.error("[Forum] reply create error", error);
           return res.status(500).json({ error: "Failed to create reply" });
         }
 

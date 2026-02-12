@@ -3,9 +3,7 @@
     <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -44,23 +42,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
-
-// Responsive state
-const windowWidth = ref(window.innerWidth);
-const isMobile = computed(() => windowWidth.value < 768);
-const isDesktop = computed(() => windowWidth.value >= 1024);
-const handleResize = () => {
-  windowWidth.value = window.innerWidth;
-};
-
-onMounted(() => window.addEventListener("resize", handleResize));
-onUnmounted(() => window.removeEventListener("resize", handleResize));
-import { MiniAppTemplate, ScrollReveal } from "@shared/components";
+import { ref, computed } from "vue";
+import { useResponsive } from "@shared/composables/useResponsive";
+import { MiniAppTemplate, ScrollReveal, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import AccountGenerator from "./components/AccountGenerator.vue";
 import ConverterTool from "./components/ConverterTool.vue";
 import { useI18n } from "@/composables/useI18n";
+
+const { isMobile, isDesktop } = useResponsive();
 
 const { t } = useI18n();
 
@@ -69,22 +59,44 @@ const templateConfig: MiniAppTemplateConfig = {
   tabs: [
     { key: "generate", labelKey: "tabGenerate", icon: "👛", default: true },
     { key: "convert", labelKey: "tabConvert", icon: "🔄" },
+    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
   features: {
     chainWarning: true,
     statusMessages: true,
+    docs: {
+      titleKey: "docTitle",
+      subtitleKey: "docSubtitle",
+      descriptionKey: "docDescription",
+      stepKeys: ["docStep1", "docStep2", "docStep3", "docStep4"],
+      featureKeys: [
+        { nameKey: "docFeature1Name", descKey: "docFeature1Desc" },
+        { nameKey: "docFeature2Name", descKey: "docFeature2Desc" },
+        { nameKey: "docFeature3Name", descKey: "docFeature3Desc" },
+        { nameKey: "docFeature4Name", descKey: "docFeature4Desc" },
+      ],
+    },
   },
 };
 const activeTab = ref("generate");
 const appState = computed(() => ({
   activeTab: activeTab.value,
 }));
+
+const sidebarItems = computed(() => [
+  { label: "Active Tab", value: activeTab.value },
+  { label: "Mode", value: isMobile.value ? "Mobile" : "Desktop" },
+]);
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./neo-convert-theme.scss";
+
+:global(page) {
+  background: var(--bg-primary);
+}
 
 .content-area {
   padding: 16px;
@@ -162,17 +174,4 @@ const appState = computed(() => ({
 }
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

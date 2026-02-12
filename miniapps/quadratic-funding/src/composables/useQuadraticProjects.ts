@@ -1,9 +1,10 @@
 import type { Ref } from "vue";
-import { ref, computed, watch } from "vue";
+import { ref, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "./useI18n";
 import { requireNeoChain } from "@shared/utils/chain";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { parseInvokeResult } from "@shared/utils/neo";
 import type { ProjectItem } from "../pages/index/components/ProjectList.vue";
 import type { RoundItem } from "../pages/index/components/RoundList.vue";
@@ -29,10 +30,9 @@ export function useQuadraticProjects(
     }
   };
 
-  const parseBool = (value: unknown) =>
-    value === true || value === "true" || value === 1 || value === "1";
+  const parseBool = (value: unknown) => value === true || value === "true" || value === 1 || value === "1";
 
-  const parseProject = (raw: any, id: string): ProjectItem | null => {
+  const parseProject = (raw: Record<string, unknown>, id: string): ProjectItem | null => {
     if (!raw || typeof raw !== "object") return null;
     return {
       id,
@@ -53,7 +53,7 @@ export function useQuadraticProjects(
   const fetchProjectIds = async (roundId: string) => {
     const contract = await ensureContractAddress();
     const result = await invokeRead({
-      contractAddress: contract,
+      scriptHash: contract,
       operation: "getRoundProjects",
       args: [
         { type: "Integer", value: roundId },
@@ -72,12 +72,13 @@ export function useQuadraticProjects(
   const fetchProjectDetails = async (projectId: string) => {
     const contract = await ensureContractAddress();
     const details = await invokeRead({
-      contractAddress: contract,
+      scriptHash: contract,
       operation: "getProjectDetails",
       args: [{ type: "Integer", value: projectId }],
     });
-    const parsed = parseInvokeResult(details) as any;
-    return parseProject(parsed, projectId);
+    const parsed = parseInvokeResult(details);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parseProject(parsed as Record<string, unknown>, projectId);
   };
 
   const refreshProjects = async () => {
@@ -88,8 +89,8 @@ export function useQuadraticProjects(
       const ids = await fetchProjectIds(selectedRound.value.id);
       const details = await Promise.all(ids.map(fetchProjectDetails));
       projects.value = details.filter(Boolean) as ProjectItem[];
-    } catch (e: any) {
-      setStatus(e.message || t("contractMissing"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRefreshingProjects.value = false;
     }
@@ -132,8 +133,8 @@ export function useQuadraticProjects(
 
       setStatus(t("projectRegistered"), "success");
       await refreshProjects();
-    } catch (e: any) {
-      setStatus(e.message || t("contractMissing"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRegisteringProject.value = false;
     }
@@ -170,8 +171,8 @@ export function useQuadraticProjects(
 
       setStatus(t("projectClaimed"), "success");
       await refreshProjects();
-    } catch (e: any) {
-      setStatus(e.message || t("contractMissing"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       claimingProjectId.value = null;
     }

@@ -33,7 +33,7 @@ export function UnbreakableVaultAnimation() {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
       <div className="relative">
-        <div className="w-20 h-20 bg-gray-700 rounded-lg flex items-center justify-center animate-vault-secure">
+        <div className="w-20 h-20 bg-erobo-bg-card rounded-lg flex items-center justify-center animate-vault-secure">
           <span className="text-4xl">🔐</span>
         </div>
       </div>

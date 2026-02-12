@@ -7,8 +7,6 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { supabaseClient } from "@/lib/api-client";
 
-const EDGE_FUNCTION_URL = process.env.NEXT_PUBLIC_EDGE_URL || "https://edge.localhost";
-
 /**
  * GET /api/admin/miniapps/submissions
  * Query params:
@@ -38,8 +36,9 @@ export async function GET(req: Request) {
       params.status = `eq.${status}`;
     }
 
-    const result = await supabaseClient.queryWithServiceRole<{
-      apps: Array<{
+    // PostgREST returns a flat array — type accordingly
+    const apps = await supabaseClient.queryWithServiceRole<
+      Array<{
         id: string;
         app_id: string;
         git_url: string;
@@ -73,14 +72,12 @@ export async function GET(req: Request) {
         error_count: number;
         created_at: string;
         updated_at: string;
-      }>;
-      total: number;
-    }>("miniapp_submissions", params);
+      }>
+    >("miniapp_submissions", params);
 
-    // Get total count for pagination
+    // Get total count for pagination via Prefer: count=exact header
     const countParams: Record<string, string> = {
       select: "id",
-      count: "exact",
     };
     if (status && status !== "all") {
       countParams.status = `eq.${status}`;
@@ -99,7 +96,7 @@ export async function GET(req: Request) {
     const totalCount = parseInt(countResult.headers.get("content-range")?.split("/")[1] || "0");
 
     return NextResponse.json({
-      apps: result.apps,
+      apps,
       total: totalCount,
       limit,
       offset,

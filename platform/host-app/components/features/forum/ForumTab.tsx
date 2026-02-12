@@ -20,7 +20,7 @@ const categoryIcons = {
 };
 
 const categoryColors = {
-  general: "bg-gray-100 text-gray-700",
+  general: "bg-erobo-purple/10 text-erobo-ink",
   bug: "bg-red-100 text-red-700",
   feature: "bg-purple-100 text-purple-700",
   help: "bg-blue-100 text-blue-700",
@@ -54,7 +54,7 @@ export function ForumTab({ appId }: ForumTabProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("forum.title")}</h3>
+        <h3 className="text-lg font-semibold text-erobo-ink dark:text-white">{t("forum.title")}</h3>
         {walletAddress && (
           <button
             onClick={() => setShowNewThread(true)}
@@ -75,7 +75,7 @@ export function ForumTab({ appId }: ForumTabProps) {
             className={`px-3 py-1 text-xs rounded-full capitalize ${
               filter === cat
                 ? "bg-emerald-500 text-white"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                : "bg-erobo-purple/10 dark:bg-erobo-bg-card text-erobo-ink-soft dark:text-slate-400"
             }`}
           >
             {t(`forum.filters.${cat}`)}
@@ -97,9 +97,9 @@ export function ForumTab({ appId }: ForumTabProps) {
       {/* Thread List */}
       <div className="space-y-2">
         {loading ? (
-          <div className="text-center py-8 text-gray-500">{tCommon("actions.loading")}</div>
+          <div className="text-center py-8 text-erobo-ink-soft">{tCommon("actions.loading")}</div>
         ) : threads.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-erobo-ink-soft">
             <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" />
             <p>{t("forum.empty")}</p>
           </div>
@@ -121,7 +121,7 @@ function ThreadItem({ thread, onClick }: { thread: ForumThread; onClick: () => v
   return (
     <div
       onClick={onClick}
-      className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors"
+      className="p-4 bg-white dark:bg-erobo-bg-dark rounded-lg border border-erobo-purple/10 dark:border-white/10 hover:border-emerald-500 cursor-pointer transition-colors"
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${categoryColors[thread.category]}`}>
@@ -130,11 +130,11 @@ function ThreadItem({ thread, onClick }: { thread: ForumThread; onClick: () => v
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             {thread.is_pinned && <Pin size={12} className="text-amber-500" />}
-            {thread.is_locked && <Lock size={12} className="text-gray-400" />}
-            <h4 className="font-medium text-gray-900 dark:text-white truncate">{thread.title}</h4>
+            {thread.is_locked && <Lock size={12} className="text-erobo-ink-soft/60" />}
+            <h4 className="font-medium text-erobo-ink dark:text-white truncate">{thread.title}</h4>
           </div>
-          <p className="text-sm text-gray-500 truncate mt-1">{thread.content}</p>
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+          <p className="text-sm text-erobo-ink-soft truncate mt-1">{thread.content}</p>
+          <div className="flex items-center gap-4 mt-2 text-xs text-erobo-ink-soft/60">
             <span>{thread.author_name}</span>
             <span>{t("forum.repliesCount", { count: thread.reply_count })}</span>
             <span>{formatTimeAgoShort(thread.created_at, { t: tCommon, locale })}</span>
@@ -167,20 +167,20 @@ function NewThreadForm({
   };
 
   return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+    <div className="p-4 bg-erobo-purple/5 dark:bg-erobo-bg-card rounded-lg border border-erobo-purple/10 dark:border-white/10">
       <input
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder={t("forum.threadTitlePlaceholder")}
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="w-full px-3 py-2 mb-3 rounded-lg border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-erobo-bg-dark text-erobo-ink dark:text-white"
         maxLength={200}
       />
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={t("forum.threadBodyPlaceholder")}
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="w-full px-3 py-2 mb-3 rounded-lg border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-erobo-bg-dark text-erobo-ink dark:text-white"
         rows={4}
         maxLength={5000}
       />
@@ -188,7 +188,7 @@ function NewThreadForm({
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm"
+          className="px-3 py-1.5 rounded-lg border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-erobo-bg-dark text-sm"
         >
           <option value="general">{t("forum.filters.general")}</option>
           <option value="bug">{t("forum.filters.bug")}</option>
@@ -196,7 +196,7 @@ function NewThreadForm({
           <option value="help">{t("forum.filters.help")}</option>
         </select>
         <div className="flex gap-2">
-          <button onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400">
+          <button onClick={onCancel} className="px-3 py-1.5 text-sm text-erobo-ink-soft dark:text-slate-400">
             {tCommon("actions.cancel")}
           </button>
           <button
@@ -251,26 +251,26 @@ function ThreadDetail({
         ← {t("forum.backToDiscussions")}
       </button>
 
-      <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{thread.title}</h2>
-        <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+      <div className="p-4 bg-white dark:bg-erobo-bg-dark rounded-lg border border-erobo-purple/10 dark:border-white/10">
+        <h2 className="text-xl font-semibold text-erobo-ink dark:text-white">{thread.title}</h2>
+        <div className="flex items-center gap-2 mt-2 text-xs text-erobo-ink-soft/60">
           <span>{thread.author_name}</span>
           <span>•</span>
           <span>{formatTimeAgoShort(thread.created_at, { t: tCommon, locale })}</span>
         </div>
-        <p className="mt-4 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{thread.content}</p>
+        <p className="mt-4 text-erobo-ink dark:text-slate-300 whitespace-pre-wrap">{thread.content}</p>
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-gray-500">{t("forum.repliesTitle", { count: replies.length })}</h3>
+        <h3 className="text-sm font-medium text-erobo-ink-soft">{t("forum.repliesTitle", { count: replies.length })}</h3>
         {replies.map((reply) => (
-          <div key={reply.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
-              <span className="font-medium text-gray-700 dark:text-gray-300">{reply.author_name}</span>
+          <div key={reply.id} className="p-3 bg-erobo-purple/5 dark:bg-erobo-bg-card rounded-lg">
+            <div className="flex items-center gap-2 text-xs text-erobo-ink-soft/60 mb-2">
+              <span className="font-medium text-erobo-ink dark:text-slate-300">{reply.author_name}</span>
               <span>•</span>
               <span>{formatTimeAgoShort(reply.created_at, { t: tCommon, locale })}</span>
             </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300">{reply.content}</p>
+            <p className="text-sm text-erobo-ink dark:text-slate-300">{reply.content}</p>
           </div>
         ))}
       </div>
@@ -282,7 +282,7 @@ function ThreadDetail({
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder={t("forum.writeReplyPlaceholder")}
-            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm"
+            className="flex-1 px-3 py-2 rounded-lg border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-erobo-bg-dark text-sm"
             maxLength={2000}
           />
           <button

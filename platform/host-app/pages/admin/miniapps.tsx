@@ -165,8 +165,8 @@ export default function AdminMiniApps() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">MiniApp Review Queue</h1>
-              <p className="text-gray-500">Approve community MiniApps before they go live.</p>
+              <h1 className="text-3xl font-bold text-erobo-ink dark:text-white">MiniApp Review Queue</h1>
+              <p className="text-erobo-ink-soft">Approve community MiniApps before they go live.</p>
             </div>
             <Button
               onClick={() => loadQueue(adminKey)}
@@ -178,29 +178,29 @@ export default function AdminMiniApps() {
             </Button>
           </div>
 
-          <Card className="border border-gray-200 dark:border-white/10">
+          <Card className="border border-erobo-purple/10 dark:border-white/10">
             <CardContent className="p-4 flex flex-col md:flex-row gap-3 md:items-center">
               <div className="flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Admin API Key</label>
+                <label className="text-sm font-medium text-erobo-ink dark:text-slate-300">Admin API Key</label>
                 <input
                   type="password"
                   value={adminKey}
                   onChange={(e) => setAdminKey(e.target.value)}
                   placeholder="Enter admin API key"
-                  className="mt-2 w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                  className="mt-2 w-full rounded-xl border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-erobo-ink dark:text-white"
                 />
               </div>
               <div className="flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Reviewer Name</label>
+                <label className="text-sm font-medium text-erobo-ink dark:text-slate-300">Reviewer Name</label>
                 <input
                   type="text"
                   value={reviewer}
                   onChange={(e) => setReviewer(e.target.value)}
                   placeholder="Admin"
-                  className="mt-2 w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                  className="mt-2 w-full rounded-xl border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-erobo-ink dark:text-white"
                 />
               </div>
-              <Button onClick={persistKey} className="bg-gray-900 text-white hover:bg-gray-800">
+              <Button onClick={persistKey} className="bg-erobo-bg-dark text-white hover:bg-erobo-bg-card">
                 Save
               </Button>
             </CardContent>
@@ -215,17 +215,17 @@ export default function AdminMiniApps() {
           {loading ? (
             <div className="grid gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-32 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse" />
+                <div key={i} className="h-32 rounded-2xl bg-erobo-purple/10 dark:bg-white/5 animate-pulse" />
               ))}
             </div>
           ) : queue.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 dark:border-white/10 py-16 text-center text-gray-500">
+            <div className="rounded-2xl border border-dashed border-erobo-purple/10 dark:border-white/10 py-16 text-center text-erobo-ink-soft">
               No pending reviews.
             </div>
           ) : (
             <div className="grid gap-6">
               {queue.map((item) => (
-                <Card key={item.version.id} className="border border-gray-200 dark:border-white/10">
+                <Card key={item.version.id} className="border border-erobo-purple/10 dark:border-white/10">
                   <CardContent className="p-6 flex flex-col gap-4">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                       <div className="flex items-start gap-4">
@@ -233,14 +233,14 @@ export default function AdminMiniApps() {
                           <img
                             src={item.app.icon_url}
                             alt={item.app?.name || item.app_id}
-                            className="h-14 w-14 rounded-2xl object-cover border border-gray-200 dark:border-white/10"
+                            className="h-14 w-14 rounded-2xl object-cover border border-erobo-purple/10 dark:border-white/10"
                           />
                         ) : (
-                          <div className="h-14 w-14 rounded-2xl bg-gray-100 dark:bg-white/10" />
+                          <div className="h-14 w-14 rounded-2xl bg-erobo-purple/10 dark:bg-white/10" />
                         )}
                         <div>
                           <div className="flex items-center gap-2">
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            <h2 className="text-xl font-semibold text-erobo-ink dark:text-white">
                               {item.app?.name || item.app_id}
                             </h2>
                             {item.app?.category && (
@@ -249,22 +249,22 @@ export default function AdminMiniApps() {
                               </Badge>
                             )}
                           </div>
-                          {item.app?.name_zh && <div className="text-sm text-gray-500">{item.app.name_zh}</div>}
-                          <div className="text-sm text-gray-500 mt-1">{item.app?.description}</div>
+                          {item.app?.name_zh && <div className="text-sm text-erobo-ink-soft">{item.app.name_zh}</div>}
+                          <div className="text-sm text-erobo-ink-soft mt-1">{item.app?.description}</div>
                           {item.app?.description_zh && (
-                            <div className="text-xs text-gray-400 mt-1">{item.app.description_zh}</div>
+                            <div className="text-xs text-erobo-ink-soft/60 mt-1">{item.app.description_zh}</div>
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2 text-sm text-gray-500">
+                      <div className="flex flex-col gap-2 text-sm text-erobo-ink-soft">
                         <div>
                           Developer:{" "}
-                          <span className="text-gray-900 dark:text-white">{item.app?.developer_name || "Unknown"}</span>
+                          <span className="text-erobo-ink dark:text-white">{item.app?.developer_name || "Unknown"}</span>
                         </div>
                         {item.app?.developer_address && <div className="text-xs">{item.app.developer_address}</div>}
                         <div>
                           Submitted:{" "}
-                          <span className="text-gray-900 dark:text-white">
+                          <span className="text-erobo-ink dark:text-white">
                             {item.version.created_at ? new Date(item.version.created_at).toLocaleString() : "N/A"}
                           </span>
                         </div>
@@ -272,9 +272,9 @@ export default function AdminMiniApps() {
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      <div className="rounded-xl border border-gray-200 dark:border-white/10 p-4">
-                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-200">Version</div>
-                        <div className="mt-1 text-sm text-gray-500">
+                      <div className="rounded-xl border border-erobo-purple/10 dark:border-white/10 p-4">
+                        <div className="text-sm font-semibold text-erobo-ink dark:text-slate-200">Version</div>
+                        <div className="mt-1 text-sm text-erobo-ink-soft">
                           {item.version.version || "1.0.0"} (code {item.version.version_code ?? "?"})
                         </div>
                         <div className="mt-2 flex items-center gap-2 text-sm">
@@ -288,15 +288,15 @@ export default function AdminMiniApps() {
                           </a>
                         </div>
                         {item.version.release_notes && (
-                          <div className="mt-2 text-xs text-gray-500">{item.version.release_notes}</div>
+                          <div className="mt-2 text-xs text-erobo-ink-soft">{item.version.release_notes}</div>
                         )}
                         {item.version.release_notes_zh && (
-                          <div className="mt-1 text-xs text-gray-400">{item.version.release_notes_zh}</div>
+                          <div className="mt-1 text-xs text-erobo-ink-soft/60">{item.version.release_notes_zh}</div>
                         )}
                       </div>
 
-                      <div className="rounded-xl border border-gray-200 dark:border-white/10 p-4">
-                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-200">Build</div>
+                      <div className="rounded-xl border border-erobo-purple/10 dark:border-white/10 p-4">
+                        <div className="text-sm font-semibold text-erobo-ink dark:text-slate-200">Build</div>
                         {item.build?.storage_path ? (
                           <div className="mt-2 flex items-center gap-2 text-sm">
                             <a
@@ -309,16 +309,16 @@ export default function AdminMiniApps() {
                             </a>
                           </div>
                         ) : (
-                          <div className="mt-2 text-sm text-gray-500">No build attached.</div>
+                          <div className="mt-2 text-sm text-erobo-ink-soft">No build attached.</div>
                         )}
-                        <div className="mt-2 text-xs text-gray-500">
+                        <div className="mt-2 text-xs text-erobo-ink-soft">
                           Status: {item.build?.status || "n/a"} | Platform: {item.build?.platform || "web"}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      <div className="text-sm font-semibold text-gray-700 dark:text-gray-200">Chains & Contracts</div>
+                      <div className="text-sm font-semibold text-erobo-ink dark:text-slate-200">Chains & Contracts</div>
                       {item.version.supported_chains && item.version.supported_chains.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {item.version.supported_chains.map((chainId) => (
@@ -328,17 +328,17 @@ export default function AdminMiniApps() {
                           ))}
                         </div>
                       ) : (
-                        <div className="text-sm text-gray-500">No supported chains listed.</div>
+                        <div className="text-sm text-erobo-ink-soft">No supported chains listed.</div>
                       )}
                       {renderContracts(item.version.contracts)}
                     </div>
 
                     <div className="flex flex-col gap-3">
-                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Review Notes</label>
+                      <label className="text-sm font-semibold text-erobo-ink dark:text-slate-200">Review Notes</label>
                       <textarea
                         value={notes[item.version.id] || ""}
                         onChange={(e) => setNotes((prev) => ({ ...prev, [item.version.id]: e.target.value }))}
-                        className="min-h-[90px] w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-sm text-gray-900 dark:text-white"
+                        className="min-h-[90px] w-full rounded-xl border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-white/5 p-3 text-sm text-erobo-ink dark:text-white"
                         placeholder="Add feedback for the developer..."
                       />
                     </div>

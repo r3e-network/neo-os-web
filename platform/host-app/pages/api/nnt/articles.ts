@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
 
 interface Article {
   id: string;
@@ -18,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const articles = await fetchNNTArticles();
     return res.status(200).json({ articles });
   } catch (err) {
-    console.error("NNT fetch error:", err);
+    logger.error("NNT fetch error", err);
     return res.status(500).json({ error: "Failed to fetch articles" });
   }
 }

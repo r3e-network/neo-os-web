@@ -56,20 +56,7 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
-
-interface TicketItem {
-  tokenId: string;
-  eventId: string;
-  eventName: string;
-  venue: string;
-  startTime: number;
-  endTime: number;
-  seat: string;
-  memo: string;
-  issuedTime: number;
-  used: boolean;
-  usedTime: number;
-}
+import type { TicketItem } from "@/types";
 
 const props = defineProps<{
   t: (key: string) => string;
@@ -208,7 +195,7 @@ const formatSchedule = (startTime: number, endTime: number) => {
 
 .status-pill.used {
   background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
+  color: var(--ticket-danger);
 }
 
 .empty-state {

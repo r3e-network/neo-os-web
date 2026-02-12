@@ -69,6 +69,12 @@ export const TOKEN_CONSTANTS = {
  * Blockchain constants
  */
 export const BLOCKCHAIN_CONSTANTS = {
+  /** NEO token script hash (N3 mainnet/testnet) */
+  NEO_HASH: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+
+  /** GAS token script hash (N3 mainnet/testnet) */
+  GAS_HASH: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+
   /** Minimum loan duration in seconds (1 day) */
   MIN_LOAN_DURATION_SECONDS: 86400,
 
@@ -227,9 +233,7 @@ export function secondsToHuman(seconds: number): {
   remaining: number;
 } {
   const hours = Math.floor(seconds / TIME_CONSTANTS.HOUR_MS);
-  const minutes = Math.floor(
-    (seconds % TIME_CONSTANTS.HOUR_MS) / TIME_CONSTANTS.MINUTE_MS,
-  );
+  const minutes = Math.floor((seconds % TIME_CONSTANTS.HOUR_MS) / TIME_CONSTANTS.MINUTE_MS);
   const remaining = seconds % TIME_CONSTANTS.MINUTE_MS;
 
   return { hours, minutes, remaining };

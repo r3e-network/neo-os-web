@@ -9,6 +9,7 @@ import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useTranslation } from "@/lib/i18n/react";
+import { logger } from "@/lib/logger";
 
 interface WishlistButtonProps {
   appId: string;
@@ -59,7 +60,7 @@ export function WishlistButton({
         onToggle?.(newState);
       }
     } catch (err) {
-      console.error("Wishlist toggle failed:", err);
+      logger.error("Wishlist toggle failed:", err);
     } finally {
       setLoading(false);
     }
@@ -74,7 +75,7 @@ export function WishlistButton({
         "border hover:scale-105 active:scale-95",
         wishlisted
           ? "bg-red-500/10 border-red-500/30 text-red-500"
-          : "bg-white/80 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400 hover:text-red-500",
+          : "bg-white/80 dark:bg-white/5 border-erobo-purple/10 dark:border-white/10 text-erobo-ink-soft/60 hover:text-red-500",
         !address && "opacity-50 cursor-not-allowed",
         sizeClasses[size],
         className,

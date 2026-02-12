@@ -3,21 +3,21 @@
     <!-- Wallet Connection Prompt -->
     <view v-if="!isConnected" class="wallet-prompt mb-4">
       <NeoCard variant="warning" class="text-center">
-        <text class="font-bold block mb-2">{{ t('connectWalletToUse') }}</text>
+        <text class="mb-2 block font-bold">{{ t("connectWalletToUse") }}</text>
         <NeoButton variant="primary" size="sm" @click="$emit('connect')">
-          {{ t('connectWallet') }}
+          {{ t("connectWallet") }}
         </NeoButton>
       </NeoCard>
     </view>
 
     <!-- Instruction Mode Banner -->
     <NeoCard variant="warning" class="mb-4 text-center">
-      <text class="font-bold block text-glass-glow">{{ t("instructionMode") }}</text>
-      <text class="text-xs opacity-80 text-glass">{{ t("instructionNote") }}</text>
+      <text class="text-glass-glow block font-bold">{{ t("instructionMode") }}</text>
+      <text class="text-glass text-xs opacity-80">{{ t("instructionNote") }}</text>
     </NeoCard>
 
     <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4 text-center">
-      <text class="font-bold text-glass">{{ status.msg }}</text>
+      <text class="text-glass font-bold">{{ status.msg }}</text>
     </NeoCard>
 
     <LoanRequestForm
@@ -39,7 +39,7 @@ import LoanRequestForm from "./LoanRequestForm.vue";
 
 defineProps<{
   loanId: string;
-  loanDetails: any;
+  loanDetails: Record<string, unknown> | null;
   isLoading: boolean;
   validationError: string | null;
   isConnected: boolean;
@@ -51,7 +51,7 @@ defineEmits<{
   connect: [];
   lookup: [];
   requestLoan: [data: { amount: string; callbackContract: string; callbackMethod: string }];
-  'update:loanId': [value: string];
+  "update:loanId": [value: string];
 }>();
 </script>
 

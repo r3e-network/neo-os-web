@@ -1,6 +1,5 @@
 <template>
   <NeoCard variant="erobo-neo">
-
     <view class="form-section">
       <text class="form-label">{{ t("titleLabel") }}</text>
       <view class="input-wrapper-clean">
@@ -61,11 +60,7 @@
     <view class="form-section">
       <text class="form-label">{{ t("visibility") }}</text>
       <view class="visibility-actions">
-        <NeoButton
-          size="sm"
-          :variant="isPublic ? 'secondary' : 'primary'"
-          @click="$emit('update:isPublic', false)"
-        >
+        <NeoButton size="sm" :variant="isPublic ? 'secondary' : 'primary'" @click="$emit('update:isPublic', false)">
           {{ t("private") }}
         </NeoButton>
         <NeoButton size="sm" :variant="isPublic ? 'primary' : 'secondary'" @click="$emit('update:isPublic', true)">
@@ -101,7 +96,7 @@ const props = defineProps<{
   category: number;
   isLoading: boolean;
   canCreate: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const categories = [
@@ -158,7 +153,7 @@ defineEmits(["update:title", "update:content", "update:days", "update:isPublic",
   opacity: 0.6;
   font-weight: 600;
   text-transform: uppercase;
-  color: #00E599;
+  color: var(--capsule-helper);
 }
 
 .helper-text.neutral {

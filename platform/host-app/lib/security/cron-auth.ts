@@ -11,6 +11,7 @@
 
 import type { NextApiRequest, NextApiResponse, NextApiHandler } from "next";
 import { timingSafeEqual } from "crypto";
+import { logger } from "@/lib/logger";
 
 export function withCronAuth(handler: NextApiHandler): NextApiHandler {
   return async (req: NextApiRequest, res: NextApiResponse) => {
@@ -18,7 +19,7 @@ export function withCronAuth(handler: NextApiHandler): NextApiHandler {
 
     // SECURITY: CRON_SECRET must be configured in production
     if (!cronSecret) {
-      console.error("[CronAuth] CRON_SECRET not configured");
+      logger.error("[CronAuth] CRON_SECRET not configured");
       return res.status(500).json({ error: "Cron authentication not configured" });
     }
 

@@ -59,7 +59,7 @@ const matchedIds = computed(() => {
   position: relative;
   border-radius: 24px;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, var(--turtle-panel-darker) 0%, var(--turtle-panel-dark) 100%);
   border: 2px solid rgba(16, 185, 129, 0.3);
   box-shadow: 
     inset 0 0 40px rgba(0, 0, 0, 0.5),
@@ -104,7 +104,7 @@ const matchedIds = computed(() => {
 
 .grass {
   position: absolute;
-  background: #10b981;
+  background: var(--turtle-primary);
   border-radius: 50% 50% 0 0;
   animation: sway 10s infinite ease-in-out;
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Shield, Plus, Trash2, Copy, Check } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/react";
+import { logger } from "@/lib/logger";
 
 interface Token {
   id: number;
@@ -38,7 +39,7 @@ export function TokenManagement({ walletAddress }: TokenManagementProps) {
         setTokens(data.tokens || []);
       }
     } catch (error) {
-      console.error("Failed to load tokens:", error);
+      logger.error("Failed to load tokens:", error);
     } finally {
       setLoading(false);
     }
@@ -63,7 +64,7 @@ export function TokenManagement({ walletAddress }: TokenManagementProps) {
       });
       await loadTokens();
     } catch (error) {
-      console.error("Failed to revoke token:", error);
+      logger.error("Failed to revoke token:", error);
     }
   };
 
@@ -74,7 +75,7 @@ export function TokenManagement({ walletAddress }: TokenManagementProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+            <CardTitle className="text-erobo-ink dark:text-white flex items-center gap-2">
               <Shield size={20} className="text-neo" />
               {t("account.tokens.title")}
             </CardTitle>
@@ -124,9 +125,9 @@ function TokenItem({ token, onRevoke }: { token: Token; onRevoke: (id: number) =
   };
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-dark-900/50 border border-gray-200 dark:border-white/5 transition-colors hover:bg-gray-100 dark:hover:bg-dark-900/80">
+    <div className="flex items-center justify-between p-4 rounded-xl bg-erobo-purple/5 dark:bg-dark-900/50 border border-erobo-purple/10 dark:border-white/5 transition-colors hover:bg-erobo-purple/10 dark:hover:bg-dark-900/80">
       <div className="flex-1">
-        <p className="text-sm font-medium text-gray-900 dark:text-white">{token.name}</p>
+        <p className="text-sm font-medium text-erobo-ink dark:text-white">{token.name}</p>
         <div className="flex items-center gap-2 mt-1">
           <code className="text-xs text-slate-500 font-mono">{token.token_prefix}...</code>
           <button onClick={copyPrefix} className="text-slate-400 hover:text-neo">
@@ -134,7 +135,7 @@ function TokenItem({ token, onRevoke }: { token: Token; onRevoke: (id: number) =
           </button>
         </div>
       </div>
-      <Button variant="ghost" size="sm" onClick={() => onRevoke(token.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10">
+      <Button variant="ghost" size="sm" onClick={() => onRevoke(token.id)} className="text-erobo-ink-soft/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10">
         <Trash2 size={16} />
       </Button>
     </div>
@@ -188,11 +189,11 @@ function CreateTokenForm({
   if (newToken) {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-md w-full border border-gray-200 dark:border-white/10 shadow-2xl">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Token Created</h3>
+        <div className="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-md w-full border border-erobo-purple/10 dark:border-white/10 shadow-2xl">
+          <h3 className="text-lg font-semibold text-erobo-ink dark:text-white mb-4">Token Created</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Copy this token now. You won't be able to see it again.</p>
-          <div className="p-3 bg-gray-100 dark:bg-dark-800 rounded-lg mb-4 border border-gray-200 dark:border-white/10">
-            <code className="text-xs font-mono break-all text-gray-900 dark:text-white">{newToken}</code>
+          <div className="p-3 bg-erobo-purple/10 dark:bg-dark-800 rounded-lg mb-4 border border-erobo-purple/10 dark:border-white/10">
+            <code className="text-xs font-mono break-all text-erobo-ink dark:text-white">{newToken}</code>
           </div>
           <Button
             onClick={() => {
@@ -210,21 +211,21 @@ function CreateTokenForm({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-md w-full border border-gray-200 dark:border-white/10 shadow-2xl">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Create Token</h3>
+      <div className="bg-white dark:bg-dark-900 rounded-2xl p-6 max-w-md w-full border border-erobo-purple/10 dark:border-white/10 shadow-2xl">
+        <h3 className="text-lg font-semibold text-erobo-ink dark:text-white mb-6">Create Token</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5 block">Token Name</label>
+            <label className="text-sm font-medium text-erobo-ink dark:text-slate-300 mb-1.5 block">Token Name</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My API Token"
               required
-              className="bg-white dark:bg-dark-800 border-gray-200 dark:border-white/10"
+              className="bg-white dark:bg-dark-800 border-erobo-purple/10 dark:border-white/10"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5 block">Expires In (days)</label>
+            <label className="text-sm font-medium text-erobo-ink dark:text-slate-300 mb-1.5 block">Expires In (days)</label>
             <Input
               type="number"
               value={expiresInDays}
@@ -232,7 +233,7 @@ function CreateTokenForm({
               min="1"
               max="365"
               required
-              className="bg-white dark:bg-dark-800 border-gray-200 dark:border-white/10"
+              className="bg-white dark:bg-dark-800 border-erobo-purple/10 dark:border-white/10"
             />
           </div>
           {error && <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-900/30">{error}</p>}

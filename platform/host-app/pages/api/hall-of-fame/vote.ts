@@ -8,6 +8,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase";
 import { writeRateLimiter, withRateLimit } from "@/lib/security/ratelimit";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
+import { logger } from "@/lib/logger";
 
 interface VoteRequest {
   entrantId: string;
@@ -55,7 +56,7 @@ export default withRateLimit(
       });
 
       if (error) {
-        console.error("Failed to increment score:", error);
+        logger.error("Failed to increment score", error);
         return res.status(500).json({ success: false, error: "Failed to record vote" });
       }
 
@@ -69,7 +70,7 @@ export default withRateLimit(
 
       return res.status(200).json({ success: true, newScore: data ?? undefined });
     } catch (err) {
-      console.error("Vote error:", err);
+      logger.error("Vote error", err);
       return res.status(500).json({ success: false, error: "Internal server error" });
     }
   },

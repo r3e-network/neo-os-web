@@ -212,4 +212,18 @@ defineEmits<{
     transform: rotate(360deg);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-btn {
+    transition: none;
+
+    &:hover:not(:disabled) {
+      transform: none;
+    }
+
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
+}
 </style>

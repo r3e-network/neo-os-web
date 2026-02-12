@@ -144,6 +144,9 @@ func New(cfg Config) (*Service, error) {
 	base.RegisterStandardRoutes()
 	s.registerRoutes()
 
+	// Start periodic cleanup of stale rate limiter entries to prevent memory leaks.
+	s.rateLimiter.StartCleanup(5 * time.Minute)
+
 	return s, nil
 }
 

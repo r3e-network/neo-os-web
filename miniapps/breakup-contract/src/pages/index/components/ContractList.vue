@@ -1,12 +1,11 @@
 <template>
   <view class="contracts-list">
-
     <ContractCard
       v-for="contract in contracts"
       :key="contract.id"
       :contract="contract"
       :address="address"
-      :t="t as any"
+      :t="t"
       @sign="$emit('sign', $event)"
       @break="$emit('break', $event)"
     />
@@ -15,25 +14,12 @@
 
 <script setup lang="ts">
 import ContractCard from "./ContractCard.vue";
-
-interface RelationshipContractView {
-  id: number;
-  party1: string;
-  party2: string;
-  partner: string;
-  title: string;
-  terms: string;
-  stake: number;
-  stakeRaw: string;
-  progress: number;
-  daysLeft: number;
-  status: "pending" | "active" | "broken" | "ended";
-}
+import type { RelationshipContractView } from "@/types";
 
 defineProps<{
   contracts: RelationshipContractView[];
   address: string | null;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["sign", "break"]);
@@ -43,7 +29,11 @@ defineEmits(["sign", "break"]);
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.contracts-list { display: flex; flex-direction: column; gap: 16px; }
+.contracts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 .section-title {
   font-size: 12px;
   font-weight: 700;

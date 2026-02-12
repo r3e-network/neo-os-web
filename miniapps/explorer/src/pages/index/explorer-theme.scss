@@ -9,6 +9,8 @@
   --matrix-danger-glow: 0 0 10px #330000;
   --matrix-input-bg: #001100;
   --matrix-text-glow: 0 0 5px #00ff00;
+  --matrix-success: #00e599;
+  --matrix-error: #ef4444;
 }
 
 :global(.theme-light .theme-explorer),
@@ -23,4 +25,6 @@
   --matrix-danger-glow: 0 0 10px rgba(185, 28, 28, 0.4);
   --matrix-input-bg: #ecfdf3;
   --matrix-text-glow: 0 0 6px rgba(22, 163, 74, 0.5);
+  --matrix-success: #16a34a;
+  --matrix-error: #dc2626;
 }

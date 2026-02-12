@@ -26,9 +26,9 @@ vi.mock("@shared/utils/i18n", () => ({
 }));
 
 describe("Candidate Vote MiniApp", () => {
-  let mockGetCandidates: any;
-  let mockVote: any;
-  let mockIsLoading: any;
+  let mockGetCandidates: ReturnType<typeof vi.fn>;
+  let mockVote: ReturnType<typeof vi.fn>;
+  let mockIsLoading: ReturnType<typeof ref<boolean>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -250,7 +250,7 @@ describe("Candidate Vote MiniApp", () => {
   describe("Candidate Active Status", () => {
     it("should identify active candidates", async () => {
       const result = await mockGetCandidates();
-      const activeCandidate = result.candidates.find((c: any) => c.active);
+      const activeCandidate = result.candidates.find((c: Record<string, unknown>) => c.active);
 
       expect(activeCandidate).toBeDefined();
       expect(activeCandidate.name).toBe("Alice");
@@ -258,7 +258,7 @@ describe("Candidate Vote MiniApp", () => {
 
     it("should identify inactive candidates", async () => {
       const result = await mockGetCandidates();
-      const inactiveCandidate = result.candidates.find((c: any) => !c.active);
+      const inactiveCandidate = result.candidates.find((c: Record<string, unknown>) => !c.active);
 
       expect(inactiveCandidate).toBeDefined();
       expect(inactiveCandidate.name).toBe("Bob");

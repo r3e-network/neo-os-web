@@ -1,5 +1,5 @@
 <template>
-  <NeoCard variant="erobo" class="operation-box">
+  <NeoCard variant="erobo" class="operation-box" :aria-label="t(config.titleKey)" role="region">
     <!-- Header -->
     <template #header>
       <view class="operation-box__header">
@@ -89,26 +89,17 @@
         </NeoButton>
 
         <!-- Pending -->
-        <NeoButton
-          v-else-if="txState === 'pending'"
-          variant="primary"
-          block
-          size="lg"
-          loading
-          disabled
-        >
+        <NeoButton v-else-if="txState === 'pending'" variant="primary" block size="lg" loading disabled>
           {{ t(config.actionKey) }}
         </NeoButton>
 
         <!-- Success -->
         <view v-else-if="txState === 'success'" class="tx-status tx-status--success">
           <text class="tx-status__icon">✓</text>
-          <text class="tx-status__label">{{ t('confirmed') }}</text>
-          <text v-if="txHash" class="tx-status__hash">
-            {{ txHash.slice(0, 8) }}...{{ txHash.slice(-6) }}
-          </text>
+          <text class="tx-status__label">{{ t("confirmed") }}</text>
+          <text v-if="txHash" class="tx-status__hash"> {{ txHash.slice(0, 8) }}...{{ txHash.slice(-6) }} </text>
           <NeoButton variant="ghost" size="sm" @click="$emit('reset')">
-            {{ t('newTransaction') }}
+            {{ t("newTransaction") }}
           </NeoButton>
         </view>
 
@@ -116,7 +107,7 @@
         <view v-else-if="txState === 'error'" class="tx-status tx-status--error">
           <text class="tx-status__label">{{ txError }}</text>
           <NeoButton variant="danger" size="sm" @click="$emit('submit')">
-            {{ t('retry') }}
+            {{ t("retry") }}
           </NeoButton>
         </view>
       </view>
@@ -133,7 +124,7 @@ const props = defineProps<{
   /** Operation box configuration */
   config: OperationBoxConfig;
   /** Form state from useOperationState */
-  form: FormState<Record<string, any>>;
+  form: FormState<Record<string, unknown>>;
   /** Transaction lifecycle state */
   txState: string;
   /** Transaction hash on success */
@@ -312,6 +303,12 @@ const formatSummaryValue = (row: { valueKey: string; format?: StatConfig["format
   color: #ef4444;
   font-weight: 600;
   margin-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle-btn {
+    transition: none;
+  }
 }
 
 .tx-status {

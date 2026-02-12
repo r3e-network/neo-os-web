@@ -265,6 +265,29 @@ func (r *Repository) GetGasBankTransactions(ctx context.Context, accountID strin
 	return txs, nil
 }
 
+// ExistsTransactionByReference checks if a transaction with the given account, reference, and type exists.
+// Uses a targeted WHERE clause instead of fetching all transactions.
+func (r *Repository) ExistsTransactionByReference(ctx context.Context, accountID, referenceID, txType string) (bool, error) {
+	if err := ValidateID(accountID); err != nil {
+		return false, err
+	}
+	if referenceID == "" || txType == "" {
+		return false, fmt.Errorf("%w: referenceID and txType are required", ErrInvalidInput)
+	}
+
+	query := fmt.Sprintf("account_id=eq.%s&reference_id=eq.%s&tx_type=eq.%s&limit=1", accountID, referenceID, txType)
+	data, err := r.client.request(ctx, "GET", "gasbank_transactions", nil, query)
+	if err != nil {
+		return false, fmt.Errorf("%w: check transaction existence: %v", ErrDatabaseError, err)
+	}
+
+	var txs []GasBankTransaction
+	if err := json.Unmarshal(data, &txs); err != nil {
+		return false, fmt.Errorf("%w: unmarshal gasbank transactions: %v", ErrDatabaseError, err)
+	}
+	return len(txs) > 0, nil
+}
+
 // =============================================================================
 // Deposit Operations
 // =============================================================================

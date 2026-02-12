@@ -2,37 +2,16 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
-import type { PredictionMarket } from "./usePredictionMarkets";
+import type { PredictionMarket, MarketOrder, MarketPosition, TradeParams } from "@/types";
 
-export interface MarketOrder {
-  id: number;
-  marketId: number;
-  orderType: "buy" | "sell";
-  outcome: "yes" | "no";
-  price: number;
-  shares: number;
-  filled: number;
-}
-
-export interface MarketPosition {
-  marketId: number;
-  outcome: "yes" | "no";
-  shares: number;
-  avgPrice: number;
-  pnl?: number;
-}
-
-export interface TradeParams {
-  outcome: "yes" | "no";
-  shares: number;
-  price: number;
-}
+export type { MarketOrder, MarketPosition, TradeParams };
 
 export function usePredictionTrading(APP_ID: string) {
   const { address, chainType, invokeContract, getContractAddress } = useWallet() as WalletSDK;
   const { processPayment, isLoading: isTrading } = usePaymentFlow(APP_ID);
-  
+
   const yourOrders = ref<MarketOrder[]>([]);
   const yourPositions = ref<MarketPosition[]>([]);
   const error = ref<string | null>(null);
@@ -57,13 +36,9 @@ export function usePredictionTrading(APP_ID: string) {
     return contract;
   };
 
-  const executeTrade = async (
-    market: PredictionMarket,
-    params: TradeParams,
-    t: Function
-  ): Promise<boolean> => {
+  const executeTrade = async (market: PredictionMarket, params: TradeParams, t: Function): Promise<boolean> => {
     error.value = null;
-    
+
     try {
       if (!address.value) {
         throw new Error(t("connectWallet"));
@@ -71,11 +46,8 @@ export function usePredictionTrading(APP_ID: string) {
 
       const contract = await ensureContractAddress();
       const cost = params.shares * params.price;
-      
-      const { receiptId, invoke } = await processPayment(
-        String(cost),
-        `trade:${market.id}:${params.outcome}`
-      );
+
+      const { receiptId, invoke } = await processPayment(String(cost), `trade:${market.id}:${params.outcome}`);
 
       if (!receiptId) throw new Error(t("receiptMissing"));
 
@@ -91,9 +63,7 @@ export function usePredictionTrading(APP_ID: string) {
       );
 
       // Update local positions
-      const existingPos = yourPositions.value.find(
-        (p) => p.marketId === market.id && p.outcome === params.outcome
-      );
+      const existingPos = yourPositions.value.find((p) => p.marketId === market.id && p.outcome === params.outcome);
 
       if (existingPos) {
         const totalShares = existingPos.shares + params.shares;
@@ -110,20 +80,20 @@ export function usePredictionTrading(APP_ID: string) {
       }
 
       return true;
-    } catch (e: any) {
-      error.value = e.message || t("tradeFailed");
+    } catch (e: unknown) {
+      error.value = formatErrorMessage(e, t("tradeFailed"));
       return false;
     }
   };
 
   const cancelOrder = async (orderId: number, t: Function): Promise<boolean> => {
     error.value = null;
-    
+
     try {
       const contract = await ensureContractAddress();
-      
+
       await invokeContract({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "CancelOrder",
         args: [
           { type: "Hash160", value: address.value as string },
@@ -133,20 +103,20 @@ export function usePredictionTrading(APP_ID: string) {
 
       yourOrders.value = yourOrders.value.filter((o) => o.id !== orderId);
       return true;
-    } catch (e: any) {
-      error.value = e.message || t("cancelFailed");
+    } catch (e: unknown) {
+      error.value = formatErrorMessage(e, t("cancelFailed"));
       return false;
     }
   };
 
   const claimWinnings = async (marketId: number, t: Function): Promise<boolean> => {
     error.value = null;
-    
+
     try {
       const contract = await ensureContractAddress();
-      
+
       await invokeContract({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "ClaimWinnings",
         args: [
           { type: "Hash160", value: address.value as string },
@@ -157,15 +127,15 @@ export function usePredictionTrading(APP_ID: string) {
       // Remove position after claiming
       yourPositions.value = yourPositions.value.filter((p) => p.marketId !== marketId);
       return true;
-    } catch (e: any) {
-      error.value = e.message || t("claimFailed");
+    } catch (e: unknown) {
+      error.value = formatErrorMessage(e, t("claimFailed"));
       return false;
     }
   };
 
-  const createMarket = async (marketData: any, t: Function): Promise<boolean> => {
+  const createMarket = async (marketData: Record<string, unknown>, t: Function): Promise<boolean> => {
     error.value = null;
-    
+
     try {
       if (!address.value) {
         throw new Error(t("connectWallet"));
@@ -174,7 +144,7 @@ export function usePredictionTrading(APP_ID: string) {
       const contract = await ensureContractAddress();
       const { receiptId, invoke } = await processPayment(
         "10", // 10 GAS to create market
-        `create:${marketData.question?.slice(0, 20)}`
+        `create:${String(marketData.question ?? "").slice(0, 20)}`
       );
 
       if (!receiptId) throw new Error(t("receiptMissing"));
@@ -183,18 +153,18 @@ export function usePredictionTrading(APP_ID: string) {
         "CreateMarket",
         [
           { type: "Hash160", value: address.value },
-          { type: "String", value: marketData.question },
-          { type: "String", value: marketData.description || "" },
-          { type: "String", value: marketData.category },
-          { type: "Integer", value: String(marketData.endTime) },
+          { type: "String", value: String(marketData.question ?? "") },
+          { type: "String", value: String(marketData.description ?? "") },
+          { type: "String", value: String(marketData.category ?? "") },
+          { type: "Integer", value: String(marketData.endTime ?? 0) },
           { type: "Integer", value: String(receiptId) },
         ],
         contract
       );
 
       return true;
-    } catch (e: any) {
-      error.value = e.message || t("createFailed");
+    } catch (e: unknown) {
+      error.value = formatErrorMessage(e, t("createFailed"));
       return false;
     }
   };

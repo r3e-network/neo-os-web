@@ -2,19 +2,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "./useI18n";
-
-interface Grant {
-  id: string;
-  title: string;
-  proposer: string;
-  state: string;
-  votesAccept: number;
-  votesReject: number;
-  discussionUrl: string;
-  createdAt: string;
-  comments: number;
-  onchainId: number | null;
-}
+import type { Grant } from "@/types";
 
 export function useGrantProposals() {
   const { t, locale } = useI18n();
@@ -29,12 +17,13 @@ export function useGrantProposals() {
   const isMobile = computed(() => windowWidth.value < 768);
   const isDesktop = computed(() => windowWidth.value >= 1024);
 
-  const handleResize = () => { windowWidth.value = window.innerWidth; };
-  onMounted(() => window.addEventListener('resize', handleResize));
-  onUnmounted(() => window.removeEventListener('resize', handleResize));
+  const handleResize = () => {
+    windowWidth.value = window.innerWidth;
+  };
+  onMounted(() => window.addEventListener("resize", handleResize));
+  onUnmounted(() => window.removeEventListener("resize", handleResize));
 
-  const isLocalPreview =
-    typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
+  const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
   const LOCAL_PROPOSALS_MOCK = {
     total: 3,
     items: [
@@ -145,14 +134,14 @@ export function useGrantProposals() {
     loading.value = true;
     fetchError.value = false;
     try {
-      let res: any = null;
+      let res: Record<string, unknown> | null = null;
 
       if (isLocalPreview) {
         res = LOCAL_PROPOSALS_MOCK;
       }
 
       if (!res) {
-        res = await new Promise<any>((resolve, reject) => {
+        res = await new Promise<Record<string, unknown> | null>((resolve, reject) => {
           uni.request({
             url: "/api/grantshares/proposals",
             success: (r) => resolve(parseResponseData(r.data)),
@@ -161,32 +150,33 @@ export function useGrantProposals() {
         });
       }
 
-      if (res && Array.isArray(res.items)) {
-        grants.value = res.items
-          .map((item: any) => {
-            const title = decodeBase64(item.title || "");
+      const resData = res as Record<string, unknown> | null;
+      if (resData && Array.isArray(resData.items)) {
+        grants.value = (resData.items as Record<string, unknown>[])
+          .map((item: Record<string, unknown>) => {
+            const title = decodeBase64(String(item.title || ""));
             return {
               id: String(item.offchain_id || item.id || ""),
               title,
               proposer: String(item.proposer || item.proposer_address || item.proposerAddress || ""),
-              state: normalizeState(item.state || ""),
+              state: normalizeState(String(item.state || "")),
               votesAccept: Number(item.votes_amount_accept || item.votesAmountAccept || 0),
               votesReject: Number(item.votes_amount_reject || item.votesAmountReject || 0),
               discussionUrl: String(item.discussion_url || item.discussionUrl || ""),
               createdAt: String(item.offchain_creation_timestamp || item.offchainCreationTimestamp || ""),
               comments: Number(item.offchain_comments_count || item.offchainCommentsCount || 0),
-              onchainId: item.onchain_id ?? item.onchainId ?? null,
+              onchainId: (item.onchain_id ?? item.onchainId ?? null) as number | null,
             } as Grant;
           })
           .filter((item: Grant) => item.id && item.title);
 
-        const totalCount = Number(res.total ?? res.totalCount ?? grants.value.length);
+        const totalCount = Number(resData.total ?? resData.totalCount ?? grants.value.length);
         totalProposals.value = Number.isFinite(totalCount) ? totalCount : grants.value.length;
       } else {
         grants.value = [];
         totalProposals.value = 0;
       }
-    } catch (e) {
+    } catch (e: unknown) {
       grants.value = [];
       totalProposals.value = 0;
       fetchError.value = true;

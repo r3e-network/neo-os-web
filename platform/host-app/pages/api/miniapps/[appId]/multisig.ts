@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
 import { wallet, tx } from "@cityofzion/neon-js";
 import { NEO_NETWORK_MAGIC } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 type NeonTransaction = ReturnType<typeof tx.Transaction.deserialize>;
 
@@ -151,7 +152,7 @@ async function handleCreate(
     .single();
 
   if (error) {
-    console.error("Multisig create error:", error);
+    logger.error("Multisig create error", error);
     return res.status(500).json({ error: "Failed to create multisig request" });
   }
 
@@ -250,7 +251,7 @@ async function handleUpdate(
       .single();
 
     if (error) {
-      console.error("Multisig status update error:", error);
+      logger.error("Multisig status update error", error);
       return res.status(500).json({ error: "Failed to update status" });
     }
 
@@ -326,7 +327,7 @@ async function handleUpdate(
     .single();
 
   if (error) {
-    console.error("Multisig update error:", error);
+    logger.error("Multisig update error", error);
     return res.status(500).json({ error: "Failed to update signature" });
   }
 

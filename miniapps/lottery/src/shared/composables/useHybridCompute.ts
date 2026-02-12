@@ -6,6 +6,7 @@
  */
 
 import { ref } from "vue";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export type ComputeVerifiedRequest = {
   app_id: string;
@@ -100,7 +101,7 @@ export function useHybridCompute() {
 
       return { initResult, computeResult, settleResult };
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unknown error";
+      const message = formatErrorMessage(e, "Unknown error");
       computeError.value = message;
       throw e;
     } finally {

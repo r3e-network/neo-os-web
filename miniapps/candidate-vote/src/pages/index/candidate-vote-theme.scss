@@ -21,6 +21,14 @@
   --candidate-disabled-text: rgba(255, 255, 255, 0.3);
   --candidate-warning-bg: rgba(245, 158, 11, 0.1);
   --candidate-warning-border: rgba(245, 158, 11, 0.3);
+  --candidate-neo-green: #00e599;
+  --candidate-selected-bg: #00e599;
+  --candidate-selected-text: black;
+  --candidate-step-gradient: linear-gradient(135deg, #00e599 0%, #00b377 100%);
+  --candidate-step-text: #000;
+  --candidate-medal-gold: linear-gradient(135deg, #ffd700, #fdb931);
+  --candidate-medal-silver: linear-gradient(135deg, #e0e0e0, #bdbdbd);
+  --candidate-medal-bronze: linear-gradient(135deg, #cd7f32, #a0522d);
 }
 
 :global(.theme-light .theme-candidate-vote),
@@ -47,4 +55,12 @@
   --candidate-disabled-text: rgba(15, 23, 42, 0.4);
   --candidate-warning-bg: rgba(217, 119, 6, 0.12);
   --candidate-warning-border: rgba(217, 119, 6, 0.3);
+  --candidate-neo-green: #00b97f;
+  --candidate-selected-bg: #00b97f;
+  --candidate-selected-text: white;
+  --candidate-step-gradient: linear-gradient(135deg, #00b97f 0%, #059669 100%);
+  --candidate-step-text: #fff;
+  --candidate-medal-gold: linear-gradient(135deg, #ffd700, #fdb931);
+  --candidate-medal-silver: linear-gradient(135deg, #d1d5db, #9ca3af);
+  --candidate-medal-bronze: linear-gradient(135deg, #cd7f32, #a0522d);
 }

@@ -15,11 +15,11 @@ export function NotificationList({ notifications, loading, onMarkRead }: Notific
   const { t } = useTranslation("host");
   const { t: tCommon, locale } = useTranslation("common");
   if (loading) {
-    return <div className="p-4 text-center text-gray-500">{tCommon("actions.loading")}</div>;
+    return <div className="p-4 text-center text-erobo-ink-soft">{tCommon("actions.loading")}</div>;
   }
 
   if (notifications.length === 0) {
-    return <div className="p-8 text-center text-gray-500">{t("notifications.empty")}</div>;
+    return <div className="p-8 text-center text-erobo-ink-soft">{t("notifications.empty")}</div>;
   }
 
   return (
@@ -56,20 +56,20 @@ function NotificationItem({
   return (
     <div
       className={cn(
-        "px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50",
+        "px-4 py-3 border-b border-erobo-purple/5 dark:border-white/10 hover:bg-erobo-purple/5 dark:hover:bg-erobo-bg-card/50",
         !notification.read && "bg-emerald-50/50 dark:bg-emerald-900/10",
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{notification.title}</p>
-          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notification.content}</p>
-          <p className="text-xs text-gray-400 mt-1">{timeAgo}</p>
+          <p className="text-sm font-medium text-erobo-ink dark:text-white truncate">{notification.title}</p>
+          <p className="text-xs text-erobo-ink-soft mt-0.5 line-clamp-2">{notification.content}</p>
+          <p className="text-xs text-erobo-ink-soft/60 mt-1">{timeAgo}</p>
         </div>
         {!notification.read && (
           <button
             onClick={() => onMarkRead(notification.id)}
-            className="p-1 text-gray-400 hover:text-emerald-600"
+            className="p-1 text-erobo-ink-soft/60 hover:text-emerald-600"
             title={markReadLabel}
           >
             <Check size={14} />

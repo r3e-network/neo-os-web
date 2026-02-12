@@ -106,10 +106,10 @@ const getLevelText = (level: string) => {
   left: 0; top: 0; bottom: 0;
   width: 4px;
   
-  &.low { background: #94a3b8; }
-  &.medium { background: #00e599; box-shadow: 0 0 10px rgba(0, 229, 153, 0.3); }
-  &.high { background: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
-  &.critical { background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+  &.low { background: var(--ops-muted); }
+  &.medium { background: var(--ops-success); box-shadow: 0 0 10px rgba(0, 229, 153, 0.3); }
+  &.high { background: var(--ops-warning); box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
+  &.critical { background: var(--ops-danger); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
 }
 
 .policy-content {
@@ -140,9 +140,9 @@ const getLevelText = (level: string) => {
   letter-spacing: 0.05em;
   
   &.low { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
-  &.medium { background: rgba(0, 229, 153, 0.1); color: #00e599; }
-  &.high { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-  &.critical { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+  &.medium { background: rgba(0, 229, 153, 0.1); color: var(--ops-success); }
+  &.high { background: rgba(245, 158, 11, 0.1); color: var(--ops-warning); }
+  &.critical { background: rgba(239, 68, 68, 0.1); color: var(--ops-danger); }
 }
 
 .policy-desc {
@@ -163,11 +163,11 @@ const getLevelText = (level: string) => {
 
   &.active {
     background: rgba(0, 229, 153, 0.12);
-    color: #00e599;
+    color: var(--ops-success);
   }
   &.claimed {
     background: rgba(59, 130, 246, 0.12);
-    color: #3b82f6;
+    color: var(--ops-blue);
   }
 }
 

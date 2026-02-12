@@ -24,6 +24,9 @@
   --sunrise-button-text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
   --sunrise-button-secondary-bg: rgba(33, 22, 16, 0.9);
   --sunrise-button-secondary-border: #0ea5e9;
+  --sunrise-ready: #ffde59;
+  --sunrise-success: #00e599;
+  --sunrise-reward: #00E599;
 }
 
 :global(.theme-light .theme-daily-checkin),
@@ -53,4 +56,7 @@
   --sunrise-button-text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.1);
   --sunrise-button-secondary-bg: #ffffff;
   --sunrise-button-secondary-border: #0284c7;
+  --sunrise-ready: #d4a017;
+  --sunrise-success: #16a34a;
+  --sunrise-reward: #16a34a;
 }

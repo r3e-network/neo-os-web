@@ -42,13 +42,13 @@ export function CompactHeader({
       <div className="flex items-center gap-2">
         <button
           onClick={onBack}
-          className="p-1.5 text-erobo-ink dark:text-gray-200 hover:bg-erobo-peach/30 dark:hover:bg-white/10 rounded-full transition-all"
+          className="p-1.5 text-erobo-ink dark:text-slate-200 hover:bg-erobo-peach/30 dark:hover:bg-white/10 rounded-full transition-all"
         >
           <ArrowLeft size={18} />
         </button>
         <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/70 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">
           <Globe size={12} className="text-erobo-purple" />
-          <div className="text-[11px] font-bold uppercase tracking-wide truncate max-w-[100px] md:max-w-[180px] text-erobo-ink dark:text-gray-100">
+          <div className="text-[11px] font-bold uppercase tracking-wide truncate max-w-[100px] md:max-w-[180px] text-erobo-ink dark:text-slate-100">
             {appName}
           </div>
         </div>
@@ -62,14 +62,14 @@ export function CompactHeader({
 
         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-white/70 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">
           <div className={cn("w-1.5 h-1.5 rounded-full", walletDotColor)} />
-          <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-erobo-ink-soft/70 dark:text-gray-300">
+          <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-erobo-ink-soft/70 dark:text-slate-300">
             {walletDisplay}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">
           <Activity size={11} className={networkStatus.color} />
-          <span className="text-[10px] font-bold font-mono uppercase tracking-wide text-erobo-ink-soft/70 dark:text-gray-300">
+          <span className="text-[10px] font-bold font-mono uppercase tracking-wide text-erobo-ink-soft/70 dark:text-slate-300">
             {networkLatency !== null ? `${networkLatency}ms` : networkStatus.label}
           </span>
         </div>
@@ -78,14 +78,14 @@ export function CompactHeader({
           <button
             onClick={onShare}
             title="Copy share link"
-            className="p-1.5 text-erobo-ink-soft dark:text-gray-300 hover:text-erobo-purple hover:bg-erobo-purple/10 rounded-full transition-all"
+            className="p-1.5 text-erobo-ink-soft dark:text-slate-300 hover:text-erobo-purple hover:bg-erobo-purple/10 rounded-full transition-all"
           >
             <Share2 size={16} />
           </button>
           <button
             onClick={onExit}
             title="Exit (ESC)"
-            className="p-1.5 text-erobo-ink-soft dark:text-gray-300 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"
+            className="p-1.5 text-erobo-ink-soft dark:text-slate-300 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"
           >
             <X size={18} />
           </button>

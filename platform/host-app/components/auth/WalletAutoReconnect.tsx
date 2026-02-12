@@ -26,7 +26,7 @@ export function WalletAutoReconnect() {
             // We add a small delay to ensure window.NEOLine is injected
             const timer = setTimeout(() => {
                 connect(provider).catch((err) => {
-                    console.warn("[WalletAutoReconnect] Auto-reconnect failed:", err);
+                    logger.warn("[WalletAutoReconnect] Auto-reconnect failed:", err);
                 });
             }, 500);
 

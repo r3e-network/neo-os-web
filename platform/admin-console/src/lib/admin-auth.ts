@@ -15,8 +15,12 @@ function extractAdminKey(req: Request): string {
 }
 
 export function requireAdminAuth(req: Request): Response | null {
+  // Allow explicitly disabling auth (e.g. local dev) via ADMIN_AUTH_DISABLED=true
+  if (process.env.ADMIN_AUTH_DISABLED === "true") {
+    return null;
+  }
+
   if (!ADMIN_API_KEY) {
-    if (process.env.NODE_ENV !== "production") return null;
     return NextResponse.json({ error: "Admin API key not configured" }, { status: 500 });
   }
 

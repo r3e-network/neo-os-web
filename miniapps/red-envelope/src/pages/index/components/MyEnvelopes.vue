@@ -190,9 +190,6 @@ const poolProgress = (pool: EnvelopeItem) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 
-$gold: #f1c40f;
-$gold-dark: #d4ac0d;
-
 .my-envelopes {
   display: flex;
   flex-direction: column;
@@ -209,7 +206,7 @@ $gold-dark: #d4ac0d;
 .section-title {
   font-size: 18px;
   font-weight: 700;
-  color: $gold;
+  color: var(--envelope-gold);
 }
 
 .empty-state {
@@ -238,14 +235,14 @@ $gold-dark: #d4ac0d;
   padding: 16px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 14px;
-  border: 1px solid rgba($gold, 0.2);
+  border: 1px solid var(--red-envelope-gold-glow);
   display: flex;
   flex-direction: column;
   gap: 8px;
   transition: border-color 0.2s;
 
   &.active {
-    border-color: rgba($gold, 0.5);
+    border-color: var(--red-envelope-gold-border);
   }
 
   &.expired {
@@ -274,7 +271,7 @@ $gold-dark: #d4ac0d;
 }
 
 .status-active {
-  background: rgba($gold, 0.2);
+  background: var(--red-envelope-gold-glow);
 }
 
 .status-expired {
@@ -327,7 +324,7 @@ $gold-dark: #d4ac0d;
 /* Pool card extras */
 .pool-id-label {
   font-weight: 700;
-  color: $gold;
+  color: var(--envelope-gold);
   font-size: 14px;
 }
 
@@ -351,7 +348,7 @@ $gold-dark: #d4ac0d;
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, $gold, $gold-dark);
+  background: linear-gradient(90deg, var(--envelope-gold), var(--envelope-gold-dark));
   border-radius: 3px;
   transition: width 0.3s;
 }

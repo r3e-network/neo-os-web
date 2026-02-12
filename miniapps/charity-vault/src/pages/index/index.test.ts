@@ -49,7 +49,7 @@ vi.mock("@shared/composables/usePaymentFlow", () => ({
       Promise.resolve({
         receiptId: "test-receipt-123",
         invoke: vi.fn(() => Promise.resolve({ txid: "test-txid-456" })),
-      }),
+      })
     ),
     waitForEvent: vi.fn(() => Promise.resolve({ state: [] })),
   }),
@@ -181,7 +181,7 @@ describe("Charity Vault Page", () => {
 
       const filtered = wrapper.vm.filteredCampaigns;
       expect(filtered.length).toBe(2);
-      expect(filtered.every((c: any) => c.category === "disaster")).toBe(true);
+      expect(filtered.every((c: Record<string, unknown>) => c.category === "disaster")).toBe(true);
     });
   });
 
@@ -246,7 +246,7 @@ describe("Charity Vault Page", () => {
     it("should provide all category options", () => {
       const categories = wrapper.vm.categories;
       expect(categories.length).toBe(8); // all + 7 categories
-      expect(categories.some((c: any) => c.id === "disaster")).toBe(true);
+      expect(categories.some((c: Record<string, unknown>) => c.id === "disaster")).toBe(true);
     });
   });
 

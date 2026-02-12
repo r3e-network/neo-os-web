@@ -10,7 +10,7 @@
     </view>
     <view class="vault-detail-row">
       <text class="detail-label">{{ t("creator") }}</text>
-      <text class="detail-value mono">{{ shortenAddress(details.creator) }}</text>
+      <text class="detail-value mono">{{ formatAddress(details.creator) }}</text>
     </view>
     <view class="vault-detail-row">
       <text class="detail-label">{{ t("bountyLabel") }}</text>
@@ -30,13 +30,14 @@
     </view>
     <view class="vault-detail-row" v-if="details.broken">
       <text class="detail-label">{{ t("winner") }}</text>
-      <text class="detail-value mono">{{ shortenAddress(details.winner) }}</text>
+      <text class="detail-value mono">{{ formatAddress(details.winner) }}</text>
     </view>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { formatAddress, formatGas } from "@shared/utils/format";
 
 const props = defineProps<{
   t: (key: string) => string;
@@ -54,15 +55,6 @@ const props = defineProps<{
     remainingDays: number;
   };
 }>();
-
-const shortenAddress = (addr: string): string => {
-  if (!addr || addr.length < 10) return addr;
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
-};
-
-const formatGas = (value: number): string => {
-  return value.toFixed(4);
-};
 
 const formatExpiryDate = (expiryTime: number): string => {
   if (!expiryTime) return "-";

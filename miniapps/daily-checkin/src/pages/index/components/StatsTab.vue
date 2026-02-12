@@ -120,6 +120,6 @@ defineProps<{
   font-family: $font-mono;
   font-weight: 700;
   font-size: 12px;
-  color: #00E599;
+  color: var(--sunrise-reward);
 }
 </style>

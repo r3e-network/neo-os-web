@@ -6,6 +6,7 @@
  */
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 type HallOfFameCategory = "people" | "community" | "developer";
 type Period = "day" | "week" | "month" | "all";
@@ -70,7 +71,7 @@ async function loadEntries(): Promise<HallOfFameEntry[]> {
       .order("score", { ascending: false });
 
     if (error) {
-      console.error("Failed to fetch hall of fame entries:", error);
+      logger.error("Failed to fetch hall of fame entries", error);
       return cachedEntries || [];
     }
 
@@ -89,7 +90,7 @@ async function loadEntries(): Promise<HallOfFameEntry[]> {
     cacheTimestamp = now;
     return cachedEntries;
   } catch (err) {
-    console.error("Hall of fame query error:", err);
+    logger.error("Hall of fame query error", err);
     // Return cached data if available, otherwise empty array
     return cachedEntries || [];
   }
@@ -146,7 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }))
         .filter((entry) => entry.score > 0);
     } catch (err) {
-      console.error("Failed to compute period scores:", err);
+      logger.error("Failed to compute period scores", err);
       return res.status(500).json({ error: "Failed to load leaderboard" });
     }
   }

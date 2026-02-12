@@ -1,19 +1,20 @@
 import { ref } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { toFixed8, sleep } from "@shared/utils/format";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { sleep } from "@shared/utils/format";
+import { parseStackItem } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import type { Machine, MachineItem } from "./useGachaMachines";
+import type { Machine, MachineItem } from "@/types";
 
 const APP_ID = "miniapp-neo-gacha";
 
 export function useGachaPlay() {
   const { t } = useI18n();
   const { handleError } = useErrorHandler();
-  const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
+  const { address } = useWallet() as WalletSDK;
   const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
   const { list: listEvents } = useEvents();
 
@@ -22,13 +23,6 @@ export function useGachaPlay() {
   const resultItem = ref<MachineItem | null>(null);
   const playError = ref<string | null>(null);
   const showFireworks = ref(false);
-  const contractAddress = ref<string | null>(null);
-
-  const numberFrom = (value: unknown) => {
-    const num = Number(value ?? 0);
-    return Number.isFinite(num) ? num : 0;
-  };
-
   const gasInputFromRaw = (raw: number) => {
     if (!Number.isFinite(raw) || raw <= 0) return "0";
     const value = (raw / 1e8).toFixed(8);
@@ -47,7 +41,9 @@ export function useGachaPlay() {
   };
 
   const simulateGachaSelection = (seed: string, items: MachineItem[]): number => {
-    const availableItems = items.map((item, idx) => ({ item, index: idx + 1 })).filter(({ item }) => isItemAvailable(item));
+    const availableItems = items
+      .map((item, idx) => ({ item, index: idx + 1 }))
+      .filter(({ item }) => isItemAvailable(item));
     if (availableItems.length === 0) return 0;
     const totalWeight = availableItems.reduce((sum, { item }) => sum + item.probability, 0);
     if (totalWeight <= 0) return 0;
@@ -64,8 +60,9 @@ export function useGachaPlay() {
   const waitForResolved = async (playId: string) => {
     for (let attempt = 0; attempt < 20; attempt++) {
       const res = await listEvents({ app_id: APP_ID, event_name: "PlayResolved", limit: 25 });
-      const match = res.events.find((evt: any) => {
-        const values = Array.isArray((evt as any)?.state) ? (evt as any).state.map(parseStackItem) : [];
+      const match = res.events.find((evt) => {
+        const evtRecord = evt as unknown as Record<string, unknown>;
+        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
         return String(values[3] ?? "") === String(playId);
       });
       if (match) return match;
@@ -82,10 +79,10 @@ export function useGachaPlay() {
 
   const playMachine = async (
     machine: Machine,
-    options: { 
-      requireAddress: () => Promise<boolean>,
-      ensureContract: () => Promise<string>,
-      onSuccess?: () => Promise<void>
+    options: {
+      requireAddress: () => Promise<boolean>;
+      ensureContract: () => Promise<string>;
+      onSuccess?: () => Promise<void>;
     }
   ) => {
     if (isPlaying.value) return;
@@ -118,18 +115,18 @@ export function useGachaPlay() {
           { type: "Integer", value: machine.id },
           { type: "Integer", value: String(receiptId) },
         ],
-        contract,
+        contract
       );
 
-      const initiateTxid = String((initiateTx as any)?.txid || (initiateTx as any)?.txHash || "");
+      const txResult = initiateTx as unknown as Record<string, unknown> | undefined;
+      const initiateTxid = String(txResult?.txid || txResult?.txHash || "");
       const initiatedEvent = initiateTxid ? await waitForEvent(initiateTxid, "PlayInitiated") : null;
       if (!initiatedEvent) {
         throw new Error(t("playPending"));
       }
 
-      const initiatedValues = Array.isArray((initiatedEvent as any)?.state)
-        ? (initiatedEvent as any).state.map(parseStackItem)
-        : [];
+      const evtRecord = initiatedEvent as unknown as Record<string, unknown> | null;
+      const initiatedValues = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
       const playId = String(initiatedValues[2] ?? "");
       const seed = String(initiatedValues[3] ?? "");
       if (!playId || !seed) {
@@ -169,17 +166,18 @@ export function useGachaPlay() {
           { type: "Integer", value: playId },
           { type: "Integer", value: String(selectedIndex) },
         ],
-        contract,
+        contract
       );
 
-      const settleTxid = String((settleTx as any)?.txid || (settleTx as any)?.txHash || "");
+      const settleResult = settleTx as unknown as Record<string, unknown> | undefined;
+      const settleTxid = String(settleResult?.txid || settleResult?.txHash || "");
       if (settleTxid) {
         await waitForEvent(settleTxid, "PlayResolved");
       }
 
       if (options.onSuccess) await options.onSuccess();
-    } catch (e: any) {
-      playError.value = e?.message || t("error");
+    } catch (e: unknown) {
+      playError.value = formatErrorMessage(e, t("error"));
     } finally {
       isPlaying.value = false;
     }
@@ -188,14 +186,14 @@ export function useGachaPlay() {
   const buyMachine = async (
     machine: Machine,
     options: {
-      requireAddress: () => Promise<boolean>,
-      ensureContract: () => Promise<string>,
-      setLoading: (key: string, value: boolean) => void,
-      onSuccess?: () => Promise<void>
+      requireAddress: () => Promise<boolean>;
+      ensureContract: () => Promise<string>;
+      setLoading: (key: string, value: boolean) => void;
+      onSuccess?: () => Promise<void>;
     }
   ) => {
     if (!machine.forSale || machine.salePriceRaw <= 0) return;
-    
+
     const hasAddress = await options.requireAddress();
     if (!hasAddress) return;
 
@@ -205,13 +203,13 @@ export function useGachaPlay() {
     try {
       const contract = await options.ensureContract();
       if (!contract) return;
-      
+
       const { receiptId, invoke } = await processPayment(
         gasInputFromRaw(machine.salePriceRaw),
-        `gacha-sale:${machine.id}`,
+        `gacha-sale:${machine.id}`
       );
       if (!receiptId) throw new Error(t("receiptMissing"));
-      
+
       await invoke(
         "buyMachine",
         [
@@ -219,11 +217,11 @@ export function useGachaPlay() {
           { type: "Integer", value: machine.id },
           { type: "Integer", value: String(receiptId) },
         ],
-        contract,
+        contract
       );
-      
+
       if (options.onSuccess) await options.onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "buyMachine" });
       throw e;
     } finally {

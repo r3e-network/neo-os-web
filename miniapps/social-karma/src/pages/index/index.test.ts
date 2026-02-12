@@ -37,7 +37,7 @@ vi.mock("@shared/composables/usePaymentFlow", () => ({
       Promise.resolve({
         receiptId: "test-receipt",
         invoke: vi.fn(() => Promise.resolve({ txid: "test-txid" })),
-      }),
+      })
     ),
     waitForEvent: vi.fn(() => Promise.resolve({ state: [] })),
   }),
@@ -67,7 +67,7 @@ vi.mock("@shared/components", () => ({
 }));
 
 describe("Social Karma Page", () => {
-  let wrapper: any;
+  let wrapper: ReturnType<typeof mount>;
 
   beforeEach(() => {
     wrapper = mount(Index, {
@@ -119,7 +119,7 @@ describe("Social Karma Page", () => {
       ];
 
       const userAddress = "0x1234";
-      const rank = leaderboard.findIndex((e: any) => e.address === userAddress) + 1;
+      const rank = leaderboard.findIndex((e: Record<string, unknown>) => e.address === userAddress) + 1;
       expect(rank).toBe(3);
     });
   });
@@ -127,15 +127,15 @@ describe("Social Karma Page", () => {
   describe("Achievements", () => {
     it("should unlock first karma achievement", () => {
       wrapper.vm.userKarma = 1;
-      const achievement = wrapper.vm.achievements.find((a: any) => a.id === "first");
+      const achievement = wrapper.vm.achievements.find((a: Record<string, unknown>) => a.id === "first");
       expect(achievement?.unlocked).toBe(true);
     });
 
     it("should track progress towards achievements", () => {
       wrapper.vm.userKarma = 50;
 
-      const k10 = wrapper.vm.achievements.find((a: any) => a.id === "k10");
-      const k100 = wrapper.vm.achievements.find((a: any) => a.id === "k100");
+      const k10 = wrapper.vm.achievements.find((a: Record<string, unknown>) => a.id === "k10");
+      const k100 = wrapper.vm.achievements.find((a: Record<string, unknown>) => a.id === "k100");
 
       expect(k10?.unlocked).toBe(true);
       expect(k100?.unlocked).toBe(false);

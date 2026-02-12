@@ -14,6 +14,7 @@ import { useWalletStore } from "@/lib/wallet/store";
 import type { ChainId } from "@/lib/chains/types";
 import { getChainRegistry } from "@/lib/chains/registry";
 import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
+import { logger } from "@/lib/logger";
 
 interface App {
   app_id: string;
@@ -53,7 +54,7 @@ export default function AppDetailPage() {
   useEffect(() => {
     if (!appId || !address) return;
     void fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchData is stable, including it would cause infinite loop
   }, [appId, address]);
 
   const fetchData = async () => {
@@ -71,7 +72,7 @@ export default function AppDetailPage() {
       setApp(appData.app);
       setVersions(versionsData.versions || []);
     } catch (err) {
-      console.error("Failed to fetch:", err);
+      logger.error("Failed to fetch:", err);
     } finally {
       setLoading(false);
     }
@@ -112,8 +113,8 @@ export default function AppDetailPage() {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="h-8 w-48 bg-gray-200 dark:bg-white/10 rounded animate-pulse mb-4" />
-          <div className="h-4 w-96 bg-gray-200 dark:bg-white/10 rounded animate-pulse" />
+          <div className="h-8 w-48 bg-erobo-purple/10 dark:bg-white/10 rounded animate-pulse mb-4" />
+          <div className="h-4 w-96 bg-erobo-purple/10 dark:bg-white/10 rounded animate-pulse" />
         </div>
       </Layout>
     );
@@ -123,7 +124,7 @@ export default function AppDetailPage() {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">App not found</h2>
+          <h2 className="text-2xl font-bold text-erobo-ink dark:text-white">App not found</h2>
         </div>
       </Layout>
     );
@@ -139,7 +140,7 @@ export default function AppDetailPage() {
         {/* Back Link */}
         <Link
           href="/developer/dashboard"
-          className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:hover:text-white mb-6"
+          className="inline-flex items-center gap-2 text-erobo-ink-soft hover:text-erobo-ink dark:hover:text-white mb-6"
         >
           <ArrowLeft size={16} />
           Back to Dashboard
@@ -148,13 +149,13 @@ export default function AppDetailPage() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{app.name}</h1>
-            <p className="text-gray-500 mt-1">{app.description}</p>
+            <h1 className="text-3xl font-bold text-erobo-ink dark:text-white">{app.name}</h1>
+            <p className="text-erobo-ink-soft mt-1">{app.description}</p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 border-b border-gray-200 dark:border-white/10 mb-6">
+        <div className="flex gap-4 border-b border-erobo-purple/10 dark:border-white/10 mb-6">
           <TabButton active={activeTab === "versions"} onClick={() => setActiveTab("versions")}>
             Versions
           </TabButton>
@@ -167,7 +168,7 @@ export default function AppDetailPage() {
         {activeTab === "versions" && (
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">App Versions</h2>
+              <h2 className="text-lg font-bold text-erobo-ink dark:text-white">App Versions</h2>
               {!showCreateForm && (
                 <Button onClick={() => setShowCreateForm(true)} className="bg-neo text-white">
                   <Plus size={16} className="mr-1" />
@@ -201,7 +202,9 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       onClick={onClick}
       className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-        active ? "border-neo text-neo" : "border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white"
+        active
+          ? "border-neo text-neo"
+          : "border-transparent text-erobo-ink-soft hover:text-erobo-ink dark:hover:text-white"
       }`}
     >
       {children}
@@ -264,20 +267,20 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
   return (
     <div className="space-y-6">
       {/* App Metadata */}
-      <div className="rounded-2xl p-6 bg-white dark:bg-[#080808] border border-gray-200 dark:border-white/10">
-        <h3 className="font-bold text-gray-900 dark:text-white mb-4">App Metadata</h3>
+      <div className="rounded-2xl p-6 bg-white dark:bg-[#080808] border border-erobo-purple/10 dark:border-white/10">
+        <h3 className="font-bold text-erobo-ink dark:text-white mb-4">App Metadata</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">App Name</label>
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">App Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 text-erobo-ink dark:text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
               App Name (Chinese)
             </label>
             <input
@@ -285,20 +288,20 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
               value={nameZh}
               onChange={(e) => setNameZh(e.target.value)}
               placeholder="应用名称"
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 text-erobo-ink dark:text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">Description</label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white resize-none"
+              className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 text-erobo-ink dark:text-white resize-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
               Description (Chinese)
             </label>
             <textarea
@@ -306,16 +309,16 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
               value={descriptionZh}
               onChange={(e) => setDescriptionZh(e.target.value)}
               placeholder="中文描述..."
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white resize-none"
+              className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 text-erobo-ink dark:text-white resize-none"
             />
           </div>
         </div>
       </div>
 
       {/* Chain Configuration */}
-      <div className="rounded-2xl p-6 bg-white dark:bg-[#080808] border border-gray-200 dark:border-white/10">
-        <h3 className="font-bold text-gray-900 dark:text-white mb-4">Supported Chains</h3>
-        <p className="text-gray-500 text-sm mb-4">Select the blockchain networks your app supports</p>
+      <div className="rounded-2xl p-6 bg-white dark:bg-[#080808] border border-erobo-purple/10 dark:border-white/10">
+        <h3 className="font-bold text-erobo-ink dark:text-white mb-4">Supported Chains</h3>
+        <p className="text-erobo-ink-soft text-sm mb-4">Select the blockchain networks your app supports</p>
         <div className="grid grid-cols-2 gap-3 mb-6">
           {availableChains.map((chain) => (
             <button
@@ -325,7 +328,7 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
               className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                 selectedChains.includes(chain.id)
                   ? "border-neo bg-neo/10 text-neo"
-                  : "border-gray-200 dark:border-white/10 hover:border-gray-300"
+                  : "border-erobo-purple/10 dark:border-white/10 hover:border-erobo-purple/20"
               }`}
             >
               <img src={chain.icon} alt={chain.name} className="w-6 h-6 rounded-full" />
@@ -335,7 +338,7 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
         </div>
 
         {/* Contract Addresses */}
-        <h4 className="font-medium text-gray-900 dark:text-white mb-3">Contract Addresses</h4>
+        <h4 className="font-medium text-erobo-ink dark:text-white mb-3">Contract Addresses</h4>
         <div className="space-y-3 mb-4">
           {selectedChains.map((chainId) => {
             const chain = availableChains.find((c) => c.id === chainId);
@@ -347,7 +350,7 @@ function SettingsTab({ app, onUpdate }: { app: App; onUpdate: () => void }) {
                   value={contractAddresses[chainId] || ""}
                   onChange={(e) => setContractAddresses((prev) => ({ ...prev, [chainId]: e.target.value }))}
                   placeholder={`Contract on ${chain?.name || chainId}`}
-                  className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm"
+                  className="flex-1 px-3 py-2 rounded-lg bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10 text-sm"
                 />
               </div>
             );

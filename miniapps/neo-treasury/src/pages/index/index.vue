@@ -9,9 +9,7 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <!-- Overview Tab (default) -->
@@ -30,12 +28,12 @@
               :total-neo="data.totalNeo"
               :total-gas="data.totalGas"
               :last-updated="data.lastUpdated"
-              :t="t as any"
+              :t="t"
             />
 
             <PriceGrid :prices="data.prices" />
 
-            <FoundersList :categories="data.categories" :t="t as any" @select="goToFounder" />
+            <FoundersList :categories="data.categories" :t="t" @select="goToFounder" />
           </view>
 
           <!-- Initial Loading State (Only if no data) -->
@@ -64,7 +62,7 @@
       <template #tab-da>
         <view class="app-container">
           <view v-if="data" class="fade-in">
-            <FounderDetail :category="daCategory!" :prices="data.prices" :t="t as any" />
+            <FounderDetail :category="daCategory!" :prices="data.prices" :t="t" />
           </view>
         </view>
       </template>
@@ -73,7 +71,7 @@
       <template #tab-erik>
         <view class="app-container">
           <view v-if="data" class="fade-in">
-            <FounderDetail :category="erikCategory!" :prices="data.prices" :t="t as any" />
+            <FounderDetail :category="erikCategory!" :prices="data.prices" :t="t" />
           </view>
         </view>
       </template>
@@ -83,9 +81,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppTemplate, NeoCard, NeoButton, AppIcon } from "@shared/components";
+import { MiniAppTemplate, NeoButton, AppIcon, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { fetchTreasuryData, type TreasuryData, type CategoryBalance } from "@/utils/treasury";
 
 import TotalSummaryCard from "./components/TotalSummaryCard.vue";
@@ -123,7 +122,7 @@ const templateConfig: MiniAppTemplateConfig = {
 const activeTab = ref("total");
 const loading = ref(true);
 const error = ref("");
-const status = ref<{ msg: string; type: string } | null>(null);
+const { status, setStatus, clearStatus } = useStatusMessage();
 const data = ref<TreasuryData | null>(null);
 
 const appState = computed(() => ({
@@ -131,6 +130,13 @@ const appState = computed(() => ({
   error: error.value,
   totalUsd: data.value?.totalUsd,
 }));
+
+const sidebarItems = computed(() => [
+  { label: "Total USD", value: data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—" },
+  { label: "Total NEO", value: data.value?.totalNeo?.toLocaleString() ?? "—" },
+  { label: "Total GAS", value: data.value?.totalGas?.toLocaleString() ?? "—" },
+  { label: "Founders", value: data.value?.categories?.length ?? 0 },
+]);
 
 const daCategory = computed<CategoryBalance | null>(() => {
   return data.value?.categories.find((c: CategoryBalance) => c.name === "Da Hongfei") || null;
@@ -158,14 +164,16 @@ async function loadData() {
       data.value = JSON.parse(cached);
       // If we have cache, we can stop "hard" loading but keep "soft" loading in background
     }
-  } catch {}
+  } catch {
+    /* Cache read failure is non-critical — proceed to fetch fresh data */
+  }
 
   try {
     const freshData = await fetchTreasuryData();
     data.value = freshData;
     // 2. Save to cache
     uni.setStorageSync(CACHE_KEY, JSON.stringify(freshData));
-  } catch (e) {
+  } catch (e: unknown) {
     if (!data.value) {
       error.value = t("loadFailed");
     } else {
@@ -365,10 +373,6 @@ onMounted(() => {
   color: var(--treasury-danger);
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 /* Mobile-specific styles */
 @media (max-width: 767px) {
@@ -394,17 +398,4 @@ onMounted(() => {
 }
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

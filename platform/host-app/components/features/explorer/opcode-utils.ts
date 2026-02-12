@@ -68,7 +68,7 @@ export function getCategoryColor(category: OpcodeCategory): string {
     stack: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
     control: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
     syscall: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-    other: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
+    other: "bg-erobo-purple/10 text-erobo-ink dark:bg-erobo-bg-dark/30 dark:text-slate-300",
   };
   return colors[category];
 }

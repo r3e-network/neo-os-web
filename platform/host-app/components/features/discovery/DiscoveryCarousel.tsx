@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useTranslation } from "@/lib/i18n/react";
+import { logger } from "@/lib/logger";
 
 interface DiscoveryItem {
   app_id: string;
@@ -43,7 +44,7 @@ export function DiscoveryCarousel({ apps }: DiscoveryCarouselProps) {
         const data = await res.json();
         setQueue(data.queue || []);
       } catch (err) {
-        console.error("Failed to fetch discovery queue:", err);
+        logger.error("Failed to fetch discovery queue:", err);
       }
     };
     fetchQueue();
@@ -97,7 +98,7 @@ export function DiscoveryCarousel({ apps }: DiscoveryCarouselProps) {
               key={i}
               onClick={() => setCurrentIndex(i)}
               className={`w-2 h-2 rounded-full transition-all ${
-                i === currentIndex ? "bg-erobo-purple w-6" : "bg-gray-300 dark:bg-white/20"
+                i === currentIndex ? "bg-erobo-purple w-6" : "bg-erobo-purple/15 dark:bg-white/20"
               }`}
             />
           ))}

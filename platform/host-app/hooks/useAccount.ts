@@ -94,7 +94,7 @@ export function useAccount(): UseAccountResult {
   }, []);
 
   const submitPassword = useCallback(
-    async (password: string) => {
+    async (_password: string) => {
       setShowPasswordModal(false);
       if (pendingAction) {
         try {

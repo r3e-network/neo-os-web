@@ -42,7 +42,7 @@ export function useMapTiles() {
       selected: false,
       x: i % GRID_WIDTH,
       y: Math.floor(i / GRID_WIDTH),
-    })),
+    }))
   );
 
   const selectedTile = ref(0);
@@ -86,7 +86,7 @@ export function useMapTiles() {
     selectedTile.value = index;
   };
 
-  const parsePiece = (data: any) => {
+  const parsePiece = (data: unknown) => {
     if (!data) return null;
     if (Array.isArray(data)) {
       return {
@@ -98,12 +98,13 @@ export function useMapTiles() {
       };
     }
     if (typeof data === "object") {
+      const rec = data as Record<string, unknown>;
       return {
-        owner: String(data.owner ?? ""),
-        x: Number(data.x ?? 0),
-        y: Number(data.y ?? 0),
-        purchaseTime: Number(data.purchaseTime ?? 0),
-        price: Number(data.price ?? 0),
+        owner: String(rec.owner ?? ""),
+        x: Number(rec.x ?? 0),
+        y: Number(rec.y ?? 0),
+        purchaseTime: Number(rec.purchaseTime ?? 0),
+        price: Number(rec.price ?? 0),
       };
     }
     return null;
@@ -116,7 +117,7 @@ export function useMapTiles() {
     const updates = await Promise.all(
       tiles.value.map(async (tile) => {
         const res = await invokeRead({
-          contractHash: contract,
+          scriptHash: contract,
           operation: "GetPiece",
           args: [
             { type: "Integer", value: String(tile.x) },
@@ -133,7 +134,7 @@ export function useMapTiles() {
           owner: parsed?.owner || "",
           isYours,
         };
-      }),
+      })
     );
     tiles.value = updates;
   };

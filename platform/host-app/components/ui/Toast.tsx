@@ -1,5 +1,3 @@
-"use client";
-
 import { X, CheckCircle, AlertCircle, Info } from "lucide-react";
 
 type ToastType = "success" | "error" | "info";

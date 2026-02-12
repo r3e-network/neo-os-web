@@ -46,7 +46,7 @@ export function useSelfLoanHistory() {
   };
 
   const listAllEvents = async (eventName: string) => {
-    const events: any[] = [];
+    const events: unknown[] = [];
     let afterId: string | undefined;
     let hasMore = true;
     while (hasMore) {
@@ -55,7 +55,7 @@ export function useSelfLoanHistory() {
         events.push(...res.events);
         hasMore = Boolean(res.has_more && res.last_id);
         afterId = res.last_id || undefined;
-      } catch (e) {
+      } catch (e: unknown) {
         handleError(e, { operation: "listEvents", metadata: { eventName } });
         break;
       }
@@ -69,7 +69,7 @@ export function useSelfLoanHistory() {
     try {
       const contract = await ensureContractAddress();
       const countRes = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "GetUserLoanCount",
         args: [{ type: "Hash160", value: address.value }],
       });
@@ -82,7 +82,7 @@ export function useSelfLoanHistory() {
 
       const limit = Math.min(count, 50);
       const idsRes = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "GetUserLoans",
         args: [
           { type: "Hash160", value: address.value },
@@ -98,7 +98,7 @@ export function useSelfLoanHistory() {
         ids.map(async (loanId) => {
           try {
             const detailRes = await invokeRead({
-              contractAddress: contract,
+              scriptHash: contract,
               operation: "GetLoanDetails",
               args: [{ type: "Integer", value: String(loanId) }],
             });
@@ -119,7 +119,7 @@ export function useSelfLoanHistory() {
               active,
               collateral,
             } as ContractLoanEntry;
-          } catch (e) {
+          } catch (e: unknown) {
             handleError(e, { operation: "loadLoanDetail", metadata: { loanId } });
             return null;
           }
@@ -162,18 +162,18 @@ export function useSelfLoanHistory() {
         })
         .sort((a, b) => Number(b?.timestampRaw || 0) - Number(a?.timestampRaw || 0));
 
-      loanHistory.value = history.slice(0, 20).map((item: any) => ({
-        icon: item.icon,
-        label: item.label,
-        amount: item.amount,
-        timestamp: new Date(item.timestampRaw || Date.now()).toLocaleString(),
+      loanHistory.value = history.slice(0, 20).map((item: Record<string, unknown>) => ({
+        icon: item.icon as string,
+        label: item.label as string,
+        amount: item.amount as number,
+        timestamp: new Date((item.timestampRaw as number) || Date.now()).toLocaleString(),
       }));
 
       const latest = validEntries.reduce((max, entry) => (entry.id > max ? entry.id : max), 0);
       if (latest > 0) {
         await loadLoanPosition(latest);
       }
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "loadHistoryFromContract" });
       stats.value = { totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 };
       loanHistory.value = [];
@@ -273,7 +273,7 @@ export function useSelfLoanHistory() {
         const latest = created.reduce((max, entry) => (entry.id > max ? entry.id : max), 0);
         await loadLoanPosition(latest);
       }
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "loadHistory" });
       await loadHistoryFromContract();
     }

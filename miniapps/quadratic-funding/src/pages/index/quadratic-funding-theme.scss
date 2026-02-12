@@ -8,6 +8,10 @@
   --qf-text: #e2f7f4;
   --qf-muted: rgba(226, 247, 244, 0.65);
   --qf-warn: #fbbf24;
+  --qf-info: #60a5fa;
+  --qf-success: #22c55e;
+  --qf-danger: #f87171;
+  --qf-success-alt: #10b981;
 }
 
 :global(.theme-light .theme-quadratic-funding),
@@ -21,4 +25,8 @@
   --qf-text: #0f172a;
   --qf-muted: rgba(15, 23, 42, 0.65);
   --qf-warn: #d97706;
+  --qf-info: #3b82f6;
+  --qf-success: #16a34a;
+  --qf-danger: #ef4444;
+  --qf-success-alt: #059669;
 }

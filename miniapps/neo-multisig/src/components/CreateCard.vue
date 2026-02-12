@@ -1,6 +1,6 @@
 <template>
   <view class="create-section">
-    <view class="create-btn" @click="$emit('create')">
+    <view class="create-btn" role="button" :aria-label="title" tabindex="0" @click="$emit('create')" @keydown.enter="$emit('create')">
       <view class="create-icon">
         <text class="plus-icon">+</text>
       </view>

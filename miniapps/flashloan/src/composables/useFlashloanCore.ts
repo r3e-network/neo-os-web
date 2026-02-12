@@ -86,7 +86,7 @@ export function useFlashloanCore() {
   };
 
   const listAllEvents = async (eventName: string) => {
-    const events: any[] = [];
+    const events: unknown[] = [];
     let afterId: string | undefined;
     let hasMore = true;
     while (hasMore) {
@@ -95,7 +95,7 @@ export function useFlashloanCore() {
         events.push(...res.events);
         hasMore = Boolean(res.has_more && res.last_id);
         afterId = res.last_id || undefined;
-      } catch (e) {
+      } catch (e: unknown) {
         handleError(e, { operation: "listEvents", metadata: { eventName } });
         break;
       }
@@ -135,7 +135,11 @@ export function useFlashloanCore() {
     return null;
   };
 
-  const validateLoanRequest = (data: { amount: string; callbackContract: string; callbackMethod: string }): string | null => {
+  const validateLoanRequest = (data: {
+    amount: string;
+    callbackContract: string;
+    callbackMethod: string;
+  }): string | null => {
     const amountNum = parseFloat(data.amount);
     if (isNaN(amountNum) || amountNum <= 0) {
       return t("invalidLoanAmount");
@@ -152,9 +156,9 @@ export function useFlashloanCore() {
   const fetchPoolBalance = async () => {
     try {
       const contract = await ensureContractAddress();
-      const res = await invokeRead({ contractAddress: contract, operation: "getPoolBalance" });
+      const res = await invokeRead({ scriptHash: contract, operation: "getPoolBalance" });
       poolBalance.value = toGas(parseInvokeResult(res));
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "fetchPoolBalance" });
       poolBalance.value = 0;
     }
@@ -199,7 +203,7 @@ export function useFlashloanCore() {
           return bTime - aTime;
         })
         .slice(0, 10);
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "fetchLoanStats" });
       stats.value = { totalLoans: 0, totalVolume: 0, totalFees: 0 };
       recentLoans.value = [];
@@ -209,7 +213,7 @@ export function useFlashloanCore() {
   const fetchData = async () => {
     try {
       await Promise.all([fetchPoolBalance(), fetchLoanStats()]);
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "fetchData" });
     }
   };

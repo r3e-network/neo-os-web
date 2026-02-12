@@ -86,7 +86,8 @@ export function SubmissionList({ statusFilter = "all" }: SubmissionListProps) {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as SubmissionStatus | "all")}
-            className="rounded border border-gray-300 bg-white px-3 py-1 text-sm dark:border-gray-600 dark:bg-gray-800"
+            aria-label="Filter submissions by status"
+            className="border-border/30 bg-muted/30 rounded border px-3 py-1 text-sm text-foreground"
           >
             {STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -102,7 +103,7 @@ export function SubmissionList({ statusFilter = "all" }: SubmissionListProps) {
       </div>
 
       {submissions.length === 0 ? (
-        <div className="p-8 text-center text-gray-500 dark:text-gray-400">No submissions found for this filter.</div>
+        <div className="text-muted-foreground p-8 text-center">No submissions found for this filter.</div>
       ) : (
         <div className="space-y-4">
           {submissions.map((submission) => (

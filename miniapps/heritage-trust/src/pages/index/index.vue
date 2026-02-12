@@ -9,11 +9,10 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
+      <!-- Main Tab — LEFT panel: status display -->
       <template #content>
         <view v-if="status" class="mb-4">
           <NeoCard
@@ -23,7 +22,10 @@
             <text class="font-bold">{{ status.msg }}</text>
           </NeoCard>
         </view>
+      </template>
 
+      <!-- Main Tab — RIGHT panel: create form -->
+      <template #operation>
         <TrustCreate :is-loading="isLoading" :t="t" @create="handleCreate" />
       </template>
 
@@ -64,11 +66,12 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
+import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseStackItem } from "@shared/utils/neo";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 import { useHeritageTrusts } from "@/composables/useHeritageTrusts";
 import { useHeritageBeneficiaries } from "@/composables/useHeritageBeneficiaries";
@@ -81,7 +84,7 @@ const { t } = useI18n();
 const { address, connect, invokeContract, getBalance, chainType, getContractAddress } = useWallet() as WalletSDK;
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "form-panel",
+  contentType: "two-column",
   tabs: [
     { key: "main", labelKey: "createTrust", icon: "➕", default: true },
     { key: "mine", labelKey: "mine", icon: "📋" },
@@ -112,6 +115,12 @@ const appState = computed(() => ({
   beneficiaryTrusts: myBeneficiaryTrusts.value.length,
 }));
 
+const sidebarItems = computed(() => [
+  { label: t("createdTrusts"), value: myCreatedTrusts.value.length },
+  { label: "Beneficiary", value: myBeneficiaryTrusts.value.length },
+  { label: "Active", value: myCreatedTrusts.value.filter((tr) => tr.active !== false).length },
+]);
+
 const {
   isLoading,
   isLoadingData,
@@ -119,6 +128,8 @@ const {
   myBeneficiaryTrusts,
   stats,
   status,
+  setStatus,
+  clearStatus,
   fetchData,
   heartbeatTrust,
   claimYield,
@@ -178,7 +189,7 @@ const handleCreate = async () => {
 
   try {
     isLoading.value = true;
-    status.value = { msg: t("creating"), type: "loading" };
+    setStatus(t("creating"), "loading");
 
     if (!address.value) {
       await connect();
@@ -258,7 +269,7 @@ const handleCreate = async () => {
       }
     }
 
-    status.value = { msg: t("trustCreated"), type: "success" };
+    setStatus(t("trustCreated"), "success");
     // Reset form
     newTrust.value = {
       name: "",
@@ -273,8 +284,8 @@ const handleCreate = async () => {
     };
 
     await fetchData();
-  } catch (e: any) {
-    status.value = { msg: e.message || t("error"), type: "error" };
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     isLoading.value = false;
   }
@@ -304,10 +315,6 @@ onMounted(() => {
   color: var(--heritage-text);
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 .mine-dashboard {
   display: flex;
@@ -324,19 +331,5 @@ onMounted(() => {
 
 .font-bold {
   font-weight: 700;
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 </style>

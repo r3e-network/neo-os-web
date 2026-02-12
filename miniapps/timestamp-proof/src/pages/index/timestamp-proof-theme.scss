@@ -16,6 +16,11 @@
   --proof-input-focus: #06b6d4;
   --proof-btn-primary: #06b6d4;
   --proof-btn-primary-hover: #0891b2;
+  --proof-btn-primary-text: #ffffff;
+  --proof-error: #ef4444;
+  --proof-error-bg: rgba(239, 68, 68, 0.1);
+  --proof-error-border: rgba(239, 68, 68, 0.3);
+  --proof-error-toast-bg: rgba(239, 68, 68, 0.9);
 }
 
 :global(.theme-light .theme-timestamp-proof),
@@ -35,4 +40,9 @@
   --proof-input-bg: #ffffff;
   --proof-input-border: #cbd5e1;
   --proof-input-focus: #06b6d4;
+  --proof-btn-primary-text: #ffffff;
+  --proof-error: #dc2626;
+  --proof-error-bg: rgba(220, 38, 38, 0.1);
+  --proof-error-border: rgba(220, 38, 38, 0.3);
+  --proof-error-toast-bg: rgba(220, 38, 38, 0.9);
 }

@@ -40,7 +40,7 @@ export default function AccountPage() {
         <div className="relative mx-auto max-w-6xl px-4 py-12">
           <div className="mb-10 text-center md:text-left">
             <h1 className="text-4xl font-bold text-erobo-ink dark:text-white">{t("account.title")}</h1>
-            <p className="mt-2 text-base text-erobo-ink-soft/70 dark:text-gray-400">{t("account.subtitle")}</p>
+            <p className="mt-2 text-base text-erobo-ink-soft/70 dark:text-slate-400">{t("account.subtitle")}</p>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-12">
@@ -56,7 +56,7 @@ export default function AccountPage() {
                           <Wallet className="text-erobo-purple" size={24} strokeWidth={2} />
                           {t("account.wallet.title")}
                         </CardTitle>
-                        <CardDescription className="mt-1 text-erobo-ink-soft/70 dark:text-gray-400">
+                        <CardDescription className="mt-1 text-erobo-ink-soft/70 dark:text-slate-400">
                           {t("account.wallet.subtitle")}
                         </CardDescription>
                       </div>
@@ -78,7 +78,7 @@ export default function AccountPage() {
                         <Wallet size={24} strokeWidth={2} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-erobo-ink-soft/70 dark:text-gray-400 mb-0.5">
+                        <p className="text-xs font-medium text-erobo-ink-soft/70 dark:text-slate-400 mb-0.5">
                           {t("account.wallet.address")}
                         </p>
                         <p className="text-base font-mono font-medium text-erobo-ink dark:text-white truncate">
@@ -143,13 +143,13 @@ export default function AccountPage() {
                       <div className="text-4xl font-bold text-erobo-ink dark:text-white tabular-nums">
                         {currentXP.toLocaleString()}
                       </div>
-                      <div className="text-xs text-erobo-ink-soft/70 dark:text-gray-400 mt-2 bg-white/70 dark:bg-white/5 inline-block px-3 py-1 rounded-full">
+                      <div className="text-xs text-erobo-ink-soft/70 dark:text-slate-400 mt-2 bg-white/70 dark:bg-white/5 inline-block px-3 py-1 rounded-full">
                         {levelInfo?.name || "Neo Rookie"}
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex justify-between text-xs text-erobo-ink-soft/70 dark:text-gray-400">
+                      <div className="flex justify-between text-xs text-erobo-ink-soft/70 dark:text-slate-400">
                         <span>
                           {t("account.reputation.progress")} {level + 1}
                         </span>
@@ -167,7 +167,7 @@ export default function AccountPage() {
 
                     <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/60 dark:border-white/10">
                       <div className="text-center p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10">
-                        <div className="text-[10px] text-erobo-ink-soft/70 dark:text-gray-400 mb-1">
+                        <div className="text-[10px] text-erobo-ink-soft/70 dark:text-slate-400 mb-1">
                           {t("account.reputation.rank")}
                         </div>
                         <Link
@@ -181,7 +181,7 @@ export default function AccountPage() {
                         </Link>
                       </div>
                       <div className="text-center p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10">
-                        <div className="text-[10px] text-erobo-ink-soft/70 dark:text-gray-400 mb-1">Streak</div>
+                        <div className="text-[10px] text-erobo-ink-soft/70 dark:text-slate-400 mb-1">Streak</div>
                         <div className="text-xl font-bold text-erobo-pink flex items-center justify-center gap-1">
                           <Flame size={18} fill="currentColor" strokeWidth={2} />
                           {stats?.streak || 0}
@@ -232,7 +232,7 @@ export default function AccountPage() {
                     <Shield size={16} className="text-erobo-purple" strokeWidth={2} />
                     {t("account.security.title")}
                   </h3>
-                  <p className="text-xs text-erobo-ink-soft/70 dark:text-gray-400 leading-relaxed">
+                  <p className="text-xs text-erobo-ink-soft/70 dark:text-slate-400 leading-relaxed">
                     {t("account.security.tip")}
                   </p>
                 </div>
@@ -249,7 +249,7 @@ function StatItem({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 text-center hover:-translate-y-0.5 transition-all">
       <div className="text-xl font-bold text-erobo-ink dark:text-white tabular-nums">{value}</div>
-      <div className="text-[10px] text-erobo-ink-soft/70 dark:text-gray-400 mt-1 leading-tight">{label}</div>
+      <div className="text-[10px] text-erobo-ink-soft/70 dark:text-slate-400 mt-1 leading-tight">{label}</div>
     </div>
   );
 }

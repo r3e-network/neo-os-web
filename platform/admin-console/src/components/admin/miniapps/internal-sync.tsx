@@ -64,7 +64,7 @@ export function InternalSync({ onSuccess }: InternalSyncProps) {
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       {success && <p className="text-sm text-green-600 dark:text-green-400">{success}</p>}
       {result && (
-        <div className="text-xs text-gray-600 dark:text-gray-400">
+        <div className="text-muted-foreground text-xs">
           {result.synced > 0 && <span>+{result.synced} new </span>}
           {result.updated > 0 && <span>~{result.updated} updated </span>}
           {result.failed > 0 && <span className="text-red-600">!{result.failed} failed</span>}

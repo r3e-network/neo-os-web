@@ -2,7 +2,7 @@
 package neosimulation
 
 import (
-	"fmt"
+	"log/slog"
 	"sync/atomic"
 )
 
@@ -177,7 +177,7 @@ func (s *MiniAppSimulator) getRandomUserAddressOrWarn(appID, action string) (str
 	if address == "" {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		if atomic.CompareAndSwapUint32(&s.missingUserAddressesLogged, 0, 1) {
-			fmt.Printf("neosimulation: skipping %s for %s: no user addresses configured\n", action, appID)
+			slog.Warn("skipping action: no user addresses configured", "action", action, "app", appID)
 		}
 		return "", false
 	}
@@ -191,7 +191,7 @@ func (s *MiniAppSimulator) recordPayment(appID, txHash string, amount int64) {
 	}
 	userAddr := s.getRandomUserAddress()
 	if err := s.recordTx(appID, userAddr, "payment", amount, "confirmed", txHash); err != nil {
-		fmt.Printf("neosimulation: failed to record tx for %s: %v\n", appID, err)
+		slog.Warn("failed to record tx", "app", appID, "error", err)
 	}
 }
 

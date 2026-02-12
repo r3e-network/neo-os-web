@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getChainRpcUrl } from "@/lib/chains/rpc-functions";
 import { getChainRegistry } from "@/lib/chains/registry";
 import type { ChainId, ChainConfig } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 interface NetworkStats {
   height: number;
@@ -44,8 +45,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Cache for 15 seconds
     res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate");
     return res.status(200).json(stats);
-  } catch (err) {
-    console.error("Explorer stats error:", err);
+  } catch (err: unknown) {
+    logger.error("Explorer stats error", err);
     return res.status(500).json({
       error: "Failed to fetch stats",
       details: err instanceof Error ? err.message : "Unknown error",
@@ -72,8 +73,8 @@ async function getNetworkStats(chainConfig: ChainConfig): Promise<NetworkStats> 
     });
     const blockData = await blockRes.json();
     height = blockData.result || 0;
-  } catch (err) {
-    console.error(`Failed to fetch block count for ${chainId}:`, err);
+  } catch (err: unknown) {
+    logger.error(`Failed to fetch block count for ${chainId}:`, err);
   }
 
   // Get tx count from indexer if available
@@ -102,7 +103,7 @@ async function getTxCountFromIndexer(chainConfig: ChainConfig): Promise<number> 
   const indexerKey = process.env.INDEXER_SUPABASE_SERVICE_KEY;
 
   if (!indexerUrl || !indexerKey) {
-    console.warn("Indexer not configured, returning 0 for tx count");
+    logger.warn("Indexer not configured, returning 0 for tx count");
     return 0; // Return 0 to trigger fallback calculation
   }
 
@@ -125,8 +126,8 @@ async function getTxCountFromIndexer(chainConfig: ChainConfig): Promise<number> 
 
     const data = await response.json();
     return data?.[0]?.total_tx_indexed || 0;
-  } catch (e) {
-    console.warn(`Failed to fetch tx count from indexer for ${chainConfig.id}:`, e);
+  } catch (e: unknown) {
+    logger.warn(`Failed to fetch tx count from indexer for ${chainConfig.id}:`, e);
     return 0;
   }
 }

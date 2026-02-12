@@ -6,7 +6,7 @@
         @update:modelValue="$emit('update:searchQuery', $event)"
         :placeholder="t('searchPlaceholder')"
         @confirm="$emit('search')"
-        class="flex-1 mb-2"
+        class="mb-2 flex-1"
       />
       <NeoButton variant="primary" block @click="$emit('search')" :loading="isLoading">
         {{ t("search") }}
@@ -41,7 +41,7 @@ defineProps<{
   searchQuery: string;
   selectedNetwork: "mainnet" | "testnet";
   isLoading: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["update:searchQuery", "update:selectedNetwork", "search"]);
@@ -51,17 +51,28 @@ defineEmits(["update:searchQuery", "update:selectedNetwork", "search"]);
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.search-box-neo { display: flex; flex-direction: column; }
-.mb-2 { margin-bottom: 8px; }
-.mb-4 { margin-bottom: 16px; }
-.mb-6 { margin-bottom: 24px; }
-.network-toggle { 
-  margin-top: 24px; 
-  border-top: 1px solid rgba(255, 255, 255, 0.05); 
-  padding-top: 24px; 
-  display: grid; 
-  grid-template-columns: 1fr 1fr; 
-  gap: 16px; 
+.search-box-neo {
+  display: flex;
+  flex-direction: column;
 }
-.flex-1 { flex: 1; }
+.mb-2 {
+  margin-bottom: 8px;
+}
+.mb-4 {
+  margin-bottom: 16px;
+}
+.mb-6 {
+  margin-bottom: 24px;
+}
+.network-toggle {
+  margin-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.flex-1 {
+  flex: 1;
+}
 </style>

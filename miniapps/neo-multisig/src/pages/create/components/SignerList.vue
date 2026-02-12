@@ -8,7 +8,15 @@
         @input="$emit('update', { index, value: $event.target.value })"
         :placeholder="t('signerPlaceholder')"
       />
-      <text class="remove-btn" @click="$emit('remove', index)" v-if="signers.length > 1">×</text>
+      <text
+        v-if="signers.length > 1"
+        class="remove-btn"
+        role="button"
+        :aria-label="t('removeSigner') || 'Remove signer'"
+        tabindex="0"
+        @click="$emit('remove', index)"
+        @keydown.enter="$emit('remove', index)"
+      >×</text>
     </view>
 
     <NeoButton variant="secondary" size="sm" @click="$emit('add')" class="add-btn">

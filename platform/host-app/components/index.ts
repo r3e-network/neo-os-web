@@ -1,7 +1,6 @@
 export * from "./types";
 export * from "./styles";
 export { Header } from "./Header";
-export { MiniAppCard } from "./MiniAppCard";
 export { NotificationCard } from "./NotificationCard";
 export { AppDetailHeader } from "./AppDetailHeader";
 export { AppStatsCard } from "./AppStatsCard";

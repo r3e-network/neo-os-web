@@ -4,7 +4,7 @@
       <text class="title">{{ t("studioTitle") }}</text>
       <text class="subtitle">{{ t("studioSubtitle") }}</text>
     </view>
-    
+
     <view class="form-step">
       <text class="label">{{ t("machineNameLabel") }}</text>
       <NeoInput v-model="form.name" :placeholder="t('machineNamePlaceholder')" />
@@ -35,18 +35,18 @@
         <text class="label">{{ t("inventoryAndOdds") }}</text>
         <NeoButton size="sm" variant="secondary" @click="addItem">+ {{ t("addItem") }}</NeoButton>
       </view>
-      
+
       <view class="inventory-list">
         <view v-if="form.items.length === 0" class="empty-inventory">
           {{ t("emptyInventory", { action: t("addItem") }) }}
         </view>
-        
+
         <view v-for="(item, idx) in form.items" :key="idx" class="inventory-item">
           <view class="item-header">
             <text class="item-idx">#{{ idx + 1 }}</text>
-            <text class="remove-btn" @click="removeItem(idx)">✕</text>
+            <text class="remove-btn" role="button" tabindex="0" :aria-label="t('removeItem', { index: idx + 1 }) || `Remove item #${idx + 1}`" @click="removeItem(idx)">✕</text>
           </view>
-          
+
           <view class="item-inputs">
             <NeoInput v-model="item.name" :placeholder="t('itemNamePlaceholder')" class="mb-2" />
             <view class="probability-row">
@@ -82,17 +82,13 @@
                 type="number"
                 :placeholder="t('tokenAmountPlaceholder')"
               />
-              <NeoInput
-                v-else
-                v-model="item.tokenId"
-                :placeholder="t('tokenIdPlaceholder')"
-              />
+              <NeoInput v-else v-model="item.tokenId" :placeholder="t('tokenIdPlaceholder')" />
             </view>
           </view>
         </view>
       </view>
-      
-      <view class="total-odds" :class="{ 'valid': totalProbability === 100 }">
+
+      <view class="total-odds" :class="{ valid: totalProbability === 100 }">
         {{ t("totalProbabilityLabel") }}: {{ totalProbability }}%
       </view>
       <text class="inventory-note">
@@ -100,11 +96,11 @@
       </text>
     </view>
 
-    <NeoButton 
-      variant="primary" 
-      block 
-      size="lg" 
-      :disabled="!isValid || props.publishing" 
+    <NeoButton
+      variant="primary"
+      block
+      size="lg"
+      :disabled="!isValid || props.publishing"
       :loading="props.publishing"
       @click="publish"
     >
@@ -119,21 +115,31 @@ import { NeoCard, NeoInput, NeoButton } from "@shared/components";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
 
+interface FormItemData {
+  name: string;
+  probability: string;
+  icon: string;
+  assetType: string;
+  assetHash: string;
+  amount: string;
+  tokenId: string;
+}
+
 const props = defineProps<{
   publishing?: boolean;
 }>();
 
-const emit = defineEmits(['publish']);
+const emit = defineEmits(["publish"]);
 
 const { t } = useI18n();
 
 const form = ref({
-  name: '',
-  description: '',
-  category: '',
-  tags: '',
-  price: '',
-  items: [] as any[]
+  name: "",
+  description: "",
+  category: "",
+  tags: "",
+  price: "",
+  items: [] as FormItemData[],
 });
 
 const toNumber = (value: string | number) => {
@@ -155,13 +161,13 @@ const isValidAssetHash = (value: string) => Boolean(normalizeAssetHash(value));
 
 const addItem = () => {
   form.value.items.push({
-    name: '',
-    probability: '10', // Default 10%
-    icon: '📦',
-    assetType: 'nep17',
-    assetHash: '',
-    amount: '',
-    tokenId: ''
+    name: "",
+    probability: "10", // Default 10%
+    icon: "📦",
+    assetType: "nep17",
+    assetHash: "",
+    amount: "",
+    tokenId: "",
   });
 };
 
@@ -175,36 +181,34 @@ const totalProbability = computed(() => {
 
 const isValid = computed(() => {
   const priceValue = toNumber(form.value.price);
-  const itemsValid = form.value.items.length > 0 && form.value.items.every((item) => {
-    const probabilityValue = toNumber(item.probability);
-    if (!isNonEmpty(String(item.name || "")) || !isWholeNumber(probabilityValue) || probabilityValue <= 0) {
+  const itemsValid =
+    form.value.items.length > 0 &&
+    form.value.items.every((item) => {
+      const probabilityValue = toNumber(item.probability);
+      if (!isNonEmpty(String(item.name || "")) || !isWholeNumber(probabilityValue) || probabilityValue <= 0) {
+        return false;
+      }
+      if (!isValidAssetHash(String(item.assetHash || ""))) {
+        return false;
+      }
+      if (item.assetType === "nep17") {
+        return toNumber(item.amount) > 0;
+      }
+      if (item.assetType === "nep11") return true;
       return false;
-    }
-    if (!isValidAssetHash(String(item.assetHash || ""))) {
-      return false;
-    }
-    if (item.assetType === 'nep17') {
-      return toNumber(item.amount) > 0;
-    }
-    if (item.assetType === 'nep11') return true;
-    return false;
-  });
+    });
   const totalIsValid = totalProbability.value === 100;
   return (
-    isNonEmpty(form.value.name) &&
-    isNonEmpty(form.value.description) &&
-    priceValue > 0 &&
-    itemsValid &&
-    totalIsValid
+    isNonEmpty(form.value.name) && isNonEmpty(form.value.description) && priceValue > 0 && itemsValid && totalIsValid
   );
 });
 
 const getRarity = (prob: string | number) => {
   const p = toNumber(prob);
-  if (p <= 1) return 'LEGENDARY';
-  if (p <= 5) return 'EPIC';
-  if (p <= 20) return 'RARE';
-  return 'COMMON';
+  if (p <= 1) return "LEGENDARY";
+  if (p <= 5) return "EPIC";
+  if (p <= 20) return "RARE";
+  return "COMMON";
 };
 
 const publish = () => {
@@ -212,25 +216,25 @@ const publish = () => {
   const normalizedItems = form.value.items.map((item) => ({
     name: String(item.name || "").trim(),
     probability: Math.trunc(toNumber(item.probability)),
-    icon: item.icon || '📦',
+    icon: item.icon || "📦",
     rarity: getRarity(item.probability),
     assetType: item.assetType,
     assetHash: String(item.assetHash || "").trim(),
     amount: String(item.amount || "").trim(),
-    tokenId: String(item.tokenId || "").trim()
+    tokenId: String(item.tokenId || "").trim(),
   }));
   const priceValue = toNumber(form.value.price);
-  emit('publish', {
+  emit("publish", {
     id: Date.now().toString(),
     name: form.value.name.trim(),
     description: form.value.description.trim(),
     category: form.value.category.trim(),
     tags: form.value.tags.trim(),
     price: priceValue.toString(),
-    items: normalizedItems
+    items: normalizedItems,
   });
   // Reset
-  form.value = { name: '', description: '', category: '', tags: '', price: '', items: [] };
+  form.value = { name: "", description: "", category: "", tags: "", price: "", items: [] };
 };
 </script>
 
@@ -357,7 +361,7 @@ const publish = () => {
   font-size: 12px;
   font-weight: 700;
   color: var(--gacha-danger-text);
-  
+
   &.valid {
     color: var(--gacha-accent-green);
   }

@@ -55,8 +55,9 @@ export async function handler(req: Request): Promise<Response> {
   try {
     const balanceStr = await getGasBalance(walletCheck.address);
     gasBalance = parseFloat(balanceStr);
-  } catch (e) {
-    return errorResponse("SERVER_001", { message: `failed to query balance: ${(e as Error).message}` }, req);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return errorResponse("SERVER_001", { message: `failed to query balance: ${message}` }, req);
   }
 
   const eligible = gasBalance < ELIGIBILITY_THRESHOLD && remaining > 0;

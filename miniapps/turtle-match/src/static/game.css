@@ -39,6 +39,9 @@
     --turtle-overlay-border: rgba(255, 255, 255, 0.1);
     --turtle-overlay-backdrop: rgba(2, 6, 23, 0.95);
     --turtle-overlay-backdrop-strong: #020617;
+    --turtle-panel-dark: #1e293b;
+    --turtle-panel-darker: #0f172a;
+    --turtle-panel-mid: #334155;
 
     min-height: 100vh;
     background-color: var(--turtle-bg);
@@ -86,6 +89,9 @@
     --turtle-overlay-border: rgba(255, 255, 255, 0.1);
     --turtle-overlay-backdrop: rgba(2, 6, 23, 0.95);
     --turtle-overlay-backdrop-strong: #020617;
+    --turtle-panel-dark: #d1d5db;
+    --turtle-panel-darker: #e2e8f0;
+    --turtle-panel-mid: #9ca3af;
 }
 
 .game-container {

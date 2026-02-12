@@ -18,7 +18,7 @@ export function useFlashloanRepayment() {
   const checkRepaymentStatus = async (loanId: string) => {
     try {
       const res = await listEvents({ app_id: APP_ID, event_name: "LoanRepaid", limit: 25 });
-      const match = res.events.find((evt: any) => {
+      const match = res.events.find((evt: Record<string, unknown>) => {
         const state = evt?.state;
         if (Array.isArray(state) && state.length > 0) {
           return String(state[0]) === loanId;
@@ -26,7 +26,7 @@ export function useFlashloanRepayment() {
         return false;
       });
       return match !== undefined;
-    } catch (e) {
+    } catch (e: unknown) {
       handleError(e, { operation: "checkRepaymentStatus", metadata: { loanId } });
       return false;
     }

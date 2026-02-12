@@ -28,6 +28,15 @@
   --coin-error-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
   --coin-stat-bg: rgba(255, 255, 255, 0.03);
   --coin-stat-border: rgba(255, 255, 255, 0.1);
+  --coin-success: #00e599;
+  --coin-blue: #3b82f6;
+  --coin-black: #000000;
+  --coin-loss: #ef4444;
+  --coin-win: #10b981;
+  --coin-white: #ffffff;
+  --coin-gold: #fbbf24;
+  --coin-btn-shadow: #005f3e;
+  --flip-cta-gradient: linear-gradient(135deg, #00e599 0%, #008f5d 100%);
   --bg-primary: var(--coin-bg-primary);
   --text-primary: var(--coin-text-primary);
   --text-secondary: var(--coin-text-secondary);
@@ -67,4 +76,13 @@
   --coin-error-shadow: 0 10px 30px rgba(220, 38, 38, 0.2);
   --coin-stat-bg: rgba(255, 255, 255, 0.8);
   --coin-stat-border: rgba(15, 23, 42, 0.12);
+  --coin-success: #059669;
+  --coin-blue: #2563eb;
+  --coin-black: #0f172a;
+  --coin-loss: #dc2626;
+  --coin-win: #059669;
+  --coin-white: #ffffff;
+  --coin-gold: #d97706;
+  --coin-btn-shadow: #047857;
+  --flip-cta-gradient: linear-gradient(135deg, #059669 0%, #065f46 100%);
 }

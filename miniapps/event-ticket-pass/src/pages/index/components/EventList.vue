@@ -39,19 +39,7 @@
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
 import EventDetails from "./EventDetails.vue";
-
-interface EventItem {
-  id: string;
-  creator: string;
-  name: string;
-  venue: string;
-  startTime: number;
-  endTime: number;
-  maxSupply: bigint;
-  minted: bigint;
-  notes: string;
-  active: boolean;
-}
+import type { EventItem } from "@/types";
 
 defineProps<{
   t: (key: string) => string;

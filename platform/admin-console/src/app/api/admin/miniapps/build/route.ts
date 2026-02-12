@@ -7,8 +7,6 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { edgeClient } from "@/lib/api-client";
 
-const EDGE_FUNCTION_URL = process.env.NEXT_PUBLIC_EDGE_URL || "https://edge.localhost";
-
 /**
  * POST /api/admin/miniapps/build
  * Body:
@@ -25,14 +23,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "submission_id is required" }, { status: 400 });
     }
 
-    // Proxy to Edge Function
+    // Proxy to Edge Function — edgeClient already prepends the base URL
     const result = await edgeClient.post<{
       success: boolean;
       build_id: string;
       status: string;
       cdn_url?: string;
       error?: string;
-    }>(`${EDGE_FUNCTION_URL}/functions/v1/miniapp-build`, body);
+    }>(`/functions/v1/miniapp-build`, body);
 
     return NextResponse.json(result);
   } catch (error) {

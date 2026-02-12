@@ -6,6 +6,7 @@
 
 import type { NextApiResponse } from "next";
 import { createHandler } from "@/lib/api";
+import { logger } from "@/lib/logger";
 
 // Realistic initial stats per category
 const INITIAL_STATS: Record<string, { users: number; txs: number; volume: number }> = {
@@ -107,7 +108,7 @@ export default createHandler({
           timestamp: new Date().toISOString(),
         });
       } catch (error) {
-        console.error("Init stats error:", error);
+        logger.error("Init stats error", error);
         res.status(500).json({ error: "Failed to initialize stats" });
       }
     },

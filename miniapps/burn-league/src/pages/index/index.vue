@@ -10,9 +10,7 @@
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -25,17 +23,17 @@
           v-model:burnAmount="burnAmount"
           :estimated-reward="estimatedReward"
           :is-loading="isLoading"
-          :t="t as any"
+          :t="t"
           @burn="burnTokens"
         />
       </template>
 
       <template #tab-stats>
         <!-- Total Burned Hero Section with Fire Animation -->
-        <HeroSection :total-burned="totalBurned" :t="t as any" />
+        <HeroSection :total-burned="totalBurned" :t="t" />
 
         <!-- Stats Grid -->
-        <StatsGrid :user-burned="userBurned" :rank="rank" :t="t as any" />
+        <StatsGrid :user-burned="userBurned" :rank="rank" :t="t" />
 
         <StatsTab
           :burn-count="burnCount"
@@ -43,7 +41,7 @@
           :total-burned="totalBurned"
           :rank="rank"
           :estimated-reward="estimatedReward"
-          :t="t as any"
+          :t="t"
         />
 
         <!-- Leaderboard in Stats Tab -->
@@ -54,15 +52,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { parseGas, toFixed8 } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
+import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useAllEvents } from "@shared/composables/useAllEvents";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 
 import HeroSection from "./components/HeroSection.vue";
@@ -106,7 +107,8 @@ const appState = computed(() => ({
 }));
 
 const APP_ID = "miniapp-burn-league";
-const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
+const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
 const { list: listEvents } = useEvents();
 const { processPayment, isProcessing: paymentProcessing } = usePaymentFlow(APP_ID);
 
@@ -116,52 +118,35 @@ const rewardPool = ref(0);
 const userBurned = ref(0);
 const rank = ref(0);
 const burnCount = ref(0);
-const status = ref<{ msg: string; type: string } | null>(null);
-const contractAddress = ref<string | null>(null);
-
+const { status, setStatus, clearStatus } = useStatusMessage();
 const leaderboard = ref<LeaderEntry[]>([]);
 const MIN_BURN = 1;
 const isLoading = computed(() => paymentProcessing.value);
+
+const sidebarItems = computed(() => [
+  { label: t("stats"), value: `${totalBurned.value} GAS` },
+  { label: t("game"), value: `${userBurned.value} GAS` },
+  { label: "Rank", value: rank.value || "-" },
+  { label: "Burns", value: burnCount.value },
+  { label: "Reward Pool", value: `${rewardPool.value} GAS` },
+]);
 
 const estimatedReward = computed(() => {
   if (!totalBurned.value) return 0;
   return (userBurned.value / totalBurned.value) * rewardPool.value;
 });
 
-const ensureContractAddress = async () => {
-  if (!requireNeoChain(chainType, t)) {
-    throw new Error(t("wrongChain"));
-  }
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  if (!contractAddress.value) {
-    throw new Error(t("missingContract"));
-  }
-};
-
-const listAllEvents = async (eventName: string) => {
-  const events: any[] = [];
-  let afterId: string | undefined;
-  let hasMore = true;
-  while (hasMore) {
-    const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 50, after_id: afterId });
-    events.push(...res.events);
-    hasMore = Boolean(res.has_more && res.last_id);
-    afterId = res.last_id || undefined;
-  }
-  return events;
-};
+const { listAllEvents } = useAllEvents(listEvents, APP_ID);
 
 const loadStats = async () => {
-  await ensureContractAddress();
-  const totalRes = await invokeRead({ scriptHash: contractAddress.value!, operation: "TotalBurned" });
+  const contract = await ensureContractAddress();
+  const totalRes = await invokeRead({ scriptHash: contract, operation: "TotalBurned" });
   totalBurned.value = parseGas(parseInvokeResult(totalRes));
-  const poolRes = await invokeRead({ scriptHash: contractAddress.value!, operation: "RewardPool" });
+  const poolRes = await invokeRead({ scriptHash: contract, operation: "RewardPool" });
   rewardPool.value = parseGas(parseInvokeResult(poolRes));
   if (address.value) {
     const userRes = await invokeRead({
-      scriptHash: contractAddress.value!,
+      scriptHash: contract,
       operation: "GetUserTotalBurned",
       args: [{ type: "Hash160", value: address.value }],
     });
@@ -176,7 +161,8 @@ const loadLeaderboard = async () => {
   const totals: Record<string, number> = {};
   let userBurns = 0;
   events.forEach((evt) => {
-    const values = Array.isArray((evt as any)?.state) ? (evt as any).state.map(parseStackItem) : [];
+    const evtRecord = evt as unknown as Record<string, unknown>;
+    const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
     const burner = String(values[0] ?? "");
     const amount = Number(values[1] ?? 0);
     if (!burner) return;
@@ -203,7 +189,7 @@ const refreshData = async () => {
   try {
     await Promise.all([loadStats(), loadLeaderboard()]);
   } catch {
-    status.value = { msg: t("loadFailed"), type: "error" };
+    setStatus(t("loadFailed"), "error");
   }
 };
 
@@ -211,7 +197,7 @@ const burnTokens = async () => {
   if (isLoading.value) return;
   const amount = parseFloat(burnAmount.value);
   if (!Number.isFinite(amount) || amount < MIN_BURN) {
-    status.value = { msg: t("minBurn", { amount: MIN_BURN }), type: "error" };
+    setStatus(t("minBurn", { amount: MIN_BURN }), "error");
     return;
   }
   try {
@@ -222,11 +208,11 @@ const burnTokens = async () => {
       throw new Error(t("error"));
     }
     await ensureContractAddress();
-    status.value = { msg: t("burning"), type: "loading" };
+    setStatus(t("burning"), "loading");
 
     const { receiptId, invoke: invokeWithReceipt, waitForEvent } = await processPayment(burnAmount.value, "burn");
 
-    const result = await invokeWithReceipt(contractAddress.value!, "burnGas", [
+    const result = await invokeWithReceipt(contractAddress.value as string, "burnGas", [
       { type: "Hash160", value: address.value },
       { type: "Integer", value: toFixed8(burnAmount.value) },
       { type: "Integer", value: String(receiptId) },
@@ -235,21 +221,17 @@ const burnTokens = async () => {
     // Wait for event confirmation
     await waitForEvent(result.txid, "GasBurned");
 
-    status.value = { msg: `${t("burned")} ${amount} GAS ${t("success")}`, type: "success" };
+    setStatus(`${t("burned")} ${amount} GAS ${t("success")}`, "success");
     burnAmount.value = "1";
     await refreshData();
-  } catch (e: any) {
-    status.value = { msg: e.message || t("error"), type: "error" };
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("error")), "error");
   }
 };
 
-onMounted(() => {
-  refreshData();
-});
-
 watch(address, () => {
   refreshData();
-});
+}, { immediate: true });
 </script>
 
 <style lang="scss" scoped>
@@ -345,23 +327,6 @@ watch(address, () => {
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

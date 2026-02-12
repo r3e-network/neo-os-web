@@ -82,7 +82,7 @@ export function VersionHistory({ versions, currentVersion, className, maxVisible
           {t("detail.versionHistory") || "Version History"}
         </h3>
         {currentVersion && (
-          <span className="text-xs text-erobo-ink-soft/60 dark:text-gray-500">
+          <span className="text-xs text-erobo-ink-soft/60 dark:text-slate-500">
             Current: v{currentVersion}
           </span>
         )}
@@ -123,7 +123,7 @@ export function VersionHistory({ versions, currentVersion, className, maxVisible
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-erobo-ink-soft/60 dark:text-gray-500">
+                  <span className="text-xs text-erobo-ink-soft/60 dark:text-slate-500">
                     {formatDate(version.releaseDate)}
                   </span>
                   {version.changelog && version.changelog.length > 0 && (
@@ -148,7 +148,7 @@ export function VersionHistory({ versions, currentVersion, className, maxVisible
                     <div className="px-4 pb-4 pt-1 border-t border-white/60 dark:border-white/10">
                       <ul className="space-y-2 mt-3">
                         {version.changelog.map((change, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm text-erobo-ink-soft/80 dark:text-gray-400">
+                          <li key={idx} className="flex items-start gap-2 text-sm text-erobo-ink-soft/80 dark:text-slate-400">
                             <span className="text-erobo-purple mt-1">•</span>
                             {change}
                           </li>
@@ -156,7 +156,7 @@ export function VersionHistory({ versions, currentVersion, className, maxVisible
                       </ul>
                       <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/40 dark:border-white/5">
                         {version.size && (
-                          <span className="text-xs text-erobo-ink-soft/50 dark:text-gray-500">
+                          <span className="text-xs text-erobo-ink-soft/50 dark:text-slate-500">
                             Size: {version.size}
                           </span>
                         )}

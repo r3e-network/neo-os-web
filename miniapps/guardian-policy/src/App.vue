@@ -6,55 +6,21 @@
 
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
-import { onMounted, computed, ref, onUnmounted } from "vue";
+import { onMounted } from "vue";
 import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
+import { useResponsive } from "@shared/composables/useResponsive";
 
-// Responsive breakpoints
-const MOBILE_BREAKPOINT = 768;
-const TABLET_BREAKPOINT = 1024;
-const windowWidth = ref(typeof window !== "undefined" ? window.innerWidth : TABLET_BREAKPOINT);
-const windowHeight = ref(typeof window !== "undefined" ? window.innerHeight : 800);
-
-// Responsive state with isMobile/isDesktop reactive states
-const isMobile = computed(() => windowWidth.value < MOBILE_BREAKPOINT);
-const isTablet = computed(() => windowWidth.value >= MOBILE_BREAKPOINT && windowWidth.value < TABLET_BREAKPOINT);
-const isDesktop = computed(() => windowWidth.value >= TABLET_BREAKPOINT);
-const isPortrait = computed(() => windowHeight.value > windowWidth.value);
-const isLandscape = computed(() => windowWidth.value > windowHeight.value);
-
-// Update window dimensions on resize
-const updateDimensions = () => {
-  if (typeof window !== "undefined") {
-    windowWidth.value = window.innerWidth;
-    windowHeight.value = window.innerHeight;
-  }
-};
+const { isMobile, isTablet, isDesktop } = useResponsive();
 
 onLaunch(() => {});
 
-onShow(() => {
-  if (typeof window !== "undefined") {
-    window.addEventListener("resize", updateDimensions);
-    updateDimensions();
-  }
-});
+onShow(() => {});
 
-onHide(() => {
-  if (typeof window !== "undefined") {
-    window.removeEventListener("resize", updateDimensions);
-  }
-});
+onHide(() => {});
 
 onMounted(() => {
   initTheme();
   listenForThemeChanges();
-  updateDimensions();
-});
-
-onUnmounted(() => {
-  if (typeof window !== "undefined") {
-    window.removeEventListener("resize", updateDimensions);
-  }
 });
 </script>
 

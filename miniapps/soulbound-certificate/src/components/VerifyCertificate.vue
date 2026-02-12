@@ -38,22 +38,7 @@
 import { ref } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { useI18n } from "@/composables/useI18n";
-
-interface CertificateItem {
-  tokenId: string;
-  templateId: string;
-  owner: string;
-  templateName: string;
-  issuerName: string;
-  category: string;
-  description: string;
-  recipientName: string;
-  achievement: string;
-  memo: string;
-  issuedTime: number;
-  revoked: boolean;
-  revokedTime: number;
-}
+import type { CertificateItem } from "@/types";
 
 const emit = defineEmits<{
   lookup: [tokenId: string];
@@ -89,3 +74,54 @@ const addressShort = (value: string) => {
   return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
 };
 </script>
+
+<style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@import "../pages/index/soulbound-certificate-theme.scss";
+
+.template-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.template-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.template-subtitle {
+  display: block;
+  font-size: 11px;
+  color: var(--soul-muted);
+  margin-top: 2px;
+}
+
+.detail-row {
+  font-size: 12px;
+  color: var(--soul-muted);
+}
+
+.verify-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--soul-accent);
+
+  &.revoked {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--soul-danger);
+  }
+}
+</style>

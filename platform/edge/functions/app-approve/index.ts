@@ -229,7 +229,7 @@ export async function handler(req: Request): Promise<Response> {
       if (typeof txResult === "object" && "success" in txResult && txResult.success && txResult.tx_id) {
         chainTxId = txResult.tx_id;
       }
-    } catch (e) {
+    } catch (e: unknown) {
       // Log error but don't fail - allow database update to proceed
       console.warn(`[app-approve] On-chain update failed for ${appId}:`, e);
     }
@@ -320,7 +320,7 @@ export async function handler(req: Request): Promise<Response> {
         });
       }
     }
-  } catch (e) {
+  } catch (e: unknown) {
     console.warn(`[app-approve] Failed to send notification for ${appId}:`, e);
   }
 

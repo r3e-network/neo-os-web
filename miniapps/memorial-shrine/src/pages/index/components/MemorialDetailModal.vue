@@ -1,15 +1,20 @@
 <template>
-  <view class="modal-overlay" @click.self="$emit('close')">
-    <view class="modal-content">
+  <view class="modal-overlay" aria-hidden="true" @click.self="$emit('close')">
+    <view class="modal-content" role="dialog" aria-modal="true" :aria-label="memorial.name">
       <view class="header-actions">
-        <view class="action-btn share" @click="$emit('share')">🔗</view>
-        <view class="action-btn close" @click="$emit('close')">×</view>
+        <view class="action-btn share" role="button" tabindex="0" :aria-label="t('share')" @click="$emit('share')"><text aria-hidden="true">🔗</text></view>
+        <view class="action-btn close" role="button" tabindex="0" :aria-label="t('close')" @click="$emit('close')"><text aria-hidden="true">×</text></view>
       </view>
 
       <!-- Tombstone Header -->
       <view class="tombstone-header">
         <view class="photo-frame">
-          <image v-if="memorial.photoHash" :src="memorial.photoHash" mode="aspectFill" :alt="memorial.name || t('memorialPhoto')" />
+          <image
+            v-if="memorial.photoHash"
+            :src="memorial.photoHash"
+            mode="aspectFill"
+            :alt="memorial.name || t('memorialPhoto')"
+          />
           <text v-else class="default-icon">🕯️</text>
         </view>
         <text class="name">{{ memorial.name }}</text>
@@ -69,10 +74,14 @@
             :key="offering.type"
             class="offering-option"
             :class="{ selected: selectedOffering === offering.type }"
+            role="button"
+            tabindex="0"
+            :aria-label="t(offering.nameKey) + ' - ' + offering.cost + ' GAS'"
+            :aria-pressed="selectedOffering === offering.type"
             @click="selectedOffering = offering.type"
           >
             <text class="icon">{{ offering.icon }}</text>
-            <text class="name">{{ t(offering.nameKey as any) }}</text>
+            <text class="name">{{ t(offering.nameKey) }}</text>
             <text class="cost">{{ offering.cost }} GAS</text>
           </view>
         </view>
@@ -81,7 +90,11 @@
           <input v-model="message" :placeholder="t('messagePlaceholder')" class="input" />
         </view>
 
-        <view class="tribute-btn" @click="payTribute" :class="{ disabled: isPaying }">
+        <view v-if="status" class="status-bar" :class="status.type">
+          <text class="status-text">{{ status.msg }}</text>
+        </view>
+
+        <view class="tribute-btn" role="button" tabindex="0" :aria-label="isPaying ? t('paying') : t('payTributeBtn')" @click="payTribute" :class="{ disabled: isPaying }">
           <text>{{ isPaying ? t("paying") : t("payTributeBtn") }}</text>
         </view>
       </view>
@@ -95,24 +108,9 @@ import { useWallet } from "@neo/uniapp-sdk";
 import { useI18n } from "@/composables/useI18n";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { requireNeoChain } from "@shared/utils/chain";
-
-interface Memorial {
-  id: number;
-  name: string;
-  photoHash: string;
-  birthYear: number;
-  deathYear: number;
-  relationship: string;
-  biography: string;
-  offerings: {
-    incense: number;
-    candle: number;
-    flower: number;
-    fruit: number;
-    wine: number;
-    feast: number;
-  };
-}
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import type { Memorial } from "@/types";
 
 interface Offering {
   type: number;
@@ -134,9 +132,12 @@ const emit = defineEmits<{
   share: [];
 }>();
 
+import type { WalletSDK } from "@neo/types";
+
 const APP_ID = "miniapp-memorial-shrine";
-const { address, connect, invokeContract, getContractAddress, chainType } = useWallet() as any;
+const { address, connect, invokeContract, getContractAddress, chainType } = useWallet() as WalletSDK;
 const { processPayment } = usePaymentFlow(APP_ID);
+const { status, setStatus } = useStatusMessage(5000);
 
 const selectedOffering = ref(1);
 const message = ref("");
@@ -158,7 +159,7 @@ const payTribute = async () => {
 
     const { receiptId, invoke: invokeWithReceipt } = await processPayment(
       String(offering.cost),
-      `tribute:${props.memorial.id}:${offering.type}`,
+      `tribute:${props.memorial.id}:${offering.type}`
     );
 
     await invokeWithReceipt(contract, "PayTribute", [
@@ -169,11 +170,11 @@ const payTribute = async () => {
       { type: "Integer", value: String(receiptId) },
     ]);
 
-    uni.showToast({ title: t("tributeSuccess"), icon: "success" });
+    setStatus(t("tributeSuccess"), "success");
     message.value = "";
     emit("tribute-paid", props.memorial.id, selectedOffering.value);
-  } catch (e: any) {
-    uni.showToast({ title: e?.message || t("error"), icon: "error" });
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     isPaying.value = false;
   }
@@ -397,6 +398,28 @@ const payTribute = async () => {
 
   &.disabled {
     opacity: 0.6;
+  }
+}
+
+.status-bar {
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  text-align: center;
+
+  &.success {
+    background: var(--shrine-gold-soft);
+    border: 1px solid var(--shrine-gold);
+  }
+  &.error {
+    background: rgba(220, 38, 38, 0.15);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+  }
+
+  .status-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--shrine-text);
   }
 }
 </style>

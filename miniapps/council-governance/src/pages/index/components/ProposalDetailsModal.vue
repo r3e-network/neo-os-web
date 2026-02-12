@@ -49,7 +49,7 @@
 
           <!-- Voting Section -->
           <view v-if="proposal.status === 1" class="voting-section">
-            <text class="section-label text-center mb-4">{{ t("castYourVote") }}</text>
+            <text class="section-label mb-4 text-center">{{ t("castYourVote") }}</text>
             <view class="vote-buttons">
               <NeoButton
                 variant="primary"
@@ -78,15 +78,10 @@
           </view>
 
           <!-- Execution Section -->
-          <view v-if="canExecute" class="execution-section pt-4 mt-4 border-t border-white/10">
-             <NeoButton
-                variant="success"
-                block
-                :loading="isVoting"
-                @click="$emit('execute', proposal.id)"
-              >
-                {{ t("execute") }}
-              </NeoButton>
+          <view v-if="canExecute" class="execution-section mt-4 border-t border-white/10 pt-4">
+            <NeoButton variant="success" block :loading="isVoting" @click="$emit('execute', proposal.id)">
+              {{ t("execute") }}
+            </NeoButton>
           </view>
         </view>
       </NeoCard>
@@ -99,12 +94,23 @@ import { computed } from "vue";
 import { NeoCard, NeoButton } from "@shared/components";
 
 const props = defineProps<{
-  proposal: any;
+  proposal: {
+    id: number;
+    type: number;
+    title: string;
+    description: string;
+    policyMethod?: string;
+    policyValue?: string;
+    yesVotes: number;
+    noVotes: number;
+    expiryTime: number;
+    status: number;
+  };
   address: string | null;
   isCandidate: boolean;
   hasVoted: boolean;
   isVoting: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const canVote = computed(() => {
@@ -225,7 +231,7 @@ const getPolicyMethodLabel = (method?: string) =>
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #00e599;
+  color: var(--senate-success);
   letter-spacing: 0.1em;
   display: block;
   margin-bottom: 12px;
@@ -277,7 +283,7 @@ const getPolicyMethodLabel = (method?: string) =>
   transition: all 0.3s;
 
   &.active {
-    background: #00e599;
+    background: var(--senate-success);
     box-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
   }
   &.inactive {
@@ -308,7 +314,7 @@ const getPolicyMethodLabel = (method?: string) =>
 .vote-hint {
   background: rgba(253, 224, 71, 0.1);
   border: 1px solid rgba(253, 224, 71, 0.2);
-  color: #fde047;
+  color: var(--senate-warning);
   padding: 8px;
   border-radius: 8px;
   font-size: 10px;
@@ -319,7 +325,7 @@ const getPolicyMethodLabel = (method?: string) =>
 }
 
 .text-accent {
-  color: #00e599;
+  color: var(--senate-success);
 }
 .text-center {
   text-align: center;

@@ -169,7 +169,7 @@ describe("Graveyard MiniApp", () => {
 
       try {
         throw new Error("Failed to fetch stats");
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("Failed to fetch stats:", e);
       } finally {
         isLoadingStats.value = false;
@@ -222,7 +222,7 @@ describe("Graveyard MiniApp", () => {
 
       try {
         throw new Error("Test error");
-      } catch (e) {
+      } catch (e: unknown) {
         isProcessing.value = false;
       }
 

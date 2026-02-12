@@ -5,6 +5,7 @@ import { NeoLineAdapter, O3Adapter, OneGateAdapter, WalletNotInstalledError } fr
 import type { ChainId, ChainType } from "../chains/types";
 import { getChainRegistry } from "../chains/registry";
 import { getChainRpcUrl } from "../chains/rpc-functions";
+import { logger } from "@/lib/logger";
 
 // Multi-chain wallet provider types
 export type NeoWalletProvider = "neoline" | "o3" | "onegate";
@@ -189,7 +190,7 @@ export const useWalletStore = create<WalletStore>()(
             set({ balance });
           }
         } catch (err) {
-          console.warn("Balance refresh failed:", err);
+          logger.warn("Balance refresh failed:", err);
         }
       },
 

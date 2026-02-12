@@ -15,7 +15,7 @@
       </view>
 
       <!-- Vote Weight Input -->
-       <NeoInput
+      <NeoInput
         :modelValue="voteWeight"
         @update:modelValue="$emit('update:voteWeight', $event)"
         type="number"
@@ -54,7 +54,7 @@ defineProps<{
   voteWeight: string;
   selectedCandidate: Candidate | null;
   isLoading: boolean;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["update:voteWeight", "register"]);
@@ -89,7 +89,7 @@ const truncateAddress = (addr: string) => {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #00E599;
+  color: var(--candidate-neo-green);
   letter-spacing: 0.1em;
   display: block;
   margin-bottom: 4px;
@@ -133,11 +133,17 @@ const truncateAddress = (addr: string) => {
 
 .token-symbol {
   font-weight: 700;
-  color: #00E599;
+  color: var(--candidate-neo-green);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

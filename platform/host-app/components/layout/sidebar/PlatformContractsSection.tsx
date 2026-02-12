@@ -3,7 +3,7 @@ import { Section } from "./Section";
 import { InfoRow } from "./InfoRow";
 import { truncateAddress } from "./utils";
 import { CORE_CONTRACTS } from "./constants";
-import type { ThemeColors, ContractInfo, MiniAppPermissions } from "./types";
+import type { ThemeColors } from "./types";
 import type { ChainId } from "../../../lib/chains/types";
 
 interface PlatformContractsSectionProps {

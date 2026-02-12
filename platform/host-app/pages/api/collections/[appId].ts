@@ -5,6 +5,7 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 interface DeleteResponse {
   success: boolean;
@@ -38,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     .eq("app_id", appId);
 
   if (error) {
-    console.error("Failed to delete collection:", error);
+    logger.error("Failed to delete collection", error);
     return res.status(500).json({ success: false, error: "Failed to delete" });
   }
 

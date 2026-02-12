@@ -3,6 +3,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { toFixedDecimals, toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useI18n } from "@/composables/useI18n";
 
 const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
@@ -129,8 +130,8 @@ export function useNeoburgerSwap(
       stakeAmount.value = "";
       await loadBalances();
       return true;
-    } catch (e: any) {
-      showStatus(e.message || t("stakeFailed"), "error");
+    } catch (e: unknown) {
+      showStatus(formatErrorMessage(e, t("stakeFailed")), "error");
       return false;
     }
   }
@@ -162,8 +163,8 @@ export function useNeoburgerSwap(
       unstakeAmount.value = "";
       await loadBalances();
       return true;
-    } catch (e: any) {
-      showStatus(e.message || t("unstakeFailed"), "error");
+    } catch (e: unknown) {
+      showStatus(formatErrorMessage(e, t("unstakeFailed")), "error");
       return false;
     }
   }

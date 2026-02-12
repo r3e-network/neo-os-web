@@ -90,8 +90,8 @@ const infoStats = computed<StatItem[]>(() => [
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00e599 0%, #00b377 100%);
-  color: #000;
+  background: var(--candidate-step-gradient);
+  color: var(--candidate-step-text);
   font-weight: 700;
   font-size: 14px;
   display: flex;

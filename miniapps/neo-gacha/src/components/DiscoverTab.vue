@@ -74,61 +74,7 @@ import { ref, computed } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { useI18n } from "@/composables/useI18n";
 import GachaCard from "../pages/index/components/GachaCard.vue";
-
-interface MachineItem {
-  name: string;
-  probability: number;
-  displayProbability: number;
-  rarity: string;
-  assetType: number;
-  assetHash: string;
-  amountRaw: number;
-  amountDisplay: string;
-  tokenId: string;
-  stockRaw: number;
-  stockDisplay: string;
-  tokenCount: number;
-  decimals: number;
-  available: boolean;
-  icon?: string;
-}
-
-interface Machine {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  tags: string;
-  tagsList: string[];
-  creator: string;
-  creatorHash: string;
-  owner: string;
-  ownerHash: string;
-  price: string;
-  priceRaw: number;
-  itemCount: number;
-  totalWeight: number;
-  availableWeight: number;
-  plays: number;
-  revenue: string;
-  revenueRaw: number;
-  sales: number;
-  salesVolume: string;
-  salesVolumeRaw: number;
-  createdAt: number;
-  lastPlayedAt: number;
-  active: boolean;
-  listed: boolean;
-  banned: boolean;
-  locked: boolean;
-  forSale: boolean;
-  salePrice: string;
-  salePriceRaw: number;
-  inventoryReady: boolean;
-  items: MachineItem[];
-  topPrize?: string;
-  winRate?: number;
-}
+import type { Machine, MachineItem } from "@/types";
 
 const props = defineProps<{
   machines: Machine[];

@@ -1,17 +1,15 @@
 <template>
   <NeoCard class="mb-4">
     <view class="manage-header mb-4">
-      <text class="manage-title font-bold text-xl">{{ t("manageTitle") }}: {{ domain.name }}</text>
+      <text class="manage-title text-xl font-bold">{{ t("manageTitle") }}: {{ domain.name }}</text>
       <NeoButton size="sm" variant="secondary" @click="$emit('cancel')">{{ t("cancelManage") }}</NeoButton>
     </view>
 
     <view class="manage-details mb-4">
       <text class="detail-label">{{ t("currentOwner") }}:</text>
-      <text class="detail-value mono">{{ shortenAddress(domain.owner) }}</text>
+      <text class="detail-value mono">{{ formatAddress(domain.owner) }}</text>
       <text class="detail-label mt-2">{{ t("targetAddress") }}:</text>
-      <text class="detail-value mono">{{
-        domain.target ? shortenAddress(domain.target) : t("notSet")
-      }}</text>
+      <text class="detail-value mono">{{ domain.target ? formatAddress(domain.target) : t("notSet") }}</text>
       <text class="detail-label mt-2">{{ t("currentExpiry") }}:</text>
       <text class="detail-expiry">{{ formatDate(domain.expiry) }}</text>
     </view>
@@ -28,9 +26,14 @@
       <view class="action-card">
         <text class="action-title mb-2 block font-bold text-red-500">{{ t("transferDomain") }}</text>
         <NeoInput v-model="transferInput" :placeholder="t('receiverAddress')" class="mb-2" />
-        <NeoButton :loading="loading" :disabled="loading" block variant="danger" @click="$emit('transfer', transferInput)">{{
-          t("transferDomain")
-        }}</NeoButton>
+        <NeoButton
+          :loading="loading"
+          :disabled="loading"
+          block
+          variant="danger"
+          @click="$emit('transfer', transferInput)"
+          >{{ t("transferDomain") }}</NeoButton
+        >
       </view>
     </view>
   </NeoCard>
@@ -39,13 +42,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
-
-interface Domain {
-  name: string;
-  owner: string;
-  expiry: number;
-  target?: string;
-}
+import { formatAddress } from "@shared/utils/format";
+import type { Domain } from "@/types";
 
 const props = defineProps<{
   t: (key: string) => string;
@@ -61,11 +59,6 @@ const emit = defineEmits<{
 
 const targetInput = ref("");
 const transferInput = ref("");
-
-const shortenAddress = (addr: string): string => {
-  if (!addr || addr.length < 10) return addr;
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
-};
 
 const formatDate = (ts: number): string => {
   return new Date(ts).toLocaleDateString();
@@ -108,6 +101,6 @@ const formatDate = (ts: number): string => {
   font-size: 12px;
 }
 .text-red-500 {
-  color: #ef4444;
+  color: var(--ns-danger);
 }
 </style>

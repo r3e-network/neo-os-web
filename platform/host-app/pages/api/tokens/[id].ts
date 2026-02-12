@@ -5,6 +5,7 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "DELETE") {
@@ -25,13 +26,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .match({ id: Number(id), wallet_address: walletAddress });
 
     if (error) {
-      console.error("Failed to revoke token:", error);
+      logger.error("Failed to revoke token", error);
       return res.status(500).json({ error: "Failed to revoke token" });
     }
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Token revocation error:", error);
+    logger.error("Token revocation error", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

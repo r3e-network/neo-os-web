@@ -90,7 +90,9 @@ func New(cfg Config) (*Service, error) {
 	if replayWindow <= 0 {
 		replayWindow = 10 * time.Minute
 	}
-	s.replayProtection = security.NewReplayProtection(replayWindow, base.Logger())
+	// Use size-limited replay protection to prevent unbounded memory growth.
+	const maxReplayEntries = 100000
+	s.replayProtection = security.NewReplayProtectionWithMaxSize(replayWindow, maxReplayEntries, base.Logger())
 
 	base.WithStats(s.statistics)
 	base.RegisterStandardRoutes()

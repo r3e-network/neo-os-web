@@ -29,22 +29,7 @@
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
 import { useI18n } from "@/composables/useI18n";
-
-interface CertificateItem {
-  tokenId: string;
-  templateId: string;
-  owner: string;
-  templateName: string;
-  issuerName: string;
-  category: string;
-  description: string;
-  recipientName: string;
-  achievement: string;
-  memo: string;
-  issuedTime: number;
-  revoked: boolean;
-  revokedTime: number;
-}
+import type { CertificateItem } from "@/types";
 
 defineProps<{
   cert: CertificateItem;
@@ -64,3 +49,80 @@ const addressShort = (value: string) => {
   return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
 };
 </script>
+
+<style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@import "../pages/index/soulbound-certificate-theme.scss";
+
+.template-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.template-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.template-subtitle {
+  display: block;
+  font-size: 11px;
+  color: var(--soul-muted);
+  margin-top: 2px;
+}
+
+.certificate-body {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.certificate-qr {
+  width: 110px;
+  height: 110px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.certificate-qr__img {
+  width: 100px;
+  height: 100px;
+}
+
+.certificate-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-row {
+  font-size: 12px;
+  color: var(--soul-muted);
+}
+
+.copy-btn {
+  align-self: flex-start;
+}
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--soul-accent);
+
+  &.revoked {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--soul-danger);
+  }
+}
+</style>

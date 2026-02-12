@@ -19,7 +19,7 @@ import { NeoCard } from "@shared/components";
 defineProps<{
   userBurned: number;
   rank: number;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const formatNum = (n: number) => {

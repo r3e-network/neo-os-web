@@ -24,13 +24,13 @@ onUnmounted(() => {
 /* @use "@shared/styles/tokens.scss" as *; */
 
 :root {
-  --bg-primary: #ffffff;
-  --text-primary: #1a1a1a;
+  --bg-primary: var(--piggy-bg-primary, #ffffff);
+  --text-primary: var(--piggy-text-primary, #1a1a1a);
 }
 
 [data-theme="dark"] {
-  --bg-primary: #0f172a; // Slate 900
-  --text-primary: #f8fafc;
+  --bg-primary: var(--piggy-bg-primary, #0f172a);
+  --text-primary: var(--piggy-text-primary, #f8fafc);
 }
 
 page {

@@ -9,10 +9,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, getCurrentInstance, onUnmounted } from 'vue';
+import { ref, onMounted, getCurrentInstance, onUnmounted } from "vue";
 
 interface Props {
-  animation?: 'fade-up' | 'fade-down' | 'scale-in' | 'slide-left' | 'slide-right';
+  animation?: "fade-up" | "fade-down" | "scale-in" | "slide-left" | "slide-right";
   delay?: number;
   duration?: number;
   threshold?: number;
@@ -21,23 +21,23 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  animation: 'fade-up',
+  animation: "fade-up",
   delay: 0,
   duration: 800,
   threshold: 0.1,
   offset: -50,
-  reversible: false
+  reversible: false,
 });
 
 const isVisible = ref(false);
 const instance = getCurrentInstance();
-let observer: any = null;
+let observer: ReturnType<typeof uni.createIntersectionObserver> | null = null;
 
 onMounted(() => {
   // Small delay to ensure DOM is ready
   setTimeout(() => {
     if (!instance) return;
-    
+
     // Failsafe: Ensure content shows up eventually if observer fails
     setTimeout(() => {
       if (!isVisible.value) {
@@ -45,22 +45,21 @@ onMounted(() => {
       }
     }, 500);
 
-    // @ts-ignore - uni global is available in UniApp environment
     observer = uni.createIntersectionObserver(instance);
-    
+
     observer
       .relativeToViewport({ bottom: props.offset })
-      .observe('.scroll-reveal', (res: any) => {
+      .observe(".scroll-reveal", (res: { intersectionRatio: number }) => {
         if (res.intersectionRatio > 0) {
           isVisible.value = true;
           // Only disconnect if not reversible
           if (!props.reversible) {
-             observer.disconnect();
+            observer.disconnect();
           }
         } else {
-             if (props.reversible) {
-                 isVisible.value = false;
-             }
+          if (props.reversible) {
+            isVisible.value = false;
+          }
         }
       });
   }, 100);
@@ -86,7 +85,7 @@ onUnmounted(() => {
   &.fade-up {
     transform: translateY(40px);
   }
-  
+
   &.fade-down {
     transform: translateY(-40px);
   }
@@ -94,7 +93,7 @@ onUnmounted(() => {
   &.scale-in {
     transform: scale(0.92);
   }
-  
+
   &.slide-left {
     transform: translateX(40px);
   }
@@ -107,6 +106,15 @@ onUnmounted(() => {
   &.is-visible {
     opacity: 1;
     transform: translate(0, 0) scale(1);
+  }
+}
+
+// Disable scroll animations for users who prefer reduced motion
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }
 </style>

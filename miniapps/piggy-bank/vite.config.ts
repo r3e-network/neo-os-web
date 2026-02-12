@@ -1,7 +1,7 @@
 import { createAppConfig } from "../vite.shared";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
-// @ts-expect-error __dirname is provided by Vite at runtime
+declare const __dirname: string;
 export default createAppConfig(__dirname, {
   plugins: [
     nodePolyfills({
@@ -17,13 +17,7 @@ export default createAppConfig(__dirname, {
     ethers: "ethers/dist/ethers.esm.min.js",
   },
   optimizeDeps: {
-    include: [
-      "ethers",
-      "snarkjs",
-      "circomlibjs",
-      "pinia",
-      "@walletconnect/modal",
-    ],
+    include: ["ethers", "snarkjs", "circomlibjs", "pinia", "@walletconnect/modal"],
   },
   build: {
     commonjsOptions: {

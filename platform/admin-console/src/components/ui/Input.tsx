@@ -2,7 +2,7 @@
 // Input Component - Form input with label
 // =============================================================================
 
-import { InputHTMLAttributes, forwardRef } from "react";
+import { InputHTMLAttributes, forwardRef, useId } from "react";
 import { cn } from "@/lib/utils";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -11,12 +11,13 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, label, error, id, ...props }, ref) => {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  const generatedId = useId();
+  const inputId = id || generatedId;
 
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-foreground/80">
           {label}
         </label>
       )}
@@ -24,9 +25,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, labe
         ref={ref}
         id={inputId}
         className={cn(
-          "block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm",
+          "border-border/30 bg-muted/30 block w-full rounded-md text-foreground shadow-sm focus:border-primary-400 focus:ring-primary-400 sm:text-sm",
           error && "border-danger-500 focus:border-danger-500 focus:ring-danger-500",
-          className,
+          className
         )}
         aria-invalid={error ? "true" : "false"}
         aria-describedby={error ? `${inputId}-error` : undefined}

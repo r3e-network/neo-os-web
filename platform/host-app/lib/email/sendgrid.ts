@@ -1,4 +1,5 @@
 import sgMail from "@sendgrid/mail";
+import { logger } from "@/lib/logger";
 
 const apiKey = process.env.SENDGRID_API_KEY || "";
 const fromEmail = process.env.SENDGRID_FROM_EMAIL || "noreply@r3e.network";
@@ -19,7 +20,7 @@ export interface EmailOptions {
 /** Send email via SendGrid */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   if (!isEmailConfigured) {
-    console.warn("SendGrid not configured, skipping email");
+    logger.warn("SendGrid not configured, skipping email");
     return false;
   }
 
@@ -33,7 +34,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
     return true;
   } catch (error) {
-    console.error("SendGrid error:", error);
+    logger.error("SendGrid error:", error);
     return false;
   }
 }

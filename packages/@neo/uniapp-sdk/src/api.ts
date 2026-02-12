@@ -116,7 +116,7 @@ async function doFetch<T>(url: string, options: RequestInit): Promise<T> {
   };
 
   // Detect uni-app environment
-  // @ts-ignore - uni global
+  // @ts-expect-error - uni global not typed in non-UniApp build context
   if (typeof uni !== "undefined" && typeof uni.request === "function") {
     return new Promise((resolve, reject) => {
       const headers = normalizeHeaders(options.headers);
@@ -129,7 +129,7 @@ async function doFetch<T>(url: string, options: RequestInit): Promise<T> {
           // Leave data as string if JSON parsing fails
         }
       }
-      // @ts-ignore
+      // @ts-expect-error - uni.request not typed in non-UniApp build context
       uni.request({
         url,
         method: options.method || "GET",
@@ -139,7 +139,10 @@ async function doFetch<T>(url: string, options: RequestInit): Promise<T> {
           if ((res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300) {
             resolve(res.data as T);
           } else {
-            const msg = (res.data as any)?.error?.message || `Request failed: ${res.statusCode}`;
+            const resData = res.data as Record<string, unknown> | undefined;
+            const errObj = resData?.error as Record<string, unknown> | undefined;
+            const msg =
+              (typeof errObj?.message === "string" ? errObj.message : null) || `Request failed: ${res.statusCode}`;
             reject(new HttpError(msg, res.statusCode ?? 0));
           }
         },

@@ -65,7 +65,7 @@
   }
 
   * {
-    @apply border-gray-200 dark:border-gray-800;
+    @apply border-border;
   }
 
   html {
@@ -82,11 +82,11 @@
 @layer components {
   /* Light mode: subtle gray glass, Dark mode: white glass on dark bg */
   .glass {
-    @apply border border-gray-200 bg-gray-100/80 shadow-lg backdrop-blur-2xl dark:border-white/5 dark:bg-white/[0.03] dark:shadow-2xl;
+    @apply border-border bg-muted/80 border shadow-lg backdrop-blur-2xl dark:border-white/5 dark:bg-white/[0.03] dark:shadow-2xl;
   }
 
   .glass-card {
-    @apply border border-gray-200 bg-gray-50/90 shadow-lg backdrop-blur-xl transition-all duration-500 hover:border-neo/30 hover:bg-gray-100 dark:border-white/5 dark:bg-white/[0.05] dark:shadow-2xl dark:hover:bg-white/[0.08];
+    @apply border-border bg-muted/50 hover:bg-muted border shadow-lg backdrop-blur-xl transition-all duration-500 hover:border-neo/30 dark:border-white/5 dark:bg-white/[0.05] dark:shadow-2xl dark:hover:bg-white/[0.08];
   }
 
   .neo-glow {

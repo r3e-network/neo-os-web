@@ -14,7 +14,7 @@ export default function LeaderboardPage() {
         <title>Leaderboard - NeoHub</title>
       </Head>
       <div className="mx-auto max-w-4xl px-4 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Community Leaderboard</h1>
+        <h1 className="text-3xl font-bold text-erobo-ink dark:text-white mb-8">Community Leaderboard</h1>
         <Leaderboard currentWallet={address} />
       </div>
     </Layout>

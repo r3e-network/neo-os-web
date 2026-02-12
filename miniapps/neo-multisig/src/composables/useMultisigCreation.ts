@@ -2,6 +2,7 @@ import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { api } from "@/services/api";
 import {
   buildTransferTransaction,
@@ -37,6 +38,7 @@ export interface FeeSummary {
 export function useMultisigCreation() {
   const { t } = useI18n();
   const { chainId } = useWallet();
+  const { status, setStatus, clearStatus } = useStatusMessage();
 
   const step = ref(1);
   const isPreparing = ref(false);
@@ -53,7 +55,7 @@ export function useMultisigCreation() {
   });
 
   const multisigAccount = ref<MultisigAccount | null>(null);
-  const preparedTx = ref<any>(null);
+  const preparedTx = ref<Record<string, unknown> | null>(null);
   const feeSummary = ref<FeeSummary>({
     systemFee: "0",
     networkFee: "0",
@@ -67,7 +69,7 @@ export function useMultisigCreation() {
         form.value.threshold = next.length || 1;
       }
     },
-    { deep: true },
+    { deep: true }
   );
 
   const trimmedSigners = computed(() => form.value.signers.map((s) => s.trim()));
@@ -86,7 +88,7 @@ export function useMultisigCreation() {
   });
 
   const chainLabel = computed(() =>
-    form.value.selectedChain === "neo-n3-mainnet" ? t("chainMainnet") : t("chainTestnet"),
+    form.value.selectedChain === "neo-n3-mainnet" ? t("chainMainnet") : t("chainTestnet")
   );
 
   const addSigner = () => form.value.signers.push("");
@@ -105,23 +107,24 @@ export function useMultisigCreation() {
         publicKeys: account.publicKeys,
       };
       step.value = 3;
-    } catch (e: any) {
-      const message = e?.message?.includes("duplicate") ? t("toastDuplicateSigners") : t("toastInvalidSigners");
-      uni.showToast({ title: message, icon: "none" });
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error && e.message.includes("duplicate") ? t("toastDuplicateSigners") : t("toastInvalidSigners");
+      setStatus(message, "error");
     }
   };
 
   const prepareTransaction = async () => {
     if (!multisigAccount.value) {
-      uni.showToast({ title: t("toastInvalidSigners"), icon: "none" });
+      setStatus(t("toastInvalidSigners"), "error");
       return;
     }
     if (!isValidAddress(form.value.toAddress)) {
-      uni.showToast({ title: t("toastInvalidAddress"), icon: "none" });
+      setStatus(t("toastInvalidAddress"), "error");
       return;
     }
     if (!validateAmount(form.value.amount, form.value.asset)) {
-      uni.showToast({ title: t("toastInvalidAmount"), icon: "none" });
+      setStatus(t("toastInvalidAmount"), "error");
       return;
     }
 
@@ -143,8 +146,8 @@ export function useMultisigCreation() {
         validUntilBlock: prepared.validUntilBlock,
       };
       step.value = 4;
-    } catch (e: any) {
-      uni.showToast({ title: t("toastPrepareFailed"), icon: "none" });
+    } catch (e: unknown) {
+      setStatus(t("toastPrepareFailed"), "error");
     } finally {
       isPreparing.value = false;
     }
@@ -159,7 +162,7 @@ export function useMultisigCreation() {
         scriptHash: multisigAccount.value.scriptHash,
         threshold: form.value.threshold,
         signers: multisigAccount.value.publicKeys,
-        transactionHex: preparedTx.value.serialize(false),
+        transactionHex: (preparedTx.value as { serialize: (unsigned: boolean) => string }).serialize(false),
         memo: form.value.memo || undefined,
       });
 
@@ -173,8 +176,8 @@ export function useMultisigCreation() {
       uni.setStorageSync("multisig_history", JSON.stringify(history.slice(0, 10)));
 
       onSuccess?.(result.id);
-    } catch (e: any) {
-      uni.showToast({ title: t("toastCreateFailed"), icon: "none" });
+    } catch (e: unknown) {
+      setStatus(t("toastCreateFailed"), "error");
     } finally {
       isSubmitting.value = false;
     }
@@ -192,6 +195,9 @@ export function useMultisigCreation() {
     isValidSigners,
     isValidTx,
     chainLabel,
+    status,
+    setStatus,
+    clearStatus,
     addSigner,
     removeSigner,
     setChain,

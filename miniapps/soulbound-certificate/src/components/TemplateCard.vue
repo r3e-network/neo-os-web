@@ -52,18 +52,7 @@
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
 import { useI18n } from "@/composables/useI18n";
-
-interface TemplateItem {
-  id: string;
-  issuer: string;
-  name: string;
-  issuerName: string;
-  category: string;
-  maxSupply: bigint;
-  issued: bigint;
-  description: string;
-  active: boolean;
-}
+import type { TemplateItem } from "@/types";
 
 defineProps<{
   template: TemplateItem;
@@ -84,3 +73,91 @@ const addressShort = (value: string) => {
   return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
 };
 </script>
+
+<style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@import "../pages/index/soulbound-certificate-theme.scss";
+
+.template-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.template-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.template-subtitle {
+  display: block;
+  font-size: 11px;
+  color: var(--soul-muted);
+  margin-top: 2px;
+}
+
+.template-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--soul-muted);
+}
+
+.meta-value {
+  font-size: 12px;
+}
+
+.template-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.metric-label {
+  font-size: 10px;
+  color: var(--soul-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.metric-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--soul-accent-strong);
+}
+
+.template-desc {
+  font-size: 12px;
+  color: var(--soul-muted);
+}
+
+.template-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--soul-accent);
+
+  &.inactive {
+    background: rgba(148, 163, 184, 0.2);
+    color: var(--soul-inactive);
+  }
+}
+</style>

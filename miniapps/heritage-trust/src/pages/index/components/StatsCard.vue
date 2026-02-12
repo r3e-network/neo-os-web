@@ -53,7 +53,7 @@ defineProps<{
 
   &.neo {
     background: linear-gradient(90deg, rgba(0, 229, 153, 0.05), transparent);
-    border-left: 2px solid #00e599;
+    border-left: 2px solid var(--heritage-success);
   }
 }
 .stat-label {

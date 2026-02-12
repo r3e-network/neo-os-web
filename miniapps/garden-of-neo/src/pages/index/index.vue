@@ -3,9 +3,7 @@
     <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
@@ -33,11 +31,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { requireNeoChain } from "@shared/utils/chain";
-import { MiniAppTemplate } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import GardenTab from "./components/GardenTab.vue";
 import StatsTab from "./components/StatsTab.vue";
@@ -75,6 +71,12 @@ const appState = computed(() => ({
   totalHarvested: stats.value.totalHarvested,
 }));
 
+const sidebarItems = computed(() => [
+  { label: t("garden"), value: stats.value.totalPlants },
+  { label: t("stats"), value: stats.value.readyToHarvest },
+  { label: "Harvested", value: stats.value.totalHarvested },
+]);
+
 // Stats State
 const stats = ref({
   totalPlants: 0,
@@ -82,24 +84,12 @@ const stats = ref({
   totalHarvested: 0,
 });
 
-const updateStats = (newStats: any) => {
+const updateStats = (newStats: Record<string, unknown>) => {
   stats.value = newStats;
 };
 
 // Wallet & Contract
-const { chainType, getContractAddress } = useWallet() as WalletSDK;
-const contractAddress = ref<string | null>(null);
-
-const ensureContractAddress = async () => {
-  if (!requireNeoChain(chainType, t)) {
-    throw new Error(t("wrongChain"));
-  }
-  if (!contractAddress.value) {
-    contractAddress.value = await getContractAddress();
-  }
-  if (!contractAddress.value) throw new Error(t("missingContract"));
-  return contractAddress.value;
-};
+const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
 </script>
 
 <style lang="scss" scoped>
@@ -143,10 +133,6 @@ const ensureContractAddress = async () => {
   }
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 /* Organic/Ethereal Overrides */
 :deep(.neo-card) {
@@ -213,17 +199,4 @@ const ensureContractAddress = async () => {
 }
 
 // Desktop sidebar
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 </style>

@@ -49,7 +49,7 @@ export function useNeoEligibility() {
       reason.value = String(data.reason ?? "");
 
       return isEligible.value;
-    } catch {
+    } catch (e: unknown) {
       isEligible.value = false;
       reason.value = "check failed";
       return false;
@@ -72,7 +72,8 @@ export function useNeoEligibility() {
       const balance = Number(parseInvokeResult(res) ?? 0);
       neoBalance.value = balance;
       return balance;
-    } catch {
+    } catch (e: unknown) {
+      /* non-critical: NEO balance check */
       return 0;
     }
   };

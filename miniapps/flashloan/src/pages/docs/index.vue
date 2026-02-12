@@ -1,6 +1,6 @@
 <template>
   <view class="page-container">
-    <FlashloanDocs :t="t as any" :contract-address="contractAddress" :network-label="networkLabel" />
+    <FlashloanDocs :t="t" :contract-address="contractAddress" :network-label="networkLabel" />
   </view>
 </template>
 
@@ -8,10 +8,11 @@
 import { computed, onMounted, ref } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import { useI18n } from "@/composables/useI18n";
+import type { WalletSDK } from "@neo/types";
 import FlashloanDocs from "../index/components/FlashloanDocs.vue";
 
 const { t } = useI18n();
-const { chainId, appChainId, getContractAddress } = useWallet() as any;
+const { chainId, appChainId, getContractAddress } = useWallet() as WalletSDK;
 const contractAddress = ref<string | null>(null);
 
 const networkLabel = computed(() => {
@@ -24,7 +25,7 @@ const networkLabel = computed(() => {
 onMounted(async () => {
   try {
     contractAddress.value = await getContractAddress();
-  } catch {
+  } catch (e: unknown) {
     contractAddress.value = null;
   }
 });

@@ -53,7 +53,7 @@ function rateLimitedResponse(
     windowSeconds: number;
     retryAfterSeconds: number;
     resetAtEpochSeconds: number;
-  },
+  }
 ): Response {
   const headers = new Headers();
   headers.set("Retry-After", String(params.retryAfterSeconds));
@@ -73,7 +73,7 @@ function rateLimitedResponse(
       },
     },
     { status: 429, headers },
-    req,
+    req
   );
 }
 
@@ -115,10 +115,11 @@ export async function requireRateLimit(req: Request, endpoint: string, auth?: Au
   let hit: RateLimitHit;
   try {
     hit = await bump(identifier, identifierType, windowSeconds);
-  } catch (e) {
+  } catch (e: unknown) {
     // In local dev, do not hard-fail on missing DB/RPC plumbing.
     if (!isProductionEnv()) return null;
-    return json({ error: { code: "RATE_LIMIT_UNAVAILABLE", message: (e as Error).message } }, { status: 503 }, req);
+    const message = e instanceof Error ? e.message : String(e);
+    return json({ error: { code: "RATE_LIMIT_UNAVAILABLE", message } }, { status: 503 }, req);
   }
 
   const nowMs = Date.now();

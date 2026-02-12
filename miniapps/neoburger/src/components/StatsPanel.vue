@@ -47,7 +47,7 @@
         <text class="section-title">{{ t("getGasRewardsTitle") }}</text>
         <text class="section-strong">
           {{ t("getGasRewardsStrong") }}
-          <text class="linkish" @click="emit('switchToJazz')">{{ t("jazzUp") }}</text>
+          <text class="linkish" role="button" tabindex="0" :aria-label="t('jazzUp')" @click="emit('switchToJazz')">{{ t("jazzUp") }}</text>
         </text>
       </view>
       <view class="section-media">
@@ -59,7 +59,7 @@
       <image class="footer-logo" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('footerLogoAlt')" />
       <view class="footer-links">
         <template v-for="(link, index) in footerLinks" :key="link.label">
-          <text class="footer-link" @click="emit('openLink', link.url)">{{ link.label }}</text>
+          <text class="footer-link" role="link" tabindex="0" :aria-label="link.label" @click="emit('openLink', link.url)">{{ link.label }}</text>
           <text v-if="index < footerLinks.length - 1" class="footer-divider">|</text>
         </template>
       </view>

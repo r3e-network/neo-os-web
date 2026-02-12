@@ -3,6 +3,7 @@ import { getLiveStatus } from "@/lib/miniapp-stats";
 import { getContractAddress } from "@/lib/chains/contract-queries";
 import { getChainRegistry } from "@/lib/chains/registry";
 import type { ChainId } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 // Map app IDs to contract names
 const APP_CONTRACT_NAMES: Record<string, string> = {
@@ -74,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const status = await getLiveStatus(appId, contractAddress, category, chainId);
     res.status(200).json({ status, chainId });
   } catch (error) {
-    console.error("Live status error:", error);
+    logger.error("Live status error", error);
     res.status(500).json({ error: "Failed to fetch live status" });
   }
 }

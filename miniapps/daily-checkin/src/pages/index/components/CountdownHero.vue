@@ -89,10 +89,10 @@ defineProps<{
 
   &.ready {
     background: rgba(255, 222, 89, 0.1);
-    color: #ffde59;
+    color: var(--sunrise-ready);
     border-color: rgba(255, 222, 89, 0.3);
     .indicator-dot {
-      background: #ffde59;
+      background: var(--sunrise-ready);
       animation: pulse 1s infinite;
       box-shadow: 0 0 10px rgba(255, 222, 89, 0.5);
     }
@@ -100,10 +100,10 @@ defineProps<{
 
   &.done {
     background: rgba(0, 229, 153, 0.1);
-    color: #00e599;
+    color: var(--sunrise-success);
     border-color: rgba(0, 229, 153, 0.3);
     .indicator-dot {
-      background: #00e599;
+      background: var(--sunrise-success);
       box-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
     }
   }
@@ -185,7 +185,7 @@ defineProps<{
 
 .countdown-ring-progress {
   fill: none;
-  stroke: #00e599;
+  stroke: var(--sunrise-success);
   stroke-width: 14;
   stroke-linecap: round;
   stroke-dasharray: 622;
@@ -248,7 +248,7 @@ defineProps<{
 
   &.glow-icon {
     background: rgba(255, 222, 89, 0.1);
-    color: #ffde59;
+    color: var(--sunrise-ready);
     box-shadow: 0 0 15px rgba(255, 222, 89, 0.2);
   }
 }

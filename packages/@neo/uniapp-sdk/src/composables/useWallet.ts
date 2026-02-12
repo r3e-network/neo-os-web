@@ -5,6 +5,7 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { getSDKSync, waitForSDK, subscribeToWalletState, getWalletState, type HostWalletState } from "../bridge";
 import { apiGet } from "../api";
+import { toError } from "../utils";
 
 export interface RequireConnectionOptions {
   /** Show prompt instead of throwing error (default: true) */
@@ -29,12 +30,21 @@ export interface WalletTransaction {
 
 // Deduplicate concurrent fallback wallet initialization across multiple
 // composable instances while still avoiding stale shared state.
+// Track the SDK instance that created the promise to invalidate on change.
 let sharedInitialAddressRequest: Promise<string | null> | null = null;
+let sharedInitialAddressSDK: ReturnType<typeof getSDKSync> | null = null;
 
 const getInitialAddressDeduped = (sdk: ReturnType<typeof getSDKSync>): Promise<string | null> => {
   if (!sdk) return Promise.resolve(null);
 
+  // Invalidate cached promise if the SDK instance has changed
+  if (sharedInitialAddressRequest && sharedInitialAddressSDK !== sdk) {
+    sharedInitialAddressRequest = null;
+    sharedInitialAddressSDK = null;
+  }
+
   if (!sharedInitialAddressRequest) {
+    sharedInitialAddressSDK = sdk;
     sharedInitialAddressRequest = sdk.wallet
       .getAddress()
       .then((addr: string) => (addr ? addr : null))
@@ -45,6 +55,7 @@ const getInitialAddressDeduped = (sdk: ReturnType<typeof getSDKSync>): Promise<s
       })
       .finally(() => {
         sharedInitialAddressRequest = null;
+        sharedInitialAddressSDK = null;
       });
   }
 
@@ -123,8 +134,8 @@ export function useWallet() {
       chainId.value = config?.chainId ?? null;
       chainType.value = config?.chainType ?? null;
       applyAppConfig(config);
-    } catch (e) {
-      error.value = e as Error;
+    } catch (e: unknown) {
+      error.value = toError(e);
     } finally {
       isLoading.value = false;
     }
@@ -261,8 +272,8 @@ export function useWallet() {
         return safeBalances[token] || "0";
       }
       return safeBalances;
-    } catch (e) {
-      error.value = e as Error;
+    } catch (e: unknown) {
+      error.value = toError(e);
       throw e;
     } finally {
       isLoading.value = false;
@@ -282,8 +293,8 @@ export function useWallet() {
       if (activeChainId) params.set("chain_id", activeChainId);
       const data = await apiGet<{ transactions: WalletTransaction[] }>(`/wallet-transactions?${params.toString()}`);
       return data?.transactions ?? [];
-    } catch (e) {
-      error.value = e as Error;
+    } catch (e: unknown) {
+      error.value = toError(e);
       throw e;
     } finally {
       isLoading.value = false;

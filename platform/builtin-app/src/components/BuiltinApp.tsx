@@ -71,7 +71,7 @@ function useMiniAppSDK(): MiniAppSDK | null {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const update = () => setSdk((window as any).MiniAppSDK ?? null);
+    const update = () => setSdk(((window as Record<string, unknown>).MiniAppSDK as MiniAppSDK) ?? null);
     update();
     window.addEventListener("miniapp-sdk-ready", update);
     return () => window.removeEventListener("miniapp-sdk-ready", update);
@@ -186,7 +186,7 @@ function PriceTickerPanel({ sdk }: PanelProps) {
       setPriceResult(res);
       setStatus({ tone: "success", message: "Price updated." });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String((err as Error)?.message ?? err) });
     } finally {
       setIsLoading(false);
     }
@@ -205,9 +205,7 @@ function PriceTickerPanel({ sdk }: PanelProps) {
     refreshPrice();
   }, [sdk, refreshPrice]);
 
-  const priceValue = priceResult
-    ? formatPrice(priceResult.price, priceResult.decimals ?? 0)
-    : "--";
+  const priceValue = priceResult ? formatPrice(priceResult.price, priceResult.decimals ?? 0) : "--";
   const timestamp = priceResult?.timestamp ? formatTimestamp(priceResult.timestamp) : "--";
 
   return (
@@ -250,10 +248,7 @@ function PriceTickerPanel({ sdk }: PanelProps) {
             >
               Refresh
             </button>
-            <button
-              className={styles.buttonSecondary}
-              onClick={() => setAutoRefresh((prev) => !prev)}
-            >
+            <button className={styles.buttonSecondary} onClick={() => setAutoRefresh((prev) => !prev)}>
               Auto: {autoRefresh ? "On" : "Off"}
             </button>
           </div>
@@ -347,7 +342,7 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
           const tx = await sdk.wallet.invokeIntent(intent.request_id);
           setLastTx(JSON.stringify(tx, null, 2));
         } catch (err) {
-          setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+          setStatus({ tone: "error", message: String((err as Error)?.message ?? err) });
         }
       }
 
@@ -384,7 +379,7 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
           : `Result: ${result}. Better luck next round.`,
       });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String((err as Error)?.message ?? err) });
     } finally {
       setIsBusy(false);
     }
@@ -421,10 +416,7 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
             <button className={styles.buttonPrimary} onClick={handlePlay} disabled={isBusy}>
               {isBusy ? "Playing…" : "Play"}
             </button>
-            <button
-              className={styles.buttonSecondary}
-              onClick={() => setBetAmount(config.minBet.toString())}
-            >
+            <button className={styles.buttonSecondary} onClick={() => setBetAmount(config.minBet.toString())}>
               Reset Bet
             </button>
           </div>
@@ -459,9 +451,7 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
                   <span>
                     {item.timestamp} • {item.choice} → {item.result}
                   </span>
-                  <span className={item.win ? styles.badgeWin : styles.badgeLoss}>
-                    {item.win ? "Win" : "Loss"}
-                  </span>
+                  <span className={item.win ? styles.badgeWin : styles.badgeLoss}>{item.win ? "Win" : "Loss"}</span>
                 </div>
               ))}
             </div>
@@ -469,9 +459,7 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
             <div className={styles.emptyState}>No rounds played yet.</div>
           )}
 
-          {lastIntent ? (
-            <div className={styles.resultBox}>{JSON.stringify(lastIntent, null, 2)}</div>
-          ) : null}
+          {lastIntent ? <div className={styles.resultBox}>{JSON.stringify(lastIntent, null, 2)}</div> : null}
           {lastTx ? <div className={styles.resultBox}>{lastTx}</div> : null}
         </div>
       </div>
@@ -510,7 +498,7 @@ function LotteryPanel({ sdk, appId }: PanelProps) {
       setOwnedTickets((prev) => prev + ticketCount);
       setStatus({ tone: "success", message: "Tickets purchased. Ready for draw." });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String((err as Error)?.message ?? err) });
     } finally {
       setIsBusy(false);
     }
@@ -539,7 +527,7 @@ function LotteryPanel({ sdk, appId }: PanelProps) {
       setDrawResult(message);
       setStatus({ tone: isWinner ? "success" : "error", message });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String((err as Error)?.message ?? err) });
     } finally {
       setIsBusy(false);
     }
@@ -638,7 +626,7 @@ function PredictionMarketPanel({ sdk, appId }: PanelProps) {
       setResult(`${summary} Outcome: ${outcome.toUpperCase()}.`);
       setStatus({ tone: won ? "success" : "error", message: summary });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String((err as Error)?.message ?? err) });
     } finally {
       setIsBusy(false);
     }
@@ -731,7 +719,7 @@ function FlashloanPanel({ sdk, appId }: PanelProps) {
       setResult(summary);
       setStatus({ tone: "success", message: summary });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String((err as Error)?.message ?? err) });
     } finally {
       setIsBusy(false);
     }
@@ -915,7 +903,7 @@ export default function BuiltinApp({ appId, view, theme, layout = "web" }: Built
       setWalletAddress(address);
       setWalletStatus({ tone: "success", message: "Wallet connected." });
     } catch (err) {
-      setWalletStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setWalletStatus({ tone: "error", message: String((err as Error)?.message ?? err) });
     }
   }, [sdk]);
 
@@ -934,11 +922,7 @@ export default function BuiltinApp({ appId, view, theme, layout = "web" }: Built
             {sdk ? "Connected" : "Not Detected"}
           </div>
           <div className={styles.walletRow}>
-            <button
-              className={styles.buttonSecondary}
-              onClick={requestAddress}
-              disabled={!sdk?.wallet?.getAddress}
-            >
+            <button className={styles.buttonSecondary} onClick={requestAddress} disabled={!sdk?.wallet?.getAddress}>
               Get Wallet Address
             </button>
             {walletAddress ? <div className={styles.walletAddress}>{walletAddress}</div> : null}

@@ -4,20 +4,18 @@
       :config="templateConfig"
       :state="appState"
       :t="t"
-      :status-message="statusMessage ? { msg: statusMessage, type: statusType } : null"
-      :fireworks-active="!!statusMessage && statusType === 'success'"
+      :status-message="status"
+      :fireworks-active="!!status && status.type === 'success'"
       @tab-change="activeTab = $event"
     >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
-        <NeoCard v-if="statusMessage" :variant="statusType === 'error' ? 'danger' : 'success'" class="status-card">
-          <text class="status-text">{{ statusMessage }}</text>
+        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="status-card">
+          <text class="status-text">{{ status.msg }}</text>
         </NeoCard>
 
         <view class="neoburger-shell">
@@ -83,16 +81,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
+import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
-import { getPrices, type PriceData } from "@shared/utils/price";
-import { formatCompactNumber } from "@shared/utils/format";
+import type { UniAppGlobals } from "@shared/types/globals";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 import { useNeoburgerCore } from "@/composables/useNeoburgerCore";
 import { useNeoburgerRewards } from "@/composables/useNeoburgerRewards";
 import { useNeoburgerSwap } from "@/composables/useNeoburgerSwap";
+import { useNeoburgerStats } from "@/composables/useNeoburgerStats";
 
 import HeroSection from "@/components/HeroSection.vue";
 import StationPanel from "@/components/StationPanel.vue";
@@ -127,154 +126,36 @@ const templateConfig: MiniAppTemplateConfig = {
     statusMessages: true,
   },
 };
+
+const loading = ref(false);
+const { status, setStatus: showStatus } = useStatusMessage();
+
+const { apy, priceData, aprDisplay, totalStakedDisplay, totalStakedUsdText, loadApy, loadPrices } =
+  useNeoburgerStats();
+
+const rewards = useNeoburgerRewards(bNeoBalance, apy, priceData);
+
+const swap = useNeoburgerSwap(neoBalance, bNeoBalance, BNEO_CONTRACT, priceData, showStatus, loadBalances);
+
 const appState = computed(() => ({
   walletConnected: walletConnected.value,
   neoBalance: neoBalance.value,
   bNeoBalance: bNeoBalance.value,
 }));
 
-const loading = ref(false);
-const statusMessage = ref("");
-const statusType = ref<"success" | "error">("success");
-const apy = ref(0);
-const animatedApy = ref("0.0");
-const loadingApy = ref(true);
-const priceData = ref<PriceData | null>(null);
-const totalStaked = ref<number | null>(null);
-const totalStakedFormatted = ref<string | null>(null);
-
-let apyAnimationTimer: ReturnType<typeof setInterval> | null = null;
-let statusTimer: ReturnType<typeof setTimeout> | null = null;
-
-function showStatus(message: string, type: "success" | "error") {
-  statusMessage.value = message;
-  statusType.value = type;
-  if (statusTimer) clearTimeout(statusTimer);
-  statusTimer = setTimeout(() => {
-    statusMessage.value = "";
-    statusTimer = null;
-  }, 5000);
-}
-
-const rewards = useNeoburgerRewards(bNeoBalance, apy, priceData);
-
-const swap = useNeoburgerSwap(neoBalance, bNeoBalance, BNEO_CONTRACT, priceData, showStatus, loadBalances);
+const sidebarItems = computed(() => [
+  { label: "NEO Balance", value: neoBalance.value ?? "—" },
+  { label: "bNEO Balance", value: bNeoBalance.value ?? "—" },
+  { label: "Total Staked", value: totalStakedDisplay.value },
+  { label: "APR", value: aprDisplay.value },
+]);
 
 const primaryActionLabel = computed(() => (walletConnected.value ? swap.swapButtonLabel : t("connectWallet")));
 const jazzActionLabel = computed(() => (walletConnected.value ? t("claimRewards") : t("connectWallet")));
-const aprDisplay = computed(() => (loadingApy.value ? t("apyPlaceholder") : `${animatedApy.value}%`));
-
-const totalStakedDisplay = computed(() => {
-  if (totalStakedFormatted.value) return totalStakedFormatted.value;
-  if (totalStaked.value === null) return t("placeholderDash");
-  return formatCompactNumber(totalStaked.value);
-});
-
-const totalStakedUsdText = computed(() => {
-  const price = priceData.value?.neo.usd ?? 0;
-  if (!price || totalStaked.value === null) return t("usdPlaceholder");
-  return t("approxUsd", { value: formatCompactNumber(totalStaked.value * price) });
-});
-
-function animateApy() {
-  const target = apy.value;
-  const duration = 2000;
-  const steps = 60;
-  const increment = target / steps;
-  let current = 0;
-  let step = 0;
-
-  if (apyAnimationTimer) clearInterval(apyAnimationTimer);
-
-  apyAnimationTimer = setInterval(() => {
-    current += increment;
-    step++;
-    animatedApy.value = current.toFixed(1);
-    if (step >= steps) {
-      animatedApy.value = target.toFixed(1);
-      if (apyAnimationTimer) {
-        clearInterval(apyAnimationTimer);
-        apyAnimationTimer = null;
-      }
-    }
-  }, duration / steps);
-}
 
 function switchToJazz() {
   homeMode.value = "jazz";
   stationPanelRef.value?.setMode("jazz");
-}
-
-const APY_CACHE_KEY = "neoburger_apy_cache";
-const STATS_ENDPOINTS = ["/api/neoburger-stats", "/api/neoburger/stats"];
-const LOCAL_STATS_MOCK = {
-  apy: 12.8,
-  total_staked: 1425367,
-  total_staked_formatted: "1.43M",
-};
-const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
-
-const fetchStats = async () => {
-  if (isLocalPreview) {
-    return LOCAL_STATS_MOCK;
-  }
-
-  for (const endpoint of STATS_ENDPOINTS) {
-    try {
-      const response = await fetch(endpoint);
-      if (!response.ok) continue;
-      return await response.json();
-    } catch {}
-  }
-  return null;
-};
-
-const readCachedApy = () => {
-  try {
-    const uniApi = (globalThis as any)?.uni;
-    const raw =
-      uniApi?.getStorageSync?.(APY_CACHE_KEY) ??
-      (typeof localStorage !== "undefined" ? localStorage.getItem(APY_CACHE_KEY) : null);
-    const value = Number(raw);
-    return Number.isFinite(value) && value >= 0 ? value : null;
-  } catch {
-    return null;
-  }
-};
-
-const writeCachedApy = (value: number) => {
-  try {
-    const uniApi = (globalThis as any)?.uni;
-    if (uniApi?.setStorageSync) {
-      uniApi.setStorageSync(APY_CACHE_KEY, String(value));
-    } else if (typeof localStorage !== "undefined") {
-      localStorage.setItem(APY_CACHE_KEY, String(value));
-    }
-  } catch {}
-};
-
-async function loadApy() {
-  try {
-    loadingApy.value = true;
-    const cached = readCachedApy();
-    if (cached !== null) apy.value = cached;
-    const data = await fetchStats();
-    if (data) {
-      const nextApy = parseFloat(data.apy ?? data.apr);
-      if (Number.isFinite(nextApy) && nextApy >= 0) {
-        apy.value = nextApy;
-        writeCachedApy(nextApy);
-      }
-      const nextTotalStaked = Number(data.total_staked ?? data.totalStakedNeo);
-      if (Number.isFinite(nextTotalStaked) && nextTotalStaked >= 0) totalStaked.value = nextTotalStaked;
-      const formatted = data.total_staked_formatted ?? data.totalStakedFormatted;
-      if (typeof formatted === "string") totalStakedFormatted.value = formatted;
-    }
-  } catch {
-  } finally {
-    loadingApy.value = false;
-    animateApy();
-  }
 }
 
 async function handlePrimaryAction() {
@@ -305,7 +186,8 @@ async function handleJazzAction() {
 
 async function copyToClipboard(value: string) {
   try {
-    const uniApi = (globalThis as any)?.uni;
+    const g = globalThis as unknown as UniAppGlobals;
+    const uniApi = g?.uni as Record<string, (...args: unknown[]) => unknown> | undefined;
     if (uniApi?.setClipboardData) {
       await uniApi.setClipboardData({ data: value });
     } else if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -321,12 +203,13 @@ async function copyToClipboard(value: string) {
 
 function openExternal(url: string) {
   if (!url) return;
-  const uniApi = (globalThis as any)?.uni;
+  const g = globalThis as unknown as UniAppGlobals;
+  const uniApi = g?.uni as Record<string, (...args: unknown[]) => unknown> | undefined;
   if (uniApi?.openURL) {
     uniApi.openURL({ url });
     return;
   }
-  const plusApi = (globalThis as any)?.plus;
+  const plusApi = g?.plus as Record<string, Record<string, (...args: unknown[]) => unknown>> | undefined;
   if (plusApi?.runtime?.openURL) {
     plusApi.runtime.openURL(url);
     return;
@@ -338,27 +221,10 @@ function openExternal(url: string) {
   if (typeof window !== "undefined") window.location.href = url;
 }
 
-async function loadPrices() {
-  try {
-    priceData.value = await getPrices();
-  } catch {}
-}
-
 onMounted(() => {
   loadBalances();
   loadApy();
   loadPrices();
-});
-
-onUnmounted(() => {
-  if (apyAnimationTimer) {
-    clearInterval(apyAnimationTimer);
-    apyAnimationTimer = null;
-  }
-  if (statusTimer) {
-    clearTimeout(statusTimer);
-    statusTimer = null;
-  }
 });
 </script>
 
@@ -368,140 +234,10 @@ onUnmounted(() => {
 
 @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap");
 @import "./neoburger-theme.scss";
+@import "./neoburger-deep-overrides.scss";
 
 :global(page) {
   background: var(--burger-bg);
-}
-
-:deep(.app-layout) {
-  background: var(--burger-bg);
-  background-image:
-    radial-gradient(circle at 10% 10%, var(--burger-bg-glow-1), transparent 45%),
-    radial-gradient(circle at 90% 30%, var(--burger-bg-glow-2), transparent 40%),
-    radial-gradient(circle at 50% 80%, var(--burger-bg-glow-3), transparent 60%);
-  color: var(--burger-text);
-  font-family: "Manrope", "Outfit", sans-serif;
-}
-
-:deep(.app-content) {
-  background: transparent;
-}
-
-:deep(.navbar) {
-  background: var(--burger-nav-bg);
-  border-top: 1px solid var(--burger-nav-border);
-}
-
-:deep(.nav-item) {
-  color: var(--burger-nav-item);
-}
-
-:deep(.nav-item.active) {
-  color: var(--burger-accent-strong);
-}
-
-:deep(.nav-item::after) {
-  background: var(--burger-accent-strong);
-}
-
-:deep(.neo-btn--primary) {
-  background: var(--burger-primary-gradient);
-  color: var(--burger-accent-text);
-  box-shadow: var(--burger-accent-shadow);
-}
-
-:deep(.neo-btn--secondary) {
-  background: var(--burger-surface);
-  color: var(--burger-text-strong);
-  border: 1px solid var(--burger-border-strong);
-  box-shadow: none;
-}
-
-:deep(.neo-btn--success) {
-  background: var(--burger-success-gradient);
-  color: var(--burger-success-text);
-  box-shadow: var(--burger-success-shadow);
-}
-
-:deep(.neo-input__wrapper) {
-  background: var(--burger-surface);
-  border: 1px solid var(--burger-border-strong);
-  box-shadow: var(--burger-input-inset);
-}
-
-:deep(.neo-card) {
-  background: var(--burger-surface);
-  border: 1px solid var(--burger-border);
-  box-shadow: var(--burger-card-shadow);
-  color: var(--burger-text);
-  backdrop-filter: none;
-}
-
-:deep(.neo-card--danger) {
-  background: var(--burger-danger-bg);
-  border-color: var(--burger-danger-border);
-  color: var(--burger-danger-text);
-}
-
-:deep(.neo-card--success) {
-  background: var(--burger-success-card-bg);
-  border-color: var(--burger-success-card-border);
-  color: var(--burger-success-card-text);
-}
-
-:deep(.neo-btn),
-:deep(.neo-input__field) {
-  font-family: "Manrope", "Outfit", sans-serif;
-}
-
-:deep(.neo-input__field) {
-  color: var(--burger-text);
-}
-
-:deep(.neo-input__field::placeholder) {
-  color: var(--burger-text-placeholder);
-}
-
-:deep(.neo-doc) {
-  color: var(--burger-text);
-}
-
-:deep(.neo-doc .doc-header),
-:deep(.neo-doc .doc-footer) {
-  border-color: var(--burger-border);
-}
-
-:deep(.neo-doc .doc-badge) {
-  background: var(--burger-doc-badge-bg);
-  color: var(--burger-doc-badge-text);
-  border-color: var(--burger-doc-badge-border);
-  box-shadow: var(--burger-doc-badge-shadow);
-}
-
-:deep(.neo-doc .doc-subtitle),
-:deep(.neo-doc .section-text),
-:deep(.neo-doc .step-text),
-:deep(.neo-doc .feature-desc),
-:deep(.neo-doc .footer-text) {
-  color: var(--burger-text-soft);
-}
-
-:deep(.neo-doc .section-label) {
-  color: var(--burger-accent-deep);
-  text-shadow: none;
-}
-
-:deep(.neo-doc .step-number) {
-  background: var(--burger-surface);
-  color: var(--burger-accent-deep);
-  border-color: var(--burger-doc-step-border);
-  box-shadow: none;
-}
-
-:deep(.neo-doc .feature-card) {
-  background: var(--burger-surface-alt);
-  border-color: var(--burger-border);
-  box-shadow: var(--burger-shadow-soft);
 }
 
 .status-card {
@@ -524,19 +260,5 @@ onUnmounted(() => {
   gap: 24px;
   font-family: "Manrope", "Outfit", sans-serif;
   color: var(--burger-text);
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 </style>

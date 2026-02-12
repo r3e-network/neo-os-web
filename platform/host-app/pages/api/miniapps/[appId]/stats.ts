@@ -3,6 +3,7 @@ import { getMiniAppStats, getAggregatedMiniAppStats } from "@/lib/miniapp-stats"
 import { apiError } from "@/lib/api-response";
 import { getChainRegistry } from "@/lib/chains/registry";
 import type { ChainId } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 /** Validate chain ID using registry */
 function validateChainId(value: string | undefined): ChainId | null {
@@ -35,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
       return res.status(200).json({ stats, chainId: "all", aggregated: true });
     } catch (error) {
-      console.error("Aggregated stats fetch error:", error);
+      logger.error("Aggregated stats fetch error", error);
       return res.status(500).json({ error: "Failed to fetch stats" });
     }
   }
@@ -61,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     res.status(200).json({ stats, chainId });
   } catch (error) {
-    console.error("Stats fetch error:", error);
+    logger.error("Stats fetch error", error);
     return res.status(500).json({ error: "Failed to fetch stats" });
   }
 }

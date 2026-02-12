@@ -16,8 +16,10 @@ import { ref } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { parseInvokeResult } from "@shared/utils/neo";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import DomainSearch from "./DomainSearch.vue";
+import type { SearchResult } from "@/types";
 
 const props = defineProps<{
   t: (key: string) => string;
@@ -30,12 +32,6 @@ const emit = defineEmits<{
 }>();
 
 const { address, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
-
-interface SearchResult {
-  available: boolean;
-  price?: number;
-  owner?: string;
-}
 
 const searchQuery = ref("");
 const searchResult = ref<SearchResult | null>(null);
@@ -66,14 +62,14 @@ async function checkAvailability() {
       const name = searchQuery.value.toLowerCase();
 
       const availableResult = await invokeRead({
-        contractHash: props.nnsContract,
+        scriptHash: props.nnsContract,
         operation: "isAvailable",
         args: [{ type: "String", value: name + ".neo" }],
       });
       const isAvailable = Boolean(parseInvokeResult(availableResult));
 
       const priceResult = await invokeRead({
-        contractHash: props.nnsContract,
+        scriptHash: props.nnsContract,
         operation: "getPrice",
         args: [{ type: "Integer", value: name.length }],
       });
@@ -85,7 +81,7 @@ async function checkAvailability() {
       } else {
         try {
           const ownerResult = await invokeRead({
-            contractHash: props.nnsContract,
+            scriptHash: props.nnsContract,
             operation: "ownerOf",
             args: [{ type: "ByteArray", value: domainToTokenId(name) }],
           });
@@ -95,9 +91,9 @@ async function checkAvailability() {
           searchResult.value = { available: false, owner: props.t("unknownOwner") };
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       searchResult.value = null;
-      emit("status", e.message || props.t("availabilityFailed"), "error");
+      emit("status", formatErrorMessage(e, props.t("availabilityFailed")), "error");
     } finally {
       loading.value = false;
     }
@@ -129,8 +125,8 @@ async function handleRegister() {
     searchQuery.value = "";
     searchResult.value = null;
     emit("refresh");
-  } catch (e: any) {
-    emit("status", e.message || props.t("registrationFailed"), "error");
+  } catch (e: unknown) {
+    emit("status", formatErrorMessage(e, props.t("registrationFailed")), "error");
   } finally {
     loading.value = false;
   }

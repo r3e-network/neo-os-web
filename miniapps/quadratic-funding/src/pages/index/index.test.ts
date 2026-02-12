@@ -206,7 +206,7 @@ describe("Quadratic Funding Index Page", () => {
     });
 
     it("can select a round", async () => {
-      wrapper.vm.rounds = [{ id: "1", title: "Test Round" } as any];
+      wrapper.vm.rounds = [{ id: "1", title: "Test Round" } as Record<string, unknown>];
       await wrapper.vm.selectRound(wrapper.vm.rounds[0]);
       expect(wrapper.vm.selectedRoundId).toBe("1");
     });
@@ -389,7 +389,7 @@ describe("Quadratic Funding Index Page", () => {
 
   describe("Round Status Pills", () => {
     it("renders status pills", () => {
-      wrapper.vm.rounds = [{ id: "1", status: "active" } as any];
+      wrapper.vm.rounds = [{ id: "1", status: "active" } as Record<string, unknown>];
       const statusPill = wrapper.find(".status-pill");
       expect(statusPill.exists()).toBe(true);
     });
@@ -397,13 +397,13 @@ describe("Quadratic Funding Index Page", () => {
 
   describe("Round Cards", () => {
     it("renders round cards", () => {
-      wrapper.vm.rounds = [{ id: "1", title: "Test Round" } as any];
+      wrapper.vm.rounds = [{ id: "1", title: "Test Round" } as Record<string, unknown>];
       const roundCard = wrapper.find(".round-card");
       expect(roundCard.exists()).toBe(true);
     });
 
     it("displays round metrics", () => {
-      wrapper.vm.rounds = [{ id: "1", title: "Test Round", matchingPool: "100", matchingRemaining: "50", totalContributed: "25", projectCount: 5, assetSymbol: "GAS" } as any];
+      wrapper.vm.rounds = [{ id: "1", title: "Test Round", matchingPool: "100", matchingRemaining: "50", totalContributed: "25", projectCount: 5, assetSymbol: "GAS" } as Record<string, unknown>];
       const metricLabels = wrapper.findAll(".metric-label");
       expect(metricLabels.length).toBeGreaterThan(0);
     });
@@ -412,8 +412,8 @@ describe("Quadratic Funding Index Page", () => {
   describe("Project Cards", () => {
     it("renders project cards when round selected", async () => {
       wrapper.vm.activeTab = "projects";
-      wrapper.vm.selectedRound = { id: "1", assetSymbol: "GAS" } as any;
-      wrapper.vm.projects = [{ id: "p1", name: "Test Project", totalContributed: "10", matchedAmount: "5", contributorCount: 3, owner: "0x123", description: "", link: "" } as any];
+      wrapper.vm.selectedRound = { id: "1", assetSymbol: "GAS" } as Record<string, unknown>;
+      wrapper.vm.projects = [{ id: "p1", name: "Test Project", totalContributed: "10", matchedAmount: "5", contributorCount: 3, owner: "0x123", description: "", link: "" } as Record<string, unknown>];
       await wrapper.vm.$nextTick();
       const projectCard = wrapper.find(".project-card");
       expect(projectCard.exists()).toBe(true);
@@ -422,7 +422,7 @@ describe("Quadratic Funding Index Page", () => {
 
   describe("Admin Card", () () => {
     it("renders admin card when round selected", async () => {
-      wrapper.vm.selectedRound = { id: "1", assetSymbol: "GAS" } as any;
+      wrapper.vm.selectedRound = { id: "1", assetSymbol: "GAS" } as Record<string, unknown>;
       await wrapper.vm.$nextTick();
       const adminCard = wrapper.find(".admin-card");
       expect(adminCard.exists()).toBe(true);

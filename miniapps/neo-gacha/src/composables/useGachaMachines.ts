@@ -6,61 +6,7 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult, normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
-
-export interface MachineItem {
-  name: string;
-  probability: number;
-  displayProbability: number;
-  rarity: string;
-  assetType: number;
-  assetHash: string;
-  amountRaw: number;
-  amountDisplay: string;
-  tokenId: string;
-  stockRaw: number;
-  stockDisplay: string;
-  tokenCount: number;
-  decimals: number;
-  available: boolean;
-  icon?: string;
-}
-
-export interface Machine {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  tags: string;
-  tagsList: string[];
-  creator: string;
-  creatorHash: string;
-  owner: string;
-  ownerHash: string;
-  price: string;
-  priceRaw: number;
-  itemCount: number;
-  totalWeight: number;
-  availableWeight: number;
-  plays: number;
-  revenue: string;
-  revenueRaw: number;
-  sales: number;
-  salesVolume: string;
-  salesVolumeRaw: number;
-  createdAt: number;
-  lastPlayedAt: number;
-  active: boolean;
-  listed: boolean;
-  banned: boolean;
-  locked: boolean;
-  forSale: boolean;
-  salePrice: string;
-  salePriceRaw: number;
-  inventoryReady: boolean;
-  items: MachineItem[];
-  topPrize?: string;
-  winRate?: number;
-}
+import type { Machine, MachineItem } from "@/types";
 
 export function useGachaMachines() {
   const { t } = useI18n();
@@ -133,7 +79,7 @@ export function useGachaMachines() {
         operation: "GetMachineItem",
         args: [{ type: "Integer", value: String(machineId) }, { type: "Integer", value: String(index) }],
       });
-      const itemMap = parseInvokeResult(itemRes) as Record<string, any> | null;
+      const itemMap = parseInvokeResult(itemRes) as Record<string, unknown> | null;
       if (!itemMap || typeof itemMap !== "object") continue;
       const decimals = numberFrom(itemMap.decimals);
       const amountRaw = numberFrom(itemMap.amount);
@@ -170,7 +116,7 @@ export function useGachaMachines() {
       const loaded: Machine[] = [];
       for (let machineId = 1; machineId <= total; machineId++) {
         const machineRes = await invokeRead({ scriptHash: contract, operation: "GetMachine", args: [{ type: "Integer", value: String(machineId) }] });
-        const machineMap = parseInvokeResult(machineRes) as Record<string, any> | null;
+        const machineMap = parseInvokeResult(machineRes) as Record<string, unknown> | null;
         if (!machineMap || typeof machineMap !== "object" || !machineMap.name) continue;
         const itemCount = numberFrom(machineMap.itemCount);
         const items = await fetchMachineItems(contract, machineId, itemCount);
@@ -229,7 +175,7 @@ export function useGachaMachines() {
         const updated = loaded.find((machine) => machine.id === selectedMachine.value?.id) || null;
         selectedMachine.value = updated;
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "fetchMachines" });
     } finally {
       isLoadingMachines.value = false;

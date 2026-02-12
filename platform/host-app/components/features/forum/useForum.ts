@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import type { ForumThread, ForumReply } from "./types";
 import { getWalletAuthHeaders } from "@/lib/security/wallet-auth-client";
+import { logger } from "@/lib/logger";
 
 interface UseForumOptions {
   appId: string;
@@ -26,7 +27,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           setHasMore(data.hasMore);
         }
       } catch (err) {
-        console.warn("fetchThreads failed:", err);
+        logger.warn("fetchThreads failed:", err);
       } finally {
         setLoading(false);
       }
@@ -50,7 +51,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           return data.thread;
         }
       } catch (err) {
-        console.warn("createThread failed:", err);
+        logger.warn("createThread failed:", err);
       }
       return null;
     },
@@ -66,7 +67,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           return data.replies;
         }
       } catch (err) {
-        console.warn("fetchReplies failed:", err);
+        logger.warn("fetchReplies failed:", err);
       }
       return [];
     },
@@ -88,7 +89,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           return data.reply;
         }
       } catch (err) {
-        console.warn("createReply failed:", err);
+        logger.warn("createReply failed:", err);
       }
       return null;
     },

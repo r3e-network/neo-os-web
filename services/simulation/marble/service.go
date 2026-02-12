@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"math/rand"
 	"os"
@@ -108,15 +109,15 @@ func New(cfg Config) (*Service, error) {
 	var miniApps []string
 	if miniAppsEnv != "" {
 		miniApps = normalizeMiniAppIDs(strings.Split(miniAppsEnv, ","))
-		fmt.Printf("neosimulation: loaded %d MiniApps from SIMULATION_MINIAPPS env: %v\n", len(miniApps), miniApps)
+		slog.Info("loaded MiniApps from env", "count", len(miniApps), "apps", miniApps)
 	} else if len(cfg.MiniApps) > 0 {
 		miniApps = normalizeMiniAppIDs(cfg.MiniApps)
-		fmt.Printf("neosimulation: loaded %d MiniApps from config: %v\n", len(miniApps), miniApps)
+		slog.Info("loaded MiniApps from config", "count", len(miniApps), "apps", miniApps)
 	}
 	if len(miniApps) == 0 {
 		// Use DefaultMiniApps (only apps configured in PaymentHub contract)
 		miniApps = normalizeMiniAppIDs(DefaultMiniApps)
-		fmt.Printf("neosimulation: using default %d MiniApps (PaymentHub configured): %v\n", len(miniApps), miniApps)
+		slog.Info("using default MiniApps", "count", len(miniApps), "apps", miniApps)
 	}
 
 	// Get interval configuration
@@ -124,7 +125,7 @@ func New(cfg Config) (*Service, error) {
 	if minIntervalMS == 0 {
 		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MIN_MS"); envVal != "" {
 			if _, err := fmt.Sscanf(envVal, "%d", &minIntervalMS); err != nil {
-				fmt.Printf("neosimulation: invalid SIMULATION_TX_INTERVAL_MIN_MS %q: %v\n", envVal, err)
+				slog.Warn("invalid SIMULATION_TX_INTERVAL_MIN_MS", "value", envVal, "error", err)
 			}
 		}
 	}
@@ -136,7 +137,7 @@ func New(cfg Config) (*Service, error) {
 	if maxIntervalMS == 0 {
 		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MAX_MS"); envVal != "" {
 			if _, err := fmt.Sscanf(envVal, "%d", &maxIntervalMS); err != nil {
-				fmt.Printf("neosimulation: invalid SIMULATION_TX_INTERVAL_MAX_MS %q: %v\n", envVal, err)
+				slog.Warn("invalid SIMULATION_TX_INTERVAL_MAX_MS", "value", envVal, "error", err)
 			}
 		}
 	}
@@ -159,7 +160,7 @@ func New(cfg Config) (*Service, error) {
 	if workersPerApp == 0 {
 		if envVal := os.Getenv("SIMULATION_WORKERS_PER_APP"); envVal != "" {
 			if _, err := fmt.Sscanf(envVal, "%d", &workersPerApp); err != nil {
-				fmt.Printf("neosimulation: invalid SIMULATION_WORKERS_PER_APP %q: %v\n", envVal, err)
+				slog.Warn("invalid SIMULATION_WORKERS_PER_APP", "value", envVal, "error", err)
 			}
 		}
 	}
@@ -194,10 +195,10 @@ func New(cfg Config) (*Service, error) {
 	invoker, err := NewContractInvokerFromEnv(poolClient)
 	if err != nil {
 		// Log warning but don't fail - contract invocation is optional
-		fmt.Printf("neosimulation: contract invoker disabled: %v\n", err)
+		slog.Warn("contract invoker disabled", "error", err)
 	} else {
 		contractInvoker = invoker
-		fmt.Println("neosimulation: contract invoker initialized (using pool accounts)")
+		slog.Info("contract invoker initialized")
 	}
 
 	// Initialize MiniApp simulator if contract invoker is available
@@ -205,7 +206,7 @@ func New(cfg Config) (*Service, error) {
 	if contractInvoker != nil {
 		// Fetch real user addresses from database (200 addresses for realistic user distribution)
 		userAddresses := fetchUserAddressesFromDB(db, 200)
-		fmt.Printf("neosimulation: loaded %d real user addresses from database\n", len(userAddresses))
+		slog.Info("loaded user addresses from database", "count", len(userAddresses))
 
 		// Create recordTx callback that writes to simulation_txs
 		var recordTxFn TxRecordFunc
@@ -246,7 +247,7 @@ func New(cfg Config) (*Service, error) {
 			}
 		}
 		miniAppSimulator = NewMiniAppSimulator(contractInvoker, userAddresses, recordTxFn)
-		fmt.Println("neosimulation: MiniApp simulator initialized for all 35 apps")
+		slog.Info("MiniApp simulator initialized")
 	}
 
 	s := &Service{
@@ -1004,13 +1005,13 @@ func (s *Service) fundAutomationTask(ctx context.Context, contractAddress string
 // Uses real Neo N3 addresses stored in Supabase account_pool table.
 func fetchUserAddressesFromDB(db database.RepositoryInterface, maxCount int) []string {
 	if db == nil {
-		fmt.Println("neosimulation: database is nil, cannot fetch user addresses")
+		slog.Warn("database is nil, cannot fetch user addresses")
 		return nil
 	}
 
 	repo, ok := db.(*database.Repository)
 	if !ok {
-		fmt.Println("neosimulation: database is not *database.Repository")
+		slog.Warn("database is not *database.Repository")
 		return nil
 	}
 
@@ -1025,13 +1026,13 @@ func fetchUserAddressesFromDB(db database.RepositoryInterface, maxCount int) []s
 	query := fmt.Sprintf("select=address&limit=%d", maxCount)
 	data, err := repo.Request(ctx, "GET", "pool_accounts", nil, query)
 	if err != nil {
-		fmt.Printf("neosimulation: failed to query pool_accounts: %v\n", err)
+		slog.Warn("failed to query pool_accounts", "error", err)
 		return nil
 	}
 
 	var accounts []AccountAddress
 	if err := json.Unmarshal(data, &accounts); err != nil {
-		fmt.Printf("neosimulation: failed to unmarshal accounts: %v\n", err)
+		slog.Warn("failed to unmarshal accounts", "error", err)
 		return nil
 	}
 
@@ -1042,6 +1043,6 @@ func fetchUserAddressesFromDB(db database.RepositoryInterface, maxCount int) []s
 		}
 	}
 
-	fmt.Printf("neosimulation: fetched %d real user addresses from database\n", len(addresses))
+	slog.Info("fetched user addresses from database", "count", len(addresses))
 	return addresses
 }

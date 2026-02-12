@@ -9,6 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHandler } from "@/lib/api";
 import { createAppBody } from "@/lib/schemas";
 import { normalizeContracts } from "@/lib/contracts";
+import { logger } from "@/lib/logger";
 
 export interface DeveloperApp {
   id: string;
@@ -58,7 +59,7 @@ async function handleGet(db: SupabaseClient, developerAddress: string, req: Next
       has_more: (count ?? 0) > offset + limit,
     });
   } catch (error) {
-    console.error("List apps error:", error);
+    logger.error("List apps error", error);
     return res.status(500).json({ error: "Failed to list apps" });
   }
 }
@@ -113,7 +114,7 @@ async function handlePost(db: SupabaseClient, developerAddress: string, req: Nex
 
     return res.status(201).json({ app: data });
   } catch (error) {
-    console.error("Create app error:", error);
+    logger.error("Create app error", error);
     return res.status(500).json({ error: "Failed to create app" });
   }
 }

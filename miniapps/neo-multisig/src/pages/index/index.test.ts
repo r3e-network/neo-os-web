@@ -216,7 +216,7 @@ describe("Neo Multisig MiniApp", () => {
       ]);
 
       const sorted = [...history.value].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       expect(sorted[0].id).toBe("tx2");
@@ -426,7 +426,7 @@ describe("Neo Multisig MiniApp", () => {
       try {
         JSON.parse(savedData);
         expect(true).toBe(false); // Should not reach here
-      } catch (e) {
+      } catch (e: unknown) {
         expect(e).toBeInstanceOf(SyntaxError);
       }
     });
@@ -643,7 +643,7 @@ describe("Neo Multisig MiniApp", () => {
       try {
         JSON.parse(saved);
         expect(true).toBe(false);
-      } catch (e) {
+      } catch (e: unknown) {
         expect(e).toBeInstanceOf(SyntaxError);
       }
     });

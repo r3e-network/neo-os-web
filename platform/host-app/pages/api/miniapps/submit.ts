@@ -3,6 +3,7 @@ import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { writeRateLimiter, withRateLimit } from "@/lib/security/ratelimit";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
 import { normalizeContracts } from "@/lib/contracts";
+import { logger } from "@/lib/logger";
 
 export interface SubmitMiniAppRequest {
   name: string;
@@ -153,7 +154,7 @@ export default withRateLimit(writeRateLimiter, async function handler(req: NextA
       submission: registry,
     });
   } catch (error) {
-    console.error("Submit error:", error);
+    logger.error("Submit error", error);
     res.status(500).json({ error: "Failed to submit MiniApp" });
   }
 });

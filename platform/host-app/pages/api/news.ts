@@ -4,6 +4,7 @@
  */
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -22,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .limit(10);
 
     if (error) {
-      console.error("News fetch error:", error);
+      logger.error("News fetch error", error);
       return res.json({ news: [] });
     }
 
@@ -37,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.json({ news });
   } catch (error) {
-    console.error("News API error:", error);
+    logger.error("News API error", error);
     return res.json({ news: [] });
   }
 }

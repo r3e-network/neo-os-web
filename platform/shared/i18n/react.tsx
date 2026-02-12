@@ -85,11 +85,7 @@ function getInterpolationValues(options?: TranslationOptions): Record<string, In
       continue;
     }
 
-    if (
-      typeof optionValue === "string" ||
-      typeof optionValue === "number" ||
-      typeof optionValue === "boolean"
-    ) {
+    if (typeof optionValue === "string" || typeof optionValue === "number" || typeof optionValue === "boolean") {
       values[optionKey] = optionValue;
     }
   }
@@ -101,9 +97,8 @@ function interpolateValue(template: string, options?: TranslationOptions): strin
   const interpolationValues = getInterpolationValues(options);
 
   return Object.entries(interpolationValues).reduce(
-    (result, [optionKey, optionValue]) =>
-      result.replace(new RegExp(`{${optionKey}}`, "g"), String(optionValue)),
-    template,
+    (result, [optionKey, optionValue]) => result.replace(new RegExp(`{${optionKey}}`, "g"), String(optionValue)),
+    template
   );
 }
 
@@ -146,8 +141,7 @@ export function createI18n<LocaleType extends string>(config: I18nConfig<LocaleT
 
     const t = useCallback(
       ((key: string, ns: TranslationNamespace = "common", options?: TranslationOptions): string | unknown => {
-        const localeTranslations =
-          config.translations[locale] ?? config.translations[config.defaultLocale];
+        const localeTranslations = config.translations[locale] ?? config.translations[config.defaultLocale];
 
         const resolvedValue = resolveNestedValue(localeTranslations?.[ns], key);
         const value = resolvedValue === undefined ? options?.defaultValue : resolvedValue;
@@ -166,7 +160,7 @@ export function createI18n<LocaleType extends string>(config: I18nConfig<LocaleT
 
         return key;
       }) as TranslationFunction,
-      [locale],
+      [locale]
     );
 
     return (
@@ -201,8 +195,9 @@ export function createI18n<LocaleType extends string>(config: I18nConfig<LocaleT
   function useTranslation(ns: TranslationNamespace = "common") {
     const { t, locale, locales: availableLocales, localeNames: availableLocaleNames, setLocale } = useI18n();
     const translate = useCallback(
-      ((key: string, options?: TranslationOptions) => (t as any)(key, ns, options)) as NamespaceTranslationFunction,
-      [t, ns],
+      ((key: string, options?: TranslationOptions) =>
+        t(key, ns, options as TranslationStringOptions)) as NamespaceTranslationFunction,
+      [t, ns]
     );
 
     return {

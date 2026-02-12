@@ -168,7 +168,7 @@ describe("Million Piece Map MiniApp", () => {
         Array.from({ length: GRID_SIZE }, (_, i) => ({
           owned: i % 7 === 0,
           owner: i % 7 === 0 ? "👤" : "",
-        })),
+        }))
       );
 
       expect(tiles.value).toHaveLength(64);
@@ -205,7 +205,7 @@ describe("Million Piece Map MiniApp", () => {
 
       try {
         throw new Error("Test error");
-      } catch (e) {
+      } catch (e: unknown) {
         isPurchasing.value = false;
       }
 

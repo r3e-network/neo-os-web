@@ -1,7 +1,7 @@
 <template>
-  <view class="opening-overlay" v-if="visible">
+  <view class="opening-overlay" v-if="visible" role="dialog" aria-modal="true" :aria-label="t('openNow')">
     <view class="envelope-stage">
-      <view class="red-packet" :class="{ 'is-opening': isOpening, 'is-shaking': !isOpening }" @click="handleOpen">
+      <view class="red-packet" role="button" tabindex="0" :aria-label="t('openNow')" :class="{ 'is-opening': isOpening, 'is-shaking': !isOpening }" @click="handleOpen">
         <view class="packet-lid"></view>
         <view class="packet-body">
           <view class="packet-seal">
@@ -61,7 +61,7 @@ import type { ClaimItem } from "@/composables/useRedEnvelopeOpen";
 
 const props = defineProps<{
   visible: boolean;
-  envelope: any;
+  envelope: Record<string, unknown>;
   claim?: ClaimItem | null;
   isConnected: boolean;
   isOpening: boolean;
@@ -97,10 +97,7 @@ const handleOpen = () => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 
-$premium-red: #c0392b;
-$premium-red-dark: #922b21;
-$gold: #f1c40f;
-$gold-dark: #d4ac0d;
+/* SCSS color vars removed — now using CSS custom properties from theme */
 
 .opening-overlay {
   position: fixed;
@@ -124,7 +121,7 @@ $gold-dark: #d4ac0d;
 .red-packet {
   width: 240px;
   height: 320px;
-  background: linear-gradient(135deg, $premium-red 0%, $premium-red-dark 100%);
+  background: linear-gradient(135deg, var(--red-envelope-accent) 0%, var(--red-envelope-base) 100%);
   border-radius: 20px;
   position: relative;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
@@ -150,7 +147,7 @@ $gold-dark: #d4ac0d;
     content: "";
     position: absolute;
     inset: 10px;
-    border: 1px solid rgba($gold, 0.3);
+    border: 1px solid var(--red-envelope-gold-border);
     border-radius: 12px;
     pointer-events: none;
   }
@@ -159,19 +156,19 @@ $gold-dark: #d4ac0d;
 .packet-seal {
   width: 80px;
   height: 80px;
-  background: radial-gradient(circle at 30% 30%, $gold, $gold-dark);
+  background: radial-gradient(circle at 30% 30%, var(--red-envelope-gold), var(--red-envelope-gold-dark));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 4px solid #fff;
+  border: 4px solid var(--red-envelope-white);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   z-index: 10;
 }
 
 .seal-text {
   font-weight: 800;
-  color: $premium-red-dark;
+  color: var(--red-envelope-base);
   text-transform: uppercase;
   font-size: 14px;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
@@ -201,7 +198,7 @@ $gold-dark: #d4ac0d;
 
 .action-btn {
   min-width: 200px;
-  box-shadow: 0 4px 15px rgba($gold, 0.2);
+  box-shadow: 0 4px 15px var(--red-envelope-gold-glow);
 }
 
 @keyframes float {

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { buildStatsHighlights, getAppHighlights, type AppHighlight } from "@/lib/app-highlights";
 import { getNeoBurgerStats } from "@/lib/neoburger";
+import { logger } from "@/lib/logger";
 
 type HighlightsResponse = { highlights: AppHighlight[] } | { error: string };
 
@@ -65,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     return res.status(200).json({ highlights: getAppHighlights(appId) });
   } catch (error) {
-    console.error("App highlights error:", error);
+    logger.error("App highlights error", error);
     return res.status(200).json({ highlights: getAppHighlights(appId) });
   }
 }

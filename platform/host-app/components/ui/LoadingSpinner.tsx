@@ -13,7 +13,9 @@ export function LoadingSpinner({ size = "md", className = "" }: LoadingSpinnerPr
   };
 
   return (
-    <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-emerald-500 ${sizeClasses[size]} ${className}`} />
+    <div
+      className={`animate-spin rounded-full border-2 border-erobo-purple/20 border-t-erobo-purple ${sizeClasses[size]} ${className}`}
+    />
   );
 }
 
@@ -24,9 +26,9 @@ interface LoadingOverlayProps {
 export function LoadingOverlay({ message = "Loading..." }: LoadingOverlayProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 flex flex-col items-center">
+      <div className="bg-white dark:bg-erobo-bg-card rounded-lg p-6 flex flex-col items-center">
         <LoadingSpinner size="lg" />
-        <p className="mt-4 text-gray-600 dark:text-gray-300">{message}</p>
+        <p className="mt-4 text-erobo-ink-soft dark:text-slate-300">{message}</p>
       </div>
     </div>
   );

@@ -86,7 +86,7 @@ const goBack = () => {
 .section-title {
   font-size: 18px;
   font-weight: 800;
-  color: var(--text-primary, #fff);
+  color: var(--text-primary);
   margin-bottom: 12px;
   display: block;
 }

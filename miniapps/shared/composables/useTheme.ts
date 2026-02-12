@@ -34,7 +34,9 @@ export function useTheme(initialTheme?: ThemeMode) {
       if (stored === "dark" || stored === "light" || stored === "auto") {
         return stored;
       }
-    } catch {}
+    } catch {
+      /* localStorage unavailable (SSR or restricted context) */
+    }
     return initialTheme || "auto";
   };
 
@@ -67,7 +69,9 @@ export function useTheme(initialTheme?: ThemeMode) {
     theme.value = newTheme;
     try {
       localStorage.setItem("miniapp-theme", newTheme);
-    } catch {}
+    } catch {
+      /* localStorage unavailable (SSR or restricted context) */
+    }
     applyTheme(newTheme);
   };
 

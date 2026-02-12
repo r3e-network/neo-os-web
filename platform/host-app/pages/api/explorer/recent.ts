@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getChainRpcUrl } from "@/lib/chains/rpc-functions";
 import { getChainRegistry } from "@/lib/chains/registry";
 import type { ChainId, ChainConfig } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 interface Transaction {
   hash: string;
@@ -75,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
   } catch (err) {
-    console.warn("Indexer fetch failed, falling back to RPC:", err);
+    logger.warn("Indexer fetch failed, falling back to RPC", err);
   }
 
   // 2. Fallback to RPC if no transactions found yet
@@ -83,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       transactions = await fetchRecentTxsFromRPC(chainConfig, limit);
     } catch (rpcErr) {
-      console.error("RPC fetch failed:", rpcErr);
+      logger.error("RPC fetch failed", rpcErr);
     }
   }
 

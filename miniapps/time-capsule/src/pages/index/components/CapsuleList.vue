@@ -1,6 +1,5 @@
 <template>
   <NeoCard variant="erobo">
-
     <view v-if="capsules.length === 0" class="empty-state">
       <view class="empty-icon"><AppIcon name="archive" :size="64" class="text-secondary" /></view>
       <text class="empty-text">{{ t("noCapsules") }}</text>
@@ -83,7 +82,7 @@ export interface Capsule {
 const props = defineProps<{
   capsules: Capsule[];
   currentTime: number;
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["open"]);
@@ -166,7 +165,7 @@ const getCountdown = (unlockTime: number) => {
     border-color: var(--text-muted);
   }
   &.unlocked {
-    border-color: #00E599;
+    border-color: var(--capsule-success);
     background: rgba(0, 229, 153, 0.05);
     box-shadow: 0 0 15px rgba(0, 229, 153, 0.15);
   }
@@ -192,12 +191,15 @@ const getCountdown = (unlockTime: number) => {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   position: relative;
   overflow: hidden;
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%);
     pointer-events: none;
   }
 }
@@ -278,7 +280,7 @@ const getCountdown = (unlockTime: number) => {
 .unlocked-label {
   font-size: 14px;
   font-weight: 700;
-  color: #00E599;
+  color: var(--capsule-success);
   text-transform: uppercase;
   margin-bottom: 8px;
   text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);

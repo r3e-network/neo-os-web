@@ -1,10 +1,12 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
+import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { sha256Hex } from "@shared/utils/hash";
 import { requireNeoChain } from "@shared/utils/chain";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Capsule } from "../pages/index/components/CapsuleList.vue";
 
 const APP_ID = "miniapp-time-capsule";
@@ -28,7 +30,7 @@ export function useCapsuleCreation() {
 
   const contractAddress = ref<string | null>(null);
   const isProcessing = ref(false);
-  const status = ref<{ msg: string; type: string } | null>(null);
+  const { status, setStatus, clearStatus } = useStatusMessage();
 
   const newCapsule = ref<CapsuleFormData>({
     title: "",
@@ -70,7 +72,7 @@ export function useCapsuleCreation() {
       store[hash] = content;
       uni.setStorageSync(CONTENT_STORE_KEY, JSON.stringify(store));
     } catch {
-      // ignore
+      /* Local storage write is non-critical */
     }
   };
 
@@ -78,7 +80,7 @@ export function useCapsuleCreation() {
     if (isBusy.value || !canCreate.value) return;
 
     try {
-      status.value = { msg: t("creatingCapsule"), type: "loading" };
+      setStatus(t("creatingCapsule"), "loading");
       isProcessing.value = true;
 
       if (!address.value) {
@@ -89,7 +91,10 @@ export function useCapsuleCreation() {
       }
 
       const contract = await ensureContractAddress();
-      const { receiptId, invoke: invokeWithReceipt } = await processPayment(BURY_FEE, `time-capsule:bury:${Date.now()}`);
+      const { receiptId, invoke: invokeWithReceipt } = await processPayment(
+        BURY_FEE,
+        `time-capsule:bury:${Date.now()}`
+      );
 
       const daysValue = Number.parseInt(newCapsule.value.days, 10);
       if (!Number.isFinite(daysValue) || daysValue < MIN_LOCK_DAYS || daysValue > MAX_LOCK_DAYS) {
@@ -114,11 +119,11 @@ export function useCapsuleCreation() {
 
       saveLocalContent(contentHash, content);
 
-      status.value = { msg: t("capsuleCreated"), type: "success" };
+      setStatus(t("capsuleCreated"), "success");
       newCapsule.value = { title: "", content: "", days: "30", isPublic: false, category: 1 };
       onSuccess?.();
-    } catch (e: any) {
-      status.value = { msg: e.message || t("error"), type: "error" };
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isProcessing.value = false;
     }

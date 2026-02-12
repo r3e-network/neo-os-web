@@ -7,6 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
 import { normalizeContracts } from "@/lib/contracts";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!supabaseAdmin) {
@@ -53,7 +54,7 @@ async function handleGet(db: SupabaseClient, res: NextApiResponse, appId: string
 
     return res.status(200).json({ app: data });
   } catch (error) {
-    console.error("Get app error:", error);
+    logger.error("Get app error", error);
     return res.status(500).json({ error: "Failed to get app" });
   }
 }
@@ -112,7 +113,7 @@ async function handleUpdate(
 
     return res.status(200).json({ app: data });
   } catch (error) {
-    console.error("Update app error:", error);
+    logger.error("Update app error", error);
     return res.status(500).json({ error: "Failed to update app" });
   }
 }
@@ -129,7 +130,7 @@ async function handleDelete(db: SupabaseClient, res: NextApiResponse, appId: str
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Delete app error:", error);
+    logger.error("Delete app error", error);
     return res.status(500).json({ error: "Failed to delete app" });
   }
 }

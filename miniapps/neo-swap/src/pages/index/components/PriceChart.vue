@@ -12,15 +12,15 @@
       <text class="rate-label">{{ t("minReceived") }}</text>
       <text class="rate-value">{{ minReceived }} {{ toSymbol }}</text>
     </view>
-    <view class="refresh-btn" @click="$emit('refresh')">
-      <text class="refresh-icon">↻</text>
+    <view class="refresh-btn" role="button" :aria-label="t('refreshRate')" tabindex="0" @click="$emit('refresh')" @keydown.enter="$emit('refresh')">
+      <text class="refresh-icon" aria-hidden="true">↻</text>
       {{ t("refreshRate") }}
     </view>
   </view>
   <view class="rate-card loading" v-else>
     <text class="rate-loading-text">{{ loading ? t('loadingRate') : t('rateUnavailable') }}</text>
-    <view class="refresh-btn" @click="$emit('refresh')">
-      <text class="refresh-icon">↻</text>
+    <view class="refresh-btn" role="button" :aria-label="t('refreshRate')" tabindex="0" @click="$emit('refresh')" @keydown.enter="$emit('refresh')">
+      <text class="refresh-icon" aria-hidden="true">↻</text>
       {{ t("refreshRate") }}
     </view>
   </view>

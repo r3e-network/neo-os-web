@@ -9,7 +9,7 @@
       <view class="machine-stats">
         <text>{{ t("categoryLabel") }}: {{ machine.category || t("general") }}</text>
         <text>{{ t("playsLabel") }}: {{ machine.plays ?? 0 }}</text>
-        <text>{{ t("revenueLabel") }}: {{ machine.revenue || '0' }} GAS</text>
+        <text>{{ t("revenueLabel") }}: {{ machine.revenue || "0" }} GAS</text>
       </view>
     </NeoCard>
 
@@ -36,7 +36,7 @@
           </view>
         </view>
         <view class="machine-body">
-          <view class="coin-slot" :class="{ 'pulse': !isPlaying }">
+          <view class="coin-slot" :class="{ pulse: !isPlaying }">
             <text class="slot-text">{{ t("playLabel") }} {{ machine.price }} GAS</text>
           </view>
           <view class="dispenser-chute">
@@ -44,12 +44,12 @@
           </view>
         </view>
       </view>
-      
+
       <view class="machine-controls">
-        <NeoButton 
-          variant="primary" 
-          size="lg" 
-          block 
+        <NeoButton
+          variant="primary"
+          size="lg"
+          block
           :loading="isPlaying"
           :disabled="!machine.active || !machine.inventoryReady"
           @click="$emit('play')"
@@ -57,13 +57,7 @@
         >
           {{ isPlaying ? t("rolling") : t("playNow") }}
         </NeoButton>
-        <NeoButton 
-          variant="secondary" 
-          size="sm" 
-          block 
-          @click="$emit('back')"
-          class="back-btn"
-        >
+        <NeoButton variant="secondary" size="sm" block @click="$emit('back')" class="back-btn">
           {{ t("backToMarket") }}
         </NeoButton>
       </view>
@@ -81,7 +75,7 @@
       <view v-else class="odds-list">
         <view v-for="(item, idx) in items" :key="idx" class="odds-row">
           <view class="item-info">
-            <text class="item-icon">{{ item.icon || '🎁' }}</text>
+            <text class="item-icon">{{ item.icon || "🎁" }}</text>
             <view class="item-text">
               <text class="item-name">{{ item.name }}</text>
               <text class="item-meta">{{ formatMeta(item) }}</text>
@@ -95,7 +89,7 @@
 
     <NeoModal :visible="showResult" :title="t('congratulations')" @close="$emit('close-result')">
       <view class="result-content">
-        <view class="result-icon-lg">{{ resultItem?.icon || '🎁' }}</view>
+        <view class="result-icon-lg">{{ resultItem?.icon || "🎁" }}</view>
         <text class="result-name">{{ resultItem?.name }}</text>
         <text class="result-rarity">{{ resultItem?.rarity || t("prizeLabel") }}</text>
         <NeoButton block variant="primary" @click="$emit('close-result')" class="mt-4">
@@ -112,15 +106,15 @@ import { NeoCard, NeoButton, NeoModal } from "@shared/components";
 import { useI18n } from "@/composables/useI18n";
 
 const props = defineProps<{
-  machine: any;
+  machine: Record<string, unknown>;
   isPlaying: boolean;
   showResult: boolean;
-  resultItem: any | null;
+  resultItem: Record<string, unknown> | null;
   isOwner?: boolean;
   errorMessage?: string | null;
 }>();
 
-defineEmits(['back', 'play', 'close-result', 'buy']);
+defineEmits(["back", "play", "close-result", "buy"]);
 
 const { t } = useI18n();
 
@@ -129,13 +123,13 @@ const getCapsuleStyle = (i: number) => {
     left: `${Math.random() * 60 + 20}%`,
     top: `${Math.random() * 60 + 20}%`,
     transform: `rotate(${Math.random() * 360}deg)`,
-    animationDelay: `${Math.random() * 2}s`
+    animationDelay: `${Math.random() * 2}s`,
   };
 };
 const items = computed(() => (Array.isArray(props.machine?.items) ? props.machine.items : []));
 const tagList = computed(() => (Array.isArray(props.machine?.tagsList) ? props.machine.tagsList : []));
 
-const formatMeta = (item: any) => {
+const formatMeta = (item: Record<string, unknown>) => {
   const prizeLabel = t("prizeLabel");
   const rarity = item?.rarity ? String(item.rarity).toUpperCase() : prizeLabel.toUpperCase();
   const assetType = Number(item?.assetType || 0);
@@ -268,7 +262,7 @@ const formatMeta = (item: any) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &.pulse {
     animation: glow-pulse 2s infinite;
   }
@@ -411,15 +405,34 @@ const formatMeta = (item: any) => {
 }
 
 @keyframes drop-bounce {
-  0% { top: -50px; opacity: 0; }
-  60% { top: 10px; opacity: 1; }
-  80% { top: 0px; }
-  100% { top: 10px; }
+  0% {
+    top: -50px;
+    opacity: 0;
+  }
+  60% {
+    top: 10px;
+    opacity: 1;
+  }
+  80% {
+    top: 0px;
+  }
+  100% {
+    top: 10px;
+  }
 }
 
 @keyframes glow-pulse {
-  0% { border-color: var(--gacha-slot-border); box-shadow: none; }
-  50% { border-color: var(--gacha-glow-border); box-shadow: var(--gacha-glow-shadow); }
-  100% { border-color: var(--gacha-slot-border); box-shadow: none; }
+  0% {
+    border-color: var(--gacha-slot-border);
+    box-shadow: none;
+  }
+  50% {
+    border-color: var(--gacha-glow-border);
+    box-shadow: var(--gacha-glow-shadow);
+  }
+  100% {
+    border-color: var(--gacha-slot-border);
+    box-shadow: none;
+  }
 }
 </style>

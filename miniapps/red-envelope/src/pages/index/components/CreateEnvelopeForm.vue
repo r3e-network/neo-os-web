@@ -119,10 +119,6 @@ defineEmits([
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-$gold: #f1c40f;
-$gold-dark: #d4ac0d;
-$premium-red-dark: #922b21;
-
 .type-selector {
   display: flex;
   gap: 8px;
@@ -133,7 +129,7 @@ $premium-red-dark: #922b21;
   flex: 1;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba($gold, 0.3);
+  border: 1px solid var(--red-envelope-gold-border);
   background: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
@@ -142,10 +138,10 @@ $premium-red-dark: #922b21;
   transition: all 0.2s;
 
   &.active {
-    background: linear-gradient(135deg, $gold 0%, $gold-dark 100%);
-    color: $premium-red-dark;
-    border-color: $gold;
-    box-shadow: 0 2px 8px rgba($gold-dark, 0.3);
+    background: linear-gradient(135deg, var(--envelope-gold) 0%, var(--envelope-gold-dark) 100%);
+    color: var(--envelope-premium-red-dark);
+    border-color: var(--envelope-gold);
+    box-shadow: 0 2px 8px var(--red-envelope-gold-glow);
   }
 }
 
@@ -154,7 +150,7 @@ $premium-red-dark: #922b21;
   padding: 12px 16px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 10px;
-  border: 1px solid rgba($gold, 0.15);
+  border: 1px solid var(--red-envelope-gold-glow);
   text-align: center;
 }
 
@@ -169,7 +165,7 @@ $premium-red-dark: #922b21;
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: $gold;
+  color: var(--envelope-gold);
   letter-spacing: 0.02em;
 }
 
@@ -187,13 +183,13 @@ $premium-red-dark: #922b21;
   padding: 16px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  border: 1px solid rgba($gold, 0.2);
+  border: 1px solid var(--red-envelope-gold-glow);
 }
 
 .section-label {
   font-size: 12px;
   font-weight: 600;
-  color: $gold;
+  color: var(--envelope-gold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -201,22 +197,22 @@ $premium-red-dark: #922b21;
 :deep(.neo-input) {
   background: rgba(255, 255, 255, 0.9) !important;
   border-color: transparent !important;
-  color: $premium-red-dark !important;
+  color: var(--envelope-premium-red-dark) !important;
 
   &:focus-within {
-    border-color: $gold !important;
-    box-shadow: 0 0 0 2px rgba($gold, 0.3) !important;
+    border-color: var(--envelope-gold) !important;
+    box-shadow: 0 0 0 2px var(--red-envelope-gold-border) !important;
   }
 }
 
 .send-button {
-  background: linear-gradient(135deg, $gold 0%, $gold-dark 100%) !important;
+  background: linear-gradient(135deg, var(--envelope-gold) 0%, var(--envelope-gold-dark) 100%) !important;
   border: none !important;
-  box-shadow: 0 4px 15px rgba($gold-dark, 0.4) !important;
+  box-shadow: 0 4px 15px var(--red-envelope-gold-glow) !important;
 
   &:active {
     transform: translateY(2px);
-    box-shadow: 0 2px 10px rgba($gold-dark, 0.3) !important;
+    box-shadow: 0 2px 10px var(--red-envelope-gold-glow) !important;
   }
 }
 
@@ -225,7 +221,7 @@ $premium-red-dark: #922b21;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: $premium-red-dark; /* Contrast text on gold button */
+  color: var(--envelope-premium-red-dark); /* Contrast text on gold button */
 }
 
 .button-text {
@@ -234,6 +230,6 @@ $premium-red-dark: #922b21;
   font-family: $font-family;
   letter-spacing: 0.05em;
   font-size: 16px;
-  color: $premium-red-dark;
+  color: var(--envelope-premium-red-dark);
 }
 </style>

@@ -8,6 +8,10 @@
           :key="cat.id"
           class="category-chip"
           :class="{ active: selectedCategory === cat.id }"
+          role="button"
+          tabindex="0"
+          :aria-label="cat.label"
+          :aria-pressed="selectedCategory === cat.id"
           @click="$emit('selectCategory', cat.id)"
         >
           <text>{{ cat.label }}</text>
@@ -18,9 +22,9 @@
     <view class="content-card">
       <view class="card-header">
         <text class="card-title">{{ t("activeMarkets") }}</text>
-        <view class="sort-dropdown" @click="$emit('toggleSort')">
+        <view class="sort-dropdown" role="button" tabindex="0" :aria-label="t('sortBy') || 'Sort'" @click="$emit('toggleSort')">
           <text>{{ sortLabel }}</text>
-          <text class="chevron">▼</text>
+          <text class="chevron" aria-hidden="true">▼</text>
         </view>
       </view>
       
@@ -50,12 +54,7 @@
 
 <script setup lang="ts">
 import MarketCard from "./MarketCard.vue";
-import type { PredictionMarket } from "../composables/usePredictionMarkets";
-
-interface Category {
-  id: string;
-  label: string;
-}
+import type { PredictionMarket, Category } from "@/types";
 
 interface Props {
   markets: PredictionMarket[];

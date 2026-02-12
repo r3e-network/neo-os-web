@@ -72,7 +72,7 @@ test.describe("Theme Debug", () => {
         };
       });
       console.log("Iframe CSS Variables:", JSON.stringify(cssVars, null, 2));
-    } catch (e) {
+    } catch (e: unknown) {
       console.log("Could not access iframe content:", e);
     }
 

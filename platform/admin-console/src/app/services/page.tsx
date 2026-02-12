@@ -17,8 +17,8 @@ export default function ServicesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Services</h1>
-        <p className="text-gray-600">Monitor service health and status</p>
+        <h1 className="text-2xl font-bold text-foreground">Services</h1>
+        <p className="text-muted-foreground">Monitor service health and status</p>
       </div>
 
       <Card>
@@ -30,6 +30,8 @@ export default function ServicesPage() {
             <Spinner />
           ) : error ? (
             <div className="text-center text-danger-600">Failed to load services</div>
+          ) : !services?.length ? (
+            <div className="text-muted-foreground py-8 text-center">No services configured</div>
           ) : (
             <Table>
               <TableHeader>
@@ -43,7 +45,7 @@ export default function ServicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {services?.map((service) => (
+                {services.map((service) => (
                   <TableRow key={service.name}>
                     <TableCell className="font-medium">{service.name}</TableCell>
                     <TableCell>
@@ -59,9 +61,11 @@ export default function ServicesPage() {
                         {service.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-gray-500">{service.url}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{service.url}</TableCell>
                     <TableCell>{service.version || "N/A"}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{formatRelativeTime(service.lastCheck)}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {formatRelativeTime(service.lastCheck)}
+                    </TableCell>
                     <TableCell className="text-sm text-danger-600">{service.error || "-"}</TableCell>
                   </TableRow>
                 ))}

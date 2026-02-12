@@ -16,7 +16,7 @@ const CHAIN_DISPLAY: Record<ChainId, { name: string; icon: string; color: string
 /** Get chain display info with fallback */
 function getChainDisplay(chainId?: ChainId) {
   if (!chainId) return { name: "Neo N3", icon: "/chains/neo.svg", color: "text-neo" };
-  return CHAIN_DISPLAY[chainId] || { name: chainId, icon: "/chains/neo.svg", color: "text-gray-500" };
+  return CHAIN_DISPLAY[chainId] || { name: chainId, icon: "/chains/neo.svg", color: "text-erobo-ink-soft" };
 }
 
 interface LinkedNeoAccountsListProps {
@@ -68,7 +68,7 @@ export function LinkedNeoAccountsList({
   ];
 
   if (allAccounts.length === 0) {
-    return <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t("account.neohub.noNeoAccounts")}</div>;
+    return <div className="text-center py-8 text-erobo-ink-soft dark:text-slate-400">{t("account.neohub.noNeoAccounts")}</div>;
   }
 
   return (
@@ -78,21 +78,21 @@ export function LinkedNeoAccountsList({
         return (
           <div
             key={account.id}
-            className="flex items-center justify-between p-4 border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
+            className="flex items-center justify-between p-4 border border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-white/5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
           >
             <div className="flex items-center gap-4">
               {/* Chain Icon */}
               <div className="relative">
-                <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10">
+                <div className="w-10 h-10 flex items-center justify-center rounded-full bg-erobo-purple/10 dark:bg-white/10">
                   <img src={chainDisplay.icon} alt={chainDisplay.name} className="w-6 h-6" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10">
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full bg-white dark:bg-erobo-bg-dark border border-erobo-purple/10 dark:border-white/10">
                   <Wallet size={10} className={chainDisplay.color} />
                 </div>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                  <span className="font-mono text-sm font-bold text-erobo-ink dark:text-white">
                     {truncateAddress(account.address)}
                   </span>
                   {account.isPrimary && (
@@ -102,7 +102,7 @@ export function LinkedNeoAccountsList({
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 mt-0.5">
+                <div className="flex items-center gap-2 text-xs font-medium text-erobo-ink-soft dark:text-slate-400 mt-0.5">
                   <span className={chainDisplay.color}>{chainDisplay.name}</span>
                   <span>•</span>
                   <span>Linked {new Date(account.linkedAt).toLocaleDateString(locale)}</span>
@@ -115,7 +115,7 @@ export function LinkedNeoAccountsList({
                 variant="ghost"
                 size="sm"
                 onClick={() => copyAddress(account.id, account.address)}
-                className="text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg transition-colors"
+                className="text-erobo-ink-soft/60 hover:text-erobo-ink dark:hover:text-white rounded-lg transition-colors"
                 title="Copy address"
               >
                 {copiedId === account.id ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
@@ -126,7 +126,7 @@ export function LinkedNeoAccountsList({
                   variant="ghost"
                   size="sm"
                   onClick={() => setUnlinkingId(account.id)}
-                  className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                  className="text-erobo-ink-soft/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
                   title="Unlink wallet"
                 >
                   <Trash2 size={16} />
@@ -141,7 +141,7 @@ export function LinkedNeoAccountsList({
         <Button
           variant="outline"
           onClick={onAddNew}
-          className="w-full mt-4 border-dashed border-gray-300 dark:border-white/20 hover:border-neo hover:text-neo dark:hover:text-neo hover:bg-neo/5"
+          className="w-full mt-4 border-dashed border-erobo-purple/15 dark:border-white/20 hover:border-neo hover:text-neo dark:hover:text-neo hover:bg-neo/5"
         >
           <Plus size={16} className="mr-2" />
           {t("account.neohub.linkNew")}

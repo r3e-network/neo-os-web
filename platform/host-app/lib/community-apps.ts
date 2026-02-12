@@ -1,6 +1,7 @@
 import type { MiniAppInfo } from "@/components/types";
 import type { ChainId } from "@/lib/chains/types";
 import { supabase, supabaseAdmin, isSupabaseConfigured } from "./supabase";
+import { logger } from "@/lib/logger";
 
 export type RegistryStatusFilter = "published" | "approved" | "pending_review" | "draft" | "all" | "active" | "pending";
 
@@ -144,7 +145,7 @@ export async function fetchCommunityApps(options?: {
 
   const { data: registryRows, error: registryError } = await registryQuery;
   if (registryError || !registryRows) {
-    console.warn("Community registry query error:", registryError?.message || registryError);
+    logger.warn("Community registry query error:", registryError?.message || registryError);
     return [];
   }
 
@@ -159,7 +160,7 @@ export async function fetchCommunityApps(options?: {
     .order("version_code", { ascending: false });
 
   if (versionError) {
-    console.warn("Community versions query error:", versionError.message || versionError);
+    logger.warn("Community versions query error:", versionError.message || versionError);
   }
 
   const versionsByApp = new Map<string, VersionRow[]>();

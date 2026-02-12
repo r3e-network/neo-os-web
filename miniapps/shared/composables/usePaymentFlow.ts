@@ -24,8 +24,8 @@ export interface PaymentFlowOptions {
 }
 
 export function usePaymentFlow(appId: string, options?: PaymentFlowOptions) {
-  const { payGAS } = usePayments();
-  const { address, connect, invokeContract } = useWallet() as any;
+  const { payGAS } = usePayments(appId);
+  const { address, connect, invokeContract } = useWallet();
   const { list: listEvents } = useEvents();
 
   const isProcessing = ref(false);
@@ -89,7 +89,7 @@ export function usePaymentFlow(appId: string, options?: PaymentFlowOptions) {
             });
             return result.events || [];
           },
-          (event) => event.tx_hash === txid,
+          (event: { tx_hash?: string }) => event.tx_hash === txid,
           {
             timeoutMs,
             errorMessage: `Event "${eventName}" not found for transaction ${txid}`,

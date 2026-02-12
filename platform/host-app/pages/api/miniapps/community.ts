@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { fetchCommunityApps, type RegistryStatusFilter } from "@/lib/community-apps";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -13,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ apps });
   } catch (error) {
     // Return empty array on any error
-    console.warn("Fetch community apps error:", error);
+    logger.warn("Fetch community apps error", error);
     res.status(200).json({ apps: [] });
   }
 }

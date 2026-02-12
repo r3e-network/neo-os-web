@@ -85,13 +85,14 @@ export async function handler(req: Request): Promise<Response> {
   try {
     const balanceStr = await getGasBalance(walletCheck.address);
     gasBalance = parseFloat(balanceStr);
-  } catch (e) {
+  } catch (e: unknown) {
     // Rollback quota claim on failure
     await supabase.rpc("gas_sponsor_rollback_claim", {
       p_user_id: auth.userId,
       p_amount: amount,
     });
-    return errorResponse("SERVER_001", { message: `failed to query balance: ${(e as Error).message}` }, req);
+    const message = e instanceof Error ? e.message : String(e);
+    return errorResponse("SERVER_001", { message: `failed to query balance: ${message}` }, req);
   }
 
   if (gasBalance >= ELIGIBILITY_THRESHOLD) {
@@ -129,14 +130,15 @@ export async function handler(req: Request): Promise<Response> {
 
     // Update request status
     await supabase.from("gas_sponsor_requests").update({ status: "completed", tx_hash: txHash }).eq("id", requestId);
-  } catch (e) {
+  } catch (e: unknown) {
     // Update request as failed (but quota already consumed - this is intentional to prevent abuse)
+    const message = e instanceof Error ? e.message : String(e);
     await supabase
       .from("gas_sponsor_requests")
-      .update({ status: "failed", error_message: (e as Error).message })
+      .update({ status: "failed", error_message: message })
       .eq("id", requestId);
 
-    return errorResponse("SERVER_001", { message: `transfer failed: ${(e as Error).message}` }, req);
+    return errorResponse("SERVER_001", { message: `transfer failed: ${message}` }, req);
   }
 
   return json(

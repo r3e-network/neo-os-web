@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { ArrowLeft, X, Share2, Globe, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WalletState } from "./types";
@@ -42,13 +42,13 @@ export function LaunchDock({
       <div className="flex items-center gap-2">
         <button
           onClick={onBack}
-          className="p-2 text-erobo-ink dark:text-gray-200 hover:bg-erobo-peach/30 dark:hover:bg-white/10 rounded-full transition-all"
+          className="p-2 text-erobo-ink dark:text-slate-200 hover:bg-erobo-peach/30 dark:hover:bg-white/10 rounded-full transition-all"
         >
           <ArrowLeft size={20} />
         </button>
         <div className="flex items-center gap-2 px-3 py-1 bg-white/70 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">
           <Globe size={14} className="text-erobo-purple" />
-          <div className="text-xs font-bold uppercase tracking-wide truncate max-w-[120px] md:max-w-xs text-erobo-ink dark:text-gray-100">
+          <div className="text-xs font-bold uppercase tracking-wide truncate max-w-[120px] md:max-w-xs text-erobo-ink dark:text-slate-100">
             {appName}
           </div>
         </div>
@@ -62,14 +62,14 @@ export function LaunchDock({
 
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/70 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">
           <div className={cn("w-1.5 h-1.5 rounded-full", walletDotColor)} />
-          <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-erobo-ink-soft/70 dark:text-gray-300">
+          <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-erobo-ink-soft/70 dark:text-slate-300">
             {walletDisplay}
           </span>
         </div>
 
         <div className="flex items-center gap-2 px-3 py-1.5 bg-white/70 dark:bg-white/5 rounded-full border border-white/60 dark:border-white/10">
           <Activity size={12} className={cn("", networkStatus.color)} />
-          <span className="text-[10px] font-bold font-mono uppercase tracking-wide text-erobo-ink-soft/70 dark:text-gray-300">
+          <span className="text-[10px] font-bold font-mono uppercase tracking-wide text-erobo-ink-soft/70 dark:text-slate-300">
             {networkLatency !== null ? `${networkLatency}ms` : networkStatus.label}
           </span>
         </div>
@@ -78,7 +78,7 @@ export function LaunchDock({
           <button
             onClick={onShare}
             title="Copy share link"
-            className="p-2 text-erobo-ink-soft dark:text-gray-300 hover:text-erobo-purple hover:bg-erobo-purple/10 rounded-full transition-all"
+            className="p-2 text-erobo-ink-soft dark:text-slate-300 hover:text-erobo-purple hover:bg-erobo-purple/10 rounded-full transition-all"
           >
             <Share2 size={18} />
           </button>
@@ -86,7 +86,7 @@ export function LaunchDock({
           <button
             onClick={onExit}
             title="Exit (ESC)"
-            className="p-2 text-erobo-ink-soft dark:text-gray-300 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"
+            className="p-2 text-erobo-ink-soft dark:text-slate-300 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"
           >
             <X size={20} />
           </button>

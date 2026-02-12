@@ -162,11 +162,12 @@ const base64ToBytes = (value: unknown) => {
   const raw = String(value ?? "").trim();
   if (!raw) return new Uint8Array();
   const normalized = raw.replace(/[\r\n\s]/g, "");
-  const bufferRef = (globalThis as any)?.Buffer;
+  const g = globalThis as unknown as Record<string, unknown>;
+  const bufferRef = g?.Buffer as { from: (s: string, e: string) => { toString: (e: string) => string } } | undefined;
   if (bufferRef?.from) {
     return Uint8Array.from(bufferRef.from(normalized, "base64"));
   }
-  const atobRef = (globalThis as any)?.atob;
+  const atobRef = g?.atob as ((s: string) => string) | undefined;
   if (typeof atobRef === "function") {
     const binary = atobRef(normalized);
     const bytes = new Uint8Array(binary.length);
@@ -222,7 +223,10 @@ const base58Encode = (bytes: Uint8Array): string => {
       break;
     }
   }
-  return digits.reverse().map((digit) => BASE58_ALPHABET[digit]).join("");
+  return digits
+    .reverse()
+    .map((digit) => BASE58_ALPHABET[digit])
+    .join("");
 };
 
 const base58CheckEncode = (payload: Uint8Array) => {
@@ -254,7 +258,7 @@ const publicKeyToScriptHash = (publicKey: string) => {
   return reverseHex(bytesToHex(ripe));
 };
 
-const decodeCandidateInfoEntry = (entry: any): CandidateInfo | null => {
+const decodeCandidateInfoEntry = (entry: Record<string, unknown>): CandidateInfo | null => {
   const values = Array.isArray(entry?.value) ? entry.value : Array.isArray(entry) ? entry : null;
   if (!values || values.length === 0) return null;
 
@@ -298,7 +302,8 @@ const parseCandidateInfoPayload = (payload: unknown): CandidateInfo[] => {
   const response = payload as { stack?: unknown[]; result?: { stack?: unknown[] } };
   const stack = response.stack || response.result?.stack || [];
   if (!Array.isArray(stack) || stack.length === 0) return [];
-  const rootValue = (stack[0] as any)?.value ?? [];
+  const firstItem = stack[0] as Record<string, unknown> | undefined;
+  const rootValue = firstItem?.value ?? [];
   if (!Array.isArray(rootValue)) return [];
 
   const infos: CandidateInfo[] = [];
@@ -311,8 +316,9 @@ const parseCandidateInfoPayload = (payload: unknown): CandidateInfo[] => {
 
 const parseCommitteeList = (payload: unknown) => {
   if (Array.isArray(payload)) return payload;
-  if (payload && typeof payload === "object" && Array.isArray((payload as any).committee)) {
-    return (payload as any).committee;
+  const payloadRecord = payload as Record<string, unknown>;
+  if (payloadRecord && typeof payloadRecord === "object" && Array.isArray(payloadRecord.committee)) {
+    return payloadRecord.committee;
   }
   return [] as unknown[];
 };
@@ -333,15 +339,15 @@ const normalizeCandidateActive = (value: unknown, fallback: boolean) => {
 };
 
 export const fetchCandidates = async (
-  chain: "neo-n3-mainnet" | "neo-n3-testnet",
+  chain: "neo-n3-mainnet" | "neo-n3-testnet"
 ): Promise<GovernanceCandidatesResponse> => {
   const network: GovernanceNetwork = chain === "neo-n3-testnet" ? "testnet" : "mainnet";
   const config = GOVERNANCE_RPC[network];
 
   const [heightResult, candidatesResult, committeeResult, infoResult] = await Promise.allSettled([
     rpcRequest<Record<string, unknown>>(config.rpcUrl, "getstateheight"),
-    rpcRequest<any[]>(config.rpcUrl, "getcandidates"),
-    rpcRequest<any[]>(config.rpcUrl, "getcommittee"),
+    rpcRequest<Record<string, unknown>[]>(config.rpcUrl, "getcandidates"),
+    rpcRequest<Record<string, unknown>[]>(config.rpcUrl, "getcommittee"),
     rpcRequest<Record<string, unknown>>(config.rpcUrl, "invokefunction", [
       config.committeeInfoContract,
       "getAllInfo",

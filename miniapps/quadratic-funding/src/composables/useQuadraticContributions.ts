@@ -4,6 +4,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "./useI18n";
 import { requireNeoChain } from "@shared/utils/chain";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { RoundItem } from "../pages/index/components/RoundList.vue";
 import type { ProjectItem } from "../pages/index/components/ProjectList.vue";
 
@@ -88,8 +89,8 @@ export function useQuadraticContributions(
       setStatus(t("contributionSent"), "success");
       await refreshProjects();
       await refreshRounds();
-    } catch (e: any) {
-      setStatus(e.message || t("contractMissing"), "error");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isContributing.value = false;
     }

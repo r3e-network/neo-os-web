@@ -51,7 +51,7 @@ defineProps<{
   position: absolute;
   top: 0; left: 0; right: 0; height: 2px;
   background: rgba(0, 229, 153, 0.5);
-  box-shadow: 0 0 10px #00e599;
+  box-shadow: 0 0 10px var(--ops-success);
   animation: scan 3s linear infinite;
   opacity: 0.3;
   z-index: 0;
@@ -79,9 +79,9 @@ defineProps<{
   border-radius: 50%;
   animation: spin-slow 10s linear infinite;
   
-  &.level-critical { border-color: #ef4444; }
-  &.level-high { border-color: #f59e0b; }
-  &.level-medium { border-color: #00e599; }
+  &.level-critical { border-color: var(--ops-danger); }
+  &.level-high { border-color: var(--ops-warning); }
+  &.level-medium { border-color: var(--ops-success); }
 }
 
 .shield-pulse {
@@ -92,9 +92,9 @@ defineProps<{
   opacity: 0.2;
   animation: pulse 2s infinite;
   
-  &.level-critical { color: #ef4444; }
-  &.level-high { color: #f59e0b; }
-  &.level-medium { color: #00e599; }
+  &.level-critical { color: var(--ops-danger); }
+  &.level-high { color: var(--ops-warning); }
+  &.level-medium { color: var(--ops-success); }
   &.level-low { color: transparent; }
 }
 
@@ -114,9 +114,9 @@ defineProps<{
   text-transform: uppercase;
   letter-spacing: 0.05em;
   
-  &.level-critical { color: #ef4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
-  &.level-high { color: #f59e0b; text-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
-  &.level-medium { color: #00e599; text-shadow: 0 0 20px rgba(0, 229, 153, 0.4); }
+  &.level-critical { color: var(--ops-danger); text-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+  &.level-high { color: var(--ops-warning); text-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+  &.level-medium { color: var(--ops-success); text-shadow: 0 0 20px rgba(0, 229, 153, 0.4); }
 }
 
 .security-meter-glass {
@@ -135,9 +135,9 @@ defineProps<{
   position: relative;
   transition: width 0.5s ease-out;
   
-  &.level-critical { background: linear-gradient(90deg, #b91c1c, #ef4444); }
-  &.level-high { background: linear-gradient(90deg, #b45309, #f59e0b); }
-  &.level-medium { background: linear-gradient(90deg, #059669, #00e599); }
+  &.level-critical { background: linear-gradient(90deg, var(--ops-danger-deep), var(--ops-danger)); }
+  &.level-high { background: linear-gradient(90deg, var(--ops-warning-deep), var(--ops-warning)); }
+  &.level-medium { background: linear-gradient(90deg, var(--ops-success-deep), var(--ops-success)); }
   &.level-low { background: rgba(255, 255, 255, 0.2); }
 }
 

@@ -3,6 +3,7 @@ import type { RegisterTaskRequest, RegisterTaskResponse } from "@/lib/db/types";
 import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { requireWalletAuth } from "@/lib/security/wallet-auth";
 import { writeRateLimiter, withRateLimit } from "@/lib/security/ratelimit";
+import { logger } from "@/lib/logger";
 
 export default withRateLimit(
   writeRateLimiter,
@@ -61,7 +62,7 @@ export default withRateLimit(
 
       return res.status(200).json({ success: true, taskId: task?.id });
     } catch (error) {
-      console.error("[Automation] Register error:", error);
+      logger.error("[Automation] Register error", error);
       return res.status(500).json({ success: false, error: "Failed to register automation task" });
     }
   },

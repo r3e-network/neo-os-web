@@ -3,6 +3,7 @@
  * Fetches Neo News Today articles from the API
  */
 import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
 
 export interface NNTArticle {
   id: string;
@@ -47,7 +48,7 @@ export function useNNTNews(options: UseNNTNewsOptions = {}): UseNNTNewsResult {
       const data = await response.json();
       setArticles(data.articles || []);
     } catch (err) {
-      console.error("NNT news fetch error:", err);
+      logger.error("NNT news fetch error:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);

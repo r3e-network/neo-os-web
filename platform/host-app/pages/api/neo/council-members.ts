@@ -10,6 +10,7 @@ import { rpcCall } from "@/lib/chains/rpc-functions";
 import { getChainRegistry } from "@/lib/chains/registry";
 import type { ChainId } from "@/lib/chains/types";
 import { isNeoN3Chain } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 
 type CommitteeResponse = string[] | { committee?: string[] } | Array<{ publicKey?: string; publickey?: string }>;
 
@@ -81,7 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       isCouncilMember: committeeAddresses.includes(address),
     });
   } catch (error) {
-    console.error("Council member check failed:", error);
+    logger.error("Council member check failed", error);
     return res.status(500).json({
       error: "Failed to check council membership",
       chainId,

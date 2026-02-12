@@ -148,12 +148,12 @@ const onCancel = (escrow: EscrowItem) => emit("cancel", escrow);
 
 .status-pill.completed {
   background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  color: var(--escrow-completed);
 }
 
 .status-pill.cancelled {
   background: rgba(248, 113, 113, 0.2);
-  color: #f87171;
+  color: var(--escrow-cancelled);
 }
 
 .escrow-metrics {

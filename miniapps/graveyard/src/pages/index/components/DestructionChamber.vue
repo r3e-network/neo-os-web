@@ -156,7 +156,7 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
 }
 
 .memory-option.active {
-  border-color: var(--grave-warning, #ffde59);
+  border-color: var(--grave-warning);
   color: var(--text-primary);
   background: var(--grave-panel-strong);
   box-shadow: 0 0 12px rgba(255, 222, 89, 0.3);
@@ -166,7 +166,7 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
   display: flex;
   gap: 12px;
   background: var(--grave-danger-soft, rgba(239, 68, 68, 0.1));
-  color: var(--grave-warning-text, #fec);
+  color: var(--grave-warning-text);
   padding: $spacing-4;
   border-radius: 12px;
   border: 1px solid var(--grave-danger-border, rgba(239, 68, 68, 0.3));

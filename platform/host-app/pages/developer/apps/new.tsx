@@ -107,20 +107,20 @@ export default function CreateAppPage() {
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link
           href="/developer/dashboard"
-          className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:hover:text-white mb-6"
+          className="inline-flex items-center gap-2 text-erobo-ink-soft hover:text-erobo-ink dark:hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft size={16} />
           Back to Dashboard
         </Link>
 
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create New App</h1>
-        <p className="text-gray-500 mb-8">Fill in the details to create your MiniApp</p>
+        <h1 className="text-3xl font-bold text-erobo-ink dark:text-white mb-2">Create New App</h1>
+        <p className="text-erobo-ink-soft dark:text-slate-400 mb-8">Fill in the details to create your MiniApp</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              App Name <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
+              App Name <span className="text-brutal-red">*</span>
             </label>
             <input
               type="text"
@@ -128,14 +128,14 @@ export default function CreateAppPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My Awesome App"
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/15 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-erobo-ink dark:text-white"
             />
           </div>
 
           {/* Name (Chinese) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              App Name (Chinese) <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
+              App Name (Chinese) <span className="text-brutal-red">*</span>
             </label>
             <input
               type="text"
@@ -143,14 +143,14 @@ export default function CreateAppPage() {
               value={nameZh}
               onChange={(e) => setNameZh(e.target.value)}
               placeholder="应用名称"
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/15 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-erobo-ink dark:text-white"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
+              Description <span className="text-brutal-red">*</span>
             </label>
             <textarea
               required
@@ -158,14 +158,14 @@ export default function CreateAppPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what your app does..."
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white resize-none"
+              className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/15 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-erobo-ink dark:text-white resize-none"
             />
           </div>
 
           {/* Description (Chinese) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description (Chinese) <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
+              Description (Chinese) <span className="text-brutal-red">*</span>
             </label>
             <textarea
               required
@@ -173,17 +173,17 @@ export default function CreateAppPage() {
               value={descriptionZh}
               onChange={(e) => setDescriptionZh(e.target.value)}
               placeholder="中文描述..."
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-gray-900 dark:text-white resize-none"
+              className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/15 dark:border-white/10 focus:border-neo focus:ring-1 focus:ring-neo text-erobo-ink dark:text-white resize-none"
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">Category</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as typeof category)}
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/15 dark:border-white/10 focus:border-neo text-erobo-ink dark:text-white"
             >
               {categories.map((c) => (
                 <option key={c} value={c}>
@@ -195,10 +195,12 @@ export default function CreateAppPage() {
 
           {/* Supported Chains */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Supported Chains <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
+              Supported Chains <span className="text-brutal-red">*</span>
             </label>
-            <p className="text-xs text-gray-500 mb-3">Select the blockchain networks your app supports</p>
+            <p className="text-xs text-erobo-ink-soft dark:text-slate-400 mb-3">
+              Select the blockchain networks your app supports
+            </p>
             <div className="grid grid-cols-2 gap-3">
               {availableChains.map((chain) => (
                 <button
@@ -208,7 +210,7 @@ export default function CreateAppPage() {
                   className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                     selectedChains.includes(chain.id)
                       ? "border-neo bg-neo/10 text-neo"
-                      : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20"
+                      : "border-erobo-purple/15 dark:border-white/10 hover:border-erobo-purple/30 dark:hover:border-white/20"
                   }`}
                 >
                   <img src={chain.icon} alt={chain.name} className="w-6 h-6 rounded-full" />
@@ -221,10 +223,12 @@ export default function CreateAppPage() {
           {/* Contract Addresses per Chain */}
           {selectedChains.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-erobo-ink dark:text-slate-300 mb-2">
                 Contract Addresses (Optional)
               </label>
-              <p className="text-xs text-gray-500 mb-3">Enter contract addresses for each chain if applicable</p>
+              <p className="text-xs text-erobo-ink-soft dark:text-slate-400 mb-3">
+                Enter contract addresses for each chain if applicable
+              </p>
               <div className="space-y-3">
                 {selectedChains.map((chainId) => {
                   const chain = availableChains.find((c) => c.id === chainId);
@@ -236,7 +240,7 @@ export default function CreateAppPage() {
                         value={contractAddresses[chainId] || ""}
                         onChange={(e) => updateContractAddress(chainId, e.target.value)}
                         placeholder={`Contract address on ${chain?.name || chainId}`}
-                        className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-neo text-sm text-gray-900 dark:text-white"
+                        className="flex-1 px-3 py-2 rounded-lg bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/15 dark:border-white/10 focus:border-neo text-sm text-erobo-ink dark:text-white"
                       />
                     </div>
                   );

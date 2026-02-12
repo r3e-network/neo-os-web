@@ -26,7 +26,9 @@ export function useNeoburgerBalances() {
       const bneo = await getBalance(bneoContract);
       neoBalance.value = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
       bNeoBalance.value = typeof bneo === "string" ? parseFloat(bneo) || 0 : typeof bneo === "number" ? bneo : 0;
-    } catch {}
+    } catch (e: unknown) {
+      /* non-critical: wallet balance fetch */
+    }
   }
 
   const walletConnected = computed(() => !!walletAddress.value);

@@ -8,9 +8,7 @@
       @tab-change="onTabChange"
     >
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <!-- Rounds Tab (default) -->
@@ -141,7 +139,7 @@ import { useI18n } from "@/composables/useI18n";
 import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
-import { MiniAppTemplate, NeoCard, NeoButton } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { formatAddress } from "@shared/utils/format";
 import RoundForm from "./components/RoundForm.vue";
@@ -183,6 +181,13 @@ const appState = computed(() => ({
   roundCount: rounds.value.length,
   selectedRoundId: selectedRoundId.value,
 }));
+
+const sidebarItems = computed(() => [
+  { label: t("tabRounds"), value: rounds.value.length },
+  { label: t("tabProjects"), value: projects.value.length },
+  { label: "Selected Round", value: selectedRoundId.value ?? "—" },
+  { label: "Matching Pool", value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—" },
+]);
 
 const {
   rounds,
@@ -318,21 +323,6 @@ watch(selectedRoundId, async (roundId) => {
   gap: 8px;
   margin-top: 10px;
 }
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 @media (max-width: 767px) {
   .tab-content {
     padding: 12px;

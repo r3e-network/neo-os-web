@@ -40,7 +40,7 @@ vi.mock("@shared/components", () => ({
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("GrantShare MiniApp", () => {
-  let wrapper: VueWrapper<any>;
+  let wrapper: VueWrapper;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,13 +50,13 @@ describe("GrantShare MiniApp", () => {
     if (wrapper) {
       wrapper.unmount();
     }
-    delete (globalThis as any).uni;
+    delete (globalThis as unknown as Record<string, unknown>).uni;
   });
 
   it("renders proposals from GrantShares API", async () => {
     const encodedTitle = Buffer.from("Test Proposal").toString("base64");
-    (globalThis as any).uni = {
-      request: ({ success }: { success: (data: any) => void }) =>
+    (globalThis as unknown as Record<string, unknown>).uni = {
+      request: ({ success }: { success: (data: Record<string, unknown>) => void }) =>
         success({
           data: {
             total: 1,
@@ -92,7 +92,7 @@ describe("GrantShare MiniApp", () => {
   });
 
   it("shows error state when API fails", async () => {
-    (globalThis as any).uni = {
+    (globalThis as unknown as Record<string, unknown>).uni = {
       request: ({ fail }: { fail: (err: Error) => void }) => fail(new Error("Network error")),
     };
 

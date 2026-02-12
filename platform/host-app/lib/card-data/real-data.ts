@@ -4,6 +4,7 @@
  */
 
 import type { ChainId } from "@/lib/chains/types";
+import { logger } from "@/lib/logger";
 import {
   getLotteryState,
   getGameState,
@@ -125,7 +126,7 @@ export async function getCountdownData(appId: string, chainId: ChainId): Promise
       participants: state.ticketsSold || 0,
     };
   } catch (err) {
-    console.warn(`[card-data] Failed to get countdown data for ${appId}:`, err);
+    logger.warn(`[card-data] Failed to get countdown data for ${appId}:`, err);
     return defaultData;
   }
 }
@@ -150,7 +151,7 @@ export async function getMultiplierData(appId: string, chainId: ChainId): Promis
       players: state.playerCount || 0,
     };
   } catch (err) {
-    console.warn(`[card-data] Failed to get multiplier data for ${appId}:`, err);
+    logger.warn(`[card-data] Failed to get multiplier data for ${appId}:`, err);
     return defaultData;
   }
 }
@@ -187,7 +188,7 @@ export async function getStatsData(appId: string, chainId: ChainId): Promise<Sta
       users: stats.uniqueUsers || 0,
     };
   } catch (err) {
-    console.warn(`[card-data] Failed to get stats data for ${appId}:`, err);
+    logger.warn(`[card-data] Failed to get stats data for ${appId}:`, err);
     return defaultData;
   }
 }
@@ -220,7 +221,7 @@ export async function getVotingData(appId: string, chainId: ChainId): Promise<Vo
       totalVotes: total,
     };
   } catch (err) {
-    console.warn(`[card-data] Failed to get voting data for ${appId}:`, err);
+    logger.warn(`[card-data] Failed to get voting data for ${appId}:`, err);
     return defaultData;
   }
 }

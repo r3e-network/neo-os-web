@@ -29,6 +29,8 @@
   --shrine-panel-strong: rgba(255, 255, 255, 0.1);
   --shrine-divider: rgba(255, 255, 255, 0.08);
 
+  --memorial-bg-gradient: linear-gradient(180deg, #0a0d14 0%, #121620 50%, #1a2035 100%);
+
   --bg-primary: var(--shrine-bg);
   --bg-secondary: var(--shrine-dark);
   --text-primary: var(--shrine-text);
@@ -67,6 +69,7 @@
   --shrine-panel-soft: rgba(43, 36, 28, 0.06);
   --shrine-panel-strong: rgba(43, 36, 28, 0.12);
   --shrine-divider: rgba(43, 36, 28, 0.12);
+  --memorial-bg-gradient: linear-gradient(180deg, #f7f3ec 0%, #efe6d9 50%, #e4d6c2 100%);
 
   --bg-primary: var(--shrine-bg);
   --bg-secondary: var(--shrine-dark);

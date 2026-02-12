@@ -36,7 +36,12 @@
             :key="cat.id"
             class="category-option"
             :class="{ active: formData.category === cat.id }"
+            role="button"
+            tabindex="0"
+            :aria-pressed="formData.category === cat.id"
             @click="formData.category = cat.id"
+            @keydown.enter="formData.category = cat.id"
+            @keydown.space.prevent="formData.category = cat.id"
           >
             <text>{{ cat.label }}</text>
           </view>
@@ -60,7 +65,14 @@
       <view class="form-field">
         <text class="field-label">{{ t("duration") }} *</text>
         <view class="duration-input">
-          <input v-model.number="formData.duration" type="number" class="field-input" min="1" max="365" />
+          <input
+            v-model.number="formData.duration"
+            type="number"
+            class="field-input"
+            min="1"
+            max="365"
+            :aria-label="t('duration')"
+          />
           <text class="duration-suffix">{{ t("durationDays") }}</text>
         </view>
       </view>
@@ -76,12 +88,32 @@
         <text class="field-label">{{ t("multisigAddresses") }}</text>
         <text class="field-hint">{{ t("multisigInfo") }}</text>
         <view v-for="(addr, index) in formData.multisigAddresses" :key="index" class="multisig-row">
-          <input v-model="formData.multisigAddresses[index]" class="field-input" placeholder="NEO address" />
-          <view class="remove-button" @click="removeMultisigAddress(index)">
-            <text>×</text>
+          <input
+            v-model="formData.multisigAddresses[index]"
+            class="field-input"
+            :placeholder="t('neoAddressPlaceholder')"
+          />
+          <view
+            class="remove-button"
+            role="button"
+            tabindex="0"
+            :aria-label="`Remove address ${index + 1}`"
+            @click="removeMultisigAddress(index)"
+            @keydown.enter="removeMultisigAddress(index)"
+            @keydown.space.prevent="removeMultisigAddress(index)"
+          >
+            <text aria-hidden="true">×</text>
           </view>
         </view>
-        <view class="add-button" @click="addMultisigAddress">
+        <view
+          class="add-button"
+          role="button"
+          tabindex="0"
+          :aria-label="t('addAddress')"
+          @click="addMultisigAddress"
+          @keydown.enter="addMultisigAddress"
+          @keydown.space.prevent="addMultisigAddress"
+        >
           <text>+ {{ t("addAddress") }}</text>
         </view>
       </view>

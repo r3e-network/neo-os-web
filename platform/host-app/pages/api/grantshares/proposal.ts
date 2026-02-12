@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "GET") {
@@ -29,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
         return res.json(data);
     } catch (error) {
-        console.error("GrantShares Proposal Detail Error:", error);
+        logger.error("GrantShares Proposal Detail Error", error);
         return res.status(500).json({ error: "Failed to fetch data" });
     }
 }

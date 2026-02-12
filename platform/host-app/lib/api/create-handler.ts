@@ -21,6 +21,7 @@ import { requireWalletAuth } from "@/lib/security/wallet-auth";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiRateLimiter, writeRateLimiter, authRateLimiter } from "@/lib/security/ratelimit";
 import type { ApiHandlerConfig, HttpMethod, MethodHandler, MethodConfig, HandlerContext, RateLimitTier } from "./types";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -144,7 +145,7 @@ export function createHandler(config: ApiHandlerConfig) {
       // 6. Execute handler
       return await methodConfig.handler(req, res, ctx);
     } catch (err) {
-      console.error("[API]", req.url, err);
+      logger.error("[API] " + req.url, err);
       if (!res.headersSent) {
         return res.status(500).json({ error: "Internal server error" });
       }

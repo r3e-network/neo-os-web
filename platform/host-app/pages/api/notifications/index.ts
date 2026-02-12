@@ -8,6 +8,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHandler } from "@/lib/api";
 import { markNotificationsReadBody } from "@/lib/schemas";
+import { logger } from "@/lib/logger";
 
 export interface Notification {
   id: string;
@@ -48,7 +49,7 @@ async function getNotifications(db: SupabaseClient, wallet: string, req: NextApi
   const { data, error } = await query;
 
   if (error) {
-    console.error("Failed to fetch notifications:", error);
+    logger.error("Failed to fetch notifications", error);
     return res.status(500).json({ error: "Failed to fetch notifications" });
   }
 

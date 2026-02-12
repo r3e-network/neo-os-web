@@ -1,7 +1,9 @@
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Tile } from "./useMapTiles";
 
 const APP_ID = "miniapp-millionpiecemap";
@@ -18,7 +20,7 @@ export function useMapInteractions(
 
   const isPurchasing = ref(false);
   const zoomLevel = ref(1);
-  const status = ref<{ msg: string; type: string } | null>(null);
+  const { status, setStatus, clearStatus } = useStatusMessage();
 
   const zoomIn = () => {
     if (zoomLevel.value < 2) zoomLevel.value += 0.25;
@@ -41,7 +43,7 @@ export function useMapInteractions(
   const purchaseTile = async (tilePrice: number) => {
     if (isPurchasing.value) return;
     if (tiles.value[selectedTile.value].owned) {
-      status.value = { msg: "Tile already owned", type: "error" };
+      setStatus("Tile already owned", "error");
       return;
     }
 
@@ -77,9 +79,9 @@ export function useMapInteractions(
         throw new Error("Claim pending");
       }
       await loadTiles();
-      status.value = { msg: "Tile purchased", type: "success" };
-    } catch (e: any) {
-      status.value = { msg: e.message || "Error", type: "error" };
+      setStatus("Tile purchased", "success");
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, "Error"), "error");
     } finally {
       isPurchasing.value = false;
     }

@@ -1,13 +1,15 @@
 <template>
-  <view class="navbar" role="navigation" aria-label="Bottom navigation">
+  <view class="navbar" role="tablist" aria-label="Main navigation">
     <view
       v-for="tab in tabs"
       :key="tab.id"
       :class="['nav-item', activeTab === tab.id && 'active']"
-      role="menuitem"
+      role="tab"
+      :id="`tab-${tab.id}`"
       :tabindex="activeTab === tab.id ? 0 : -1"
       :aria-label="tab.label"
-      :aria-selected="activeTab === tab.id"
+      :aria-selected="activeTab === tab.id ? 'true' : 'false'"
+      :aria-controls="`tabpanel-${tab.id}`"
       @click="handleTabChange(tab.id)"
       @keydown.enter="handleTabChange(tab.id)"
       @keydown.space.prevent="handleTabChange(tab.id)"
@@ -77,7 +79,7 @@ const handleTabChange = (tabId: string): void => {
  */
 onMounted(() => {
   if (!props.tabs || props.tabs.length === 0) {
-    console.warn("[NavBar] No tabs provided - navigation will be empty");
+    if (import.meta.env.DEV) console.warn("[NavBar] No tabs provided - navigation will be empty");
     return;
   }
 
@@ -90,10 +92,12 @@ onMounted(() => {
   const activeTabExists = props.tabs.some((t) => t.id === props.activeTab);
 
   if (!activeTabExists && props.activeTab) {
-    console.warn(
-      `[NavBar] Active tab "${props.activeTab}" not found in tabs array. ` +
-        `Available tabs: ${props.tabs.map((t) => t.id).join(", ")}`,
-    );
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[NavBar] Active tab "${props.activeTab}" not found in tabs array. ` +
+          `Available tabs: ${props.tabs.map((t) => t.id).join(", ")}`
+      );
+    }
   }
 });
 </script>

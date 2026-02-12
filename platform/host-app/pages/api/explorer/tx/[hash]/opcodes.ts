@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/explorer/tx/[hash]/opcodes
@@ -91,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       total_steps: traces?.length || 0,
     });
   } catch (error) {
-    console.error("Opcodes API error:", error);
+    logger.error("Opcodes API error", error);
     return res.status(500).json({ error: "Failed to fetch opcodes" });
   }
 }

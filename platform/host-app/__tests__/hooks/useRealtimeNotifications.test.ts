@@ -33,10 +33,8 @@ describe("useRealtimeNotifications", () => {
     on: jest.Mock;
     subscribe: jest.Mock;
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let subscribeCallback: (status: string, error?: Error | null) => any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let insertHandler: (payload: { new: unknown }) => any;
+  let subscribeCallback: (status: string, error?: Error | null) => void;
+  let insertHandler: (payload: { new: unknown }) => void;
   let consoleErrorSpy: jest.SpyInstance;
   let consoleLogSpy: jest.SpyInstance;
   let consoleWarnSpy: jest.SpyInstance;

@@ -3,13 +3,11 @@
     <view v-if="domains.length === 0" class="empty-state">
       <text>{{ t("noDomains") }}</text>
     </view>
-    <view v-for="domain in domains" :key="domain.name" class="domain-item mb-4 pb-4 border-b border-gray-200">
+    <view v-for="domain in domains" :key="domain.name" class="domain-item mb-4 border-b border-gray-200 pb-4">
       <view class="domain-card-header mb-2 flex justify-between">
         <view class="domain-info">
-          <text class="domain-name font-bold text-lg">{{ domain.name }}</text>
-          <text class="domain-expiry text-sm text-gray-500"
-            >{{ t("expires") }}: {{ formatDate(domain.expiry) }}</text
-          >
+          <text class="domain-name text-lg font-bold">{{ domain.name }}</text>
+          <text class="domain-expiry text-sm text-gray-500">{{ t("expires") }}: {{ formatDate(domain.expiry) }}</text>
         </view>
         <view class="domain-status-indicator active"></view>
       </view>
@@ -23,13 +21,7 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
-
-interface Domain {
-  name: string;
-  owner: string;
-  expiry: number;
-  target?: string;
-}
+import type { Domain } from "@/types";
 
 defineProps<{
   t: (key: string) => string;

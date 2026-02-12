@@ -1,21 +1,19 @@
-import { ref } from "vue";
+import { computed } from "vue";
 import { useI18n } from "./useI18n";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 export function useGrantVoting() {
   const { t } = useI18n();
 
-  const statusMessage = ref("");
-  const statusType = ref<"success" | "error">("success");
-
-  function showStatus(message: string, type: "success" | "error") {
-    statusMessage.value = message;
-    statusType.value = type;
-    setTimeout(() => (statusMessage.value = ""), 5000);
-  }
+  const { status: statusObj, setStatus: showStatus } = useStatusMessage();
+  const statusMessage = computed(() => statusObj.value?.msg ?? "");
+  const statusType = computed(() => statusObj.value?.type ?? "success");
 
   function copyLink(url: string) {
     if (!url) return;
-    const uniApi = (globalThis as any)?.uni;
+    const uniApi = (globalThis as Record<string, unknown>)?.uni as
+      | Record<string, (...args: unknown[]) => void>
+      | undefined;
     if (uniApi?.setClipboardData) {
       uniApi.setClipboardData({
         data: url,

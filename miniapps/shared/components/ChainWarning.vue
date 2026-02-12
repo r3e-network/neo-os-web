@@ -1,16 +1,10 @@
 <template>
-  <view v-if="showWarning" class="chain-warning px-4 mb-4">
+  <view v-if="showWarning" class="chain-warning mb-4 px-4" role="alert" aria-live="assertive">
     <NeoCard variant="danger">
       <view class="flex flex-col items-center gap-2 py-1">
         <text class="text-center font-bold text-red-400">{{ title }}</text>
-        <text v-if="message" class="text-xs text-center opacity-80 text-white">{{ message }}</text>
-        <NeoButton
-          size="sm"
-          variant="secondary"
-          class="mt-2"
-          :loading="isLoading"
-          @click="handleSwitch"
-        >
+        <text v-if="message" class="text-center text-xs text-white opacity-80">{{ message }}</text>
+        <NeoButton size="sm" variant="secondary" class="mt-2" :loading="isLoading" @click="handleSwitch">
           {{ buttonText }}
         </NeoButton>
       </view>
@@ -104,6 +98,12 @@ const handleSwitch = async () => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chain-warning {
+    animation: none;
   }
 }
 </style>

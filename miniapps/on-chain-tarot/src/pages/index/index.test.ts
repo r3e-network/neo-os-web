@@ -23,8 +23,8 @@ vi.mock("@shared/utils/i18n", () => ({
 }));
 
 describe("On-Chain Tarot - Business Logic", () => {
-  let payGASMock: any;
-  let requestRandomMock: any;
+  let payGASMock: ReturnType<typeof vi.fn>;
+  let requestRandomMock: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -35,7 +35,7 @@ describe("On-Chain Tarot - Business Logic", () => {
 
   describe("Initialization", () => {
     it("should initialize with empty drawn cards", () => {
-      const drawn = ref<any[]>([]);
+      const drawn = ref<Record<string, unknown>[]>([]);
       expect(drawn.value.length).toBe(0);
     });
   });

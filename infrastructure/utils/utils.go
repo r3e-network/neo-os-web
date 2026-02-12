@@ -4,6 +4,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"regexp"
 	"strings"
@@ -596,8 +597,6 @@ func SafeGo(fn func(), recoveryFn func(error)) {
 // GoSafeGo starts a goroutine with default panic recovery (logs error)
 func GoSafeGo(fn func()) {
 	SafeGo(fn, func(err error) {
-		// Default: log the error
-		// In production, this could send to a monitoring system
-		fmt.Printf("[PANIC RECOVERED] %v\n", err)
+		slog.Error("panic recovered in goroutine", "error", err)
 	})
 }

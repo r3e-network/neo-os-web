@@ -9,10 +9,18 @@
           class="load-input"
           :placeholder="placeholder"
           :value="modelValue"
-          @input="$emit('update:modelValue', ($event as any).detail.value)"
+          @input="$emit('update:modelValue', ($event as unknown as { detail: { value: string } }).detail.value)"
         />
       </view>
-      <view :class="['load-btn', { disabled: !modelValue }]" @click="$emit('load')">
+      <view
+        :class="['load-btn', { disabled: !modelValue }]"
+        role="button"
+        :aria-label="buttonText"
+        :tabindex="modelValue ? 0 : -1"
+        :aria-disabled="!modelValue"
+        @click="$emit('load')"
+        @keydown.enter="$emit('load')"
+      >
         <text class="load-btn-text">{{ buttonText }}</text>
       </view>
     </view>

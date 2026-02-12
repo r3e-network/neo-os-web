@@ -29,7 +29,7 @@ export default function SecretsContent() {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-gray-500">Connect your wallet to manage secret tokens</p>
+          <p className="text-erobo-ink-soft">Connect your wallet to manage secret tokens</p>
         </CardContent>
       </Card>
     );
@@ -56,7 +56,7 @@ export default function SecretsContent() {
         <CardContent>
           {/* MiniApp Filter */}
           <div className="mb-4">
-            <label className="block text-sm text-gray-600 mb-2">Filter by MiniApp</label>
+            <label className="block text-sm text-erobo-ink-soft mb-2">Filter by MiniApp</label>
             <select
               value={selectedApp}
               onChange={(e) => setSelectedApp(e.target.value)}
@@ -79,9 +79,9 @@ export default function SecretsContent() {
             />
           )}
 
-          {loading && <p className="text-gray-500">Loading...</p>}
+          {loading && <p className="text-erobo-ink-soft">Loading...</p>}
 
-          {!loading && filteredTokens.length === 0 && <p className="text-gray-500 py-4">No tokens created yet</p>}
+          {!loading && filteredTokens.length === 0 && <p className="text-erobo-ink-soft py-4">No tokens created yet</p>}
 
           {filteredTokens.length > 0 && <TokenList tokens={filteredTokens} onRevoke={revokeToken} />}
         </CardContent>

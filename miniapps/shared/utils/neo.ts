@@ -122,11 +122,7 @@ export function parseInvokeResult(result: unknown): unknown {
   }
 
   // Handle primitive values
-  if (
-    typeof result === "string" ||
-    typeof result === "number" ||
-    typeof result === "boolean"
-  ) {
+  if (typeof result === "string" || typeof result === "number" || typeof result === "boolean") {
     return result;
   }
 
@@ -166,18 +162,4 @@ export function normalizeScriptHash(hash: string): string {
   normalized = normalized.toLowerCase();
 
   return normalized;
-}
-
-/**
- * Shorten an address for display
- *
- * @param address - Full address
- * @param chars - Number of characters to keep at start/end
- * @returns Shortened address (e.g., "0x1234...5678")
- */
-export function shortenAddress(address: string, chars = 6): string {
-  if (!address || address.length <= chars * 2) {
-    return address;
-  }
-  return `${address.slice(0, chars)}...${address.slice(-chars)}`;
 }

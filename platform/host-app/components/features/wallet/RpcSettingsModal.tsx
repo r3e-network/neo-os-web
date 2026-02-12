@@ -126,21 +126,21 @@ export function RpcSettingsModal({ isOpen, onClose }: RpcSettingsModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="rpc-settings-title"
-        className="relative w-full max-w-md bg-white dark:bg-erobo-bg-deeper border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-md bg-white dark:bg-erobo-bg-deeper border border-erobo-purple/10 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-erobo-purple/5 dark:border-white/5 bg-erobo-purple/5/50 dark:bg-white/5">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-neo/10 rounded-full text-neo">
               <Globe size={20} />
             </div>
-            <h2 id="rpc-settings-title" className="text-lg font-bold text-gray-900 dark:text-white">
+            <h2 id="rpc-settings-title" className="text-lg font-bold text-erobo-ink dark:text-white">
               {t("network.rpcSettings") || "RPC Settings"}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            className="text-erobo-ink-soft/60 hover:text-erobo-ink dark:hover:text-white transition-colors"
           >
             <X size={20} />
           </button>
@@ -148,7 +148,7 @@ export function RpcSettingsModal({ isOpen, onClose }: RpcSettingsModalProps) {
 
         {/* Content */}
         <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-erobo-ink-soft dark:text-slate-400">
             {t("network.rpcDescription") || "Configure custom RPC endpoints. Leave empty to use default."}
           </p>
 
@@ -172,11 +172,11 @@ export function RpcSettingsModal({ isOpen, onClose }: RpcSettingsModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5">
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-erobo-purple/5 dark:border-white/5 bg-erobo-purple/5 dark:bg-white/5">
           <Button
             variant="ghost"
             onClick={onClose}
-            className="hover:bg-gray-200/50 dark:hover:bg-white/10 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+            className="hover:bg-erobo-purple/15/50 dark:hover:bg-white/10 text-erobo-ink-soft hover:text-erobo-ink dark:text-slate-400 dark:hover:text-white"
           >
             {t("actions.cancel") || "Cancel"}
           </Button>
@@ -226,7 +226,7 @@ function RpcUrlInput({
               style={{ filter: chainColor ? undefined : "grayscale(1)" }}
             />
           )}
-          <label className="text-sm font-bold text-gray-700 dark:text-gray-300">{label}</label>
+          <label className="text-sm font-bold text-erobo-ink dark:text-slate-300">{label}</label>
         </div>
         {value && (
           <button onClick={onReset} className="text-xs text-neo hover:text-neo-dark underline transition-colors">
@@ -242,7 +242,7 @@ function RpcUrlInput({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={defaultUrl}
-            className="pr-10 font-mono text-sm border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 focus:ring-neo/20 rounded-xl"
+            className="pr-10 font-mono text-sm border-erobo-purple/10 dark:border-white/10 bg-white dark:bg-black/20 focus:ring-neo/20 rounded-xl"
           />
           {testResult && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-in fade-in zoom-in duration-200">
@@ -259,14 +259,14 @@ function RpcUrlInput({
           onClick={onTest}
           disabled={testing || !value.trim()}
           variant="outline"
-          className="px-3 rounded-xl border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
+          className="px-3 rounded-xl border-erobo-purple/10 dark:border-white/10 hover:bg-erobo-purple/5 dark:hover:bg-white/5"
         >
           {testing ? <RefreshCw size={14} className="animate-spin" /> : "Test"}
         </Button>
       </div>
 
       {!value && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 overflow-hidden text-ellipsis">
+        <p className="text-xs text-erobo-ink-soft dark:text-slate-400 overflow-hidden text-ellipsis">
           Default: <span className="font-mono opacity-70">{defaultUrl}</span>
         </p>
       )}

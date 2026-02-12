@@ -14,6 +14,6 @@ export type TranslationMap = Record<string, TranslationEntry>;
 export function getLocale(): Locale {
   if (typeof window === "undefined") return "en";
 
-  const lang = navigator.language || (navigator as any).userLanguage || "en";
+  const lang = navigator.language || (navigator as unknown as { userLanguage?: string }).userLanguage || "en";
   return lang.toLowerCase().startsWith("zh") ? "zh" : "en";
 }

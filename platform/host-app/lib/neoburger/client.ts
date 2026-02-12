@@ -8,6 +8,7 @@ import type { ChainId } from "../chains/types";
 import { getChainRpcUrl } from "../chains/rpc-functions";
 import { getChainRegistry } from "../chains/registry";
 import { isNeoN3Chain } from "../chains/types";
+import { logger } from "@/lib/logger";
 
 // NeoBurger contract addresses per chain
 const NEOBURGER_CONTRACTS: Partial<Record<ChainId, string>> = {
@@ -61,7 +62,7 @@ export async function getNeoBurgerStats(chainId: ChainId): Promise<NeoBurgerStat
         invokeRead(rpcUrl, contractAddress, "totalSupply", []),
         invokeRead(rpcUrl, contractAddress, "rPS", []),
         fetchTokenPrices().catch((e) => {
-          console.warn("Failed to fetch token prices, using fallbacks:", e);
+          logger.warn("Failed to fetch token prices, using fallbacks:", e);
           return { neo: 12.5, gas: 4.8 }; // Fallback prices
         }),
       ]);
@@ -101,7 +102,7 @@ export async function getNeoBurgerStats(chainId: ChainId): Promise<NeoBurgerStat
     } catch (innerError) {
       // Fallback for TestNet/Dev where contract might not exist or be reachable
       if (chainId !== "neo-n3-mainnet") {
-        console.warn(`NeoBurger contract call failed on ${chainId}, using simulated stats.`, innerError);
+        logger.warn(`NeoBurger contract call failed on ${chainId}, using simulated stats.`, innerError);
         return {
           apr: "19.50", // Realistic active governance APR
           totalStakedNeo: "150420", // Simulated staked amount
@@ -116,7 +117,7 @@ export async function getNeoBurgerStats(chainId: ChainId): Promise<NeoBurgerStat
       throw innerError;
     }
   } catch (error) {
-    console.error("Failed to fetch NeoBurger stats:", error);
+    logger.error("Failed to fetch NeoBurger stats:", error);
     throw error;
   }
 }

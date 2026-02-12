@@ -88,8 +88,7 @@ export function WaterRipple({
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       animateWater(Date.now());
     },
-    // animateWater is defined within the component and doesn't depend on props/state
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- animateWater uses refs, not reactive state
     [disabled, onRippleComplete],
   );
 
@@ -104,16 +103,25 @@ export function WaterRipple({
       className={`relative overflow-hidden ${className}`}
       onClick={handleClick}
       style={{
-        // Apply the filter to the container. 
+        // Apply the filter to the container.
         // Note: This distorts EVERYTHING inside (text, images, borders).
-        filter: isDistorting ? `url(#${filterId})` : 'none',
-        willChange: isDistorting ? 'filter' : 'auto' // optimize rendering
+        filter: isDistorting ? `url(#${filterId})` : "none",
+        willChange: isDistorting ? "filter" : "auto", // optimize rendering
       }}
     >
       {/* SVG Filter Definition */}
-      <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}>
+      <svg style={{ position: "absolute", width: 0, height: 0, pointerEvents: "none" }}>
         <defs>
-          <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+          <filter
+            id={filterId}
+            x="-20%"
+            y="-20%"
+            width="140%"
+            height="140%"
+            filterUnits="objectBoundingBox"
+            primitiveUnits="userSpaceOnUse"
+            colorInterpolationFilters="sRGB"
+          >
             {/* Generate water texture noise */}
             <feTurbulence
               ref={turbulenceRef}

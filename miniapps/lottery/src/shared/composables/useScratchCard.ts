@@ -26,7 +26,6 @@ export function useScratchCard() {
 
   const setError = (message: string) => {
     error.value = message;
-    console.error("[ScratchCard] Error:", message);
   };
 
   const clearError = () => {
@@ -52,7 +51,7 @@ export function useScratchCard() {
       const contract = await getContract();
 
       const result = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "GetScratchTicket",
         args: [{ type: "Integer", value: ticketId }],
       });
@@ -78,8 +77,8 @@ export function useScratchCard() {
         prize: isRevealed ? prize : undefined,
         seed: isRevealed ? seed : undefined,
       };
-    } catch (error: unknown) {
-      console.error("[ScratchCard] Failed to get ticket:", error);
+    } catch (_error: unknown) {
+      // Ticket fetch failure handled silently
       return null;
     }
   };
@@ -91,15 +90,15 @@ export function useScratchCard() {
       const contract = await getContract();
 
       const result = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "GetPlayerScratchCount",
         args: [{ type: "Hash160", value: address.value }],
       });
 
       const parsed = parseInvokeResult(result);
       return Number(parsed ?? 0);
-    } catch (error: unknown) {
-      console.error("[ScratchCard] Failed to get ticket count:", error);
+    } catch (_error: unknown) {
+      // Ticket count fetch failure handled silently
       return 0;
     }
   };
@@ -123,8 +122,8 @@ export function useScratchCard() {
 
       playerTickets.value = tickets;
       return tickets;
-    } catch (error: unknown) {
-      console.error("[ScratchCard] Failed to load tickets:", error);
+    } catch (_error: unknown) {
+      // Ticket load failure handled silently
       playerTickets.value = [];
       return [];
     }
@@ -168,7 +167,9 @@ export function useScratchCard() {
     }
   };
 
-  const revealTicket = async (ticketId: string): Promise<{
+  const revealTicket = async (
+    ticketId: string
+  ): Promise<{
     isWinner: boolean;
     prize: number;
     tier: number;
@@ -211,7 +212,7 @@ export function useScratchCard() {
               prize,
               seed: String(data.seed ?? data.Seed ?? ticket.seed ?? ""),
             }
-          : ticket,
+          : ticket
       );
 
       return {

@@ -15,36 +15,36 @@ describe("Badge Component", () => {
   it("should apply default variant by default", () => {
     render(<Badge>Default</Badge>);
     const badge = screen.getByText("Default");
-    expect(badge).toHaveClass("bg-gray-50");
-    expect(badge).toHaveClass("text-gray-700");
+    expect(badge).toHaveClass("bg-muted/30");
+    expect(badge).toHaveClass("text-muted-foreground");
   });
 
   it("should apply success variant", () => {
     render(<Badge variant="success">Success</Badge>);
     const badge = screen.getByText("Success");
-    expect(badge).toHaveClass("bg-success-50");
-    expect(badge).toHaveClass("text-success-700");
+    expect(badge).toHaveClass("bg-emerald-400/10");
+    expect(badge).toHaveClass("text-emerald-400");
   });
 
   it("should apply warning variant", () => {
     render(<Badge variant="warning">Warning</Badge>);
     const badge = screen.getByText("Warning");
-    expect(badge).toHaveClass("bg-warning-50");
-    expect(badge).toHaveClass("text-warning-700");
+    expect(badge).toHaveClass("bg-amber-400/10");
+    expect(badge).toHaveClass("text-amber-400");
   });
 
   it("should apply danger variant", () => {
     render(<Badge variant="danger">Danger</Badge>);
     const badge = screen.getByText("Danger");
-    expect(badge).toHaveClass("bg-danger-50");
-    expect(badge).toHaveClass("text-danger-700");
+    expect(badge).toHaveClass("bg-red-400/10");
+    expect(badge).toHaveClass("text-red-400");
   });
 
   it("should apply info variant", () => {
     render(<Badge variant="info">Info</Badge>);
     const badge = screen.getByText("Info");
-    expect(badge).toHaveClass("bg-primary-50");
-    expect(badge).toHaveClass("text-primary-700");
+    expect(badge).toHaveClass("bg-primary-400/10");
+    expect(badge).toHaveClass("text-primary-400");
   });
 
   it("should apply custom className", () => {

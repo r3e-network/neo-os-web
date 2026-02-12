@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { TurtleColor } from "@/shared/composables/useTurtleMatch";
 import { useI18n } from "@/composables/useI18n";
 import TurtleSprite from "./TurtleSprite.vue";
@@ -34,13 +34,21 @@ const emit = defineEmits<{
   (e: "complete"): void;
 }>();
 
+let exitTimer: ReturnType<typeof setTimeout> | null = null;
+let completeTimer: ReturnType<typeof setTimeout> | null = null;
+
 onMounted(() => {
-  setTimeout(() => {
+  exitTimer = setTimeout(() => {
     exit.value = true;
-    setTimeout(() => {
+    completeTimer = setTimeout(() => {
       emit("complete");
     }, 800);
   }, 2500);
+});
+
+onUnmounted(() => {
+  if (exitTimer) clearTimeout(exitTimer);
+  if (completeTimer) clearTimeout(completeTimer);
 });
 </script>
 
@@ -101,7 +109,7 @@ onMounted(() => {
 .game-subtitle {
   font-size: 11px;
   font-weight: 700;
-  color: #10b981;
+  color: var(--turtle-primary);
   letter-spacing: 8px;
   margin-top: 10px;
   display: block;
@@ -118,7 +126,7 @@ onMounted(() => {
 .loading-progress {
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #3b82f6);
+  background: linear-gradient(90deg, var(--turtle-primary), var(--turtle-secondary));
   animation: load-slide 2.5s ease-in-out forwards;
 }
 

@@ -1,10 +1,12 @@
-import { ref, computed, reactive, watch } from "vue";
+import { ref, computed } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "./useI18n";
 import { parseGas, toFixed8, toFixedDecimals, sleep } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Trust } from "../pages/index/components/TrustCard.vue";
 
 const APP_ID = "miniapp-heritage-trust";
@@ -19,7 +21,7 @@ export function useHeritageTrusts() {
   const isLoadingData = ref(false);
   const contractAddress = ref<string | null>(null);
   const trusts = ref<Trust[]>([]);
-  const status = ref<{ msg: string; type: string } | null>(null);
+  const { status, setStatus, clearStatus } = useStatusMessage();
 
   const myCreatedTrusts = computed(() => trusts.value.filter((t) => t.role === "owner"));
   const myBeneficiaryTrusts = computed(() => trusts.value.filter((t) => t.role === "beneficiary"));
@@ -75,7 +77,7 @@ export function useHeritageTrusts() {
       const contract = await ensureContractAddress();
 
       const totalResult = await invokeRead({
-        contractAddress: contract,
+        scriptHash: contract,
         operation: "totalTrusts",
         args: [],
       });
@@ -85,7 +87,7 @@ export function useHeritageTrusts() {
 
       for (let i = 1; i <= totalTrusts; i++) {
         const trustResult = await invokeRead({
-          contractAddress: contract,
+          scriptHash: contract,
           operation: "getTrustDetails",
           args: [{ type: "Integer", value: i.toString() }],
         });
@@ -178,10 +180,10 @@ export function useHeritageTrusts() {
         operation: "heartbeat",
         args: [{ type: "Integer", value: trust.id }],
       });
-      status.value = { msg: t("heartbeat"), type: "success" };
+      setStatus(t("heartbeat"), "success");
       await fetchData();
-    } catch (e: any) {
-      status.value = { msg: e.message || t("error"), type: "error" };
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isLoading.value = false;
     }
@@ -201,10 +203,10 @@ export function useHeritageTrusts() {
         operation: "claimYield",
         args: [{ type: "Integer", value: trust.id }],
       });
-      status.value = { msg: t("claimYield"), type: "success" };
+      setStatus(t("claimYield"), "success");
       await fetchData();
-    } catch (e: any) {
-      status.value = { msg: e.message || t("error"), type: "error" };
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isLoading.value = false;
     }
@@ -220,10 +222,10 @@ export function useHeritageTrusts() {
         operation: "claimReleasedAssets",
         args: [{ type: "Integer", value: trust.id }],
       });
-      status.value = { msg: t("claimReleased"), type: "success" };
+      setStatus(t("claimReleased"), "success");
       await fetchData();
-    } catch (e: any) {
-      status.value = { msg: e.message || t("error"), type: "error" };
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isLoading.value = false;
     }
@@ -239,10 +241,10 @@ export function useHeritageTrusts() {
         operation: "executeTrust",
         args: [{ type: "Integer", value: trust.id }],
       });
-      status.value = { msg: t("executeTrust"), type: "success" };
+      setStatus(t("executeTrust"), "success");
       await fetchData();
-    } catch (e: any) {
-      status.value = { msg: e.message || t("error"), type: "error" };
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isLoading.value = false;
     }
@@ -256,6 +258,8 @@ export function useHeritageTrusts() {
     myBeneficiaryTrusts,
     stats,
     status,
+    setStatus,
+    clearStatus,
     fetchData,
     heartbeatTrust,
     claimYield,

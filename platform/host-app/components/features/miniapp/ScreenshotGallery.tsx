@@ -48,7 +48,7 @@ export function ScreenshotGallery({ screenshots, appName, className }: Screensho
       {/* Gallery Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-erobo-ink dark:text-white">Screenshots</h3>
-        <span className="text-xs text-erobo-ink-soft/60 dark:text-gray-500">
+        <span className="text-xs text-erobo-ink-soft/60 dark:text-slate-500">
           {screenshots.length} images
         </span>
       </div>
@@ -95,7 +95,7 @@ export function ScreenshotGallery({ screenshots, appName, className }: Screensho
                   </div>
                 </div>
                 {screenshot.caption && (
-                  <p className="mt-2 text-xs text-erobo-ink-soft/70 dark:text-gray-400 truncate">
+                  <p className="mt-2 text-xs text-erobo-ink-soft/70 dark:text-slate-400 truncate">
                     {screenshot.caption}
                   </p>
                 )}

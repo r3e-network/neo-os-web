@@ -54,9 +54,9 @@ export interface FormState<T> {
   touchAll: () => void;
 }
 
-export function useFormState<T extends Record<string, any>>(
+export function useFormState<T extends Record<string, unknown>>(
   initialValues: T,
-  validate?: ValidationRules<T>,
+  validate?: ValidationRules<T>
 ): FormState<T> {
   const values = reactive({ ...initialValues }) as T;
   const errors = reactive<Record<string, string>>({});

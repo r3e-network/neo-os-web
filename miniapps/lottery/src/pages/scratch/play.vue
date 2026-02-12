@@ -37,8 +37,8 @@
       </view>
 
       <!-- Status Message -->
-      <view class="status-message" v-if="statusMessage">
-        <text>{{ statusMessage }}</text>
+      <view class="status-message" v-if="status" :class="`status-message--${status.type}`">
+        <text>{{ status.msg }}</text>
       </view>
 
       <!-- Prize Tiers -->
@@ -55,139 +55,130 @@
     </view>
 
     <!-- Win Celebration Overlay -->
-    <ChineseLuckyOverlay
-      :visible="showWinOverlay"
-      :prize="prize"
-      :tier="prizeTier"
-      @close="showWinOverlay = false"
-    />
+    <ChineseLuckyOverlay :visible="showWinOverlay" :prize="prize" :tier="prizeTier" @close="showWinOverlay = false" />
   </ResponsiveLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
-import { useLotteryTypes, LotteryType, PRIZE_TIERS } from '../../shared/composables/useLotteryTypes'
-import { useScratchCard } from '../../shared/composables/useScratchCard'
-import ChineseLuckyOverlay from './components/ChineseLuckyOverlay.vue'
-import AppLayout from '@shared/components/AppLayout.vue'
-import { useI18n } from '../../composables/useI18n'
+import { ref, onMounted, computed } from "vue";
+import { useLotteryTypes, LotteryType, PRIZE_TIERS } from "../../shared/composables/useLotteryTypes";
+import { useScratchCard } from "../../shared/composables/useScratchCard";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import ChineseLuckyOverlay from "./components/ChineseLuckyOverlay.vue";
+import { useI18n } from "../../composables/useI18n";
 
 const props = defineProps<{
-  type?: string
-  ticketId?: string
-}>()
+  type?: string;
+  ticketId?: string;
+}>();
 
-const { t } = useI18n()
-const { getLotteryType } = useLotteryTypes()
+const { t } = useI18n();
+const { getLotteryType } = useLotteryTypes();
 const {
   isLoading,
-  error,
-  lastRevealResult,
   buyTicket: sdkBuyTicket,
   revealTicket: sdkRevealTicket,
   formatPrize,
-  getPrizeTierLabel
-} = useScratchCard()
+  getPrizeTierLabel,
+} = useScratchCard();
 
 // Local state
-const hasTicket = ref(false)
-const isRevealed = ref(false)
-const prize = ref(0)
-const prizeTier = ref(0)
-const currentTicketId = ref<string | null>(null)
-const scratchProgress = ref(0)
-const statusMessage = ref('')
-const showWinOverlay = ref(false)
+const hasTicket = ref(false);
+const isRevealed = ref(false);
+const prize = ref(0);
+const prizeTier = ref(0);
+const currentTicketId = ref<string | null>(null);
+const scratchProgress = ref(0);
+const { status, setStatus } = useStatusMessage();
+const showWinOverlay = ref(false);
 
 const currentLottery = computed(() => {
-  const typeNum = parseInt(props.type || '0')
-  return getLotteryType(typeNum as LotteryType)
-})
+  const typeNum = parseInt(props.type || "0");
+  return getLotteryType(typeNum as LotteryType);
+});
 
 const getScratchCoating = () => {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return '#c0c0c0'
-  const value = getComputedStyle(document.documentElement)
-    .getPropertyValue('--lucky-scratch-coating')
-    .trim()
-  return value || '#c0c0c0'
-}
+  if (typeof window === "undefined" || typeof document === "undefined") return "#c0c0c0";
+  const value = getComputedStyle(document.documentElement).getPropertyValue("--lucky-scratch-coating").trim();
+  return value || "#c0c0c0";
+};
 
 const buyTicket = async () => {
-  if (!currentLottery.value) return
+  if (!currentLottery.value) return;
 
-  statusMessage.value = t("scratchBuying")
+  setStatus(t("scratchBuying"), "loading");
   try {
-    const result = await sdkBuyTicket(currentLottery.value.type)
-    currentTicketId.value = result.ticketId
-    hasTicket.value = true
-    statusMessage.value = t("scratchBought")
-    initCanvas()
-  } catch (e) {
-    statusMessage.value = t("scratchBuyFailed", { error: (e as Error).message })
+    const result = await sdkBuyTicket(currentLottery.value.type);
+    currentTicketId.value = result.ticketId;
+    hasTicket.value = true;
+    setStatus(t("scratchBought"), "success");
+    initCanvas();
+  } catch (e: unknown) {
+    setStatus(t("scratchBuyFailed", { error: (e as Error).message }), "error");
   }
-}
+};
 
 const revealAll = async () => {
-  if (!currentTicketId.value) return
+  if (!currentTicketId.value) return;
 
-  statusMessage.value = t("scratchRevealing")
+  setStatus(t("scratchRevealing"), "loading");
   try {
-    const result = await sdkRevealTicket(currentTicketId.value)
-    isRevealed.value = true
-    prize.value = result.prize
-    prizeTier.value = result.tier || 0
+    const result = await sdkRevealTicket(currentTicketId.value);
+    isRevealed.value = true;
+    prize.value = result.prize;
+    prizeTier.value = result.tier || 0;
 
     if (result.isWinner) {
-      statusMessage.value = t("scratchWinStatus", { amount: formatPrize(result.prize) })
-      showWinOverlay.value = true
+      setStatus(t("scratchWinStatus", { amount: formatPrize(result.prize) }), "success");
+      showWinOverlay.value = true;
     } else {
-      statusMessage.value = t("scratchTryAgain")
+      setStatus(t("scratchTryAgain"), "info");
     }
-  } catch (e) {
-    statusMessage.value = t("scratchRevealFailed", { error: (e as Error).message })
+  } catch (e: unknown) {
+    setStatus(t("scratchRevealFailed", { error: (e as Error).message }), "error");
   }
-}
+};
 
-let ctx: any = null
+let ctx: ReturnType<typeof uni.createCanvasContext> | null = null;
 const initCanvas = () => {
-  ctx = uni.createCanvasContext('scratchCanvas')
-  ctx.setFillStyle(getScratchCoating())
-  ctx.fillRect(0, 0, 300, 200)
-  ctx.draw()
-}
+  ctx = uni.createCanvasContext("scratchCanvas");
+  ctx.setFillStyle(getScratchCoating());
+  ctx.fillRect(0, 0, 300, 200);
+  ctx.draw();
+};
 
-const onTouchStart = (e: any) => {
-  if (!hasTicket.value || isRevealed.value) return
-}
+const onTouchStart = (e: Record<string, unknown>) => {
+  if (!hasTicket.value || isRevealed.value) return;
+};
 
-const onTouchMove = async (e: any) => {
-  if (!ctx || !hasTicket.value || isRevealed.value) return
-  const touch = e.touches[0]
-  ctx.globalCompositeOperation = 'destination-out'
-  ctx.beginPath()
-  ctx.arc(touch.x, touch.y, 20, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.draw(true)
-  scratchProgress.value += 1
+const onTouchMove = async (e: Record<string, unknown>) => {
+  if (!ctx || !hasTicket.value || isRevealed.value) return;
+  const touch = e.touches[0];
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.beginPath();
+  ctx.arc(touch.x, touch.y, 20, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.draw(true);
+  scratchProgress.value += 1;
 
   // Auto-reveal when scratched enough
   if (scratchProgress.value > 50 && currentTicketId.value) {
-    await revealAll()
+    await revealAll();
   }
-}
+};
 
-const onTouchEnd = () => {}
+const onTouchEnd = () => {};
 
 onMounted(() => {
   if (props.ticketId) {
-    hasTicket.value = true
-    initCanvas()
+    hasTicket.value = true;
+    initCanvas();
   }
-})
+});
 </script>
 
 <style lang="scss" scoped>
-@import '../../shared/styles/chinese-lucky.scss';
+@import "../../shared/styles/chinese-lucky.scss";
 
 .scratch-play {
   padding: 20rpx;
@@ -252,7 +243,8 @@ onMounted(() => {
   justify-content: center;
 }
 
-.btn-buy, .btn-reveal {
+.btn-buy,
+.btn-reveal {
   padding: 24rpx 48rpx;
   border-radius: 12rpx;
   font-size: 32rpx;
@@ -297,10 +289,19 @@ onMounted(() => {
   justify-content: space-between;
   padding: 16rpx 0;
   border-bottom: 1rpx solid var(--lucky-gold-soft);
-  &:last-child { border: none; }
+  &:last-child {
+    border: none;
+  }
 
-  .tier-label { color: var(--text-primary); }
-  .tier-odds { color: var(--text-muted); }
-  .tier-prize { color: var(--lucky-gold-text); font-weight: bold; }
+  .tier-label {
+    color: var(--text-primary);
+  }
+  .tier-odds {
+    color: var(--text-muted);
+  }
+  .tier-prize {
+    color: var(--lucky-gold-text);
+    font-weight: bold;
+  }
 }
 </style>

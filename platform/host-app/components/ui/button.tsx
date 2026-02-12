@@ -11,10 +11,10 @@ const buttonVariants = cva(
           "bg-erobo-ink text-white hover:brightness-110 shadow-[0_18px_45px_rgba(27,27,47,0.3)] border border-transparent",
         destructive: "bg-red-500 text-white hover:bg-red-600 shadow-sm hover:shadow-md hover:shadow-red-500/20",
         outline:
-          "border border-white/60 dark:border-white/10 bg-transparent hover:bg-erobo-peach/30 dark:hover:bg-white/10 text-erobo-ink dark:text-gray-100",
+          "border border-white/60 dark:border-white/10 bg-transparent hover:bg-erobo-peach/30 dark:hover:bg-white/10 text-erobo-ink dark:text-slate-200",
         secondary:
           "bg-gradient-to-r from-erobo-purple to-erobo-pink text-white hover:brightness-110 shadow-[0_12px_30px_rgba(159,157,243,0.35)]",
-        ghost: "hover:bg-erobo-peach/30 dark:hover:bg-white/10 text-erobo-ink-soft dark:text-gray-300",
+        ghost: "hover:bg-erobo-peach/30 dark:hover:bg-white/10 text-erobo-ink-soft dark:text-slate-300",
         link: "text-erobo-purple underline-offset-4 hover:underline",
       },
       size: {
@@ -32,7 +32,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> { }
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {}
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, ...props }, ref) => {
   return <button className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;

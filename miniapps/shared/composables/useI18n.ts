@@ -50,8 +50,8 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
 
   // Automatically listen for language changes from the host app
   if (typeof window !== "undefined") {
-    window.addEventListener("languageChange", (event: any) => {
-      const newLang = event.detail?.language;
+    window.addEventListener("languageChange", (event: Event) => {
+      const newLang = (event as CustomEvent<{ language?: string }>).detail?.language;
       if (newLang) {
         setLocale(newLang);
       }
@@ -73,16 +73,13 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
       const isAllowedOrigin =
         event.origin === expectedOrigin ||
         event.origin === window.location.origin ||
-        (isParentMessage &&
-          (event.origin === "null" || expectedOrigin === "null"));
+        (isParentMessage && (event.origin === "null" || expectedOrigin === "null"));
 
       if (!isAllowedOrigin) return;
       const data = event.data as Record<string, unknown> | null;
       if (!data || typeof data !== "object") return;
       if (data.type !== "language-change") return;
-      const newLang = String(
-        data.language || data.locale || data.lang || "",
-      ).trim();
+      const newLang = String(data.language || data.locale || data.lang || "").trim();
       if (!newLang) return;
       setLocale(newLang);
     });

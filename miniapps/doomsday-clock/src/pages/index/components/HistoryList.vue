@@ -27,7 +27,7 @@ export interface HistoryEvent {
 
 defineProps<{
   history: HistoryEvent[];
-  t: (key: string) => string;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 </script>
 
@@ -57,7 +57,7 @@ defineProps<{
   border-radius: 8px;
   margin-bottom: $spacing-2;
   transition: all 0.2s ease;
-  
+
   &:active {
     background: rgba(255, 255, 255, 0.1);
   }

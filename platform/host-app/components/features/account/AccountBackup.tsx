@@ -66,7 +66,7 @@ export function AccountBackup({ walletAddress }: AccountBackupProps) {
   return (
     <Card className="glass-card border-amber-500/20">
       <CardHeader>
-        <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+        <CardTitle className="text-erobo-ink dark:text-white flex items-center gap-2">
           <Download size={20} className="text-amber-500" />
           Account Backup
         </CardTitle>

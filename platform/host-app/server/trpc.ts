@@ -5,7 +5,7 @@
  * @see https://trpc.io/docs/server/introduction
  */
 
-import { initTRPC, TRPCError } from "@trpc/server";
+import { initTRPC } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import superjson from "superjson";
 import { ZodError } from "zod";
@@ -51,7 +51,7 @@ export const middleware = t.middleware;
 
 /**
  * Auth middleware - ensures user is authenticated
- * Note: With wallet-only auth, this is simplified. 
+ * Note: With wallet-only auth, this is simplified.
  * Wallet verification happens at the API level via signature verification.
  */
 const isAuthed = middleware(({ ctx, next }) => {

@@ -1,13 +1,10 @@
-"use client";
-
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { Menu, X, Globe, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n/react";
-import { useWalletStore } from "@/lib/wallet/store";
 import { NotificationDropdown } from "@/components/features/notifications/NotificationDropdown";
 import { SearchAutocomplete } from "@/components/features/search";
 
@@ -27,8 +24,29 @@ const navLinks = [
 export function Navbar() {
   const router = useRouter();
   const { locale, setLocale, t } = useI18n();
-  const { address: walletAddress } = useWalletStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  // M-HOST-04: Escape to close mobile menu + focus management
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileMenuOpen(false);
+        hamburgerRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Focus first link in mobile menu when opened
+    const firstLink = mobileMenuRef.current?.querySelector("a");
+    firstLink?.focus();
+
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileMenuOpen]);
 
   const handleLogoClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -74,7 +92,7 @@ export function Navbar() {
                   "px-4 py-2 text-sm font-medium rounded-full transition-all duration-200",
                   router.pathname.startsWith(link.href)
                     ? "bg-erobo-purple/10 text-erobo-purple"
-                    : "text-erobo-ink-soft dark:text-gray-300 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/5",
+                    : "text-erobo-ink-soft dark:text-slate-300 hover:text-erobo-ink dark:hover:text-white hover:bg-erobo-peach/30 dark:hover:bg-white/5",
                 )}
               >
                 {t(link.labelKey)}
@@ -96,7 +114,7 @@ export function Navbar() {
           {/* Language Switcher */}
           <button
             onClick={() => setLocale(locale === "en" ? "zh" : "en")}
-            className="p-2 text-erobo-ink-soft dark:text-gray-300 hover:bg-erobo-peach/30 dark:hover:bg-white/5 rounded-full transition-all flex items-center gap-1"
+            className="p-2 text-erobo-ink-soft dark:text-slate-300 hover:bg-erobo-peach/30 dark:hover:bg-white/5 rounded-full transition-all flex items-center gap-1"
             aria-label="Switch language"
           >
             <Globe size={18} strokeWidth={2.5} />
@@ -106,7 +124,7 @@ export function Navbar() {
           {/* Wishlist */}
           <Link
             href="/wishlist"
-            className="p-2 text-erobo-ink-soft dark:text-gray-300 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"
+            className="p-2 text-erobo-ink-soft dark:text-slate-300 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"
             aria-label="Wishlist"
           >
             <Heart size={18} strokeWidth={2.5} />
@@ -120,8 +138,11 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
+            ref={hamburgerRef}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-erobo-ink-soft dark:text-gray-300 hover:bg-erobo-peach/30 dark:hover:bg-white/5 rounded-full transition-all"
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+            className="md:hidden p-2 text-erobo-ink-soft dark:text-slate-300 hover:bg-erobo-peach/30 dark:hover:bg-white/5 rounded-full transition-all"
           >
             {mobileMenuOpen ? <X size={20} strokeWidth={2.5} /> : <Menu size={20} strokeWidth={2.5} />}
           </button>
@@ -130,7 +151,10 @@ export function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-white/60 dark:border-white/10 bg-white/90 dark:bg-erobo-bg-dark px-4 py-4 shadow-lg">
+        <div
+          ref={mobileMenuRef}
+          className="md:hidden border-t border-white/60 dark:border-white/10 bg-white/90 dark:bg-erobo-bg-dark px-4 py-4 shadow-lg"
+        >
           <div className="mb-4">
             <SearchAutocomplete className="w-full" />
           </div>
@@ -144,7 +168,7 @@ export function Navbar() {
                   "px-4 py-3 text-sm font-medium rounded-xl transition-all",
                   router.pathname.startsWith(link.href)
                     ? "bg-erobo-purple/10 text-erobo-purple"
-                    : "text-erobo-ink-soft dark:text-gray-300 hover:bg-erobo-peach/30 dark:hover:bg-white/5",
+                    : "text-erobo-ink-soft dark:text-slate-300 hover:bg-erobo-peach/30 dark:hover:bg-white/5",
                 )}
               >
                 {t(link.labelKey)}

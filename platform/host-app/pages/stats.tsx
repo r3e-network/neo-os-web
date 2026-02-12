@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn, formatNumber, formatTimeAgo } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface PlatformStats {
   totalUsers: number;
@@ -89,7 +90,7 @@ export default function EnhancedStatsPage() {
           setEvents(eventsData.events || []);
         }
       } catch (err) {
-        console.error("Failed to fetch stats:", err);
+        logger.error("Failed to fetch stats:", err);
       } finally {
         setLoading(false);
       }
@@ -141,7 +142,7 @@ export default function EnhancedStatsPage() {
         <div className="relative flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
           <div>
             <h1 className="text-4xl font-bold text-erobo-ink dark:text-white">{t("statsPage.title")}</h1>
-            <p className="mt-2 text-erobo-ink-soft/70 dark:text-gray-400">{t("statsPage.subtitle")}</p>
+            <p className="mt-2 text-erobo-ink-soft/70 dark:text-slate-400">{t("statsPage.subtitle")}</p>
           </div>
           <Badge className="bg-erobo-purple/10 text-erobo-purple border border-erobo-purple/30 h-8 px-4 flex items-center gap-2 rounded-full">
             <span className="relative flex h-2 w-2">
@@ -327,14 +328,13 @@ export default function EnhancedStatsPage() {
                         borderRadius: "12px",
                         color: tooltipText,
                       }}
-                      // @ts-expect-error recharts formatter type
-                      formatter={(value: number) => [`${value}%`, "Share"] as unknown as string}
+                      formatter={(value) => [`${value}%`, "Share"] as unknown as string}
                     />
                     <Legend
                       verticalAlign="bottom"
                       height={36}
                       formatter={(value) => (
-                        <span className="text-xs text-erobo-ink-soft dark:text-gray-400">{value}</span>
+                        <span className="text-xs text-erobo-ink-soft dark:text-slate-400">{value}</span>
                       )}
                     />
                   </PieChart>
@@ -379,14 +379,13 @@ export default function EnhancedStatsPage() {
                         borderRadius: "12px",
                         color: tooltipText,
                       }}
-                      // @ts-expect-error recharts formatter type
-                      formatter={(value: number) => [`${value}%`, "Share"] as unknown as string}
+                      formatter={(value) => [`${value}%`, "Share"] as unknown as string}
                     />
                     <Legend
                       verticalAlign="bottom"
                       height={36}
                       formatter={(value) => (
-                        <span className="text-xs text-erobo-ink-soft dark:text-gray-400">{value}</span>
+                        <span className="text-xs text-erobo-ink-soft dark:text-slate-400">{value}</span>
                       )}
                     />
                   </PieChart>
@@ -427,7 +426,7 @@ export default function EnhancedStatsPage() {
                         <p className="text-sm font-semibold text-erobo-ink dark:text-white">
                           {event.method || "invokefunction"}
                         </p>
-                        <p className="text-xs text-erobo-ink-soft/70 dark:text-gray-400">
+                        <p className="text-xs text-erobo-ink-soft/70 dark:text-slate-400">
                           {t("statsPage.contract")}: {event.contract || "Unknown"} ({event.contractAddress?.slice(0, 6)}
                           ...
                           {event.contractAddress?.slice(-4)})
@@ -435,8 +434,8 @@ export default function EnhancedStatsPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-mono text-erobo-ink dark:text-gray-200">{event.gasUsed || "0"} GAS</p>
-                      <p className="text-[10px] text-erobo-ink-soft/70 dark:text-gray-400">
+                      <p className="text-sm font-mono text-erobo-ink dark:text-slate-200">{event.gasUsed || "0"} GAS</p>
+                      <p className="text-[10px] text-erobo-ink-soft/70 dark:text-slate-400">
                         {formatTimeAgo(event.timestamp, { t: tCommon })}
                       </p>
                     </div>
@@ -467,14 +466,14 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading, trend }: St
     if (trend === undefined || trend === null) return null;
     if (trend > 0) return <ArrowUpRight size={14} className="text-neo" />;
     if (trend < 0) return <ArrowDownRight size={14} className="text-red-500" />;
-    return <Minus size={14} className="text-gray-400" />;
+    return <Minus size={14} className="text-erobo-ink-soft/60" />;
   };
 
   const getTrendColor = () => {
     if (trend === undefined || trend === null) return "";
     if (trend > 0) return "text-neo";
     if (trend < 0) return "text-red-500";
-    return "text-gray-400";
+    return "text-erobo-ink-soft/60";
   };
 
   return (
@@ -482,7 +481,7 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading, trend }: St
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-erobo-ink-soft/70 dark:text-gray-300">{title}</p>
+            <p className="text-sm font-medium text-erobo-ink-soft/70 dark:text-slate-300">{title}</p>
             <h3 className="text-3xl font-bold text-erobo-ink dark:text-white mt-1">
               {loading ? <Loader2 className="animate-spin" size={24} /> : value}
             </h3>

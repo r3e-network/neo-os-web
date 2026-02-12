@@ -4,9 +4,7 @@
 
     <NeoCard v-if="result.type === 'transaction'" variant="erobo" class="mb-6">
       <template #header-extra>
-        <text :class="['vm-state-neo', result.data.vmState]">{{
-          result.data.vmState
-        }}</text>
+        <text :class="['vm-state-neo', result.data.vmState]">{{ result.data.vmState }}</text>
       </template>
 
       <view class="result-rows">
@@ -42,9 +40,7 @@
       </view>
 
       <view class="tx-list-neo" v-if="result.data.transactions?.length">
-        <text class="list-title-neo">{{
-          t("recentTransactions")
-        }}</text>
+        <text class="list-title-neo">{{ t("recentTransactions") }}</text>
         <view
           v-for="tx in result.data.transactions"
           :key="tx.hash"
@@ -63,8 +59,8 @@
 import { NeoCard } from "@shared/components";
 
 defineProps<{
-  result: any;
-  t: (key: string) => string;
+  result: Record<string, unknown> | null;
+  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["viewTx"]);
@@ -87,7 +83,7 @@ const truncateHash = (hash: string) => {
 .section-title-neo {
   font-size: 11px;
   font-weight: 700;
-  color: #00E599;
+  color: var(--matrix-success);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -101,23 +97,27 @@ const truncateHash = (hash: string) => {
   font-weight: 700;
   text-transform: uppercase;
   border-radius: 100px;
-  
+
   &.HALT {
     background: rgba(0, 229, 153, 0.1);
-    color: #00E599;
+    color: var(--matrix-success);
     border: 1px solid rgba(0, 229, 153, 0.2);
     box-shadow: 0 0 10px rgba(0, 229, 153, 0.1);
   }
-  
+
   &.FAULT {
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--matrix-error);
     border: 1px solid rgba(239, 68, 68, 0.2);
     box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
   }
 }
 
-.result-rows { display: flex; flex-direction: column; gap: 8px; }
+.result-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .result-row-neo {
   padding: 12px;
@@ -127,7 +127,7 @@ const truncateHash = (hash: string) => {
   margin-bottom: 8px;
   backdrop-filter: blur(5px);
   transition: background 0.2s;
-  
+
   &:hover {
     background: var(--bg-card, rgba(255, 255, 255, 0.05));
   }
@@ -179,7 +179,7 @@ const truncateHash = (hash: string) => {
   align-items: center;
   transition: all 0.2s;
   cursor: pointer;
-  
+
   &:active {
     transform: scale(0.98);
     background: rgba(255, 255, 255, 0.08);
@@ -199,7 +199,13 @@ const truncateHash = (hash: string) => {
   font-weight: 500;
 }
 
-.mb-2 { margin-bottom: 8px; }
-.mb-4 { margin-bottom: 16px; }
-.mb-6 { margin-bottom: 24px; }
+.mb-2 {
+  margin-bottom: 8px;
+}
+.mb-4 {
+  margin-bottom: 16px;
+}
+.mb-6 {
+  margin-bottom: 24px;
+}
 </style>

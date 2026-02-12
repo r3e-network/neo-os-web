@@ -5,7 +5,7 @@ import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { parseInvokeResult, normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
 import { useI18n } from "@/composables/useI18n";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
-import type { Machine, MachineItem } from "./useGachaMachines";
+import type { Machine, MachineItem } from "@/types";
 
 export function useGachaManagement() {
   const { t } = useI18n();
@@ -76,7 +76,7 @@ export function useGachaManagement() {
         ],
       });
       if (onSuccess) await onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "updateMachinePrice" });
       throw e;
     } finally {
@@ -103,7 +103,7 @@ export function useGachaManagement() {
         ],
       });
       if (onSuccess) await onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "toggleMachineActive" });
       throw e;
     } finally {
@@ -130,7 +130,7 @@ export function useGachaManagement() {
         ],
       });
       if (onSuccess) await onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "toggleMachineListed" });
       throw e;
     } finally {
@@ -158,7 +158,7 @@ export function useGachaManagement() {
         ],
       });
       if (onSuccess) await onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "listMachineForSale" });
       throw e;
     } finally {
@@ -184,7 +184,7 @@ export function useGachaManagement() {
         ],
       });
       if (onSuccess) await onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "cancelMachineSale" });
       throw e;
     } finally {
@@ -205,7 +205,7 @@ export function useGachaManagement() {
         args: [{ type: "Integer", value: machine.id }],
       });
       if (onSuccess) await onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "withdrawMachineRevenue" });
       throw e;
     } finally {
@@ -258,7 +258,7 @@ export function useGachaManagement() {
         });
       }
       if (onSuccess) await onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "depositItem" });
       throw e;
     } finally {
@@ -310,7 +310,7 @@ export function useGachaManagement() {
         });
       }
       if (onSuccess) await onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       handleError(e, { operation: "withdrawItem" });
       throw e;
     } finally {

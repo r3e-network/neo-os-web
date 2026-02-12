@@ -9,14 +9,12 @@
       @tab-change="activeTab = $event"
     >
       <template #desktop-sidebar>
-        <view class="desktop-sidebar">
-          <text class="sidebar-title">{{ t("overview") }}</text>
-        </view>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
       <template #content>
         <view class="app-container">
-          <NeoCard v-if="status" :variant="status.variant" class="mb-4">
+          <NeoCard v-if="status" :variant="status.type" class="mb-4">
             <text class="status-text">{{ status.msg }}</text>
           </NeoCard>
 
@@ -86,11 +84,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
-import { MiniAppTemplate, NeoCard, WalletPrompt } from "@shared/components";
+import { ref, computed, watch, onUnmounted } from "vue";
+import { MiniAppTemplate, NeoCard, SidebarPanel, WalletPrompt } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useI18n } from "@/composables/useI18n";
-import { useGachaMachines, type Machine } from "@/composables/useGachaMachines";
+import { useGachaMachines } from "@/composables/useGachaMachines";
+import type { Machine } from "@/types";
 import { useGachaPlay } from "@/composables/useGachaPlay";
 import { useGachaWallet } from "@/composables/useGachaWallet";
 import { useGachaManagement } from "@/composables/useGachaManagement";
@@ -135,15 +135,13 @@ const appState = computed(() => ({
   showFireworks: showFireworks.value,
 }));
 
-interface Status {
-  msg: string;
-  variant: "danger" | "success" | "warning";
-}
+const sidebarItems = computed(() => [
+  { label: t("machines"), value: machines.value.length },
+  { label: t("playing"), value: isPlaying.value ? t("yes") : t("no") },
+  { label: t("selected"), value: selectedMachine.value?.name || t("none") },
+]);
 
-const status = ref<Status | null>(null);
-const setStatus = (msg: string, variant: Status["variant"]) => {
-  status.value = { msg, variant };
-};
+const { status, setStatus } = useStatusMessage();
 
 const {
   machines,
@@ -203,7 +201,7 @@ const handleBuy = async () => {
   });
 };
 
-const handlePublish = async (machineData: any) => {
+const handlePublish = async (machineData: Record<string, unknown>) => {
   await publishMachine(machineData, {
     requireAddress,
     setStatus,
@@ -250,7 +248,7 @@ const handleDepositItem = async ({
   tokenId,
 }: {
   machine: Machine;
-  item: any;
+  item: Record<string, unknown>;
   index: number;
   amount: string;
   tokenId: string;
@@ -266,7 +264,7 @@ const handleWithdrawItem = async ({
   tokenId,
 }: {
   machine: Machine;
-  item: any;
+  item: Record<string, unknown>;
   index: number;
   amount: string;
   tokenId: string;
@@ -274,25 +272,37 @@ const handleWithdrawItem = async ({
   await withdrawItem(machine, item, index, amount || "", tokenId || "", fetchMachines);
 };
 
+let fireworksTimer: ReturnType<typeof setTimeout> | null = null;
+
 watch(showFireworks, (val) => {
   if (val) {
-    setTimeout(() => (showFireworks.value = false), 3000);
+    fireworksTimer = setTimeout(() => {
+      fireworksTimer = null;
+      showFireworks.value = false;
+    }, 3000);
+  }
+});
+
+onUnmounted(() => {
+  if (fireworksTimer) {
+    clearTimeout(fireworksTimer);
+    fireworksTimer = null;
   }
 });
 
 watch(address, () => {
   fetchMachines();
-});
-
-onMounted(() => {
-  fetchMachines();
-});
+}, { immediate: true });
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./neo-gacha-theme.scss";
+
+:global(page) {
+  background: var(--gacha-bg);
+}
 
 .app-container {
   padding: 16px;
@@ -311,28 +321,10 @@ onMounted(() => {
     20px 20px;
 }
 
-.scrollable {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 .status-text {
   font-weight: 700;
   text-align: center;
   color: var(--text-primary);
-}
-
-.desktop-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3, 12px);
-}
-
-.sidebar-title {
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 </style>

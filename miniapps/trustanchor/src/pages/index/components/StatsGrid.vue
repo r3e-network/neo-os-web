@@ -109,7 +109,7 @@ export default {
 }
 
 .stat-card.text-green .stat-value {
-  color: #22c55e;
+  color: var(--trustanchor-success);
 }
 
 .feature-card {
@@ -118,6 +118,6 @@ export default {
 }
 
 .text-green {
-  color: #22c55e;
+  color: var(--trustanchor-success);
 }
 </style>

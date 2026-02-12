@@ -27,15 +27,15 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-white dark:bg-erobo-bg-deeper border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden p-0 gap-0">
+      <DialogContent className="sm:max-w-md bg-white dark:bg-erobo-bg-deeper border border-erobo-purple/10 dark:border-white/10 shadow-2xl rounded-2xl overflow-hidden p-0 gap-0">
         <DialogHeader className="p-6 pb-2">
-          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-erobo-ink dark:text-white">
             <div className="p-2 bg-neo/10 rounded-full text-neo">
               <Wallet size={20} />
             </div>
             {title || t("wallet.connectRequired")}
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          <DialogDescription className="text-sm text-erobo-ink-soft dark:text-slate-400 mt-2">
             {description || t("wallet.connectDescription")}
           </DialogDescription>
         </DialogHeader>
@@ -43,7 +43,7 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
         <div className="p-6 pt-2 space-y-6">
           {/* Wallet Options */}
           <div className="space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <p className="text-xs font-bold uppercase tracking-wide text-erobo-ink-soft dark:text-slate-400">
               {t("wallet.selectWallet")}
             </p>
             <div className="grid gap-3">
@@ -57,9 +57,9 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
                   transition={{ delay: idx * 0.1 }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex w-full items-center gap-3 rounded-xl border border-gray-200 dark:border-white/10 px-4 py-3.5 text-left bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 hover:border-gray-300 dark:hover:border-white/20 transition-all duration-200 shadow-sm hover:shadow-md group"
+                  className="flex w-full items-center gap-3 rounded-xl border border-erobo-purple/10 dark:border-white/10 px-4 py-3.5 text-left bg-white dark:bg-white/5 hover:bg-erobo-purple/5 dark:hover:bg-white/10 hover:border-erobo-purple/20 dark:hover:border-white/20 transition-all duration-200 shadow-sm hover:shadow-md group"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gray-100 p-1 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="w-8 h-8 rounded-lg bg-erobo-purple/10 p-1 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <img
                       src={wallet.icon}
                       alt={wallet.name}
@@ -69,7 +69,7 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
                       }}
                     />
                   </div>
-                  <span className="font-bold text-gray-900 dark:text-white group-hover:text-neo transition-colors">
+                  <span className="font-bold text-erobo-ink dark:text-white group-hover:text-neo transition-colors">
                     {wallet.name}
                   </span>
                 </motion.button>
@@ -81,10 +81,10 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
           {!connected && (
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-100 dark:border-white/5" />
+                <span className="w-full border-t border-erobo-purple/5 dark:border-white/5" />
               </div>
               <div className="relative flex justify-center text-xs font-medium uppercase tracking-widest">
-                <span className="bg-white dark:bg-erobo-bg-deeper px-2 text-gray-400">{t("common.or")}</span>
+                <span className="bg-white dark:bg-erobo-bg-deeper px-2 text-erobo-ink-soft/60">{t("common.or")}</span>
               </div>
             </div>
           )}
@@ -95,8 +95,8 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
             variant="outline"
             className={`w-full flex items-center justify-center gap-2 rounded-xl h-12 border transition-all duration-300 ${
               connected
-                ? "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 hover:text-neo dark:hover:text-neo shadow-sm hover:shadow-md"
+                ? "border-erobo-purple/10 dark:border-white/10 bg-erobo-purple/5 dark:bg-erobo-bg-dark text-erobo-ink-soft/60 dark:text-slate-500 cursor-not-allowed"
+                : "border-erobo-purple/10 dark:border-white/10 hover:border-erobo-purple/20 dark:hover:border-white/20 bg-white dark:bg-white/5 hover:bg-erobo-purple/5 dark:hover:bg-white/10 text-erobo-ink dark:text-slate-200 hover:text-neo dark:hover:text-neo shadow-sm hover:shadow-md"
             }`}
             disabled={loading || connected}
           >
@@ -126,11 +126,11 @@ export function WalletConnectionModal({ open, onClose, title, description }: Wal
           )}
         </div>
 
-        <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5 flex justify-end">
+        <div className="p-4 bg-erobo-purple/5/50 dark:bg-white/5 border-t border-erobo-purple/5 dark:border-white/5 flex justify-end">
           <Button
             variant="ghost"
             onClick={onClose}
-            className="hover:bg-gray-200/50 dark:hover:bg-white/10 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white font-medium"
+            className="hover:bg-erobo-purple/15/50 dark:hover:bg-white/10 text-erobo-ink-soft hover:text-erobo-ink dark:text-slate-400 dark:hover:text-white font-medium"
           >
             {t("actions.cancel")}
           </Button>

@@ -1,11 +1,11 @@
 <template>
-  <view class="neo-doc">
+  <view class="neo-doc" role="article" :aria-label="title">
     <view class="doc-header">
       <ScrollReveal animation="fade-down" :duration="1000">
         <view class="title-row">
-          <view class="doc-badge">{{ t("docBadge") }}</view>
+          <view class="doc-badge" aria-hidden="true">{{ t("docBadge") }}</view>
         </view>
-        <text class="doc-title">{{ title }}</text>
+        <text class="doc-title" role="heading" aria-level="2">{{ title }}</text>
         <text class="doc-subtitle">{{ subtitle }}</text>
       </ScrollReveal>
     </view>
@@ -13,24 +13,19 @@
     <view class="doc-content">
       <view class="doc-section">
         <ScrollReveal animation="fade-up" :delay="200">
-          <text class="section-label">{{ t("docWhatItIs") }}</text>
+          <text class="section-label" role="heading" aria-level="3">{{ t("docWhatItIs") }}</text>
           <text class="section-text">{{ description }}</text>
         </ScrollReveal>
       </view>
 
       <view class="doc-section">
         <ScrollReveal animation="fade-up" :delay="300">
-          <text class="section-label">{{ t("docHowToUse") }}</text>
+          <text class="section-label" role="heading" aria-level="3">{{ t("docHowToUse") }}</text>
         </ScrollReveal>
-        <view class="steps-list">
-          <ScrollReveal
-            v-for="(step, index) in steps"
-            :key="index"
-            :delay="400 + index * 100"
-            animation="slide-left"
-          >
-            <view class="step-item">
-              <view class="step-number">{{ index + 1 }}</view>
+        <view class="steps-list" role="list" aria-label="Steps">
+          <ScrollReveal v-for="(step, index) in steps" :key="index" :delay="400 + index * 100" animation="slide-left">
+            <view class="step-item" role="listitem">
+              <view class="step-number" aria-hidden="true">{{ index + 1 }}</view>
               <text class="step-text">{{ step }}</text>
             </view>
           </ScrollReveal>
@@ -39,9 +34,9 @@
 
       <view class="doc-section">
         <ScrollReveal animation="fade-up" :delay="400">
-          <text class="section-label">{{ t("docOnChainFeatures") }}</text>
+          <text class="section-label" role="heading" aria-level="3">{{ t("docOnChainFeatures") }}</text>
         </ScrollReveal>
-        <view class="features-grid">
+        <view class="features-grid" role="list" aria-label="Features">
           <ScrollReveal
             v-for="(feature, index) in features"
             :key="feature.name"
@@ -49,7 +44,7 @@
             animation="scale-in"
             reversible
           >
-            <view class="feature-card">
+            <view class="feature-card" role="listitem">
               <text class="feature-name">{{ feature.name }}</text>
               <text class="feature-desc">{{ feature.desc }}</text>
             </view>
@@ -109,7 +104,6 @@ defineProps<{
   gap: 16px;
   margin-bottom: 8px;
 }
-
 
 .doc-badge {
   background: rgba(159, 157, 243, 0.12);
@@ -237,6 +231,16 @@ defineProps<{
   font-size: 13px;
   color: var(--text-secondary, rgba(255, 255, 255, 0.5));
   line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card {
+    transition: none;
+
+    &:active {
+      transform: none;
+    }
+  }
 }
 
 .doc-footer {

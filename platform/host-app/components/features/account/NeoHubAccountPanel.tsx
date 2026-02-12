@@ -5,12 +5,13 @@ import { useWalletStore } from "@/lib/wallet/store";
 import { useTranslation } from "@/lib/i18n/react";
 import { LinkedIdentitiesList } from "./LinkedIdentitiesList";
 import { LinkedNeoAccountsList } from "./LinkedNeoAccountsList";
-import type { LinkedIdentity, LinkedNeoAccount } from "@/lib/neohub-account";
+import type { LinkedIdentity, LinkedChainAccount } from "@/lib/neohub-account";
+import { logger } from "@/lib/logger";
 
 interface NeoHubAccountData {
   neohubAccountId: string;
   linkedIdentities: LinkedIdentity[];
-  linkedNeoAccounts: LinkedNeoAccount[];
+  linkedNeoAccounts: LinkedChainAccount[];
 }
 
 /**
@@ -21,7 +22,7 @@ export function NeoHubAccountPanel() {
   const { t } = useTranslation("host");
   const { connected, address } = useWalletStore();
   const [accountData, setAccountData] = useState<NeoHubAccountData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   // Fetch account data
   useEffect(() => {
@@ -42,7 +43,7 @@ export function NeoHubAccountPanel() {
           });
         }
       } catch (err) {
-        console.error("Failed to fetch account data:", err);
+        logger.error("Failed to fetch account data:", err);
       } finally {
         setLoading(false);
       }
@@ -66,28 +67,26 @@ export function NeoHubAccountPanel() {
 
   return (
     <Card className="erobo-card">
-      <CardHeader className="border-b border-gray-100 dark:border-white/5 pb-6">
-        <CardTitle className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+      <CardHeader className="border-b border-erobo-purple/5 dark:border-white/5 pb-6">
+        <CardTitle className="text-2xl font-bold tracking-tight text-erobo-ink dark:text-white flex items-center gap-2">
           <Users size={28} className="text-neo" />
           {t("account.wallet.title") || "Connected Wallet"}
         </CardTitle>
-        <CardDescription className="mt-1 text-gray-500 dark:text-gray-400">
+        <CardDescription className="mt-1 text-erobo-ink-soft dark:text-slate-400">
           {t("account.wallet.subtitle") || "Your wallet connection details"}
         </CardDescription>
       </CardHeader>
 
       <CardContent className="pt-6 space-y-8">
         {/* Current Wallet Address */}
-        <div className="p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+        <div className="p-4 rounded-xl bg-erobo-purple/5 dark:bg-white/5 border border-erobo-purple/10 dark:border-white/10">
           <div className="flex items-center gap-2 mb-2">
-            <Wallet size={16} className="text-gray-400" />
-            <span className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <Wallet size={16} className="text-erobo-ink-soft/60" />
+            <span className="text-xs font-bold uppercase tracking-wide text-erobo-ink-soft dark:text-slate-400">
               {t("account.wallet.address") || "Wallet Address"}
             </span>
           </div>
-          <p className="text-sm font-mono font-medium text-gray-900 dark:text-white break-all">
-            {address}
-          </p>
+          <p className="text-sm font-mono font-medium text-erobo-ink dark:text-white break-all">{address}</p>
         </div>
 
         {/* Linked accounts sections - only show if account data exists */}
@@ -95,8 +94,8 @@ export function NeoHubAccountPanel() {
           <>
             {/* Linked Social Accounts */}
             <div>
-              <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
-                <Users size={16} className="text-gray-400" />
+              <h3 className="font-bold text-sm text-erobo-ink dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
+                <Users size={16} className="text-erobo-ink-soft/60" />
                 {t("account.neohub.linkedIdentities")}
               </h3>
               <LinkedIdentitiesList
@@ -108,8 +107,8 @@ export function NeoHubAccountPanel() {
 
             {/* Linked Neo Wallets */}
             <div>
-              <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
-                <Wallet size={16} className="text-gray-400" />
+              <h3 className="font-bold text-sm text-erobo-ink dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
+                <Wallet size={16} className="text-erobo-ink-soft/60" />
                 {t("account.neohub.linkedNeoAccounts")}
               </h3>
               <LinkedNeoAccountsList
