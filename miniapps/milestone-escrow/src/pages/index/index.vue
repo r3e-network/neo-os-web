@@ -14,44 +14,41 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <view class="escrows-header">
+            <text class="section-title">{{ t("escrowsTab") }}</text>
+            <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
+              {{ t("refresh") }}
+            </NeoButton>
+          </view>
+
+          <view v-if="!address" class="empty-state">
+            <NeoCard variant="erobo" class="p-6 text-center">
+              <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
+              <NeoButton size="sm" variant="primary" @click="connectWallet">
+                {{ t("connectWallet") }}
+              </NeoButton>
+            </NeoCard>
+          </view>
+
+          <EscrowList
+            v-else
+            :creator-escrows="creatorEscrows"
+            :beneficiary-escrows="beneficiaryEscrows"
+            :approving-id="approvingId"
+            :cancelling-id="cancellingId"
+            :claiming-id="claimingId"
+            :status-label-func="statusLabel"
+            :format-amount-func="formatAmount"
+            :format-address-func="formatAddress"
+            @approve="approveMilestone"
+            @cancel="cancelEscrow"
+            @claim="claimMilestone"
+          />
         </ErrorBoundary>
       </template>
 
       <template #operation>
         <EscrowForm @create="onCreateEscrow" ref="escrowFormRef" />
-      </template>
-
-      <template #tab-escrows>
-        <view class="escrows-header">
-          <text class="section-title">{{ t("escrowsTab") }}</text>
-          <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
-            {{ t("refresh") }}
-          </NeoButton>
-        </view>
-
-        <view v-if="!address" class="empty-state">
-          <NeoCard variant="erobo" class="p-6 text-center">
-            <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
-            <NeoButton size="sm" variant="primary" @click="connectWallet">
-              {{ t("connectWallet") }}
-            </NeoButton>
-          </NeoCard>
-        </view>
-
-        <EscrowList
-          v-else
-          :creator-escrows="creatorEscrows"
-          :beneficiary-escrows="beneficiaryEscrows"
-          :approving-id="approvingId"
-          :cancelling-id="cancellingId"
-          :claiming-id="claimingId"
-          :status-label-func="statusLabel"
-          :format-amount-func="formatAmount"
-          :format-address-func="formatAddress"
-          @approve="approveMilestone"
-          @cancel="cancelEscrow"
-          @claim="claimMilestone"
-        />
       </template>
     </MiniAppTemplate>
   </view>
@@ -94,7 +91,6 @@ const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
   tabs: [
     { key: "create", labelKey: "createTab", icon: "➕", default: true },
-    { key: "escrows", labelKey: "escrowsTab", icon: "📄" },
     { key: "docs", labelKey: "docs", icon: "📖" },
   ],
   features: {

@@ -1,6 +1,12 @@
 <template>
   <view class="theme-charity-vault">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" :status-message="statusMessage" @tab-change="activeTab = $event">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="statusMessage"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
@@ -9,38 +15,38 @@
       <!-- LEFT panel: Campaign List -->
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <!-- Category Filter -->
-        <view class="category-filter">
-          <scroll-view scroll-x class="category-scroll">
-            <view
-              v-for="cat in categories"
-              :key="cat.id"
-              class="category-chip"
-              :class="{ active: selectedCategory === cat.id }"
-              @click="selectedCategory = cat.id"
-            >
-              <text>{{ cat.label }}</text>
-            </view>
-          </scroll-view>
-        </view>
+          <!-- Category Filter -->
+          <view class="category-filter">
+            <scroll-view scroll-x class="category-scroll">
+              <view
+                v-for="cat in categories"
+                :key="cat.id"
+                class="category-chip"
+                :class="{ active: selectedCategory === cat.id }"
+                @click="selectedCategory = cat.id"
+              >
+                <text>{{ cat.label }}</text>
+              </view>
+            </scroll-view>
+          </view>
 
-        <!-- Campaign List -->
-        <view class="campaign-list">
-          <view v-if="loadingCampaigns" class="loading-state">
-            <text>{{ t("loading") }}</text>
+          <!-- Campaign List -->
+          <view class="campaign-list">
+            <view v-if="loadingCampaigns" class="loading-state">
+              <text>{{ t("loading") }}</text>
+            </view>
+            <view v-else-if="filteredCampaigns.length === 0" class="empty-state">
+              <text>{{ t("noCampaigns") }}</text>
+            </view>
+            <CampaignCard
+              v-else
+              v-for="campaign in filteredCampaigns"
+              :key="campaign.id"
+              :campaign="campaign"
+              :t="t as (key: string) => string"
+              @click="selectCampaign(campaign)"
+            />
           </view>
-          <view v-else-if="filteredCampaigns.length === 0" class="empty-state">
-            <text>{{ t("noCampaigns") }}</text>
-          </view>
-          <CampaignCard
-            v-else
-            v-for="campaign in filteredCampaigns"
-            :key="campaign.id"
-            :campaign="campaign"
-            :t="t as (key: string) => string"
-            @click="selectCampaign(campaign)"
-          />
-        </view>
         </ErrorBoundary>
       </template>
 
@@ -79,7 +85,11 @@
       </template>
 
       <template #tab-create>
-        <CreateCampaignForm :is-creating="isCreating" :t="t as (key: string) => string" @submit="handleCreateCampaign" />
+        <CreateCampaignForm
+          :is-creating="isCreating"
+          :t="t as (key: string) => string"
+          @submit="handleCreateCampaign"
+        />
       </template>
     </MiniAppTemplate>
   </view>
@@ -118,7 +128,7 @@ const {
   init,
 } = useCharityContract(t);
 
-const statusMessage = computed(() => errorMessage.value ? { msg: errorMessage.value, type: "error" as const } : null);
+const statusMessage = computed(() => (errorMessage.value ? { msg: errorMessage.value, type: "error" as const } : null));
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
@@ -217,7 +227,7 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/theme-base.scss" as *;
+@use "@shared/styles/variables.scss" as *;
 @import "./charity-vault-theme.scss";
 
 :global(page) {
@@ -249,7 +259,7 @@ onMounted(async () => {
   &.active {
     background: var(--charity-accent);
     border-color: var(--charity-accent);
-    color: white;
+    color: var(--text-on-accent, white);
   }
 }
 

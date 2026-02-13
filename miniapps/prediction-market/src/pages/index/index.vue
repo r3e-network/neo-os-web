@@ -1,6 +1,12 @@
 <template>
   <view class="theme-prediction-market">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" :status-message="statusMessage" @tab-change="handleTabChange">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="statusMessage"
+      @tab-change="handleTabChange"
+    >
       <!-- Desktop Sidebar - Stats -->
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
@@ -9,18 +15,18 @@
       <!-- Markets Tab (default content) - LEFT panel -->
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <MarketList
-          :markets="filteredMarkets"
-          :categories="categories"
-          :selectedCategory="filters.category"
-          :sortLabel="sortLabel"
-          :loading="loadingMarkets"
-          :isDesktop="isDesktop"
-          :t="t"
-          @select="selectMarket"
-          @selectCategory="setCategory"
-          @toggleSort="toggleSort"
-        />
+          <MarketList
+            :markets="filteredMarkets"
+            :categories="categories"
+            :selectedCategory="filters.category"
+            :sortLabel="sortLabel"
+            :loading="loadingMarkets"
+            :isDesktop="isDesktop"
+            :t="t"
+            @select="selectMarket"
+            @selectCategory="setCategory"
+            @toggleSort="toggleSort"
+          />
         </ErrorBoundary>
       </template>
 
@@ -125,7 +131,7 @@ const {
 } = usePredictionTrading(APP_ID);
 
 const error = computed(() => marketsError.value || tradingError.value);
-const statusMessage = computed(() => error.value ? { msg: error.value, type: "error" as const } : null);
+const statusMessage = computed(() => (error.value ? { msg: error.value, type: "error" as const } : null));
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
@@ -269,14 +275,14 @@ onMounted(() => {
   text-align: center;
 
   &.positive {
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: var(--pm-success-border, rgba(16, 185, 129, 0.3));
     .summary-value {
       color: var(--pm-success);
     }
   }
 
   &.negative {
-    border-color: rgba(239, 68, 68, 0.3);
+    border-color: var(--pm-danger-border, rgba(239, 68, 68, 0.3));
     .summary-value {
       color: var(--pm-danger);
     }

@@ -4,6 +4,7 @@
       :config="templateConfig"
       :state="appState"
       :t="t"
+      :status-message="errorStatus"
       class="theme-timestamp-proof"
       @tab-change="activeTab = $event"
     >
@@ -14,20 +15,15 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <!-- Mobile: Quick Stats -->
-        <NeoStats :stats="mobileStats" class="mobile-stats" />
+          <!-- Mobile: Quick Stats -->
+          <NeoStats :stats="mobileStats" class="mobile-stats" />
 
-        <ProofList :t="t" :proofs="proofs" />
+          <ProofList :t="t" :proofs="proofs" />
         </ErrorBoundary>
       </template>
 
       <template #operation>
-        <ProofCreateForm
-          :t="t"
-          v-model:content="proofContent"
-          :is-creating="isCreating"
-          @create="createProof"
-        />
+        <ProofCreateForm :t="t" v-model:content="proofContent" :is-creating="isCreating" @create="createProof" />
       </template>
 
       <template #tab-verify>

@@ -4,6 +4,7 @@
       :config="templateConfig"
       :state="appState"
       :t="t"
+      :status-message="status"
       class="pond-theme"
       @tab-change="activeTab = $event"
     >
@@ -13,63 +14,54 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <view class="game-container">
-          <PlayerStats :stats="stats" :t="t" />
+          <view class="game-container">
+            <PlayerStats :stats="stats" :t="t" />
 
-          <view v-if="error" class="error-banner">
-            <text class="error-text">{{ error }}</text>
-          </view>
+            <view v-if="error" class="error-banner">
+              <text class="error-text">{{ error }}</text>
+            </view>
 
-          <ConnectPrompt
-            v-if="!isConnected"
-            :loading="loading"
-            :t="t"
-            @connect="connect"
-          />
+            <ConnectPrompt v-if="!isConnected" :loading="loading" :t="t" @connect="connect" />
 
-          <PurchaseSection
-            v-else-if="!hasActiveSession"
-            v-model:boxCount="boxCount"
-            :loading="loading"
-            :t="t"
-            @start="handleStartGame"
-          />
-
-          <view v-else class="game-area">
-            <GameBoard
-              :remainingBoxes="remainingBoxes"
-              :currentMatches="currentMatches"
-              :currentReward="currentReward"
-              :gridTurtles="gridTurtles"
-              :matchedPair="matchedPairRef"
-              :gamePhase="gamePhase"
+            <PurchaseSection
+              v-else-if="!hasActiveSession"
+              v-model:boxCount="boxCount"
               :loading="loading"
               :t="t"
-              @settle="handleSettle"
-              @newGame="handleNewGame"
+              @start="handleStartGame"
             />
-          </view>
-        </view>
 
-        <BlindboxOpening
-          :visible="showBlindbox"
-          :turtleColor="currentTurtleColor"
-          @complete="showBlindbox = false"
-        />
-        <MatchCelebration
-          :visible="showCelebration"
-          :turtleColor="matchColor"
-          :reward="matchReward"
-          @complete="showCelebration = false"
-        />
-        <GameResult
-          :visible="showResult"
-          :matches="currentMatches"
-          :reward="currentReward"
-          :boxCount="Number(session?.boxCount || 0)"
-          @close="showResult = false"
-        />
-        <GameSplash :visible="showSplash" @complete="showSplash = false" />
+            <view v-else class="game-area">
+              <GameBoard
+                :remainingBoxes="remainingBoxes"
+                :currentMatches="currentMatches"
+                :currentReward="currentReward"
+                :gridTurtles="gridTurtles"
+                :matchedPair="matchedPairRef"
+                :gamePhase="gamePhase"
+                :loading="loading"
+                :t="t"
+                @settle="handleSettle"
+                @newGame="handleNewGame"
+              />
+            </view>
+          </view>
+
+          <BlindboxOpening :visible="showBlindbox" :turtleColor="currentTurtleColor" @complete="showBlindbox = false" />
+          <MatchCelebration
+            :visible="showCelebration"
+            :turtleColor="matchColor"
+            :reward="matchReward"
+            @complete="showCelebration = false"
+          />
+          <GameResult
+            :visible="showResult"
+            :matches="currentMatches"
+            :reward="currentReward"
+            :boxCount="Number(session?.boxCount || 0)"
+            @close="showResult = false"
+          />
+          <GameSplash :visible="showSplash" @complete="showSplash = false" />
         </ErrorBoundary>
       </template>
 
@@ -83,47 +75,43 @@
 
       <template #operation>
         <NeoCard variant="erobo" :title="t('operationPanelTitle')">
-          <view class="op-stats">
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('totalSessions') }}</text>
-              <text class="op-value">{{ stats?.totalSessions ?? 0 }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('matches') }}</text>
-              <text class="op-value">{{ currentMatches }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('remainingBoxes') }}</text>
-              <text class="op-value">{{ remainingBoxes }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('phase') }}</text>
-              <text class="op-value">{{ gamePhase }}</text>
-            </view>
-          </view>
+          <NeoStats :stats="opStats" />
           <view v-if="!isConnected" class="op-connect">
             <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="connect">
-              {{ t('connectWallet') }}
+              {{ t("connectWallet") }}
             </NeoButton>
           </view>
           <view v-else-if="!hasActiveSession" class="op-start">
             <view class="op-box-select">
-              <text class="op-label">{{ t('buyBlindbox') }}</text>
+              <text class="op-label">{{ t("buyBlindbox") }}</text>
               <NeoInput v-model="boxCount" type="number" size="sm" :placeholder="'3-20'" />
             </view>
             <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="handleStartGame">
-              {{ t('startGame') }}
+              {{ t("startGame") }}
             </NeoButton>
           </view>
           <view v-else class="op-active">
-            <NeoButton v-if="gamePhase === 'settling'" size="sm" variant="primary" class="op-btn" :disabled="loading" @click="handleSettle">
-              {{ t('settleRewards') }}
+            <NeoButton
+              v-if="gamePhase === 'settling'"
+              size="sm"
+              variant="primary"
+              class="op-btn"
+              :disabled="loading"
+              @click="handleSettle"
+            >
+              {{ t("settleRewards") }}
             </NeoButton>
-            <NeoButton v-else-if="gamePhase === 'complete'" size="sm" variant="secondary" class="op-btn" @click="handleNewGame">
-              {{ t('newGame') }}
+            <NeoButton
+              v-else-if="gamePhase === 'complete'"
+              size="sm"
+              variant="secondary"
+              class="op-btn"
+              @click="handleNewGame"
+            >
+              {{ t("newGame") }}
             </NeoButton>
             <view v-else class="op-hint">
-              <text class="op-hint-text">{{ t('autoOpening') }}</text>
+              <text class="op-hint-text">{{ t("autoOpening") }}</text>
             </view>
           </view>
         </NeoCard>
@@ -134,7 +122,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { MiniAppTemplate, NeoCard, NeoButton, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
+import {
+  MiniAppTemplate,
+  NeoCard,
+  NeoButton,
+  NeoInput,
+  NeoStats,
+  SidebarPanel,
+  ErrorBoundary,
+} from "@shared/components";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useTurtleGame, TurtleColor } from "@/composables/useTurtleGame";
@@ -151,6 +148,7 @@ import GameResult from "./components/GameResult.vue";
 import GameSplash from "./components/GameSplash.vue";
 
 const { t } = useI18n();
+const { status } = useStatusMessage();
 const APP_ID = "miniapp-turtle-match";
 
 const templateConfig: MiniAppTemplateConfig = {
@@ -186,8 +184,37 @@ const sidebarItems = computed(() => [
   { label: t("phase"), value: gamePhase.value },
 ]);
 
-const { loading, error, session, stats, isConnected, hasActiveSession, gamePhase, connect, loadStats, startGame, settleGame } = useTurtleGame(APP_ID);
-const { localGame, matchedPairRef, remainingBoxes, currentReward, currentMatches, gridTurtles, initGame, processGameStep, resetLocalGame } = useTurtleMatching();
+const opStats = computed(() => [
+  { label: t("totalSessions"), value: stats.value?.totalSessions ?? 0 },
+  { label: t("matches"), value: currentMatches.value },
+  { label: t("remainingBoxes"), value: remainingBoxes.value },
+  { label: t("phase"), value: gamePhase.value },
+]);
+
+const {
+  loading,
+  error,
+  session,
+  stats,
+  isConnected,
+  hasActiveSession,
+  gamePhase,
+  connect,
+  loadStats,
+  startGame,
+  settleGame,
+} = useTurtleGame(APP_ID);
+const {
+  localGame,
+  matchedPairRef,
+  remainingBoxes,
+  currentReward,
+  currentMatches,
+  gridTurtles,
+  initGame,
+  processGameStep,
+  resetLocalGame,
+} = useTurtleMatching();
 
 const activeTab = ref("play");
 const boxCount = ref(5);
@@ -308,29 +335,6 @@ const resetAndReload = async () => {
   --nav-text: var(--turtle-text);
 }
 
-.op-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.op-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.op-label {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-}
-
-.op-value {
-  font-size: 13px;
-  font-weight: 700;
-}
-
 .op-btn {
   width: 100%;
 }
@@ -342,9 +346,15 @@ const resetAndReload = async () => {
   margin-bottom: 10px;
 }
 
+.op-box-select .op-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  white-space: nowrap;
+}
+
 .op-hint {
   padding: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-card-subtle, rgba(255, 255, 255, 0.04));
   border-radius: 8px;
   text-align: center;
 }

@@ -71,6 +71,25 @@ export const messages = {
   yes: { en: "Yes", zh: "是" },
   no: { en: "No", zh: "否" },
   errorFallback: { en: "Something went wrong", zh: "出现错误" },
+  title: { en: "Neo Sign Anything", zh: "Neo 任意签" },
+  docSubtitle: {
+    en: "Cryptographically sign or broadcast any message on Neo N3",
+    zh: "在 Neo N3 上对任意信息进行加密签名或广播",
+  },
+  step4: {
+    en: "Verify the signature off-chain or check the broadcast transaction on-chain.",
+    zh: "链下验证签名或链上查看广播交易。",
+  },
+  feature1Name: { en: "Off-chain Signing", zh: "链下签名" },
+  feature1Desc: {
+    en: "Generate a cryptographic signature without any on-chain cost.",
+    zh: "无需链上费用即可生成加密签名。",
+  },
+  feature2Name: { en: "On-chain Broadcast", zh: "链上广播" },
+  feature2Desc: {
+    en: "Permanently record a signed message on the Neo blockchain.",
+    zh: "将签名信息永久记录在 Neo 区块链上。",
+  },
 } as const;
 
 export default messages;

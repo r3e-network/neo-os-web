@@ -50,7 +50,7 @@ import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useMapTiles } from "@/composables/useMapTiles";
 import { useMapInteractions } from "@/composables/useMapInteractions";
@@ -124,9 +124,13 @@ const mapStats = computed(() => [
   { label: t("gasSpent"), value: `${formatNum(totalSpent.value)} GAS` },
 ]);
 
-watch(address, async () => {
-  await loadTiles();
-}, { immediate: true });
+watch(
+  address,
+  async () => {
+    await loadTiles();
+  },
+  { immediate: true }
+);
 
 const handleBoundaryError = (error: Error) => {
   console.error("[million-piece-map] boundary error:", error);

@@ -1,6 +1,12 @@
 <template>
   <view class="theme-social-karma">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="errorStatus"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
@@ -9,8 +15,8 @@
       <!-- Leaderboard Tab (default) — LEFT panel -->
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <MobileKarmaSummary v-if="!isDesktop" :karma="userKarma" :rank="userRank" />
-        <LeaderboardSection :leaderboard="leaderboard" :user-address="address" @refresh="loadLeaderboard" />
+          <MobileKarmaSummary v-if="!isDesktop" :karma="userKarma" :rank="userRank" />
+          <LeaderboardSection :leaderboard="leaderboard" :user-address="address" @refresh="loadLeaderboard" />
         </ErrorBoundary>
       </template>
 

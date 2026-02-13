@@ -16,14 +16,14 @@
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <!-- Candidate List -->
           <CandidateList
-          :candidates="candidates"
-          :selected-candidate="selectedCandidate"
-          :user-voted-public-key="normalizedUserVotedPublicKey"
-          :total-votes="totalNetworkVotes"
-          :is-loading="candidatesLoading"
-          @select="selectCandidate"
-          @view-details="openCandidateDetail"
-        />
+            :candidates="candidates"
+            :selected-candidate="selectedCandidate"
+            :user-voted-public-key="normalizedUserVotedPublicKey"
+            :total-votes="totalNetworkVotes"
+            :is-loading="candidatesLoading"
+            @select="selectCandidate"
+            @view-details="openCandidateDetail"
+          />
         </ErrorBoundary>
       </template>
 
@@ -153,8 +153,13 @@ const governancePortalUrl = computed(() =>
 
 // Composables
 const {
-  candidates, totalNetworkVotes, blockHeight, candidatesLoading,
-  formatVotes, normalizePublicKey, loadCandidates: loadCandidatesRaw,
+  candidates,
+  totalNetworkVotes,
+  blockHeight,
+  candidatesLoading,
+  formatVotes,
+  normalizePublicKey,
+  loadCandidates: loadCandidatesRaw,
 } = useCandidateData(() => preferredChainId.value);
 
 // Selection state
@@ -167,9 +172,12 @@ const loadCandidates = async (force = false) => {
   }
 };
 
-const {
-  isLoading, status, normalizedUserVotedPublicKey, loadUserVote, handleVote,
-} = useVoting(wallet, t, normalizePublicKey, loadCandidates);
+const { isLoading, status, normalizedUserVotedPublicKey, loadUserVote, handleVote } = useVoting(
+  wallet,
+  t,
+  normalizePublicKey,
+  loadCandidates
+);
 
 // Modal state
 const showDetailModal = ref(false);
@@ -223,8 +231,13 @@ onMounted(async () => {
   await Promise.all([loadCandidates(), loadUserVote()]);
 });
 
-watch(address, () => { loadUserVote(); });
-watch(preferredChainId, () => { loadCandidates(); loadUserVote(); });
+watch(address, () => {
+  loadUserVote();
+});
+watch(preferredChainId, () => {
+  loadCandidates();
+  loadUserVote();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -323,7 +336,7 @@ watch(preferredChainId, () => { loadCandidates(); loadUserVote(); });
   font-size: 11px;
   color: var(--text-primary);
   &.mono {
-    font-family: monospace;
+    font-family: var(--font-family-mono, monospace);
     word-break: break-all;
   }
 }

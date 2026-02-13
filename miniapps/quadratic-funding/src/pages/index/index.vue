@@ -14,33 +14,33 @@
       <!-- Rounds Tab (default) -->
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <RoundForm ref="roundFormRef" @create="handleCreateRound" />
+          <RoundForm ref="roundFormRef" @create="handleCreateRound" />
 
-        <RoundList
-          :rounds="rounds"
-          :selected-round-id="selectedRoundId"
-          :is-refreshing="isRefreshingRounds"
-          :round-status-label="roundStatusLabel"
-          :format-amount="formatAmount"
-          :format-schedule="formatSchedule"
-          :format-address="formatAddress"
-          @refresh="refreshRounds"
-          @select="selectRound"
-        />
+          <RoundList
+            :rounds="rounds"
+            :selected-round-id="selectedRoundId"
+            :is-refreshing="isRefreshingRounds"
+            :round-status-label="roundStatusLabel"
+            :format-amount="formatAmount"
+            :format-schedule="formatSchedule"
+            :format-address="formatAddress"
+            @refresh="refreshRounds"
+            @select="selectRound"
+          />
 
-        <RoundAdminPanel
-          v-if="selectedRound"
-          :round="selectedRound"
-          :can-manage="canManageSelectedRound"
-          :can-finalize="canFinalizeSelectedRound"
-          :can-claim-unused="canClaimUnused"
-          :is-adding-matching="isAddingMatching"
-          :is-finalizing="isFinalizing"
-          :is-claiming-unused="isClaimingUnused"
-          @add-matching="handleAddMatching"
-          @finalize="handleFinalize"
-          @claim-unused="handleClaimUnused"
-        />
+          <RoundAdminPanel
+            v-if="selectedRound"
+            :round="selectedRound"
+            :can-manage="canManageSelectedRound"
+            :can-finalize="canFinalizeSelectedRound"
+            :can-claim-unused="canClaimUnused"
+            :is-adding-matching="isAddingMatching"
+            :is-finalizing="isFinalizing"
+            :is-claiming-unused="isClaimingUnused"
+            @add-matching="handleAddMatching"
+            @finalize="handleFinalize"
+            @claim-unused="handleClaimUnused"
+          />
         </ErrorBoundary>
       </template>
 
@@ -126,26 +126,9 @@
 
       <template #operation>
         <NeoCard variant="erobo" :title="t('quickContribute')">
-          <view class="op-stats">
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('tabRounds') }}</text>
-              <text class="op-value">{{ rounds.length }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('tabProjects') }}</text>
-              <text class="op-value">{{ projects.length }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('sidebarSelectedRound') }}</text>
-              <text class="op-value">{{ selectedRoundId ?? '—' }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('sidebarMatchingPool') }}</text>
-              <text class="op-value">{{ selectedRound ? formatAmount(selectedRound.matchingPool) : '—' }}</text>
-            </view>
-          </view>
+          <NeoStats :stats="opStats" />
           <NeoButton size="sm" variant="primary" class="op-btn" @click="onTabChange('contribute')">
-            {{ t('tabContribute') }}
+            {{ t("tabContribute") }}
           </NeoButton>
         </NeoCard>
       </template>
@@ -159,7 +142,7 @@ import { useI18n } from "@/composables/useI18n";
 import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
-import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { formatAddress } from "@shared/utils/format";
 import RoundForm from "./components/RoundForm.vue";
@@ -206,7 +189,20 @@ const sidebarItems = computed(() => [
   { label: t("tabRounds"), value: rounds.value.length },
   { label: t("tabProjects"), value: projects.value.length },
   { label: t("sidebarSelectedRound"), value: selectedRoundId.value ?? "—" },
-  { label: t("sidebarMatchingPool"), value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—" },
+  {
+    label: t("sidebarMatchingPool"),
+    value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—",
+  },
+]);
+
+const opStats = computed(() => [
+  { label: t("tabRounds"), value: rounds.value.length },
+  { label: t("tabProjects"), value: projects.value.length },
+  { label: t("sidebarSelectedRound"), value: selectedRoundId.value ?? "—" },
+  {
+    label: t("sidebarMatchingPool"),
+    value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—",
+  },
 ]);
 
 const {
@@ -326,29 +322,6 @@ watch(selectedRoundId, async (roundId) => {
 :global(page) {
   background: linear-gradient(135deg, var(--qf-bg-start) 0%, var(--qf-bg-end) 100%);
   color: var(--qf-text);
-}
-
-.op-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.op-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.op-label {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-}
-
-.op-value {
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .op-btn {

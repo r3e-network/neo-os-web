@@ -14,6 +14,7 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <ContractList :contracts="contracts" :address="address" :t="t" @sign="signContract" @break="breakContract" />
         </ErrorBoundary>
       </template>
 
@@ -30,10 +31,6 @@
           :t="t"
           @create="createContract"
         />
-      </template>
-
-      <template #tab-contracts>
-        <ContractList :contracts="contracts" :address="address" :t="t" @sign="signContract" @break="breakContract" />
       </template>
     </MiniAppTemplate>
   </view>
@@ -54,7 +51,6 @@ const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
   tabs: [
     { key: "create", labelKey: "tabCreate", icon: "💔", default: true },
-    { key: "contracts", labelKey: "tabContracts", icon: "📋" },
     { key: "docs", labelKey: "docs", icon: "📖" },
   ],
   features: {

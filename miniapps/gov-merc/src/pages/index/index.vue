@@ -17,32 +17,32 @@
           <NeoCard class="mb-6" variant="erobo">
             <view class="form-group-neo">
               <NeoInput
-              v-model="depositAmount"
-              type="number"
-              placeholder="0"
-              suffix="NEO"
-              :label="t('depositAmount')"
-            />
-            <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
-              {{ t("depositNeo") }}
-            </NeoButton>
-          </view>
-        </NeoCard>
+                v-model="depositAmount"
+                type="number"
+                placeholder="0"
+                suffix="NEO"
+                :label="t('depositAmount')"
+              />
+              <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
+                {{ t("depositNeo") }}
+              </NeoButton>
+            </view>
+          </NeoCard>
 
-        <NeoCard class="mb-6" variant="erobo">
-          <view class="form-group-neo">
-            <NeoInput
-              v-model="withdrawAmount"
-              type="number"
-              placeholder="0"
-              suffix="NEO"
-              :label="t('withdrawAmount')"
-            />
-            <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
-              {{ t("withdrawNeo") }}
-            </NeoButton>
-          </view>
-        </NeoCard>
+          <NeoCard class="mb-6" variant="erobo">
+            <view class="form-group-neo">
+              <NeoInput
+                v-model="withdrawAmount"
+                type="number"
+                placeholder="0"
+                suffix="NEO"
+                :label="t('withdrawAmount')"
+              />
+              <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
+                {{ t("withdrawNeo") }}
+              </NeoButton>
+            </view>
+          </NeoCard>
         </ErrorBoundary>
       </template>
 
@@ -79,7 +79,15 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoButton, NeoInput, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import {
+  MiniAppTemplate,
+  NeoButton,
+  NeoInput,
+  NeoCard,
+  NeoStats,
+  SidebarPanel,
+  ErrorBoundary,
+} from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useGovMercPool } from "@/composables/useGovMercPool";
 
@@ -169,7 +177,7 @@ const sidebarItems = computed(() => [
 }
 
 .empty-neo {
-  font-family: "Courier New", monospace;
+  font-family: var(--font-family-mono, "Courier New", monospace);
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
@@ -187,19 +195,19 @@ const sidebarItems = computed(() => [
   border-bottom: 1px dotted var(--merc-bid-divider);
 }
 .bid-address {
-  font-family: "Courier New", monospace;
+  font-family: var(--font-family-mono, "Courier New", monospace);
   font-size: 10px;
   color: var(--merc-bid-address);
 }
 .bid-amount {
-  font-family: "Courier New", monospace;
+  font-family: var(--font-family-mono, "Courier New", monospace);
   font-weight: 700;
   color: var(--merc-bid-amount);
   text-shadow: var(--merc-bid-amount-shadow);
 }
 
 .status-text {
-  font-family: "Courier New", monospace;
+  font-family: var(--font-family-mono, "Courier New", monospace);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;

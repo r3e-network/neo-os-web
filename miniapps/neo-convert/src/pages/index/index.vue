@@ -1,6 +1,12 @@
 <template>
   <view class="theme-neo-convert">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
@@ -41,14 +47,14 @@
         <NeoCard variant="erobo" :title="t('quickTools')">
           <view class="op-tools">
             <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'generate'">
-              {{ t('tabGenerate') }}
+              {{ t("tabGenerate") }}
             </NeoButton>
             <NeoButton size="sm" variant="secondary" class="op-btn" @click="activeTab = 'convert'">
-              {{ t('tabConvert') }}
+              {{ t("tabConvert") }}
             </NeoButton>
           </view>
           <view class="op-hint">
-            <text class="op-hint-text">{{ t('heroSubtitle') }}</text>
+            <text class="op-hint-text">{{ t("heroSubtitle") }}</text>
           </view>
         </NeoCard>
       </template>
@@ -60,6 +66,7 @@
 import { ref, computed } from "vue";
 import { useResponsive } from "@shared/composables/useResponsive";
 import { MiniAppTemplate, NeoCard, NeoButton, ScrollReveal, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import AccountGenerator from "./components/AccountGenerator.vue";
 import ConverterTool from "./components/ConverterTool.vue";
@@ -68,7 +75,7 @@ import { useI18n } from "@/composables/useI18n";
 const { isMobile } = useResponsive();
 
 const { t } = useI18n();
-
+const { status } = useStatusMessage();
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
   tabs: [
@@ -133,7 +140,7 @@ const resetAndReload = () => {
 
 .op-hint {
   padding: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-card-subtle, rgba(255, 255, 255, 0.04));
   border-radius: 8px;
   text-align: center;
 }

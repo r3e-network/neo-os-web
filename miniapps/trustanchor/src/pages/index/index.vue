@@ -3,6 +3,7 @@
     :config="templateConfig"
     :state="appState"
     :t="t"
+    :status-message="status"
     class="theme-trustanchor"
     @tab-change="activeTab = $event"
   >
@@ -14,31 +15,31 @@
     <!-- Overview Tab (default) -->
     <template #content>
       <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-      <StatsGrid :my-stake="myStake" :pending-rewards="pendingRewards" :total-rewards="totalRewards" />
+        <StatsGrid :my-stake="myStake" :pending-rewards="pendingRewards" :total-rewards="totalRewards" />
 
-      <NeoCard variant="erobo" class="mb-4 px-1">
-        <view class="section-header mb-4">
-          <text class="section-title">{{ t("voteForReputation") }}</text>
-        </view>
-        <text class="section-desc mb-4">{{ t("voteForReputationDesc") }}</text>
+        <NeoCard variant="erobo" class="mb-4 px-1">
+          <view class="section-header mb-4">
+            <text class="section-title">{{ t("voteForReputation") }}</text>
+          </view>
+          <text class="section-desc mb-4">{{ t("voteForReputationDesc") }}</text>
 
-        <view class="section-header mb-4" style="margin-top: 16px">
-          <text class="section-title">{{ t("notForProfit") }}</text>
-        </view>
-        <text class="section-desc">{{ t("notForProfitDesc") }}</text>
-      </NeoCard>
+          <view class="section-header mb-4" style="margin-top: 16px">
+            <text class="section-title">{{ t("notForProfit") }}</text>
+          </view>
+          <text class="section-desc">{{ t("notForProfitDesc") }}</text>
+        </NeoCard>
 
-      <NeoCard variant="erobo" class="px-1">
-        <view class="section-header mb-4">
-          <text class="section-title">{{ t("claim") }}</text>
-        </view>
-        <view class="claim-section">
-          <text class="claim-amount">{{ formatNum(pendingRewards) }} GAS</text>
-          <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
-            {{ t("claim") }}
-          </NeoButton>
-        </view>
-      </NeoCard>
+        <NeoCard variant="erobo" class="px-1">
+          <view class="section-header mb-4">
+            <text class="section-title">{{ t("claim") }}</text>
+          </view>
+          <view class="claim-section">
+            <text class="claim-amount">{{ formatNum(pendingRewards) }} GAS</text>
+            <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
+              {{ t("claim") }}
+            </NeoButton>
+          </view>
+        </NeoCard>
       </ErrorBoundary>
     </template>
 
@@ -94,6 +95,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber } from "@shared/utils/format";
 import { MiniAppTemplate, NeoButton, NeoCard, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import StatsGrid from "./components/StatsGrid.vue";
 import AgentsTab from "./components/AgentsTab.vue";
@@ -102,12 +104,23 @@ import { useI18n } from "@/composables/useI18n";
 import { useTrustAnchor } from "./composables/useTrustAnchor";
 
 const { t } = useI18n();
+const { status } = useStatusMessage();
 const { address, connect } = useWallet() as WalletSDK;
 
 const {
-  isLoading, error, agents, stats,
-  myStake, pendingRewards, totalRewards,
-  setError, clearError, loadAll, stake, unstake, claimRewards,
+  isLoading,
+  error,
+  agents,
+  stats,
+  myStake,
+  pendingRewards,
+  totalRewards,
+  setError,
+  clearError,
+  loadAll,
+  stake,
+  unstake,
+  claimRewards,
 } = useTrustAnchor(t);
 
 const templateConfig: MiniAppTemplateConfig = {
@@ -121,7 +134,7 @@ const templateConfig: MiniAppTemplateConfig = {
   features: {
     fireworks: false,
     chainWarning: true,
-    statusMessages: false,
+    statusMessages: true,
     docs: {
       titleKey: "title",
       subtitleKey: "docsSubtitle",
@@ -201,7 +214,9 @@ const handleClaim = async () => {
   }
 };
 
-onMounted(() => { loadAll(); });
+onMounted(() => {
+  loadAll();
+});
 
 const handleBoundaryError = (error: Error) => {
   console.error("[trustanchor] boundary error:", error);

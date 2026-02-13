@@ -1,6 +1,12 @@
 <template>
   <view class="theme-neo-multisig">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="handleTabChange">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="handleTabChange"
+    >
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
@@ -11,26 +17,26 @@
           <HeroSection :title="t('appTitle')" :headline="t('homeTitle')" :subtitle="t('homeSubtitle')" />
 
           <ActivitySection
-          :items="history"
-          :count="history.length"
-          :title="t('recentTitle')"
-          :empty-title="t('sidebarNoActivity')"
-          :empty-description="t('recentEmpty')"
-          :get-status-icon="getStatusIcon"
-          :status-label="statusLabel"
-          :shorten="shorten"
-          :format-date="formatDate"
-          @select="openHistory"
-        />
+            :items="history"
+            :count="history.length"
+            :title="t('recentTitle')"
+            :empty-title="t('sidebarNoActivity')"
+            :empty-description="t('recentEmpty')"
+            :get-status-icon="getStatusIcon"
+            :status-label="statusLabel"
+            :shorten="shorten"
+            :format-date="formatDate"
+            @select="openHistory"
+          />
 
-        <StatsRow
-          :total="history.length"
-          :pending="pendingCount"
-          :completed="completedCount"
-          :total-label="t('sidebarTotalTxs')"
-          :pending-label="t('statPending')"
-          :completed-label="t('statCompleted')"
-        />
+          <StatsRow
+            :total="history.length"
+            :pending="pendingCount"
+            :completed="completedCount"
+            :total-label="t('sidebarTotalTxs')"
+            :pending-label="t('statPending')"
+            :completed-label="t('statCompleted')"
+          />
         </ErrorBoundary>
       </template>
 
@@ -55,6 +61,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useMultisigHistory } from "@/composables/useMultisigHistory";
@@ -65,7 +72,8 @@ import ActivitySection from "@/components/ActivitySection.vue";
 import StatsRow from "@/components/StatsRow.vue";
 
 const { t } = useI18n();
-const { history, pendingCount, completedCount } = useMultisigHistory();
+const { status } = useStatusMessage();
+const { pendingCount, completedCount } = useMultisigHistory();
 const { getStatusIcon, statusLabel, shorten, formatDate } = useMultisigUI();
 
 const templateConfig: MiniAppTemplateConfig = {
@@ -77,6 +85,16 @@ const templateConfig: MiniAppTemplateConfig = {
   features: {
     chainWarning: true,
     statusMessages: true,
+    docs: {
+      titleKey: "docTitle",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["docStep1", "docStep2", "docStep3", "docStep4"],
+      featureKeys: [
+        { nameKey: "docFeature1Name", descKey: "docFeature1Desc" },
+        { nameKey: "docFeature2Name", descKey: "docFeature2Desc" },
+        { nameKey: "docFeature3Name", descKey: "docFeature3Desc" },
+      ],
+    },
   },
 };
 const activeTab = ref("home");

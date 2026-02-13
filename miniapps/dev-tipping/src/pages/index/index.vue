@@ -16,6 +16,7 @@
       <!-- Main Tab — LEFT panel -->
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <TipList :developers="developers" :formatNum="formatNum" :t="t" @select="handleSelectDev" />
         </ErrorBoundary>
       </template>
 
@@ -32,10 +33,6 @@
           :t="t"
           @submit="handleSendTip"
         />
-      </template>
-
-      <template #tab-developers>
-        <TipList :developers="developers" :formatNum="formatNum" :t="t" @select="handleSelectDev" />
       </template>
 
       <template #tab-stats>
@@ -68,7 +65,6 @@ const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
   tabs: [
     { key: "send", labelKey: "sendTip", icon: "💰", default: true },
-    { key: "developers", labelKey: "developers", icon: "👨‍💻" },
     { key: "stats", labelKey: "stats", icon: "📊" },
     { key: "docs", labelKey: "docs", icon: "📖" },
   ],

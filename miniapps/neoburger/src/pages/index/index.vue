@@ -124,14 +124,23 @@ const templateConfig: MiniAppTemplateConfig = {
     fireworks: true,
     chainWarning: true,
     statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
   },
 };
 
 const loading = ref(false);
 const { status, setStatus: showStatus } = useStatusMessage();
 
-const { apy, priceData, aprDisplay, totalStakedDisplay, totalStakedUsdText, loadApy, loadPrices } =
-  useNeoburgerStats();
+const { apy, priceData, aprDisplay, totalStakedDisplay, totalStakedUsdText, loadApy, loadPrices } = useNeoburgerStats();
 
 const rewards = useNeoburgerRewards(bNeoBalance, apy, priceData);
 

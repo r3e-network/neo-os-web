@@ -4,6 +4,7 @@
       :config="templateConfig"
       :state="appState"
       :t="t"
+      :status-message="errorStatus"
       :fireworks-active="showFireworks"
       @tab-change="activeTab = $event"
     >
@@ -70,7 +71,13 @@
             >
               {{ t("ticketsBought") }}
             </NeoButton>
-            <NeoButton v-if="unscratchedTickets.length > 0" variant="secondary" size="lg" block @click="playUnscratched(unscratchedTickets[0])">
+            <NeoButton
+              v-if="unscratchedTickets.length > 0"
+              variant="secondary"
+              size="lg"
+              block
+              @click="playUnscratched(unscratchedTickets[0])"
+            >
               {{ t("playNow") }}
             </NeoButton>
           </view>
@@ -154,7 +161,7 @@ const templateConfig: MiniAppTemplateConfig = {
   features: {
     fireworks: true,
     chainWarning: true,
-    statusMessages: false,
+    statusMessages: true,
     docs: {
       titleKey: "title",
       subtitleKey: "docSubtitle",

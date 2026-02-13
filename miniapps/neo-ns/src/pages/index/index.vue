@@ -13,25 +13,22 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <ManageDomain
+            v-if="managingDomain"
+            :t="t"
+            :domain="managingDomain"
+            :loading="loading"
+            @cancel="cancelManage"
+            @setTarget="handleSetTarget"
+            @transfer="handleTransfer"
+          />
+
+          <DomainManagement v-else :t="t" :domains="myDomains" @manage="showManage" @renew="handleRenew" />
         </ErrorBoundary>
       </template>
 
       <template #operation>
         <DomainRegister :t="t" :nns-contract="NNS_CONTRACT" @status="showStatus" @refresh="loadMyDomains" />
-      </template>
-
-      <template #tab-domains>
-        <ManageDomain
-          v-if="managingDomain"
-          :t="t"
-          :domain="managingDomain"
-          :loading="loading"
-          @cancel="cancelManage"
-          @setTarget="handleSetTarget"
-          @transfer="handleTransfer"
-        />
-
-        <DomainManagement v-else :t="t" :domains="myDomains" @manage="showManage" @renew="handleRenew" />
       </template>
     </MiniAppTemplate>
   </view>
@@ -59,7 +56,6 @@ const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
   tabs: [
     { key: "register", labelKey: "tabRegister", icon: "➕", default: true },
-    { key: "domains", labelKey: "tabDomains", icon: "📁" },
     { key: "docs", labelKey: "docs", icon: "📖" },
   ],
   features: {

@@ -4,6 +4,7 @@
       :config="templateConfig"
       :state="appState"
       :t="t"
+      :status-message="status"
       @tab-change="onTabChange"
     >
       <template #desktop-sidebar>
@@ -12,36 +13,36 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <RiskAlerts
-          :is-unsupported="isUnsupported"
-          :status="status"
-          :risk-label="riskLabel"
-          :risk-class="riskClass"
-          :risk-icon="riskIcon"
-          :t="t"
-          @switch-chain="switchToAppChain"
-        />
-
-        <view v-if="!address" class="empty-state">
-          <NeoCard variant="erobo" class="p-6 text-center">
-            <text class="text-sm block mb-3">{{ t("walletNotConnected") }}</text>
-            <NeoButton size="sm" variant="primary" @click="connectWallet">
-              {{ t("connectWallet") }}
-            </NeoButton>
-          </NeoCard>
-        </view>
-
-        <view v-else class="health-stack">
-          <HealthDashboard
-            :stats="healthStats"
-            :neo-display="neoDisplay"
-            :gas-display="gasDisplay"
-            :is-refreshing="isRefreshing"
+          <RiskAlerts
+            :is-unsupported="isUnsupported"
+            :status="status"
+            :risk-label="riskLabel"
+            :risk-class="riskClass"
+            :risk-icon="riskIcon"
             :t="t"
-            @refresh="refreshBalances"
+            @switch-chain="switchToAppChain"
           />
-          <Recommendations :recommendations="recommendations" :t="t" />
-        </view>
+
+          <view v-if="!address" class="empty-state">
+            <NeoCard variant="erobo" class="p-6 text-center">
+              <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
+              <NeoButton size="sm" variant="primary" @click="connectWallet">
+                {{ t("connectWallet") }}
+              </NeoButton>
+            </NeoCard>
+          </view>
+
+          <view v-else class="health-stack">
+            <HealthDashboard
+              :stats="healthStats"
+              :neo-display="neoDisplay"
+              :gas-display="gasDisplay"
+              :is-refreshing="isRefreshing"
+              :t="t"
+              @refresh="refreshBalances"
+            />
+            <Recommendations :recommendations="recommendations" :t="t" />
+          </view>
         </ErrorBoundary>
       </template>
 
@@ -66,7 +67,8 @@
               size="sm"
               :variant="item.done ? 'primary' : 'secondary'"
               :disabled="item.auto"
-              @click="toggleChecklist(item.id)">
+              @click="toggleChecklist(item.id)"
+            >
               <AppIcon :name="item.done ? 'check' : 'x'" :size="14" />
               <text class="checklist-action">
                 {{ item.auto ? t("autoChecked") : item.done ? t("markUndo") : t("markDone") }}
@@ -78,29 +80,19 @@
 
       <template #operation>
         <NeoCard variant="erobo" :title="t('healthSummary')">
-          <view class="op-stats">
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('statConnection') }}</text>
-              <text class="op-value">{{ address ? t('statusConnected') : t('statusDisconnected') }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('statNeo') }}</text>
-              <text class="op-value">{{ neoDisplay }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('statGas') }}</text>
-              <text class="op-value">{{ gasDisplay }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('statScore') }}</text>
-              <text class="op-value">{{ safetyScore }}%</text>
-            </view>
-          </view>
+          <NeoStats :stats="opStats" />
           <NeoButton v-if="!address" size="sm" variant="primary" class="op-btn" @click="connectWallet">
-            {{ t('connectWallet') }}
+            {{ t("connectWallet") }}
           </NeoButton>
-          <NeoButton v-else size="sm" variant="primary" class="op-btn" :disabled="isRefreshing" @click="refreshBalances">
-            {{ isRefreshing ? t('loading') : t('refresh') }}
+          <NeoButton
+            v-else
+            size="sm"
+            variant="primary"
+            class="op-btn"
+            :disabled="isRefreshing"
+            @click="refreshBalances"
+          >
+            {{ isRefreshing ? t("loading") : t("refresh") }}
           </NeoButton>
         </NeoCard>
       </template>
@@ -110,7 +102,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
-import { MiniAppTemplate, NeoCard, NeoButton, AppIcon, SidebarPanel, ErrorBoundary } from "@shared/components";
+import {
+  MiniAppTemplate,
+  NeoCard,
+  NeoButton,
+  NeoStats,
+  AppIcon,
+  SidebarPanel,
+  ErrorBoundary,
+} from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useWalletAnalysis } from "@/composables/useWalletAnalysis";
@@ -120,7 +120,6 @@ import RiskAlerts from "./components/RiskAlerts.vue";
 import Recommendations from "./components/Recommendations.vue";
 
 const { t } = useI18n();
-
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
   tabs: [
@@ -130,7 +129,7 @@ const templateConfig: MiniAppTemplateConfig = {
   ],
   features: {
     chainWarning: true,
-    statusMessages: false,
+    statusMessages: true,
     fireworks: false,
     docs: {
       titleKey: "title",
@@ -160,16 +159,8 @@ const {
   connectWallet,
 } = useWalletAnalysis();
 
-const {
-  checklistItems,
-  safetyScore,
-  riskLabel,
-  riskClass,
-  riskIcon,
-  recommendations,
-  loadChecklist,
-  toggleChecklist,
-} = useHealthScore(gasOk);
+const { checklistItems, safetyScore, riskLabel, riskClass, riskIcon, recommendations, loadChecklist, toggleChecklist } =
+  useHealthScore(gasOk);
 
 const appState = computed(() => ({
   connectionStatus: address.value ? t("statusConnected") : t("statusDisconnected"),
@@ -187,12 +178,27 @@ const sidebarItems = computed(() => [
   { label: t("statScore"), value: `${safetyScore.value}%` },
 ]);
 
+const opStats = computed(() => [
+  { label: t("statConnection"), value: address.value ? t("statusConnected") : t("statusDisconnected") },
+  { label: t("statNeo"), value: neoDisplay.value },
+  { label: t("statGas"), value: gasDisplay.value },
+  { label: t("statScore"), value: `${safetyScore.value}%` },
+]);
+
 const healthStats = computed(() => [
-  { label: t("statConnection"), value: address.value ? t("statusConnected") : t("statusDisconnected"), variant: address.value ? "success" : "danger" },
+  {
+    label: t("statConnection"),
+    value: address.value ? t("statusConnected") : t("statusDisconnected"),
+    variant: address.value ? "success" : "danger",
+  },
   { label: t("statNetwork"), value: chainLabel.value, variant: chainVariant.value },
   { label: t("statNeo"), value: neoDisplay.value, variant: "erobo-neo" },
   { label: t("statGas"), value: gasDisplay.value, variant: gasOk.value ? "success" : "warning" },
-  { label: t("statScore"), value: `${safetyScore.value}%`, variant: safetyScore.value >= 80 ? "success" : safetyScore.value >= 50 ? "warning" : "danger" },
+  {
+    label: t("statScore"),
+    value: `${safetyScore.value}%`,
+    variant: safetyScore.value >= 80 ? "success" : safetyScore.value >= 50 ? "warning" : "danger",
+  },
 ]);
 
 const onTabChange = async (tabId: string) => {
@@ -222,29 +228,6 @@ const resetAndReload = async () => {
 :global(page) {
   background: linear-gradient(135deg, var(--health-bg-start) 0%, var(--health-bg-end) 100%);
   color: var(--health-text);
-}
-
-.op-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.op-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.op-label {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-}
-
-.op-value {
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .op-btn {
@@ -278,7 +261,7 @@ const resetAndReload = async () => {
 .progress-bar {
   width: 100%;
   height: 10px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: 999px;
   overflow: hidden;
 }
@@ -300,8 +283,8 @@ const resetAndReload = async () => {
   gap: 12px;
   padding: 12px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-card-subtle, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
 }
 
 .checklist-content {

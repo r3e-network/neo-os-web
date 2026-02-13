@@ -17,12 +17,7 @@
         @retry="resetAndReload"
         :fallback-message="t('flashloanErrorFallback')"
       >
-        <ErrorToast
-          :show="!!errorMessage"
-          :message="errorMessage ?? ''"
-          type="error"
-          @close="clearErrorStatus"
-        />
+        <ErrorToast :show="!!errorMessage" :message="errorMessage ?? ''" type="error" @close="clearErrorStatus" />
 
         <LoanRequest
           v-model:loanId="loanIdInput"
@@ -48,24 +43,13 @@
     <template #operation>
       <NeoCard variant="erobo" :title="t('statusLookup')">
         <view class="op-field">
-          <NeoInput
-            v-model="loanIdInput"
-            :placeholder="t('loanIdPlaceholder')"
-            size="sm"
-          />
+          <NeoInput v-model="loanIdInput" :placeholder="t('loanIdPlaceholder')" size="sm" />
         </view>
         <NeoButton size="sm" variant="primary" class="op-btn" :disabled="isLoading" @click="handleLookup">
-          {{ isLoading ? t('checking') : t('checkStatus') }}
+          {{ isLoading ? t("checking") : t("checkStatus") }}
         </NeoButton>
         <view v-if="loanDetails" class="op-result">
-          <view class="op-stat-row">
-            <text class="op-label">{{ t('statusLabel') }}</text>
-            <text class="op-value">{{ loanDetails.status }}</text>
-          </view>
-          <view class="op-stat-row">
-            <text class="op-label">{{ t('amount') }}</text>
-            <text class="op-value">{{ loanDetails.amount }}</text>
-          </view>
+          <NeoStats :stats="opStats" />
         </view>
       </NeoCard>
     </template>
@@ -75,7 +59,16 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoButton, NeoInput, ErrorBoundary, ErrorToast, SidebarPanel } from "@shared/components";
+import {
+  MiniAppTemplate,
+  NeoCard,
+  NeoButton,
+  NeoInput,
+  NeoStats,
+  ErrorBoundary,
+  ErrorToast,
+  SidebarPanel,
+} from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -147,6 +140,11 @@ const sidebarItems = computed(() => [
   { label: t("sidebarRecentLoans"), value: recentLoans.value.length },
   { label: t("sidebarTotalLoans"), value: stats.value?.totalLoans ?? 0 },
   { label: t("sidebarTotalVolume"), value: stats.value?.totalVolume ?? "—" },
+]);
+
+const opStats = computed(() => [
+  { label: t("statusLabel"), value: loanDetails.value?.status ?? "—" },
+  { label: t("amount"), value: loanDetails.value?.amount ?? "—" },
 ]);
 const { status, setStatus, clearStatus } = useStatusMessage();
 const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
@@ -322,21 +320,6 @@ watch(chainType, () => fetchData(), { immediate: true });
   gap: 6px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
 }
-
-.op-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.op-label {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-}
-
-.op-value {
-  font-size: 13px;
-  font-weight: 700;
-}</style>
+</style>

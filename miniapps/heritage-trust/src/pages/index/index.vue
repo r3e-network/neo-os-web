@@ -12,40 +12,37 @@
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
-      <!-- Main Tab — LEFT panel: status display -->
+      <!-- Main Tab — LEFT panel: trust dashboard -->
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <view class="mine-dashboard">
+            <TrustList
+              :trusts="myCreatedTrusts"
+              :title="t('createdTrusts')"
+              :empty-text="t('noTrusts')"
+              empty-icon="📜"
+              :t="t"
+              @heartbeat="heartbeatTrust"
+              @claimYield="claimYield"
+              @execute="executeTrust"
+              @claimReleased="claimReleased"
+            />
+
+            <BeneficiaryManager
+              :beneficiary-trusts="myBeneficiaryTrusts"
+              :t="t"
+              @heartbeat="heartbeatTrust"
+              @claimYield="claimYield"
+              @execute="executeTrust"
+              @claimReleased="claimReleased"
+            />
+          </view>
         </ErrorBoundary>
       </template>
 
       <!-- Main Tab — RIGHT panel: create form -->
       <template #operation>
         <TrustCreate :is-loading="isLoading" :t="t" @create="handleCreate" />
-      </template>
-
-      <template #tab-mine>
-        <view class="mine-dashboard">
-          <TrustList
-            :trusts="myCreatedTrusts"
-            :title="t('createdTrusts')"
-            :empty-text="t('noTrusts')"
-            empty-icon="📜"
-            :t="t"
-            @heartbeat="heartbeatTrust"
-            @claimYield="claimYield"
-            @execute="executeTrust"
-            @claimReleased="claimReleased"
-          />
-
-          <BeneficiaryManager
-            :beneficiary-trusts="myBeneficiaryTrusts"
-            :t="t"
-            @heartbeat="heartbeatTrust"
-            @claimYield="claimYield"
-            @execute="executeTrust"
-            @claimReleased="claimReleased"
-          />
-        </view>
       </template>
 
       <template #tab-stats>
@@ -81,7 +78,6 @@ const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
   tabs: [
     { key: "main", labelKey: "createTrust", icon: "➕", default: true },
-    { key: "mine", labelKey: "mine", icon: "📋" },
     { key: "stats", labelKey: "stats", icon: "📊" },
     { key: "docs", labelKey: "docs", icon: "📖" },
   ],

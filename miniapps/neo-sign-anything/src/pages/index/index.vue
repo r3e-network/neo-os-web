@@ -1,6 +1,12 @@
 <template>
   <view class="theme-neo-sign-anything">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" :status-message="status" @tab-change="onTabChange">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="onTabChange"
+    >
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
@@ -8,38 +14,38 @@
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <view class="header">
-          <text class="title">{{ t("signTitle") }}</text>
-          <text class="subtitle">{{ t("signDesc") }}</text>
-        </view>
+            <text class="title">{{ t("signTitle") }}</text>
+            <text class="subtitle">{{ t("signDesc") }}</text>
+          </view>
 
-        <view v-if="signature" class="result-card">
-          <NeoCard variant="erobo-neo">
-            <view class="result-header">
-              <text class="result-title">{{ t("signatureResult") }}</text>
-              <view class="copy-btn" @click="copyToClipboard(signature)">
-                <text class="copy-text">{{ t("copy") }}</text>
+          <view v-if="signature" class="result-card">
+            <NeoCard variant="erobo-neo">
+              <view class="result-header">
+                <text class="result-title">{{ t("signatureResult") }}</text>
+                <view class="copy-btn" @click="copyToClipboard(signature)">
+                  <text class="copy-text">{{ t("copy") }}</text>
+                </view>
               </view>
-            </view>
-            <text class="result-text">{{ signature }}</text>
-          </NeoCard>
-        </view>
+              <text class="result-text">{{ signature }}</text>
+            </NeoCard>
+          </view>
 
-        <view v-if="txHash" class="result-card">
-          <NeoCard variant="erobo-purple">
-            <view class="result-header">
-              <text class="result-title">{{ t("broadcastResult") }}</text>
-              <view class="copy-btn" @click="copyToClipboard(txHash)">
-                <text class="copy-text">{{ t("copy") }}</text>
+          <view v-if="txHash" class="result-card">
+            <NeoCard variant="erobo-purple">
+              <view class="result-header">
+                <text class="result-title">{{ t("broadcastResult") }}</text>
+                <view class="copy-btn" @click="copyToClipboard(txHash)">
+                  <text class="copy-text">{{ t("copy") }}</text>
+                </view>
               </view>
-            </view>
-            <text class="result-text">{{ txHash }}</text>
-            <text class="success-msg">{{ t("broadcastSuccess") }}</text>
-          </NeoCard>
-        </view>
+              <text class="result-text">{{ txHash }}</text>
+              <text class="success-msg">{{ t("broadcastSuccess") }}</text>
+            </NeoCard>
+          </view>
 
-        <view v-if="!address" class="connect-prompt">
-          <text class="connect-text">{{ t("connectWallet") }}</text>
-        </view>
+          <view v-if="!address" class="connect-prompt">
+            <text class="connect-text">{{ t("connectWallet") }}</text>
+          </view>
         </ErrorBoundary>
       </template>
 
@@ -100,6 +106,15 @@ const templateConfig: MiniAppTemplateConfig = {
   features: {
     chainWarning: true,
     statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
   },
 };
 

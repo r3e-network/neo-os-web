@@ -28,22 +28,9 @@
 
       <template #operation>
         <NeoCard variant="erobo" :title="t('gardenActions')">
-          <view class="op-stats">
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('plants') }}</text>
-              <text class="op-value">{{ stats.totalPlants }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('ready') }}</text>
-              <text class="op-value op-value--accent">{{ stats.readyToHarvest }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('harvested') }}</text>
-              <text class="op-value">{{ stats.totalHarvested }}</text>
-            </view>
-          </view>
+          <NeoStats :stats="opStats" />
           <view class="op-hint">
-            <text class="op-hint-text">{{ t('plantFee') }}</text>
+            <text class="op-hint-text">{{ t("plantFee") }}</text>
           </view>
         </NeoCard>
       </template>
@@ -54,7 +41,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import GardenTab from "./components/GardenTab.vue";
@@ -99,6 +86,12 @@ const sidebarItems = computed(() => [
   { label: t("sidebarHarvested"), value: stats.value.totalHarvested },
 ]);
 
+const opStats = computed(() => [
+  { label: t("plants"), value: stats.value.totalPlants },
+  { label: t("ready"), value: stats.value.readyToHarvest, variant: "accent" as const },
+  { label: t("harvested"), value: stats.value.totalHarvested },
+]);
+
 // Stats State
 const stats = ref({
   totalPlants: 0,
@@ -133,36 +126,9 @@ const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t)
   font-family: var(--garden-font);
 }
 
-.op-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.op-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.op-label {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-}
-
-.op-value {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.op-value--accent {
-  color: var(--garden-accent, #4ade80);
-}
-
 .op-hint {
   padding: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-card-subtle, rgba(255, 255, 255, 0.04));
   border-radius: 8px;
   text-align: center;
 }

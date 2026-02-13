@@ -1,6 +1,12 @@
 <template>
   <view class="theme-memorial-shrine">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
@@ -9,29 +15,37 @@
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <view class="header">
-          <text class="title">{{ t("title") }}</text>
-          <text class="tagline">{{ t("tagline") }}</text>
-          <text class="subtitle">{{ t("subtitle") }}</text>
-        </view>
+            <text class="title">{{ t("title") }}</text>
+            <text class="tagline">{{ t("tagline") }}</text>
+            <text class="subtitle">{{ t("subtitle") }}</text>
+          </view>
 
-        <view class="obituary-banner" v-if="recentObituaries.length">
-          <text class="banner-title">{{ t("obituaries") }}</text>
-          <scroll-view scroll-x class="banner-scroll">
-            <view v-for="ob in recentObituaries" :key="ob.id" class="obituary-item" role="button" tabindex="0" :aria-label="ob.name" @click="openMemorial(ob.id)">
-              <text class="name">{{ ob.name }}</text>
-              <text class="text">{{ ob.text }}</text>
-            </view>
-          </scroll-view>
-        </view>
+          <view class="obituary-banner" v-if="recentObituaries.length">
+            <text class="banner-title">{{ t("obituaries") }}</text>
+            <scroll-view scroll-x class="banner-scroll">
+              <view
+                v-for="ob in recentObituaries"
+                :key="ob.id"
+                class="obituary-item"
+                role="button"
+                tabindex="0"
+                :aria-label="ob.name"
+                @click="openMemorial(ob.id)"
+              >
+                <text class="name">{{ ob.name }}</text>
+                <text class="text">{{ ob.text }}</text>
+              </view>
+            </scroll-view>
+          </view>
 
-        <view class="memorials-grid">
-          <TombstoneCard
-            v-for="memorial in memorials"
-            :key="memorial.id"
-            :memorial="memorial"
-            @click="openMemorial(memorial.id)"
-          />
-        </view>
+          <view class="memorials-grid">
+            <TombstoneCard
+              v-for="memorial in memorials"
+              :key="memorial.id"
+              :memorial="memorial"
+              @click="openMemorial(memorial.id)"
+            />
+          </view>
         </ErrorBoundary>
       </template>
 
@@ -56,7 +70,6 @@
           <text>{{ t("noTributes") }}</text>
         </view>
       </template>
-
     </MiniAppTemplate>
 
     <!-- Memorial Detail Modal -->
@@ -75,6 +88,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import TombstoneCard from "./components/TombstoneCard.vue";
 import CreateMemorialForm from "./components/CreateMemorialForm.vue";
@@ -82,9 +96,8 @@ import MemorialDetailModal from "./components/MemorialDetailModal.vue";
 import { useMemorialActions } from "@/composables/useMemorialActions";
 
 const { t } = useI18n();
-
+const { status } = useStatusMessage();
 const {
-  memorials,
   visitedMemorials,
   recentObituaries,
   selectedMemorial,
@@ -118,7 +131,7 @@ const templateConfig: MiniAppTemplateConfig = {
   features: {
     fireworks: false,
     chainWarning: true,
-    statusMessages: false,
+    statusMessages: true,
     docs: {
       titleKey: "title",
       subtitleKey: "docSubtitle",

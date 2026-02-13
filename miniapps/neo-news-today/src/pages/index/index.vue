@@ -1,6 +1,12 @@
 <template>
   <view class="theme-neo-news">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
@@ -56,22 +62,9 @@
 
       <template #operation>
         <NeoCard variant="erobo" :title="t('feedStatus')">
-          <view class="op-stats">
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('articles') }}</text>
-              <text class="op-value">{{ articles.length }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('latest') }}</text>
-              <text class="op-value">{{ articles.length > 0 ? formatDate(articles[0].date) : '—' }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('status') }}</text>
-              <text class="op-value">{{ loading ? t('loading') : t('ready') }}</text>
-            </view>
-          </view>
+          <NeoStats :stats="opStats" />
           <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="fetchArticles">
-            {{ t('refreshFeed') }}
+            {{ t("refreshFeed") }}
           </NeoButton>
         </NeoCard>
       </template>
@@ -81,12 +74,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useNewsData } from "./composables/useNewsData";
 
 const { t } = useI18n();
+const { status } = useStatusMessage();
 const { loading, articles, errorMessage, fetchArticles, formatDate, openArticle } = useNewsData(t);
 
 const templateConfig: MiniAppTemplateConfig = {
@@ -122,6 +117,12 @@ const sidebarItems = computed(() => [
   { label: t("status"), value: loading.value ? t("loading") : t("ready") },
 ]);
 
+const opStats = computed(() => [
+  { label: t("articles"), value: articles.value.length },
+  { label: t("latest"), value: articles.value.length > 0 ? formatDate(articles.value[0].date) : "—" },
+  { label: t("status"), value: loading.value ? t("loading") : t("ready") },
+]);
+
 onMounted(async () => {
   await fetchArticles();
 });
@@ -138,29 +139,6 @@ const resetAndReload = async () => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./_neo-news-components.scss";
-
-.op-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.op-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.op-label {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-}
-
-.op-value {
-  font-size: 13px;
-  font-weight: 700;
-}
 
 .op-btn {
   width: 100%;

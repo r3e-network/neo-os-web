@@ -15,21 +15,31 @@
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <ProposalGallery
-          :grants="grants"
-          :loading="loading"
-          :fetch-error="fetchError"
-          :t="t"
-          :format-count="formatCount"
-          :format-date="formatDate"
-          :get-status-label="getStatusLabel"
-          @select="goToDetail"
-          @copy-link="copyLink"
-        />
+            :grants="grants"
+            :loading="loading"
+            :fetch-error="fetchError"
+            :t="t"
+            :format-count="formatCount"
+            :format-date="formatDate"
+            :get-status-label="getStatusLabel"
+            @select="goToDetail"
+            @copy-link="copyLink"
+          />
         </ErrorBoundary>
       </template>
 
       <template #operation>
-        <NeoStats :stats="poolStatsArray" />
+        <NeoCard variant="erobo" :title="t('quickActions')">
+          <view class="op-actions">
+            <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="fetchGrants">
+              {{ loading ? t("loading") : t("refreshProposals") }}
+            </NeoButton>
+            <NeoButton size="sm" variant="secondary" class="op-btn" @click="openForum">
+              {{ t("createProposal") }}
+            </NeoButton>
+          </view>
+          <NeoStats :stats="poolStatsArray" />
+        </NeoCard>
       </template>
     </MiniAppTemplate>
   </view>
@@ -38,7 +48,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 
 import { useGrantProposals } from "@/composables/useGrantProposals";
@@ -123,6 +133,18 @@ function goToDetail(grant: Record<string, unknown>) {
   });
 }
 
+function openForum() {
+  uni.navigateTo({
+    url: "/pages/index/index?action=forum",
+    fail: () => {
+      // Fallback: open external forum URL
+      if (typeof window !== "undefined") {
+        window.open("https://forum.grantshares.io", "_blank");
+      }
+    },
+  });
+}
+
 onMounted(() => {
   fetchGrants();
 });
@@ -137,4 +159,14 @@ onMounted(() => {
   background: var(--eco-bg);
 }
 
+.op-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.op-btn {
+  width: 100%;
+}
 </style>

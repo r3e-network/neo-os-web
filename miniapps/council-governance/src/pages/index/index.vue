@@ -15,17 +15,17 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <ActiveProposalsTab
-          :proposals="activeProposals"
-          :status="status"
-          :loading="loadingProposals"
-          :voting-power="votingPower"
-          :is-candidate="isCandidate"
-          :candidate-loaded="candidateLoaded"
-          :t="t"
-          @create="activeTab = 'create'"
-          @select="selectProposal"
-        />
+          <ActiveProposalsTab
+            :proposals="activeProposals"
+            :status="status"
+            :loading="loadingProposals"
+            :voting-power="votingPower"
+            :is-candidate="isCandidate"
+            :candidate-loaded="candidateLoaded"
+            :t="t"
+            @create="activeTab = 'create'"
+            @select="selectProposal"
+          />
         </ErrorBoundary>
       </template>
 
@@ -39,18 +39,9 @@
 
       <template #operation>
         <NeoCard variant="erobo" :title="t('quickActions')">
-          <view class="op-stats">
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('active') }}</text>
-              <text class="op-value">{{ activeProposals.length }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('votingPower') }}</text>
-              <text class="op-value">{{ votingPower }}</text>
-            </view>
-          </view>
+          <NeoStats :stats="opStats" />
           <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'create'">
-            {{ t('createProposal') }}
+            {{ t("createProposal") }}
           </NeoButton>
         </NeoCard>
       </template>
@@ -76,7 +67,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useGovernance } from "@/composables/useGovernance";
@@ -98,15 +89,27 @@ watch(
       currentChainId.value = value;
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 const {
-  proposals, activeProposals, historyProposals, selectedProposal,
-  loadingProposals, candidateLoaded, isCandidate, votingPower,
-  hasVotedMap, isVoting,
-  selectProposal, castVote, createProposal: submitProposal,
-  executeProposal, refreshCandidateStatus, refreshHasVoted, init,
+  proposals,
+  activeProposals,
+  historyProposals,
+  selectedProposal,
+  loadingProposals,
+  candidateLoaded,
+  isCandidate,
+  votingPower,
+  hasVotedMap,
+  isVoting,
+  selectProposal,
+  castVote,
+  createProposal: submitProposal,
+  executeProposal,
+  refreshCandidateStatus,
+  refreshHasVoted,
+  init,
 } = useGovernance(showStatus, currentChainId);
 
 const templateConfig: MiniAppTemplateConfig = {
@@ -145,6 +148,11 @@ const sidebarItems = computed(() => [
   { label: t("active"), value: activeProposals.value.length },
   { label: t("history"), value: historyProposals.value.length },
   { label: t("totalProposals"), value: proposals.value.length },
+  { label: t("votingPower"), value: votingPower.value },
+]);
+
+const opStats = computed(() => [
+  { label: t("active"), value: activeProposals.value.length },
   { label: t("votingPower"), value: votingPower.value },
 ]);
 
@@ -188,29 +196,6 @@ watch(address, async () => {
 
 :global(page) {
   background: var(--senate-bg);
-}
-
-.op-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.op-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.op-label {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-}
-
-.op-value {
-  font-size: 14px;
-  font-weight: 700;
 }
 
 .op-btn {

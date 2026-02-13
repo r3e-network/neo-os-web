@@ -52,7 +52,7 @@ import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@sh
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CapsuleCreate from "./components/CapsuleCreate.vue";
 import RewardClaim from "./components/RewardClaim.vue";
@@ -223,9 +223,13 @@ const resetAndReload = async () => {
   await fetchData();
 };
 
-watch(address, () => {
-  fetchData();
-}, { immediate: true });
+watch(
+  address,
+  () => {
+    fetchData();
+  },
+  { immediate: true }
+);
 
 const createCapsule = async (): Promise<void> => {
   if (isLoading.value) return;

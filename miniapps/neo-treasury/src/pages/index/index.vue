@@ -72,26 +72,9 @@
 
       <template #operation>
         <NeoCard variant="erobo" :title="t('treasuryInfo')">
-          <view class="op-stats">
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('sidebarTotalUsd') }}</text>
-              <text class="op-value">{{ data?.totalUsd ? `$${data.totalUsd.toLocaleString()}` : '—' }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('sidebarTotalNeo') }}</text>
-              <text class="op-value">{{ data?.totalNeo?.toLocaleString() ?? '—' }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('sidebarTotalGas') }}</text>
-              <text class="op-value">{{ data?.totalGas?.toLocaleString() ?? '—' }}</text>
-            </view>
-            <view class="op-stat-row">
-              <text class="op-label">{{ t('sidebarFounders') }}</text>
-              <text class="op-value">{{ data?.categories?.length ?? 0 }}</text>
-            </view>
-          </view>
+          <NeoStats :stats="opStats" />
           <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="loadData">
-            {{ loading ? t('refreshing') : t('refreshData') }}
+            {{ loading ? t("refreshing") : t("refreshData") }}
           </NeoButton>
         </NeoCard>
       </template>
@@ -101,7 +84,15 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppTemplate, NeoCard, NeoButton, AppIcon, SidebarPanel, ErrorBoundary } from "@shared/components";
+import {
+  MiniAppTemplate,
+  NeoCard,
+  NeoButton,
+  NeoStats,
+  AppIcon,
+  SidebarPanel,
+  ErrorBoundary,
+} from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -152,6 +143,13 @@ const appState = computed(() => ({
 }));
 
 const sidebarItems = computed(() => [
+  { label: t("sidebarTotalUsd"), value: data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—" },
+  { label: t("sidebarTotalNeo"), value: data.value?.totalNeo?.toLocaleString() ?? "—" },
+  { label: t("sidebarTotalGas"), value: data.value?.totalGas?.toLocaleString() ?? "—" },
+  { label: t("sidebarFounders"), value: data.value?.categories?.length ?? 0 },
+]);
+
+const opStats = computed(() => [
   { label: t("sidebarTotalUsd"), value: data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—" },
   { label: t("sidebarTotalNeo"), value: data.value?.totalNeo?.toLocaleString() ?? "—" },
   { label: t("sidebarTotalGas"), value: data.value?.totalGas?.toLocaleString() ?? "—" },
@@ -222,29 +220,6 @@ const resetAndReload = async () => {
 
 :global(page) {
   background: var(--bg-primary);
-}
-
-.op-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.op-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.op-label {
-  font-size: 12px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-}
-
-.op-value {
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .op-btn {
