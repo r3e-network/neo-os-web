@@ -141,9 +141,13 @@ onUnmounted(() => {
   }
 });
 
-watch(address, () => {
-  fetchData();
-}, { immediate: true });
+watch(
+  address,
+  () => {
+    fetchData();
+  },
+  { immediate: true }
+);
 
 const toNumber = (value: unknown) => {
   const num = Number(value);
@@ -279,11 +283,10 @@ const resetAndReload = async () => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./time-capsule-theme.scss";
 
-:global(page) {
-  background: var(--bg-primary);
-}
+@include page-background(var(--bg-primary));
 
 .helper-text {
   font-size: 11px;

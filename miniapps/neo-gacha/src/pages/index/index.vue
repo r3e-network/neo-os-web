@@ -15,21 +15,21 @@
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <MarketplaceTab
-          :machines="machines"
-          :is-loading="isLoadingMachines"
-          :selected-machine="selectedMachine"
-          :wallet-hash="walletHash"
-          :is-playing="isPlaying"
-          :show-result="showResult"
-          :result-item="resultItem"
-          :play-error="playError"
-          @select-machine="selectMachine"
-          @browse-all="activeTab = 'discover'"
-          @back="selectedMachine = null"
-          @play="handlePlay"
-          @close-result="resetResult"
-          @buy="handleBuy"
-        />
+            :machines="machines"
+            :is-loading="isLoadingMachines"
+            :selected-machine="selectedMachine"
+            :wallet-hash="walletHash"
+            :is-playing="isPlaying"
+            :show-result="showResult"
+            :result-item="resultItem"
+            :play-error="playError"
+            @select-machine="selectMachine"
+            @browse-all="activeTab = 'discover'"
+            @back="selectedMachine = null"
+            @play="handlePlay"
+            @close-result="resetResult"
+            @buy="handleBuy"
+          />
         </ErrorBoundary>
       </template>
 
@@ -38,11 +38,7 @@
       </template>
 
       <template #tab-discover>
-        <DiscoverTab
-          :machines="machines"
-          :is-loading="isLoadingMachines"
-          @select-machine="handleSelectFromDiscover"
-        />
+        <DiscoverTab :machines="machines" :is-loading="isLoadingMachines" @select-machine="handleSelectFromDiscover" />
       </template>
 
       <template #tab-create>
@@ -51,20 +47,20 @@
 
       <template #tab-manage>
         <ManageTab
-            :machines="machines"
-            :address="address"
-            :is-loading="isLoadingMachines"
-            :action-loading="actionLoading"
-            @connect-wallet="handleWalletConnect"
-            @update-price="handleUpdatePrice"
-            @toggle-active="handleToggleActive"
-            @toggle-listed="handleToggleListed"
-            @list-for-sale="handleListForSale"
-            @cancel-sale="handleCancelSale"
-            @withdraw-revenue="handleWithdrawRevenue"
-            @deposit-item="handleDepositItem"
-            @withdraw-item="handleWithdrawItem"
-          />
+          :machines="machines"
+          :address="address"
+          :is-loading="isLoadingMachines"
+          :action-loading="actionLoading"
+          @connect-wallet="handleWalletConnect"
+          @update-price="handleUpdatePrice"
+          @toggle-active="handleToggleActive"
+          @toggle-listed="handleToggleListed"
+          @list-for-sale="handleListForSale"
+          @cancel-sale="handleCancelSale"
+          @withdraw-revenue="handleWithdrawRevenue"
+          @deposit-item="handleDepositItem"
+          @withdraw-item="handleWithdrawItem"
+        />
       </template>
     </MiniAppTemplate>
 
@@ -286,9 +282,13 @@ onUnmounted(() => {
   }
 });
 
-watch(address, () => {
-  fetchMachines();
-}, { immediate: true });
+watch(
+  address,
+  () => {
+    fetchMachines();
+  },
+  { immediate: true }
+);
 
 const { handleBoundaryError } = useHandleBoundaryError("neo-gacha");
 const resetAndReload = async () => {
@@ -299,11 +299,10 @@ const resetAndReload = async () => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./neo-gacha-theme.scss";
 
-:global(page) {
-  background: var(--gacha-bg);
-}
+@include page-background(var(--gacha-bg));
 
 .status-text {
   font-weight: 700;

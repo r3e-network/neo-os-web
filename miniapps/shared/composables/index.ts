@@ -6,7 +6,6 @@
 
 export { useChainValidation, isEvmChain, requireNeoChain } from "./useChainValidation";
 export { useTheme, getThemeVariable, setThemeVariable, useThemeStyle } from "./useTheme";
-export { usePageState } from "./usePageState";
 export { useContractInteraction } from "./useContractInteraction";
 export { useContractAddress } from "./useContractAddress";
 export { useFormState } from "./useFormState";
@@ -18,7 +17,6 @@ export { useErrorHandler } from "./useErrorHandler";
 export type { ErrorCategory, ErrorContext, ErrorHandlerState } from "./useErrorHandler";
 export { useCrypto } from "./useCrypto";
 export { useI18n, createUseI18n } from "./useI18n";
-export { useTemplateState } from "./useTemplateState";
 export { useOperationState } from "./useOperationState";
 export type { TxState, OperationState } from "./useOperationState";
 export { useListDetail } from "./useListDetail";

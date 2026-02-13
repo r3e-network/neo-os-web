@@ -40,7 +40,6 @@
           @confirm="executeDestroy"
         />
       </template>
-
     </MiniAppTemplate>
   </view>
 </template>
@@ -142,10 +141,13 @@ watch(activeTab, async (tab) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./graveyard-theme.scss";
 
-:global(page) {
-  background: var(--grave-bg);
-  font-family: var(--grave-font);
-}
+@include page-background(
+  var(--grave-bg),
+  (
+    font-family: var(--grave-font),
+  )
+);
 </style>

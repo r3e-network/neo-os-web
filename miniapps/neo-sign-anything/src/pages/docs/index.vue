@@ -1,92 +1,28 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" :title="t('docs')" :show-top-nav="true" show-back @back="goBack">
-    <view class="docs-container">
-      <view class="section">
-        <text class="section-title">{{ t("aboutTitle") }}</text>
-        <text class="section-text">
-          {{ t("aboutText") }}
-        </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">{{ t("howItWorksTitle") }}</text>
-        <text class="section-text"> 1. {{ t("step1") }} </text>
-        <text class="section-text"> 2. {{ t("step2") }} </text>
-        <text class="section-text"> 3. {{ t("step3") }} </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">{{ t("securityTitle") }}</text>
-        <text class="section-text">
-          {{ t("securityText") }}
-        </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">{{ t("broadcastTitle") }}</text>
-        <text class="section-text">
-          {{ t("broadcastText") }}
-        </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">{{ t("verifyTitle") }}</text>
-        <text class="section-text">
-          {{ t("verifyText") }}
-        </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">{{ t("privacyTitle") }}</text>
-        <text class="section-text">
-          {{ t("privacyText") }}
-        </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">{{ t("networkTitle") }}</text>
-        <text class="section-text">
-          {{ t("networkText") }}
-        </text>
-      </view>
-    </view>
-  </ResponsiveLayout>
+  <NeoDoc
+    :title="t('title')"
+    :subtitle="t('docSubtitle')"
+    :description="t('docDescription')"
+    :steps="docSteps"
+    :features="docFeatures"
+  />
 </template>
 
 <script setup lang="ts">
-import { ResponsiveLayout } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import messages from "@/locale/messages";
+import NeoDoc from "@shared/components/NeoDoc.vue";
+import { computed } from "vue";
 
 const { t } = createUseI18n(messages)();
 
-const goBack = () => {
-  uni.navigateBack();
-};
+const docSteps = computed(() => [t("docStep1"), t("docStep2"), t("docStep3"), t("docStep4")]);
+
+const docFeatures = computed(() => [
+  { name: t("docFeature1Name"), desc: t("docFeature1Desc") },
+  { name: t("docFeature2Name"), desc: t("docFeature2Desc") },
+  { name: t("docFeature3Name"), desc: t("docFeature3Desc") },
+  { name: t("docFeature4Name"), desc: t("docFeature4Desc") },
+  { name: t("docFeature5Name"), desc: t("docFeature5Desc") },
+]);
 </script>
-
-<style lang="scss" scoped>
-.docs-container {
-  padding: 24px;
-}
-
-.section {
-  margin-bottom: 32px;
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-  display: block;
-}
-
-.section-text {
-  font-size: 14px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
-  line-height: 1.6;
-  margin-bottom: 8px;
-  display: block;
-}
-</style>

@@ -1,20 +1,20 @@
 <template>
   <view class="theme-coin-flip">
-      <MiniAppTemplate
-        :config="templateConfig"
-        :state="appState"
-        :t="t"
-        :fireworks-active="showWinOverlay"
-        @tab-change="activeTab = $event"
-      >
-        <!-- Desktop Sidebar -->
-        <template #desktop-sidebar>
-          <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-        </template>
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :fireworks-active="showWinOverlay"
+      @tab-change="activeTab = $event"
+    >
+      <!-- Desktop Sidebar -->
+      <template #desktop-sidebar>
+        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
+      </template>
 
-        <!-- Game content - LEFT panel -->
-        <template #content>
-          <ErrorBoundary @error="handleBoundaryError" @retry="resetGame" :fallback-message="t('gameErrorFallback')">
+      <!-- Game content - LEFT panel -->
+      <template #content>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetGame" :fallback-message="t('gameErrorFallback')">
           <!-- Wallet Connection Warning -->
           <view v-if="!address" class="wallet-warning">
             <NeoCard variant="warning" class="text-center">
@@ -40,29 +40,29 @@
             :t="t as (key: string) => string"
             @close="showWinOverlay = false"
           />
-          </ErrorBoundary>
-        </template>
+        </ErrorBoundary>
+      </template>
 
-        <!-- RIGHT panel: Bet Controls -->
-        <template #operation>
-          <BetControls
-            v-model:choice="choice"
-            v-model:betAmount="betAmount"
-            :is-flipping="isFlipping"
-            :can-bet="canBet"
-            :validation-error="validationError"
-            :t="t as (key: string) => string"
-            @flip="handleFlip"
-          />
-        </template>
+      <!-- RIGHT panel: Bet Controls -->
+      <template #operation>
+        <BetControls
+          v-model:choice="choice"
+          v-model:betAmount="betAmount"
+          :is-flipping="isFlipping"
+          :can-bet="canBet"
+          :validation-error="validationError"
+          :t="t as (key: string) => string"
+          @flip="handleFlip"
+        />
+      </template>
 
-        <!-- Stats tab -->
-        <template #tab-stats>
-          <NeoCard variant="erobo" class="mb-6">
-            <NeoStats :stats="gameStats" />
-          </NeoCard>
-        </template>
-      </MiniAppTemplate>
+      <!-- Stats tab -->
+      <template #tab-stats>
+        <NeoCard variant="erobo" class="mb-6">
+          <NeoStats :stats="gameStats" />
+        </NeoCard>
+      </template>
+    </MiniAppTemplate>
   </view>
 </template>
 
@@ -73,7 +73,15 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoStats, NeoButton, SidebarPanel, type StatItem, ErrorBoundary } from "@shared/components";
+import {
+  MiniAppTemplate,
+  NeoCard,
+  NeoStats,
+  NeoButton,
+  SidebarPanel,
+  type StatItem,
+  ErrorBoundary,
+} from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CoinArena from "./components/CoinArena.vue";
 import BetControls from "./components/BetControls.vue";
@@ -85,10 +93,27 @@ const wallet = useWallet() as WalletSDK;
 const { address } = wallet;
 
 const {
-  betAmount, choice, totalWon, isFlipping, result, displayOutcome,
-  showWinOverlay, winAmount, errorMessage, validationError, canRetryError,
-  canBet, wins, losses, totalGames, formatNum,
-  connectWallet, resetGame, handleBoundaryError, retryOperation, handleFlip,
+  betAmount,
+  choice,
+  totalWon,
+  isFlipping,
+  result,
+  displayOutcome,
+  showWinOverlay,
+  winAmount,
+  errorMessage,
+  validationError,
+  canRetryError,
+  canBet,
+  wins,
+  losses,
+  totalGames,
+  formatNum,
+  connectWallet,
+  resetGame,
+  handleBoundaryError,
+  retryOperation,
+  handleFlip,
 } = useCoinFlipGame(wallet, t);
 
 const templateConfig: MiniAppTemplateConfig = {
@@ -141,11 +166,10 @@ const appState = computed(() => ({
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./coin-flip-theme.scss";
 
-:global(page) {
-  background: var(--coin-bg-primary);
-}
+@include page-background(var(--coin-bg-primary));
 
 .wallet-warning {
   margin-bottom: 16px;

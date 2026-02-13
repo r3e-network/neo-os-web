@@ -11,7 +11,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/errors"
 	internalhttputil "github.com/R3E-Network/neo-miniapps-platform/infrastructure/httputil"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/logging"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/security"
@@ -137,7 +136,7 @@ func (m *ServiceAuthMiddleware) Handler(next http.Handler) http.Handler {
 		// Validate service token
 		serviceToken := r.Header.Get(ServiceTokenHeader)
 		if serviceToken == "" {
-			m.respondError(w, r, errors.Unauthorized("Missing service token"))
+			m.respondError(w, r, errUnauthorized("Missing service token"))
 			return
 		}
 
@@ -154,20 +153,20 @@ func (m *ServiceAuthMiddleware) Handler(next http.Handler) http.Handler {
 			m.logger.WithContext(r.Context()).WithFields(map[string]interface{}{
 				"service_id": claims.ServiceID,
 			}).Warn("Service not in allowed list")
-			m.respondError(w, r, errors.Forbidden("Service not authorized"))
+			m.respondError(w, r, errForbidden("Service not authorized"))
 			return
 		}
 
 		// Validate X-User-ID header if required
 		userID := r.Header.Get(UserIDHeader)
 		if m.requireUserID && userID == "" {
-			m.respondError(w, r, errors.Unauthorized("Missing X-User-ID header"))
+			m.respondError(w, r, errUnauthorized("Missing X-User-ID header"))
 			return
 		}
 
 		// Validate X-User-ID format (UUID format check)
 		if userID != "" && !isValidUserID(userID) {
-			m.respondError(w, r, errors.InvalidFormat("X-User-ID", "UUID format required"))
+			m.respondError(w, r, errInvalidFormat("X-User-ID", "UUID format required"))
 			return
 		}
 
@@ -190,7 +189,7 @@ func (m *ServiceAuthMiddleware) Handler(next http.Handler) http.Handler {
 // validateServiceToken validates a service JWT token.
 func (m *ServiceAuthMiddleware) validateServiceToken(tokenString string) (*ServiceClaims, error) {
 	if m.publicKey == nil {
-		return nil, errors.Internal("service authentication is not configured", nil)
+		return nil, errInternal("service authentication is not configured", nil)
 	}
 
 	// Check cache first
@@ -202,35 +201,35 @@ func (m *ServiceAuthMiddleware) validateServiceToken(tokenString string) (*Servi
 	token, err := jwt.ParseWithClaims(tokenString, &ServiceClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Verify signing method is RS256
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, errors.InvalidToken(nil).WithDetails("method", token.Header["alg"])
+			return nil, errInvalidToken(nil).WithDetails("method", token.Header["alg"])
 		}
 		return m.publicKey, nil
 	})
 
 	if err != nil {
-		return nil, errors.InvalidToken(err)
+		return nil, errInvalidToken(err)
 	}
 
 	if !token.Valid {
-		return nil, errors.InvalidToken(nil)
+		return nil, errInvalidToken(nil)
 	}
 
 	claims, ok := token.Claims.(*ServiceClaims)
 	if !ok {
-		return nil, errors.InvalidToken(nil).WithDetails("reason", "invalid claims type")
+		return nil, errInvalidToken(nil).WithDetails("reason", "invalid claims type")
 	}
 
 	if claims.ServiceID == "" {
-		return nil, errors.InvalidToken(nil).WithDetails("reason", "missing service_id claim")
+		return nil, errInvalidToken(nil).WithDetails("reason", "missing service_id claim")
 	}
 
 	// Defense in depth: ensure token was minted by our service-layer issuer.
 	if claims.Issuer != "service-layer" {
-		return nil, errors.InvalidToken(nil).WithDetails("reason", "invalid issuer")
+		return nil, errInvalidToken(nil).WithDetails("reason", "invalid issuer")
 	}
 	// Keep Subject consistent with the service identity.
 	if claims.Subject != "" && claims.Subject != claims.ServiceID {
-		return nil, errors.InvalidToken(nil).WithDetails("reason", "subject/service mismatch")
+		return nil, errInvalidToken(nil).WithDetails("reason", "subject/service mismatch")
 	}
 
 	// Cache the validated token
@@ -368,9 +367,9 @@ func (m *ServiceAuthMiddleware) isServiceAllowed(serviceID string) bool {
 
 // respondError sends an error response.
 func (m *ServiceAuthMiddleware) respondError(w http.ResponseWriter, r *http.Request, err error) {
-	serviceErr := errors.GetServiceError(err)
+	serviceErr := getServiceError(err)
 	if serviceErr == nil {
-		serviceErr = errors.Internal("Service authentication failed", err)
+		serviceErr = errInternal("Service authentication failed", err)
 	}
 
 	// Sanitize error message and details before sending to client

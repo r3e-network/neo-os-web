@@ -76,14 +76,7 @@ const { ensure: ensureContractAddress } = useContractAddress(t);
 const { status, setStatus } = useStatusMessage();
 const { listAllEvents } = useAllEvents(listEvents, APP_ID);
 
-const gp = useGuardianPolicyContract(
-  wallet,
-  ensureContractAddress,
-  listAllEvents,
-  processPayment,
-  setStatus,
-  t,
-);
+const gp = useGuardianPolicyContract(wallet, ensureContractAddress, listAllEvents, processPayment, setStatus, t);
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
@@ -129,17 +122,20 @@ const resetAndReload = () => {
 
 const onFetchPrice = () => gp.fetchPrice(getPrice);
 
-watch(address, () => {
-  gp.refreshData();
-}, { immediate: true });
+watch(
+  address,
+  () => {
+    gp.refreshData();
+  },
+  { immediate: true }
+);
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./guardian-policy-theme.scss";
 
-:global(page) {
-  background: var(--ops-bg);
-}
+@include page-background(var(--ops-bg));
 </style>

@@ -159,12 +159,15 @@ watch(activeTab, (next) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./milestone-escrow-theme.scss";
 
-:global(page) {
-  background: linear-gradient(135deg, var(--escrow-bg-start) 0%, var(--escrow-bg-end) 100%);
-  color: var(--escrow-text);
-}
+@include page-background(
+  linear-gradient(135deg, var(--escrow-bg-start) 0%, var(--escrow-bg-end) 100%),
+  (
+    color: var(--escrow-text),
+  )
+);
 
 .escrows-header {
   display: flex;

@@ -228,8 +228,10 @@ const requestSponsorship = async () => {
   }
 };
 
-const { donateAmount, sendAmount, recipientAddress, isDonating, isSending, handleDonate, handleSend } =
-  useGasTransfers(showStatus, loadUserData);
+const { donateAmount, sendAmount, recipientAddress, isDonating, isSending, handleDonate, handleSend } = useGasTransfers(
+  showStatus,
+  loadUserData
+);
 
 const { handleBoundaryError } = useHandleBoundaryError("gas-sponsor");
 const resetAndReload = async () => {
@@ -244,12 +246,14 @@ onMounted(() => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 
 @import "./gas-sponsor-theme.scss";
 
-:global(page) {
-  background: var(--gas-bg, var(--bg-primary));
-  font-family: var(--gas-font, #{$font-family});
-}
-
+@include page-background(
+  var(--gas-bg, var(--bg-primary)),
+  (
+    font-family: var(--gas-font, #{$font-family}),
+  )
+);
 </style>

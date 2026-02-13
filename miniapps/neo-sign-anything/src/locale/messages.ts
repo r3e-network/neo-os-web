@@ -78,10 +78,44 @@ export const messages = {
     en: "Generate a cryptographic signature without any on-chain cost.",
     zh: "无需链上费用即可生成加密签名。",
   },
-  feature2Name: { en: "On-chain Broadcast", zh: "链上广播" },
-  feature2Desc: {
+  docDescription: {
+    en: "This tool allows you to sign messages using your Neo private key. You can either generate an off-chain signature or broadcast the message to the blockchain as a transaction.",
+    zh: "此工具允许您使用 Neo 私钥签名信息。您可以生成链下签名，也可以将信息作为交易广播到区块链上。",
+  },
+  docStep1: { en: "Enter your message in the text area.", zh: "在文本区域输入您的信息。" },
+  docStep2: { en: 'Click "Sign Message" to get a cryptographic signature.', zh: '点击"签名信息"获取加密签名。' },
+  docStep3: {
+    en: 'Click "Broadcast Message" to send a 0-value transaction with your message attached as data.',
+    zh: '点击"广播信息"发送一笔带有您信息的 0 值交易。',
+  },
+  docStep4: {
+    en: "Verify the signature off-chain or check the broadcast transaction on-chain.",
+    zh: "链下验证签名或链上查看广播交易。",
+  },
+  docFeature1Name: { en: "Off-chain Signing", zh: "链下签名" },
+  docFeature1Desc: {
+    en: "Generate a cryptographic signature without any on-chain cost.",
+    zh: "无需链上费用即可生成加密签名。",
+  },
+  docFeature2Name: { en: "On-chain Broadcast", zh: "链上广播" },
+  docFeature2Desc: {
     en: "Permanently record a signed message on the Neo blockchain.",
     zh: "将签名信息永久记录在 Neo 区块链上。",
+  },
+  docFeature3Name: { en: "Wallet Security", zh: "钱包安全" },
+  docFeature3Desc: {
+    en: "Your private key never leaves your wallet. Signing is handled by your connected Neo wallet provider.",
+    zh: "您的私钥从未离开钱包。签名由连接的 Neo 钱包提供商安全处理。",
+  },
+  docFeature4Name: { en: "Signature Verification", zh: "签名验证" },
+  docFeature4Desc: {
+    en: "Use your Neo address, the message, and the signature in any verifier to prove authorship.",
+    zh: "使用 Neo 地址、原始信息与签名即可在任何验证器中证明署名。",
+  },
+  docFeature5Name: { en: "Privacy Awareness", zh: "隐私提示" },
+  docFeature5Desc: {
+    en: "Do not include secrets or personal data in messages. Anything broadcast on-chain is visible to everyone.",
+    zh: "请勿在信息中包含机密或个人隐私。链上广播的内容对所有人可见。",
   },
 } as const;
 

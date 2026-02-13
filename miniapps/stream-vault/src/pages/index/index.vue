@@ -148,12 +148,15 @@ watch(activeTab, (next) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./stream-vault-theme.scss";
 
-:global(page) {
-  background: linear-gradient(135deg, var(--stream-bg-start) 0%, var(--stream-bg-end) 100%);
-  color: var(--stream-text);
-}
+@include page-background(
+  linear-gradient(135deg, var(--stream-bg-start) 0%, var(--stream-bg-end) 100%),
+  (
+    color: var(--stream-text),
+  )
+);
 
 .vaults-header {
   display: flex;

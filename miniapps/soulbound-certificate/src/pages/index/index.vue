@@ -13,16 +13,16 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <TemplateList
-          :templates="templates"
-          :refreshing="isRefreshing"
-          :toggling-id="togglingId"
-          :has-address="!!address"
-          @refresh="refreshTemplates"
-          @connect="connectWallet"
-          @issue="openIssueModal"
-          @toggle="toggleTemplate"
-        />
+          <TemplateList
+            :templates="templates"
+            :refreshing="isRefreshing"
+            :toggling-id="togglingId"
+            :has-address="!!address"
+            @refresh="refreshTemplates"
+            @connect="connectWallet"
+            @issue="openIssueModal"
+            @toggle="toggleTemplate"
+          />
         </ErrorBoundary>
       </template>
 
@@ -82,11 +82,26 @@ const { t } = createUseI18n(messages)();
 const { status, setStatus } = useStatusMessage();
 
 const {
-  address, connect,
-  templates, certificates, certQrs, refreshTemplates, refreshCertificates,
-  isCreating, isIssuing, isLookingUp, isRevoking, togglingId, lookup,
-  connectWallet, createTemplate, issueCertificate, toggleTemplate,
-  lookupCertificate, revokeCertificate, copyTokenId,
+  address,
+  connect,
+  templates,
+  certificates,
+  certQrs,
+  refreshTemplates,
+  refreshCertificates,
+  isCreating,
+  isIssuing,
+  isLookingUp,
+  isRevoking,
+  togglingId,
+  lookup,
+  connectWallet,
+  createTemplate,
+  issueCertificate,
+  toggleTemplate,
+  lookupCertificate,
+  revokeCertificate,
+  copyTokenId,
 } = useCertificateActions(setStatus);
 
 const templateConfig: MiniAppTemplateConfig = {
@@ -148,10 +163,16 @@ const openIssueModal = (template: { id: string }) => {
   issueModalOpen.value = true;
 };
 
-const closeIssueModal = () => { issueModalOpen.value = false; };
+const closeIssueModal = () => {
+  issueModalOpen.value = false;
+};
 
 const handleIssueCertificate = async (data: {
-  templateId: string; recipient: string; recipientName: string; achievement: string; memo: string;
+  templateId: string;
+  recipient: string;
+  recipientName: string;
+  achievement: string;
+  memo: string;
 }) => {
   const success = await issueCertificate(data);
   if (success) issueModalOpen.value = false;
@@ -186,10 +207,13 @@ watch(address, async (newAddr) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./soulbound-certificate-theme.scss";
 
-:global(page) {
-  background: linear-gradient(135deg, var(--soul-bg-start) 0%, var(--soul-bg-end) 100%);
-  color: var(--soul-text);
-}
+@include page-background(
+  linear-gradient(135deg, var(--soul-bg-start) 0%, var(--soul-bg-end) 100%),
+  (
+    color: var(--soul-text),
+  )
+);
 </style>

@@ -142,12 +142,11 @@ const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("neo-sign
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./neo-sign-anything-theme.scss";
 @import "./sign-anything-components";
 
-:global(page) {
-  background: var(--bg-primary);
-}
+@include page-background(var(--bg-primary));
 
 .header {
   margin-bottom: 8px;

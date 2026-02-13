@@ -184,11 +184,10 @@ onMounted(async () => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./memorial-shrine-theme.scss";
 
-:global(page) {
-  background: var(--bg-primary);
-}
+@include page-background(var(--bg-primary));
 
 .header {
   text-align: center;

@@ -227,11 +227,10 @@ onMounted(async () => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./charity-vault-theme.scss";
 
-:global(page) {
-  background: var(--charity-bg);
-}
+@include page-background(var(--charity-bg));
 
 .category-filter {
   display: flex;

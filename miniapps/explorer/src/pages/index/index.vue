@@ -14,19 +14,19 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <SearchPanel
-          v-model:searchQuery="searchQuery"
-          v-model:selectedNetwork="selectedNetwork"
-          :is-loading="isLoading"
-          :t="t"
-          @search="search"
-        />
+          <SearchPanel
+            v-model:searchQuery="searchQuery"
+            v-model:selectedNetwork="selectedNetwork"
+            :is-loading="isLoading"
+            :t="t"
+            @search="search"
+          />
 
-        <view v-if="isLoading" class="loading">
-          <text>{{ t("searching") }}</text>
-        </view>
+          <view v-if="isLoading" class="loading">
+            <text>{{ t("searching") }}</text>
+          </view>
 
-        <SearchResult :result="searchResult" :t="t" @viewTx="viewTx" />
+          <SearchResult :result="searchResult" :t="t" @viewTx="viewTx" />
         </ErrorBoundary>
       </template>
 
@@ -129,12 +129,15 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./explorer-theme.scss";
 
-:global(page) {
-  background: var(--matrix-bg);
-  font-family: var(--matrix-font);
-}
+@include page-background(
+  var(--matrix-bg),
+  (
+    font-family: var(--matrix-font),
+  )
+);
 
 .loading {
   text-align: center;

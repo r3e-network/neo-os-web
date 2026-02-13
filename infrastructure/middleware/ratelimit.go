@@ -10,7 +10,6 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/errors"
 	internalhttputil "github.com/R3E-Network/neo-miniapps-platform/infrastructure/httputil"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/logging"
 )
@@ -122,7 +121,7 @@ func (rl *RateLimiter) Handler(next http.Handler) http.Handler {
 			if window <= 0 {
 				window = time.Second
 			}
-			serviceErr := errors.RateLimitExceeded(rl.limit, window.String())
+			serviceErr := errRateLimitExceeded(rl.limit, window.String())
 			if seconds := int(math.Ceil(window.Seconds())); seconds > 0 {
 				w.Header().Set("Retry-After", strconv.Itoa(seconds))
 			}

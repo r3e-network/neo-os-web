@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/errors"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/httputil"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/logging"
 )
@@ -39,7 +38,7 @@ func (m *RecoveryMiddleware) Handler(next http.Handler) http.Handler {
 				}).Error("Panic recovered")
 
 				// Send error response
-				serviceErr := errors.Internal("Internal server error", fmt.Errorf("%v", err))
+				serviceErr := errInternal("Internal server error", fmt.Errorf("%v", err))
 				httputil.WriteErrorResponse(w, r, serviceErr.HTTPStatus, string(serviceErr.Code), serviceErr.Message, serviceErr.Details)
 			}
 		}()

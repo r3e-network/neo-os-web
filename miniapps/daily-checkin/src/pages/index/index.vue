@@ -16,13 +16,13 @@
     <template #content>
       <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <CountdownHero
-        :countdown-progress="countdownProgress"
-        :countdown-label="countdownLabel"
-        :can-check-in="canCheckIn"
-        :utc-time-display="utcTimeDisplay"
-      />
+          :countdown-progress="countdownProgress"
+          :countdown-label="countdownLabel"
+          :can-check-in="canCheckIn"
+          :utc-time-display="utcTimeDisplay"
+        />
 
-      <StreakDisplay :current-streak="currentStreak" :highest-streak="highestStreak" />
+        <StreakDisplay :current-streak="currentStreak" :highest-streak="highestStreak" />
       </ErrorBoundary>
     </template>
 
@@ -199,12 +199,15 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/page-common" as *;
 @import "./daily-checkin-theme.scss";
 
-:global(page) {
-  background: var(--sunrise-bg);
-  font-family: var(--sunrise-font);
-}
+@include page-background(
+  var(--sunrise-bg),
+  (
+    font-family: var(--sunrise-font),
+  )
+);
 
 .checkin-btn {
   margin-top: 16px;
