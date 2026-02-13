@@ -64,12 +64,12 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { formatNumber } from "@shared/utils/format";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 
 import CategoryTabs from "./components/CategoryTabs.vue";
 import PeriodFilter from "./components/PeriodFilter.vue";
@@ -94,27 +94,12 @@ interface Entrant {
 
 const activeTab = ref("main");
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "main", labelKey: "tabLeaderboard", icon: "📋", default: true },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+  fireworks: true,
+});
 
 const appState = computed(() => ({
   leaderboardCount: leaderboard.value.length,

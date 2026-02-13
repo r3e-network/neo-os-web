@@ -82,7 +82,7 @@ import {
   type StatItem,
   ErrorBoundary,
 } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import CoinArena from "./components/CoinArena.vue";
 import BetControls from "./components/BetControls.vue";
 import ResultOverlay from "./components/ResultOverlay.vue";
@@ -116,28 +116,13 @@ const {
   handleFlip,
 } = useCoinFlipGame(wallet, t);
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "game", labelKey: "game", icon: "\uD83C\uDFAE", default: true },
     { key: "stats", labelKey: "stats", icon: "\uD83D\uDCCA" },
-    { key: "docs", labelKey: "docs", icon: "\uD83D\uDCD6" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+  fireworks: true,
+});
 
 const activeTab = ref("game");
 

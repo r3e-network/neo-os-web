@@ -52,12 +52,12 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { useGuardianPolicyContract } from "@/composables/useGuardianPolicyContract";
 
 import PoliciesList from "./components/PoliciesList.vue";
@@ -78,28 +78,12 @@ const { listAllEvents } = useAllEvents(listEvents, APP_ID);
 
 const gp = useGuardianPolicyContract(wallet, ensureContractAddress, listAllEvents, processPayment, setStatus, t);
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "main", labelKey: "main", icon: "📋", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const activeTab = ref("main");
 

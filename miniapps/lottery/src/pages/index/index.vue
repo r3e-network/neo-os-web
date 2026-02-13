@@ -118,7 +118,6 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { MiniAppTemplate, NeoButton, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import ScratchModal from "./components/ScratchModal.vue";
 import GameCardGrid from "./components/GameCardGrid.vue";
 import WinnersTab from "./components/WinnersTab.vue";
@@ -130,6 +129,7 @@ import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 
 const { t } = createUseI18n(messages)();
@@ -151,26 +151,14 @@ const {
   loadWinners,
 } = useLotteryState(t);
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "game", labelKey: "game", icon: "\uD83C\uDFAE", default: true },
     { key: "winners", labelKey: "winners", icon: "\uD83D\uDCCB" },
     { key: "stats", labelKey: "stats", icon: "\uD83D\uDCCA" },
-    { key: "docs", labelKey: "docs", icon: "\uD83D\uDCD6" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [],
-    },
-  },
-};
+  fireworks: true,
+});
 
 const appState = computed(() => ({
   totalTickets: totalTickets.value,

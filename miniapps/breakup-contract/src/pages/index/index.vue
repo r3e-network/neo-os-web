@@ -41,34 +41,19 @@ import { ref, onMounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import CreateContractForm from "./components/CreateContractForm.vue";
 import ContractList from "./components/ContractList.vue";
 import { useBreakupContract } from "./composables/useBreakupContract";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "create", labelKey: "tabCreate", icon: "💔", default: true },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const activeTab = ref<string>("create");
 

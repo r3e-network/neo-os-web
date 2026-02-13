@@ -53,37 +53,21 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import SwapTab from "./components/SwapTab.vue";
 import PoolTab from "./components/PoolTab.vue";
 
 const { t } = createUseI18n(messages)();
 const { status } = useStatusMessage();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "swap", labelKey: "tabSwap", icon: "💱", default: true },
     { key: "pool", labelKey: "tabPool", icon: "💧" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 3,
+});
 
 const activeTab = ref("swap");
 const selectedPair = ref("neo-gas");

@@ -95,9 +95,9 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { useGasTransfers } from "@/composables/useGasTransfers";
 import GasTank from "./components/GasTank.vue";
 import UserBalanceInfo from "./components/UserBalanceInfo.vue";
@@ -115,30 +115,14 @@ const { isRequestingSponsorship: isRequesting, checkEligibility, requestSponsors
 
 const ELIGIBILITY_THRESHOLD = 0.1;
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "sponsor", labelKey: "tabSponsor", icon: "🎁", default: true },
     { key: "donate", labelKey: "tabDonate", icon: "❤️" },
     { key: "send", labelKey: "tabSend", icon: "📤" },
     { key: "stats", labelKey: "tabStats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 const activeTab = ref("sponsor");
 const appState = computed(() => ({
   activeTab: activeTab.value,

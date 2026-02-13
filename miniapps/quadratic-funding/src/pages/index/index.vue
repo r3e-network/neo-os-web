@@ -144,9 +144,9 @@ import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { formatAddress } from "@shared/utils/format";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import RoundForm from "./components/RoundForm.vue";
 import RoundList from "./components/RoundList.vue";
 import RoundAdminPanel from "./components/RoundAdminPanel.vue";
@@ -157,30 +157,14 @@ import ContributionForm from "./components/ContributionForm.vue";
 const { t } = createUseI18n(messages)();
 const activeTab = ref("rounds");
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "rounds", labelKey: "tabRounds", icon: "🎯", default: true },
     { key: "projects", labelKey: "tabProjects", icon: "📁" },
     { key: "contribute", labelKey: "tabContribute", icon: "❤️" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 3,
+});
 
 const appState = computed(() => ({
   roundCount: rounds.value.length,

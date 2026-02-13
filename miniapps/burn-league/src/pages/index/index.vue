@@ -68,8 +68,8 @@ import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 
 import HeroSection from "./components/HeroSection.vue";
 import StatsGrid from "./components/StatsGrid.vue";
@@ -79,28 +79,13 @@ import StatsTab from "./components/StatsTab.vue";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "game", labelKey: "game", icon: "🎮", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+  fireworks: true,
+});
 
 const activeTab = ref("game");
 

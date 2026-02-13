@@ -91,34 +91,19 @@
 
 <script setup lang="ts">
 import { MiniAppTemplate, NeoCard, NeoButton, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import messages from "@/locale/messages";
 import { useSignAnything } from "./composables/useSignAnything";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "home", labelKey: "home", icon: "🏠", default: true },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const {
   address,

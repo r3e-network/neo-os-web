@@ -45,9 +45,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 import { useDevTippingStats, type Developer } from "@/composables/useDevTippingStats";
 import { useDevTippingWallet } from "@/composables/useDevTippingWallet";
@@ -63,28 +63,13 @@ const { address, isLoading, status, setStatus, sendTip } = useDevTippingWallet(A
 
 const activeTab = ref<string>("send");
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "send", labelKey: "sendTip", icon: "💰", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+  fireworks: true,
+});
 
 const appState = computed(() => ({
   totalDonated: totalDonated.value,

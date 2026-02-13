@@ -48,8 +48,8 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import NetworkStats from "./components/NetworkStats.vue";
 import SearchPanel from "./components/SearchPanel.vue";
 import SearchResult from "./components/SearchResult.vue";
@@ -74,28 +74,12 @@ const {
   watchNetwork,
 } = useExplorerData(t);
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "search", labelKey: "tabSearch", icon: "🔍", default: true },
     { key: "history", labelKey: "tabHistory", icon: "🕐" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const activeTab = ref("search");
 const appState = computed(() => ({

@@ -74,7 +74,6 @@ import { toFixedDecimals } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import PositionSummary from "./components/PositionSummary.vue";
 import CollateralStatus from "./components/CollateralStatus.vue";
 import BorrowForm from "./components/BorrowForm.vue";
@@ -82,6 +81,7 @@ import StatsTab from "./components/StatsTab.vue";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { useSelfLoanCore } from "@/composables/useSelfLoanCore";
 import { useSelfLoanHistory } from "@/composables/useSelfLoanHistory";
 
@@ -90,29 +90,13 @@ const { handleError, canRetry, clearError } = useErrorHandler();
 const core = useSelfLoanCore();
 const history = useSelfLoanHistory();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "main", labelKey: "main", icon: "💰", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 3,
+});
 
 const activeTab = ref("main");
 

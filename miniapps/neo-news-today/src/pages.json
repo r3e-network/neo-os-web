@@ -7,12 +7,6 @@
       }
     },
     {
-      "path": "pages/docs/index",
-      "style": {
-        "navigationBarTitleText": "Docs"
-      }
-    },
-    {
       "path": "pages/detail/index",
       "style": {
         "navigationBarTitleText": "Article Detail"

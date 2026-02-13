@@ -93,11 +93,11 @@ import {
   SidebarPanel,
   ErrorBoundary,
 } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { fetchTreasuryData, type TreasuryData, type CategoryBalance } from "@/utils/treasury";
 
 import TotalSummaryCard from "./components/TotalSummaryCard.vue";
@@ -107,30 +107,14 @@ import FounderDetail from "./components/FounderDetail.vue";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "total", labelKey: "tabTotal", icon: "📊", default: true },
     { key: "da", labelKey: "tabDa", icon: "👤" },
     { key: "erik", labelKey: "tabErik", icon: "👤" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 3,
+});
 
 const activeTab = ref("total");
 const loading = ref(true);

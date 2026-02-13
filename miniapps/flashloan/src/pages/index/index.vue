@@ -70,10 +70,10 @@ import {
   ErrorToast,
   SidebarPanel,
 } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 
 import { useFlashloanCore } from "@/composables/useFlashloanCore";
 import LoanRequest from "./components/LoanRequest.vue";
@@ -106,28 +106,12 @@ const {
   invokeContract,
 } = useFlashloanCore();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "main", labelKey: "main", icon: "⚡", default: true },
     { key: "stats", labelKey: "tabStats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "\u{1F4D6}" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 const activeTab = ref("main");
 const appState = computed(() => ({
   activeTab: activeTab.value,

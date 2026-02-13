@@ -55,8 +55,8 @@ import { onMounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 
 import QueryRecordForm from "./components/QueryRecordForm.vue";
 import MemoryArchive from "./components/MemoryArchive.vue";
@@ -65,29 +65,13 @@ import { useExFiles } from "./composables/useExFiles";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "files", labelKey: "tabFiles", icon: "📁", default: true },
     { key: "upload", labelKey: "tabUpload", icon: "📤" },
     { key: "stats", labelKey: "tabStats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const {
   activeTab,

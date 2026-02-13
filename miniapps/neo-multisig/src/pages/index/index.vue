@@ -62,9 +62,9 @@
 import { ref, computed } from "vue";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 import { useMultisigHistory } from "@/composables/useMultisigHistory";
 import { useMultisigUI } from "@/composables/useMultisigUI";
@@ -78,27 +78,15 @@ const { status } = useStatusMessage();
 const { pendingCount, completedCount } = useMultisigHistory();
 const { getStatusIcon, statusLabel, shorten, formatDate } = useMultisigUI();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "home", labelKey: "tabHome", icon: "🏠", default: true },
-    { key: "docs", labelKey: "tabDocs", icon: "📖" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "docTitle",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["docStep1", "docStep2", "docStep3", "docStep4"],
-      featureKeys: [
-        { nameKey: "docFeature1Name", descKey: "docFeature1Desc" },
-        { nameKey: "docFeature2Name", descKey: "docFeature2Desc" },
-        { nameKey: "docFeature3Name", descKey: "docFeature3Desc" },
-      ],
-    },
-  },
-};
+  docTitleKey: "docTitle",
+  docFeatureCount: 3,
+  docStepPrefix: "docStep",
+  docFeaturePrefix: "docFeature",
+});
 const activeTab = ref("home");
 const appState = computed(() => ({
   totalTxs: history.value.length,

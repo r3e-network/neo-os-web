@@ -112,8 +112,8 @@ import type { GovernanceCandidate } from "./utils";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import CandidateList from "./components/CandidateList.vue";
 import CandidateDetailModal from "./components/CandidateDetailModal.vue";
 import InfoTab from "./components/InfoTab.vue";
@@ -124,27 +124,12 @@ const { t } = createUseI18n(messages)();
 const wallet = useWallet() as WalletSDK;
 const { address, chainId, appChainId } = wallet;
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "vote", labelKey: "vote", icon: "\uD83D\uDCCB", default: true },
     { key: "info", labelKey: "info", icon: "\uD83D\uDCCA" },
-    { key: "docs", labelKey: "docs", icon: "\uD83D\uDCD6" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const activeTab = ref("vote");
 const preferredChainId = computed(() => appChainId.value || chainId.value || "neo-n3-testnet");

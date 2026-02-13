@@ -5,12 +5,6 @@
       "style": {
         "navigationBarTitleText": "NeoBurger"
       }
-    },
-    {
-      "path": "pages/docs/index",
-      "style": {
-        "navigationBarTitleText": "NeoBurger Docs"
-      }
     }
   ],
   "globalStyle": {

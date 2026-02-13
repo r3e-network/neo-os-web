@@ -54,8 +54,8 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import CapsuleCreate from "./components/CapsuleCreate.vue";
 import RewardClaim from "./components/RewardClaim.vue";
 import CapsuleDetails from "./components/CapsuleDetails.vue";
@@ -65,28 +65,13 @@ const isLoading = ref(false);
 
 const { t, locale } = createUseI18n(messages)();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "main", labelKey: "main", icon: "💊", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+  fireworks: true,
+});
 
 const activeTab = ref("main");
 

@@ -84,7 +84,7 @@ import { formatNumber } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, ErrorToast, SidebarPanel } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import ClockFace from "./components/ClockFace.vue";
 import GameStats from "./components/GameStats.vue";
 import BuyKeysCard from "./components/BuyKeysCard.vue";
@@ -109,28 +109,13 @@ const {
   refreshData,
 } = useDoomsdayActions();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "game", labelKey: "title", icon: "💀", default: true },
     { key: "stats", labelKey: "tabStats", icon: "📊" },
     { key: "history", labelKey: "history", icon: "📜" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const activeTab = ref("game");
 

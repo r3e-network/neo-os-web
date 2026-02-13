@@ -52,8 +52,8 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { useMapTiles } from "@/composables/useMapTiles";
 import { useMapInteractions } from "@/composables/useMapInteractions";
 import MapGrid from "./components/MapGrid.vue";
@@ -62,27 +62,12 @@ import PurchasePanel from "./components/PurchasePanel.vue";
 const { t } = createUseI18n(messages)();
 const { address } = useWallet() as WalletSDK;
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "main", labelKey: "map", icon: "🗺️", default: true },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+  fireworks: true,
+});
 const activeTab = ref("main");
 const appState = computed(() => ({
   ownedTiles: ownedTiles.value,

@@ -57,9 +57,9 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { useCapsuleCreation } from "@/composables/useCapsuleCreation";
 import { useCapsuleUnlock } from "@/composables/useCapsuleUnlock";
 import CapsuleList, { type Capsule } from "./components/CapsuleList.vue";
@@ -68,28 +68,13 @@ import CreateCapsuleForm from "./components/CreateCapsuleForm.vue";
 const { t } = createUseI18n(messages)();
 const { address } = useWallet() as WalletSDK;
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "capsules", labelKey: "tabCapsules", icon: "🔒", default: true },
     { key: "create", labelKey: "tabCreate", icon: "➕" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 3,
+});
 
 const appState = computed(() => ({}));
 

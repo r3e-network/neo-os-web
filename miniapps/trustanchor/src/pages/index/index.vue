@@ -96,12 +96,12 @@ import type { WalletSDK } from "@neo/types";
 import { formatNumber } from "@shared/utils/format";
 import { MiniAppTemplate, NeoButton, NeoCard, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import StatsGrid from "./components/StatsGrid.vue";
 import AgentsTab from "./components/AgentsTab.vue";
 import HistoryTab from "./components/HistoryTab.vue";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 import { useTrustAnchor } from "./composables/useTrustAnchor";
 
@@ -125,30 +125,15 @@ const {
   claimRewards,
 } = useTrustAnchor(t);
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "overview", labelKey: "tabOverview", icon: "layout", default: true },
     { key: "agents", labelKey: "tabAgents", icon: "users" },
     { key: "history", labelKey: "tabHistory", icon: "clock" },
-    { key: "docs", labelKey: "docs", icon: "book" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docsSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docSubtitleKey: "docsSubtitle",
+  docFeatureCount: 3,
+});
 
 const activeTab = ref("overview");
 const stakeAmount = ref("");

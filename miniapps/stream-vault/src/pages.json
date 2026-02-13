@@ -5,12 +5,6 @@
       "style": {
         "navigationBarTitleText": "Stream Vault"
       }
-    },
-    {
-      "path": "pages/docs/index",
-      "style": {
-        "navigationBarTitleText": "Docs"
-      }
     }
   ],
   "globalStyle": {

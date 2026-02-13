@@ -72,9 +72,9 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { MiniAppTemplate, NeoCard, NeoButton, WalletPrompt, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 import { useAlbumPhotos } from "@/composables/useAlbumPhotos";
 import { usePhotoUpload } from "@/composables/usePhotoUpload";
@@ -86,28 +86,12 @@ import DecryptModal from "./components/DecryptModal.vue";
 const { t } = createUseI18n(messages)();
 const { address, connect } = useWallet() as WalletSDK;
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "album", labelKey: "albumTab", icon: "📸", default: true },
-    { key: "docs", labelKey: "docsTab", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 3,
+});
 
 const activeTab = ref("album");
 const showWalletPrompt = ref(false);

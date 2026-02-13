@@ -111,9 +111,9 @@ import {
   SidebarPanel,
   ErrorBoundary,
 } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 import { useWalletAnalysis } from "@/composables/useWalletAnalysis";
 import { useHealthScore } from "@/composables/useHealthScore";
@@ -122,29 +122,14 @@ import RiskAlerts from "./components/RiskAlerts.vue";
 import Recommendations from "./components/Recommendations.vue";
 
 const { t } = createUseI18n(messages)();
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "health", labelKey: "tabHealth", icon: "shield", default: true },
     { key: "checklist", labelKey: "tabChecklist", icon: "check" },
-    { key: "docs", labelKey: "docs", icon: "book" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    fireworks: false,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docsSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docSubtitleKey: "docsSubtitle",
+  docFeatureCount: 3,
+});
 
 const {
   address,

@@ -52,8 +52,8 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary, NeoStats } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import ProofCreateForm from "./components/ProofCreateForm.vue";
 import ProofList from "./components/ProofList.vue";
 import ProofVerify from "./components/ProofVerify.vue";
@@ -61,27 +61,12 @@ import ProofVerify from "./components/ProofVerify.vue";
 const { t } = createUseI18n(messages)();
 const APP_ID = "miniapp-timestamp-proof";
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "proofs", labelKey: "proofs", icon: "🕐", default: true },
     { key: "verify", labelKey: "verify", icon: "✅" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const appState = computed(() => ({}));
 

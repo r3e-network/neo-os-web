@@ -5,12 +5,6 @@
             "style": {
                 "navigationBarTitleText": "Neo Sign Anything"
             }
-        },
-        {
-            "path": "pages/docs/index",
-            "style": {
-                "navigationBarTitleText": "Docs"
-            }
         }
     ],
     "globalStyle": {

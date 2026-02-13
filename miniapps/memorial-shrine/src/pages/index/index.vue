@@ -90,8 +90,8 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import TombstoneCard from "./components/TombstoneCard.vue";
 import CreateMemorialForm from "./components/CreateMemorialForm.vue";
 import MemorialDetailModal from "./components/MemorialDetailModal.vue";
@@ -121,28 +121,12 @@ const resetAndReload = async () => {
   await loadVisitedMemorials();
 };
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "memorials", labelKey: "memorials", icon: "🕯️", default: true },
     { key: "tributes", labelKey: "myTributes", icon: "🙏" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const appState = computed(() => ({
   totalMemorials: memorials.value.length,

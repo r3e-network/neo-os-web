@@ -70,8 +70,8 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { useGovernance } from "@/composables/useGovernance";
 import ActiveProposalsTab from "./components/ActiveProposalsTab.vue";
 import HistoryProposalsTab from "./components/HistoryProposalsTab.vue";
@@ -114,29 +114,14 @@ const {
   init,
 } = useGovernance(showStatus, currentChainId);
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "active", labelKey: "active", icon: "\u{1F3DB}\uFE0F", default: true },
     { key: "create", labelKey: "create", icon: "\u{1F4DD}" },
     { key: "history", labelKey: "history", icon: "\u{1F4DC}" },
-    { key: "docs", labelKey: "docs", icon: "\u{1F4D6}" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+  fireworks: true,
+});
 
 const activeTab = ref("active");
 const createTabRef = ref<InstanceType<typeof CreateProposalTab> | null>(null);

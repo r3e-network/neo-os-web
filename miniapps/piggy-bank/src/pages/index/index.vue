@@ -71,8 +71,8 @@ import messages from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import BankHeader from "./components/BankHeader.vue";
 import BankCard from "./components/BankCard.vue";
 import ConfigWarning from "./components/ConfigWarning.vue";
@@ -88,32 +88,18 @@ const { piggyBanks, currentChainId, alchemyApiKey, walletConnectProjectId, userA
 // Tab state
 const activeTab = ref("main");
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "main", labelKey: "tabMain", icon: "🐷", default: true },
     { key: "settings", labelKey: "tabSettings", icon: "⚙️" },
-    { key: "docs", labelKey: "tabDocs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: false,
-    statusMessages: true,
-    docs: {
-      titleKey: "app.title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["docStep1", "docStep2", "docStep3", "docStep4", "docStep5"],
-      featureKeys: [
-        { nameKey: "docFeature1Name", descKey: "docFeature1Desc" },
-        { nameKey: "docFeature2Name", descKey: "docFeature2Desc" },
-        { nameKey: "docFeature3Name", descKey: "docFeature3Desc" },
-        { nameKey: "docFeature4Name", descKey: "docFeature4Desc" },
-        { nameKey: "docFeature5Name", descKey: "docFeature5Desc" },
-        { nameKey: "docFeature6Name", descKey: "docFeature6Desc" },
-      ],
-    },
-  },
-};
+  chainWarning: false,
+  docTitleKey: "app.title",
+  docStepCount: 5,
+  docFeatureCount: 6,
+  docStepPrefix: "docStep",
+  docFeaturePrefix: "docFeature",
+});
 
 const appState = computed(() => ({
   bankCount: piggyBanks.value.length,

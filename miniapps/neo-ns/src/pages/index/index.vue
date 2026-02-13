@@ -45,8 +45,8 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import DomainRegister from "./components/DomainRegister.vue";
 import DomainManagement from "./components/DomainManagement.vue";
 import ManageDomain from "./components/ManageDomain.vue";
@@ -54,27 +54,11 @@ import type { Domain } from "@/types";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "register", labelKey: "tabRegister", icon: "➕", default: true },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      descriptionKey: "docDescription",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const APP_ID = "miniapp-neo-ns";
 const NNS_CONTRACT = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";

@@ -59,12 +59,12 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 
 import { useHeritageTrusts } from "@/composables/useHeritageTrusts";
 import { useHeritageBeneficiaries } from "@/composables/useHeritageBeneficiaries";
@@ -76,29 +76,13 @@ import StatsCard from "./components/StatsCard.vue";
 const { t } = createUseI18n(messages)();
 const { address, connect, invokeContract, getBalance, chainType, getContractAddress } = useWallet() as WalletSDK;
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "main", labelKey: "createTrust", icon: "➕", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 3,
+});
 
 const activeTab = ref("main");
 

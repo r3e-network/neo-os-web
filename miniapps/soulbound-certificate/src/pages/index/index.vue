@@ -68,9 +68,9 @@ import { ref, computed, onMounted, watch } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { useCertificateActions } from "@/composables/useCertificateActions";
 import CertificateForm from "@/components/CertificateForm.vue";
 import TemplateList from "@/components/TemplateList.vue";
@@ -104,29 +104,14 @@ const {
   copyTokenId,
 } = useCertificateActions(setStatus);
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "templates", labelKey: "templatesTab", icon: "\u{1F4DC}", default: true },
     { key: "certificates", labelKey: "certificatesTab", icon: "\u{1F3C5}" },
     { key: "verify", labelKey: "verifyTab", icon: "\u2705" },
-    { key: "docs", labelKey: "docs", icon: "\u{1F4D6}" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 3,
+});
 
 const activeTab = ref("templates");
 const isRefreshing = ref(false);

@@ -132,9 +132,9 @@ import {
   ErrorBoundary,
 } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 import { useTurtleGame, TurtleColor } from "@/composables/useTurtleGame";
 import { useTurtleMatching } from "@/composables/useTurtleMatching";
@@ -153,29 +153,16 @@ const { t } = createUseI18n(messages)();
 const { status } = useStatusMessage();
 const APP_ID = "miniapp-turtle-match";
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "play", labelKey: "tabPlay", icon: "game", default: true },
     { key: "guide", labelKey: "tabGuide", icon: "activity" },
     { key: "community", labelKey: "tabCommunity", icon: "heart" },
-    { key: "docs", labelKey: "docs", icon: "book" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["docStep1", "docStep2", "docStep3", "docStep4"],
-      featureKeys: [
-        { nameKey: "docFeature1Name", descKey: "docFeature1Desc" },
-        { nameKey: "docFeature2Name", descKey: "docFeature2Desc" },
-        { nameKey: "docFeature3Name", descKey: "docFeature3Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 3,
+  docStepPrefix: "docStep",
+  docFeaturePrefix: "docFeature",
+});
 
 const appState = computed(() => ({}));
 

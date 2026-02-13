@@ -63,12 +63,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useMasqueradeProposals } from "@/composables/useMasqueradeProposals";
 import { useMasqueradeVoting, type VoteChoice } from "@/composables/useMasqueradeVoting";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import CreateProposal from "@/components/CreateProposal.vue";
 import ProposalList from "@/components/ProposalList.vue";
 import VoteForm from "@/components/VoteForm.vue";
@@ -95,28 +95,12 @@ const { proposalId, status: voteStatus, isLoading: isVoting, canVote, submitVote
 
 const activeTab = ref("identity");
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "identity", labelKey: "identity", icon: "👤", default: true },
     { key: "vote", labelKey: "vote", icon: "🗳️" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const appState = computed(() => ({
   totalMasks: masks.value.length,

@@ -54,8 +54,8 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import LeaderboardSection, { type LeaderboardEntry } from "./components/LeaderboardSection.vue";
 import CheckInSection from "./components/CheckInSection.vue";
 import GiveKarmaForm from "./components/GiveKarmaForm.vue";
@@ -66,30 +66,13 @@ import MobileKarmaSummary from "./components/MobileKarmaSummary.vue";
 const { t } = createUseI18n(messages)();
 const APP_ID = "miniapp-social-karma";
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "leaderboard", labelKey: "leaderboard", icon: "🏆", default: true },
     { key: "profile", labelKey: "profile", icon: "👤" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-        { nameKey: "feature4Name", descKey: "feature4Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 4,
+});
 
 const activeTab = ref("leaderboard");
 

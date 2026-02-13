@@ -86,9 +86,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 import { usePredictionMarkets, type PredictionMarket } from "@/composables/usePredictionMarkets";
 import { usePredictionTrading, type TradeParams } from "@/composables/usePredictionTrading";
@@ -135,32 +135,15 @@ const {
 const error = computed(() => marketsError.value || tradingError.value);
 const statusMessage = computed(() => (error.value ? { msg: error.value, type: "error" as const } : null));
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "markets", labelKey: "markets", icon: "📊", default: true },
     { key: "trading", labelKey: "trading", icon: "📈" },
     { key: "portfolio", labelKey: "portfolio", icon: "💼" },
     { key: "create", labelKey: "create", icon: "➕" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: false,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-        { nameKey: "feature4Name", descKey: "feature4Desc" },
-      ],
-    },
-  },
-};
+  docFeatureCount: 4,
+});
 
 const isDesktop = computed(() => {
   try {

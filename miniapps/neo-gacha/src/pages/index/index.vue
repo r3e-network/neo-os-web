@@ -76,10 +76,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
 import { MiniAppTemplate, SidebarPanel, WalletPrompt, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 import { useGachaMachines } from "@/composables/useGachaMachines";
 import type { Machine } from "@/types";
@@ -94,31 +94,16 @@ import ManageTab from "@/components/ManageTab.vue";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "market", labelKey: "market", icon: "🎰", default: true },
     { key: "discover", labelKey: "discover", icon: "🧭" },
     { key: "create", labelKey: "create", icon: "✏️" },
     { key: "manage", labelKey: "manage", icon: "⚙️" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  fireworks: true,
+  docFeatureCount: 3,
+});
 
 const activeTab = ref("market");
 const appState = computed(() => ({

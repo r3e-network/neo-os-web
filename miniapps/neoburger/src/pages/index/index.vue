@@ -85,10 +85,10 @@ import { ref, computed, onMounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import type { UniAppGlobals } from "@shared/types/globals";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 
 import { useNeoburgerCore } from "@/composables/useNeoburgerCore";
 import { useNeoburgerRewards } from "@/composables/useNeoburgerRewards";
@@ -113,31 +113,16 @@ const activeTab = ref("home");
 const homeMode = ref<"burger" | "jazz">("burger");
 const stationPanelRef = ref<InstanceType<typeof StationPanel> | null>(null);
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "home", labelKey: "tabHome", icon: "🏠", default: true },
     { key: "airdrop", labelKey: "tabAirdrop", icon: "🚀" },
     { key: "treasury", labelKey: "tabTreasury", icon: "🏦" },
     { key: "dashboard", labelKey: "tabDashboard", icon: "📊" },
-    { key: "docs", labelKey: "tabDocs", icon: "📖" },
   ],
-  features: {
-    fireworks: true,
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-        { nameKey: "feature3Name", descKey: "feature3Desc" },
-      ],
-    },
-  },
-};
+  fireworks: true,
+  docFeatureCount: 3,
+});
 
 const loading = ref(false);
 const { status, setStatus: showStatus } = useStatusMessage();

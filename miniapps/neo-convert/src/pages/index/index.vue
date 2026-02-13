@@ -67,41 +67,27 @@ import { ref, computed } from "vue";
 import { useResponsive } from "@shared/composables/useResponsive";
 import { MiniAppTemplate, NeoCard, NeoButton, ScrollReveal, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import AccountGenerator from "./components/AccountGenerator.vue";
 import ConverterTool from "./components/ConverterTool.vue";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { messages } from "@/locale/messages";
 
 const { isMobile } = useResponsive();
 
 const { t } = createUseI18n(messages)();
 const { status } = useStatusMessage();
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "generate", labelKey: "tabGenerate", icon: "👛", default: true },
     { key: "convert", labelKey: "tabConvert", icon: "🔄" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "docTitle",
-      subtitleKey: "docSubtitle",
-      descriptionKey: "docDescription",
-      stepKeys: ["docStep1", "docStep2", "docStep3", "docStep4"],
-      featureKeys: [
-        { nameKey: "docFeature1Name", descKey: "docFeature1Desc" },
-        { nameKey: "docFeature2Name", descKey: "docFeature2Desc" },
-        { nameKey: "docFeature3Name", descKey: "docFeature3Desc" },
-        { nameKey: "docFeature4Name", descKey: "docFeature4Desc" },
-      ],
-    },
-  },
-};
+  docTitleKey: "docTitle",
+  docFeatureCount: 4,
+  docStepPrefix: "docStep",
+  docFeaturePrefix: "docFeature",
+});
 const activeTab = ref("generate");
 const appState = computed(() => ({
   activeTab: activeTab.value,

@@ -100,10 +100,10 @@ import { normalizeScriptHash, addressToScriptHash, parseStackItem } from "@share
 import { toFixed8 } from "@shared/utils/format";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { MiniAppTemplate, NeoButton, NeoInput, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import { useVaultBreaker } from "@/composables/useVaultBreaker";
 import VaultCreate from "./components/VaultCreate.vue";
 import VaultList from "./components/VaultList.vue";
@@ -121,27 +121,12 @@ const { list: listEvents } = useEvents();
 
 const breaker = useVaultBreaker(APP_ID, t);
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "two-column",
+const templateConfig = createTemplateConfig({
   tabs: [
     { key: "create", labelKey: "create", icon: "🔒", default: true },
     { key: "break", labelKey: "break", icon: "🔑" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
   ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "docSubtitle",
-      stepKeys: ["step1", "step2", "step3", "step4"],
-      featureKeys: [
-        { nameKey: "feature1Name", descKey: "feature1Desc" },
-        { nameKey: "feature2Name", descKey: "feature2Desc" },
-      ],
-    },
-  },
-};
+});
 
 const appState = computed(() => ({}));
 
