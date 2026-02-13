@@ -34,10 +34,11 @@ import { computed, onMounted, ref } from "vue";
 import type { WalletSDK } from "@neo/types";
 import { useWallet } from "@neo/uniapp-sdk";
 import { ResponsiveLayout, NeoButton, NeoCard, NeoDoc } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { status, setStatus } = useStatusMessage(5000);
 const { chainId, appChainId, getContractAddress } = useWallet() as WalletSDK;
 const contractAddress = ref<string | null>(null);

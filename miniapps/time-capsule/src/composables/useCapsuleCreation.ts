@@ -1,7 +1,8 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { sha256Hex } from "@shared/utils/hash";
 import { requireNeoChain } from "@shared/utils/chain";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
@@ -24,7 +25,7 @@ export interface CapsuleFormData {
 }
 
 export function useCapsuleCreation() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
   const { processPayment, isProcessing: paymentProcessing } = usePaymentFlow(APP_ID);
 

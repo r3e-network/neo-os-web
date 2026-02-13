@@ -74,7 +74,8 @@ import type { WalletSDK } from "@neo/types";
 import { MiniAppTemplate, NeoCard, NeoButton, WalletPrompt, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useAlbumPhotos } from "@/composables/useAlbumPhotos";
 import { usePhotoUpload } from "@/composables/usePhotoUpload";
 import AlbumGrid from "./components/AlbumGrid.vue";
@@ -82,7 +83,7 @@ import PhotoUpload from "./components/PhotoUpload.vue";
 import AlbumViewer from "./components/AlbumViewer.vue";
 import DecryptModal from "./components/DecryptModal.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { address, connect } = useWallet() as WalletSDK;
 
 const templateConfig: MiniAppTemplateConfig = {

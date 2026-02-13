@@ -2,7 +2,8 @@ import type { Ref } from "vue";
 import { ref, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "./useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { parseInvokeResult } from "@shared/utils/neo";
@@ -14,7 +15,7 @@ export function useQuadraticProjects(
   ensureContractAddress: () => Promise<string>,
   setStatus: (msg: string, type: "success" | "error") => void
 ) {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
 
   const projects = ref<ProjectItem[]>([]);

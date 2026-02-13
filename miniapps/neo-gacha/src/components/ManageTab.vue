@@ -155,7 +155,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatGas } from "@shared/utils/format";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import type { Machine, MachineItem } from "@/types";
@@ -187,7 +188,7 @@ const emit = defineEmits<{
   (e: "withdraw-item", operation: InventoryOperation): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const machineInputs = ref<Record<string, { price: string; salePrice: string }>>({});
 const inventoryInputs = ref<Record<string, { deposit: string; withdraw: string; tokenId: string }>>({});

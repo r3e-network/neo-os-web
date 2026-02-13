@@ -101,10 +101,11 @@ import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryErr
 import StatsGrid from "./components/StatsGrid.vue";
 import AgentsTab from "./components/AgentsTab.vue";
 import HistoryTab from "./components/HistoryTab.vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useTrustAnchor } from "./composables/useTrustAnchor";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { status } = useStatusMessage();
 const { address, connect } = useWallet() as WalletSDK;
 

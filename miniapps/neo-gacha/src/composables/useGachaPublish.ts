@@ -3,7 +3,8 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { parseInvokeResult, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -30,7 +31,7 @@ interface MachineData {
 }
 
 export function useGachaPublish() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
   const { waitForEvent } = usePaymentFlow(APP_ID);
 

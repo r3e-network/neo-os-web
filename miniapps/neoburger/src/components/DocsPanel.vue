@@ -21,10 +21,11 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { NeoDoc } from "@shared/components";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "openDocs", url: string): void;

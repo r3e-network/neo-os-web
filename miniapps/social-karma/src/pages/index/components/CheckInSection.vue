@@ -33,7 +33,8 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
   streak: number;
@@ -47,7 +48,7 @@ const emit = defineEmits<{
   (e: "checkIn"): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const calculateReward = () => {
   const base = props.baseReward;

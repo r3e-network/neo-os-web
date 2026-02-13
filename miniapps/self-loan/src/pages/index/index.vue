@@ -71,7 +71,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { toFixedDecimals } from "@shared/utils/format";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import PositionSummary from "./components/PositionSummary.vue";
@@ -84,7 +85,7 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useSelfLoanCore } from "@/composables/useSelfLoanCore";
 import { useSelfLoanHistory } from "@/composables/useSelfLoanHistory";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { handleError, canRetry, clearError } = useErrorHandler();
 const core = useSelfLoanCore();
 const history = useSelfLoanHistory();

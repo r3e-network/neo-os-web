@@ -134,7 +134,8 @@ import {
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useTurtleGame, TurtleColor } from "@/composables/useTurtleGame";
 import { useTurtleMatching } from "@/composables/useTurtleMatching";
 import PlayerStats from "./components/PlayerStats.vue";
@@ -148,7 +149,7 @@ import MatchCelebration from "./components/MatchCelebration.vue";
 import GameResult from "./components/GameResult.vue";
 import GameSplash from "./components/GameSplash.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { status } = useStatusMessage();
 const APP_ID = "miniapp-turtle-match";
 

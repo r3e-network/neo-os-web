@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/chain"
-	chaincfg "github.com/R3E-Network/neo-miniapps-platform/infrastructure/chains"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/resilience"
@@ -176,7 +175,7 @@ func New(cfg Config) (*Service, error) {
 
 		// Try to load configured chains from infrastructure config
 		//nolint:errcheck // Error is ignored - fallback to env vars is acceptable
-		chainInfraCfg, _ := chaincfg.LoadConfig()
+		chainInfraCfg, _ := chain.LoadChainsConfig()
 
 		// Create context for the default chain ID found
 		ctx := &ChainContext{ChainID: defaultID}
@@ -432,19 +431,19 @@ func resolveChainID() string {
 		}
 	}
 
-	cfg, err := chaincfg.LoadConfig()
+	cfg, err := chain.LoadChainsConfig()
 	if err == nil {
-		for _, chain := range cfg.Chains {
-			if chain.Type != chaincfg.ChainTypeNeoN3 {
+		for _, ch := range cfg.Chains {
+			if ch.Type != chain.ChainTypeNeoN3 {
 				continue
 			}
-			if magic > 0 && uint64(chain.NetworkMagic) == magic {
-				return chain.ID
+			if magic > 0 && uint64(ch.NetworkMagic) == magic {
+				return ch.ID
 			}
 		}
-		for _, chain := range cfg.Chains {
-			if chain.Type == chaincfg.ChainTypeNeoN3 {
-				return chain.ID
+		for _, ch := range cfg.Chains {
+			if ch.Type == chain.ChainTypeNeoN3 {
+				return ch.ID
 			}
 		}
 	}

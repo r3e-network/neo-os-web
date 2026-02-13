@@ -1,9 +1,10 @@
 import { computed } from "vue";
-import { useI18n } from "./useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 export function useGrantVoting() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
 
   const { status: statusObj, setStatus: showStatus } = useStatusMessage();
   const statusMessage = computed(() => statusObj.value?.msg ?? "");

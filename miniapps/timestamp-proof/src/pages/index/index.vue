@@ -49,7 +49,8 @@ import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary, NeoStats } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -57,7 +58,7 @@ import ProofCreateForm from "./components/ProofCreateForm.vue";
 import ProofList from "./components/ProofList.vue";
 import ProofVerify from "./components/ProofVerify.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const APP_ID = "miniapp-timestamp-proof";
 
 const templateConfig: MiniAppTemplateConfig = {

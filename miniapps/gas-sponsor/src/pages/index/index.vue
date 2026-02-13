@@ -91,7 +91,8 @@
 import { ref, computed, onMounted } from "vue";
 import { useWallet, useGasSponsor } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
@@ -107,7 +108,7 @@ import EligibilityStatusCard from "./components/EligibilityStatusCard.vue";
 import DonateForm from "./components/DonateForm.vue";
 import SendForm from "./components/SendForm.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const { address, connect, invokeContract, chainType } = useWallet() as WalletSDK;
 const { isRequestingSponsorship: isRequesting, checkEligibility, requestSponsorship: apiRequest } = useGasSponsor();

@@ -66,7 +66,8 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
@@ -77,7 +78,7 @@ import HistoryProposalsTab from "./components/HistoryProposalsTab.vue";
 import CreateProposalTab from "./components/CreateProposalTab.vue";
 import ProposalDetailsModal from "./components/ProposalDetailsModal.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { address, appChainId } = useWallet() as WalletSDK;
 const { status, setStatus: showStatus } = useStatusMessage();
 

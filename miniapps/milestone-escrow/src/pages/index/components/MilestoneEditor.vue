@@ -30,7 +30,8 @@
 
 <script setup lang="ts">
 import { NeoButton, NeoInput } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 interface Milestone {
   amount: string;
@@ -46,7 +47,7 @@ const emit = defineEmits<{
   (e: "remove", index: number): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const emitAdd = () => emit("add");
 const emitRemove = (index: number) => emit("remove", index);

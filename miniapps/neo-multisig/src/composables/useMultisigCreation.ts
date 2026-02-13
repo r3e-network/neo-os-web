@@ -1,7 +1,8 @@
 import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { api } from "@/services/api";
 import {
@@ -36,7 +37,7 @@ export interface FeeSummary {
 }
 
 export function useMultisigCreation() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { chainId } = useWallet();
   const { status, setStatus, clearStatus } = useStatusMessage();
 

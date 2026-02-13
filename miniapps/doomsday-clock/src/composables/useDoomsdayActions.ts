@@ -1,6 +1,7 @@
 import { ref, computed } from "vue";
 import { formatNumber } from "@shared/utils/format";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -8,7 +9,7 @@ import { useDoomsdayGame } from "@/composables/useDoomsdayGame";
 import { useDoomsdayTimer } from "@/composables/useDoomsdayTimer";
 
 export function useDoomsdayActions() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { handleError, canRetry, clearError } = useErrorHandler();
   const game = useDoomsdayGame();
   const timer = useDoomsdayTimer();

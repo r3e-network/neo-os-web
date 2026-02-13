@@ -3,12 +3,13 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { toFixedDecimals, toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 
 export function useNeoburgerCore() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { getAddress, invokeContract, getBalance, chainType, getContractAddress } = useWallet() as WalletSDK;
 
   const neoBalance = ref(0);

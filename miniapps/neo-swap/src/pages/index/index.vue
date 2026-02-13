@@ -49,7 +49,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
@@ -57,7 +58,7 @@ import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryErr
 import SwapTab from "./components/SwapTab.vue";
 import PoolTab from "./components/PoolTab.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { status } = useStatusMessage();
 
 const templateConfig: MiniAppTemplateConfig = {

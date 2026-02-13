@@ -89,7 +89,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { MarketOrder as TradingOrder, MarketPosition } from "@/composables/usePredictionTrading";
 
 interface CommentItem {
@@ -116,7 +117,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const { t: i18nT } = useI18n();
+const { t: i18nT } = createUseI18n(messages)();
 const t = (key: string, args?: Record<string, string | number>) => {
   if (props.t) return props.t(key, args);
   return i18nT(key as never, args);

@@ -33,7 +33,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatGas, formatAddress } from "@shared/utils/format";
 import type { StreamItem, StreamStatus } from "@/types";
 
@@ -42,7 +43,7 @@ const props = defineProps<{
   isCreator?: boolean;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const metrics = computed(() => {
   if (props.isCreator) {

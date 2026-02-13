@@ -51,7 +51,8 @@ import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -62,7 +63,7 @@ import BadgesGrid, { type Badge } from "./components/BadgesGrid.vue";
 import AchievementsList, { type Achievement } from "./components/AchievementsList.vue";
 import MobileKarmaSummary from "./components/MobileKarmaSummary.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const APP_ID = "miniapp-social-karma";
 
 const templateConfig: MiniAppTemplateConfig = {

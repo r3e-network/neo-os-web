@@ -33,9 +33,10 @@
 import { computed } from "vue";
 import { formatAddress } from "@shared/utils/format";
 import { NeoCard, NeoStats, type StatItem } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const props = defineProps<{
   address: string | null;

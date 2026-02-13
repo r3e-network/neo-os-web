@@ -45,7 +45,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -55,7 +56,7 @@ import SearchResult from "./components/SearchResult.vue";
 import RecentTransactions from "./components/RecentTransactions.vue";
 import { useExplorerData } from "@/composables/useExplorerData";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const {
   searchQuery,

@@ -170,12 +170,13 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useMultisigCreation } from "@/composables/useMultisigCreation";
 import CreationForm from "./components/CreationForm.vue";
 import ThresholdConfig from "./components/ThresholdConfig.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const {
   step,

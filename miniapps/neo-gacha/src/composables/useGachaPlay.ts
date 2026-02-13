@@ -3,7 +3,8 @@ import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { sleep } from "@shared/utils/format";
 import { parseStackItem } from "@shared/utils/neo";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
@@ -12,7 +13,7 @@ import type { Machine, MachineItem } from "@/types";
 const APP_ID = "miniapp-neo-gacha";
 
 export function useGachaPlay() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
   const { address } = useWallet() as WalletSDK;
   const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);

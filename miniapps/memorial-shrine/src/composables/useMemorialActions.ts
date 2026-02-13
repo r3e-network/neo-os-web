@@ -1,7 +1,8 @@
 import { ref, onUnmounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { readQueryParam } from "@shared/utils/url";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import type { Memorial } from "@/types";
@@ -9,7 +10,7 @@ import type { Memorial } from "@/types";
 const APP_ID = "miniapp-memorial-shrine";
 
 export function useMemorialActions() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
   const { isLoading } = usePaymentFlow(APP_ID);
 

@@ -47,13 +47,14 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import { NeoInput, NeoButton, NeoCard } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const emit = defineEmits<{
   (e: "create", data: { title: string; description: string; asset: string; matchingPool: string; startTime: string; endTime: string }): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const isLoading = ref(false);
 
 const localForm = reactive({

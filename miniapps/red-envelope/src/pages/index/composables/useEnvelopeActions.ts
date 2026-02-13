@@ -1,7 +1,8 @@
 import { ref } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { toFixed8, fromFixed8 } from "@shared/utils/format";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { pollForEvent } from "@shared/utils/errorHandling";
@@ -65,7 +66,7 @@ interface EnvelopeActionsDeps {
 }
 
 export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
 

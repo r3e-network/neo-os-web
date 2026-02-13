@@ -32,7 +32,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
   modelValue: number;
@@ -45,7 +46,7 @@ const emit = defineEmits<{
   (e: "create"): void;
 }>();
 
-const { t, locale } = useI18n();
+const { t, locale } = createUseI18n(messages)();
 
 const amount = ref("");
 const lockPeriods = [{ days: 7 }, { days: 30 }, { days: 90 }, { days: 180 }];

@@ -29,7 +29,8 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import MilestoneEditor from "./MilestoneEditor.vue";
 import TotalDisplay from "./TotalDisplay.vue";
 
@@ -37,7 +38,7 @@ const emit = defineEmits<{
   (e: "create", data: { name: string; beneficiary: string; asset: string; notes: string; milestones: Array<{ amount: string }> }): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const isLoading = ref(false);
 
 const localForm = reactive({

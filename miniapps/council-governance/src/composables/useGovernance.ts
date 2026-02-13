@@ -1,7 +1,8 @@
 import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -64,7 +65,7 @@ export function useGovernance(
   showStatus: (msg: string, type: string) => void,
   currentChainId: { value: string },
 ) {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
 
   const contractAddress = ref<string | null>(null);

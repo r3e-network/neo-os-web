@@ -115,10 +115,11 @@
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
 import ScrollReveal from "@shared/components/ScrollReveal.vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useConverter } from "@/composables/useConverter";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const {
   inputKey,
   statusMsg,

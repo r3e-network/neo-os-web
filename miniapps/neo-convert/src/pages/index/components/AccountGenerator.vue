@@ -72,12 +72,13 @@ import { NeoCard, NeoButton } from "@shared/components";
 import ScrollReveal from "@shared/components/ScrollReveal.vue";
 import AccountDetails from "./AccountDetails.vue";
 import { generateAccount, type NeoAccount } from "@/services/neo";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useWalletPdf } from "../composables/useWalletPdf";
 import QRCode from "qrcode";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { status, setStatus } = useStatusMessage(3000);
 const { generate: generatePdf } = useWalletPdf(t);
 const account = ref<NeoAccount | null>(null);

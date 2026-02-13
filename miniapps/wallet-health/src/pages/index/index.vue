@@ -113,14 +113,15 @@ import {
 } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useWalletAnalysis } from "@/composables/useWalletAnalysis";
 import { useHealthScore } from "@/composables/useHealthScore";
 import HealthDashboard from "./components/HealthDashboard.vue";
 import RiskAlerts from "./components/RiskAlerts.vue";
 import Recommendations from "./components/Recommendations.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
   tabs: [

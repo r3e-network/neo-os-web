@@ -47,14 +47,15 @@ import { ref, computed, onMounted } from "vue";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useDevTippingStats, type Developer } from "@/composables/useDevTippingStats";
 import { useDevTippingWallet } from "@/composables/useDevTippingWallet";
 import TipForm from "@/components/TipForm.vue";
 import TipList from "@/components/TipList.vue";
 import WalletInfo from "@/components/WalletInfo.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const APP_ID = "miniapp-dev-tipping";
 
 const { developers, recentTips, totalDonated, formatNum, loadDevelopers, loadRecentTips } = useDevTippingStats();

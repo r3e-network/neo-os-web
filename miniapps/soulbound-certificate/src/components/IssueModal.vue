@@ -41,7 +41,8 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import { NeoModal, NeoButton, NeoInput } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const emit = defineEmits<{
   close: [];
@@ -54,7 +55,7 @@ const props = defineProps<{
   templateId: string;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const localForm = reactive({
   recipient: "",

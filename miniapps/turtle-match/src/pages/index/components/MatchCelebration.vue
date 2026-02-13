@@ -45,7 +45,8 @@
 
 <script setup lang="ts">
 import { computed, watch, onUnmounted } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { TurtleColor, COLOR_CSS } from "@/shared/composables/useTurtleMatch";
 import TurtleSprite from "./TurtleSprite.vue";
 
@@ -59,7 +60,7 @@ const emit = defineEmits<{
   (e: "complete"): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const turtleColorHex = computed(() => COLOR_CSS[props.turtleColor]);
 

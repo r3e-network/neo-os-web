@@ -21,14 +21,15 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { TurtleColor } from "@/shared/composables/useTurtleMatch";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import TurtleSprite from "./TurtleSprite.vue";
 
 const props = defineProps<{
   visible: boolean;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const exit = ref(false);
 const emit = defineEmits<{
   (e: "complete"): void;

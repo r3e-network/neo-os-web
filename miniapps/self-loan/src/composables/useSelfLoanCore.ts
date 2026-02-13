@@ -4,7 +4,8 @@ import type { WalletSDK } from "@neo/types";
 import { formatNumber, parseGas, toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult } from "@shared/utils/neo";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
@@ -29,7 +30,7 @@ export type PlatformStats = {
 export const APP_ID = "miniapp-self-loan";
 
 export function useSelfLoanCore() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage, canRetry } = useErrorHandler();
 
   const { address, connect, invokeContract, invokeRead, getBalance, chainType, getContractAddress } =

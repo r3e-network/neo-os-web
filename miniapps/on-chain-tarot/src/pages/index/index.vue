@@ -57,7 +57,8 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { parseStackItem } from "@shared/utils/neo";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
@@ -73,7 +74,7 @@ import StatisticsTab from "./components/StatisticsTab.vue";
 import type { Card } from "./components/TarotCard.vue";
 import { TAROT_DECK } from "./components/tarot-data";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",

@@ -93,7 +93,8 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { sha256Hex } from "@shared/utils/hash";
 import { normalizeScriptHash, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
 import { toFixed8 } from "@shared/utils/format";
@@ -108,7 +109,7 @@ import VaultCreate from "./components/VaultCreate.vue";
 import VaultList from "./components/VaultList.vue";
 import VaultDetails from "./components/VaultDetails.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const APP_ID = "miniapp-unbreakablevault";
 const MIN_BOUNTY = 1;

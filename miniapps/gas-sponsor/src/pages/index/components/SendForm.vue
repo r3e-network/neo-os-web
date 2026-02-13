@@ -32,7 +32,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   recipient: string;
@@ -46,7 +47,7 @@ defineEmits<{
   send: [];
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const presets = [0.05, 0.1, 0.2, 0.5];
 </script>
 

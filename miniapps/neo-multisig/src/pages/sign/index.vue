@@ -61,7 +61,8 @@
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import { NeoCard } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { api, type MultisigRequest } from "../../services/api";
 import { useWallet } from "@neo/uniapp-sdk";
@@ -80,7 +81,7 @@ import TransactionDetails from "./components/TransactionDetails.vue";
 import SignersList from "./components/SignersList.vue";
 import SignActions from "./components/SignActions.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { address, signMessage } = useWallet() as WalletSDK;
 const { status, setStatus } = useStatusMessage(5000);
 

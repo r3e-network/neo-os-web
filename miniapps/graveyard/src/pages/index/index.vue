@@ -47,7 +47,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -57,7 +58,7 @@ import ConfirmDestroyModal from "./components/ConfirmDestroyModal.vue";
 import HistoryTab from "./components/HistoryTab.vue";
 import { useGraveyardActions } from "@/composables/useGraveyardActions";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const {
   totalDestroyed,

@@ -98,7 +98,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoCard, NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatGas } from "@shared/utils/format";
 import GachaCard from "../pages/index/components/GachaCard.vue";
 import GachaMachine from "../pages/index/components/GachaMachine.vue";
@@ -124,7 +125,7 @@ const emit = defineEmits<{
   (e: "buy"): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const marketMachines = computed(() =>
   props.machines.filter((machine) => machine.active && machine.listed && !machine.banned),

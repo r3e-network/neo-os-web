@@ -39,7 +39,8 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatAddress } from "@shared/utils/format";
 
 export interface LeaderboardEntry {
@@ -56,7 +57,7 @@ const emit = defineEmits<{
   (e: "refresh"): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const emitRefresh = () => emit("refresh");
 </script>

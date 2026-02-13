@@ -54,7 +54,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -64,7 +65,7 @@ import { useCapsuleUnlock } from "@/composables/useCapsuleUnlock";
 import CapsuleList, { type Capsule } from "./components/CapsuleList.vue";
 import CreateCapsuleForm from "./components/CreateCapsuleForm.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { address } = useWallet() as WalletSDK;
 
 const templateConfig: MiniAppTemplateConfig = {

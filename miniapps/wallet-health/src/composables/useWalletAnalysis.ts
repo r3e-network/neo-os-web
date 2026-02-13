@@ -1,7 +1,8 @@
 import { computed, reactive, ref, unref, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
@@ -13,7 +14,7 @@ const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const GAS_LOW_THRESHOLD = 10000000n;
 
 export function useWalletAnalysis() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, invokeRead, chainType, switchToAppChain } = useWallet() as WalletSDK;
 
   const { status, setStatus } = useStatusMessage();

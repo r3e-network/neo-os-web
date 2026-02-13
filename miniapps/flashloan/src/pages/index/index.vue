@@ -58,7 +58,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import {
   MiniAppTemplate,
   NeoCard,
@@ -79,7 +80,7 @@ import LoanRequest from "./components/LoanRequest.vue";
 import ActiveLoans from "./components/ActiveLoans.vue";
 import LoanCalculator from "./components/LoanCalculator.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { handleError, canRetry, clearError } = useErrorHandler();
 
 const {

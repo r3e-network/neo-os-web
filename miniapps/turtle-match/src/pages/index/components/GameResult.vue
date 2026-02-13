@@ -43,7 +43,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
   visible: boolean;
@@ -56,7 +57,7 @@ defineEmits<{
   (e: "close"): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const formattedReward = computed(() => {
   return (Number(props.reward) / 100000000).toFixed(3);

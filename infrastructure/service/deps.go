@@ -2,7 +2,6 @@ package service
 
 import (
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/chain"
-	chaincfg "github.com/R3E-Network/neo-miniapps-platform/infrastructure/chains"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/config"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
 	gasbankclient "github.com/R3E-Network/neo-miniapps-platform/infrastructure/gasbank/client"
@@ -19,7 +18,7 @@ type SharedDeps struct {
 	DB            *database.Repository
 	ChainClient   *chain.Client
 	ChainID       string
-	ChainMeta     *chaincfg.ChainConfig
+	ChainMeta     *chain.ChainConfig
 	Contracts     chain.ContractAddresses
 	TEESigner     chain.TEESigner
 	EventListener *chain.EventListener

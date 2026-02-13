@@ -47,7 +47,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatNumber } from "@shared/utils/format";
 
 interface Capsule {
@@ -68,6 +69,6 @@ const emit = defineEmits<{
   (e: "unlock", id: string): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const fmt = (n: number, d = 2) => formatNumber(n, d);
 </script>

@@ -71,11 +71,12 @@ import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import AccountGenerator from "./components/AccountGenerator.vue";
 import ConverterTool from "./components/ConverterTool.vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const { isMobile } = useResponsive();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { status } = useStatusMessage();
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",

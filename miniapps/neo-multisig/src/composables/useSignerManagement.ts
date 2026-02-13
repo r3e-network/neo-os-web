@@ -1,5 +1,6 @@
 import { ref, computed } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 export interface SignerEntry {
@@ -8,7 +9,7 @@ export interface SignerEntry {
 }
 
 export function useSignerManagement(initialSigners: string[] = ["", ""]) {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { status, setStatus, clearStatus } = useStatusMessage();
 
   const signers = ref<string[]>([...initialSigners]);

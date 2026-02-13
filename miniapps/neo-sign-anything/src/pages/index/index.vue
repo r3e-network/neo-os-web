@@ -93,10 +93,11 @@
 import { MiniAppTemplate, NeoCard, NeoButton, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import messages from "@/locale/messages";
 import { useSignAnything } from "./composables/useSignAnything";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",

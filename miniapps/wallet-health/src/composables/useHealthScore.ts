@@ -1,5 +1,6 @@
 import { computed, reactive } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 export interface ChecklistItem {
   id: string;
@@ -10,7 +11,7 @@ export interface ChecklistItem {
 }
 
 export function useHealthScore(gasOk: { value: boolean }) {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
 
   const checklistState = reactive<Record<string, boolean>>({});
   const checklistStorageKey = "wallet-health-checklist";

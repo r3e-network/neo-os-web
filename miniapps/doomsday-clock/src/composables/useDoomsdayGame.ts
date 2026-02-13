@@ -4,7 +4,8 @@ import type { WalletSDK } from "@neo/types";
 import { formatAddress, parseGas } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { normalizeScriptHash, addressToScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -15,7 +16,7 @@ const BASE_KEY_PRICE = 10000000n;
 const KEY_PRICE_INCREMENT_BPS = 10n;
 
 export function useDoomsdayGame() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage, canRetry } = useErrorHandler();
   const { address, connect, invokeRead, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
   const { processPayment, isLoading: isPaying } = usePaymentFlow(APP_ID);

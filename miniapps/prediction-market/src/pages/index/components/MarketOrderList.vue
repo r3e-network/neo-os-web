@@ -56,7 +56,8 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { MarketOrder as TradingOrder, MarketPosition } from "@/composables/usePredictionTrading";
 
 type ViewOrder = TradingOrder & { status?: string };
@@ -72,7 +73,7 @@ const emit = defineEmits<{
   (e: "cancel-order", orderId: number): void;
 }>();
 
-const { t: i18nT } = useI18n();
+const { t: i18nT } = createUseI18n(messages)();
 const t = (key: string, args?: Record<string, string | number>) => {
   if (props.t) return props.t(key, args);
   return i18nT(key as never, args);

@@ -103,7 +103,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoCard, NeoButton, NeoModal } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
   machine: Record<string, unknown>;
@@ -116,7 +117,7 @@ const props = defineProps<{
 
 defineEmits(["back", "play", "close-result", "buy"]);
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const getCapsuleStyle = (i: number) => {
   return {

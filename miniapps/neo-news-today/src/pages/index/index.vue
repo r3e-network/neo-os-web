@@ -78,10 +78,11 @@ import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBound
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useNewsData } from "./composables/useNewsData";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { status } = useStatusMessage();
 const { loading, articles, errorMessage, fetchArticles, formatDate, openArticle } = useNewsData(t);
 

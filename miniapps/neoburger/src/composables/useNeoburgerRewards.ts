@@ -1,12 +1,13 @@
 import { computed, type Ref } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 export function useNeoburgerRewards(
   bNeoBalance: Ref<number>,
   apy: Ref<number>,
   priceData: Ref<{ neo: { usd: number } } | null>
 ) {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
 
   const dailyRewards = computed(() => (bNeoBalance.value * (apy.value / 100 / 365)).toFixed(4));
 

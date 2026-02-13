@@ -1,7 +1,8 @@
 import { ref, computed } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "./useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatNumber, formatAddress, formatGas } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
@@ -31,7 +32,7 @@ type ExecutedLoan = {
 };
 
 export function useFlashloanCore() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage, canRetry } = useErrorHandler();
   const { address, connect, chainType, invokeRead, invokeContract, getContractAddress } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();

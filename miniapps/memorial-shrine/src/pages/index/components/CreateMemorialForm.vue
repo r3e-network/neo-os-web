@@ -60,14 +60,15 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 import type { WalletSDK } from "@neo/types";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const props = defineProps<{
   // t removed

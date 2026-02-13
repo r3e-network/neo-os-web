@@ -37,7 +37,8 @@
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
 import CertificateCard from "./CertificateCard.vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { CertificateItem } from "@/types";
 
 defineProps<{
@@ -53,7 +54,7 @@ defineEmits<{
   "copy-token-id": [tokenId: string];
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 </script>
 
 <style lang="scss" scoped>

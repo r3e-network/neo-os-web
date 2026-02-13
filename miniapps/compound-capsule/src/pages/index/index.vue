@@ -51,7 +51,8 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -62,7 +63,7 @@ import CapsuleList from "./components/CapsuleList.vue";
 
 const isLoading = ref(false);
 
-const { t, locale } = useI18n();
+const { t, locale } = createUseI18n(messages)();
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",

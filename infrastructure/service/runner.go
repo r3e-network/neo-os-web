@@ -17,7 +17,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/chain"
-	chaincfg "github.com/R3E-Network/neo-miniapps-platform/infrastructure/chains"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/config"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
 	gasbankclient "github.com/R3E-Network/neo-miniapps-platform/infrastructure/gasbank/client"
@@ -276,7 +275,7 @@ func NewServiceSecretsProvider(m *marble.Marble, db *database.Repository, servic
 // Internal helpers
 // =============================================================================
 
-func initChain(m *marble.Marble) (*chain.Client, string, *chaincfg.ChainConfig) {
+func initChain(m *marble.Marble) (*chain.Client, string, *chain.ChainConfig) {
 	neoRPCURLs := chain.ParseEndpoints(config.EnvOrSecret(m, "NEO_RPC_URLS", ""))
 	if len(neoRPCURLs) == 0 && os.Getenv("NEO_RPC_URLS") != "" {
 		neoRPCURLs = chain.ParseEndpoints(os.Getenv("NEO_RPC_URLS"))
@@ -297,13 +296,13 @@ func initChain(m *marble.Marble) (*chain.Client, string, *chaincfg.ChainConfig) 
 	}
 
 	chainID := strings.TrimSpace(os.Getenv("CHAIN_ID"))
-	var chainMeta *chaincfg.ChainConfig
+	var chainMeta *chain.ChainConfig
 	if chainID == "" || networkMagic != 0 {
-		if cfg, cfgErr := chaincfg.LoadConfig(); cfgErr == nil {
+		if cfg, cfgErr := chain.LoadChainsConfig(); cfgErr == nil {
 			if networkMagic != 0 {
 				for i := range cfg.Chains {
 					chainInfo := cfg.Chains[i]
-					if chainInfo.Type == chaincfg.ChainTypeNeoN3 && chainInfo.NetworkMagic == networkMagic {
+					if chainInfo.Type == chain.ChainTypeNeoN3 && chainInfo.NetworkMagic == networkMagic {
 						chainID = chainInfo.ID
 						chainMeta = &cfg.Chains[i]
 						break
@@ -313,7 +312,7 @@ func initChain(m *marble.Marble) (*chain.Client, string, *chaincfg.ChainConfig) 
 			if chainID == "" {
 				for i := range cfg.Chains {
 					chainInfo := cfg.Chains[i]
-					if chainInfo.Type == chaincfg.ChainTypeNeoN3 {
+					if chainInfo.Type == chain.ChainTypeNeoN3 {
 						chainID = chainInfo.ID
 						chainMeta = &cfg.Chains[i]
 						break
@@ -334,7 +333,7 @@ func initChain(m *marble.Marble) (*chain.Client, string, *chaincfg.ChainConfig) 
 			chainID = "neo-n3-mainnet"
 		}
 	}
-	if chainMeta != nil && chainMeta.Type == chaincfg.ChainTypeNeoN3 {
+	if chainMeta != nil && chainMeta.Type == chain.ChainTypeNeoN3 {
 		if networkMagic == 0 && chainMeta.NetworkMagic != 0 {
 			networkMagic = chainMeta.NetworkMagic
 		}
@@ -362,7 +361,7 @@ func initChain(m *marble.Marble) (*chain.Client, string, *chaincfg.ChainConfig) 
 	return chainClient, chainID, chainMeta
 }
 
-func resolveContracts(chainMeta *chaincfg.ChainConfig) chain.ContractAddresses {
+func resolveContracts(chainMeta *chain.ChainConfig) chain.ContractAddresses {
 	contracts := chain.ContractAddressesFromEnv()
 	if chainMeta != nil {
 		if v := chainMeta.Contract("payment_hub"); v != "" {

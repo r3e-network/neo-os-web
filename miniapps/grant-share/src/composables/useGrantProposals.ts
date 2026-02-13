@@ -1,11 +1,12 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "./useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { Grant } from "@/types";
 
 export function useGrantProposals() {
-  const { t, locale } = useI18n();
+  const { t, locale } = createUseI18n(messages)();
   const { chainType } = useWallet() as WalletSDK;
 
   const grants = ref<Grant[]>([]);

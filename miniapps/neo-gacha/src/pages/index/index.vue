@@ -83,7 +83,8 @@ import { MiniAppTemplate, SidebarPanel, WalletPrompt, ErrorBoundary } from "@sha
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useGachaMachines } from "@/composables/useGachaMachines";
 import type { Machine } from "@/types";
 import { useGachaPlay } from "@/composables/useGachaPlay";
@@ -95,7 +96,7 @@ import MarketplaceTab from "@/components/MarketplaceTab.vue";
 import DiscoverTab from "@/components/DiscoverTab.vue";
 import ManageTab from "@/components/ManageTab.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",

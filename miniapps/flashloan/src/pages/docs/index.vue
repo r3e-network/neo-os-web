@@ -7,11 +7,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { WalletSDK } from "@neo/types";
 import FlashloanDocs from "../index/components/FlashloanDocs.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { chainId, appChainId, getContractAddress } = useWallet() as WalletSDK;
 const contractAddress = ref<string | null>(null);
 

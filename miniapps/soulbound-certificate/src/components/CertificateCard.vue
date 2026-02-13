@@ -28,7 +28,8 @@
 
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { CertificateItem } from "@/types";
 
 defineProps<{
@@ -40,7 +41,7 @@ defineEmits<{
   copy: [tokenId: string];
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const addressShort = (value: string) => {
   const trimmed = String(value || "");

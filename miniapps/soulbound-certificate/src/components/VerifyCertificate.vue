@@ -37,7 +37,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { CertificateItem } from "@/types";
 
 const emit = defineEmits<{
@@ -51,7 +52,7 @@ const props = defineProps<{
   result: CertificateItem | null;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const localTokenId = ref("");
 

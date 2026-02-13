@@ -74,7 +74,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -82,7 +83,7 @@ import StreamCreateForm from "@/components/StreamCreateForm.vue";
 import StreamList from "@/components/StreamList.vue";
 import { useStreamVault } from "./composables/useStreamVault";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const activeTab = ref("create");
 

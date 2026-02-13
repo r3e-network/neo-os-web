@@ -1,6 +1,12 @@
 <template>
   <view class="theme-piggy-bank">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" :status-message="status" @tab-change="activeTab = $event">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="activeTab = $event"
+    >
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
@@ -10,38 +16,34 @@
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <BankHeader
-          :chain-label="currentChain?.shortName || 'Neo N3'"
-          :user-address="userAddress"
-          :is-connected="isConnected"
-          :t="t"
-          @connect="handleConnect"
-        />
+            :chain-label="currentChain?.shortName || 'Neo N3'"
+            :user-address="userAddress"
+            :is-connected="isConnected"
+            :t="t"
+            @connect="handleConnect"
+          />
 
-        <ConfigWarning :issues="configIssues" :t="t" />
+          <ConfigWarning :issues="configIssues" :t="t" />
 
-        <!-- Piggy Banks list -->
-        <scroll-view v-if="piggyBanks.length > 0" scroll-y class="banks-list">
-          <view class="grid">
-            <BankCard
-              v-for="bank in piggyBanks"
-              :key="bank.id"
-              :bank="bank"
-              :locked="isLocked(bank)"
-              :t="t"
-              @select="goToDetail"
-            />
-          </view>
-        </scroll-view>
+          <!-- Piggy Banks list -->
+          <scroll-view v-if="piggyBanks.length > 0" scroll-y class="banks-list">
+            <view class="grid">
+              <BankCard
+                v-for="bank in piggyBanks"
+                :key="bank.id"
+                :bank="bank"
+                :locked="isLocked(bank)"
+                :t="t"
+                @select="goToDetail"
+              />
+            </view>
+          </scroll-view>
         </ErrorBoundary>
       </template>
 
       <!-- Main Tab - RIGHT panel -->
       <template #operation>
-        <OperationPanel
-          :is-empty="piggyBanks.length === 0"
-          :t="t"
-          @create="goToCreate"
-        />
+        <OperationPanel :is-empty="piggyBanks.length === 0" :t="t" @create="goToCreate" />
       </template>
 
       <!-- Settings Tab -->
@@ -64,7 +66,8 @@
 import { computed, ref } from "vue";
 import { usePiggyStore, type PiggyBank } from "@/stores/piggy";
 import { storeToRefs } from "pinia";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import messages from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
@@ -76,7 +79,7 @@ import ConfigWarning from "./components/ConfigWarning.vue";
 import OperationPanel from "./components/OperationPanel.vue";
 import SettingsPanel from "./components/SettingsPanel.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { status, setStatus } = useStatusMessage(5000);
 const store = usePiggyStore();
 const { piggyBanks, currentChainId, alchemyApiKey, walletConnectProjectId, userAddress, isConnected } =

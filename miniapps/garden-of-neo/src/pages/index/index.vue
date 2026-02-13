@@ -40,7 +40,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
@@ -48,7 +49,7 @@ import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryErr
 import GardenTab from "./components/GardenTab.vue";
 import StatsTab from "./components/StatsTab.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",

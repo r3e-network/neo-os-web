@@ -61,7 +61,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 export interface RoundItem {
   id: string;
@@ -93,7 +94,7 @@ const emit = defineEmits<{
   (e: "select", round: RoundItem): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const emitRefresh = () => emit("refresh");
 const emitSelect = (round: RoundItem) => emit("select", round);

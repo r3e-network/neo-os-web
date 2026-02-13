@@ -1,7 +1,8 @@
 import { ref } from "vue";
 import { useEvents } from "@neo/uniapp-sdk";
 import { parseStackItem } from "@shared/utils/neo";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useSelfLoanCore, APP_ID } from "./useSelfLoanCore";
 import type { Loan } from "./useSelfLoanCore";
@@ -29,7 +30,7 @@ export interface ContractLoanEntry {
 }
 
 export function useSelfLoanHistory() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
   const { address, ensureContractAddress, loadLoanPosition, toNumber, parseInvokeResult, parseGas, invokeRead } =
     useSelfLoanCore();

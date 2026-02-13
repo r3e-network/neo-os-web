@@ -4,7 +4,8 @@ import type { WalletSDK } from "@neo/types";
 import { toFixedDecimals, toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 
@@ -16,7 +17,7 @@ export function useNeoburgerSwap(
   showStatus: (msg: string, type: "success" | "error") => void,
   loadBalances: () => Promise<void>
 ) {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { getAddress, invokeContract, chainType } = useWallet() as WalletSDK;
 
   const stakeAmount = ref("");

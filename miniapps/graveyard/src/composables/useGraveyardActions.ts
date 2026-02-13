@@ -1,7 +1,8 @@
 import { ref, computed, onMounted, onUnmounted, watch, type Ref } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
@@ -12,7 +13,7 @@ import type { HistoryItem } from "@/types";
 const APP_ID = "miniapp-graveyard";
 
 export function useGraveyardActions() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
   const { processPayment, isLoading } = usePaymentFlow(APP_ID);
   const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);

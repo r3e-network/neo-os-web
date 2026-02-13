@@ -93,7 +93,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useRedEnvelopeCreation } from "@/composables/useRedEnvelopeCreation";
 import { useRedEnvelopeOpen } from "@/composables/useRedEnvelopeOpen";
 import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
@@ -110,7 +111,7 @@ import MyEnvelopes from "./components/MyEnvelopes.vue";
 import TransferModal from "./components/TransferModal.vue";
 import ClaimPool from "./components/ClaimPool.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const activeTab = ref<string>("create");
 

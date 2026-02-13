@@ -49,7 +49,8 @@
 import { ref, computed, watch } from "vue";
 import { useWallet, useEvents, useDatafeed } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
@@ -64,7 +65,7 @@ import CreatePolicyForm from "./components/CreatePolicyForm.vue";
 import StatsCard from "./components/StatsCard.vue";
 import ActionHistory from "./components/ActionHistory.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const wallet = useWallet() as WalletSDK;
 const { address } = wallet;
 const { list: listEvents } = useEvents();

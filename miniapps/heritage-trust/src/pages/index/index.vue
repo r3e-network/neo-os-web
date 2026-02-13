@@ -56,7 +56,8 @@
 import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
@@ -72,7 +73,7 @@ import BeneficiaryManager from "./components/BeneficiaryManager.vue";
 import TrustCreate from "./components/TrustCreate.vue";
 import StatsCard from "./components/StatsCard.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { address, connect, invokeContract, getBalance, chainType, getContractAddress } = useWallet() as WalletSDK;
 
 const templateConfig: MiniAppTemplateConfig = {

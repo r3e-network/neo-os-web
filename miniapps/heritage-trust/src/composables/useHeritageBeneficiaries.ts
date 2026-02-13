@@ -1,13 +1,14 @@
 import { ref } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "./useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 
 const TRUST_NAME_KEY = "heritage-trust-names";
 
 export function useHeritageBeneficiaries() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address } = useWallet() as WalletSDK;
 
   const loadTrustNames = () => {

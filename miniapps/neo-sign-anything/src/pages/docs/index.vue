@@ -1,62 +1,52 @@
 <template>
-  <ResponsiveLayout :desktop-breakpoint="1024" :title="t('docs')"
-    :show-top-nav="true"
-    show-back
-    @back="goBack"
-  >
+  <ResponsiveLayout :desktop-breakpoint="1024" :title="t('docs')" :show-top-nav="true" show-back @back="goBack">
     <view class="docs-container">
       <view class="section">
-        <text class="section-title">{{ t('aboutTitle') }}</text>
+        <text class="section-title">{{ t("aboutTitle") }}</text>
         <text class="section-text">
-          {{ t('aboutText') }}
+          {{ t("aboutText") }}
         </text>
       </view>
 
       <view class="section">
-        <text class="section-title">{{ t('howItWorksTitle') }}</text>
+        <text class="section-title">{{ t("howItWorksTitle") }}</text>
+        <text class="section-text"> 1. {{ t("step1") }} </text>
+        <text class="section-text"> 2. {{ t("step2") }} </text>
+        <text class="section-text"> 3. {{ t("step3") }} </text>
+      </view>
+
+      <view class="section">
+        <text class="section-title">{{ t("securityTitle") }}</text>
         <text class="section-text">
-          1. {{ t('step1') }}
-        </text>
-        <text class="section-text">
-          2. {{ t('step2') }}
-        </text>
-        <text class="section-text">
-          3. {{ t('step3') }}
+          {{ t("securityText") }}
         </text>
       </view>
 
       <view class="section">
-        <text class="section-title">{{ t('securityTitle') }}</text>
+        <text class="section-title">{{ t("broadcastTitle") }}</text>
         <text class="section-text">
-          {{ t('securityText') }}
+          {{ t("broadcastText") }}
         </text>
       </view>
 
       <view class="section">
-        <text class="section-title">{{ t('broadcastTitle') }}</text>
+        <text class="section-title">{{ t("verifyTitle") }}</text>
         <text class="section-text">
-          {{ t('broadcastText') }}
+          {{ t("verifyText") }}
         </text>
       </view>
 
       <view class="section">
-        <text class="section-title">{{ t('verifyTitle') }}</text>
+        <text class="section-title">{{ t("privacyTitle") }}</text>
         <text class="section-text">
-          {{ t('verifyText') }}
+          {{ t("privacyText") }}
         </text>
       </view>
 
       <view class="section">
-        <text class="section-title">{{ t('privacyTitle') }}</text>
+        <text class="section-title">{{ t("networkTitle") }}</text>
         <text class="section-text">
-          {{ t('privacyText') }}
-        </text>
-      </view>
-
-      <view class="section">
-        <text class="section-title">{{ t('networkTitle') }}</text>
-        <text class="section-text">
-          {{ t('networkText') }}
+          {{ t("networkText") }}
         </text>
       </view>
     </view>
@@ -65,9 +55,10 @@
 
 <script setup lang="ts">
 import { ResponsiveLayout } from "@shared/components";
-import { useI18n } from '@/composables/useI18n';
+import { createUseI18n } from "@shared/composables/useI18n";
+import messages from "@/locale/messages";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const goBack = () => {
   uni.navigateBack();

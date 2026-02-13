@@ -109,7 +109,8 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import type { GovernanceCandidate } from "./utils";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -119,7 +120,7 @@ import InfoTab from "./components/InfoTab.vue";
 import { useCandidateData } from "./composables/useCandidateData";
 import { useVoting } from "./composables/useVoting";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const wallet = useWallet() as WalletSDK;
 const { address, chainId, appChainId } = wallet;
 

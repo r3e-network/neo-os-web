@@ -64,7 +64,8 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useMasqueradeProposals } from "@/composables/useMasqueradeProposals";
 import { useMasqueradeVoting, type VoteChoice } from "@/composables/useMasqueradeVoting";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -72,7 +73,7 @@ import CreateProposal from "@/components/CreateProposal.vue";
 import ProposalList from "@/components/ProposalList.vue";
 import VoteForm from "@/components/VoteForm.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const APP_ID = "miniapp-masqueradedao";
 
 const {

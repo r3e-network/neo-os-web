@@ -60,7 +60,8 @@
 import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
@@ -75,7 +76,7 @@ import PeriodFilter from "./components/PeriodFilter.vue";
 import EntrantCard from "./components/EntrantCard.vue";
 import EmptyState from "./components/EmptyState.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const APP_ID = "miniapp-hall-of-fame";
 const { address, connect, chainType } = useWallet() as WalletSDK;

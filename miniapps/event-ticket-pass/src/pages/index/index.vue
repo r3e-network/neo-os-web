@@ -74,7 +74,8 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useContractAddress } from "@shared/composables/useContractAddress";
@@ -87,7 +88,7 @@ import TicketManagement from "./components/TicketManagement.vue";
 import CheckinTab from "./components/CheckinTab.vue";
 import TicketIssueModal from "./components/TicketIssueModal.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const wallet = useWallet() as WalletSDK;
 const { address, connect } = wallet;
 const { ensure: ensureContractAddress } = useContractAddress(t);

@@ -105,7 +105,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -124,7 +125,7 @@ const props = defineProps<{
   offerings: Offering[];
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   close: [];

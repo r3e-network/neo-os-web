@@ -1,7 +1,8 @@
 import { ref, computed } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "./useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { parseGas, toFixed8, toFixedDecimals, sleep } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
@@ -12,7 +13,7 @@ import type { Trust } from "../pages/index/components/TrustCard.vue";
 const APP_ID = "miniapp-heritage-trust";
 
 export function useHeritageTrusts() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead, getBalance, chainType, getContractAddress } =
     useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
@@ -94,14 +95,14 @@ export function useHeritageTrusts() {
         const parsed = parseInvokeResult(trustResult);
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
         const trustData = parsed as Record<string, unknown>;
-        
+
         // Owner matching logic
         const owner = trustData.owner;
         const primaryHeir = trustData.primaryHeir;
         const ownerVal = String(owner || "");
         const primaryHeirVal = String(primaryHeir || "");
         const addrVal = String(address.value || "");
-        
+
         const isOwner = ownerVal === addrVal;
         const isBeneficiary = primaryHeirVal === addrVal;
 
@@ -121,14 +122,14 @@ export function useHeritageTrusts() {
           rawReleaseMode === "fixed" || rawReleaseMode === "neo_rewards" || rawReleaseMode === "rewards_only"
             ? (rawReleaseMode as Trust["releaseMode"])
             : derivedReleaseMode;
-        
+
         let status: Trust["status"] = "pending";
         if (rawStatus === "active") status = "active";
         else if (rawStatus === "grace_period") status = "pending";
         else if (rawStatus === "executable") status = "triggered";
         else if (rawStatus === "executed") status = "executed";
         else status = "pending";
-        
+
         const daysRemaining = deadlineMs ? Math.max(0, Math.ceil((deadlineMs - now) / 86400000)) : 0;
 
         userTrusts.push({

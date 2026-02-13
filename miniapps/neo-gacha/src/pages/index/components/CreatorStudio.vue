@@ -113,7 +113,8 @@
 import { ref, computed } from "vue";
 import { NeoCard, NeoInput, NeoButton } from "@shared/components";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 interface FormItemData {
   name: string;
@@ -131,7 +132,7 @@ const props = defineProps<{
 
 const emit = defineEmits(["publish"]);
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const form = ref({
   name: "",

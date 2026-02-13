@@ -49,7 +49,8 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
 import { AppIcon, NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { LotteryTypeInfo } from "../../../shared/composables/useLotteryTypes";
 import { formatNumber } from "@shared/utils/format";
 
@@ -67,7 +68,7 @@ const isRevealed = ref(false);
 const revealing = ref(false);
 const result = ref<{ isWinner: boolean; prize: number } | null>(null);
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const formatNum = (n: number) => formatNumber(n, 2);
 

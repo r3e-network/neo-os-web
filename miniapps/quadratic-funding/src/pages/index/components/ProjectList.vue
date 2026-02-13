@@ -62,7 +62,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { RoundItem } from "./RoundList.vue";
 
 export interface ProjectItem {
@@ -97,7 +98,7 @@ const emit = defineEmits<{
   (e: "claim", project: ProjectItem): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const emitRefresh = () => emit("refresh");
 const emitContribute = (project: ProjectItem) => emit("contribute", project);

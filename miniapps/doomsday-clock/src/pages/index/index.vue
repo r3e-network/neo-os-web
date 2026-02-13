@@ -81,7 +81,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { formatNumber } from "@shared/utils/format";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, ErrorToast, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import ClockFace from "./components/ClockFace.vue";
@@ -90,7 +91,7 @@ import BuyKeysCard from "./components/BuyKeysCard.vue";
 import HistoryList from "./components/HistoryList.vue";
 import { useDoomsdayActions } from "@/composables/useDoomsdayActions";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const {
   game,

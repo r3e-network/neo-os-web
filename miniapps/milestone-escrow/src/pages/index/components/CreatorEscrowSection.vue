@@ -60,7 +60,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import MilestoneProgress from "./MilestoneProgress.vue";
 import type { EscrowItem } from "./EscrowList.vue";
 
@@ -78,7 +79,7 @@ const emit = defineEmits<{
   (e: "cancel", escrow: EscrowItem): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const onCancel = (escrow: EscrowItem) => emit("cancel", escrow);
 </script>

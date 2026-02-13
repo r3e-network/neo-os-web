@@ -63,7 +63,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoButton, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -74,7 +75,7 @@ import UserRewards from "./components/UserRewards.vue";
 import StatsTab from "./components/StatsTab.vue";
 import { useCheckinContract } from "@/composables/useCheckinContract";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const {

@@ -1,8 +1,9 @@
 import { computed } from "vue";
-import { useI18n } from "./useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 export function useMultisigUI() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
 
   const getStatusIcon = (status: string) => {
     switch (status) {

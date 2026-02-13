@@ -88,7 +88,8 @@ import { ref, computed, onMounted } from "vue";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { usePredictionMarkets, type PredictionMarket } from "@/composables/usePredictionMarkets";
 import { usePredictionTrading, type TradeParams } from "@/composables/usePredictionTrading";
 import MarketList from "./components/MarketList.vue";
@@ -96,7 +97,7 @@ import MarketDetail from "./components/MarketDetail.vue";
 import PortfolioView from "./components/PortfolioView.vue";
 import CreateMarketForm from "./components/CreateMarketForm.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const APP_ID = "miniapp-prediction-market";
 
 const activeTab = ref("markets");

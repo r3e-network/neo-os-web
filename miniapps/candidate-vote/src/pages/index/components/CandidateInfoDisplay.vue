@@ -97,9 +97,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { GovernanceCandidate } from "../../utils";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const props = defineProps<{
   candidate: GovernanceCandidate;

@@ -63,13 +63,14 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { ResponsiveLayout, NeoButton, NeoCard } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { GrantDetail } from "@/types";
 import type { UniAppGlobals } from "@shared/types/globals";
 
-const { t, locale } = useI18n();
+const { t, locale } = createUseI18n(messages)();
 const id = ref("");
 const loading = ref(true);
 const fetchError = ref(false);

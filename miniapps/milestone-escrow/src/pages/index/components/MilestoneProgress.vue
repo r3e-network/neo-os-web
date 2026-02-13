@@ -39,7 +39,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { EscrowItem } from "./EscrowList.vue";
 
 const props = defineProps<{
@@ -62,7 +63,7 @@ const emit = defineEmits<{
   (e: "claim", index: number): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const statusText = computed(() => {
   const idx = props.escrow.milestoneAmounts.length - 1;

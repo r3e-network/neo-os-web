@@ -14,7 +14,8 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   hasCheckedIn: boolean;
@@ -25,7 +26,7 @@ const emit = defineEmits<{
   (e: "checkIn"): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const emitCheckIn = () => emit("checkIn");
 </script>

@@ -3,7 +3,8 @@ import type { PriceData } from "@shared/utils/price";
 import { getPrices } from "@shared/utils/price";
 import { formatCompactNumber } from "@shared/utils/format";
 import type { UniAppGlobals } from "@shared/types/globals";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const APY_CACHE_KEY = "neoburger_apy_cache";
 const STATS_ENDPOINTS = ["/api/neoburger-stats", "/api/neoburger/stats"];
@@ -16,7 +17,7 @@ const isLocalPreview =
   typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
 
 export function useNeoburgerStats() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
 
   const apy = ref(0);
   const animatedApy = ref("0.0");

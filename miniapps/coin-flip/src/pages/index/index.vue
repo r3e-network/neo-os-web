@@ -71,7 +71,8 @@ import "../../static/coin-flip.css";
 import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoStats, NeoButton, SidebarPanel, type StatItem, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CoinArena from "./components/CoinArena.vue";
@@ -79,7 +80,7 @@ import BetControls from "./components/BetControls.vue";
 import ResultOverlay from "./components/ResultOverlay.vue";
 import { useCoinFlipGame } from "./composables/useCoinFlipGame";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const wallet = useWallet() as WalletSDK;
 const { address } = wallet;
 

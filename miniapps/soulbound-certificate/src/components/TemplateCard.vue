@@ -51,7 +51,8 @@
 
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { TemplateItem } from "@/types";
 
 defineProps<{
@@ -64,7 +65,7 @@ defineEmits<{
   toggle: [template: TemplateItem];
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const addressShort = (value: string) => {
   const trimmed = String(value || "");

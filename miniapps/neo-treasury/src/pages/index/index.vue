@@ -94,7 +94,8 @@ import {
   ErrorBoundary,
 } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { fetchTreasuryData, type TreasuryData, type CategoryBalance } from "@/utils/treasury";
@@ -104,7 +105,7 @@ import PriceGrid from "./components/PriceGrid.vue";
 import FoundersList from "./components/FoundersList.vue";
 import FounderDetail from "./components/FounderDetail.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",

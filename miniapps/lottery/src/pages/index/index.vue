@@ -129,9 +129,10 @@ import { useLotteryState } from "./composables/useLotteryState";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { handleError, canRetry, clearError } = useErrorHandler();
 
 const { instantTypes, getLotteryType } = useLotteryTypes();

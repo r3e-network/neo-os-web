@@ -2,13 +2,14 @@ import { ref, reactive } from "vue";
 import QRCode from "qrcode";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
 import type { TemplateItem, CertificateItem } from "@/types";
 
 export function useCertificates() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
 
   const contractAddress = ref<string | null>(null);

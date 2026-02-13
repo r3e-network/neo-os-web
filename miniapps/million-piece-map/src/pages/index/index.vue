@@ -49,7 +49,8 @@
 import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -58,7 +59,7 @@ import { useMapInteractions } from "@/composables/useMapInteractions";
 import MapGrid from "./components/MapGrid.vue";
 import PurchasePanel from "./components/PurchasePanel.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const { address } = useWallet() as WalletSDK;
 
 const templateConfig: MiniAppTemplateConfig = {

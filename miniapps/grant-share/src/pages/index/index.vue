@@ -47,7 +47,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -56,7 +57,7 @@ import { useGrantProposals } from "@/composables/useGrantProposals";
 import { useGrantVoting } from "@/composables/useGrantVoting";
 import ProposalGallery from "./components/ProposalGallery.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const {
   grants,

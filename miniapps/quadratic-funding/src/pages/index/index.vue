@@ -138,7 +138,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
@@ -153,7 +154,7 @@ import ProjectForm from "./components/ProjectForm.vue";
 import ProjectList from "./components/ProjectList.vue";
 import ContributionForm from "./components/ContributionForm.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const activeTab = ref("rounds");
 
 const templateConfig: MiniAppTemplateConfig = {

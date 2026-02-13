@@ -37,7 +37,8 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import MilestoneProgress from "./MilestoneProgress.vue";
 import type { EscrowItem } from "./EscrowList.vue";
 
@@ -53,7 +54,7 @@ const emit = defineEmits<{
   (e: "claim", escrow: EscrowItem, index: number): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const onClaim = (escrow: EscrowItem, index: number) => emit("claim", escrow, index);
 </script>

@@ -1,7 +1,8 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -15,7 +16,7 @@ import type { EscrowItem } from "../pages/index/components/EscrowList.vue";
 const NEO_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.NEO_HASH);
 
 export function useEscrowContract() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
   const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
 

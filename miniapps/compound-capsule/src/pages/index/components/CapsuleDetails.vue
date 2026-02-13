@@ -30,7 +30,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoCard } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatNumber } from "@shared/utils/format";
 
 const props = defineProps<{
@@ -40,7 +41,7 @@ const props = defineProps<{
   };
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const fmt = (n: number, d = 2) => formatNumber(n, d);
 const fillPercentage = computed(() => (props.vault.totalLocked > 0 ? 100 : 0));
 </script>

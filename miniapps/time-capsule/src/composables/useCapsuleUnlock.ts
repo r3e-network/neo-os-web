@@ -1,7 +1,8 @@
 import { ref, computed } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
@@ -13,7 +14,7 @@ const FISH_FEE = "0.05";
 const CONTENT_STORE_KEY = "time-capsule-content";
 
 export function useCapsuleUnlock() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
   const { processPayment, isProcessing: paymentProcessing } = usePaymentFlow(APP_ID);
   const { list: listEvents } = useEvents();

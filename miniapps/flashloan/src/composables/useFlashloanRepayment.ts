@@ -1,13 +1,14 @@
 import { ref } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "./useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 
 const APP_ID = "miniapp-flashloan";
 
 export function useFlashloanRepayment() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage } = useErrorHandler();
   const { invokeContract } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();

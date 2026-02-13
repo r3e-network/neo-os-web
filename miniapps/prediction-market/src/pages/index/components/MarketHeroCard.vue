@@ -56,7 +56,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatAddress } from "@shared/utils/format";
 import type { PredictionMarket } from "@/composables/usePredictionMarkets";
 
@@ -67,7 +68,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const { t: i18nT } = useI18n();
+const { t: i18nT } = createUseI18n(messages)();
 const t = (key: string, args?: Record<string, string | number>) => {
   if (props.t) return props.t(key, args);
   return i18nT(key as never, args);

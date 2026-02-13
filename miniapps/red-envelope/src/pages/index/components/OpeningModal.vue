@@ -56,7 +56,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoButton } from "@shared/components";
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { ClaimItem } from "@/composables/useRedEnvelopeOpen";
 
 const props = defineProps<{
@@ -73,7 +74,7 @@ const props = defineProps<{
   } | null;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits(["connect", "open", "open-claim", "close"]);
 

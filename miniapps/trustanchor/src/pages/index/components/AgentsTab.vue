@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useI18n } from "@/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { formatNumber, formatAddress as formatAddressText } from "@shared/utils/format";
 import { NeoCard, AppIcon } from "@shared/components";
 import type { AgentInfo } from "../composables/useTrustAnchor";
@@ -10,7 +11,7 @@ interface Props {
 
 defineProps<Props>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 const formatNum = (n: number | string) => formatNumber(n, 2);
 const formatAddress = (addr: string) => formatAddressText(addr, 6);
 </script>

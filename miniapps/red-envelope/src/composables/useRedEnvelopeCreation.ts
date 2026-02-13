@@ -1,7 +1,8 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useI18n } from "./useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import { toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -14,7 +15,7 @@ const MIN_PER_PACKET = 1000000n; // 0.01 GAS in fixed8
 const BEST_LUCK_BONUS_RATE = 5n; // 5%
 
 export function useRedEnvelopeCreation() {
-  const { t } = useI18n();
+  const { t } = createUseI18n(messages)();
   const { address, connect, chainType, getContractAddress } = useWallet() as WalletSDK;
 
   const name = ref("");
