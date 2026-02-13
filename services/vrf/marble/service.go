@@ -43,25 +43,24 @@ type Config struct {
 
 // New creates a new NeoVRF service.
 func New(cfg Config) (*Service, error) {
-	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+	base, err := commonservice.NewBaseService(&commonservice.BaseConfig{
+		ID:      ServiceID,
+		Name:    ServiceName,
+		Version: Version,
+		Marble:  cfg.Marble,
+		DB:      cfg.DB,
+	})
+	if err != nil {
 		return nil, err
 	}
 
 	strict := commonservice.IsStrict(cfg.Marble)
-
-	requiredSecrets := []string(nil)
 	if strict {
-		requiredSecrets = []string{"NEOVRF_SIGNING_KEY"}
+		base.AddRequiredSecrets("NEOVRF_SIGNING_KEY")
 	}
-
-	base := commonservice.NewBase(&commonservice.BaseConfig{
-		ID:              ServiceID,
-		Name:            ServiceName,
-		Version:         Version,
-		Marble:          cfg.Marble,
-		DB:              cfg.DB,
-		RequiredSecrets: requiredSecrets,
-	})
+	if err != nil {
+		return nil, err
+	}
 
 	s := &Service{
 		BaseService: base,

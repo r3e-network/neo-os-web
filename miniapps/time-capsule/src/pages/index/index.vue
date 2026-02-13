@@ -59,7 +59,7 @@ import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useCapsuleCreation } from "@/composables/useCapsuleCreation";
 import { useCapsuleUnlock } from "@/composables/useCapsuleUnlock";
 import CapsuleList, { type Capsule } from "./components/CapsuleList.vue";
@@ -78,16 +78,11 @@ const templateConfig = createTemplateConfig({
 
 const appState = computed(() => ({}));
 
-const sidebarItems = computed(() => {
-  const total = capsules.value.length;
-  const locked = capsules.value.filter((c) => c.locked).length;
-  const revealed = capsules.value.filter((c) => c.revealed).length;
-  return [
-    { label: t("sidebarTotalCapsules"), value: total },
-    { label: t("sidebarLocked"), value: locked },
-    { label: t("sidebarRevealed"), value: revealed },
-  ];
-});
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarTotalCapsules", value: () => capsules.value.length },
+  { labelKey: "sidebarLocked", value: () => capsules.value.filter((c) => c.locked).length },
+  { labelKey: "sidebarRevealed", value: () => capsules.value.filter((c) => c.revealed).length },
+]);
 
 const activeTab = ref("capsules");
 

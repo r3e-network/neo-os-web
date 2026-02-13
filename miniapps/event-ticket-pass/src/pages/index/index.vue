@@ -14,22 +14,27 @@
 
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <EventList
-          :t="t"
-          :address="address"
-          :events="contract.events"
-          :is-refreshing="contract.isRefreshing"
-          :toggling-id="contract.togglingId"
-          @refresh="contract.refreshEvents"
-          @connect="contract.connectWallet"
-          @issue="contract.openIssueModal"
-          @toggle="contract.toggleEvent"
-        />
+          <EventList
+            :t="t"
+            :address="address"
+            :events="contract.events"
+            :is-refreshing="contract.isRefreshing"
+            :toggling-id="contract.togglingId"
+            @refresh="contract.refreshEvents"
+            @connect="contract.connectWallet"
+            @issue="contract.openIssueModal"
+            @toggle="contract.toggleEvent"
+          />
         </ErrorBoundary>
       </template>
 
       <template #operation>
-        <EventCreateForm :t="t" v-model:form="contract.form" :is-creating="contract.isCreating" @create="contract.createEvent" />
+        <EventCreateForm
+          :t="t"
+          v-model:form="contract.form"
+          :is-creating="contract.isCreating"
+          @create="contract.createEvent"
+        />
       </template>
 
       <template #tab-tickets>
@@ -80,7 +85,7 @@ import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useEventTicketContract } from "@/composables/useEventTicketContract";
 import EventCreateForm from "./components/EventCreateForm.vue";
 import EventList from "./components/EventList.vue";
@@ -107,10 +112,10 @@ const templateConfig = createTemplateConfig({
 
 const activeTab = ref("create");
 
-const sidebarItems = computed(() => [
-  { label: t("sidebarEvents"), value: contract.events.value.length },
-  { label: t("sidebarTickets"), value: contract.tickets.value.length },
-  { label: t("sidebarActive"), value: contract.events.value.filter((e) => e.active).length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarEvents", value: () => contract.events.value.length },
+  { labelKey: "sidebarTickets", value: () => contract.tickets.value.length },
+  { labelKey: "sidebarActive", value: () => contract.events.value.filter((e) => e.active).length },
 ]);
 
 const appState = computed(() => ({

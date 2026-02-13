@@ -79,7 +79,7 @@ import { MiniAppTemplate, SidebarPanel, WalletPrompt, ErrorBoundary } from "@sha
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { useGachaMachines } from "@/composables/useGachaMachines";
 import type { Machine } from "@/types";
@@ -112,10 +112,10 @@ const appState = computed(() => ({
   showFireworks: showFireworks.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("machines"), value: machines.value.length },
-  { label: t("playing"), value: isPlaying.value ? t("yes") : t("no") },
-  { label: t("selected"), value: selectedMachine.value?.name || t("none") },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "machines", value: () => machines.value.length },
+  { labelKey: "playing", value: () => (isPlaying.value ? t("yes") : t("no")) },
+  { labelKey: "selected", value: () => selectedMachine.value?.name || t("none") },
 ]);
 
 const { status, setStatus } = useStatusMessage();

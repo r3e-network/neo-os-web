@@ -97,7 +97,7 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useGasTransfers } from "@/composables/useGasTransfers";
 import GasTank from "./components/GasTank.vue";
 import UserBalanceInfo from "./components/UserBalanceInfo.vue";
@@ -156,11 +156,11 @@ const fuelLevelPercent = computed(() => {
   return Math.min((balance / ELIGIBILITY_THRESHOLD) * 100, 100);
 });
 
-const sidebarItems = computed(() => [
-  { label: t("sidebarTankLevel"), value: `${Math.round(fuelLevelPercent.value)}%` },
-  { label: t("gasBalance"), value: gasBalance.value },
-  { label: t("sidebarRemainingQuota"), value: remainingQuota.value.toFixed(4) },
-  { label: t("sidebarEligible"), value: isEligible.value ? t("eligible") : t("notEligible") },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarTankLevel", value: () => `${Math.round(fuelLevelPercent.value)}%` },
+  { labelKey: "gasBalance", value: () => gasBalance.value },
+  { labelKey: "sidebarRemainingQuota", value: () => remainingQuota.value.toFixed(4) },
+  { labelKey: "sidebarEligible", value: () => (isEligible.value ? t("eligible") : t("notEligible")) },
 ]);
 
 const resetTime = computed(() => {

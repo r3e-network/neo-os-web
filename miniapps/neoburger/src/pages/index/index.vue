@@ -88,7 +88,7 @@ import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components
 import type { UniAppGlobals } from "@shared/types/globals";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import { useNeoburgerCore } from "@/composables/useNeoburgerCore";
 import { useNeoburgerRewards } from "@/composables/useNeoburgerRewards";
@@ -139,11 +139,11 @@ const appState = computed(() => ({
   bNeoBalance: bNeoBalance.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("sidebarNeoBalance"), value: neoBalance.value ?? "—" },
-  { label: t("sidebarBneoBalance"), value: bNeoBalance.value ?? "—" },
-  { label: t("sidebarTotalStaked"), value: totalStakedDisplay.value },
-  { label: t("sidebarApr"), value: aprDisplay.value },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarNeoBalance", value: () => neoBalance.value ?? "—" },
+  { labelKey: "sidebarBneoBalance", value: () => bNeoBalance.value ?? "—" },
+  { labelKey: "sidebarTotalStaked", value: () => totalStakedDisplay.value },
+  { labelKey: "sidebarApr", value: () => aprDisplay.value },
 ]);
 
 const primaryActionLabel = computed(() => (walletConnected.value ? swap.swapButtonLabel : t("connectWallet")));

@@ -60,7 +60,14 @@ type Config struct {
 const defaultGASContractAddress = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 
 func New(cfg Config) (*Service, error) {
-	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+	base, err := commonservice.NewBaseService(&commonservice.BaseConfig{
+		ID:      ServiceID,
+		Name:    ServiceName,
+		Version: Version,
+		Marble:  cfg.Marble,
+		DB:      cfg.DB,
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -96,14 +103,6 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	replayWindow := runtime.ResolveDuration(cfg.ReplayWindow, "", 1*time.Hour)
-
-	base := commonservice.NewBase(&commonservice.BaseConfig{
-		ID:      ServiceID,
-		Name:    ServiceName,
-		Version: Version,
-		Marble:  cfg.Marble,
-		DB:      cfg.DB,
-	})
 
 	// SECURITY FIX [M-02]: Limit replay cache size to prevent memory exhaustion
 	const maxReplayEntries = 100000

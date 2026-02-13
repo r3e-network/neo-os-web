@@ -97,7 +97,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { fetchTreasuryData, type TreasuryData, type CategoryBalance } from "@/utils/treasury";
 
 import TotalSummaryCard from "./components/TotalSummaryCard.vue";
@@ -128,11 +128,14 @@ const appState = computed(() => ({
   totalUsd: data.value?.totalUsd,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("sidebarTotalUsd"), value: data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—" },
-  { label: t("sidebarTotalNeo"), value: data.value?.totalNeo?.toLocaleString() ?? "—" },
-  { label: t("sidebarTotalGas"), value: data.value?.totalGas?.toLocaleString() ?? "—" },
-  { label: t("sidebarFounders"), value: data.value?.categories?.length ?? 0 },
+const sidebarItems = createSidebarItems(t, [
+  {
+    labelKey: "sidebarTotalUsd",
+    value: () => (data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—"),
+  },
+  { labelKey: "sidebarTotalNeo", value: () => data.value?.totalNeo?.toLocaleString() ?? "—" },
+  { labelKey: "sidebarTotalGas", value: () => data.value?.totalGas?.toLocaleString() ?? "—" },
+  { labelKey: "sidebarFounders", value: () => data.value?.categories?.length ?? 0 },
 ]);
 
 const opStats = computed(() => [

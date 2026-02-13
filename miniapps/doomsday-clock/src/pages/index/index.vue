@@ -17,12 +17,7 @@
           @retry="resetAndReload"
           :fallback-message="t('doomsdayErrorFallback')"
         >
-          <ErrorToast
-            :show="!!errorMessage"
-            :message="errorMessage ?? ''"
-            type="error"
-            @close="errorMessage = ''"
-          />
+          <ErrorToast :show="!!errorMessage" :message="errorMessage ?? ''" type="error" @close="errorMessage = ''" />
           <view v-if="!game.address" class="wallet-prompt">
             <NeoCard variant="warning" class="text-center">
               <text class="mb-2 block font-bold">{{ t("connectWalletToPlay") }}</text>
@@ -84,7 +79,7 @@ import { formatNumber } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, ErrorToast, SidebarPanel } from "@shared/components";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import ClockFace from "./components/ClockFace.vue";
 import GameStats from "./components/GameStats.vue";
 import BuyKeysCard from "./components/BuyKeysCard.vue";
@@ -125,11 +120,11 @@ const appState = computed(() => ({
   isRoundActive: game.isRoundActive.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("tabStats"), value: `#${game.roundId.value}` },
-  { label: t("sidebarTotalPot"), value: `${formatNumber(game.totalPot.value, 2)} GAS` },
-  { label: t("sidebarYourKeys"), value: game.userKeys.value },
-  { label: t("sidebarTimeLeft"), value: timer.countdown.value },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "tabStats", value: () => `#${game.roundId.value}` },
+  { labelKey: "sidebarTotalPot", value: () => `${formatNumber(game.totalPot.value, 2)} GAS` },
+  { labelKey: "sidebarYourKeys", value: () => game.userKeys.value },
+  { labelKey: "sidebarTimeLeft", value: () => timer.countdown.value },
 ]);
 
 let interval: ReturnType<typeof setInterval> | null = null;

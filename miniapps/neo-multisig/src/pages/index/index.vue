@@ -64,7 +64,7 @@ import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { useMultisigHistory } from "@/composables/useMultisigHistory";
 import { useMultisigUI } from "@/composables/useMultisigUI";
@@ -79,9 +79,7 @@ const { pendingCount, completedCount } = useMultisigHistory();
 const { getStatusIcon, statusLabel, shorten, formatDate } = useMultisigUI();
 
 const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "home", labelKey: "tabHome", icon: "🏠", default: true },
-  ],
+  tabs: [{ key: "home", labelKey: "tabHome", icon: "🏠", default: true }],
   docTitleKey: "docTitle",
   docFeatureCount: 3,
   docStepPrefix: "docStep",
@@ -93,10 +91,10 @@ const appState = computed(() => ({
   pending: pendingCount.value,
   completed: completedCount.value,
 }));
-const sidebarItems = computed(() => [
-  { label: t("sidebarTotalTxs"), value: history.value.length },
-  { label: t("statPending"), value: pendingCount.value },
-  { label: t("statCompleted"), value: completedCount.value },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarTotalTxs", value: () => history.value.length },
+  { labelKey: "statPending", value: () => pendingCount.value },
+  { labelKey: "statCompleted", value: () => completedCount.value },
 ]);
 
 const idInput = ref("");

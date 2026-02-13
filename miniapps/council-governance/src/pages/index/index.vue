@@ -71,7 +71,7 @@ import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useGovernance } from "@/composables/useGovernance";
 import ActiveProposalsTab from "./components/ActiveProposalsTab.vue";
 import HistoryProposalsTab from "./components/HistoryProposalsTab.vue";
@@ -131,11 +131,11 @@ const appState = computed(() => ({
   totalProposals: proposals.value.length,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("active"), value: activeProposals.value.length },
-  { label: t("history"), value: historyProposals.value.length },
-  { label: t("totalProposals"), value: proposals.value.length },
-  { label: t("votingPower"), value: votingPower.value },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "active", value: () => activeProposals.value.length },
+  { labelKey: "history", value: () => historyProposals.value.length },
+  { labelKey: "totalProposals", value: () => proposals.value.length },
+  { labelKey: "votingPower", value: () => votingPower.value },
 ]);
 
 const opStats = computed(() => [

@@ -116,7 +116,14 @@ type Config struct {
 
 // New creates a new NeoGasBank service.
 func New(cfg Config) (*Service, error) {
-	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+	base, err := commonservice.NewBaseService(&commonservice.BaseConfig{
+		ID:      ServiceID,
+		Name:    ServiceName,
+		Version: Version,
+		Marble:  cfg.Marble,
+		DB:      cfg.DB,
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -126,14 +133,6 @@ func New(cfg Config) (*Service, error) {
 	if err := commonservice.RequireInStrict(cfg.Marble, cfg.ChainClient != nil, ServiceID, "chain client"); err != nil {
 		return nil, err
 	}
-
-	base := commonservice.NewBase(&commonservice.BaseConfig{
-		ID:      ServiceID,
-		Name:    ServiceName,
-		Version: Version,
-		Marble:  cfg.Marble,
-		DB:      cfg.DB,
-	})
 
 	depositAddress := runtime.ResolveString(cfg.DepositAddress, "GASBANK_DEPOSIT_ADDRESS", "")
 	if requireDepositAddress && depositAddress == "" {

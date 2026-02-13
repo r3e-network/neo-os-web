@@ -97,6 +97,16 @@ func NewBase(cfg *BaseConfig) *BaseService {
 	}
 }
 
+// AddRequiredSecrets appends additional secret names to the health-check list.
+// Use this when required secrets are determined after construction (e.g. based
+// on strict-mode checks that depend on a validated marble instance).
+func (b *BaseService) AddRequiredSecrets(names ...string) {
+	b.requiredSecrets = mergeUniqueStrings(b.requiredSecrets, names...)
+	b.healthMu.Lock()
+	b.secretsLoaded = len(b.requiredSecrets) == 0
+	b.healthMu.Unlock()
+}
+
 // Logger returns the service's structured logger.
 func (b *BaseService) Logger() *logging.Logger {
 	if b == nil {

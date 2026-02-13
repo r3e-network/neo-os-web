@@ -113,7 +113,7 @@ import {
 } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { useWalletAnalysis } from "@/composables/useWalletAnalysis";
 import { useHealthScore } from "@/composables/useHealthScore";
@@ -157,12 +157,12 @@ const appState = computed(() => ({
   safetyScore: safetyScore.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("statConnection"), value: address.value ? t("statusConnected") : t("statusDisconnected") },
-  { label: t("statNetwork"), value: chainLabel.value },
-  { label: t("statNeo"), value: neoDisplay.value },
-  { label: t("statGas"), value: gasDisplay.value },
-  { label: t("statScore"), value: `${safetyScore.value}%` },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "statConnection", value: () => (address.value ? t("statusConnected") : t("statusDisconnected")) },
+  { labelKey: "statNetwork", value: () => chainLabel.value },
+  { labelKey: "statNeo", value: () => neoDisplay.value },
+  { labelKey: "statGas", value: () => gasDisplay.value },
+  { labelKey: "statScore", value: () => `${safetyScore.value}%` },
 ]);
 
 const opStats = computed(() => [

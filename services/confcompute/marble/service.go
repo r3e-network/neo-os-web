@@ -92,25 +92,21 @@ type Config struct {
 
 // New creates a new NeoCompute service.
 func New(cfg Config) (*Service, error) {
-	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+	base, err := commonservice.NewBaseService(&commonservice.BaseConfig{
+		ID:      ServiceID,
+		Name:    ServiceName,
+		Version: Version,
+		Marble:  cfg.Marble,
+		DB:      cfg.DB,
+	})
+	if err != nil {
 		return nil, err
 	}
 
 	strict := commonservice.IsStrict(cfg.Marble)
-
-	requiredSecrets := []string(nil)
 	if strict {
-		requiredSecrets = []string{"COMPUTE_MASTER_KEY"}
+		base.AddRequiredSecrets("COMPUTE_MASTER_KEY")
 	}
-
-	base := commonservice.NewBase(&commonservice.BaseConfig{
-		ID:              ServiceID,
-		Name:            ServiceName,
-		Version:         Version,
-		Marble:          cfg.Marble,
-		DB:              cfg.DB,
-		RequiredSecrets: requiredSecrets,
-	})
 
 	resultTTL := runtime.ResolveDuration(cfg.ResultTTL, neocomputeResultTTLEnv, DefaultResultTTL)
 

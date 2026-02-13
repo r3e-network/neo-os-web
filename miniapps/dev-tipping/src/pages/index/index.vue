@@ -47,7 +47,7 @@ import { ref, computed, onMounted } from "vue";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { useDevTippingStats, type Developer } from "@/composables/useDevTippingStats";
 import { useDevTippingWallet } from "@/composables/useDevTippingWallet";
@@ -76,10 +76,10 @@ const appState = computed(() => ({
   developerCount: developers.value.length,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("developers"), value: developers.value.length },
-  { label: t("totalDonated"), value: formatNum(totalDonated.value) },
-  { label: t("recentTips"), value: recentTips.value.length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "developers", value: () => developers.value.length },
+  { labelKey: "totalDonated", value: () => formatNum(totalDonated.value) },
+  { labelKey: "recentTips", value: () => recentTips.value.length },
 ]);
 
 const selectedDevId = ref<number | null>(null);

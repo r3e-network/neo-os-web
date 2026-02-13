@@ -134,7 +134,7 @@ import {
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { useTurtleGame, TurtleColor } from "@/composables/useTurtleGame";
 import { useTurtleMatching } from "@/composables/useTurtleMatching";
@@ -166,11 +166,11 @@ const templateConfig = createTemplateConfig({
 
 const appState = computed(() => ({}));
 
-const sidebarItems = computed(() => [
-  { label: t("totalSessions"), value: stats.value?.totalSessions ?? 0 },
-  { label: t("matches"), value: currentMatches.value },
-  { label: t("remainingBoxes"), value: remainingBoxes.value },
-  { label: t("phase"), value: gamePhase.value },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "totalSessions", value: () => stats.value?.totalSessions ?? 0 },
+  { labelKey: "matches", value: () => currentMatches.value },
+  { labelKey: "remainingBoxes", value: () => remainingBoxes.value },
+  { labelKey: "phase", value: () => gamePhase.value },
 ]);
 
 const opStats = computed(() => [

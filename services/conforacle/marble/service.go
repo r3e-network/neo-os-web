@@ -38,16 +38,15 @@ type Config struct {
 
 // New creates a new NeoOracle service.
 func New(cfg Config) (*Service, error) {
-	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
-		return nil, err
-	}
-
-	base := commonservice.NewBase(&commonservice.BaseConfig{
+	base, err := commonservice.NewBaseService(&commonservice.BaseConfig{
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
 		Marble:  cfg.Marble,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	strict := commonservice.IsStrict(cfg.Marble)
 	if strict {

@@ -45,7 +45,7 @@ import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import GardenTab from "./components/GardenTab.vue";
 import StatsTab from "./components/StatsTab.vue";
 
@@ -66,10 +66,10 @@ const appState = computed(() => ({
   totalHarvested: stats.value.totalHarvested,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("garden"), value: stats.value.totalPlants },
-  { label: t("stats"), value: stats.value.readyToHarvest },
-  { label: t("sidebarHarvested"), value: stats.value.totalHarvested },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "garden", value: () => stats.value.totalPlants },
+  { labelKey: "stats", value: () => stats.value.readyToHarvest },
+  { labelKey: "sidebarHarvested", value: () => stats.value.totalHarvested },
 ]);
 
 const opStats = computed(() => [

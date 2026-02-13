@@ -88,7 +88,7 @@ import { ref, computed, onMounted } from "vue";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { usePredictionMarkets, type PredictionMarket } from "@/composables/usePredictionMarkets";
 import { usePredictionTrading, type TradeParams } from "@/composables/usePredictionTrading";
@@ -170,12 +170,12 @@ const appState = computed(() => ({
   totalPnL: totalPnL.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("markets"), value: markets.value.length },
-  { label: t("sidebarVolume"), value: `${formatCurrency(totalVolume.value)} GAS` },
-  { label: t("sidebarTraders"), value: activeTraders.value },
-  { label: t("portfolioValue"), value: `${formatCurrency(portfolioValue.value)} GAS` },
-  { label: t("totalPnL"), value: `${totalPnL.value > 0 ? "+" : ""}${formatCurrency(totalPnL.value)} GAS` },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "markets", value: () => markets.value.length },
+  { labelKey: "sidebarVolume", value: () => `${formatCurrency(totalVolume.value)} GAS` },
+  { labelKey: "sidebarTraders", value: () => activeTraders.value },
+  { labelKey: "portfolioValue", value: () => `${formatCurrency(portfolioValue.value)} GAS` },
+  { labelKey: "totalPnL", value: () => `${totalPnL.value > 0 ? "+" : ""}${formatCurrency(totalPnL.value)} GAS` },
 ]);
 
 const marketStats = computed(() => [

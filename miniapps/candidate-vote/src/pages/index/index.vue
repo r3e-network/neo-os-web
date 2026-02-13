@@ -113,7 +113,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import CandidateList from "./components/CandidateList.vue";
 import CandidateDetailModal from "./components/CandidateDetailModal.vue";
 import InfoTab from "./components/InfoTab.vue";
@@ -176,11 +176,11 @@ const appState = computed(() => ({
   totalNetworkVotes: totalNetworkVotes.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("candidates"), value: candidates.value.length },
-  { label: t("totalVotes"), value: formatVotes(totalNetworkVotes.value) },
-  { label: t("blockHeight"), value: blockHeight.value || "\u2014" },
-  { label: t("yourVote"), value: normalizedUserVotedPublicKey.value ? t("active") : t("none") },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "candidates", value: () => candidates.value.length },
+  { labelKey: "totalVotes", value: () => formatVotes(totalNetworkVotes.value) },
+  { labelKey: "blockHeight", value: () => blockHeight.value || "\u2014" },
+  { labelKey: "yourVote", value: () => (normalizedUserVotedPublicKey.value ? t("active") : t("none")) },
 ]);
 
 const selectCandidate = (candidate: GovernanceCandidate) => {

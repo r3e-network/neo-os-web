@@ -101,7 +101,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import CampaignCard from "./components/CampaignCard.vue";
 import CampaignDetail from "./components/CampaignDetail.vue";
 import MyDonationsView from "./components/MyDonationsView.vue";
@@ -144,10 +144,10 @@ const templateConfig = createTemplateConfig({
 
 const activeTab = ref("campaigns");
 
-const sidebarItems = computed(() => [
-  { label: t("campaigns"), value: campaigns.value.length },
-  { label: t("myDonations"), value: myDonations.value.length },
-  { label: t("totalRaised"), value: `${totalRaised.value.toFixed(2)} GAS` },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "campaigns", value: () => campaigns.value.length },
+  { labelKey: "myDonations", value: () => myDonations.value.length },
+  { labelKey: "totalRaised", value: () => `${totalRaised.value.toFixed(2)} GAS` },
 ]);
 
 const appState = computed(() => ({

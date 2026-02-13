@@ -55,7 +55,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import LeaderboardSection, { type LeaderboardEntry } from "./components/LeaderboardSection.vue";
 import CheckInSection from "./components/CheckInSection.vue";
 import GiveKarmaForm from "./components/GiveKarmaForm.vue";
@@ -95,11 +95,11 @@ const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorS
 const errorMessage = computed(() => errorStatus.value?.msg ?? null);
 const giveKarmaFormRef = ref<InstanceType<typeof GiveKarmaForm> | null>(null);
 
-const sidebarItems = computed(() => [
-  { label: t("leaderboard"), value: `#${userRank.value || "-"}` },
-  { label: t("sidebarKarma"), value: userKarma.value },
-  { label: t("sidebarStreak"), value: checkInStreak.value },
-  { label: t("profile"), value: userBadges.value.filter((b) => b.unlocked).length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "leaderboard", value: () => `#${userRank.value || "-"}` },
+  { labelKey: "sidebarKarma", value: () => userKarma.value },
+  { labelKey: "sidebarStreak", value: () => checkInStreak.value },
+  { labelKey: "profile", value: () => userBadges.value.filter((b) => b.unlocked).length },
 ]);
 
 const isDesktop = computed(() => {

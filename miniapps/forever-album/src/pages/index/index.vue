@@ -1,6 +1,12 @@
 <template>
   <view class="theme-forever-album">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" :status-message="status" @tab-change="onTabChange">
+    <MiniAppTemplate
+      :config="templateConfig"
+      :state="appState"
+      :t="t"
+      :status-message="status"
+      @tab-change="onTabChange"
+    >
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
@@ -74,7 +80,7 @@ import type { WalletSDK } from "@neo/types";
 import { MiniAppTemplate, NeoCard, NeoButton, WalletPrompt, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { useAlbumPhotos } from "@/composables/useAlbumPhotos";
 import { usePhotoUpload } from "@/composables/usePhotoUpload";
@@ -87,9 +93,7 @@ const { t } = createUseI18n(messages)();
 const { address, connect } = useWallet() as WalletSDK;
 
 const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "album", labelKey: "albumTab", icon: "📸", default: true },
-  ],
+  tabs: [{ key: "album", labelKey: "albumTab", icon: "📸", default: true }],
   docFeatureCount: 3,
 });
 
@@ -142,10 +146,10 @@ const appState = computed(() => ({
   uploading: uploading.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("albumTab"), value: photos.value.length },
-  { label: t("sidebarEncrypted"), value: photos.value.filter((p) => p.encrypted).length },
-  { label: t("sidebarPublic"), value: photos.value.filter((p) => !p.encrypted).length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "albumTab", value: () => photos.value.length },
+  { labelKey: "sidebarEncrypted", value: () => photos.value.filter((p) => p.encrypted).length },
+  { labelKey: "sidebarPublic", value: () => photos.value.filter((p) => !p.encrypted).length },
 ]);
 
 const onTabChange = (tabId: string) => {

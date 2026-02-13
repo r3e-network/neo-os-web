@@ -51,7 +51,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import { useGrantProposals } from "@/composables/useGrantProposals";
 import { useGrantVoting } from "@/composables/useGrantVoting";
@@ -75,9 +75,7 @@ const {
 const { statusMessage, statusType, copyLink } = useGrantVoting();
 
 const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "main", labelKey: "tabGrants", icon: "📋", default: true },
-  ],
+  tabs: [{ key: "main", labelKey: "tabGrants", icon: "📋", default: true }],
 });
 
 const activeTab = ref<string>("main");
@@ -88,10 +86,10 @@ const appState = computed(() => ({
   displayedProposals: displayedProposals.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("totalPool"), value: formatCount(totalProposals.value) },
-  { label: t("activeProjects"), value: formatCount(activeProposals.value) },
-  { label: t("yourShare"), value: formatCount(displayedProposals.value) },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "totalPool", value: () => formatCount(totalProposals.value) },
+  { labelKey: "activeProjects", value: () => formatCount(activeProposals.value) },
+  { labelKey: "yourShare", value: () => formatCount(displayedProposals.value) },
 ]);
 
 const poolStatsArray = computed(() => [

@@ -69,7 +69,7 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import HeroSection from "./components/HeroSection.vue";
 import StatsGrid from "./components/StatsGrid.vue";
@@ -113,12 +113,12 @@ const leaderboard = ref<LeaderEntry[]>([]);
 const MIN_BURN = 1;
 const isLoading = computed(() => paymentProcessing.value);
 
-const sidebarItems = computed(() => [
-  { label: t("stats"), value: `${totalBurned.value} GAS` },
-  { label: t("game"), value: `${userBurned.value} GAS` },
-  { label: t("sidebarRank"), value: rank.value || "-" },
-  { label: t("sidebarBurns"), value: burnCount.value },
-  { label: t("sidebarRewardPool"), value: `${rewardPool.value} GAS` },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "stats", value: () => `${totalBurned.value} GAS` },
+  { labelKey: "game", value: () => `${userBurned.value} GAS` },
+  { labelKey: "sidebarRank", value: () => rank.value || "-" },
+  { labelKey: "sidebarBurns", value: () => burnCount.value },
+  { labelKey: "sidebarRewardPool", value: () => `${rewardPool.value} GAS` },
 ]);
 
 const estimatedReward = computed(() => {
@@ -224,16 +224,19 @@ const resetAndReload = async () => {
   await refreshData();
 };
 
-watch(address, () => {
-  refreshData();
-}, { immediate: true });
+watch(
+  address,
+  () => {
+    refreshData();
+  },
+  { immediate: true }
+);
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./burn-league-theme.scss";
-
 
 :global(page) {
   background: var(--burn-bg);

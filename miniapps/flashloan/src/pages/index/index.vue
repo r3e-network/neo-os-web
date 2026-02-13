@@ -73,7 +73,7 @@ import {
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import { useFlashloanCore } from "@/composables/useFlashloanCore";
 import LoanRequest from "./components/LoanRequest.vue";
@@ -120,11 +120,11 @@ const appState = computed(() => ({
   poolBalance: poolBalance.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("sidebarPoolBalance"), value: poolBalance.value ?? "—" },
-  { label: t("sidebarRecentLoans"), value: recentLoans.value.length },
-  { label: t("sidebarTotalLoans"), value: stats.value?.totalLoans ?? 0 },
-  { label: t("sidebarTotalVolume"), value: stats.value?.totalVolume ?? "—" },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarPoolBalance", value: () => poolBalance.value ?? "—" },
+  { labelKey: "sidebarRecentLoans", value: () => recentLoans.value.length },
+  { labelKey: "sidebarTotalLoans", value: () => stats.value?.totalLoans ?? 0 },
+  { labelKey: "sidebarTotalVolume", value: () => stats.value?.totalVolume ?? "—" },
 ]);
 
 const opStats = computed(() => [

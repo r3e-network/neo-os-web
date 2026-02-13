@@ -72,7 +72,7 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import BankHeader from "./components/BankHeader.vue";
 import BankCard from "./components/BankCard.vue";
 import ConfigWarning from "./components/ConfigWarning.vue";
@@ -106,17 +106,14 @@ const appState = computed(() => ({
   isConnected: isConnected.value,
 }));
 
-const sidebarItems = computed(() => {
-  const banks = piggyBanks.value;
-  const total = banks.length;
-  const locked = banks.filter((b) => Date.now() / 1000 < b.unlockTime).length;
-  const unlocked = total - locked;
-  return [
-    { label: t("sidebarTotalBanks"), value: total },
-    { label: t("sidebarLocked"), value: locked },
-    { label: t("sidebarUnlocked"), value: unlocked },
-  ];
-});
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarTotalBanks", value: () => piggyBanks.value.length },
+  { labelKey: "sidebarLocked", value: () => piggyBanks.value.filter((b) => Date.now() / 1000 < b.unlockTime).length },
+  {
+    labelKey: "sidebarUnlocked",
+    value: () => piggyBanks.value.length - piggyBanks.value.filter((b) => Date.now() / 1000 < b.unlockTime).length,
+  },
+]);
 
 // Settings form
 const chainOptions = computed(() => store.EVM_CHAINS);

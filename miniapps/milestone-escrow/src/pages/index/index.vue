@@ -59,7 +59,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import EscrowForm from "./components/EscrowForm.vue";
 import EscrowList from "./components/EscrowList.vue";
 import { useEscrowContract } from "@/composables/useEscrowContract";
@@ -89,9 +89,7 @@ const {
 const escrowFormRef = ref<InstanceType<typeof EscrowForm> | null>(null);
 
 const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "create", labelKey: "createTab", icon: "➕", default: true },
-  ],
+  tabs: [{ key: "create", labelKey: "createTab", icon: "➕", default: true }],
   docFeatureCount: 3,
 });
 
@@ -102,11 +100,11 @@ const appState = computed(() => ({
   beneficiaryEscrows: beneficiaryEscrows.value.length,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("createTab"), value: creatorEscrows.value.length },
-  { label: t("escrowsTab"), value: beneficiaryEscrows.value.length },
-  { label: t("statusActive"), value: creatorEscrows.value.filter((e) => e.status === "active").length },
-  { label: t("statusCompleted"), value: creatorEscrows.value.filter((e) => e.status === "completed").length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "createTab", value: () => creatorEscrows.value.length },
+  { labelKey: "escrowsTab", value: () => beneficiaryEscrows.value.length },
+  { labelKey: "statusActive", value: () => creatorEscrows.value.filter((e) => e.status === "active").length },
+  { labelKey: "statusCompleted", value: () => creatorEscrows.value.filter((e) => e.status === "completed").length },
 ]);
 
 const onCreateEscrow = async (data: {

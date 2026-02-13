@@ -70,7 +70,7 @@ import { messages } from "@/locale/messages";
 import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useCertificateActions } from "@/composables/useCertificateActions";
 import CertificateForm from "@/components/CertificateForm.vue";
 import TemplateList from "@/components/TemplateList.vue";
@@ -128,10 +128,10 @@ const appState = computed(() => ({
   certificatesCount: certificates.value.length,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("templatesTab"), value: templates.value.length },
-  { label: t("certificatesTab"), value: certificates.value.length },
-  { label: t("sidebarActive"), value: templates.value.filter((tpl) => tpl.active).length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "templatesTab", value: () => templates.value.length },
+  { labelKey: "certificatesTab", value: () => certificates.value.length },
+  { labelKey: "sidebarActive", value: () => templates.value.filter((tpl) => tpl.active).length },
 ]);
 
 const { handleBoundaryError } = useHandleBoundaryError("soulbound-certificate");

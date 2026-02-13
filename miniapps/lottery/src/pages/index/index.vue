@@ -129,7 +129,7 @@ import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 
 const { t } = createUseI18n(messages)();
@@ -166,11 +166,11 @@ const appState = computed(() => ({
   userTickets: playerTickets.value.length,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("totalTickets"), value: totalTickets.value },
-  { label: t("totalPaidOut"), value: `${formatNum(prizePool.value)} GAS` },
-  { label: t("ticketsBought"), value: playerTickets.value.length },
-  { label: t("totalWinnings"), value: `${formatNum(userWinnings.value)} GAS` },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "totalTickets", value: () => totalTickets.value },
+  { labelKey: "totalPaidOut", value: () => `${formatNum(prizePool.value)} GAS` },
+  { labelKey: "ticketsBought", value: () => playerTickets.value.length },
+  { labelKey: "totalWinnings", value: () => `${formatNum(userWinnings.value)} GAS` },
 ]);
 
 const userTickets = computed(() => playerTickets.value.length);

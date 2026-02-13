@@ -46,7 +46,7 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import DomainRegister from "./components/DomainRegister.vue";
 import DomainManagement from "./components/DomainManagement.vue";
 import ManageDomain from "./components/ManageDomain.vue";
@@ -55,9 +55,7 @@ import type { Domain } from "@/types";
 const { t } = createUseI18n(messages)();
 
 const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "register", labelKey: "tabRegister", icon: "➕", default: true },
-  ],
+  tabs: [{ key: "register", labelKey: "tabRegister", icon: "➕", default: true }],
 });
 
 const APP_ID = "miniapp-neo-ns";
@@ -70,14 +68,14 @@ const appState = computed(() => ({
   walletConnected: !!address.value,
 }));
 
-const sidebarItems = computed(() => {
-  const expiringSoon = myDomains.value.filter((d) => d.expiry > 0 && d.expiry - Date.now() < 30 * 86400000).length;
-  return [
-    { label: t("tabDomains"), value: myDomains.value.length },
-    { label: t("sidebarWallet"), value: address.value ? t("connected") : t("disconnected") },
-    { label: t("sidebarExpiringSoon"), value: expiringSoon },
-  ];
-});
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "tabDomains", value: () => myDomains.value.length },
+  { labelKey: "sidebarWallet", value: () => (address.value ? t("connected") : t("disconnected")) },
+  {
+    labelKey: "sidebarExpiringSoon",
+    value: () => myDomains.value.filter((d) => d.expiry > 0 && d.expiry - Date.now() < 30 * 86400000).length,
+  },
+]);
 
 const loading = ref(false);
 const { status, setStatus: showStatus } = useStatusMessage();

@@ -78,7 +78,7 @@ import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBound
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { useNewsData } from "./composables/useNewsData";
 
@@ -87,9 +87,7 @@ const { status } = useStatusMessage();
 const { loading, articles, errorMessage, fetchArticles, formatDate, openArticle } = useNewsData(t);
 
 const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "news", labelKey: "news", icon: "📰", default: true },
-  ],
+  tabs: [{ key: "news", labelKey: "news", icon: "📰", default: true }],
 });
 const activeTab = ref("news");
 const appState = computed(() => ({
@@ -97,10 +95,10 @@ const appState = computed(() => ({
   loading: loading.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("articles"), value: articles.value.length },
-  { label: t("latest"), value: articles.value.length > 0 ? formatDate(articles.value[0].date) : "—" },
-  { label: t("status"), value: loading.value ? t("loading") : t("ready") },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "articles", value: () => articles.value.length },
+  { labelKey: "latest", value: () => (articles.value.length > 0 ? formatDate(articles.value[0].date) : "—") },
+  { labelKey: "status", value: () => (loading.value ? t("loading") : t("ready")) },
 ]);
 
 const opStats = computed(() => [

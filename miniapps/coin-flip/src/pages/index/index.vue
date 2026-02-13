@@ -82,7 +82,7 @@ import {
   type StatItem,
   ErrorBoundary,
 } from "@shared/components";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import CoinArena from "./components/CoinArena.vue";
 import BetControls from "./components/BetControls.vue";
 import ResultOverlay from "./components/ResultOverlay.vue";
@@ -133,11 +133,11 @@ const gameStats = computed<StatItem[]>(() => [
   { label: t("totalWon"), value: `${formatNum(totalWon.value)} GAS`, variant: "accent" },
 ]);
 
-const sidebarItems = computed(() => [
-  { label: t("totalGames"), value: totalGames.value },
-  { label: t("wins"), value: wins.value },
-  { label: t("losses"), value: losses.value },
-  { label: t("totalWon"), value: `${formatNum(totalWon.value)} GAS` },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "totalGames", value: () => totalGames.value },
+  { labelKey: "wins", value: () => wins.value },
+  { labelKey: "losses", value: () => losses.value },
+  { labelKey: "totalWon", value: () => `${formatNum(totalWon.value)} GAS` },
 ]);
 
 const appState = computed(() => ({

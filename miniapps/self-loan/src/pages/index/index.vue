@@ -81,7 +81,7 @@ import StatsTab from "./components/StatsTab.vue";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useSelfLoanCore } from "@/composables/useSelfLoanCore";
 import { useSelfLoanHistory } from "@/composables/useSelfLoanHistory";
 
@@ -105,11 +105,11 @@ const appState = computed(() => ({
   isConnected: !!core.address.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("sidebarHasLoan"), value: core.loan.value ? t("sidebarYes") : t("sidebarNo") },
-  { label: t("sidebarNeoBalance"), value: core.neoBalance.value ?? "—" },
-  { label: t("healthFactor"), value: core.healthFactor.value ?? "—" },
-  { label: t("currentLTV"), value: core.currentLTV.value != null ? `${core.currentLTV.value}%` : "—" },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarHasLoan", value: () => (core.loan.value ? t("sidebarYes") : t("sidebarNo")) },
+  { labelKey: "sidebarNeoBalance", value: () => core.neoBalance.value ?? "—" },
+  { labelKey: "healthFactor", value: () => core.healthFactor.value ?? "—" },
+  { labelKey: "currentLTV", value: () => (core.currentLTV.value != null ? `${core.currentLTV.value}%` : "—") },
 ]);
 
 const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);

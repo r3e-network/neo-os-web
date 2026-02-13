@@ -54,7 +54,7 @@ import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import SwapTab from "./components/SwapTab.vue";
 import PoolTab from "./components/PoolTab.vue";
 
@@ -82,10 +82,10 @@ const appState = computed(() => ({
   selectedPair: selectedPair.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("tabSwap"), value: selectedPair.value.toUpperCase() },
-  { label: t("popularPairs"), value: popularPairs.length },
-  { label: t("sidebarRate"), value: popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "-" },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "tabSwap", value: () => selectedPair.value.toUpperCase() },
+  { labelKey: "popularPairs", value: () => popularPairs.length },
+  { labelKey: "sidebarRate", value: () => popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "-" },
 ]);
 
 const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("neo-swap");

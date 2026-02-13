@@ -16,17 +16,17 @@
       <!-- Create Tab (default) - LEFT panel -->
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-        <LuckyOverlay :lucky-message="luckyMessage" :t="t" @close="luckyMessage = null" />
-        <OpeningModal
-          :visible="showOpeningModal"
-          :envelope="openingEnvelope"
-          :is-connected="!!address"
-          :is-opening="!!openingId"
-          :eligibility="address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null"
-          @connect="handleConnect"
-          @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
-          @close="showOpeningModal = false"
-        />
+          <LuckyOverlay :lucky-message="luckyMessage" :t="t" @close="luckyMessage = null" />
+          <OpeningModal
+            :visible="showOpeningModal"
+            :envelope="openingEnvelope"
+            :is-connected="!!address"
+            :is-opening="!!openingId"
+            :eligibility="address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null"
+            @connect="handleConnect"
+            @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
+            @close="showOpeningModal = false"
+          />
         </ErrorBoundary>
       </template>
       <template #operation>
@@ -102,7 +102,7 @@ import { useNeoEligibility } from "@/composables/useNeoEligibility";
 import { useEnvelopeActions } from "./composables/useEnvelopeActions";
 import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import LuckyOverlay from "./components/LuckyOverlay.vue";
 import OpeningModal from "./components/OpeningModal.vue";
@@ -221,10 +221,10 @@ const appState = computed(() => ({
   hasLucky: !!luckyMessage.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("sidebarEnvelopes"), value: envelopes.value.length },
-  { label: t("sidebarClaims"), value: claims.value.length },
-  { label: t("sidebarPools"), value: pools.value.length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarEnvelopes", value: () => envelopes.value.length },
+  { labelKey: "sidebarClaims", value: () => claims.value.length },
+  { labelKey: "sidebarPools", value: () => pools.value.length },
 ]);
 
 const { handleBoundaryError } = useHandleBoundaryError("red-envelope");

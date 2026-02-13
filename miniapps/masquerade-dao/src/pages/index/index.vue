@@ -68,7 +68,7 @@ import { messages } from "@/locale/messages";
 import { useMasqueradeProposals } from "@/composables/useMasqueradeProposals";
 import { useMasqueradeVoting, type VoteChoice } from "@/composables/useMasqueradeVoting";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import CreateProposal from "@/components/CreateProposal.vue";
 import ProposalList from "@/components/ProposalList.vue";
 import VoteForm from "@/components/VoteForm.vue";
@@ -107,10 +107,10 @@ const appState = computed(() => ({
   totalProposals: proposals.value.length,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("yourMasks"), value: masks.value.length },
-  { label: t("activeProposals"), value: proposals.value.length },
-  { label: t("identity"), value: identityHash.value ? identityHash.value.slice(0, 8) + "..." : "--" },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "yourMasks", value: () => masks.value.length },
+  { labelKey: "activeProposals", value: () => proposals.value.length },
+  { labelKey: "identity", value: () => (identityHash.value ? identityHash.value.slice(0, 8) + "..." : "--") },
 ]);
 
 const combinedStatus = computed(() => maskStatus.value || voteStatus.value || null);

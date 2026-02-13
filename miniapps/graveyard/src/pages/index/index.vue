@@ -50,7 +50,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import GraveyardHero from "./components/GraveyardHero.vue";
 import DestructionChamber from "./components/DestructionChamber.vue";
 import ConfirmDestroyModal from "./components/ConfirmDestroyModal.vue";
@@ -87,9 +87,7 @@ const resetAndReload = async () => {
 };
 
 const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "main", labelKey: "destroy", icon: "🗑️", default: true },
-  ],
+  tabs: [{ key: "main", labelKey: "destroy", icon: "🗑️", default: true }],
   fireworks: true,
   docFeatureCount: 3,
 });
@@ -101,10 +99,10 @@ const appState = computed(() => ({
   gasReclaimed: gasReclaimed.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("totalDestroyed"), value: totalDestroyed.value },
-  { label: t("gasReclaimed"), value: `${gasReclaimed.value} GAS` },
-  { label: t("history"), value: history.value.length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "totalDestroyed", value: () => totalDestroyed.value },
+  { labelKey: "gasReclaimed", value: () => `${gasReclaimed.value} GAS` },
+  { labelKey: "history", value: () => history.value.length },
 ]);
 
 onUnmounted(() => {

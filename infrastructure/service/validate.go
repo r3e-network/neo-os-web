@@ -15,6 +15,23 @@ func ValidateMarble(m *marble.Marble, serviceID string) error {
 	return nil
 }
 
+// NewBaseService validates the marble instance and creates a new BaseService in one step.
+// This eliminates the repeated validate+create boilerplate in every service constructor.
+func NewBaseService(cfg *BaseConfig) (*BaseService, error) {
+	id := ""
+	if cfg != nil {
+		id = cfg.ID
+	}
+	var m *marble.Marble
+	if cfg != nil {
+		m = cfg.Marble
+	}
+	if err := ValidateMarble(m, id); err != nil {
+		return nil, err
+	}
+	return NewBase(cfg), nil
+}
+
 // IsStrict returns true if running in strict identity or enclave mode.
 func IsStrict(m *marble.Marble) bool {
 	return runtime.StrictIdentityMode() || m.IsEnclave()

@@ -53,7 +53,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary, NeoStats } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import ProofCreateForm from "./components/ProofCreateForm.vue";
 import ProofList from "./components/ProofList.vue";
 import ProofVerify from "./components/ProofVerify.vue";
@@ -70,10 +70,10 @@ const templateConfig = createTemplateConfig({
 
 const appState = computed(() => ({}));
 
-const sidebarItems = computed(() => [
-  { label: t("totalProofs"), value: proofs.value.length },
-  { label: t("yourProofs"), value: myProofsCount.value },
-  { label: t("latestId"), value: proofs.value.length > 0 ? `#${proofs.value[0].id}` : "—" },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "totalProofs", value: () => proofs.value.length },
+  { labelKey: "yourProofs", value: () => myProofsCount.value },
+  { labelKey: "latestId", value: () => (proofs.value.length > 0 ? `#${proofs.value[0].id}` : "—") },
 ]);
 
 const activeTab = ref("proofs");

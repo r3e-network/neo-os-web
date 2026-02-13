@@ -101,7 +101,7 @@ import StatsGrid from "./components/StatsGrid.vue";
 import AgentsTab from "./components/AgentsTab.vue";
 import HistoryTab from "./components/HistoryTab.vue";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { useTrustAnchor } from "./composables/useTrustAnchor";
 
@@ -150,11 +150,11 @@ const appState = computed(() => ({
 
 const formatNum = (n: number | string) => formatNumber(n, 2);
 
-const sidebarItems = computed(() => [
-  { label: t("stake"), value: `${formatNum(myStake.value)} NEO` },
-  { label: t("claim"), value: `${formatNum(pendingRewards.value)} GAS` },
-  { label: t("totalStaked"), value: `${formatNum(stats.value?.totalStaked ?? 0)} NEO` },
-  { label: t("delegatorsLabel"), value: stats.value?.totalDelegators ?? 0 },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "stake", value: () => `${formatNum(myStake.value)} NEO` },
+  { labelKey: "claim", value: () => `${formatNum(pendingRewards.value)} GAS` },
+  { labelKey: "totalStaked", value: () => `${formatNum(stats.value?.totalStaked ?? 0)} NEO` },
+  { labelKey: "delegatorsLabel", value: () => stats.value?.totalDelegators ?? 0 },
 ]);
 
 const handleStake = async () => {

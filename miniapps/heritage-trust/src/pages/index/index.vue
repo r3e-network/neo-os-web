@@ -64,7 +64,7 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import { useHeritageTrusts } from "@/composables/useHeritageTrusts";
 import { useHeritageBeneficiaries } from "@/composables/useHeritageBeneficiaries";
@@ -91,10 +91,10 @@ const appState = computed(() => ({
   beneficiaryTrusts: myBeneficiaryTrusts.value.length,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("createdTrusts"), value: myCreatedTrusts.value.length },
-  { label: t("sidebarBeneficiary"), value: myBeneficiaryTrusts.value.length },
-  { label: t("sidebarActive"), value: myCreatedTrusts.value.filter((tr) => tr.active !== false).length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "createdTrusts", value: () => myCreatedTrusts.value.length },
+  { labelKey: "sidebarBeneficiary", value: () => myBeneficiaryTrusts.value.length },
+  { labelKey: "sidebarActive", value: () => myCreatedTrusts.value.filter((tr) => tr.active !== false).length },
 ]);
 
 const {

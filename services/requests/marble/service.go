@@ -127,9 +127,15 @@ type Service struct {
 }
 
 // New creates a new NeoRequests service.
-// New creates a new NeoRequests service.
 func New(cfg Config) (*Service, error) {
-	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+	base, err := commonservice.NewBaseService(&commonservice.BaseConfig{
+		ID:      ServiceID,
+		Name:    ServiceName,
+		Version: Version,
+		Marble:  cfg.Marble,
+		DB:      cfg.DB,
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -224,14 +230,6 @@ func New(cfg Config) (*Service, error) {
 		// We will register this limited context. Functional components might be missing.
 		chainContexts[defaultID] = ctx
 	}
-
-	base := commonservice.NewBase(&commonservice.BaseConfig{
-		ID:      ServiceID,
-		Name:    ServiceName,
-		Version: Version,
-		Marble:  cfg.Marble,
-		DB:      cfg.DB,
-	})
 
 	repo := cfg.RequestsRepo
 	if repo == nil {

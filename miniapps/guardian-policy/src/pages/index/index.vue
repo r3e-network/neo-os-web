@@ -57,7 +57,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useGuardianPolicyContract } from "@/composables/useGuardianPolicyContract";
 
 import PoliciesList from "./components/PoliciesList.vue";
@@ -93,10 +93,10 @@ const appState = computed(() => ({
   claimedPolicies: gp.stats.value.claimedPolicies,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("sidebarPolicies"), value: gp.stats.value.totalPolicies },
-  { label: t("sidebarActive"), value: gp.stats.value.activePolicies },
-  { label: t("sidebarClaimed"), value: gp.stats.value.claimedPolicies },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarPolicies", value: () => gp.stats.value.totalPolicies },
+  { labelKey: "sidebarActive", value: () => gp.stats.value.activePolicies },
+  { labelKey: "sidebarClaimed", value: () => gp.stats.value.claimedPolicies },
 ]);
 
 const { handleBoundaryError } = useHandleBoundaryError("guardian-policy");

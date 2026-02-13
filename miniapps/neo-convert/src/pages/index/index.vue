@@ -71,7 +71,7 @@ import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryErr
 import AccountGenerator from "./components/AccountGenerator.vue";
 import ConverterTool from "./components/ConverterTool.vue";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 
 const { isMobile } = useResponsive();
@@ -93,9 +93,9 @@ const appState = computed(() => ({
   activeTab: activeTab.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("sidebarActiveTab"), value: activeTab.value },
-  { label: t("sidebarMode"), value: isMobile.value ? t("sidebarMobile") : t("sidebarDesktop") },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "sidebarActiveTab", value: () => activeTab.value },
+  { labelKey: "sidebarMode", value: () => (isMobile.value ? t("sidebarMobile") : t("sidebarDesktop")) },
 ]);
 
 const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("neo-convert");

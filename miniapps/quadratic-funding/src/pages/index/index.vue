@@ -146,7 +146,7 @@ import { useQuadraticContributions } from "@/composables/useQuadraticContributio
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
 import { formatAddress } from "@shared/utils/format";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import RoundForm from "./components/RoundForm.vue";
 import RoundList from "./components/RoundList.vue";
 import RoundAdminPanel from "./components/RoundAdminPanel.vue";
@@ -171,13 +171,13 @@ const appState = computed(() => ({
   selectedRoundId: selectedRoundId.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("tabRounds"), value: rounds.value.length },
-  { label: t("tabProjects"), value: projects.value.length },
-  { label: t("sidebarSelectedRound"), value: selectedRoundId.value ?? "—" },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "tabRounds", value: () => rounds.value.length },
+  { labelKey: "tabProjects", value: () => projects.value.length },
+  { labelKey: "sidebarSelectedRound", value: () => selectedRoundId.value ?? "—" },
   {
-    label: t("sidebarMatchingPool"),
-    value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—",
+    labelKey: "sidebarMatchingPool",
+    value: () => (selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—"),
   },
 ]);
 

@@ -13,18 +13,18 @@
 
     <template #content>
       <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
-      <VaultList
-        :t="t"
-        :title="t('myVaults')"
-        :empty-text="t('noRecentVaults')"
-        :vaults="myVaults"
-        @select="breaker.selectVault"
-      />
+        <VaultList
+          :t="t"
+          :title="t('myVaults')"
+          :empty-text="t('noRecentVaults')"
+          :vaults="myVaults"
+          @select="breaker.selectVault"
+        />
 
-      <NeoCard v-if="createdVaultId" variant="erobo" class="vault-created">
-        <text class="vault-created-label">{{ t("vaultCreated") }}</text>
-        <text class="vault-created-id">#{{ createdVaultId }}</text>
-      </NeoCard>
+        <NeoCard v-if="createdVaultId" variant="erobo" class="vault-created">
+          <text class="vault-created-label">{{ t("vaultCreated") }}</text>
+          <text class="vault-created-id">#{{ createdVaultId }}</text>
+        </NeoCard>
       </ErrorBoundary>
     </template>
 
@@ -103,7 +103,7 @@ import { MiniAppTemplate, NeoButton, NeoInput, NeoCard, SidebarPanel, ErrorBound
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useVaultBreaker } from "@/composables/useVaultBreaker";
 import VaultCreate from "./components/VaultCreate.vue";
 import VaultList from "./components/VaultList.vue";
@@ -130,11 +130,11 @@ const templateConfig = createTemplateConfig({
 
 const appState = computed(() => ({}));
 
-const sidebarItems = computed(() => [
-  { label: t("create"), value: myVaults.value.length },
-  { label: t("break"), value: breaker.recentVaults.value.length },
-  { label: t("sidebarDifficulty"), value: vaultDifficulty.value },
-  { label: t("sidebarAttemptFee"), value: `${breaker.attemptFeeDisplay.value} GAS` },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "create", value: () => myVaults.value.length },
+  { labelKey: "break", value: () => breaker.recentVaults.value.length },
+  { labelKey: "sidebarDifficulty", value: () => vaultDifficulty.value },
+  { labelKey: "sidebarAttemptFee", value: () => `${breaker.attemptFeeDisplay.value} GAS` },
 ]);
 
 const activeTab = ref("create");

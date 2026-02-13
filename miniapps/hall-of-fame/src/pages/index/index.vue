@@ -16,41 +16,33 @@
       <template #content>
         <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <!-- Category Tabs -->
-          <CategoryTabs
-          :categories="categories"
-          :active-category="activeCategory"
-          @select="setCategory"
-        />
+          <CategoryTabs :categories="categories" :active-category="activeCategory" @select="setCategory" />
 
-        <!-- Leaderboard List -->
-        <view class="leaderboard-list">
-          <EntrantCard
-            v-for="(entrant, index) in leaderboard"
-            :key="entrant.id"
-            :entrant="entrant"
-            :rank="index + 1"
-            :top-score="topScore"
-            :voting-id="votingId"
-            :boost-label="t('boost')"
-            @vote="handleVote"
+          <!-- Leaderboard List -->
+          <view class="leaderboard-list">
+            <EntrantCard
+              v-for="(entrant, index) in leaderboard"
+              :key="entrant.id"
+              :entrant="entrant"
+              :rank="index + 1"
+              :top-score="topScore"
+              :voting-id="votingId"
+              :boost-label="t('boost')"
+              @vote="handleVote"
+            />
+          </view>
+
+          <EmptyState
+            v-if="!isLoading && leaderboard.length === 0"
+            :title="fetchError ? t('leaderboardUnavailable') : t('leaderboardEmpty')"
+            :subtitle="fetchError ? t('tryAgain') : undefined"
           />
-        </view>
-
-        <EmptyState
-          v-if="!isLoading && leaderboard.length === 0"
-          :title="fetchError ? t('leaderboardUnavailable') : t('leaderboardEmpty')"
-          :subtitle="fetchError ? t('tryAgain') : undefined"
-        />
         </ErrorBoundary>
       </template>
 
       <template #operation>
         <!-- Period Filter -->
-        <PeriodFilter
-          :periods="periods"
-          :active-period="activePeriod"
-          @select="setPeriod"
-        />
+        <PeriodFilter :periods="periods" :active-period="activePeriod" @select="setPeriod" />
       </template>
     </MiniAppTemplate>
   </view>
@@ -69,7 +61,7 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { formatNumber } from "@shared/utils/format";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import CategoryTabs from "./components/CategoryTabs.vue";
 import PeriodFilter from "./components/PeriodFilter.vue";
@@ -95,9 +87,7 @@ interface Entrant {
 const activeTab = ref("main");
 
 const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "main", labelKey: "tabLeaderboard", icon: "📋", default: true },
-  ],
+  tabs: [{ key: "main", labelKey: "tabLeaderboard", icon: "📋", default: true }],
   fireworks: true,
 });
 
@@ -106,11 +96,11 @@ const appState = computed(() => ({
   activeCategory: activeCategory.value,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("catPeople"), value: entrants.value.filter((e) => e.category === "people").length },
-  { label: t("catCommunity"), value: entrants.value.filter((e) => e.category === "community").length },
-  { label: t("catDeveloper"), value: entrants.value.filter((e) => e.category === "developer").length },
-  { label: t("topScore"), value: topScore.value ? formatNumber(topScore.value, 0) : "—" },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "catPeople", value: () => entrants.value.filter((e) => e.category === "people").length },
+  { labelKey: "catCommunity", value: () => entrants.value.filter((e) => e.category === "community").length },
+  { labelKey: "catDeveloper", value: () => entrants.value.filter((e) => e.category === "developer").length },
+  { labelKey: "topScore", value: () => (topScore.value ? formatNumber(topScore.value, 0) : "—") },
 ]);
 
 const categories = computed(() => [
@@ -183,7 +173,6 @@ function setPeriod(id: string) {
   activePeriod.value = id as Period;
   fetchLeaderboard();
 }
-
 
 async function handleVote(entrant: Entrant) {
   if (votingId.value) return;

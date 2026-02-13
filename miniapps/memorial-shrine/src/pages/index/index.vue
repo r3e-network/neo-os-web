@@ -91,7 +91,7 @@ import { messages } from "@/locale/messages";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import TombstoneCard from "./components/TombstoneCard.vue";
 import CreateMemorialForm from "./components/CreateMemorialForm.vue";
 import MemorialDetailModal from "./components/MemorialDetailModal.vue";
@@ -133,10 +133,10 @@ const appState = computed(() => ({
   visitedCount: visitedMemorials.value.length,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("memorials"), value: memorials.value.length },
-  { label: t("myTributes"), value: visitedMemorials.value.length },
-  { label: t("sidebarObituaries"), value: recentObituaries.value.length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "memorials", value: () => memorials.value.length },
+  { labelKey: "myTributes", value: () => visitedMemorials.value.length },
+  { labelKey: "sidebarObituaries", value: () => recentObituaries.value.length },
 ]);
 
 const activeTab = ref("memorials");

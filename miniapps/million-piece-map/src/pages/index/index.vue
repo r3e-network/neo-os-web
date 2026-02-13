@@ -53,7 +53,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useMapTiles } from "@/composables/useMapTiles";
 import { useMapInteractions } from "@/composables/useMapInteractions";
 import MapGrid from "./components/MapGrid.vue";
@@ -63,9 +63,7 @@ const { t } = createUseI18n(messages)();
 const { address } = useWallet() as WalletSDK;
 
 const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "main", labelKey: "map", icon: "🗺️", default: true },
-  ],
+  tabs: [{ key: "main", labelKey: "map", icon: "🗺️", default: true }],
   fireworks: true,
 });
 const activeTab = ref("main");
@@ -98,11 +96,11 @@ const { isPurchasing, zoomLevel, status, zoomIn, zoomOut, purchaseTile } = useMa
   loadTiles
 );
 
-const sidebarItems = computed(() => [
-  { label: t("tilesOwned"), value: ownedTiles.value },
-  { label: t("mapControl"), value: `${coverage.value}%` },
-  { label: t("gasSpent"), value: `${formatNum(totalSpent.value)} GAS` },
-  { label: t("sidebarTilePrice"), value: `${TILE_PRICE} GAS` },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "tilesOwned", value: () => ownedTiles.value },
+  { labelKey: "mapControl", value: () => `${coverage.value}%` },
+  { labelKey: "gasSpent", value: () => `${formatNum(totalSpent.value)} GAS` },
+  { labelKey: "sidebarTilePrice", value: () => `${TILE_PRICE} GAS` },
 ]);
 
 const mapStats = computed(() => [

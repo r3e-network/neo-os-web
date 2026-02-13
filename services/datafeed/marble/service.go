@@ -105,30 +105,25 @@ type Config struct {
 
 // New creates a new NeoFeeds service.
 func New(cfg Config) (*Service, error) {
-	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
-		return nil, err
-	}
-
-	strict := commonservice.IsStrict(cfg.Marble)
-
-	requiredSecrets := []string(nil)
-	if strict {
-		requiredSecrets = []string{"NEOFEEDS_SIGNING_KEY"}
-	}
-
-	base := commonservice.NewBase(&commonservice.BaseConfig{
+	base, err := commonservice.NewBaseService(&commonservice.BaseConfig{
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
 		Marble:  cfg.Marble,
 		DB:      cfg.DB,
-		// Signing key must be stable in production/enclave mode for verification.
-		RequiredSecrets: requiredSecrets,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	strict := commonservice.IsStrict(cfg.Marble)
+	if strict {
+		// Signing key must be stable in production/enclave mode for verification.
+		base.AddRequiredSecrets("NEOFEEDS_SIGNING_KEY")
+	}
 
 	// Load configuration
 	var feedsConfig *NeoFeedsConfig
-	var err error
 
 	switch {
 	case cfg.FeedsConfig != nil:

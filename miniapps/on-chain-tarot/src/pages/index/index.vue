@@ -66,7 +66,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
@@ -87,10 +87,10 @@ const appState = computed(() => ({
   readingsCount: readingsCount.value,
   hasDrawn: hasDrawn.value,
 }));
-const sidebarItems = computed(() => [
-  { label: t("readings"), value: readingsCount.value },
-  { label: t("cardsDrawn"), value: drawn.value.length },
-  { label: t("allRevealed"), value: allFlipped.value ? t("yes") : t("no") },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "readings", value: () => readingsCount.value },
+  { labelKey: "cardsDrawn", value: () => drawn.value.length },
+  { labelKey: "allRevealed", value: () => (allFlipped.value ? t("yes") : t("no")) },
 ]);
 
 const APP_ID = "miniapp-onchaintarot";

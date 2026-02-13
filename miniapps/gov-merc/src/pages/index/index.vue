@@ -90,7 +90,7 @@ import {
   ErrorBoundary,
 } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useGovMercPool } from "@/composables/useGovMercPool";
 
 const { t } = createUseI18n(messages)();
@@ -133,11 +133,11 @@ const appState = computed(() => ({
 
 const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("gov-merc");
 
-const sidebarItems = computed(() => [
-  { label: t("totalPool"), value: `${formatNum(totalPool.value, 0)} NEO` },
-  { label: t("currentEpoch"), value: currentEpoch.value },
-  { label: t("yourDeposits"), value: `${formatNum(userDeposits.value, 0)} NEO` },
-  { label: t("activeBids"), value: bids.value.length },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "totalPool", value: () => `${formatNum(totalPool.value, 0)} NEO` },
+  { labelKey: "currentEpoch", value: () => currentEpoch.value },
+  { labelKey: "yourDeposits", value: () => `${formatNum(userDeposits.value, 0)} NEO` },
+  { labelKey: "activeBids", value: () => bids.value.length },
 ]);
 </script>
 

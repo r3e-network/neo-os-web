@@ -55,7 +55,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import CapsuleCreate from "./components/CapsuleCreate.vue";
 import RewardClaim from "./components/RewardClaim.vue";
 import CapsuleDetails from "./components/CapsuleDetails.vue";
@@ -81,10 +81,10 @@ const appState = computed(() => ({
   totalAccrued: stats.value.totalAccrued,
 }));
 
-const sidebarItems = computed(() => [
-  { label: t("totalCapsules"), value: stats.value.totalCapsules },
-  { label: t("totalLocked"), value: `${fmt(stats.value.totalLocked, 0)} NEO` },
-  { label: t("totalAccrued"), value: `${fmt(stats.value.totalAccrued, 4)} GAS` },
+const sidebarItems = createSidebarItems(t, [
+  { labelKey: "totalCapsules", value: () => stats.value.totalCapsules },
+  { labelKey: "totalLocked", value: () => `${fmt(stats.value.totalLocked, 0)} NEO` },
+  { labelKey: "totalAccrued", value: () => `${fmt(stats.value.totalAccrued, 4)} GAS` },
 ]);
 
 const capsuleStats = computed(() => [
