@@ -71,7 +71,7 @@ func New(cfg Config) (*Service, error) {
 		return nil, fmt.Errorf("neosimulation: invalid marble type")
 	}
 
-	strict := runtime.StrictIdentityMode() || marble.IsEnclave()
+	strict := commonservice.IsStrict(marble)
 
 	if strict && cfg.ChainClient == nil {
 		return nil, fmt.Errorf("neosimulation: chain client is required in strict/enclave mode")

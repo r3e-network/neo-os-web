@@ -1,18 +1,6 @@
 <script setup lang="ts">
-import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
-import { onMounted } from "vue";
-import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
-
-onLaunch(() => {});
-
-onShow(() => {});
-
-onHide(() => {});
-
-onMounted(() => {
-  initTheme();
-  listenForThemeChanges();
-});
+import { useAppInit } from "@shared/composables/useAppInit";
+useAppInit();
 </script>
 
 <style lang="scss">
@@ -22,3 +10,4 @@ page {
   height: 100%;
 }
 </style>
+

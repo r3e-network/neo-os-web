@@ -43,11 +43,11 @@ type Config struct {
 
 // New creates a new NeoVRF service.
 func New(cfg Config) (*Service, error) {
-	if cfg.Marble == nil {
-		return nil, fmt.Errorf("neovrf: marble is required")
+	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+		return nil, err
 	}
 
-	strict := runtime.StrictIdentityMode() || cfg.Marble.IsEnclave()
+	strict := commonservice.IsStrict(cfg.Marble)
 
 	requiredSecrets := []string(nil)
 	if strict {

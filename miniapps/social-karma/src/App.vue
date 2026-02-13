@@ -1,12 +1,6 @@
-<template>
-  <view class="app-container">
-    <router-view />
-  </view>
-</template>
-
 <script setup lang="ts">
-import { onLaunch } from "@dcloudio/uni-app";
-onLaunch(() => {});
+import { useAppInit } from "@shared/composables/useAppInit";
+useAppInit();
 </script>
 
 <style lang="scss">
@@ -20,3 +14,4 @@ page {
   height: 100vh;
 }
 </style>
+

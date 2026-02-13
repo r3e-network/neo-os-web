@@ -130,12 +130,12 @@ type Service struct {
 // New creates a new NeoRequests service.
 // New creates a new NeoRequests service.
 func New(cfg Config) (*Service, error) {
-	if cfg.Marble == nil {
-		return nil, fmt.Errorf("neorequests: marble is required")
+	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+		return nil, err
 	}
 
 	chainContexts := make(map[string]*ChainContext)
-	strict := runtime.StrictIdentityMode() || cfg.Marble.IsEnclave()
+	strict := commonservice.IsStrict(cfg.Marble)
 
 	// Initialize chains from config if provided
 	for _, chainCfg := range cfg.Chains {

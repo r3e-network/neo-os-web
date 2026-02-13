@@ -8,7 +8,6 @@ import (
 
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/httputil"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
-	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/runtime"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/secrets"
 	commonservice "github.com/R3E-Network/neo-miniapps-platform/infrastructure/service"
 )
@@ -39,6 +38,10 @@ type Config struct {
 
 // New creates a new NeoOracle service.
 func New(cfg Config) (*Service, error) {
+	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+		return nil, err
+	}
+
 	base := commonservice.NewBase(&commonservice.BaseConfig{
 		ID:      ServiceID,
 		Name:    ServiceName,
@@ -46,7 +49,7 @@ func New(cfg Config) (*Service, error) {
 		Marble:  cfg.Marble,
 	})
 
-	strict := runtime.StrictIdentityMode() || (cfg.Marble != nil && cfg.Marble.IsEnclave())
+	strict := commonservice.IsStrict(cfg.Marble)
 	if strict {
 		validAllowlistEntries := 0
 		for _, raw := range cfg.URLAllowlist.Prefixes {
@@ -72,13 +75,7 @@ func New(cfg Config) (*Service, error) {
 	s := &Service{
 		BaseService:    base,
 		secretProvider: cfg.SecretProvider,
-		httpClient: func() *http.Client {
-			client := &http.Client{Timeout: timeout}
-			if cfg.Marble != nil {
-				client = httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), timeout, true)
-			}
-			return client
-		}(),
+		httpClient:     httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), timeout, true),
 		maxBodyBytes: maxBytes,
 		allowlist:    cfg.URLAllowlist,
 	}

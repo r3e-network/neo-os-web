@@ -26,3 +26,4 @@ export { useResponsive } from "./useResponsive";
 export { useAllEvents } from "./useAllEvents";
 export { useStatusMessage } from "./useStatusMessage";
 export type { StatusMessage, StatusType } from "./useStatusMessage";
+export { useAppInit } from "./useAppInit";

@@ -116,15 +116,15 @@ type Config struct {
 
 // New creates a new NeoGasBank service.
 func New(cfg Config) (*Service, error) {
-	if cfg.Marble == nil {
-		return nil, fmt.Errorf("neogasbank: marble is required")
+	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+		return nil, err
 	}
 
-	strict := runtime.StrictIdentityMode() || cfg.Marble.IsEnclave()
+	strict := commonservice.IsStrict(cfg.Marble)
 	requireDepositAddress := runtime.IsProduction() || strict
 
-	if strict && cfg.ChainClient == nil {
-		return nil, fmt.Errorf("neogasbank: chain client is required in strict/enclave mode")
+	if err := commonservice.RequireInStrict(cfg.Marble, cfg.ChainClient != nil, ServiceID, "chain client"); err != nil {
+		return nil, err
 	}
 
 	base := commonservice.NewBase(&commonservice.BaseConfig{

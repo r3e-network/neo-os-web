@@ -14,6 +14,9 @@
 import { onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
+import { useAppInit } from "@shared/composables/useAppInit";
+
+useAppInit();
 
 const { chainType, switchToAppChain } = useWallet() as WalletSDK;
 

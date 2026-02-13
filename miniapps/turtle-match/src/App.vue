@@ -1,17 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
-import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
-
-let cleanupTheme: (() => void) | undefined;
-
-onMounted(() => {
-  initTheme();
-  cleanupTheme = listenForThemeChanges();
-});
-
-onUnmounted(() => {
-  cleanupTheme?.();
-});
+import { useAppInit } from "@shared/composables/useAppInit";
+useAppInit();
 </script>
 
 <style lang="scss">
@@ -22,3 +11,4 @@ page {
   height: 100%;
 }
 </style>
+

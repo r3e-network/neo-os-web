@@ -92,11 +92,11 @@ type Config struct {
 
 // New creates a new NeoCompute service.
 func New(cfg Config) (*Service, error) {
-	if cfg.Marble == nil {
-		return nil, fmt.Errorf("neocompute: marble is required")
+	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+		return nil, err
 	}
 
-	strict := runtime.StrictIdentityMode() || cfg.Marble.IsEnclave()
+	strict := commonservice.IsStrict(cfg.Marble)
 
 	requiredSecrets := []string(nil)
 	if strict {

@@ -1,7 +1,6 @@
 package txproxy
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -61,11 +60,9 @@ type Config struct {
 const defaultGASContractAddress = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 
 func New(cfg Config) (*Service, error) {
-	if cfg.Marble == nil {
-		return nil, fmt.Errorf("txproxy: marble is required")
+	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+		return nil, err
 	}
-
-	strict := runtime.StrictIdentityMode() || cfg.Marble.IsEnclave()
 
 	allowlist := cfg.Allowlist
 	if allowlist == nil {
@@ -91,13 +88,11 @@ func New(cfg Config) (*Service, error) {
 	paymentHubAddress := runtime.ResolveString(cfg.PaymentHubAddress, "", strings.TrimSpace(contracts.PaymentHub))
 	governanceAddress := runtime.ResolveString(cfg.GovernanceAddress, "", strings.TrimSpace(contracts.Governance))
 
-	if strict {
-		if cfg.ChainClient == nil {
-			return nil, fmt.Errorf("txproxy: chain client is required in strict/enclave mode")
-		}
-		if cfg.Signer == nil {
-			return nil, fmt.Errorf("txproxy: signer is required in strict/enclave mode")
-		}
+	if err := commonservice.RequireInStrict(cfg.Marble, cfg.ChainClient != nil, ServiceID, "chain client"); err != nil {
+		return nil, err
+	}
+	if err := commonservice.RequireInStrict(cfg.Marble, cfg.Signer != nil, ServiceID, "signer"); err != nil {
+		return nil, err
 	}
 
 	replayWindow := runtime.ResolveDuration(cfg.ReplayWindow, "", 1*time.Hour)

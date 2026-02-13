@@ -5,24 +5,10 @@
 </template>
 
 <script setup lang="ts">
-import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
-import { onMounted } from "vue";
-import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
+import { useAppInit } from "@shared/composables/useAppInit";
 import { useResponsive } from "@shared/composables/useResponsive";
-
+useAppInit();
 const { containerClasses } = useResponsive();
-
-// Lifecycle hooks
-onLaunch(() => {});
-
-onShow(() => {});
-
-onHide(() => {});
-
-onMounted(() => {
-  initTheme();
-  listenForThemeChanges();
-});
 </script>
 
 <style lang="scss">
@@ -45,3 +31,4 @@ page {
 @include resp.app-reduced-motion;
 @include resp.app-retina;
 </style>
+

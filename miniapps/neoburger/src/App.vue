@@ -1,27 +1,14 @@
 <template>
-  <view class="app-container" :class="{ 'is-desktop': isDesktop, 'is-mobile': isMobile, 'is-tablet': isTablet }">
+  <view class="app-container" :class="containerClasses">
     <router-view />
   </view>
 </template>
 
 <script setup lang="ts">
-import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
-import { onMounted } from "vue";
-import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
+import { useAppInit } from "@shared/composables/useAppInit";
 import { useResponsive } from "@shared/composables/useResponsive";
-
-const { isMobile, isTablet, isDesktop } = useResponsive();
-
-onLaunch(() => {});
-
-onShow(() => {});
-
-onHide(() => {});
-
-onMounted(() => {
-  initTheme();
-  listenForThemeChanges();
-});
+useAppInit();
+const { containerClasses } = useResponsive();
 </script>
 
 <style lang="scss">
@@ -42,3 +29,4 @@ page {
 @include resp.app-responsive-b;
 @include resp.app-orientation-b;
 </style>
+

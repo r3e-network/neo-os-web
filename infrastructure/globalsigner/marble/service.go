@@ -98,6 +98,10 @@ const (
 
 // New creates a new GlobalSigner service.
 func New(cfg Config) (*Service, error) {
+	if err := commonservice.ValidateMarble(cfg.Marble, ServiceID); err != nil {
+		return nil, err
+	}
+
 	if cfg.RotationConfig == nil {
 		cfg.RotationConfig = DefaultRotationConfig()
 	}
@@ -137,7 +141,7 @@ func New(cfg Config) (*Service, error) {
 		signRawAllowlist = parseServiceIDAllowlist(splitAndTrimCSV(strings.TrimSpace(os.Getenv(envSignRawAllowlist))))
 	}
 
-	requireQuote := cfg.Marble != nil && cfg.Marble.IsEnclave()
+	requireQuote := cfg.Marble.IsEnclave()
 	if raw := strings.TrimSpace(os.Getenv(envRequireQuote)); raw != "" {
 		if parsed, err := strconv.ParseBool(raw); err == nil {
 			requireQuote = parsed
@@ -160,7 +164,7 @@ func New(cfg Config) (*Service, error) {
 		startTime:        time.Now(),
 	}
 
-	strict := runtime.StrictIdentityMode() || (cfg.Marble != nil && cfg.Marble.IsEnclave())
+	strict := commonservice.IsStrict(cfg.Marble)
 	// SECURITY: In strict/enclave mode, require explicit allowlists
 	if strict && len(s.domainAllowlist) == 0 {
 		return nil, fmt.Errorf("globalsigner: GLOBALSIGNER_DOMAIN_ALLOWLIST is required in strict/enclave mode")
