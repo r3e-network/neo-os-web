@@ -15,7 +15,7 @@ async function runMigration() {
   require("dotenv").config();
 
   // Try pooler endpoint first (has IPv4), fallback to direct connection
-  const projectRef = "dmonstzalbldzzdbbcdj";
+  const projectRef = process.env.SUPABASE_PROJECT_REF || "dmonstzalbldzzdbbcdj";
   const usePooler = process.env.USE_POOLER === "true";
 
   const client = new Client({
