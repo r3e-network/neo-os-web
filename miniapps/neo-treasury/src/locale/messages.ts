@@ -33,5 +33,12 @@ export const messages = {
   step4: { en: "Track fund allocations", zh: "追踪资金分配" },
   tabTotal: { en: "Total", zh: "总计" },
   tabDa: { en: "DA", zh: "开发" },
-  tabErik: { en: "Erik", zh: "社区" }
+  tabErik: { en: "Erik", zh: "社区" },
+  sidebarTotalUsd: { en: "Total USD", zh: "总美元" },
+  sidebarTotalNeo: { en: "Total NEO", zh: "总 NEO" },
+  sidebarTotalGas: { en: "Total GAS", zh: "总 GAS" },
+  sidebarFounders: { en: "Founders", zh: "创始人" },
+  treasuryInfo: { en: "Treasury Info", zh: "国库信息" },
+  refreshData: { en: "Refresh Data", zh: "刷新数据" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

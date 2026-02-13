@@ -161,5 +161,9 @@ export const messages = {
   wrongChain: { en: "Wrong Network", zh: "网络错误" },
   wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
   switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
+  sidebarTotalTxs: { en: "Total Txs", zh: "总交易数" },
+  sidebarNoActivity: { en: "No Activity Yet", zh: "暂无活动" },
+  sidebarTotalTxsLabel: { en: "Total Txs", zh: "总交易数" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
   error: { en: "Error", zh: "错误" }
 };

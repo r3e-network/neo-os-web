@@ -95,4 +95,8 @@ export const messages = {
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+    sidebarPolicies: { en: "Policies", zh: "保单" },
+    sidebarActive: { en: "Active", zh: "活跃" },
+    sidebarClaimed: { en: "Claimed", zh: "已理赔" },
+    errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

@@ -206,4 +206,5 @@ export const messages = {
   wpCancel: { en: "Cancel", zh: "取消" },
   docBadge: { en: "Documentation", zh: "文档" },
   docFooter: { en: "NeoHub MiniApp Protocol v2.4.0", zh: "NeoHub MiniApp Protocol v2.4.0" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

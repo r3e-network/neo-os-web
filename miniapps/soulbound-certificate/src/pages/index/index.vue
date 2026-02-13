@@ -12,10 +12,7 @@
       </template>
 
       <template #content>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
-
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <TemplateList
           :templates="templates"
           :refreshing="isRefreshing"
@@ -26,6 +23,7 @@
           @issue="openIssueModal"
           @toggle="toggleTemplate"
         />
+        </ErrorBoundary>
       </template>
 
       <template #operation>
@@ -33,10 +31,6 @@
       </template>
 
       <template #tab-certificates>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="text-center">
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
-
         <CertificateGallery
           :certificates="certificates"
           :cert-qrs="certQrs"
@@ -49,10 +43,6 @@
       </template>
 
       <template #tab-verify>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="text-center">
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
-
         <VerifyCertificate
           :looking-up="isLookingUp"
           :revoking="isRevoking"
@@ -76,7 +66,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useCertificateActions } from "@/composables/useCertificateActions";
@@ -139,8 +129,19 @@ const appState = computed(() => ({
 const sidebarItems = computed(() => [
   { label: t("templatesTab"), value: templates.value.length },
   { label: t("certificatesTab"), value: certificates.value.length },
-  { label: "Active", value: templates.value.filter((tpl) => tpl.active).length },
+  { label: t("sidebarActive"), value: templates.value.filter((tpl) => tpl.active).length },
 ]);
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[soulbound-certificate] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await connect();
+  if (address.value) {
+    await refreshTemplates();
+    await refreshCertificates();
+  }
+};
 
 const openIssueModal = (template: { id: string }) => {
   issueTemplateId.value = template.id;
@@ -190,12 +191,5 @@ watch(address, async (newAddr) => {
 :global(page) {
   background: linear-gradient(135deg, var(--soul-bg-start) 0%, var(--soul-bg-end) 100%);
   color: var(--soul-text);
-}
-
-.tab-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 </style>

@@ -220,5 +220,11 @@ export const messages = {
     wrongChain: { en: "Wrong Network", zh: "网络错误" },
     wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
     switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
+    sidebarActiveTab: { en: "Active Tab", zh: "当前标签" },
+    sidebarMode: { en: "Mode", zh: "模式" },
+    sidebarMobile: { en: "Mobile", zh: "移动端" },
+    sidebarDesktop: { en: "Desktop", zh: "桌面端" },
+    quickTools: { en: "Quick Tools", zh: "快捷工具" },
+    errorFallback: { en: "Something went wrong", zh: "出现错误" },
     error: { en: "Error", zh: "错误" }
 };

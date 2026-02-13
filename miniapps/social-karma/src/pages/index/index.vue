@@ -6,19 +6,17 @@
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
-      <!-- Leaderboard Tab (default) -->
+      <!-- Leaderboard Tab (default) — LEFT panel -->
       <template #content>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <MobileKarmaSummary v-if="!isDesktop" :karma="userKarma" :rank="userRank" />
         <LeaderboardSection :leaderboard="leaderboard" :user-address="address" @refresh="loadLeaderboard" />
-        <view v-if="errorMessage" class="error-toast">
-          <text>{{ errorMessage }}</text>
-        </view>
+        </ErrorBoundary>
       </template>
 
-      <!-- Earn Tab -->
-      <template #tab-earn>
+      <!-- RIGHT panel — Earn actions -->
+      <template #operation>
         <CheckInSection
-          v-if="!isDesktop"
           :streak="checkInStreak"
           :has-checked-in="hasCheckedIn"
           :is-checking-in="isCheckingIn"
@@ -48,25 +46,22 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import LeaderboardSection, { type LeaderboardEntry } from "./components/LeaderboardSection.vue";
 import CheckInSection from "./components/CheckInSection.vue";
 import GiveKarmaForm from "./components/GiveKarmaForm.vue";
 import BadgesGrid, { type Badge } from "./components/BadgesGrid.vue";
 import AchievementsList, { type Achievement } from "./components/AchievementsList.vue";
-import SidebarKarmaCard from "./components/SidebarKarmaCard.vue";
-import SidebarQuickActions from "./components/SidebarQuickActions.vue";
 import MobileKarmaSummary from "./components/MobileKarmaSummary.vue";
 
 const { t } = useI18n();
 const APP_ID = "miniapp-social-karma";
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "custom",
+  contentType: "two-column",
   tabs: [
     { key: "leaderboard", labelKey: "leaderboard", icon: "🏆", default: true },
-    { key: "earn", labelKey: "earn", icon: "✨" },
     { key: "profile", labelKey: "profile", icon: "👤" },
     { key: "docs", labelKey: "docs", icon: "📖" },
   ],
@@ -111,16 +106,15 @@ const giveKarmaFormRef = ref<InstanceType<typeof GiveKarmaForm> | null>(null);
 
 const sidebarItems = computed(() => [
   { label: t("leaderboard"), value: `#${userRank.value || "-"}` },
-  { label: "Karma", value: userKarma.value },
-  { label: "Streak", value: checkInStreak.value },
+  { label: t("sidebarKarma"), value: userKarma.value },
+  { label: t("sidebarStreak"), value: checkInStreak.value },
   { label: t("profile"), value: userBadges.value.filter((b) => b.unlocked).length },
 ]);
 
 const isDesktop = computed(() => {
   try {
-    return window.innerWidth >= 768;
+    return window.matchMedia("(min-width: 768px)").matches;
   } catch {
-    /* SSR/non-browser environment — default to mobile layout */
     return false;
   }
 });
@@ -168,6 +162,14 @@ const computedAchievements = computed<Achievement[]>(() => [
   { id: "gifter", name: t("gifter"), progress: "0/1", percent: 0, unlocked: false },
   { id: "philanthropist", name: t("philanthropist"), progress: "0/100", percent: 0, unlocked: false },
 ]);
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[social-karma] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await loadLeaderboard();
+  await loadUserState();
+};
 
 const loadLeaderboard = async () => {
   if (!(await ensureContractAddress())) return;
@@ -286,46 +288,5 @@ onMounted(async () => {
 
 :global(page) {
   background: var(--karma-bg);
-}
-
-.tab-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-}
-
-@media (min-width: 768px) {
-  .tab-content {
-    gap: 24px;
-    padding: 0;
-  }
-}
-
-.error-toast {
-  position: fixed;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 14px 24px;
-  background: var(--karma-danger);
-  color: white;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-  z-index: 3000;
-  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
-  animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(-50%) translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-  }
 }
 </style>

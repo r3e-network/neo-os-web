@@ -13,9 +13,7 @@
       </template>
 
       <template #content>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <EventList
           :t="t"
           :address="address"
@@ -27,6 +25,7 @@
           @issue="contract.openIssueModal"
           @toggle="contract.toggleEvent"
         />
+        </ErrorBoundary>
       </template>
 
       <template #operation>
@@ -76,7 +75,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -123,9 +122,9 @@ const templateConfig: MiniAppTemplateConfig = {
 const activeTab = ref("create");
 
 const sidebarItems = computed(() => [
-  { label: "Events", value: contract.events.value.length },
-  { label: "Tickets", value: contract.tickets.value.length },
-  { label: "Active", value: contract.events.value.filter((e) => e.active).length },
+  { label: t("sidebarEvents"), value: contract.events.value.length },
+  { label: t("sidebarTickets"), value: contract.tickets.value.length },
+  { label: t("sidebarActive"), value: contract.events.value.filter((e) => e.active).length },
 ]);
 
 const appState = computed(() => ({
@@ -144,6 +143,17 @@ const onTabChange = async (tab: string) => {
   }
   if (tab === "create") {
     await contract.refreshEvents();
+  }
+};
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[event-ticket-pass] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  if (address.value) {
+    await contract.refreshEvents();
+    await contract.refreshTickets();
   }
 };
 
@@ -173,11 +183,5 @@ watch(address, async (newAddr) => {
 :global(page) {
   background: linear-gradient(135deg, var(--ticket-bg-start) 0%, var(--ticket-bg-end) 100%);
   color: var(--ticket-text);
-}
-.tab-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 </style>

@@ -129,8 +129,8 @@ export function useExplorerData(t: (key: string) => string) {
   const sidebarItems = computed(() => [
     { label: t("blockHeight"), value: formatNum(stats.value.mainnet.height) },
     { label: t("transactions"), value: formatNum(stats.value.mainnet.txCount) },
-    { label: "Network", value: selectedNetwork.value },
-    { label: "Recent TXs", value: recentTxs.value.length },
+    { label: t("sidebarNetwork"), value: selectedNetwork.value },
+    { label: t("sidebarRecentTxs"), value: recentTxs.value.length },
   ]);
 
   const fetchStats = async () => {

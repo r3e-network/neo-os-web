@@ -52,4 +52,10 @@ export const messages = {
   wpCancel: { en: "Cancel", zh: "取消" },
   docBadge: { en: "Documentation", zh: "文档" },
   docFooter: { en: "NeoHub MiniApp Protocol v2.4.0", zh: "NeoHub MiniApp Protocol v2.4.0" },
+  proofStats: { en: "Proof Stats", zh: "证明统计" },
+  totalProofs: { en: "Total Proofs", zh: "总证明数" },
+  yourProofs: { en: "Your Proofs", zh: "你的证明" },
+  latestId: { en: "Latest ID", zh: "最新编号" },
+  overview: { en: "Overview", zh: "概览" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

@@ -6,8 +6,9 @@
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
+      <!-- LEFT panel: Account Generator -->
       <template #content>
-        <view class="content-area">
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <view class="hero">
             <ScrollReveal animation="fade-down" :duration="800">
               <text class="hero-icon">🛠️</text>
@@ -19,23 +20,37 @@
           <ScrollReveal animation="fade-up" :delay="200" key="gen">
             <AccountGenerator />
           </ScrollReveal>
-        </view>
+        </ErrorBoundary>
       </template>
 
       <template #tab-convert>
-        <view class="content-area">
-          <view class="hero">
-            <ScrollReveal animation="fade-down" :duration="800">
-              <text class="hero-icon">🛠️</text>
-              <text class="hero-title">{{ t("heroTitle") }}</text>
-              <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
-            </ScrollReveal>
-          </view>
-
-          <ScrollReveal animation="fade-up" :delay="200" key="conv">
-            <ConverterTool />
+        <view class="hero">
+          <ScrollReveal animation="fade-down" :duration="800">
+            <text class="hero-icon">🛠️</text>
+            <text class="hero-title">{{ t("heroTitle") }}</text>
+            <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
           </ScrollReveal>
         </view>
+
+        <ScrollReveal animation="fade-up" :delay="200" key="conv">
+          <ConverterTool />
+        </ScrollReveal>
+      </template>
+
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('quickTools')">
+          <view class="op-tools">
+            <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'generate'">
+              {{ t('tabGenerate') }}
+            </NeoButton>
+            <NeoButton size="sm" variant="secondary" class="op-btn" @click="activeTab = 'convert'">
+              {{ t('tabConvert') }}
+            </NeoButton>
+          </view>
+          <view class="op-hint">
+            <text class="op-hint-text">{{ t('heroSubtitle') }}</text>
+          </view>
+        </NeoCard>
       </template>
     </MiniAppTemplate>
   </view>
@@ -44,18 +59,18 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useResponsive } from "@shared/composables/useResponsive";
-import { MiniAppTemplate, ScrollReveal, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, ScrollReveal, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import AccountGenerator from "./components/AccountGenerator.vue";
 import ConverterTool from "./components/ConverterTool.vue";
 import { useI18n } from "@/composables/useI18n";
 
-const { isMobile, isDesktop } = useResponsive();
+const { isMobile } = useResponsive();
 
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "swap-interface",
+  contentType: "two-column",
   tabs: [
     { key: "generate", labelKey: "tabGenerate", icon: "👛", default: true },
     { key: "convert", labelKey: "tabConvert", icon: "🔄" },
@@ -84,9 +99,16 @@ const appState = computed(() => ({
 }));
 
 const sidebarItems = computed(() => [
-  { label: "Active Tab", value: activeTab.value },
-  { label: "Mode", value: isMobile.value ? "Mobile" : "Desktop" },
+  { label: t("sidebarActiveTab"), value: activeTab.value },
+  { label: t("sidebarMode"), value: isMobile.value ? t("sidebarMobile") : t("sidebarDesktop") },
 ]);
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[neo-convert] boundary error:", error);
+};
+const resetAndReload = () => {
+  /* no async data to reload */
+};
 </script>
 
 <style lang="scss" scoped>
@@ -98,11 +120,28 @@ const sidebarItems = computed(() => [
   background: var(--bg-primary);
 }
 
-.content-area {
-  padding: 16px;
-  min-height: 100%;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+.op-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.op-btn {
+  width: 100%;
+}
+
+.op-hint {
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.op-hint-text {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  line-height: 1.4;
 }
 
 .hero {
@@ -140,11 +179,7 @@ const sidebarItems = computed(() => [
   }
 }
 
-/* Mobile-specific styles */
 @media (max-width: 767px) {
-  .content-area {
-    padding: 12px;
-  }
   .hero {
     margin: 20px 0 30px;
     padding-bottom: 16px;
@@ -160,18 +195,4 @@ const sidebarItems = computed(() => [
     max-width: 100%;
   }
 }
-
-/* Desktop styles */
-@media (min-width: 1024px) {
-  .content-area {
-    padding: 24px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-  .hero-title {
-    font-size: 32px;
-  }
-}
-
-// Desktop sidebar
 </style>

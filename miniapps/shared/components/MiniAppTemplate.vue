@@ -220,11 +220,16 @@ const hasSlot = (name: string): boolean => !!slots[name];
 
 <style lang="scss" scoped>
 .tab-content {
-  padding: 20px;
+  padding: 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+
+  @media (min-width: 768px) {
+    padding: 24px;
+    gap: 20px;
+  }
 }
 
 .scrollable {
@@ -233,6 +238,10 @@ const hasSlot = (name: string): boolean => !!slots[name];
 }
 
 .template-status {
-  margin: 0 20px;
+  margin: 0 16px;
+
+  @media (min-width: 768px) {
+    margin: 0 24px;
+  }
 }
 </style>

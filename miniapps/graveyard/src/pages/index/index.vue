@@ -14,8 +14,14 @@
       </template>
 
       <template #content>
-        <StatusMessage :status="status" />
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <GraveyardHero :total-destroyed="totalDestroyed" :gas-reclaimed="gasReclaimed" :t="t" />
 
+          <HistoryTab :history="history" :forgetting-id="forgettingId" :t="t" @forget="forgetMemory" />
+        </ErrorBoundary>
+      </template>
+
+      <template #operation>
         <DestructionChamber
           v-model:assetHash="assetHash"
           v-model:memoryType="memoryType"
@@ -35,13 +41,6 @@
         />
       </template>
 
-      <template #tab-stats>
-        <GraveyardHero :total-destroyed="totalDestroyed" :gas-reclaimed="gasReclaimed" :t="t" />
-      </template>
-
-      <template #tab-history>
-        <HistoryTab :history="history" :forgetting-id="forgettingId" :t="t" @forget="forgetMemory" />
-      </template>
     </MiniAppTemplate>
   </view>
 </template>
@@ -49,13 +48,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import GraveyardHero from "./components/GraveyardHero.vue";
 import DestructionChamber from "./components/DestructionChamber.vue";
 import ConfirmDestroyModal from "./components/ConfirmDestroyModal.vue";
 import HistoryTab from "./components/HistoryTab.vue";
-import StatusMessage from "./components/StatusMessage.vue";
 import { useGraveyardActions } from "@/composables/useGraveyardActions";
 
 const { t } = useI18n();
@@ -80,12 +78,19 @@ const {
   cleanupTimers,
 } = useGraveyardActions();
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[graveyard] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await loadStats();
+  await loadHistory();
+};
+
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "market-list",
+  contentType: "two-column",
   tabs: [
-    { key: "destroy", labelKey: "destroy", icon: "🗑️", default: true },
-    { key: "stats", labelKey: "tabStats", icon: "📊" },
-    { key: "history", labelKey: "history", icon: "📜" },
+    { key: "main", labelKey: "destroy", icon: "🗑️", default: true },
     { key: "docs", labelKey: "docs", icon: "📖" },
   ],
   features: {
@@ -105,7 +110,7 @@ const templateConfig: MiniAppTemplateConfig = {
   },
 };
 
-const activeTab = ref("destroy");
+const activeTab = ref("main");
 
 const appState = computed(() => ({
   totalDestroyed: totalDestroyed.value,
@@ -143,107 +148,4 @@ watch(activeTab, async (tab) => {
   background: var(--grave-bg);
   font-family: var(--grave-font);
 }
-
-.tab-content {
-  padding: 24px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  background-color: var(--grave-bg);
-  min-height: 100vh;
-  position: relative;
-
-  /* Matrix/Grid background */
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(var(--grave-grid) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grave-grid) 1px, transparent 1px);
-    background-size: 20px 20px;
-    pointer-events: none;
-    z-index: 0;
-  }
-}
-
-
-/* Digital Afterlife Component Overrides */
-:deep(.neo-card) {
-  background: var(--grave-card-bg);
-  border: 1px solid var(--grave-card-border);
-  border-left: 4px solid var(--grave-card-accent-border);
-  border-radius: 0;
-  box-shadow: var(--grave-card-shadow);
-  color: var(--grave-text);
-  font-family: var(--grave-font);
-  position: relative;
-  z-index: 1;
-
-  &.variant-danger {
-    background: var(--grave-card-danger-bg);
-    border-color: var(--grave-danger);
-    color: var(--grave-danger);
-    text-shadow: 0 0 5px var(--grave-danger-glow);
-  }
-}
-
-:deep(.neo-button) {
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-family: var(--grave-font);
-  font-weight: 700;
-  border-radius: 0;
-  transition: all 0.1s steps(2);
-
-  &.variant-primary {
-    background: var(--grave-accent);
-    color: var(--grave-bg);
-    border: none;
-    box-shadow: var(--grave-button-shadow);
-
-    &:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: var(--grave-card-shadow);
-    }
-
-    &:active {
-      transform: translate(0, 0);
-      box-shadow: 0 0 0;
-    }
-  }
-
-  &.variant-secondary {
-    background: transparent;
-    border: 1px solid var(--grave-accent);
-    color: var(--grave-accent);
-
-    &:hover {
-      background: var(--grave-accent-soft);
-    }
-  }
-
-  &.variant-danger {
-    background: var(--grave-danger);
-    color: var(--grave-bg);
-    box-shadow: var(--grave-button-danger-shadow);
-  }
-}
-
-:deep(input),
-:deep(.neo-input) {
-  background: var(--grave-bg);
-  border: 1px solid var(--grave-input-border);
-  color: var(--grave-accent);
-  font-family: var(--grave-font);
-  border-radius: 0;
-  caret-color: var(--grave-accent);
-
-  &:focus {
-    border-color: var(--grave-accent);
-    box-shadow: 0 0 10px var(--grave-accent-glow);
-  }
-}
-
 </style>

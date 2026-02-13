@@ -5,54 +5,48 @@
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
+      <!-- LEFT panel: Activity & Stats -->
       <template #content>
-        <view class="multisig-container">
-          <view class="bg-effects">
-            <view class="glow-orb orb-1"></view>
-            <view class="glow-orb orb-2"></view>
-            <view class="grid-overlay"></view>
-          </view>
-
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <HeroSection :title="t('appTitle')" :headline="t('homeTitle')" :subtitle="t('homeSubtitle')" />
 
           <ActivitySection
-            :items="history"
-            :count="history.length"
-            :title="t('recentTitle')"
-            :empty-title="'No Activity Yet'"
-            :empty-description="t('recentEmpty')"
-            :get-status-icon="getStatusIcon"
-            :status-label="statusLabel"
-            :shorten="shorten"
-            :format-date="formatDate"
-            @select="openHistory"
-          />
+          :items="history"
+          :count="history.length"
+          :title="t('recentTitle')"
+          :empty-title="t('sidebarNoActivity')"
+          :empty-description="t('recentEmpty')"
+          :get-status-icon="getStatusIcon"
+          :status-label="statusLabel"
+          :shorten="shorten"
+          :format-date="formatDate"
+          @select="openHistory"
+        />
 
-          <StatsRow
-            :total="history.length"
-            :pending="pendingCount"
-            :completed="completedCount"
-            total-label="Total Txs"
-            :pending-label="t('statPending')"
-            :completed-label="t('statCompleted')"
-          />
-        </view>
+        <StatsRow
+          :total="history.length"
+          :pending="pendingCount"
+          :completed="completedCount"
+          :total-label="t('sidebarTotalTxs')"
+          :pending-label="t('statPending')"
+          :completed-label="t('statCompleted')"
+        />
+        </ErrorBoundary>
       </template>
 
+      <!-- RIGHT panel: Create / Load -->
       <template #operation>
-        <view class="multisig-container">
-          <MainCard
-            v-model="idInput"
-            :create-title="t('createCta')"
-            :create-desc="t('createDesc')"
-            :divider-text="t('dividerOr')"
-            :load-label="t('loadTitle')"
-            :load-placeholder="t('loadPlaceholder')"
-            :load-button-text="t('loadButton')"
-            @create="navigateToCreate"
-            @load="loadTransaction"
-          />
-        </view>
+        <MainCard
+          v-model="idInput"
+          :create-title="t('createCta')"
+          :create-desc="t('createDesc')"
+          :divider-text="t('dividerOr')"
+          :load-label="t('loadTitle')"
+          :load-placeholder="t('loadPlaceholder')"
+          :load-button-text="t('loadButton')"
+          @create="navigateToCreate"
+          @load="loadTransaction"
+        />
       </template>
     </MiniAppTemplate>
   </view>
@@ -60,7 +54,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useMultisigHistory } from "@/composables/useMultisigHistory";
@@ -92,7 +86,7 @@ const appState = computed(() => ({
   completed: completedCount.value,
 }));
 const sidebarItems = computed(() => [
-  { label: "Total Txs", value: history.value.length },
+  { label: t("sidebarTotalTxs"), value: history.value.length },
   { label: t("statPending"), value: pendingCount.value },
   { label: t("statCompleted"), value: completedCount.value },
 ]);
@@ -119,6 +113,13 @@ const loadTransaction = () => {
 const openHistory = (id: string) => {
   uni.navigateTo({ url: `/pages/sign/index?id=${id}` });
 };
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[neo-multisig] boundary error:", error);
+};
+const resetAndReload = () => {
+  /* no async data to reload on home page */
+};
 </script>
 
 <style lang="scss" scoped>
@@ -128,78 +129,5 @@ const openHistory = (id: string) => {
 
 :global(page) {
   background: var(--multi-bg-start);
-}
-
-.multisig-container {
-  position: relative;
-  min-height: 100vh;
-  padding: 20px;
-  background: var(--multi-bg-gradient);
-  overflow: hidden;
-}
-
-.bg-effects {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 1;
-}
-
-.glow-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.3;
-  animation: float 10s ease-in-out infinite;
-}
-
-.orb-1 {
-  width: 300px;
-  height: 300px;
-  background: var(--multi-orb-one);
-  top: -100px;
-  left: -100px;
-}
-
-.orb-2 {
-  width: 200px;
-  height: 200px;
-  background: var(--multi-orb-two);
-  bottom: 100px;
-  right: -50px;
-  animation-delay: -5s;
-}
-
-.grid-overlay {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--multi-grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--multi-grid-line) 1px, transparent 1px);
-  background-size: 50px 50px;
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(30px, -20px);
-  }
-}
-@media (max-width: 767px) {
-  .multisig-container {
-    padding: 12px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .multisig-container {
-    padding: 32px;
-    max-width: 800px;
-    margin: 0 auto;
-  }
 }
 </style>

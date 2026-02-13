@@ -34,10 +34,10 @@ export function useSignAnything(t: (key: string) => string) {
   }));
 
   const sidebarItems = computed(() => [
-    { label: "Wallet", value: address.value ? t("connected") : t("disconnected") },
+    { label: t("sidebarWallet"), value: address.value ? t("connected") : t("disconnected") },
     { label: t("signatureResult"), value: signature.value ? t("yes") : t("no") },
-    { label: "Broadcast TX", value: txHash.value ? t("yes") : t("no") },
-    { label: "Message Length", value: message.value.length },
+    { label: t("sidebarBroadcastTx"), value: txHash.value ? t("yes") : t("no") },
+    { label: t("sidebarMessageLength"), value: message.value.length },
   ]);
 
   // --- Actions ---

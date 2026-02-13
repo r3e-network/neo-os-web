@@ -12,24 +12,10 @@
       <SidebarPanel :title="t('overview')" :items="sidebarItems" />
     </template>
 
-    <!-- Main content: Timer + Check-in Button -->
+    <!-- LEFT panel: Timer + Streak -->
     <template #content>
-      <NeoButton
-        variant="primary"
-        size="lg"
-        block
-        :disabled="!canCheckIn || isLoading"
-        :loading="isLoading"
-        @click="doCheckIn(canCheckIn)"
-        class="checkin-btn"
-      >
-        <view class="btn-content">
-          <text class="btn-icon">{{ canCheckIn ? "✨" : "⏳" }}</text>
-          <text>{{ canCheckIn ? t("checkInNow") : t("waitForNext") }}</text>
-        </view>
-      </NeoButton>
-
-      <CountdownHero
+      <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        <CountdownHero
         :countdown-progress="countdownProgress"
         :countdown-label="countdownLabel"
         :can-check-in="canCheckIn"
@@ -37,9 +23,30 @@
       />
 
       <StreakDisplay :current-streak="currentStreak" :highest-streak="highestStreak" />
+      </ErrorBoundary>
     </template>
 
-    <!-- Stats tab: custom content (complex formatting) -->
+    <!-- RIGHT panel: Check-in Action -->
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('checkInNow')">
+        <NeoButton
+          variant="primary"
+          size="lg"
+          block
+          :disabled="!canCheckIn || isLoading"
+          :loading="isLoading"
+          @click="doCheckIn(canCheckIn)"
+          class="checkin-btn"
+        >
+          <view class="btn-content">
+            <text class="btn-icon">{{ canCheckIn ? "✨" : "⏳" }}</text>
+            <text>{{ canCheckIn ? t("checkInNow") : t("waitForNext") }}</text>
+          </view>
+        </NeoButton>
+      </NeoCard>
+    </template>
+
+    <!-- Stats tab -->
     <template #tab-stats>
       <RewardProgress :milestones="milestones" :current-streak="currentStreak" />
       <UserRewards
@@ -57,7 +64,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoButton, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoButton, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CountdownHero from "./components/CountdownHero.vue";
 import StreakDisplay from "./components/StreakDisplay.vue";
@@ -90,7 +97,7 @@ const {
 
 // Template configuration
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "timer-hero",
+  contentType: "two-column",
   tabs: [
     { key: "checkin", labelKey: "checkin", icon: "✅", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
@@ -167,6 +174,14 @@ const utcTimeDisplay = computed(() => {
   return `${h}:${m}:${s}`;
 });
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[daily-checkin] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await loadAll();
+};
+
 onMounted(async () => {
   countdownInterval = setInterval(() => {
     now.value = Date.now();
@@ -186,99 +201,10 @@ onUnmounted(() => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./daily-checkin-theme.scss";
-@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Quicksand:wght@300;400;500;600;700&display=swap");
 
 :global(page) {
   background: var(--sunrise-bg);
   font-family: var(--sunrise-font);
-}
-
-.tab-content {
-  padding: 20px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  background: linear-gradient(180deg, var(--sunrise-gradient-start) 0%, var(--sunrise-gradient-end) 100%);
-  min-height: 100vh;
-  position: relative;
-  font-family: var(--sunrise-font);
-
-  /* Sun Ray Pattern */
-  &::before {
-    content: "";
-    position: absolute;
-    top: -20%;
-    left: 50%;
-    width: 200%;
-    height: 100%;
-    transform: translateX(-50%);
-    background: repeating-conic-gradient(from 0deg, var(--sunrise-ray) 0deg 20deg, transparent 20deg 40deg);
-    pointer-events: none;
-    z-index: 0;
-  }
-}
-
-/* Gamified/Sunrise Card Overrides */
-:deep(.neo-card) {
-  background: var(--sunrise-card-bg) !important;
-  border: 2px solid var(--sunrise-card-border) !important;
-  border-bottom: 6px solid var(--sunrise-card-border-strong) !important;
-  border-radius: 24px !important;
-  box-shadow: var(--sunrise-card-shadow) !important;
-  color: var(--sunrise-text) !important;
-  position: relative;
-  z-index: 1;
-
-  &.variant-erobo-neo {
-    background: var(--sunrise-card-neo-bg) !important;
-    border-color: var(--sunrise-card-neo-border) !important;
-    border-bottom-color: var(--sunrise-card-neo-border-strong) !important;
-  }
-
-  &.variant-danger {
-    background: var(--sunrise-danger-bg) !important;
-    border-color: var(--sunrise-danger-border) !important;
-    border-bottom-color: var(--sunrise-danger-border-strong) !important;
-    color: var(--sunrise-danger-text) !important;
-  }
-}
-
-.status-msg {
-  color: var(--sunrise-text);
-  font-weight: 800;
-  font-size: 16px;
-}
-
-:deep(.neo-button) {
-  border-radius: 20px !important;
-  box-shadow: var(--sunrise-button-shadow) !important;
-  font-weight: 800 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  font-family: var(--sunrise-font) !important;
-
-  &:active {
-    transform: translateY(4px);
-    box-shadow: none !important;
-    border-bottom-width: 0 !important;
-  }
-
-  &.variant-primary {
-    background: var(--sunrise-button-gradient) !important;
-    border: none !important;
-    border-bottom: 4px solid var(--sunrise-button-border-strong) !important;
-    color: var(--sunrise-button-text) !important;
-    text-shadow: var(--sunrise-button-text-shadow);
-  }
-
-  &.variant-secondary {
-    background: var(--sunrise-button-secondary-bg) !important;
-    border: 2px solid var(--sunrise-blue) !important;
-    border-bottom: 4px solid var(--sunrise-button-secondary-border) !important;
-    color: var(--sunrise-blue) !important;
-  }
 }
 
 .checkin-btn {
@@ -299,7 +225,4 @@ onUnmounted(() => {
 .btn-icon {
   font-size: 24px;
 }
-
-
-// Desktop sidebar
 </style>

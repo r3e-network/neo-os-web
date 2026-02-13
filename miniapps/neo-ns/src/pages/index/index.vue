@@ -12,28 +12,26 @@
       </template>
 
       <template #content>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        </ErrorBoundary>
       </template>
 
       <template #operation>
-        <view class="app-container">
-          <DomainRegister :t="t" :nns-contract="NNS_CONTRACT" @status="showStatus" @refresh="loadMyDomains" />
-        </view>
+        <DomainRegister :t="t" :nns-contract="NNS_CONTRACT" @status="showStatus" @refresh="loadMyDomains" />
       </template>
 
       <template #tab-domains>
-        <view class="app-container">
-          <ManageDomain
-            v-if="managingDomain"
-            :t="t"
-            :domain="managingDomain"
-            :loading="loading"
-            @cancel="cancelManage"
-            @setTarget="handleSetTarget"
-            @transfer="handleTransfer"
-          />
+        <ManageDomain
+          v-if="managingDomain"
+          :t="t"
+          :domain="managingDomain"
+          :loading="loading"
+          @cancel="cancelManage"
+          @setTarget="handleSetTarget"
+          @transfer="handleTransfer"
+        />
 
-          <DomainManagement v-else :t="t" :domains="myDomains" @manage="showManage" @renew="handleRenew" />
-        </view>
+        <DomainManagement v-else :t="t" :domains="myDomains" @manage="showManage" @renew="handleRenew" />
       </template>
     </MiniAppTemplate>
   </view>
@@ -47,7 +45,7 @@ import { useI18n } from "@/composables/useI18n";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import DomainRegister from "./components/DomainRegister.vue";
@@ -94,13 +92,13 @@ const sidebarItems = computed(() => {
   const expiringSoon = myDomains.value.filter((d) => d.expiry > 0 && d.expiry - Date.now() < 30 * 86400000).length;
   return [
     { label: t("tabDomains"), value: myDomains.value.length },
-    { label: "Wallet", value: address.value ? t("connected") : t("disconnected") },
-    { label: "Expiring Soon", value: expiringSoon },
+    { label: t("sidebarWallet"), value: address.value ? t("connected") : t("disconnected") },
+    { label: t("sidebarExpiringSoon"), value: expiringSoon },
   ];
 });
 
 const loading = ref(false);
-const { status, setStatus: showStatus, clearStatus } = useStatusMessage();
+const { status, setStatus: showStatus } = useStatusMessage();
 const myDomains = ref<Domain[]>([]);
 
 const managingDomain = ref<Domain | null>(null);
@@ -247,7 +245,7 @@ async function loadMyDomains() {
           });
         }
       } catch {
-        /* Individual domain property fetch failure — skip this domain */
+        /* Individual domain property fetch failure -- skip this domain */
       }
     }
 
@@ -272,6 +270,15 @@ watch(address, async (newAddr) => {
     myDomains.value = [];
   }
 });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[neo-ns] boundary error:", error);
+};
+const resetAndReload = async () => {
+  if (address.value) {
+    await loadMyDomains();
+  }
+};
 </script>
 
 <style lang="scss" scoped>
@@ -283,28 +290,4 @@ watch(address, async (newAddr) => {
   background: var(--dir-bg);
   font-family: var(--dir-font);
 }
-
-.app-container {
-  padding: 24px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  background-color: var(--dir-bg);
-  background-image:
-    linear-gradient(var(--dir-scanline-top) 50%, var(--dir-scanline-bottom) 50%),
-    linear-gradient(90deg, var(--dir-scanline-red), var(--dir-scanline-green), var(--dir-scanline-blue));
-  background-size:
-    100% 2px,
-    3px 100%;
-  min-height: 100vh;
-}
-
-.tab-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex: 1;
-}
-
 </style>

@@ -13,49 +13,44 @@
       </template>
 
       <template #content>
-        <view class="app-container">
-          <NeoCard v-if="status" :variant="status.type" class="mb-4">
-            <text class="status-text">{{ status.msg }}</text>
-          </NeoCard>
-
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <MarketplaceTab
-            :machines="machines"
-            :is-loading="isLoadingMachines"
-            :selected-machine="selectedMachine"
-            :wallet-hash="walletHash"
-            :is-playing="isPlaying"
-            :show-result="showResult"
-            :result-item="resultItem"
-            :play-error="playError"
-            @select-machine="selectMachine"
-            @browse-all="activeTab = 'discover'"
-            @back="selectedMachine = null"
-            @play="handlePlay"
-            @close-result="resetResult"
-            @buy="handleBuy"
-          />
-        </view>
+          :machines="machines"
+          :is-loading="isLoadingMachines"
+          :selected-machine="selectedMachine"
+          :wallet-hash="walletHash"
+          :is-playing="isPlaying"
+          :show-result="showResult"
+          :result-item="resultItem"
+          :play-error="playError"
+          @select-machine="selectMachine"
+          @browse-all="activeTab = 'discover'"
+          @back="selectedMachine = null"
+          @play="handlePlay"
+          @close-result="resetResult"
+          @buy="handleBuy"
+        />
+        </ErrorBoundary>
+      </template>
+
+      <template #operation>
+        <CreatorStudio :publishing="isPublishing" @publish="handlePublish" />
       </template>
 
       <template #tab-discover>
-        <view class="app-container">
-          <DiscoverTab
-            :machines="machines"
-            :is-loading="isLoadingMachines"
-            @select-machine="handleSelectFromDiscover"
-          />
-        </view>
+        <DiscoverTab
+          :machines="machines"
+          :is-loading="isLoadingMachines"
+          @select-machine="handleSelectFromDiscover"
+        />
       </template>
 
       <template #tab-create>
-        <view class="app-container">
-          <CreatorStudio :publishing="isPublishing" @publish="handlePublish" />
-        </view>
+        <CreatorStudio :publishing="isPublishing" @publish="handlePublish" />
       </template>
 
       <template #tab-manage>
-        <view class="app-container">
-          <ManageTab
+        <ManageTab
             :machines="machines"
             :address="address"
             :is-loading="isLoadingMachines"
@@ -70,7 +65,6 @@
             @deposit-item="handleDepositItem"
             @withdraw-item="handleWithdrawItem"
           />
-        </view>
       </template>
     </MiniAppTemplate>
 
@@ -85,7 +79,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
-import { MiniAppTemplate, NeoCard, SidebarPanel, WalletPrompt } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, WalletPrompt, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useI18n } from "@/composables/useI18n";
@@ -103,7 +97,7 @@ import ManageTab from "@/components/ManageTab.vue";
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "game-board",
+  contentType: "two-column",
   tabs: [
     { key: "market", labelKey: "market", icon: "🎰", default: true },
     { key: "discover", labelKey: "discover", icon: "🧭" },
@@ -293,6 +287,13 @@ onUnmounted(() => {
 watch(address, () => {
   fetchMachines();
 }, { immediate: true });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[neo-gacha] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await fetchMachines();
+};
 </script>
 
 <style lang="scss" scoped>
@@ -303,24 +304,6 @@ watch(address, () => {
 :global(page) {
   background: var(--gacha-bg);
 }
-
-.app-container {
-  padding: 16px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-height: 100vh;
-  background-color: var(--gacha-bg);
-  background-image:
-    radial-gradient(var(--gacha-pattern-pink) 15%, transparent 16%),
-    radial-gradient(var(--gacha-pattern-blue) 15%, transparent 16%);
-  background-size: 40px 40px;
-  background-position:
-    0 0,
-    20px 20px;
-}
-
 
 .status-text {
   font-weight: 700;

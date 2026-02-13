@@ -87,6 +87,11 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+    sidebarWallet: { en: "Wallet", zh: "钱包" },
+    sidebarExpiringSoon: { en: "Expiring Soon", zh: "即将到期" },
+    connected: { en: "Connected", zh: "已连接" },
+    disconnected: { en: "Disconnected", zh: "未连接" },
+    errorFallback: { en: "Something went wrong", zh: "出现错误" },
     loading: { en: "Loading...", zh: "加载中..." },
     error: { en: "Error", zh: "错误" }
 };

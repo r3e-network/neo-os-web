@@ -13,6 +13,7 @@
 
     <!-- Overview Tab (default) -->
     <template #content>
+      <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
       <StatsGrid :my-stake="myStake" :pending-rewards="pendingRewards" :total-rewards="totalRewards" />
 
       <NeoCard variant="erobo" class="mb-4 px-1">
@@ -21,7 +22,7 @@
         </view>
         <text class="section-desc mb-4">{{ t("voteForReputationDesc") }}</text>
 
-        <view class="section-header mt-4 mb-4">
+        <view class="section-header mb-4" style="margin-top: 16px">
           <text class="section-title">{{ t("notForProfit") }}</text>
         </view>
         <text class="section-desc">{{ t("notForProfitDesc") }}</text>
@@ -38,6 +39,7 @@
           </NeoButton>
         </view>
       </NeoCard>
+      </ErrorBoundary>
     </template>
 
     <template #operation>
@@ -48,9 +50,8 @@
 
         <view v-if="address" class="stake-form">
           <view class="input-group mb-4">
-            <text class="input-label">{{ t("stake NEO") }}</text>
             <view class="input-row">
-              <input type="number" v-model="stakeAmount" class="amount-input" :placeholder="t('amount')" />
+              <NeoInput type="number" v-model="stakeAmount" :label="t('stake NEO')" :placeholder="t('amount')" />
               <NeoButton variant="primary" :loading="isStaking" @click="handleStake">
                 {{ t("stake") }}
               </NeoButton>
@@ -58,9 +59,8 @@
           </view>
 
           <view class="input-group">
-            <text class="input-label">{{ t("unstake") }}</text>
             <view class="input-row">
-              <input type="number" v-model="unstakeAmount" class="amount-input" :placeholder="t('amount')" />
+              <NeoInput type="number" v-model="unstakeAmount" :label="t('unstake')" :placeholder="t('amount')" />
               <NeoButton variant="secondary" :loading="isUnstaking" @click="handleUnstake">
                 {{ t("unstake") }}
               </NeoButton>
@@ -93,7 +93,7 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber } from "@shared/utils/format";
-import { MiniAppTemplate, NeoButton, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoButton, NeoCard, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import StatsGrid from "./components/StatsGrid.vue";
 import AgentsTab from "./components/AgentsTab.vue";
@@ -202,10 +202,18 @@ const handleClaim = async () => {
 };
 
 onMounted(() => { loadAll(); });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[trustanchor] boundary error:", error);
+};
+const resetAndReload = async () => {
+  loadAll();
+};
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
 @use "./trustanchor-theme.scss" as *;
 
 :global(page) {
@@ -245,14 +253,6 @@ onMounted(() => { loadAll(); });
   gap: 12px;
 }
 
-.amount-input {
-  flex: 1;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: white;
-}
-
 .claim-section {
   display: flex;
   justify-content: space-between;
@@ -270,30 +270,15 @@ onMounted(() => { loadAll(); });
   padding: 20px;
 }
 
-.mt-4 {
-  margin-top: 16px;
-}
-
 @media (max-width: 767px) {
   .input-row {
     flex-direction: column;
     gap: 8px;
   }
-  .amount-input {
-    width: 100%;
-  }
   .claim-section {
     flex-direction: column;
     gap: 16px;
     align-items: flex-start;
-  }
-}
-
-@media (min-width: 1024px) {
-  .tab-content {
-    padding: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
   }
 }
 </style>

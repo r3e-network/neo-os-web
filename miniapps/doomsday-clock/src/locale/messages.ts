@@ -95,4 +95,8 @@ title: { en: "Doomsday Clock", zh: "末日时钟" },
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+    doomsdayErrorFallback: { en: "Something went wrong", zh: "出现错误" },
+    sidebarTotalPot: { en: "Total Pot", zh: "奖池总额" },
+    sidebarYourKeys: { en: "Your Keys", zh: "你的钥匙" },
+    sidebarTimeLeft: { en: "Time Left", zh: "剩余时间" },
 };

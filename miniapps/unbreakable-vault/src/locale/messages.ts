@@ -88,4 +88,8 @@ title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+  sidebarDifficulty: { en: "Difficulty", zh: "难度" },
+  sidebarAttemptFee: { en: "Attempt Fee", zh: "尝试费用" },
+  overview: { en: "Overview", zh: "概览" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

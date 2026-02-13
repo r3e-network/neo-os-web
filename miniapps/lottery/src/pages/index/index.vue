@@ -18,16 +18,6 @@
           @retry="resetAndReload"
           :fallback-message="t('lotteryErrorFallback')"
         >
-          <!-- Error Toast -->
-          <view v-if="errorMessage" class="error-toast" :class="{ 'error-retryable': canRetryError }">
-            <text>{{ errorMessage }}</text>
-            <view v-if="canRetryError" class="retry-actions">
-              <NeoButton variant="secondary" size="sm" @click="retryLastOperation">
-                {{ t("retry") }}
-              </NeoButton>
-            </view>
-          </view>
-
           <!-- Wallet Prompt -->
           <view v-if="!address && activeTab === 'game'" class="wallet-prompt-container">
             <NeoCard variant="warning" class="mb-4 text-center">
@@ -66,6 +56,28 @@
         </ErrorBoundary>
       </template>
 
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('game')">
+          <view class="action-buttons">
+            <NeoButton
+              v-if="instantTypes.length > 0"
+              variant="primary"
+              size="lg"
+              block
+              :loading="!!buyingType"
+              :disabled="!address"
+              @click="handleBuy(instantTypes[0])"
+            >
+              {{ t("ticketsBought") }}
+            </NeoButton>
+            <NeoButton v-if="unscratchedTickets.length > 0" variant="secondary" size="lg" block @click="playUnscratched(unscratchedTickets[0])">
+              {{ t("playNow") }}
+            </NeoButton>
+          </view>
+        </NeoCard>
+        <NeoStats :stats="lotteryStats" />
+      </template>
+
       <template #tab-winners>
         <WinnersTab :winners="winners" :format-num="formatNum" :t="t" />
       </template>
@@ -98,7 +110,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { MiniAppTemplate, NeoButton, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppTemplate, NeoButton, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import ScratchModal from "./components/ScratchModal.vue";
 import GameCardGrid from "./components/GameCardGrid.vue";
@@ -132,7 +144,7 @@ const {
 } = useLotteryState(t);
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "game-board",
+  contentType: "two-column",
   tabs: [
     { key: "game", labelKey: "game", icon: "\uD83C\uDFAE", default: true },
     { key: "winners", labelKey: "winners", icon: "\uD83D\uDCCB" },
@@ -168,6 +180,12 @@ const sidebarItems = computed(() => [
 const userTickets = computed(() => playerTickets.value.length);
 const userWinnings = computed(() => playerTickets.value.reduce((acc, t) => acc + (t.prize || 0), 0));
 
+const lotteryStats = computed(() => [
+  { label: t("totalTickets"), value: totalTickets.value },
+  { label: t("ticketsBought"), value: playerTickets.value.length },
+  { label: t("totalWinnings"), value: `${formatNum(userWinnings.value)} GAS` },
+]);
+
 const activeTicket = ref<ScratchTicket | null>(null);
 const activeTicketTypeInfo = computed(() => {
   if (!activeTicket.value) return instantTypes.value[0];
@@ -175,7 +193,6 @@ const activeTicketTypeInfo = computed(() => {
 });
 
 const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
-const errorMessage = computed(() => errorStatus.value?.msg ?? null);
 const canRetryError = ref(false);
 const lastOperation = ref<string | null>(null);
 
@@ -202,12 +219,6 @@ const resetAndReload = async () => {
     await Promise.all([loadPlatformStats(), loadWinners(), address.value ? loadPlayerTickets() : Promise.resolve()]);
   } catch (e: unknown) {
     handleError(e, { operation: "resetAndReload" });
-  }
-};
-
-const retryLastOperation = () => {
-  if (lastOperation.value === "buy" && activeTicketTypeInfo.value) {
-    resetAndReload();
   }
 };
 
@@ -314,54 +325,12 @@ onMounted(() => {
 }
 
 .wallet-prompt-container {
-  padding: 0 16px;
   margin-top: 8px;
 }
 
-.error-toast {
-  position: fixed;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-error, rgba(239, 68, 68, 0.95));
-  color: white;
-  padding: 12px 24px;
-  border-radius: 99px;
-  font-weight: 700;
-  font-size: 14px;
-  backdrop-filter: blur(10px);
-  z-index: 3000;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  animation: toast-in 0.3s ease-out;
-  max-width: 90%;
-  text-align: center;
-}
-
-.error-toast.error-retryable {
-  padding-bottom: 48px;
-}
-
-.retry-actions {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-@keyframes toast-in {
-  from {
-    transform: translate(-50%, -20px);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, 0);
-    opacity: 1;
-  }
-}
-
-.tab-content {
-  flex: 1;
+.action-buttons {
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
 </style>

@@ -62,7 +62,15 @@ export const messages = {
     zh: "本小程序运行在 Neo N3 网络，请在签名或广播前确认钱包已连接正确网络。",
   },
   loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" }
+  error: { en: "Error", zh: "错误" },
+  sidebarWallet: { en: "Wallet", zh: "钱包" },
+  sidebarBroadcastTx: { en: "Broadcast TX", zh: "广播交易" },
+  sidebarMessageLength: { en: "Message Length", zh: "信息长度" },
+  connected: { en: "Connected", zh: "已连接" },
+  disconnected: { en: "Disconnected", zh: "未连接" },
+  yes: { en: "Yes", zh: "是" },
+  no: { en: "No", zh: "否" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 } as const;
 
 export default messages;

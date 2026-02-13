@@ -6,7 +6,7 @@
       </template>
 
       <template #content>
-        <view class="album-container">
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <view class="header">
             <text class="title">{{ t("title") }}</text>
             <text class="subtitle">{{ t("subtitle") }}</text>
@@ -27,11 +27,11 @@
           <view class="helper-note">
             <text>{{ t("tapToSelect") }}</text>
           </view>
-        </view>
 
-        <AlbumViewer :t="t" :visible="showViewer" :photo="viewingPhoto" @close="closeViewer" @decrypt="openDecrypt" />
+          <AlbumViewer :t="t" :visible="showViewer" :photo="viewingPhoto" @close="closeViewer" @decrypt="openDecrypt" />
 
-        <WalletPrompt :visible="showWalletPrompt" @close="closeWalletPrompt" @connect="handleConnect" />
+          <WalletPrompt :visible="showWalletPrompt" @close="closeWalletPrompt" @connect="handleConnect" />
+        </ErrorBoundary>
       </template>
 
       <template #operation>
@@ -71,7 +71,7 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { MiniAppTemplate, NeoCard, NeoButton, WalletPrompt, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, WalletPrompt, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useAlbumPhotos } from "@/composables/useAlbumPhotos";
@@ -94,6 +94,16 @@ const templateConfig: MiniAppTemplateConfig = {
     fireworks: false,
     chainWarning: true,
     statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+        { nameKey: "feature3Name", descKey: "feature3Desc" },
+      ],
+    },
   },
 };
 
@@ -148,8 +158,8 @@ const appState = computed(() => ({
 
 const sidebarItems = computed(() => [
   { label: t("albumTab"), value: photos.value.length },
-  { label: "Encrypted", value: photos.value.filter((p) => p.encrypted).length },
-  { label: "Public", value: photos.value.filter((p) => !p.encrypted).length },
+  { label: t("sidebarEncrypted"), value: photos.value.filter((p) => p.encrypted).length },
+  { label: t("sidebarPublic"), value: photos.value.filter((p) => !p.encrypted).length },
 ]);
 
 const onTabChange = (tabId: string) => {
@@ -158,6 +168,14 @@ const onTabChange = (tabId: string) => {
   } else {
     activeTab.value = tabId;
   }
+};
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[forever-album] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await loadPhotos();
 };
 
 const handleConnect = async () => {
@@ -173,32 +191,10 @@ const handleConnect = async () => {
 <style scoped lang="scss">
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
-@use "@shared/styles/responsive.scss" as responsive;
 @import "./forever-album-theme.scss";
 
 :global(page) {
   background: var(--bg-primary);
-}
-
-.album-container {
-  padding: 16px;
-  min-height: 100%;
-  color: var(--text-primary);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-
-  @include responsive.tablet-up {
-    padding: 24px;
-    gap: 20px;
-  }
-
-  @include responsive.desktop {
-    padding: 32px;
-    max-width: 1400px;
-    margin: 0 auto;
-    width: 100%;
-  }
 }
 
 .header {
@@ -210,23 +206,11 @@ const handleConnect = async () => {
   font-weight: 800;
   display: block;
   letter-spacing: 0.02em;
-
-  @include responsive.tablet-up {
-    font-size: 26px;
-  }
-
-  @include responsive.desktop {
-    font-size: 32px;
-  }
 }
 
 .subtitle {
   font-size: 12px;
   color: var(--text-secondary);
-
-  @include responsive.desktop {
-    font-size: 14px;
-  }
 }
 
 .connect-card__content {

@@ -7,65 +7,56 @@
       </template>
 
       <template #content>
-        <view class="cemetery-bg">
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <view class="header">
-            <text class="title">{{ t("title") }}</text>
-            <text class="tagline">{{ t("tagline") }}</text>
-            <text class="subtitle">{{ t("subtitle") }}</text>
-          </view>
-
-          <view class="obituary-banner" v-if="recentObituaries.length">
-            <text class="banner-title">{{ t("obituaries") }}</text>
-            <scroll-view scroll-x class="banner-scroll">
-              <view v-for="ob in recentObituaries" :key="ob.id" class="obituary-item" role="button" tabindex="0" :aria-label="ob.name" @click="openMemorial(ob.id)">
-                <text class="name">{{ ob.name }}</text>
-                <text class="text">{{ ob.text }}</text>
-              </view>
-            </scroll-view>
-          </view>
-
-          <view class="memorials-grid">
-            <TombstoneCard
-              v-for="memorial in memorials"
-              :key="memorial.id"
-              :memorial="memorial"
-              @click="openMemorial(memorial.id)"
-            />
-          </view>
+          <text class="title">{{ t("title") }}</text>
+          <text class="tagline">{{ t("tagline") }}</text>
+          <text class="subtitle">{{ t("subtitle") }}</text>
         </view>
+
+        <view class="obituary-banner" v-if="recentObituaries.length">
+          <text class="banner-title">{{ t("obituaries") }}</text>
+          <scroll-view scroll-x class="banner-scroll">
+            <view v-for="ob in recentObituaries" :key="ob.id" class="obituary-item" role="button" tabindex="0" :aria-label="ob.name" @click="openMemorial(ob.id)">
+              <text class="name">{{ ob.name }}</text>
+              <text class="text">{{ ob.text }}</text>
+            </view>
+          </scroll-view>
+        </view>
+
+        <view class="memorials-grid">
+          <TombstoneCard
+            v-for="memorial in memorials"
+            :key="memorial.id"
+            :memorial="memorial"
+            @click="openMemorial(memorial.id)"
+          />
+        </view>
+        </ErrorBoundary>
       </template>
 
       <template #operation>
-        <view class="cemetery-bg">
-          <CreateMemorialForm @created="onMemorialCreated" />
-        </view>
+        <CreateMemorialForm @created="onMemorialCreated" />
       </template>
 
       <template #tab-tributes>
-        <view class="cemetery-bg">
-          <view class="section-header">
-            <text class="section-title">{{ t("myTributes") }}</text>
-            <text class="section-desc">{{ t("myTributesDesc") }}</text>
-          </view>
-          <view class="memorials-grid" v-if="visitedMemorials.length">
-            <TombstoneCard
-              v-for="memorial in visitedMemorials"
-              :key="memorial.id"
-              :memorial="memorial"
-              @click="openMemorial(memorial.id)"
-            />
-          </view>
-          <view v-else class="empty-state">
-            <text>{{ t("noTributes") }}</text>
-          </view>
+        <view class="section-header">
+          <text class="section-title">{{ t("myTributes") }}</text>
+          <text class="section-desc">{{ t("myTributesDesc") }}</text>
+        </view>
+        <view class="memorials-grid" v-if="visitedMemorials.length">
+          <TombstoneCard
+            v-for="memorial in visitedMemorials"
+            :key="memorial.id"
+            :memorial="memorial"
+            @click="openMemorial(memorial.id)"
+          />
+        </view>
+        <view v-else class="empty-state">
+          <text>{{ t("noTributes") }}</text>
         </view>
       </template>
 
-      <template #tab-create>
-        <view class="cemetery-bg">
-          <CreateMemorialForm @created="onMemorialCreated" />
-        </view>
-      </template>
     </MiniAppTemplate>
 
     <!-- Memorial Detail Modal -->
@@ -77,18 +68,13 @@
       @tribute-paid="onTributePaid"
       @share="shareMemorial"
     />
-
-    <!-- Share Toast -->
-    <view v-if="shareStatus" class="share-toast">
-      <text>{{ shareStatus }}</text>
-    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import TombstoneCard from "./components/TombstoneCard.vue";
 import CreateMemorialForm from "./components/CreateMemorialForm.vue";
@@ -113,12 +99,20 @@ const {
   cleanupTimers,
 } = useMemorialActions();
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[memorial-shrine] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await checkUrlForMemorial();
+  await loadVisitedMemorials();
+};
+
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
   tabs: [
     { key: "memorials", labelKey: "memorials", icon: "🕯️", default: true },
     { key: "tributes", labelKey: "myTributes", icon: "🙏" },
-    { key: "create", labelKey: "create", icon: "➕" },
     { key: "docs", labelKey: "docs", icon: "📖" },
   ],
   features: {
@@ -145,7 +139,7 @@ const appState = computed(() => ({
 const sidebarItems = computed(() => [
   { label: t("memorials"), value: memorials.value.length },
   { label: t("myTributes"), value: visitedMemorials.value.length },
-  { label: "Obituaries", value: recentObituaries.value.length },
+  { label: t("sidebarObituaries"), value: recentObituaries.value.length },
 ]);
 
 const activeTab = ref("memorials");
@@ -181,27 +175,6 @@ onMounted(async () => {
 
 :global(page) {
   background: var(--bg-primary);
-}
-
-.tab-content {
-  padding: 16px;
-  min-height: 100vh;
-}
-
-.cemetery-bg {
-  background: linear-gradient(180deg, var(--shrine-bg) 0%, var(--shrine-dark) 50%, var(--shrine-medium) 100%);
-  position: relative;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 200px;
-    background: radial-gradient(ellipse at 80% 20%, var(--shrine-banner-glow), transparent);
-    pointer-events: none;
-  }
 }
 
 .header {
@@ -293,7 +266,4 @@ onMounted(async () => {
   padding: 48px 16px;
   color: var(--shrine-muted);
 }
-
-
-// Desktop sidebar
 </style>

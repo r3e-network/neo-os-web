@@ -13,12 +13,10 @@
       </template>
 
       <template #content>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
-
-        <!-- Policy Rules -->
-        <PoliciesList :policies="gp.policies" :t="t" @claim="gp.requestClaim" />
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <!-- Policy Rules -->
+          <PoliciesList :policies="gp.policies" :t="t" @claim="gp.requestClaim" />
+        </ErrorBoundary>
       </template>
 
       <template #operation>
@@ -52,7 +50,7 @@ import { ref, computed, watch } from "vue";
 import { useWallet, useEvents, useDatafeed } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
@@ -117,10 +115,18 @@ const appState = computed(() => ({
 }));
 
 const sidebarItems = computed(() => [
-  { label: "Policies", value: gp.stats.value.totalPolicies },
-  { label: "Active", value: gp.stats.value.activePolicies },
-  { label: "Claimed", value: gp.stats.value.claimedPolicies },
+  { label: t("sidebarPolicies"), value: gp.stats.value.totalPolicies },
+  { label: t("sidebarActive"), value: gp.stats.value.activePolicies },
+  { label: t("sidebarClaimed"), value: gp.stats.value.claimedPolicies },
 ]);
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[guardian-policy] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  gp.refreshData();
+};
 
 const onFetchPrice = () => gp.fetchPrice(getPrice);
 
@@ -137,93 +143,4 @@ watch(address, () => {
 :global(page) {
   background: var(--ops-bg);
 }
-
-.tab-content {
-  padding: 24px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  background-color: var(--ops-bg);
-  background-image: var(--ops-grid);
-  background-size: 40px 40px;
-  min-height: 100vh;
-}
-
-/* Ops Component Overrides */
-:deep(.neo-card) {
-  background: var(--ops-card-bg) !important;
-  border: 1px solid var(--ops-card-border) !important;
-  border-top: 2px solid var(--ops-blue) !important;
-  border-radius: 4px !important;
-  box-shadow: var(--ops-card-shadow) !important;
-  color: var(--ops-text) !important;
-  backdrop-filter: blur(10px);
-  position: relative;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: -2px;
-    left: -1px;
-    width: 10px;
-    height: 10px;
-    border-top: 2px solid var(--ops-cyan);
-    border-left: 2px solid var(--ops-cyan);
-  }
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    right: -1px;
-    width: 10px;
-    height: 10px;
-    border-bottom: 2px solid var(--ops-cyan);
-    border-right: 2px solid var(--ops-cyan);
-  }
-}
-
-:deep(.neo-button) {
-  font-family: "Share Tech Mono", monospace !important;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border-radius: 2px !important;
-
-  &.variant-primary {
-    background: var(--ops-button-primary-bg) !important;
-    border: 1px solid var(--ops-blue) !important;
-    color: var(--ops-blue) !important;
-    box-shadow: var(--ops-button-primary-shadow) !important;
-
-    &:active {
-      background: var(--ops-button-primary-bg-pressed) !important;
-    }
-  }
-
-  &.variant-secondary {
-    background: transparent !important;
-    border: 1px solid var(--ops-button-secondary-border) !important;
-    color: var(--ops-button-secondary-text) !important;
-  }
-}
-
-/* Technical Font Overrides */
-:deep(text),
-:deep(view) {
-  font-family: "Share Tech Mono", monospace; /* Fallback if not available */
-}
-
-/* Status Indicator */
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--ops-cyan);
-  box-shadow: var(--ops-cyan-glow);
-  display: inline-block;
-  margin-right: 8px;
-}
-
-
-// Desktop sidebar
 </style>

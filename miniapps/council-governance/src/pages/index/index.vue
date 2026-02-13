@@ -14,6 +14,7 @@
       </template>
 
       <template #content>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <ActiveProposalsTab
           :proposals="activeProposals"
           :status="status"
@@ -25,6 +26,7 @@
           @create="activeTab = 'create'"
           @select="selectProposal"
         />
+        </ErrorBoundary>
       </template>
 
       <template #tab-history>
@@ -33,6 +35,24 @@
 
       <template #tab-create>
         <CreateProposalTab ref="createTabRef" :t="t" :status="status" @submit="createProposal" />
+      </template>
+
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('quickActions')">
+          <view class="op-stats">
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('active') }}</text>
+              <text class="op-value">{{ activeProposals.length }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('votingPower') }}</text>
+              <text class="op-value">{{ votingPower }}</text>
+            </view>
+          </view>
+          <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'create'">
+            {{ t('createProposal') }}
+          </NeoButton>
+        </NeoCard>
       </template>
     </MiniAppTemplate>
 
@@ -56,7 +76,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useGovernance } from "@/composables/useGovernance";
@@ -90,7 +110,7 @@ const {
 } = useGovernance(showStatus, currentChainId);
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "market-list",
+  contentType: "two-column",
   tabs: [
     { key: "active", labelKey: "active", icon: "\u{1F3DB}\uFE0F", default: true },
     { key: "create", labelKey: "create", icon: "\u{1F4DD}" },
@@ -143,14 +163,15 @@ const createProposal = async (proposalData: {
   }
 };
 
-onMounted(async () => {
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap";
-  link.media = "print";
-  link.onload = () => { link.media = "all"; };
-  document.head.appendChild(link);
+const handleBoundaryError = (error: Error) => {
+  console.error("[council-governance] boundary error:", error);
+};
 
+const resetAndReload = async () => {
+  await init();
+};
+
+onMounted(async () => {
   await init();
 });
 
@@ -164,75 +185,35 @@ watch(address, async () => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./council-governance-theme.scss";
-/* Google Font loaded asynchronously via onMounted to avoid render-blocking */
 
 :global(page) {
   background: var(--senate-bg);
 }
 
-.tab-content {
-  padding: 32px;
-  flex: 1;
+.op-stats {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  background-color: var(--senate-bg);
-  /* Marble texture simulation */
-  background-image:
-    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJ4Ij48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC42IiBudW1PY3RhdmVzPSIzIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsdGVyPSJ1cmwoI3gpIiBvcGFjaXR5PSIwLjEiLz48L3N2Zz4="),
-    linear-gradient(to bottom, var(--senate-marble-top), var(--senate-marble-bottom));
-  min-height: 100vh;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-/* Senate Component Overrides */
-:deep(.neo-card) {
-  background: var(--senate-card-bg) !important;
-  border: 1px solid var(--senate-card-border) !important;
-  border-top: 4px solid var(--senate-gold) !important;
-  box-shadow: var(--senate-card-shadow) !important;
-  border-radius: 2px !important;
-  color: var(--senate-slate) !important;
-
-  &.variant-danger {
-    background: var(--senate-danger-bg) !important;
-    border-color: var(--senate-danger-border) !important;
-    color: var(--senate-danger-text) !important;
-  }
+.op-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-:deep(.neo-button) {
-  font-family: var(--senate-font) !important;
-  border-radius: 2px !important;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 700 !important;
-
-  &.variant-primary {
-    background: var(--senate-button-gradient) !important;
-    color: var(--senate-gold) !important;
-    border: 1px solid var(--senate-gold) !important;
-
-    &:active {
-      transform: translateY(1px);
-    }
-  }
-
-  &.variant-secondary {
-    background: transparent !important;
-    border: 1px solid var(--senate-slate) !important;
-    color: var(--senate-slate) !important;
-  }
+.op-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
 }
 
-/* Typography Overrides */
-:deep(text),
-:deep(view) {
-  font-family: "Times New Roman", serif;
-}
-:deep(.neo-card text.font-bold) {
-  font-family: var(--senate-font) !important;
-  color: var(--senate-slate) !important;
+.op-value {
+  font-size: 14px;
+  font-weight: 700;
 }
 
-
+.op-btn {
+  width: 100%;
+}
 </style>

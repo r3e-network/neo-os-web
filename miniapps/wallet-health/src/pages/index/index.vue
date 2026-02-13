@@ -11,6 +11,7 @@
       </template>
 
       <template #content>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <RiskAlerts
           :is-unsupported="isUnsupported"
           :status="status"
@@ -41,6 +42,7 @@
           />
           <Recommendations :recommendations="recommendations" :t="t" />
         </view>
+        </ErrorBoundary>
       </template>
 
       <template #tab-checklist>
@@ -73,13 +75,42 @@
           </view>
         </NeoCard>
       </template>
+
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('healthSummary')">
+          <view class="op-stats">
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('statConnection') }}</text>
+              <text class="op-value">{{ address ? t('statusConnected') : t('statusDisconnected') }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('statNeo') }}</text>
+              <text class="op-value">{{ neoDisplay }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('statGas') }}</text>
+              <text class="op-value">{{ gasDisplay }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('statScore') }}</text>
+              <text class="op-value">{{ safetyScore }}%</text>
+            </view>
+          </view>
+          <NeoButton v-if="!address" size="sm" variant="primary" class="op-btn" @click="connectWallet">
+            {{ t('connectWallet') }}
+          </NeoButton>
+          <NeoButton v-else size="sm" variant="primary" class="op-btn" :disabled="isRefreshing" @click="refreshBalances">
+            {{ isRefreshing ? t('loading') : t('refresh') }}
+          </NeoButton>
+        </NeoCard>
+      </template>
     </MiniAppTemplate>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
-import { MiniAppTemplate, NeoCard, NeoButton, AppIcon, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, AppIcon, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useWalletAnalysis } from "@/composables/useWalletAnalysis";
@@ -91,18 +122,11 @@ import Recommendations from "./components/Recommendations.vue";
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "dashboard",
+  contentType: "two-column",
   tabs: [
     { key: "health", labelKey: "tabHealth", icon: "shield", default: true },
     { key: "checklist", labelKey: "tabChecklist", icon: "check" },
     { key: "docs", labelKey: "docs", icon: "book" },
-  ],
-  stats: [
-    { labelKey: "statConnection", valueKey: "connectionStatus", variant: "default" },
-    { labelKey: "statNetwork", valueKey: "networkLabel", variant: "default" },
-    { labelKey: "statNeo", valueKey: "neoBalance", variant: "accent" },
-    { labelKey: "statGas", valueKey: "gasBalance", variant: "default" },
-    { labelKey: "statScore", valueKey: "safetyScore", format: "percent", variant: "default" },
   ],
   features: {
     chainWarning: true,
@@ -180,6 +204,14 @@ const onTabChange = async (tabId: string) => {
 onMounted(() => {
   loadChecklist();
 });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[wallet-health] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await refreshBalances();
+  loadChecklist();
+};
 </script>
 
 <style lang="scss" scoped>
@@ -190,6 +222,33 @@ onMounted(() => {
 :global(page) {
   background: linear-gradient(135deg, var(--health-bg-start) 0%, var(--health-bg-end) 100%);
   color: var(--health-text);
+}
+
+.op-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.op-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.op-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.op-value {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.op-btn {
+  width: 100%;
 }
 
 .health-stack {
@@ -276,6 +335,7 @@ onMounted(() => {
 .empty-state {
   text-align: center;
 }
+
 @media (max-width: 767px) {
   .section-title {
     font-size: 16px;
@@ -283,12 +343,6 @@ onMounted(() => {
   .checklist-item {
     flex-direction: column;
     gap: 12px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .health-stack {
-    gap: 20px;
   }
 }
 </style>

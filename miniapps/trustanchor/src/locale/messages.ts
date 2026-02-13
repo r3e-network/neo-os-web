@@ -100,6 +100,8 @@ export const messages = {
     en: "TrustAnchor exists to promote quality governance. GAS rewards are a natural incentive, but our true purpose is ensuring Neo N3 is governed by active, reputable contributors.",
     zh: "TrustAnchor 的存在是为了促进优质治理。GAS 奖励是自然激励，但我们真正的目的是确保 Neo N3 由活跃、有声誉的贡献者治理。",
   },
+  overview: { en: "Overview", zh: "概览" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 } as const;
 
 export type Messages = typeof messages;

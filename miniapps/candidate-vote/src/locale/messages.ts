@@ -86,4 +86,8 @@ export const messages = {
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+    candidates: { en: "Candidates", zh: "候选人" },
+    active: { en: "Active", zh: "活跃" },
+    none: { en: "None", zh: "无" },
+    errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

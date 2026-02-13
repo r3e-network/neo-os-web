@@ -43,7 +43,7 @@ export function useExFiles(t: (key: string) => string) {
     { label: t("totalRecords"), value: records.value.length },
     { label: t("averageRating"), value: averageRating.value },
     { label: t("totalQueries"), value: totalQueries.value },
-    { label: "Wallet", value: address.value ? t("connected") : t("disconnected") },
+    { label: t("sidebarWallet"), value: address.value ? t("connected") : t("disconnected") },
   ]);
 
   const sortedRecords = computed(() =>

@@ -109,4 +109,8 @@ title: { en: "Council Governance", zh: "议会治理" },
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+    quickActions: { en: "Quick Actions", zh: "快捷操作" },
+    totalProposals: { en: "Total Proposals", zh: "提案总数" },
+    votingPower: { en: "Voting Power", zh: "投票权重" },
+    errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

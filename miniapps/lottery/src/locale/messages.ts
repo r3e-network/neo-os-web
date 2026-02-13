@@ -88,4 +88,7 @@ export const messages = {
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     loading: { en: "Loading...", zh: "加载中..." },
+    error: { en: "Error", zh: "错误" },
+    connectWalletToPlay: { en: "Connect wallet to play", zh: "连接钱包以游玩" },
+    lotteryErrorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

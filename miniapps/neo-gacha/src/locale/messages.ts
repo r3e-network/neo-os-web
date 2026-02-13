@@ -134,4 +134,11 @@ export const messages = {
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+    machines: { en: "Machines", zh: "机器" },
+    playing: { en: "Playing", zh: "游玩中" },
+    selected: { en: "Selected", zh: "已选择" },
+    none: { en: "None", zh: "无" },
+    yes: { en: "Yes", zh: "是" },
+    no: { en: "No", zh: "否" },
+    errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

@@ -1,13 +1,14 @@
 <template>
   <view class="theme-prediction-market">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="handleTabChange">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" :status-message="statusMessage" @tab-change="handleTabChange">
       <!-- Desktop Sidebar - Stats -->
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
-      <!-- Markets Tab (default content) -->
+      <!-- Markets Tab (default content) - LEFT panel -->
       <template #content>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <MarketList
           :markets="filteredMarkets"
           :categories="categories"
@@ -20,6 +21,22 @@
           @selectCategory="setCategory"
           @toggleSort="toggleSort"
         />
+        </ErrorBoundary>
+      </template>
+
+      <!-- RIGHT panel: Actions -->
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('markets')">
+          <view class="action-buttons">
+            <NeoButton variant="primary" size="lg" block @click="activeTab = 'create'">
+              {{ t("create") }}
+            </NeoButton>
+            <NeoButton variant="secondary" size="lg" block @click="activeTab = 'portfolio'">
+              {{ t("portfolio") }}
+            </NeoButton>
+          </view>
+        </NeoCard>
+        <NeoStats :stats="marketStats" />
       </template>
 
       <!-- Trading Tab -->
@@ -57,23 +74,17 @@
         <CreateMarketForm :is-creating="isCreating" @submit="createMarket" />
       </template>
     </MiniAppTemplate>
-
-    <!-- Error Toast (fixed overlay, outside template) -->
-    <view v-if="error" class="error-toast">
-      <text>{{ error }}</text>
-    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { usePredictionMarkets, type PredictionMarket } from "@/composables/usePredictionMarkets";
 import { usePredictionTrading, type TradeParams } from "@/composables/usePredictionTrading";
 import MarketList from "./components/MarketList.vue";
-import MarketStats from "./components/MarketStats.vue";
 import MarketDetail from "./components/MarketDetail.vue";
 import PortfolioView from "./components/PortfolioView.vue";
 import CreateMarketForm from "./components/CreateMarketForm.vue";
@@ -114,9 +125,10 @@ const {
 } = usePredictionTrading(APP_ID);
 
 const error = computed(() => marketsError.value || tradingError.value);
+const statusMessage = computed(() => error.value ? { msg: error.value, type: "error" as const } : null);
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "market-list",
+  contentType: "two-column",
   tabs: [
     { key: "markets", labelKey: "markets", icon: "📊", default: true },
     { key: "trading", labelKey: "trading", icon: "📈" },
@@ -146,7 +158,6 @@ const isDesktop = computed(() => {
   try {
     return window.innerWidth >= 768;
   } catch {
-    /* SSR/non-browser environment — default to mobile layout */
     return false;
   }
 });
@@ -160,7 +171,6 @@ const sortLabel = computed(() => {
   return labels[filters.value.sortBy] || t("sortByVolume");
 });
 
-// Reactive state bridge for MiniAppTemplate
 const appState = computed(() => ({
   totalMarkets: markets.value.length,
   totalVolume: totalVolume.value,
@@ -171,11 +181,24 @@ const appState = computed(() => ({
 
 const sidebarItems = computed(() => [
   { label: t("markets"), value: markets.value.length },
-  { label: "Volume", value: `${formatCurrency(totalVolume.value)} GAS` },
-  { label: "Traders", value: activeTraders.value },
+  { label: t("sidebarVolume"), value: `${formatCurrency(totalVolume.value)} GAS` },
+  { label: t("sidebarTraders"), value: activeTraders.value },
   { label: t("portfolioValue"), value: `${formatCurrency(portfolioValue.value)} GAS` },
   { label: t("totalPnL"), value: `${totalPnL.value > 0 ? "+" : ""}${formatCurrency(totalPnL.value)} GAS` },
 ]);
+
+const marketStats = computed(() => [
+  { label: t("markets"), value: markets.value.length },
+  { label: t("sidebarVolume"), value: `${formatCurrency(totalVolume.value)} GAS` },
+  { label: t("sidebarTraders"), value: activeTraders.value },
+]);
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[prediction-market] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await loadMarkets(t);
+};
 
 const handleTabChange = (tab: string) => {
   activeTab.value = tab;
@@ -231,24 +254,11 @@ onMounted(() => {
   background: var(--predict-bg);
 }
 
-.tab-content {
-  padding: 16px;
-
-  @media (min-width: 768px) {
-    padding: 0;
-  }
-}
-
 .portfolio-summary {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 16px;
-
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
 }
 
 .summary-card {
@@ -288,16 +298,9 @@ onMounted(() => {
   color: var(--pm-text);
 }
 
-.error-toast {
-  position: fixed;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 14px 24px;
-  background: var(--predict-danger);
-  color: white;
-  border-radius: 12px;
-  font-weight: 600;
-  z-index: 3000;
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>

@@ -1,12 +1,14 @@
 <template>
   <view class="theme-charity-vault">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
+    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" :status-message="statusMessage" @tab-change="activeTab = $event">
       <!-- Desktop Sidebar -->
       <template #desktop-sidebar>
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
+      <!-- LEFT panel: Campaign List -->
       <template #content>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <!-- Category Filter -->
         <view class="category-filter">
           <scroll-view scroll-x class="category-scroll">
@@ -39,10 +41,22 @@
             @click="selectCampaign(campaign)"
           />
         </view>
+        </ErrorBoundary>
       </template>
 
+      <!-- RIGHT panel: Actions -->
       <template #operation>
-        <!-- List-only view: no operation panel needed -->
+        <NeoCard variant="erobo" :title="t('quickActions')">
+          <view class="action-buttons">
+            <NeoButton variant="primary" size="lg" block @click="activeTab = 'create'">
+              {{ t("create") }}
+            </NeoButton>
+            <NeoButton variant="secondary" size="lg" block @click="activeTab = 'my-donations'">
+              {{ t("myDonationsTab") }}
+            </NeoButton>
+          </view>
+        </NeoCard>
+        <NeoStats :stats="charityStats" />
       </template>
 
       <template #tab-donate>
@@ -68,18 +82,13 @@
         <CreateCampaignForm :is-creating="isCreating" :t="t as (key: string) => string" @submit="handleCreateCampaign" />
       </template>
     </MiniAppTemplate>
-
-    <!-- Error Toast -->
-    <view v-if="errorMessage" class="error-toast">
-      <text>{{ errorMessage }}</text>
-    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CampaignCard from "./components/CampaignCard.vue";
 import CampaignDetail from "./components/CampaignDetail.vue";
@@ -108,6 +117,8 @@ const {
   createCampaign,
   init,
 } = useCharityContract(t);
+
+const statusMessage = computed(() => errorMessage.value ? { msg: errorMessage.value, type: "error" as const } : null);
 
 const templateConfig: MiniAppTemplateConfig = {
   contentType: "two-column",
@@ -139,7 +150,7 @@ const activeTab = ref("campaigns");
 
 const sidebarItems = computed(() => [
   { label: t("campaigns"), value: campaigns.value.length },
-  { label: "My Donations", value: myDonations.value.length },
+  { label: t("myDonations"), value: myDonations.value.length },
   { label: t("totalRaised"), value: `${totalRaised.value.toFixed(2)} GAS` },
 ]);
 
@@ -147,6 +158,12 @@ const appState = computed(() => ({
   campaignCount: campaigns.value.length,
   totalDonated: totalDonated.value,
 }));
+
+const charityStats = computed(() => [
+  { label: t("campaigns"), value: campaigns.value.length },
+  { label: t("totalRaised"), value: `${totalRaised.value.toFixed(2)} GAS` },
+  { label: t("myDonations"), value: myDonations.value.length },
+]);
 
 // Categories
 const categories = computed(() => [
@@ -167,7 +184,7 @@ const selectCampaign = async (campaign: CharityCampaign) => {
   await loadRecentDonations(campaign.id);
 };
 
-// Create campaign wrapper (handles tab switch on success)
+// Create campaign wrapper
 const handleCreateCampaign = async (data: {
   title: string;
   description: string;
@@ -184,6 +201,14 @@ const handleCreateCampaign = async (data: {
   }
 };
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[charity-vault] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await init();
+};
+
 // Initialize
 onMounted(async () => {
   await init();
@@ -197,14 +222,6 @@ onMounted(async () => {
 
 :global(page) {
   background: var(--charity-bg);
-}
-
-.tab-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4, 16px);
-  color: var(--charity-text-primary, var(--text-primary));
 }
 
 .category-filter {
@@ -227,11 +244,6 @@ onMounted(async () => {
 
   &:hover {
     background: var(--charity-hover-bg, var(--bg-hover, rgba(255, 255, 255, 0.08)));
-    border-color: var(--charity-hover-border, var(--border-color-hover, rgba(255, 255, 255, 0.15)));
-  }
-
-  &:active {
-    transform: scale(0.98);
   }
 
   &.active {
@@ -254,48 +266,15 @@ onMounted(async () => {
   color: var(--charity-text-muted, var(--text-tertiary, rgba(248, 250, 252, 0.5)));
 }
 
-.error-toast {
-  position: fixed;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--charity-danger-bg, rgba(239, 68, 68, 0.9));
-  color: var(--charity-danger, white);
-  padding: var(--spacing-3, 12px) var(--spacing-6, 24px);
-  border-radius: var(--radius-md, 8px);
-  font-weight: 600;
-  font-size: var(--font-size-md, 14px);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  z-index: 3000;
-  box-shadow: var(--charity-card-shadow, 0 10px 40px rgba(0, 0, 0, 0.3));
-  animation: toast-in var(--transition-normal, 300ms ease-out);
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-@keyframes toast-in {
-  from {
-    transform: translate(-50%, -20px);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, 0);
-    opacity: 1;
-  }
-}
-
-
-// Reduced motion support for accessibility
 @media (prefers-reduced-motion: reduce) {
   .category-chip {
     transition: none;
-
-    &:active {
-      transform: none;
-    }
-  }
-
-  .error-toast {
-    animation: none;
   }
 }
 </style>

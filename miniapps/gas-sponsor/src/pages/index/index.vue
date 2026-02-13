@@ -14,35 +14,25 @@
 
       <!-- Main Tab — LEFT panel -->
       <template #content>
-        <view class="app-container">
-          <NeoCard
-            v-if="status"
-            :variant="status.type === 'error' ? 'danger' : status.type === 'loading' ? 'warning' : 'success'"
-            class="glass-status mb-4 text-center"
-          >
-            <text class="status-msg">{{ status.msg }}</text>
-          </NeoCard>
-
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <!-- Gas Tank Visualization -->
           <GasTank :fuel-level-percent="fuelLevelPercent" :gas-balance="gasBalance" :is-eligible="isEligible" :t="t" />
-        </view>
+        </ErrorBoundary>
       </template>
 
       <!-- Main Tab — RIGHT panel -->
       <template #operation>
-        <view class="app-container">
-          <!-- Request Sponsored Gas -->
-          <RequestGasCard
-            :is-eligible="isEligible"
-            :remaining-quota="remainingQuota"
-            v-model:requestAmount="requestAmount"
-            :max-request-amount="maxRequestAmount"
-            :is-requesting="isRequesting"
-            :quick-amounts="quickAmounts"
-            :t="t"
-            @request="requestSponsorship"
-          />
-        </view>
+        <!-- Request Sponsored Gas -->
+        <RequestGasCard
+          :is-eligible="isEligible"
+          :remaining-quota="remainingQuota"
+          v-model:requestAmount="requestAmount"
+          :max-request-amount="maxRequestAmount"
+          :is-requesting="isRequesting"
+          :quick-amounts="quickAmounts"
+          :t="t"
+          @request="requestSponsorship"
+        />
       </template>
 
       <template #tab-donate>
@@ -61,40 +51,38 @@
       </template>
 
       <template #tab-stats>
-        <view class="app-container scrollable">
-          <!-- User Balance Info -->
-          <UserBalanceInfo
-            :loading="loading"
-            :user-address="userAddress"
-            :gas-balance="gasBalance"
-            :is-eligible="isEligible"
-            :t="t"
-          />
+        <!-- User Balance Info -->
+        <UserBalanceInfo
+          :loading="loading"
+          :user-address="userAddress"
+          :gas-balance="gasBalance"
+          :is-eligible="isEligible"
+          :t="t"
+        />
 
-          <DailyQuotaCard
-            :quota-percent="quotaPercent"
-            :daily-limit="dailyLimit"
-            :used-quota="usedQuota"
-            :remaining-quota="remainingQuota"
-            :reset-time="resetTime"
-            :t="t"
-          />
+        <DailyQuotaCard
+          :quota-percent="quotaPercent"
+          :daily-limit="dailyLimit"
+          :used-quota="usedQuota"
+          :remaining-quota="remainingQuota"
+          :reset-time="resetTime"
+          :t="t"
+        />
 
-          <UsageStatisticsCard
-            :used-quota="usedQuota"
-            :remaining-quota="remainingQuota"
-            :daily-limit="dailyLimit"
-            :reset-time="resetTime"
-            :t="t"
-          />
+        <UsageStatisticsCard
+          :used-quota="usedQuota"
+          :remaining-quota="remainingQuota"
+          :daily-limit="dailyLimit"
+          :reset-time="resetTime"
+          :t="t"
+        />
 
-          <EligibilityStatusCard
-            :gas-balance="gasBalance"
-            :remaining-quota="remainingQuota"
-            :user-address="userAddress"
-            :t="t"
-          />
-        </view>
+        <EligibilityStatusCard
+          :gas-balance="gasBalance"
+          :remaining-quota="remainingQuota"
+          :user-address="userAddress"
+          :t="t"
+        />
       </template>
     </MiniAppTemplate>
   </view>
@@ -105,7 +93,7 @@ import { useWallet, useGasSponsor } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useGasTransfers } from "@/composables/useGasTransfers";
@@ -183,10 +171,10 @@ const fuelLevelPercent = computed(() => {
 });
 
 const sidebarItems = computed(() => [
-  { label: "Tank Level", value: `${Math.round(fuelLevelPercent.value)}%` },
-  { label: "GAS Balance", value: gasBalance.value },
-  { label: "Remaining Quota", value: remainingQuota.value.toFixed(4) },
-  { label: "Eligible", value: isEligible.value ? "Yes" : "No" },
+  { label: t("sidebarTankLevel"), value: `${Math.round(fuelLevelPercent.value)}%` },
+  { label: t("gasBalance"), value: gasBalance.value },
+  { label: t("sidebarRemainingQuota"), value: remainingQuota.value.toFixed(4) },
+  { label: t("sidebarEligible"), value: isEligible.value ? t("eligible") : t("notEligible") },
 ]);
 
 const resetTime = computed(() => {
@@ -241,6 +229,14 @@ const requestSponsorship = async () => {
 const { donateAmount, sendAmount, recipientAddress, isDonating, isSending, handleDonate, handleSend } =
   useGasTransfers(showStatus, loadUserData);
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[gas-sponsor] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await loadUserData();
+};
+
 onMounted(() => {
   loadUserData();
 });
@@ -257,84 +253,4 @@ onMounted(() => {
   font-family: var(--gas-font, #{$font-family});
 }
 
-.app-container {
-  padding: 24px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  background-color: var(--gas-bg);
-  background-image:
-    linear-gradient(var(--gas-grid) 1px, transparent 1px), linear-gradient(90deg, var(--gas-grid) 1px, transparent 1px);
-  background-size: 40px 40px;
-  min-height: 100vh;
-  box-shadow: inset 0 0 100px var(--gas-inset-shadow);
-}
-
-/* Gas Station Component Overrides */
-:deep(.neo-card) {
-  background: var(--gas-card-bg) !important;
-  border: 1px solid var(--gas-card-border) !important;
-  border-bottom: 2px solid var(--gas-card-border-secondary) !important;
-  border-radius: 4px !important;
-  box-shadow: var(--gas-card-shadow) !important;
-  color: var(--gas-text) !important;
-  backdrop-filter: blur(10px);
-
-  &.variant-danger {
-    border-color: var(--gas-card-danger-border) !important;
-    background: var(--gas-card-danger-bg) !important;
-    color: var(--gas-card-danger-text) !important;
-    box-shadow: var(--gas-card-danger-shadow) !important;
-  }
-}
-
-:deep(.neo-button) {
-  border-radius: 99px !important;
-  font-family: var(--gas-font, #{$font-family}) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 800 !important;
-
-  &.variant-primary {
-    background: var(--gas-button-primary-bg) !important;
-    color: var(--gas-button-primary-text) !important;
-    border: none !important;
-    box-shadow: var(--gas-button-primary-shadow) !important;
-
-    &:active {
-      transform: scale(0.95);
-      box-shadow: var(--gas-button-primary-shadow) !important;
-    }
-  }
-
-  &.variant-secondary {
-    background: var(--gas-button-secondary-bg) !important;
-    border: 1px solid var(--gas-button-secondary-border) !important;
-    color: var(--gas-button-secondary-text) !important;
-    box-shadow: var(--gas-button-secondary-shadow) !important;
-  }
-}
-
-:deep(.neo-input) {
-  background: var(--gas-input-bg) !important;
-  border: 1px solid var(--gas-input-border) !important;
-  border-radius: 4px !important;
-  color: var(--gas-input-text) !important;
-  font-family: "Courier New", monospace !important;
-}
-
-.status-msg {
-  font-weight: 700;
-  text-transform: uppercase;
-  font-family: $font-mono;
-  font-size: 12px;
-  color: var(--gas-accent-secondary);
-  text-shadow: var(--gas-status-shadow);
-}
-
-.glass-status {
-  text-align: center;
-  backdrop-filter: blur(10px);
-}
 </style>

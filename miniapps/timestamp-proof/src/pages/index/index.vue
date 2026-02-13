@@ -13,26 +13,21 @@
       </template>
 
       <template #content>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <!-- Mobile: Quick Stats -->
-        <view class="mobile-stats">
-          <view class="stat-card">
-            <text class="stat-value">{{ proofs.length }}</text>
-            <text class="stat-label">{{ t("totalProofs") }}</text>
-          </view>
-          <view class="stat-card">
-            <text class="stat-value">{{ myProofsCount }}</text>
-            <text class="stat-label">{{ t("yourProofs") }}</text>
-          </view>
-        </view>
+        <NeoStats :stats="mobileStats" class="mobile-stats" />
 
+        <ProofList :t="t" :proofs="proofs" />
+        </ErrorBoundary>
+      </template>
+
+      <template #operation>
         <ProofCreateForm
           :t="t"
           v-model:content="proofContent"
           :is-creating="isCreating"
           @create="createProof"
         />
-
-        <ProofList :t="t" :proofs="proofs" />
       </template>
 
       <template #tab-verify>
@@ -46,10 +41,6 @@
         />
       </template>
     </MiniAppTemplate>
-
-    <view v-if="errorMessage" class="error-toast">
-      <text>{{ errorMessage }}</text>
-    </view>
   </view>
 </template>
 
@@ -63,7 +54,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary, NeoStats } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import ProofCreateForm from "./components/ProofCreateForm.vue";
 import ProofList from "./components/ProofList.vue";
@@ -73,7 +64,7 @@ const { t } = useI18n();
 const APP_ID = "miniapp-timestamp-proof";
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "custom",
+  contentType: "two-column",
   tabs: [
     { key: "proofs", labelKey: "proofs", icon: "🕐", default: true },
     { key: "verify", labelKey: "verify", icon: "✅" },
@@ -129,6 +120,11 @@ const myProofsCount = computed(() => {
   if (!address.value) return 0;
   return proofs.value.filter((p) => p.creator === address.value).length;
 });
+
+const mobileStats = computed(() => [
+  { label: t("totalProofs"), value: proofs.value.length },
+  { label: t("yourProofs"), value: myProofsCount.value },
+]);
 
 const loadProofs = async () => {
   if (!(await ensureContractAddress())) return;
@@ -238,56 +234,22 @@ onMounted(async () => {
   await ensureContractAddress();
   await loadProofs();
 });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[timestamp-proof] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await ensureContractAddress();
+  await loadProofs();
+};
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/theme-base.scss" as *;
+@use "@shared/styles/variables.scss" as *;
 @import "./timestamp-proof-theme.scss";
 
 :global(page) {
   background: var(--proof-bg);
-}
-
-.tab-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-5, 20px);
-  color: var(--proof-text-primary);
-}
-
-.error-toast {
-  position: fixed;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(239, 68, 68, 0.9);
-  color: white;
-  padding: var(--spacing-3, 12px) var(--spacing-6, 24px);
-  border-radius: var(--radius-md, 8px);
-  font-weight: 600;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  z-index: 3000;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  animation: toast-in var(--transition-normal, 300ms ease-out);
-}
-
-@keyframes toast-in {
-  from {
-    transform: translate(-50%, -20px);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, 0);
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .error-toast {
-    animation: none;
-  }
 }
 </style>

@@ -93,4 +93,7 @@ export const messages = {
   feature2Desc: { en: "Templates define issuer data and supply limits.", zh: "模板定义发行方信息与发放上限。" },
   feature3Name: { en: "Revocation + Verify", zh: "撤销与核验" },
   feature3Desc: { en: "Issuers can revoke and verifiers can check status.", zh: "发行方可撤销，核验方可查询状态。" },
+  overview: { en: "Overview", zh: "概览" },
+  sidebarActive: { en: "Active", zh: "启用" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

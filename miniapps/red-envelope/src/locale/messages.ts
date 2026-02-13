@@ -156,4 +156,9 @@ export const messages = {
   transferClaim: { en: "Transfer", zh: "转让" },
   noClaims: { en: "No claimed NFTs yet", zh: "暂无领取的 NFT" },
   poolProgress: { en: "Pool Progress", zh: "奖池进度" },
+  overview: { en: "Overview", zh: "概览" },
+  sidebarEnvelopes: { en: "Envelopes", zh: "红包" },
+  sidebarClaims: { en: "Claims", zh: "领取" },
+  sidebarPools: { en: "Pools", zh: "奖池" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

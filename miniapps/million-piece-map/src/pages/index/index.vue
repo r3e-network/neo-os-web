@@ -13,22 +13,22 @@
       </template>
 
       <template #content>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <MapGrid
+            :tiles="tiles"
+            :selected-x="selectedX"
+            :selected-y="selectedY"
+            :zoom-level="zoomLevel"
+            :get-tile-color="getTileColor"
+            :t="t"
+            @select-tile="selectTile"
+            @zoom-in="zoomIn"
+            @zoom-out="zoomOut"
+          />
+        </ErrorBoundary>
+      </template>
 
-        <MapGrid
-          :tiles="tiles"
-          :selected-x="selectedX"
-          :selected-y="selectedY"
-          :zoom-level="zoomLevel"
-          :get-tile-color="getTileColor"
-          :t="t"
-          @select-tile="selectTile"
-          @zoom-in="zoomIn"
-          @zoom-out="zoomOut"
-        />
-
+      <template #operation>
         <PurchasePanel
           :selected-tile="selectedTile"
           :selected-x="selectedX"
@@ -39,29 +39,7 @@
           :t="t"
           @purchase="purchaseTile"
         />
-      </template>
-
-      <template #tab-stats>
-        <NeoCard variant="erobo" class="mb-4">
-          <view class="stats-grid">
-            <NeoCard flat variant="erobo-neo" class="flex flex-col items-center p-3 text-center">
-              <text class="stat-value">{{ ownedTiles }}</text>
-              <text class="stat-label">{{ t("tilesOwned") }}</text>
-            </NeoCard>
-            <NeoCard flat variant="erobo-neo" class="flex flex-col items-center p-3 text-center">
-              <text class="stat-value">{{ coverage }}%</text>
-              <text class="stat-label">{{ t("mapControl") }}</text>
-            </NeoCard>
-            <NeoCard flat variant="erobo-neo" class="flex flex-col items-center p-3 text-center">
-              <text class="stat-value">{{ formatNum(totalSpent) }}</text>
-              <text class="stat-label">{{ t("gasSpent") }}</text>
-            </NeoCard>
-          </view>
-        </NeoCard>
-
-        <NeoCard variant="erobo">
-          <NeoStats :stats="statsData" />
-        </NeoCard>
+        <NeoStats :stats="mapStats" />
       </template>
     </MiniAppTemplate>
   </view>
@@ -72,7 +50,7 @@ import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, type StatItem } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useMapTiles } from "@/composables/useMapTiles";
 import { useMapInteractions } from "@/composables/useMapInteractions";
@@ -83,10 +61,9 @@ const { t } = useI18n();
 const { address } = useWallet() as WalletSDK;
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "custom",
+  contentType: "two-column",
   tabs: [
-    { key: "map", labelKey: "map", icon: "🗺️", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
+    { key: "main", labelKey: "map", icon: "🗺️", default: true },
     { key: "docs", labelKey: "docs", icon: "📖" },
   ],
   features: {
@@ -104,7 +81,7 @@ const templateConfig: MiniAppTemplateConfig = {
     },
   },
 };
-const activeTab = ref("map");
+const activeTab = ref("main");
 const appState = computed(() => ({
   ownedTiles: ownedTiles.value,
   coverage: coverage.value,
@@ -138,18 +115,25 @@ const sidebarItems = computed(() => [
   { label: t("tilesOwned"), value: ownedTiles.value },
   { label: t("mapControl"), value: `${coverage.value}%` },
   { label: t("gasSpent"), value: `${formatNum(totalSpent.value)} GAS` },
-  { label: "Tile Price", value: `${TILE_PRICE} GAS` },
+  { label: t("sidebarTilePrice"), value: `${TILE_PRICE} GAS` },
 ]);
 
-const statsData = computed<StatItem[]>(() => [
-  { label: t("owned"), value: ownedTiles.value, variant: "accent" },
-  { label: t("spent"), value: `${formatNum(totalSpent.value)} GAS`, variant: "default" },
-  { label: t("coverage"), value: `${coverage.value}%`, variant: "success" },
+const mapStats = computed(() => [
+  { label: t("tilesOwned"), value: ownedTiles.value },
+  { label: t("mapControl"), value: `${coverage.value}%` },
+  { label: t("gasSpent"), value: `${formatNum(totalSpent.value)} GAS` },
 ]);
 
 watch(address, async () => {
   await loadTiles();
 }, { immediate: true });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[million-piece-map] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await loadTiles();
+};
 </script>
 
 <style lang="scss" scoped>
@@ -159,68 +143,5 @@ watch(address, async () => {
 
 :global(page) {
   background: var(--bg-primary);
-}
-
-.tab-content {
-  padding: 24px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  background-color: var(--map-sea);
-  background-image:
-    repeating-linear-gradient(45deg, transparent 0, transparent 40px, var(--map-grid) 40px, var(--map-grid) 80px),
-    radial-gradient(var(--map-paper) 20%, transparent 20%);
-  background-size:
-    200px 200px,
-    40px 40px;
-  min-height: 100vh;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--map-gold);
-  font-family: $font-mono;
-}
-
-.stat-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-:global(.theme-million-piece) :deep(.neo-card) {
-  background: var(--map-bg) !important;
-  color: var(--map-ink) !important;
-  border: 2px solid var(--map-border) !important;
-  box-shadow: var(--map-card-shadow-lite) !important;
-  border-radius: 4px !important;
-
-  &.variant-erobo-neo {
-    background: var(--map-paper) !important;
-  }
-  &.variant-danger {
-    background: var(--map-danger-bg) !important;
-    border-color: var(--map-red) !important;
-    color: var(--map-red) !important;
-  }
-}
-
-@media (max-width: 767px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  .tab-content {
-    padding: 16px;
-  }
 }
 </style>

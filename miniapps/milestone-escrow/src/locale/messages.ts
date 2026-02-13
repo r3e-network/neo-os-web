@@ -79,5 +79,6 @@ export const messages = {
   wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
   wpCancel: { en: "Cancel", zh: "取消" },
   loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" }
+  error: { en: "Error", zh: "错误" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

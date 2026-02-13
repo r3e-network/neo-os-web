@@ -76,4 +76,6 @@ title: { en: "Million Piece Map", zh: "百万像素地图" },
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+    sidebarTilePrice: { en: "Tile Price", zh: "地块价格" },
+    errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

@@ -6,9 +6,10 @@
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
-      <!-- Main Tab (default) — LEFT panel -->
+      <!-- Main Tab (default) - LEFT panel -->
       <template #content>
-        <BankHeader
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <BankHeader
           :chain-label="currentChain?.shortName || 'Neo N3'"
           :user-address="userAddress"
           :is-connected="isConnected"
@@ -31,9 +32,10 @@
             />
           </view>
         </scroll-view>
+        </ErrorBoundary>
       </template>
 
-      <!-- Main Tab — RIGHT panel -->
+      <!-- Main Tab - RIGHT panel -->
       <template #operation>
         <OperationPanel
           :is-empty="piggyBanks.length === 0"
@@ -65,7 +67,7 @@ import { storeToRefs } from "pinia";
 import { useI18n } from "@/composables/useI18n";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import BankHeader from "./components/BankHeader.vue";
 import BankCard from "./components/BankCard.vue";
@@ -120,9 +122,9 @@ const sidebarItems = computed(() => {
   const locked = banks.filter((b) => Date.now() / 1000 < b.unlockTime).length;
   const unlocked = total - locked;
   return [
-    { label: "Total Banks", value: total },
-    { label: "Locked", value: locked },
-    { label: "Unlocked", value: unlocked },
+    { label: t("sidebarTotalBanks"), value: total },
+    { label: t("sidebarLocked"), value: locked },
+    { label: t("sidebarUnlocked"), value: unlocked },
   ];
 });
 
@@ -189,6 +191,15 @@ const goToCreate = () => {
 const goToDetail = (id: string) => {
   uni.navigateTo({ url: `/pages/detail/detail?id=${id}` });
 };
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[piggy-bank] boundary error:", error);
+};
+const resetAndReload = async () => {
+  if (isConnected.value) {
+    await store.loadBanks();
+  }
+};
 </script>
 
 <style scoped lang="scss">
@@ -200,16 +211,8 @@ const goToDetail = (id: string) => {
   background: var(--bg-primary);
 }
 
-.tab-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
-
 .banks-list {
   flex: 1;
-  padding: 0 20px;
 }
 
 .grid {
@@ -219,18 +222,7 @@ const goToDetail = (id: string) => {
   padding-bottom: 80px;
 }
 
-@media (max-width: 767px) {
-  .grid {
-    padding: 0 12px;
-    gap: 12px;
-  }
-}
 @media (min-width: 1024px) {
-  .tab-content {
-    padding: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
   .grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

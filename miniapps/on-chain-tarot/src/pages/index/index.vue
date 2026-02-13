@@ -12,20 +12,9 @@
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
-      <!-- Game Tab (default) -->
+      <!-- Game Tab (default) — LEFT panel -->
       <template #content>
-        <view class="mystical-bg">
-          <!-- Mystical Background Decorations -->
-          <view class="cosmic-stars">
-            <text class="star star-1">✨</text>
-            <text class="star star-2">⭐</text>
-            <text class="star star-3">✨</text>
-            <text class="star star-4">⭐</text>
-            <text class="moon-decoration">🌙</text>
-          </view>
-
-          <AppStatus :status="status" />
-
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <GameArea
             v-model:question="question"
             :drawn="drawn"
@@ -38,7 +27,22 @@
           />
 
           <ReadingDisplay v-if="hasDrawn && allFlipped" :reading="getReading()" />
-        </view>
+        </ErrorBoundary>
+      </template>
+
+      <!-- RIGHT panel: Actions -->
+      <template #operation>
+        <NeoCard variant="erobo">
+          <view class="action-buttons">
+            <NeoButton variant="primary" size="lg" block :loading="isLoading" :disabled="hasDrawn" @click="draw">
+              {{ t("drawingCards") }}
+            </NeoButton>
+            <NeoButton v-if="hasDrawn" variant="secondary" size="lg" block @click="reset">
+              {{ t("reset") }}
+            </NeoButton>
+          </view>
+        </NeoCard>
+        <NeoStats :stats="tarotStats" />
       </template>
 
       <!-- Stats Tab -->
@@ -55,14 +59,13 @@ import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { parseStackItem } from "@shared/utils/neo";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
-import AppStatus from "./components/AppStatus.vue";
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
 import StatisticsTab from "./components/StatisticsTab.vue";
@@ -72,7 +75,7 @@ import { TAROT_DECK } from "./components/tarot-data";
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "game-board",
+  contentType: "two-column",
   tabs: [
     { key: "game", labelKey: "game", icon: "🎴", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
@@ -119,6 +122,11 @@ const hasDrawn = computed(() => drawn.value.length === 3);
 const allFlipped = computed(() => drawn.value.every((c) => c.flipped));
 const readingsCount = ref(0);
 const question = ref("");
+
+const tarotStats = computed(() => [
+  { label: t("readings"), value: readingsCount.value },
+  { label: t("cardsDrawn"), value: drawn.value.length },
+]);
 const pollingTimers: ReturnType<typeof setTimeout>[] = [];
 
 const waitForEvent = async (txid: string, eventName: string) => {
@@ -244,6 +252,13 @@ onUnmounted(() => {
   pollingTimers.forEach((timer) => clearTimeout(timer));
   pollingTimers.length = 0;
 });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[on-chain-tarot] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await loadReadingCount();
+};
 </script>
 
 <style lang="scss" scoped>
@@ -255,127 +270,9 @@ onUnmounted(() => {
   background: var(--bg-primary);
 }
 
-.tab-content {
-  padding: 20px;
-  flex: 1;
+.action-buttons {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  background: transparent;
+  gap: 12px;
 }
-
-.mystical-bg {
-  min-height: 100vh;
-  position: relative;
-  background: radial-gradient(circle at 50% 20%, var(--tarot-bg-top) 0%, var(--tarot-bg-bottom) 100%);
-  background-attachment: fixed;
-}
-
-.cosmic-stars {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  opacity: 0.6;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.star {
-  position: absolute;
-  font-size: 20px; /* Smaller, more subtle stars */
-  color: var(--tarot-star-text);
-  text-shadow:
-    0 0 5px var(--tarot-star-glow),
-    0 0 10px var(--tarot-accent);
-  animation: twinkle 4s infinite ease-in-out;
-}
-.star-1 {
-  top: 10%;
-  left: 15%;
-  animation-delay: 0s;
-  font-size: 16px;
-}
-.star-2 {
-  top: 25%;
-  right: 20%;
-  animation-delay: 1.2s;
-  font-size: 12px;
-}
-.star-3 {
-  bottom: 15%;
-  left: 10%;
-  animation-delay: 2.5s;
-  font-size: 14px;
-}
-.star-4 {
-  bottom: 30%;
-  right: 10%;
-  animation-delay: 3.8s;
-  font-size: 18px;
-}
-
-.moon-decoration {
-  position: absolute;
-  top: 40px;
-  right: 20px;
-  font-size: 80px;
-  filter: drop-shadow(0 0 30px var(--tarot-moon-glow));
-  opacity: 0.8;
-  animation: float 6s ease-in-out infinite;
-  z-index: 0;
-}
-
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-
-/* Enhancing components for Mystical Feel */
-:deep(.neo-card) {
-  background: var(--tarot-card-bg) !important;
-  border: 1px solid var(--tarot-card-border) !important;
-  backdrop-filter: blur(12px) !important;
-  box-shadow: var(--tarot-card-shadow) !important;
-  color: var(--tarot-card-text) !important;
-}
-
-:deep(.neo-card .text-white) {
-  color: var(--tarot-card-text) !important;
-}
-
-:deep(.neo-button) {
-  background: var(--tarot-button-bg) !important;
-  border: 1px solid var(--tarot-button-border) !important;
-  color: var(--tarot-button-text) !important;
-  box-shadow: 0 0 15px var(--tarot-moon-glow) !important;
-
-  &:active {
-    transform: scale(0.98);
-  }
-}
-
-// Desktop sidebar
 </style>

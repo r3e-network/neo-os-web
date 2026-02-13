@@ -6,9 +6,31 @@
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
-      <!-- Swap Tab (default) -->
+      <!-- Swap Tab (default) - LEFT panel -->
       <template #content>
-        <SwapTab :t="t" />
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <SwapTab :t="t" />
+        </ErrorBoundary>
+      </template>
+
+      <!-- RIGHT panel: Popular Pairs -->
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('popularPairs')">
+          <view class="pair-list">
+            <view
+              v-for="pair in popularPairs"
+              :key="pair.id"
+              class="pair-item"
+              :class="{ active: selectedPair === pair.id }"
+              @click="selectedPair = pair.id"
+            >
+              <view class="pair-info">
+                <text class="pair-name">{{ pair.name }}</text>
+                <text class="pair-rate">{{ pair.rate }}</text>
+              </view>
+            </view>
+          </view>
+        </NeoCard>
       </template>
 
       <!-- Pool Tab -->
@@ -22,7 +44,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import SwapTab from "./components/SwapTab.vue";
 import PoolTab from "./components/PoolTab.vue";
@@ -30,7 +52,7 @@ import PoolTab from "./components/PoolTab.vue";
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "swap-interface",
+  contentType: "two-column",
   tabs: [
     { key: "swap", labelKey: "tabSwap", icon: "💱", default: true },
     { key: "pool", labelKey: "tabPool", icon: "💧" },
@@ -57,27 +79,9 @@ const activeTab = ref("swap");
 const selectedPair = ref("neo-gas");
 
 const popularPairs = [
-  {
-    id: "neo-gas",
-    name: "NEO/GAS",
-    rate: "1:45.2",
-    fromIcon: "/static/neo-token.png",
-    toIcon: "/static/gas-token.png",
-  },
-  {
-    id: "gas-bneo",
-    name: "GAS/bNEO",
-    rate: "1:0.95",
-    fromIcon: "/static/gas-token.png",
-    toIcon: "/static/neo-token.png",
-  },
-  {
-    id: "neo-flm",
-    name: "NEO/FLM",
-    rate: "1:125.8",
-    fromIcon: "/static/neo-token.png",
-    toIcon: "/static/gas-token.png",
-  },
+  { id: "neo-gas", name: "NEO/GAS", rate: "1:45.2" },
+  { id: "gas-bneo", name: "GAS/bNEO", rate: "1:0.95" },
+  { id: "neo-flm", name: "NEO/FLM", rate: "1:125.8" },
 ];
 
 const appState = computed(() => ({
@@ -87,8 +91,15 @@ const appState = computed(() => ({
 const sidebarItems = computed(() => [
   { label: t("tabSwap"), value: selectedPair.value.toUpperCase() },
   { label: t("popularPairs"), value: popularPairs.length },
-  { label: "Rate", value: popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "-" },
+  { label: t("sidebarRate"), value: popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "-" },
 ]);
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[neo-swap] boundary error:", error);
+};
+const resetAndReload = () => {
+  /* no async data to reload */
+};
 </script>
 
 <style lang="scss" scoped>
@@ -99,15 +110,6 @@ const sidebarItems = computed(() => [
 :global(page) {
   background: var(--swap-bg-start);
 }
-
-.tab-content {
-  padding: 16px;
-
-  @media (min-width: 768px) {
-    padding: 0;
-  }
-}
-
 
 .pair-list {
   display: flex;
@@ -120,41 +122,24 @@ const sidebarItems = computed(() => [
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-card-hover, rgba(255, 255, 255, 0.03));
   border: 1px solid transparent;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle, rgba(255, 255, 255, 0.08));
   }
 
   &.active {
-    background: rgba(0, 166, 81, 0.1);
+    background: var(--accent-bg, rgba(0, 166, 81, 0.1));
     border-color: var(--swap-primary);
-  }
-}
-
-.pair-icons {
-  position: relative;
-
-  .pair-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-
-    &.overlap {
-      position: absolute;
-      left: 16px;
-      border: 2px solid var(--swap-bg);
-    }
   }
 }
 
 .pair-info {
   flex: 1;
-  margin-left: 16px;
 }
 
 .pair-name {
@@ -167,29 +152,5 @@ const sidebarItems = computed(() => [
 .pair-rate {
   font-size: 12px;
   color: var(--swap-text-secondary);
-}
-
-// Responsive styles
-@media (max-width: 767px) {
-  .tab-content {
-    padding: 12px;
-  }
-  .pair-list {
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 12px;
-    padding-bottom: 8px;
-  }
-  .pair-item {
-    min-width: 140px;
-    flex-shrink: 0;
-  }
-}
-@media (min-width: 1024px) {
-  .tab-content {
-    padding: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
 }
 </style>

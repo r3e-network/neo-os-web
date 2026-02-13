@@ -12,6 +12,8 @@
     </template>
 
     <template #content>
+      <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+      </ErrorBoundary>
     </template>
 
     <template #operation>
@@ -76,7 +78,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import StreamCreateForm from "@/components/StreamCreateForm.vue";
 import StreamList from "@/components/StreamList.vue";
@@ -127,6 +129,13 @@ const {
   cancelStream,
 } = useStreamVault(t);
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[stream-vault] boundary error:", error);
+};
+const resetAndReload = async () => {
+  if (address.value) refreshStreams();
+};
+
 onMounted(() => {
   if (address.value) {
     refreshStreams();
@@ -148,13 +157,6 @@ watch(activeTab, (next) => {
 :global(page) {
   background: linear-gradient(135deg, var(--stream-bg-start) 0%, var(--stream-bg-end) 100%);
   color: var(--stream-text);
-}
-
-.tab-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .vaults-header {

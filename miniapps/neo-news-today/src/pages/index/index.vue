@@ -6,7 +6,7 @@
       </template>
 
       <template #content>
-        <view class="nnt-container">
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <!-- Loading State -->
           <view v-if="loading" class="nnt-loading">
             <view class="nnt-spinner" />
@@ -51,7 +51,29 @@
               </NeoCard>
             </template>
           </view>
-        </view>
+        </ErrorBoundary>
+      </template>
+
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('feedStatus')">
+          <view class="op-stats">
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('articles') }}</text>
+              <text class="op-value">{{ articles.length }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('latest') }}</text>
+              <text class="op-value">{{ articles.length > 0 ? formatDate(articles[0].date) : '—' }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('status') }}</text>
+              <text class="op-value">{{ loading ? t('loading') : t('ready') }}</text>
+            </view>
+          </view>
+          <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="fetchArticles">
+            {{ t('refreshFeed') }}
+          </NeoButton>
+        </NeoCard>
       </template>
     </MiniAppTemplate>
   </view>
@@ -59,7 +81,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useNewsData } from "./composables/useNewsData";
@@ -68,7 +90,7 @@ const { t } = useI18n();
 const { loading, articles, errorMessage, fetchArticles, formatDate, openArticle } = useNewsData(t);
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "market-list",
+  contentType: "two-column",
   tabs: [
     { key: "news", labelKey: "news", icon: "📰", default: true },
     { key: "docs", labelKey: "docs", icon: "📖" },
@@ -103,8 +125,44 @@ const sidebarItems = computed(() => [
 onMounted(async () => {
   await fetchArticles();
 });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[neo-news-today] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await fetchArticles();
+};
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
 @import "./_neo-news-components.scss";
+
+.op-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.op-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.op-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.op-value {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.op-btn {
+  width: 100%;
+}
 </style>

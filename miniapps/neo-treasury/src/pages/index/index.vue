@@ -12,11 +12,11 @@
         <SidebarPanel :title="t('overview')" :items="sidebarItems" />
       </template>
 
-      <!-- Overview Tab (default) -->
+      <!-- Overview Tab (default) — LEFT panel -->
       <template #content>
-        <view class="app-container">
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
           <!-- Main Content -->
-          <view v-if="data" class="fade-in">
+          <view v-if="data">
             <!-- Background Refresh Indicator -->
             <view v-if="loading" class="soft-loading">
               <AppIcon name="loader" :size="16" class="animate-spin" />
@@ -39,8 +39,6 @@
           <!-- Initial Loading State (Only if no data) -->
           <view v-else-if="loading" class="loading-container">
             <view class="skeleton-card mb-4"></view>
-            <view class="skeleton-grid mb-4"></view>
-            <view class="skeleton-list"></view>
             <view class="loading-overlay">
               <AppIcon name="loader" :size="48" class="mb-4 animate-spin" />
               <text class="loading-label">{{ t("loading") }}</text>
@@ -55,25 +53,47 @@
               {{ t("retry") }}
             </NeoButton>
           </view>
-        </view>
+        </ErrorBoundary>
       </template>
 
       <!-- Da Hongfei Tab -->
       <template #tab-da>
-        <view class="app-container">
-          <view v-if="data" class="fade-in">
-            <FounderDetail :category="daCategory!" :prices="data.prices" :t="t" />
-          </view>
+        <view v-if="data">
+          <FounderDetail :category="daCategory!" :prices="data.prices" :t="t" />
         </view>
       </template>
 
       <!-- Erik Zhang Tab -->
       <template #tab-erik>
-        <view class="app-container">
-          <view v-if="data" class="fade-in">
-            <FounderDetail :category="erikCategory!" :prices="data.prices" :t="t" />
-          </view>
+        <view v-if="data">
+          <FounderDetail :category="erikCategory!" :prices="data.prices" :t="t" />
         </view>
+      </template>
+
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('treasuryInfo')">
+          <view class="op-stats">
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('sidebarTotalUsd') }}</text>
+              <text class="op-value">{{ data?.totalUsd ? `$${data.totalUsd.toLocaleString()}` : '—' }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('sidebarTotalNeo') }}</text>
+              <text class="op-value">{{ data?.totalNeo?.toLocaleString() ?? '—' }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('sidebarTotalGas') }}</text>
+              <text class="op-value">{{ data?.totalGas?.toLocaleString() ?? '—' }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('sidebarFounders') }}</text>
+              <text class="op-value">{{ data?.categories?.length ?? 0 }}</text>
+            </view>
+          </view>
+          <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="loadData">
+            {{ loading ? t('refreshing') : t('refreshData') }}
+          </NeoButton>
+        </NeoCard>
       </template>
     </MiniAppTemplate>
   </view>
@@ -81,7 +101,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppTemplate, NeoButton, AppIcon, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, AppIcon, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -95,7 +115,7 @@ import FounderDetail from "./components/FounderDetail.vue";
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "dashboard",
+  contentType: "two-column",
   tabs: [
     { key: "total", labelKey: "tabTotal", icon: "📊", default: true },
     { key: "da", labelKey: "tabDa", icon: "👤" },
@@ -122,7 +142,7 @@ const templateConfig: MiniAppTemplateConfig = {
 const activeTab = ref("total");
 const loading = ref(true);
 const error = ref("");
-const { status, setStatus, clearStatus } = useStatusMessage();
+const { status } = useStatusMessage();
 const data = ref<TreasuryData | null>(null);
 
 const appState = computed(() => ({
@@ -132,10 +152,10 @@ const appState = computed(() => ({
 }));
 
 const sidebarItems = computed(() => [
-  { label: "Total USD", value: data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—" },
-  { label: "Total NEO", value: data.value?.totalNeo?.toLocaleString() ?? "—" },
-  { label: "Total GAS", value: data.value?.totalGas?.toLocaleString() ?? "—" },
-  { label: "Founders", value: data.value?.categories?.length ?? 0 },
+  { label: t("sidebarTotalUsd"), value: data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—" },
+  { label: t("sidebarTotalNeo"), value: data.value?.totalNeo?.toLocaleString() ?? "—" },
+  { label: t("sidebarTotalGas"), value: data.value?.totalGas?.toLocaleString() ?? "—" },
+  { label: t("sidebarFounders"), value: data.value?.categories?.length ?? 0 },
 ]);
 
 const daCategory = computed<CategoryBalance | null>(() => {
@@ -186,6 +206,13 @@ async function loadData() {
 onMounted(() => {
   loadData();
 });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[neo-treasury] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await loadData();
+};
 </script>
 
 <style lang="scss" scoped>
@@ -197,76 +224,38 @@ onMounted(() => {
   background: var(--bg-primary);
 }
 
-.app-container {
-  padding: 20px;
+.op-stats {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 100vh;
-  gap: 16px;
-  background-color: var(--treasury-bg);
-  /* Gold Flakes */
-  background-image:
-    radial-gradient(ellipse at 50% 50%, var(--treasury-flare) 0%, transparent 60%),
-    radial-gradient(circle, var(--treasury-flake) 1px, transparent 1px);
-  background-size:
-    auto,
-    8px 8px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.tab-content {
-  flex: 1;
+.op-stat-row {
   display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* Treasury Component Overrides */
-:deep(.neo-card) {
-  background: var(--treasury-card-bg) !important;
-  border: 1px solid var(--treasury-card-border) !important;
-  border-radius: 12px !important;
-  box-shadow: var(--treasury-card-shadow) !important;
-  color: var(--treasury-text) !important;
-
-  /* Reflective Edge */
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--treasury-card-edge);
-    opacity: 0.5;
-  }
+.op-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
 }
 
-:deep(.neo-button) {
-  border-radius: 6px !important;
-  font-family: "Cinzel", serif !important;
-  text-transform: uppercase;
-  font-weight: 700 !important;
+.op-value {
+  font-size: 13px;
+  font-weight: 700;
+}
 
-  &.variant-primary {
-    background: var(--treasury-button-bg) !important;
-    color: var(--treasury-button-text) !important;
-    border: 1px solid var(--treasury-button-border) !important;
-    box-shadow: var(--treasury-button-shadow) !important;
-    text-shadow: var(--treasury-button-text-shadow);
-
-    &:active {
-      background: var(--treasury-button-active-bg) !important;
-    }
-  }
+.op-btn {
+  width: 100%;
 }
 
 .loading-container {
   display: flex;
   flex-direction: column;
   padding: 16px;
+  position: relative;
 }
 
 .loading-overlay {
@@ -276,6 +265,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
 }
 
 .soft-loading {
@@ -292,7 +282,7 @@ onMounted(() => {
 }
 
 .soft-loading-text {
-  font-family: "Cinzel", serif;
+  font-family: var(--font-family-display, "Cinzel", serif);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -327,20 +317,12 @@ onMounted(() => {
 
 .loading-label,
 .error-label {
-  font-family: "Cinzel", serif;
+  font-family: var(--font-family-display, "Cinzel", serif);
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--treasury-gold);
   letter-spacing: 0.05em;
-}
-
-.status-text {
-  font-family: "Cinzel", serif;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--treasury-text);
 }
 
 .animate-spin {
@@ -355,47 +337,7 @@ onMounted(() => {
   }
 }
 
-.fade-in {
-  animation: fadeIn 0.4s ease-out;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .text-danger {
   color: var(--treasury-danger);
 }
-
-
-/* Mobile-specific styles */
-@media (max-width: 767px) {
-  .app-container {
-    padding: 12px;
-    gap: 12px;
-  }
-  .tab-content {
-    padding: 12px;
-  }
-  .loading-container {
-    padding: 12px;
-  }
-}
-
-/* Desktop styles */
-@media (min-width: 1024px) {
-  .app-container {
-    padding: 32px;
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-}
-
-// Desktop sidebar
 </style>

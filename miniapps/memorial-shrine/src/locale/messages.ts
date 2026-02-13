@@ -83,4 +83,6 @@ export const messages = {
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+    sidebarObituaries: { en: "Obituaries", zh: "讣告" },
+    errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

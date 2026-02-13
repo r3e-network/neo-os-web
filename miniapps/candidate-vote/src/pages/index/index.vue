@@ -13,16 +13,9 @@
       </template>
 
       <template #content>
-        <NeoCard
-          v-if="status"
-          :variant="status.type === 'error' ? 'danger' : 'success'"
-          class="mb-4 text-center font-bold"
-        >
-          <text>{{ status.msg }}</text>
-        </NeoCard>
-
-        <!-- Candidate List -->
-        <CandidateList
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <!-- Candidate List -->
+          <CandidateList
           :candidates="candidates"
           :selected-candidate="selectedCandidate"
           :user-voted-public-key="normalizedUserVotedPublicKey"
@@ -31,11 +24,14 @@
           @select="selectCandidate"
           @view-details="openCandidateDetail"
         />
+        </ErrorBoundary>
+      </template>
 
+      <template #operation>
         <!-- Vote Form -->
         <NeoCard variant="erobo-neo">
           <view class="vote-form">
-            <NeoCard v-if="selectedCandidate" variant="erobo-neo" flat class="selected-candidate-card glass-panel">
+            <NeoCard v-if="selectedCandidate" variant="erobo-neo" flat class="selected-candidate-card">
               <text class="selected-label">{{ t("votingFor") }}</text>
               <view class="candidate-badge">
                 <view class="logo-name-row">
@@ -114,7 +110,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import type { GovernanceCandidate } from "./utils";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CandidateList from "./components/CandidateList.vue";
 import CandidateDetailModal from "./components/CandidateDetailModal.vue";
@@ -127,7 +123,7 @@ const wallet = useWallet() as WalletSDK;
 const { address, chainId, appChainId } = wallet;
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "market-list",
+  contentType: "two-column",
   tabs: [
     { key: "vote", labelKey: "vote", icon: "\uD83D\uDCCB", default: true },
     { key: "info", labelKey: "info", icon: "\uD83D\uDCCA" },
@@ -215,6 +211,14 @@ const handleVoteFromModal = async (candidate: GovernanceCandidate) => {
   await handleVote(selectedCandidate.value);
 };
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[candidate-vote] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await Promise.all([loadCandidates(), loadUserVote()]);
+};
+
 onMounted(async () => {
   await Promise.all([loadCandidates(), loadUserVote()]);
 });
@@ -230,14 +234,6 @@ watch(preferredChainId, () => { loadCandidates(); loadUserVote(); });
 
 :global(page) {
   background: var(--bg-primary);
-}
-
-:deep(.neo-card) {
-  &.variant-erobo-neo {
-    background: var(--candidate-card-bg) !important;
-    border: 1px solid var(--candidate-card-border) !important;
-    backdrop-filter: blur(10px);
-  }
 }
 
 .vote-form {
@@ -348,32 +344,6 @@ watch(preferredChainId, () => { loadCandidates(); loadUserVote(); });
 .hint-text {
   font-size: 12px;
   color: var(--text-secondary);
-}
-
-:deep(.neo-button) {
-  &.variant-primary {
-    background: var(--candidate-cta-gradient) !important;
-    border: none !important;
-    color: var(--candidate-cta-text) !important;
-    font-weight: 800 !important;
-    border-radius: 99px !important;
-    box-shadow: var(--candidate-cta-shadow);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 16px !important;
-    height: 56px;
-
-    &:active {
-      transform: scale(0.98);
-      box-shadow: var(--candidate-cta-shadow-press);
-    }
-
-    &[disabled] {
-      background: var(--candidate-disabled-bg) !important;
-      color: var(--candidate-disabled-text) !important;
-      box-shadow: none;
-    }
-  }
 }
 
 .no-candidate-card {

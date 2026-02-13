@@ -15,40 +15,31 @@
 
       <!-- Main Tab — LEFT panel -->
       <template #content>
-        <view class="app-container">
-          <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="mb-4">
-            <text class="text-glass text-center font-bold">{{ status.msg }}</text>
-          </NeoCard>
-        </view>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        </ErrorBoundary>
       </template>
 
       <!-- Main Tab — RIGHT panel -->
       <template #operation>
-        <view class="app-container">
-          <TipForm
-            :developers="developers"
-            v-model="selectedDevId"
-            v-model:amount="tipAmount"
-            v-model:message="tipMessage"
-            v-model:tipperName="tipperName"
-            v-model:anonymous="anonymous"
-            :isLoading="isLoading"
-            :t="t"
-            @submit="handleSendTip"
-          />
-        </view>
+        <TipForm
+          :developers="developers"
+          v-model="selectedDevId"
+          v-model:amount="tipAmount"
+          v-model:message="tipMessage"
+          v-model:tipperName="tipperName"
+          v-model:anonymous="anonymous"
+          :isLoading="isLoading"
+          :t="t"
+          @submit="handleSendTip"
+        />
       </template>
 
       <template #tab-developers>
-        <view class="app-container">
-          <TipList :developers="developers" :formatNum="formatNum" :t="t" @select="handleSelectDev" />
-        </view>
+        <TipList :developers="developers" :formatNum="formatNum" :t="t" @select="handleSelectDev" />
       </template>
 
       <template #tab-stats>
-        <view class="app-container">
-          <WalletInfo :totalDonated="totalDonated" :recentTips="recentTips" :formatNum="formatNum" :t="t" />
-        </view>
+        <WalletInfo :totalDonated="totalDonated" :recentTips="recentTips" :formatNum="formatNum" :t="t" />
       </template>
     </MiniAppTemplate>
   </view>
@@ -56,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useDevTippingStats, type Developer } from "@/composables/useDevTippingStats";
@@ -104,8 +95,8 @@ const appState = computed(() => ({
 
 const sidebarItems = computed(() => [
   { label: t("developers"), value: developers.value.length },
-  { label: "Total Donated", value: formatNum(totalDonated.value) },
-  { label: "Recent Tips", value: recentTips.value.length },
+  { label: t("totalDonated"), value: formatNum(totalDonated.value) },
+  { label: t("recentTips"), value: recentTips.value.length },
 ]);
 
 const selectedDevId = ref<number | null>(null);
@@ -148,6 +139,14 @@ const handleSendTip = async () => {
   }
 };
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[dev-tipping] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await refreshData();
+};
+
 onMounted(() => {
   refreshData();
 });
@@ -161,83 +160,4 @@ onMounted(() => {
 :global(page) {
   background: var(--bg-primary);
 }
-
-.app-container {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 100vh;
-  gap: 16px;
-  background-color: var(--cafe-bg);
-  background-image:
-    linear-gradient(var(--cafe-panel-weak), var(--cafe-panel-weak)),
-    repeating-linear-gradient(0deg, transparent, transparent 20px, var(--cafe-border) 21px),
-    repeating-linear-gradient(90deg, transparent, transparent 20px, var(--cafe-border) 21px);
-}
-
-.tab-content {
-  padding: 16px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-:global(.theme-dev-tipping) :deep(.neo-card) {
-  background: linear-gradient(135deg, var(--cafe-glass) 0%, var(--cafe-panel) 100%) !important;
-  border: 1px solid var(--cafe-neon) !important;
-  border-radius: 16px !important;
-  box-shadow: var(--cafe-card-shadow) !important;
-  color: var(--cafe-text) !important;
-  backdrop-filter: blur(10px);
-
-  &.variant-danger {
-    border-color: var(--cafe-error-border) !important;
-    background: var(--cafe-error-bg) !important;
-  }
-}
-
-:global(.theme-dev-tipping) :deep(.neo-button) {
-  border-radius: 8px !important;
-  font-family: "JetBrains Mono", monospace !important;
-  font-weight: 700 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-
-  &.variant-primary {
-    background: var(--cafe-neon) !important;
-    color: var(--cafe-button-text) !important;
-    border: none !important;
-    box-shadow: var(--cafe-button-shadow) !important;
-
-    &:active {
-      transform: scale(0.98);
-      box-shadow: var(--cafe-button-shadow-press) !important;
-    }
-  }
-
-  &.variant-secondary {
-    background: transparent !important;
-    border: 1px solid var(--cafe-secondary-border) !important;
-    color: var(--cafe-secondary-text) !important;
-  }
-}
-
-:global(.theme-dev-tipping) :deep(input),
-:global(.theme-dev-tipping) :deep(.neo-input) {
-  background: var(--cafe-input-bg) !important;
-  border: 1px solid var(--cafe-input-border) !important;
-  color: var(--cafe-text) !important;
-  border-radius: 8px !important;
-  font-family: "JetBrains Mono", monospace !important;
-
-  &:focus {
-    border-color: var(--cafe-neon) !important;
-    box-shadow: 0 0 0 1px var(--cafe-neon) !important;
-  }
-}
-
 </style>

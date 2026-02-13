@@ -1,8 +1,5 @@
 <template>
   <view class="theme-turtle-match">
-    <view class="pond-background" />
-    <view class="pond-caustics" />
-    <view class="neural-rain" />
     <MiniAppTemplate
       :config="templateConfig"
       :state="appState"
@@ -15,10 +12,9 @@
       </template>
 
       <template #content>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <view class="game-container">
-          <view class="game-header">
-            <PlayerStats :stats="stats" :t="t" />
-          </view>
+          <PlayerStats :stats="stats" :t="t" />
 
           <view v-if="error" class="error-banner">
             <text class="error-text">{{ error }}</text>
@@ -74,6 +70,7 @@
           @close="showResult = false"
         />
         <GameSplash :visible="showSplash" @complete="showSplash = false" />
+        </ErrorBoundary>
       </template>
 
       <template #tab-guide>
@@ -83,13 +80,61 @@
       <template #tab-community>
         <CommunityTab :t="t" />
       </template>
+
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('operationPanelTitle')">
+          <view class="op-stats">
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('totalSessions') }}</text>
+              <text class="op-value">{{ stats?.totalSessions ?? 0 }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('matches') }}</text>
+              <text class="op-value">{{ currentMatches }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('remainingBoxes') }}</text>
+              <text class="op-value">{{ remainingBoxes }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('phase') }}</text>
+              <text class="op-value">{{ gamePhase }}</text>
+            </view>
+          </view>
+          <view v-if="!isConnected" class="op-connect">
+            <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="connect">
+              {{ t('connectWallet') }}
+            </NeoButton>
+          </view>
+          <view v-else-if="!hasActiveSession" class="op-start">
+            <view class="op-box-select">
+              <text class="op-label">{{ t('buyBlindbox') }}</text>
+              <NeoInput v-model="boxCount" type="number" size="sm" :placeholder="'3-20'" />
+            </view>
+            <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="handleStartGame">
+              {{ t('startGame') }}
+            </NeoButton>
+          </view>
+          <view v-else class="op-active">
+            <NeoButton v-if="gamePhase === 'settling'" size="sm" variant="primary" class="op-btn" :disabled="loading" @click="handleSettle">
+              {{ t('settleRewards') }}
+            </NeoButton>
+            <NeoButton v-else-if="gamePhase === 'complete'" size="sm" variant="secondary" class="op-btn" @click="handleNewGame">
+              {{ t('newGame') }}
+            </NeoButton>
+            <view v-else class="op-hint">
+              <text class="op-hint-text">{{ t('autoOpening') }}</text>
+            </view>
+          </view>
+        </NeoCard>
+      </template>
     </MiniAppTemplate>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { MiniAppTemplate, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useTurtleGame, TurtleColor } from "@/composables/useTurtleGame";
@@ -109,7 +154,7 @@ const { t } = useI18n();
 const APP_ID = "miniapp-turtle-match";
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "game-board",
+  contentType: "two-column",
   tabs: [
     { key: "play", labelKey: "tabPlay", icon: "game", default: true },
     { key: "guide", labelKey: "tabGuide", icon: "activity" },
@@ -240,6 +285,13 @@ onUnmounted(() => {
   if (autoPlayKickoffTimer) clearTimeout(autoPlayKickoffTimer);
   if (activeDelayTimer) clearTimeout(activeDelayTimer);
 });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[turtle-match] boundary error:", error);
+};
+const resetAndReload = async () => {
+  loadStats();
+};
 </script>
 
 <style lang="scss" scoped>
@@ -256,29 +308,70 @@ onUnmounted(() => {
   --nav-text: var(--turtle-text);
 }
 
-.tab-content {
-  min-height: 0;
+.op-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.op-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.op-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.op-value {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.op-btn {
+  width: 100%;
+}
+
+.op-box-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.op-hint {
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.op-hint-text {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.op-connect,
+.op-start,
+.op-active {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .game-container {
-  padding-top: 20px;
-  position: relative;
-  overflow: hidden;
-}
-
-.game-header {
-  margin: 0 20px 30px;
-}
-
-.game-area {
-  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .error-banner {
   background: var(--turtle-danger-soft);
   border: 1px solid var(--turtle-danger-border);
   padding: 12px;
-  margin: 0 20px 20px;
   border-radius: 12px;
   text-align: center;
 }
@@ -287,27 +380,5 @@ onUnmounted(() => {
   color: var(--turtle-danger-text);
   font-size: 12px;
   font-weight: 600;
-}
-
-@media (max-width: 767px) {
-  .game-container {
-    padding-top: 12px;
-  }
-
-  .game-header {
-    margin: 0 12px 20px;
-  }
-
-  .game-area {
-    padding: 0 12px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .game-container {
-    padding: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
 }
 </style>

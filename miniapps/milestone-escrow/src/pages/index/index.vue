@@ -13,9 +13,8 @@
       </template>
 
       <template #content>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        </ErrorBoundary>
       </template>
 
       <template #operation>
@@ -29,10 +28,6 @@
             {{ t("refresh") }}
           </NeoButton>
         </view>
-
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="text-center">
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
 
         <view v-if="!address" class="empty-state">
           <NeoCard variant="erobo" class="p-6 text-center">
@@ -65,7 +60,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import EscrowForm from "./components/EscrowForm.vue";
 import EscrowList from "./components/EscrowList.vue";
@@ -142,6 +137,15 @@ const onCreateEscrow = async (data: {
   await handleCreateEscrow(data, escrowFormRef.value);
 };
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[milestone-escrow] boundary error:", error);
+};
+const resetAndReload = async () => {
+  if (address.value) {
+    await refreshEscrows();
+  }
+};
+
 onMounted(() => {
   if (address.value) {
     refreshEscrows();
@@ -163,13 +167,6 @@ watch(activeTab, (next) => {
 :global(page) {
   background: linear-gradient(135deg, var(--escrow-bg-start) 0%, var(--escrow-bg-end) 100%);
   color: var(--escrow-text);
-}
-
-.tab-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .escrows-header {

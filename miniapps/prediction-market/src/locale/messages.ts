@@ -257,4 +257,13 @@ export const messages = {
   wpCancel: { en: "Cancel", zh: "取消" },
   docBadge: { en: "Documentation", zh: "文档" },
   docFooter: { en: "NeoHub MiniApp Protocol v2.4.0", zh: "NeoHub MiniApp Protocol v2.4.0" },
+  sidebarVolume: { en: "Volume", zh: "交易量" },
+  sidebarTraders: { en: "Traders", zh: "交易者" },
+  portfolioValue: { en: "Portfolio Value", zh: "投资组合价值" },
+  totalPnL: { en: "Total P&L", zh: "总盈亏" },
+  sortByVolume: { en: "By Volume", zh: "按交易量" },
+  sortByNewest: { en: "By Newest", zh: "按最新" },
+  sortByEnding: { en: "By Ending", zh: "按结束时间" },
+  overview: { en: "Overview", zh: "概览" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

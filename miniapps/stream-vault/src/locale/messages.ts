@@ -80,4 +80,6 @@ export const messages = {
   wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
   wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
   wpCancel: { en: "Cancel", zh: "取消" },
+  overview: { en: "Overview", zh: "概览" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

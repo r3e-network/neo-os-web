@@ -72,6 +72,9 @@ export { default as ChainWarning } from "./ChainWarning.vue";
 export { default as ErrorBoundary } from "./ErrorBoundary.vue";
 export { default as Fireworks } from "./Fireworks.vue";
 export { default as SidebarPanel } from "./SidebarPanel.vue";
+export { default as OperationBox } from "./OperationBox.vue";
+export { default as ErrorToast } from "./ErrorToast.vue";
+export { default as InfoSection } from "./InfoSection.vue";
 
 // ============================================================================
 // Vue Components - Template System

@@ -15,11 +15,9 @@
 
       <!-- Main Tab — LEFT panel -->
       <template #content>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-          <text class="status-msg font-bold">{{ status.msg }}</text>
-        </NeoCard>
-
-        <RewardClaim :position="position" />
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <RewardClaim :position="position" />
+        </ErrorBoundary>
       </template>
 
       <!-- Main Tab — RIGHT panel -->
@@ -38,22 +36,7 @@
         <CapsuleList :capsules="activeCapsules" :is-loading="isLoading" @unlock="unlockCapsule" />
 
         <!-- Statistics -->
-        <NeoCard variant="erobo-neo">
-          <view class="stats-grid-glass">
-            <view class="stat-box-glass">
-              <text class="stat-label">{{ t("totalCapsules") }}</text>
-              <text class="stat-value">{{ stats.totalCapsules }}</text>
-            </view>
-            <view class="stat-box-glass">
-              <text class="stat-label">{{ t("totalLocked") }}</text>
-              <text class="stat-value">{{ fmt(stats.totalLocked, 0) }} NEO</text>
-            </view>
-            <view class="stat-box-glass">
-              <text class="stat-label">{{ t("totalAccrued") }}</text>
-              <text class="stat-value">{{ fmt(stats.totalAccrued, 4) }} GAS</text>
-            </view>
-          </view>
-        </NeoCard>
+        <NeoStats :stats="capsuleStats" />
       </template>
     </MiniAppTemplate>
   </view>
@@ -69,7 +52,7 @@ import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@sh
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import CapsuleCreate from "./components/CapsuleCreate.vue";
 import RewardClaim from "./components/RewardClaim.vue";
@@ -112,6 +95,12 @@ const appState = computed(() => ({
 }));
 
 const sidebarItems = computed(() => [
+  { label: t("totalCapsules"), value: stats.value.totalCapsules },
+  { label: t("totalLocked"), value: `${fmt(stats.value.totalLocked, 0)} NEO` },
+  { label: t("totalAccrued"), value: `${fmt(stats.value.totalAccrued, 4)} GAS` },
+]);
+
+const capsuleStats = computed(() => [
   { label: t("totalCapsules"), value: stats.value.totalCapsules },
   { label: t("totalLocked"), value: `${fmt(stats.value.totalLocked, 0)} NEO` },
   { label: t("totalAccrued"), value: `${fmt(stats.value.totalAccrued, 4)} GAS` },
@@ -226,6 +215,14 @@ const fetchData = async () => {
   }
 };
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[compound-capsule] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await fetchData();
+};
+
 watch(address, () => {
   fetchData();
 }, { immediate: true });
@@ -302,89 +299,4 @@ const unlockCapsule = async (capsuleId: string) => {
 :global(page) {
   background: var(--capsule-bg);
 }
-
-.tab-content {
-  padding: 24px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  background-color: var(--capsule-bg);
-  background-image:
-    radial-gradient(circle at 10% 20%, var(--capsule-accent-purple) 0%, transparent 20%),
-    radial-gradient(circle at 90% 80%, var(--capsule-accent-gold) 0%, transparent 20%);
-  min-height: 100vh;
-}
-
-/* Alchemy Component Overrides */
-:deep(.neo-card) {
-  background: var(--capsule-card-bg) !important;
-  border: 1px solid var(--capsule-card-border) !important;
-  border-radius: 16px !important;
-  box-shadow: var(--capsule-card-shadow) !important;
-  color: var(--capsule-text) !important;
-  position: relative;
-  overflow: hidden;
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    border: 1px solid var(--capsule-gold);
-    opacity: 0.3;
-    pointer-events: none;
-  }
-  &::before {
-    top: -20px;
-    left: -20px;
-    border-radius: 50%;
-  }
-  &::after {
-    bottom: -20px;
-    right: -20px;
-    border-radius: 50%;
-  }
-}
-
-:deep(.neo-button) {
-  border-radius: 8px !important;
-  font-family: "Cinzel", serif !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700 !important;
-
-  &.variant-primary {
-    background: var(--capsule-button-gradient) !important;
-    color: var(--capsule-button-text) !important;
-    border: 1px solid var(--capsule-button-border) !important;
-    box-shadow: var(--capsule-button-shadow) !important;
-
-    &:active {
-      transform: translateY(1px);
-      box-shadow: var(--capsule-button-shadow-press) !important;
-    }
-  }
-
-  &.variant-secondary {
-    background: transparent !important;
-    border: 1px solid var(--capsule-text) !important;
-    color: var(--capsule-text) !important;
-    opacity: 0.8;
-  }
-}
-
-:deep(input),
-:deep(.neo-input input) {
-  font-family: "Cinzel", serif !important;
-}
-
-.status-msg {
-  font-size: 14px;
-  color: var(--capsule-text);
-  letter-spacing: 0.05em;
-  font-family: "Cinzel", serif;
-}
-
 </style>

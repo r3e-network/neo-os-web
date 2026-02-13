@@ -14,51 +14,51 @@
       </template>
 
       <template #content>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="status-card">
-          <text class="status-text">{{ status.msg }}</text>
-        </NeoCard>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <view class="neoburger-shell">
+            <HeroSection
+              :total-staked-display="totalStakedDisplay"
+              :total-staked-usd-text="totalStakedUsdText"
+              :apr-display="aprDisplay"
+            />
 
-        <view class="neoburger-shell">
-          <HeroSection
-            :total-staked-display="totalStakedDisplay"
-            :total-staked-usd-text="totalStakedUsdText"
-            :apr-display="aprDisplay"
-          />
+            <StatsPanel @switch-to-jazz="switchToJazz" @open-link="openExternal" />
+          </view>
+        </ErrorBoundary>
+      </template>
 
-          <StationPanel
-            ref="stationPanelRef"
-            v-model:mode="homeMode"
-            :wallet-connected="walletConnected"
-            :can-submit="swap.swapCanSubmit"
-            :loading="loading"
-            :primary-action-label="primaryActionLabel"
-            :jazz-action-label="jazzActionLabel"
-            :daily-rewards="rewards.dailyRewards"
-            :weekly-rewards="rewards.weeklyRewards"
-            :monthly-rewards="rewards.monthlyRewards"
-            :total-rewards="rewards.totalRewards"
-            :total-rewards-usd-text="rewards.totalRewardsUsdText"
-            @learn-more="activeTab = 'docs'"
-            @set-amount="swap.setSwapAmount"
-            @primary-action="handlePrimaryAction"
-            @jazz-action="handleJazzAction"
-          >
-            <template #swap-interface>
-              <SwapInterface
-                :swap-mode="swap.swapMode"
-                :neo-balance="neoBalance"
-                :b-neo-balance="bNeoBalance"
-                :swap-amount="swap.swapAmount"
-                :swap-output="swap.swapOutput"
-                :swap-usd-text="swap.swapUsdText"
-                @update:swap-amount="swap.updateSwapAmount"
-                @toggle-mode="swap.toggleSwapMode"
-              />
-            </template>
-          </StationPanel>
-
-          <StatsPanel @switch-to-jazz="switchToJazz" @open-link="openExternal" />
-        </view>
+      <template #operation>
+        <StationPanel
+          ref="stationPanelRef"
+          v-model:mode="homeMode"
+          :wallet-connected="walletConnected"
+          :can-submit="swap.swapCanSubmit"
+          :loading="loading"
+          :primary-action-label="primaryActionLabel"
+          :jazz-action-label="jazzActionLabel"
+          :daily-rewards="rewards.dailyRewards"
+          :weekly-rewards="rewards.weeklyRewards"
+          :monthly-rewards="rewards.monthlyRewards"
+          :total-rewards="rewards.totalRewards"
+          :total-rewards-usd-text="rewards.totalRewardsUsdText"
+          @learn-more="activeTab = 'docs'"
+          @set-amount="swap.setSwapAmount"
+          @primary-action="handlePrimaryAction"
+          @jazz-action="handleJazzAction"
+        >
+          <template #swap-interface>
+            <SwapInterface
+              :swap-mode="swap.swapMode"
+              :neo-balance="neoBalance"
+              :b-neo-balance="bNeoBalance"
+              :swap-amount="swap.swapAmount"
+              :swap-output="swap.swapOutput"
+              :swap-usd-text="swap.swapUsdText"
+              @update:swap-amount="swap.updateSwapAmount"
+              @toggle-mode="swap.toggleSwapMode"
+            />
+          </template>
+        </StationPanel>
       </template>
 
       <template #tab-airdrop>
@@ -83,7 +83,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import type { UniAppGlobals } from "@shared/types/globals";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -112,7 +112,7 @@ const homeMode = ref<"burger" | "jazz">("burger");
 const stationPanelRef = ref<InstanceType<typeof StationPanel> | null>(null);
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "dashboard",
+  contentType: "two-column",
   tabs: [
     { key: "home", labelKey: "tabHome", icon: "🏠", default: true },
     { key: "airdrop", labelKey: "tabAirdrop", icon: "🚀" },
@@ -144,10 +144,10 @@ const appState = computed(() => ({
 }));
 
 const sidebarItems = computed(() => [
-  { label: "NEO Balance", value: neoBalance.value ?? "—" },
-  { label: "bNEO Balance", value: bNeoBalance.value ?? "—" },
-  { label: "Total Staked", value: totalStakedDisplay.value },
-  { label: "APR", value: aprDisplay.value },
+  { label: t("sidebarNeoBalance"), value: neoBalance.value ?? "—" },
+  { label: t("sidebarBneoBalance"), value: bNeoBalance.value ?? "—" },
+  { label: t("sidebarTotalStaked"), value: totalStakedDisplay.value },
+  { label: t("sidebarApr"), value: aprDisplay.value },
 ]);
 
 const primaryActionLabel = computed(() => (walletConnected.value ? swap.swapButtonLabel : t("connectWallet")));
@@ -226,13 +226,21 @@ onMounted(() => {
   loadApy();
   loadPrices();
 });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[neoburger] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await loadBalances();
+  await loadApy();
+  await loadPrices();
+};
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap");
 @import "./neoburger-theme.scss";
 @import "./neoburger-deep-overrides.scss";
 
@@ -250,7 +258,7 @@ onMounted(() => {
   font-size: 13px;
   text-align: center;
   letter-spacing: 0.05em;
-  font-family: "Manrope", "Outfit", sans-serif;
+  font-family: var(--font-family-display, "Manrope", "Outfit", sans-serif);
 }
 
 .neoburger-shell {
@@ -258,7 +266,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  font-family: "Manrope", "Outfit", sans-serif;
+  font-family: var(--font-family-display, "Manrope", "Outfit", sans-serif);
   color: var(--burger-text);
 }
 </style>

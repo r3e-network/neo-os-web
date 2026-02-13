@@ -12,6 +12,23 @@
     </template>
 
     <template #content>
+      <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+      <VaultList
+        :t="t"
+        :title="t('myVaults')"
+        :empty-text="t('noRecentVaults')"
+        :vaults="myVaults"
+        @select="breaker.selectVault"
+      />
+
+      <NeoCard v-if="createdVaultId" variant="erobo" class="vault-created">
+        <text class="vault-created-label">{{ t("vaultCreated") }}</text>
+        <text class="vault-created-id">#{{ createdVaultId }}</text>
+      </NeoCard>
+      </ErrorBoundary>
+    </template>
+
+    <template #operation>
       <VaultCreate
         :t="t"
         v-model:bounty="bounty"
@@ -24,19 +41,6 @@
         :loading="isCreating"
         :min-bounty="MIN_BOUNTY"
         @create="createVault"
-      />
-
-      <NeoCard v-if="createdVaultId" variant="erobo" class="vault-created">
-        <text class="vault-created-label">{{ t("vaultCreated") }}</text>
-        <text class="vault-created-id">#{{ createdVaultId }}</text>
-      </NeoCard>
-
-      <VaultList
-        :t="t"
-        :title="t('myVaults')"
-        :empty-text="t('noRecentVaults')"
-        :vaults="myVaults"
-        @select="breaker.selectVault"
       />
     </template>
 
@@ -94,7 +98,7 @@ import { sha256Hex } from "@shared/utils/hash";
 import { normalizeScriptHash, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
 import { toFixed8 } from "@shared/utils/format";
 import { useContractAddress } from "@shared/composables/useContractAddress";
-import { MiniAppTemplate, NeoButton, NeoInput, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoButton, NeoInput, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -116,7 +120,7 @@ const { list: listEvents } = useEvents();
 const breaker = useVaultBreaker(APP_ID, t);
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "custom",
+  contentType: "two-column",
   tabs: [
     { key: "create", labelKey: "create", icon: "🔒", default: true },
     { key: "break", labelKey: "break", icon: "🔑" },
@@ -142,8 +146,8 @@ const appState = computed(() => ({}));
 const sidebarItems = computed(() => [
   { label: t("create"), value: myVaults.value.length },
   { label: t("break"), value: breaker.recentVaults.value.length },
-  { label: "Difficulty", value: vaultDifficulty.value },
-  { label: "Attempt Fee", value: `${breaker.attemptFeeDisplay.value} GAS` },
+  { label: t("sidebarDifficulty"), value: vaultDifficulty.value },
+  { label: t("sidebarAttemptFee"), value: `${breaker.attemptFeeDisplay.value} GAS` },
 ]);
 
 const activeTab = ref("create");
@@ -240,6 +244,14 @@ onMounted(() => {
   breaker.loadRecentVaults();
   loadMyVaults();
 });
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[unbreakable-vault] boundary error:", error);
+};
+const resetAndReload = async () => {
+  breaker.loadRecentVaults();
+  loadMyVaults();
+};
 </script>
 
 <style lang="scss" scoped>
@@ -250,95 +262,6 @@ onMounted(() => {
 :global(page) {
   background: var(--bg-primary);
   font-family: var(--vault-font);
-}
-
-.tab-content {
-  padding: 16px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-:deep(.neo-card) {
-  background: var(--vault-bg) !important;
-  border-radius: 20px !important;
-  box-shadow:
-    9px 9px 16px var(--vault-shadow-dark),
-    -9px -9px 16px var(--vault-shadow-light) !important;
-  color: var(--vault-text) !important;
-  border: none !important;
-  padding: 24px !important;
-
-  &.variant-danger {
-    background: var(--vault-danger-bg) !important;
-    box-shadow:
-      5px 5px 10px var(--vault-danger-shadow-dark),
-      -5px -5px 10px var(--vault-danger-shadow-light) !important;
-    color: var(--vault-danger-text) !important;
-  }
-}
-
-:deep(.neo-card.variant-danger .text-white) {
-  color: var(--vault-danger-text) !important;
-}
-
-:deep(.neo-button) {
-  border-radius: 50px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.05em;
-  color: var(--vault-text) !important;
-  transition: all 0.2s ease;
-
-  &.variant-primary {
-    background: var(--vault-button-bg);
-    box-shadow:
-      5px 5px 10px var(--vault-shadow-dark),
-      -5px -5px 10px var(--vault-shadow-light) !important;
-    border: none !important;
-    color: var(--vault-button-text) !important;
-
-    &:active {
-      box-shadow:
-        inset 5px 5px 10px var(--vault-shadow-dark),
-        inset -5px -5px 10px var(--vault-shadow-light) !important;
-    }
-  }
-
-  &.variant-secondary {
-    background: var(--vault-bg) !important;
-    box-shadow:
-      5px 5px 10px var(--vault-shadow-dark),
-      -5px -5px 10px var(--vault-shadow-light) !important;
-    border: none !important;
-
-    &:active {
-      box-shadow:
-        inset 5px 5px 10px var(--vault-shadow-dark),
-        inset -5px -5px 10px var(--vault-shadow-light) !important;
-    }
-  }
-}
-
-:deep(input),
-:deep(.neo-input) {
-  background: var(--vault-bg) !important;
-  border-radius: 12px !important;
-  box-shadow:
-    inset 5px 5px 10px var(--vault-shadow-dark),
-    inset -5px -5px 10px var(--vault-shadow-light) !important;
-  border: none !important;
-  color: var(--vault-text-strong) !important;
-  padding: 12px 16px !important;
-
-  &:focus {
-    box-shadow:
-      inset 2px 2px 5px var(--vault-shadow-dark),
-      inset -2px -2px 5px var(--vault-shadow-light) !important;
-    color: var(--vault-text-strong) !important;
-  }
 }
 
 .form-group {

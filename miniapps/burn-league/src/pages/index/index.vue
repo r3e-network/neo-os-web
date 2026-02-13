@@ -14,10 +14,13 @@
       </template>
 
       <template #content>
-        <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'success'" class="mb-4 text-center">
-          <text class="font-bold">{{ status.msg }}</text>
-        </NeoCard>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+          <!-- Total Burned Hero Section with Fire Animation -->
+          <HeroSection :total-burned="totalBurned" :t="t" />
+        </ErrorBoundary>
+      </template>
 
+      <template #operation>
         <!-- Burn Action Card -->
         <BurnActionCard
           v-model:burnAmount="burnAmount"
@@ -63,7 +66,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 
 import HeroSection from "./components/HeroSection.vue";
@@ -75,7 +78,7 @@ import StatsTab from "./components/StatsTab.vue";
 const { t } = useI18n();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "custom",
+  contentType: "two-column",
   tabs: [
     { key: "game", labelKey: "game", icon: "🎮", default: true },
     { key: "stats", labelKey: "stats", icon: "📊" },
@@ -126,9 +129,9 @@ const isLoading = computed(() => paymentProcessing.value);
 const sidebarItems = computed(() => [
   { label: t("stats"), value: `${totalBurned.value} GAS` },
   { label: t("game"), value: `${userBurned.value} GAS` },
-  { label: "Rank", value: rank.value || "-" },
-  { label: "Burns", value: burnCount.value },
-  { label: "Reward Pool", value: `${rewardPool.value} GAS` },
+  { label: t("sidebarRank"), value: rank.value || "-" },
+  { label: t("sidebarBurns"), value: burnCount.value },
+  { label: t("sidebarRewardPool"), value: `${rewardPool.value} GAS` },
 ]);
 
 const estimatedReward = computed(() => {
@@ -229,6 +232,14 @@ const burnTokens = async () => {
   }
 };
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[burn-league] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await refreshData();
+};
+
 watch(address, () => {
   refreshData();
 }, { immediate: true });
@@ -238,95 +249,10 @@ watch(address, () => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @import "./burn-league-theme.scss";
-@import url("https://fonts.googleapis.com/css2?family=Russo+One&display=swap");
+
 
 :global(page) {
   background: var(--burn-bg);
   font-family: var(--burn-font);
 }
-
-.tab-content {
-  padding: 24px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  background: radial-gradient(circle at 50% 100%, var(--burn-gradient-start) 0%, var(--burn-gradient-end) 100%);
-  min-height: 100vh;
-  position: relative;
-  font-family: var(--burn-font);
-
-  /* Ember effects */
-  &::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMSIgZmlsbD0iI2ZmNDUwMCIgb3BhY2l0eT0iMC41Ii8+PC9zdmc+");
-    opacity: 0.4;
-    pointer-events: none;
-    mask-image: linear-gradient(to top, black, transparent);
-  }
-}
-
-/* Inferno Component Overrides */
-:deep(.neo-card) {
-  background: var(--burn-card-bg) !important;
-  border: 1px solid var(--burn-card-border) !important;
-  border-bottom: 4px solid var(--burn-orange) !important;
-  border-radius: 4px !important;
-  box-shadow: var(--burn-card-shadow) !important;
-  color: var(--burn-text) !important;
-  backdrop-filter: blur(5px);
-  font-family: var(--burn-font) !important;
-
-  &.variant-danger {
-    background: var(--burn-danger-bg) !important;
-    border-color: var(--burn-danger-border) !important;
-  }
-}
-
-:deep(.neo-button) {
-  text-transform: uppercase;
-  font-weight: 900 !important;
-  font-style: italic;
-  letter-spacing: 0.05em;
-  transform: skewX(-10deg);
-  border-radius: 2px !important;
-  font-family: var(--burn-font) !important;
-
-  &.variant-primary {
-    background: var(--burn-button-gradient) !important;
-    color: var(--burn-button-text) !important;
-    box-shadow: var(--burn-button-shadow) !important;
-    border: none !important;
-
-    &:active {
-      transform: skewX(-10deg) translateY(2px);
-      box-shadow: var(--burn-button-shadow-press) !important;
-    }
-  }
-
-  &.variant-secondary {
-    background: transparent !important;
-    border: 2px solid var(--burn-orange) !important;
-    color: var(--burn-orange) !important;
-
-    &:active {
-      transform: skewX(-10deg) translateY(2px);
-    }
-  }
-
-  /* Counter-skew content */
-  & > view,
-  & > text {
-    transform: skewX(10deg);
-    display: inline-block;
-  }
-}
-
-
-// Desktop sidebar
 </style>

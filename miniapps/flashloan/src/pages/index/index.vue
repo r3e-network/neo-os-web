@@ -17,15 +17,12 @@
         @retry="resetAndReload"
         :fallback-message="t('flashloanErrorFallback')"
       >
-        <!-- Error Toast with Retry -->
-        <view v-if="errorMessage" class="error-toast" :class="{ 'error-retryable': canRetryError }">
-          <text>{{ errorMessage }}</text>
-          <view v-if="canRetryError" class="retry-actions">
-            <NeoButton variant="secondary" size="sm" @click="retryLastOperation">
-              {{ t("retry") }}
-            </NeoButton>
-          </view>
-        </view>
+        <ErrorToast
+          :show="!!errorMessage"
+          :message="errorMessage ?? ''"
+          type="error"
+          @close="clearErrorStatus"
+        />
 
         <LoanRequest
           v-model:loanId="loanIdInput"
@@ -48,8 +45,29 @@
       <LoanCalculator :t="t" />
     </template>
 
-    <template #tab-docs>
-      <FlashloanDocs :t="t" :contract-address="contractAddress" />
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('statusLookup')">
+        <view class="op-field">
+          <NeoInput
+            v-model="loanIdInput"
+            :placeholder="t('loanIdPlaceholder')"
+            size="sm"
+          />
+        </view>
+        <NeoButton size="sm" variant="primary" class="op-btn" :disabled="isLoading" @click="handleLookup">
+          {{ isLoading ? t('checking') : t('checkStatus') }}
+        </NeoButton>
+        <view v-if="loanDetails" class="op-result">
+          <view class="op-stat-row">
+            <text class="op-label">{{ t('statusLabel') }}</text>
+            <text class="op-value">{{ loanDetails.status }}</text>
+          </view>
+          <view class="op-stat-row">
+            <text class="op-label">{{ t('amount') }}</text>
+            <text class="op-value">{{ loanDetails.amount }}</text>
+          </view>
+        </view>
+      </NeoCard>
     </template>
   </MiniAppTemplate>
 </template>
@@ -57,7 +75,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, NeoInput, ErrorBoundary, ErrorToast, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -67,7 +85,6 @@ import { useFlashloanCore } from "@/composables/useFlashloanCore";
 import LoanRequest from "./components/LoanRequest.vue";
 import ActiveLoans from "./components/ActiveLoans.vue";
 import LoanCalculator from "./components/LoanCalculator.vue";
-import FlashloanDocs from "./components/FlashloanDocs.vue";
 
 const { t } = useI18n();
 const { handleError, canRetry, clearError } = useErrorHandler();
@@ -96,16 +113,25 @@ const {
 } = useFlashloanCore();
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "swap-interface",
+  contentType: "two-column",
   tabs: [
     { key: "main", labelKey: "main", icon: "⚡", default: true },
     { key: "stats", labelKey: "tabStats", icon: "📊" },
-    { key: "docs", labelKey: "docs", icon: "📖" },
+    { key: "docs", labelKey: "docs", icon: "\u{1F4D6}" },
   ],
   features: {
     fireworks: false,
     chainWarning: true,
     statusMessages: true,
+    docs: {
+      titleKey: "title",
+      subtitleKey: "docSubtitle",
+      stepKeys: ["step1", "step2", "step3", "step4"],
+      featureKeys: [
+        { nameKey: "feature1Name", descKey: "feature1Desc" },
+        { nameKey: "feature2Name", descKey: "feature2Desc" },
+      ],
+    },
   },
 };
 const activeTab = ref("main");
@@ -117,10 +143,10 @@ const appState = computed(() => ({
 }));
 
 const sidebarItems = computed(() => [
-  { label: "Pool Balance", value: poolBalance.value ?? "—" },
-  { label: "Recent Loans", value: recentLoans.value.length },
-  { label: "Total Loans", value: stats.value?.totalLoans ?? 0 },
-  { label: "Total Volume", value: stats.value?.totalVolume ?? "—" },
+  { label: t("sidebarPoolBalance"), value: poolBalance.value ?? "—" },
+  { label: t("sidebarRecentLoans"), value: recentLoans.value.length },
+  { label: t("sidebarTotalLoans"), value: stats.value?.totalLoans ?? 0 },
+  { label: t("sidebarTotalVolume"), value: stats.value?.totalVolume ?? "—" },
 ]);
 const { status, setStatus, clearStatus } = useStatusMessage();
 const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
@@ -282,72 +308,35 @@ watch(chainType, () => fetchData(), { immediate: true });
   background: var(--bg-primary);
 }
 
-.error-toast {
-  position: fixed;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(239, 68, 68, 0.95);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 14px;
-  font-family: "Consolas", "Monaco", monospace;
-  z-index: 3000;
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.3),
-    0 0 10px rgba(239, 68, 68, 0.5);
-  animation: toast-in 0.3s ease-out;
-  max-width: 90%;
-  text-align: center;
+.op-field {
+  margin-bottom: 10px;
 }
 
-.error-toast.error-retryable {
-  padding-bottom: 48px;
+.op-btn {
+  width: 100%;
 }
 
-.retry-actions {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-@keyframes toast-in {
-  from {
-    transform: translate(-50%, -20px);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, 0);
-    opacity: 1;
-  }
-}
-
-.tab-content {
-  padding: 24px;
-  flex: 1;
+.op-result {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  background: var(--flash-gradient);
-  min-height: 100vh;
-  position: relative;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(var(--flash-grid) 1px, transparent 1px),
-      linear-gradient(90deg, var(--flash-grid) 1px, transparent 1px);
-    background-size: 50px 50px;
-    z-index: 10;
-    pointer-events: none;
-  }
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-</style>
+.op-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.op-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.op-value {
+  font-size: 13px;
+  font-weight: 700;
+}</style>

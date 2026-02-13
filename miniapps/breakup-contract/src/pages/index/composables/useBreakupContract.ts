@@ -38,8 +38,8 @@ export function useBreakupContract(t: (key: string) => string) {
     const broken = contracts.value.filter((c) => c.status === "broken").length;
     return [
       { label: t("tabContracts"), value: contracts.value.length },
-      { label: "Active", value: active },
-      { label: "Broken", value: broken },
+      { label: t("active"), value: active },
+      { label: t("broken"), value: broken },
     ];
   });
 

@@ -14,14 +14,8 @@
 
       <!-- Main Tab — LEFT panel: status display -->
       <template #content>
-        <view v-if="status" class="mb-4">
-          <NeoCard
-            :variant="status.type === 'error' ? 'danger' : status.type === 'loading' ? 'warning' : 'success'"
-            class="text-center"
-          >
-            <text class="font-bold">{{ status.msg }}</text>
-          </NeoCard>
-        </view>
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        </ErrorBoundary>
       </template>
 
       <!-- Main Tab — RIGHT panel: create form -->
@@ -66,7 +60,7 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
-import { MiniAppTemplate, NeoCard, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
@@ -117,8 +111,8 @@ const appState = computed(() => ({
 
 const sidebarItems = computed(() => [
   { label: t("createdTrusts"), value: myCreatedTrusts.value.length },
-  { label: "Beneficiary", value: myBeneficiaryTrusts.value.length },
-  { label: "Active", value: myCreatedTrusts.value.filter((tr) => tr.active !== false).length },
+  { label: t("sidebarBeneficiary"), value: myBeneficiaryTrusts.value.length },
+  { label: t("sidebarActive"), value: myCreatedTrusts.value.filter((tr) => tr.active !== false).length },
 ]);
 
 const {
@@ -138,6 +132,14 @@ const {
 } = useHeritageTrusts();
 
 const { saveTrustName } = useHeritageBeneficiaries();
+
+const handleBoundaryError = (error: Error) => {
+  console.error("[heritage-trust] boundary error:", error);
+};
+
+const resetAndReload = async () => {
+  await fetchData();
+};
 
 const newTrust = ref({
   name: "",
@@ -307,29 +309,8 @@ onMounted(() => {
   color: var(--heritage-text);
 }
 
-.tab-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 16px;
-  color: var(--heritage-text);
-}
-
-
 .mine-dashboard {
   display: flex;
   flex-direction: column;
-}
-
-.mb-4 {
-  margin-bottom: 16px;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.font-bold {
-  font-weight: 700;
 }
 </style>

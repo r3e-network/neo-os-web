@@ -70,4 +70,7 @@ export const messages = {
   feature2Desc: { en: "Checklist-based score highlights risk.", zh: "通过清单评分提示风险。" },
   feature3Name: { en: "Actionable Tips", zh: "可执行建议" },
   feature3Desc: { en: "Next-step recommendations for better security.", zh: "提供下一步安全建议。" },
+  overview: { en: "Overview", zh: "概览" },
+  healthSummary: { en: "Health Summary", zh: "健康概览" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

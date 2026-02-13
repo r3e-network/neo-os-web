@@ -75,4 +75,7 @@ title: { en: "Garden of Neo", zh: "Neo花园" },
     docWhatItIs: { en: "What is it?", zh: "这是什么？" },
     docHowToUse: { en: "How to use", zh: "如何使用" },
     docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
+    sidebarHarvested: { en: "Harvested", zh: "已收获" },
+    gardenActions: { en: "Garden Status", zh: "花园状态" },
+    errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

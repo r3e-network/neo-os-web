@@ -18,23 +18,6 @@
           @retry="resetAndReload"
           :fallback-message="t('selfLoanErrorFallback')"
         >
-          <view v-if="errorMessage" class="error-toast" :class="{ 'error-retryable': canRetryError }">
-            <text>{{ errorMessage }}</text>
-            <view v-if="canRetryError" class="retry-actions">
-              <NeoButton variant="secondary" size="sm" @click="retryLastOperation">
-                {{ t("retry") }}
-              </NeoButton>
-            </view>
-          </view>
-
-          <NeoCard
-            v-if="core.status.value"
-            :variant="core.status.value?.type === 'error' ? 'danger' : 'success'"
-            class="mb-4 text-center"
-          >
-            <text class="font-bold">{{ core.status.value?.msg }}</text>
-          </NeoCard>
-
           <view v-if="!core.address.value" class="wallet-prompt mb-4">
             <NeoCard variant="warning" class="text-center">
               <text class="mb-2 block font-bold">{{ t("connectWalletToUse") }}</text>
@@ -138,10 +121,10 @@ const appState = computed(() => ({
 }));
 
 const sidebarItems = computed(() => [
-  { label: "Has Loan", value: core.loan.value ? "Yes" : "No" },
-  { label: "NEO Balance", value: core.neoBalance.value ?? "—" },
-  { label: "Health Factor", value: core.healthFactor.value ?? "—" },
-  { label: "Current LTV", value: core.currentLTV.value != null ? `${core.currentLTV.value}%` : "—" },
+  { label: t("sidebarHasLoan"), value: core.loan.value ? t("sidebarYes") : t("sidebarNo") },
+  { label: t("sidebarNeoBalance"), value: core.neoBalance.value ?? "—" },
+  { label: t("healthFactor"), value: core.healthFactor.value ?? "—" },
+  { label: t("currentLTV"), value: core.currentLTV.value != null ? `${core.currentLTV.value}%` : "—" },
 ]);
 
 const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
@@ -272,127 +255,10 @@ onMounted(() => {
 
 :global(page) {
   background: var(--checkbook-bg);
-  font-family: "Courier New", Courier, monospace;
+  font-family: var(--font-family-mono, "Courier New", monospace);
 }
 
 .wallet-prompt {
   margin-bottom: 16px;
 }
-
-.error-toast {
-  position: fixed;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--checkbook-danger-bg, rgba(239, 68, 68, 0.95));
-  color: var(--checkbook-button-text);
-  padding: 12px 24px;
-  border-radius: 2px;
-  font-weight: 700;
-  font-size: 14px;
-  font-family: "Courier New", Courier, monospace;
-  z-index: 3000;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  animation: toast-in 0.3s ease-out;
-  max-width: 90%;
-  text-align: center;
-}
-
-.error-toast.error-retryable {
-  padding-bottom: 48px;
-}
-
-.retry-actions {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-@keyframes toast-in {
-  from {
-    transform: translate(-50%, -20px);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, 0);
-    opacity: 1;
-  }
-}
-
-.tab-content {
-  padding: 16px;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  background-color: var(--checkbook-bg);
-  background-image: repeating-linear-gradient(transparent, transparent 19px, var(--checkbook-line) 20px);
-  background-attachment: local;
-}
-
-:deep(.neo-card) {
-  background: var(--checkbook-card-bg) !important;
-  border: 1px solid var(--checkbook-line) !important;
-  border-radius: 2px !important;
-  box-shadow: var(--checkbook-card-shadow) !important;
-  color: var(--checkbook-text) !important;
-  font-family: "Courier New", Courier, monospace !important;
-  margin-bottom: 20px !important;
-
-  &.variant-danger {
-    border-color: var(--checkbook-danger-border) !important;
-    background: var(--checkbook-danger-bg) !important;
-  }
-
-  &.variant-warning {
-    border-color: var(--checkbook-accent) !important;
-  }
-}
-
-:deep(.neo-button) {
-  border-radius: 4px !important;
-  font-family: "Courier New", Courier, monospace !important;
-  font-weight: 700 !important;
-  text-transform: capitalize !important;
-  letter-spacing: 0 !important;
-
-  &.variant-primary {
-    background: var(--checkbook-accent) !important;
-    color: var(--checkbook-button-text) !important;
-    border: none !important;
-
-    &:active {
-      opacity: 0.8;
-    }
-  }
-}
-
-:deep(input),
-:deep(.neo-input) {
-  font-family: "Courier New", Courier, monospace !important;
-  border: none !important;
-  border-bottom: 1px solid var(--checkbook-line) !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  padding-left: 0 !important;
-  color: var(--checkbook-text) !important;
-
-  &:focus {
-    border-bottom: 2px solid var(--checkbook-accent) !important;
-    box-shadow: none !important;
-  }
-}
-
-:deep(.text-center) {
-  text-align: center;
-}
-
-:deep(.font-bold) {
-  font-weight: bold;
-}
-
 </style>

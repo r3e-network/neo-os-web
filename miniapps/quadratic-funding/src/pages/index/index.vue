@@ -13,14 +13,7 @@
 
       <!-- Rounds Tab (default) -->
       <template #content>
-        <NeoCard
-          v-if="roundsStatus"
-          :variant="roundsStatus.type === 'error' ? 'danger' : 'success'"
-          class="mb-4 text-center"
-        >
-          <text class="font-bold">{{ roundsStatus.msg }}</text>
-        </NeoCard>
-
+        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
         <RoundForm ref="roundFormRef" @create="handleCreateRound" />
 
         <RoundList
@@ -48,6 +41,7 @@
           @finalize="handleFinalize"
           @claim-unused="handleClaimUnused"
         />
+        </ErrorBoundary>
       </template>
 
       <!-- Projects Tab -->
@@ -129,6 +123,32 @@
           />
         </template>
       </template>
+
+      <template #operation>
+        <NeoCard variant="erobo" :title="t('quickContribute')">
+          <view class="op-stats">
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('tabRounds') }}</text>
+              <text class="op-value">{{ rounds.length }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('tabProjects') }}</text>
+              <text class="op-value">{{ projects.length }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('sidebarSelectedRound') }}</text>
+              <text class="op-value">{{ selectedRoundId ?? '—' }}</text>
+            </view>
+            <view class="op-stat-row">
+              <text class="op-label">{{ t('sidebarMatchingPool') }}</text>
+              <text class="op-value">{{ selectedRound ? formatAmount(selectedRound.matchingPool) : '—' }}</text>
+            </view>
+          </view>
+          <NeoButton size="sm" variant="primary" class="op-btn" @click="onTabChange('contribute')">
+            {{ t('tabContribute') }}
+          </NeoButton>
+        </NeoCard>
+      </template>
     </MiniAppTemplate>
   </view>
 </template>
@@ -139,7 +159,7 @@ import { useI18n } from "@/composables/useI18n";
 import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
-import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel } from "@shared/components";
+import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { formatAddress } from "@shared/utils/format";
 import RoundForm from "./components/RoundForm.vue";
@@ -153,7 +173,7 @@ const { t } = useI18n();
 const activeTab = ref("rounds");
 
 const templateConfig: MiniAppTemplateConfig = {
-  contentType: "market-list",
+  contentType: "two-column",
   tabs: [
     { key: "rounds", labelKey: "tabRounds", icon: "🎯", default: true },
     { key: "projects", labelKey: "tabProjects", icon: "📁" },
@@ -185,8 +205,8 @@ const appState = computed(() => ({
 const sidebarItems = computed(() => [
   { label: t("tabRounds"), value: rounds.value.length },
   { label: t("tabProjects"), value: projects.value.length },
-  { label: "Selected Round", value: selectedRoundId.value ?? "—" },
-  { label: "Matching Pool", value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—" },
+  { label: t("sidebarSelectedRound"), value: selectedRoundId.value ?? "—" },
+  { label: t("sidebarMatchingPool"), value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—" },
 ]);
 
 const {
@@ -274,6 +294,13 @@ const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) =>
 const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => await claimProject(project);
 const handleClaimUnused = async () => await claimUnused();
 
+const handleBoundaryError = (error: Error) => {
+  console.error("[quadratic-funding] boundary error:", error);
+};
+const resetAndReload = async () => {
+  await refreshRounds();
+};
+
 const onTabChange = async (tabId: string) => {
   activeTab.value = tabId;
   if (tabId === "rounds") await refreshRounds();
@@ -301,11 +328,31 @@ watch(selectedRoundId, async (roundId) => {
   color: var(--qf-text);
 }
 
-.tab-content {
-  padding: 20px;
+.op-stats {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.op-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.op-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.op-value {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.op-btn {
+  width: 100%;
 }
 
 .section-title {
@@ -322,18 +369,5 @@ watch(selectedRoundId, async (roundId) => {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
-}
-@media (max-width: 767px) {
-  .tab-content {
-    padding: 12px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .tab-content {
-    padding: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
 }
 </style>

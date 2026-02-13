@@ -121,4 +121,9 @@ export const messages = {
   feature2Desc: { en: "Each project has a dedicated record and funding stats.", zh: "每个项目有独立档案与资金统计。" },
   feature3Name: { en: "Donor Signals", zh: "捐助信号" },
   feature3Desc: { en: "Unique donor totals enable quadratic matching.", zh: "记录唯一捐助者金额以支持二次方匹配。" },
+  overview: { en: "Overview", zh: "概览" },
+  sidebarSelectedRound: { en: "Selected Round", zh: "已选轮次" },
+  sidebarMatchingPool: { en: "Matching Pool", zh: "匹配资金池" },
+  quickContribute: { en: "Quick Contribute", zh: "快捷捐助" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

@@ -98,4 +98,8 @@ export const messages = {
   feature2Desc: { en: "Each ticket records whether it has been used.", zh: "每张门票记录是否已核验使用。" },
   feature3Name: { en: "Issuer Control", zh: "发行方控制" },
   feature3Desc: { en: "Only the organizer can issue and check in tickets.", zh: "仅主办方可签发与核验门票。" },
+  sidebarEvents: { en: "Events", zh: "活动" },
+  sidebarTickets: { en: "Tickets", zh: "门票" },
+  sidebarActive: { en: "Active", zh: "进行中" },
+  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };
