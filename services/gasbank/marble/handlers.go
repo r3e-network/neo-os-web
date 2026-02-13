@@ -32,12 +32,8 @@ func (s *Service) handleDeductFee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get service ID from mTLS certificate or header
+	// Get service ID from middleware (already verified by RequireServiceAuth)
 	serviceID := httputil.GetServiceID(r)
-	if serviceID == "" {
-		httputil.WriteError(w, http.StatusForbidden, "service authentication required")
-		return
-	}
 	req.ServiceID = serviceID
 
 	resp, err := s.DeductFee(r.Context(), &req)
@@ -67,12 +63,6 @@ func (s *Service) handleReserveFunds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceID := httputil.GetServiceID(r)
-	if serviceID == "" {
-		httputil.WriteError(w, http.StatusForbidden, "service authentication required")
-		return
-	}
-
 	resp, err := s.ReserveFunds(r.Context(), &req)
 	if err != nil {
 		s.Logger().WithContext(r.Context()).WithError(err).Error("failed to reserve funds")
@@ -97,12 +87,6 @@ func (s *Service) handleReleaseFunds(w http.ResponseWriter, r *http.Request) {
 
 	if err := validateReleaseFundsRequest(&req); err != nil {
 		httputil.WriteError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	serviceID := httputil.GetServiceID(r)
-	if serviceID == "" {
-		httputil.WriteError(w, http.StatusForbidden, "service authentication required")
 		return
 	}
 
@@ -195,32 +179,33 @@ func (s *Service) handleGetDeposits(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, map[string]any{"deposits": result})
 }
 
-func validateDeductFeeRequest(req *DeductFeeRequest) error {
-	if req.UserID == "" {
-		return fmt.Errorf("user_id is required")
-	}
-	if req.Amount <= 0 {
-		return fmt.Errorf("amount must be positive")
+func validateFundRequest(req any) error {
+	switch r := req.(type) {
+	case *DeductFeeRequest:
+		if r.UserID == "" {
+			return fmt.Errorf("user_id is required")
+		}
+		if r.Amount <= 0 {
+			return fmt.Errorf("amount must be positive")
+		}
+	case *ReserveFundsRequest:
+		if r.UserID == "" {
+			return fmt.Errorf("user_id is required")
+		}
+		if r.Amount <= 0 {
+			return fmt.Errorf("amount must be positive")
+		}
+	case *ReleaseFundsRequest:
+		if r.UserID == "" {
+			return fmt.Errorf("user_id is required")
+		}
+		if r.Amount <= 0 {
+			return fmt.Errorf("amount must be positive")
+		}
 	}
 	return nil
 }
 
-func validateReserveFundsRequest(req *ReserveFundsRequest) error {
-	if req.UserID == "" {
-		return fmt.Errorf("user_id is required")
-	}
-	if req.Amount <= 0 {
-		return fmt.Errorf("amount must be positive")
-	}
-	return nil
-}
-
-func validateReleaseFundsRequest(req *ReleaseFundsRequest) error {
-	if req.UserID == "" {
-		return fmt.Errorf("user_id is required")
-	}
-	if req.Amount <= 0 {
-		return fmt.Errorf("amount must be positive")
-	}
-	return nil
-}
+func validateDeductFeeRequest(req *DeductFeeRequest) error       { return validateFundRequest(req) }
+func validateReserveFundsRequest(req *ReserveFundsRequest) error { return validateFundRequest(req) }
+func validateReleaseFundsRequest(req *ReleaseFundsRequest) error { return validateFundRequest(req) }
