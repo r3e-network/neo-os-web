@@ -32,49 +32,56 @@ export async function handler(req: Request): Promise<Response> {
 
   const supabase = supabaseClient();
 
-  // Get weighted rating via RPC
-  const { data: ratingData, error: rpcErr } = await supabase.rpc("calculate_app_rating_weighted", { p_app_id: appId });
+  try {
+    // Get weighted rating via RPC
+    const { data: ratingData, error: rpcErr } = await supabase.rpc("calculate_app_rating_weighted", {
+      p_app_id: appId,
+    });
 
-  if (rpcErr) {
-    return errorResponse("SERVER_002", { message: "failed to calculate rating" }, req);
-  }
-
-  const result = ratingData?.[0] || {
-    avg_rating: 0,
-    total_ratings: 0,
-    rating_distribution: {},
-    weighted_score: 0,
-  };
-
-  // Try to get current user's rating
-  const user = await tryGetUser(req);
-  let userRating = null;
-
-  if (user) {
-    const { data: myRating } = await supabase
-      .from("social_ratings")
-      .select("rating_value, review_text")
-      .eq("app_id", appId)
-      .eq("rater_user_id", user.id)
-      .single();
-
-    if (myRating) {
-      userRating = myRating;
+    if (rpcErr) {
+      return errorResponse("SERVER_002", { message: "failed to calculate rating" }, req);
     }
-  }
 
-  return json(
-    {
-      app_id: appId,
-      avg_rating: Number(result.avg_rating) || 0,
-      weighted_score: Number(result.weighted_score) || 0,
-      total_ratings: result.total_ratings || 0,
-      distribution: result.rating_distribution || {},
-      user_rating: userRating,
-    },
-    {},
-    req,
-  );
+    const result = ratingData?.[0] || {
+      avg_rating: 0,
+      total_ratings: 0,
+      rating_distribution: {},
+      weighted_score: 0,
+    };
+
+    // Try to get current user's rating
+    const user = await tryGetUser(req);
+    let userRating = null;
+
+    if (user) {
+      const { data: myRating } = await supabase
+        .from("social_ratings")
+        .select("rating_value, review_text")
+        .eq("app_id", appId)
+        .eq("rater_user_id", user.id)
+        .single();
+
+      if (myRating) {
+        userRating = myRating;
+      }
+    }
+
+    return json(
+      {
+        app_id: appId,
+        avg_rating: Number(result.avg_rating) || 0,
+        weighted_score: Number(result.weighted_score) || 0,
+        total_ratings: result.total_ratings || 0,
+        distribution: result.rating_distribution || {},
+        user_rating: userRating,
+      },
+      {},
+      req
+    );
+  } catch (err) {
+    console.error("Social ratings error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {

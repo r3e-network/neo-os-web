@@ -29,10 +29,15 @@ export async function handler(req: Request): Promise<Response> {
   const rl = await requireRateLimit(req, "datafeed-price");
   if (rl) return rl;
 
-  const neofeedsURL = mustGetEnv("NEOFEEDS_URL").replace(/\/$/, "");
-  const result = await getJSON(`${neofeedsURL}/price/${encodeURIComponent(symbol)}`, {}, req);
-  if (result instanceof Response) return result;
-  return json(result, {}, req);
+  try {
+    const neofeedsURL = mustGetEnv("NEOFEEDS_URL").replace(/\/$/, "");
+    const result = await getJSON(`${neofeedsURL}/price/${encodeURIComponent(symbol)}`, {}, req);
+    if (result instanceof Response) return result;
+    return json(result, {}, req);
+  } catch (err) {
+    console.error("Datafeed price error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {

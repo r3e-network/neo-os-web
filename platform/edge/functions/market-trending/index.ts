@@ -84,7 +84,10 @@ function periodToDays(period: PeriodType): number {
  * @param req - The incoming request
  * @param supabaseFactory - Optional supabase client factory for testing
  */
-export async function handler(req: Request, supabaseFactory?: () => any): Promise<Response> {
+export async function handler(
+  req: Request,
+  supabaseFactory?: () => ReturnType<typeof supabaseClient>
+): Promise<Response> {
   // Handle CORS preflight
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;

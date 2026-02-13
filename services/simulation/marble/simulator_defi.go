@@ -13,10 +13,10 @@ import (
 // Business flow: RequestLoan -> Execute arbitrage -> Repay
 func (s *MiniAppSimulator) SimulateFlashLoan(ctx context.Context) error {
 	appID := "miniapp-flashloan"
-	amount := int64(100000000)
+	amount := int64(FlashLoanAmount)
 
 	memo := fmt.Sprintf("flash:borrow:%d:%d", amount, time.Now().UnixNano())
-	_, err := s.invoker.PayToApp(ctx, appID, 1000000, memo) // 0.01 GAS fee
+	_, err := s.invoker.PayToApp(ctx, appID, FlashLoanFee, memo)
 	if err != nil {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		return fmt.Errorf("flash loan: %w", err)
@@ -50,7 +50,7 @@ func (s *MiniAppSimulator) SimulateFlashLoan(ctx context.Context) error {
 // SimulateHeritageTrust simulates living trust DAO.
 func (s *MiniAppSimulator) SimulateHeritageTrust(ctx context.Context) error {
 	appID := "miniapp-heritage-trust"
-	amount := int64(100000000)
+	amount := int64(HeritageTrustDeposit)
 
 	memo := fmt.Sprintf("trust:create:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -65,7 +65,7 @@ func (s *MiniAppSimulator) SimulateHeritageTrust(ctx context.Context) error {
 // SimulateCompoundCapsule simulates auto-compounding savings.
 func (s *MiniAppSimulator) SimulateCompoundCapsule(ctx context.Context) error {
 	appID := "miniapp-compound-capsule"
-	amount := int64(50000000)
+	amount := int64(CompoundCapsuleDeposit)
 
 	memo := fmt.Sprintf("capsule:deposit:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -80,7 +80,7 @@ func (s *MiniAppSimulator) SimulateCompoundCapsule(ctx context.Context) error {
 // SimulateSelfLoan simulates self-repaying loans.
 func (s *MiniAppSimulator) SimulateSelfLoan(ctx context.Context) error {
 	appID := "miniapp-self-loan"
-	amount := int64(100000000)
+	amount := int64(SelfLoanAmount)
 
 	memo := fmt.Sprintf("loan:borrow:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -95,7 +95,7 @@ func (s *MiniAppSimulator) SimulateSelfLoan(ctx context.Context) error {
 // SimulateUnbreakableVault simulates time-locked vault.
 func (s *MiniAppSimulator) SimulateUnbreakableVault(ctx context.Context) error {
 	appID := "miniapp-unbreakablevault"
-	amount := int64(50000000)
+	amount := int64(UnbreakableVaultDeposit)
 
 	memo := fmt.Sprintf("vault:lock:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)

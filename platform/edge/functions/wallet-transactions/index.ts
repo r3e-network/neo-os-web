@@ -52,73 +52,78 @@ export async function handler(req: Request): Promise<Response> {
   if (!chain) return notFoundError("chain", req);
   const limit = Math.min(100, parseInt(url.searchParams.get("limit") || "20"));
 
-  // Query transaction history via RPC
-  const rpcUrl = chain.rpc_urls?.[0] || getNeoRpcUrl();
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "getnep17transfers",
-      params: [walletCheck.address],
-    }),
-  });
-
-  if (!res.ok) {
-    return errorResponse("SERVER_002", { message: "RPC request failed" }, req);
-  }
-
-  const data = await res.json();
-  if (data.error) {
-    return errorResponse("SERVER_002", { message: data.error.message }, req);
-  }
-
-  // Combine sent and received transfers
-  const sent: TransferRecord[] = data.result?.sent || [];
-  const received: TransferRecord[] = data.result?.received || [];
-
-  const transactions: TransactionItem[] = [];
-
-  // Process sent transactions
-  for (const tx of sent) {
-    transactions.push({
-      tx_hash: tx.txhash,
-      block: tx.blockindex,
-      timestamp: new Date(tx.timestamp * 1000).toISOString(),
-      asset: getAssetSymbol(tx.assethash, chainId),
-      amount: formatAmount(tx.amount, tx.assethash, chainId),
-      direction: "out",
-      counterparty: tx.transferaddress || "Contract",
+  try {
+    // Query transaction history via RPC
+    const rpcUrl = chain.rpc_urls?.[0] || getNeoRpcUrl();
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "getnep17transfers",
+        params: [walletCheck.address],
+      }),
     });
+
+    if (!res.ok) {
+      return errorResponse("SERVER_002", { message: "RPC request failed" }, req);
+    }
+
+    const data = await res.json();
+    if (data.error) {
+      return errorResponse("SERVER_002", { message: data.error.message }, req);
+    }
+
+    // Combine sent and received transfers
+    const sent: TransferRecord[] = data.result?.sent || [];
+    const received: TransferRecord[] = data.result?.received || [];
+
+    const transactions: TransactionItem[] = [];
+
+    // Process sent transactions
+    for (const tx of sent) {
+      transactions.push({
+        tx_hash: tx.txhash,
+        block: tx.blockindex,
+        timestamp: new Date(tx.timestamp * 1000).toISOString(),
+        asset: getAssetSymbol(tx.assethash, chainId),
+        amount: formatAmount(tx.amount, tx.assethash, chainId),
+        direction: "out",
+        counterparty: tx.transferaddress || "Contract",
+      });
+    }
+
+    // Process received transactions
+    for (const tx of received) {
+      transactions.push({
+        tx_hash: tx.txhash,
+        block: tx.blockindex,
+        timestamp: new Date(tx.timestamp * 1000).toISOString(),
+        asset: getAssetSymbol(tx.assethash, chainId),
+        amount: formatAmount(tx.amount, tx.assethash, chainId),
+        direction: "in",
+        counterparty: tx.transferaddress || "Contract",
+      });
+    }
+
+    // Sort by timestamp descending and limit
+    transactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    return json(
+      {
+        address: walletCheck.address,
+        chain_id: chainId,
+        transactions: transactions.slice(0, limit),
+        total: transactions.length,
+      },
+      {},
+      req
+    );
+  } catch (err) {
+    console.error("Wallet transactions error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-
-  // Process received transactions
-  for (const tx of received) {
-    transactions.push({
-      tx_hash: tx.txhash,
-      block: tx.blockindex,
-      timestamp: new Date(tx.timestamp * 1000).toISOString(),
-      asset: getAssetSymbol(tx.assethash, chainId),
-      amount: formatAmount(tx.amount, tx.assethash, chainId),
-      direction: "in",
-      counterparty: tx.transferaddress || "Contract",
-    });
-  }
-
-  // Sort by timestamp descending and limit
-  transactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  return json(
-    {
-      address: walletCheck.address,
-      chain_id: chainId,
-      transactions: transactions.slice(0, limit),
-      total: transactions.length,
-    },
-    {},
-    req
-  );
 }
 
 function getAssetSymbol(hash: string, chainId: string): string {

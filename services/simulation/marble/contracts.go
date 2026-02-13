@@ -365,8 +365,8 @@ func (inv *ContractInvoker) UpdatePriceFeed(ctx context.Context, symbol string) 
 		return "", fmt.Errorf("unknown symbol: %s", symbol)
 	}
 
-	// Generate price with 2% variance
-	price := generatePrice(basePrice, 2)
+	// Generate price with variance
+	price := generatePrice(basePrice, PriceVariancePercent)
 	ts := time.Now().UnixMilli()
 	if ts < 0 {
 		ts = 0

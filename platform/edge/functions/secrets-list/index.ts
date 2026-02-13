@@ -33,14 +33,20 @@ export async function handler(req: Request): Promise<Response> {
   if (ensured instanceof Response) return ensured;
 
   const supabase = supabaseServiceClient();
-  const { data, error: listErr } = await supabase
-    .from("secrets")
-    .select("id,name,version,created_at,updated_at")
-    .eq("user_id", auth.userId)
-    .order("updated_at", { ascending: false });
 
-  if (listErr) return errorResponse("SERVER_002", { message: `failed to list secrets: ${listErr.message}` }, req);
-  return json({ secrets: data ?? [] }, {}, req);
+  try {
+    const { data, error: listErr } = await supabase
+      .from("secrets")
+      .select("id,name,version,created_at,updated_at")
+      .eq("user_id", auth.userId)
+      .order("updated_at", { ascending: false });
+
+    if (listErr) return errorResponse("SERVER_002", { message: `failed to list secrets: ${listErr.message}` }, req);
+    return json({ secrets: data ?? [] }, {}, req);
+  } catch (err) {
+    console.error("Secrets list error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {

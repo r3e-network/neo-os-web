@@ -31,10 +31,15 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
-  const result = await getJSON(`${neocomputeURL}/jobs`, { "X-User-ID": auth.userId }, req);
-  if (result instanceof Response) return result;
-  return json(result, {}, req);
+  try {
+    const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
+    const result = await getJSON(`${neocomputeURL}/jobs`, { "X-User-ID": auth.userId }, req);
+    if (result instanceof Response) return result;
+    return json(result, {}, req);
+  } catch (err) {
+    console.error("Compute jobs error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {

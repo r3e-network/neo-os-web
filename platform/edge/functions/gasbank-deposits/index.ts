@@ -33,15 +33,21 @@ export async function handler(req: Request): Promise<Response> {
   if (ensured instanceof Response) return ensured;
 
   const supabase = supabaseServiceClient();
-  const { data, error: listErr } = await supabase
-    .from("deposit_requests")
-    .select("*")
-    .eq("user_id", auth.userId)
-    .order("created_at", { ascending: false })
-    .limit(50);
 
-  if (listErr) return errorResponse("SERVER_002", { message: `failed to list deposits: ${listErr.message}` }, req);
-  return json({ deposits: data ?? [] }, {}, req);
+  try {
+    const { data, error: listErr } = await supabase
+      .from("deposit_requests")
+      .select("*")
+      .eq("user_id", auth.userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (listErr) return errorResponse("SERVER_002", { message: `failed to list deposits: ${listErr.message}` }, req);
+    return json({ deposits: data ?? [] }, {}, req);
+  } catch (err) {
+    console.error("Gasbank deposits error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {

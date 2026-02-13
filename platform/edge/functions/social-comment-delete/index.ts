@@ -32,33 +32,38 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = supabaseClient();
   const userId = auth.userId;
 
-  // Verify comment exists and belongs to user
-  const { data: comment, error: fetchErr } = await supabase
-    .from("social_comments")
-    .select("id, author_user_id")
-    .eq("id", commentId)
-    .is("deleted_at", null)
-    .single();
+  try {
+    // Verify comment exists and belongs to user
+    const { data: comment, error: fetchErr } = await supabase
+      .from("social_comments")
+      .select("id, author_user_id")
+      .eq("id", commentId)
+      .is("deleted_at", null)
+      .single();
 
-  if (fetchErr || !comment) {
-    return notFoundError("comment", req);
+    if (fetchErr || !comment) {
+      return notFoundError("comment", req);
+    }
+
+    if (comment.author_user_id !== userId) {
+      return errorResponse("AUTH_004", { message: "not authorized to delete" }, req);
+    }
+
+    // Soft delete
+    const { error: deleteErr } = await supabase
+      .from("social_comments")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", commentId);
+
+    if (deleteErr) {
+      return errorResponse("SERVER_002", { message: "failed to delete comment" }, req);
+    }
+
+    return json({ success: true }, {}, req);
+  } catch (err) {
+    console.error("Comment delete error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-
-  if (comment.author_user_id !== userId) {
-    return errorResponse("AUTH_004", { message: "not authorized to delete" }, req);
-  }
-
-  // Soft delete
-  const { error: deleteErr } = await supabase
-    .from("social_comments")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", commentId);
-
-  if (deleteErr) {
-    return errorResponse("SERVER_002", { message: "failed to delete comment" }, req);
-  }
-
-  return json({ success: true }, {}, req);
 }
 
 if (import.meta.main) {

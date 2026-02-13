@@ -10,6 +10,7 @@ declare const Deno: {
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
+import { errorResponse } from "../_shared/error-codes.ts";
 import { getNeoRpcUrl } from "../_shared/k8s-config.ts";
 
 const MAINNET_MAGIC = "860833102";
@@ -32,46 +33,51 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
-  const rpcUrl = getNeoRpcUrl();
-  const bneoContract = resolveBneoContract(rpcUrl);
+  try {
+    const rpcUrl = getNeoRpcUrl();
+    const bneoContract = resolveBneoContract(rpcUrl);
 
-  // Query bNEO total supply
-  const supplyRes = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "invokefunction",
-      params: [bneoContract, "totalSupply", []],
-    }),
-  });
+    // Query bNEO total supply
+    const supplyRes = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "invokefunction",
+        params: [bneoContract, "totalSupply", []],
+      }),
+    });
 
-  let totalSupply = "0";
-  if (supplyRes.ok) {
-    const data = await supplyRes.json();
-    if (data.result?.stack?.[0]?.value) {
-      const raw = BigInt(data.result.stack[0].value);
-      totalSupply = (raw / 100000000n).toString();
+    let totalSupply = "0";
+    if (supplyRes.ok) {
+      const data = await supplyRes.json();
+      if (data.result?.stack?.[0]?.value) {
+        const raw = BigInt(data.result.stack[0].value);
+        totalSupply = (raw / 100000000n).toString();
+      }
     }
+
+    // Calculate APY based on Neo governance rewards
+    // ~5-10% APY typical for Neo staking
+    const baseAPY = 8.5;
+    const apy = baseAPY.toFixed(2);
+
+    return json(
+      {
+        apy: apy,
+        total_staked: totalSupply,
+        total_staked_formatted: formatNumber(totalSupply),
+        bneo_contract: bneoContract,
+        updated_at: new Date().toISOString(),
+      },
+      {},
+      req
+    );
+  } catch (err) {
+    console.error("NeoBurger stats error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-
-  // Calculate APY based on Neo governance rewards
-  // ~5-10% APY typical for Neo staking
-  const baseAPY = 8.5;
-  const apy = baseAPY.toFixed(2);
-
-  return json(
-    {
-      apy: apy,
-      total_staked: totalSupply,
-      total_staked_formatted: formatNumber(totalSupply),
-      bneo_contract: bneoContract,
-      updated_at: new Date().toISOString(),
-    },
-    {},
-    req
-  );
 }
 
 function formatNumber(num: string): string {

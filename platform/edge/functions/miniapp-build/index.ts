@@ -32,7 +32,7 @@ import { requireAuth, type AuthContext } from "../_shared/supabase.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { cloneRepo, getCommitInfo, cleanup, normalizeGitUrl } from "../_shared/build/git-manager.ts";
 import { validateGitUrl } from "../_shared/git-whitelist.ts";
-import { detectAssets } from "../_shared/build/asset-detector.ts";
+import { detectAssets, type DetectedAssets } from "../_shared/build/asset-detector.ts";
 import { detectBuildConfig, readPackageScripts } from "../_shared/build/build-detector.ts";
 import { uploadDirectory, uploadFile } from "../_shared/build/cdn-uploader.ts";
 import { canTriggerBuild } from "../_shared/miniapps/build-mode.ts";
@@ -48,6 +48,18 @@ interface BuildResponse {
   status: string;
   cdn_url?: string;
   error?: string;
+}
+
+interface SubmissionRecord {
+  id: string;
+  app_id: string;
+  status: string;
+  git_url: string;
+  branch: string;
+  subfolder?: string;
+  git_commit_sha: string;
+  build_mode: string;
+  error_count: number;
 }
 
 // Maximum allowed build size to prevent DoS attacks (50MB)
@@ -97,15 +109,13 @@ async function getDirectorySize(dirPath: string): Promise<number> {
 
 // CDN upload function - uploads build output to configured CDN provider
 async function uploadToCDN(buildPath: string, appId: string, version: string): Promise<string> {
-    // SECURITY: Validate build size before uploading to prevent DoS (50MB limit for custom miniapps)
+  // SECURITY: Validate build size before uploading to prevent DoS (50MB limit for custom miniapps)
   const buildSize = await getDirectorySize(buildPath);
   if (buildSize > MAX_BUILD_SIZE) {
-    throw new Error(
-      `Build size ${Math.round(buildSize / 1024 / 1024)}MB exceeds maximum 50MB limit`
-    );
+    throw new Error(`Build size ${Math.round(buildSize / 1024 / 1024)}MB exceeds maximum 50MB limit`);
   }
 
-  console.log(`Build size: ${Math.round(buildSize / 1024 / 1024)}MB`);
+  console.info(`Build size: ${Math.round(buildSize / 1024 / 1024)}MB`);
 
   const cdnBaseUrl = mustGetEnv("CDN_BASE_URL");
   const cdnKey = `miniapps/${appId}/${version}`;
@@ -117,7 +127,7 @@ async function uploadToCDN(buildPath: string, appId: string, version: string): P
     console.warn(`Upload completed with ${result.failed} failures`);
   }
 
-  console.log(`Uploaded ${result.uploaded} files to CDN`);
+  console.info(`Uploaded ${result.uploaded} files to CDN`);
 
   return `${cdnBaseUrl}/${cdnKey}`;
 }
@@ -125,7 +135,7 @@ async function uploadToCDN(buildPath: string, appId: string, version: string): P
 // Upload assets separately
 async function uploadAssets(
   projectDir: string,
-  assets: any,
+  assets: DetectedAssets,
   appId: string
 ): Promise<{ icon?: string; banner?: string }> {
   const result: { icon?: string; banner?: string } = {};
@@ -225,7 +235,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const rateLimitAuth = serviceRole
     ? ({ userId: "service_role", authType: "api_key", apiKeyId: "service_role" } as AuthContext)
-    : auth ?? undefined;
+    : (auth ?? undefined);
   const rl = await requireRateLimit(req, "miniapp-build", rateLimitAuth);
   if (rl) return rl;
 
@@ -251,7 +261,7 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_SERVICE_ROLE_KEY"));
 
   let tempDir: string | null = null;
-  let submission: any = null;
+  let submission: SubmissionRecord | null = null;
 
   try {
     // 1. Get submission

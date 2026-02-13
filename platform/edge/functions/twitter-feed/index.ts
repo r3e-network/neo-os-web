@@ -10,6 +10,12 @@ interface Tweet {
   url: string;
 }
 
+interface TwitterApiTweet {
+  id: string;
+  text: string;
+  created_at: string;
+}
+
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -35,7 +41,7 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     const data = await res.json();
-    const tweets: Tweet[] = (data.data || []).map((t: any) => ({
+    const tweets: Tweet[] = (data.data || []).map((t: TwitterApiTweet) => ({
       id: t.id,
       text: t.text,
       created_at: t.created_at,

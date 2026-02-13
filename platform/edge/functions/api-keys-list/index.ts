@@ -30,14 +30,20 @@ export async function handler(req: Request): Promise<Response> {
   if (ensured instanceof Response) return ensured;
 
   const supabase = supabaseServiceClient();
-  const { data, error: listErr } = await supabase
-    .from("api_keys")
-    .select("id,name,prefix,scopes,description,created_at,last_used,expires_at,revoked")
-    .eq("user_id", auth.userId)
-    .order("created_at", { ascending: false });
 
-  if (listErr) return errorResponse("SERVER_002", { message: `failed to list api keys: ${listErr.message}` }, req);
-  return json({ api_keys: data ?? [] }, {}, req);
+  try {
+    const { data, error: listErr } = await supabase
+      .from("api_keys")
+      .select("id,name,prefix,scopes,description,created_at,last_used,expires_at,revoked")
+      .eq("user_id", auth.userId)
+      .order("created_at", { ascending: false });
+
+    if (listErr) return errorResponse("SERVER_002", { message: `failed to list api keys: ${listErr.message}` }, req);
+    return json({ api_keys: data ?? [] }, {}, req);
+  } catch (err) {
+    console.error("API keys list error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {

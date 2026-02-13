@@ -204,8 +204,8 @@ func New(cfg Config) (*Service, error) {
 	// Initialize MiniApp simulator if contract invoker is available
 	var miniAppSimulator *MiniAppSimulator
 	if contractInvoker != nil {
-		// Fetch real user addresses from database (200 addresses for realistic user distribution)
-		userAddresses := fetchUserAddressesFromDB(db, 200)
+		// Fetch real user addresses from database for realistic user distribution
+		userAddresses := fetchUserAddressesFromDB(db, FetchUserAddressCount)
 		slog.Info("loaded user addresses from database", "count", len(userAddresses))
 
 		// Create recordTx callback that writes to simulation_txs
@@ -286,7 +286,7 @@ func New(cfg Config) (*Service, error) {
 					s.Logger().WithField("panic", r).Error("panic recovered in simulation auto-start goroutine")
 				}
 			}()
-			time.Sleep(2 * time.Second) // Wait for service to fully initialize
+			time.Sleep(AutoStartDelay) // Wait for service to fully initialize
 			if err := s.Start(context.Background()); err != nil {
 				s.Logger().WithError(err).Warn("failed to auto-start simulation")
 			}
@@ -538,7 +538,7 @@ func (s *Service) runPriceFeedUpdater() {
 	ctx := context.Background()
 	logger := s.Logger().WithFields(map[string]interface{}{"worker": "pricefeed"})
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(PriceFeedUpdateInterval)
 	defer ticker.Stop()
 
 	for {
@@ -557,7 +557,7 @@ func (s *Service) runPriceFeedUpdater() {
 						"tx_hash": shortHash(txHash),
 					}).Debug("PriceFeed updated")
 				}
-				time.Sleep(500 * time.Millisecond) // Small delay between updates
+				time.Sleep(PriceFeedInterSymbolDelay) // Small delay between updates
 			}
 		}
 	}
@@ -568,7 +568,7 @@ func (s *Service) runRandomnessRecorder() {
 	ctx := context.Background()
 	logger := s.Logger().WithFields(map[string]interface{}{"worker": "randomness"})
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(RandomnessRecordInterval)
 	defer ticker.Stop()
 
 	for {
@@ -752,10 +752,10 @@ func normalizeMiniAppID(appID string) string {
 }
 
 func shortHash(hash string) string {
-	if len(hash) <= 16 {
+	if len(hash) <= ShortHashLength {
 		return hash
 	}
-	return hash[:16] + "..."
+	return hash[:ShortHashLength] + "..."
 }
 
 // runAutoTopUp periodically checks for pool accounts with low GAS balance and funds them.
@@ -765,17 +765,17 @@ func (s *Service) runAutoTopUp() {
 	logger := s.Logger().WithFields(map[string]interface{}{"worker": "auto-topup"})
 
 	// Wait for initial setup
-	time.Sleep(5 * time.Second)
+	time.Sleep(AutoTopUpInitialDelay)
 
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(AutoTopUpCheckInterval)
 	defer ticker.Stop()
 
 	logger.WithContext(ctx).Info("starting auto top-up worker for pool accounts")
 
-	// Minimum GAS balance threshold (0.1 GAS = 10000000 in 8 decimals)
-	const minGASBalance int64 = 10000000
-	// Amount to fund when balance is low (1 GAS = 100000000 in 8 decimals)
-	const fundAmount int64 = 100000000
+	// Minimum GAS balance threshold
+	const minGASBalance = AutoTopUpMinGASBalance
+	// Amount to fund when balance is low
+	const fundAmount = AutoTopUpFundAmount
 
 	for {
 		select {
@@ -784,7 +784,7 @@ func (s *Service) runAutoTopUp() {
 			return
 		case <-ticker.C:
 			// Get accounts with low GAS balance
-			accounts, err := s.poolClient.ListLowBalanceAccounts(ctx, "GAS", minGASBalance, 10)
+			accounts, err := s.poolClient.ListLowBalanceAccounts(ctx, "GAS", minGASBalance, AutoTopUpMaxAccounts)
 			if err != nil {
 				logger.WithError(err).Warn("failed to list low balance accounts")
 				continue
@@ -815,7 +815,7 @@ func (s *Service) runAutoTopUp() {
 				}).Info("funded pool account")
 
 				// Small delay between funding operations
-				time.Sleep(2 * time.Second)
+				time.Sleep(AutoTopUpInterAccountDelay)
 			}
 		}
 	}
@@ -875,15 +875,15 @@ func (s *Service) runAutomationTaskTopUp() {
 		"check_interval": "60s",
 	}).Info("starting automation task auto top-up worker")
 
-	// Minimum GAS balance threshold (1 GAS = 100000000 in 8 decimals)
-	const minTaskBalance int64 = 100000000
-	// Amount to fund when balance is low (10 GAS = 1000000000 in 8 decimals)
-	const topUpAmount int64 = 1000000000
+	// Minimum GAS balance threshold
+	const minTaskBalance = AutomationMinTaskBalance
+	// Amount to fund when balance is low
+	const topUpAmount = AutomationTopUpAmount
 
 	// Wait for initial setup
-	time.Sleep(10 * time.Second)
+	time.Sleep(AutomationTopUpInitialDelay)
 
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(AutomationTopUpCheckInterval)
 	defer ticker.Stop()
 
 	for {
@@ -935,7 +935,7 @@ func (s *Service) runAutomationTaskTopUp() {
 					}).Info("funded automation task")
 
 					// Small delay between funding operations
-					time.Sleep(5 * time.Second)
+					time.Sleep(AutomationTopUpInterTaskDelay)
 				}
 			}
 		}
@@ -972,14 +972,14 @@ func (s *Service) fundAutomationTask(ctx context.Context, contractAddress string
 	}
 
 	// Fund account if needed (need amount + tx fee)
-	const minBalanceNeeded = int64(1100000000) // 11 GAS (10 for transfer + 1 for fee)
+	const minBalanceNeeded = AutomationMinBalanceNeeded
 	if gasBalance < minBalanceNeeded {
 		_, fundErr := s.poolClient.FundAccount(ctx, account.Address, minBalanceNeeded)
 		if fundErr != nil {
 			return fmt.Errorf("fund account: %w", fundErr)
 		}
 		// Wait for funding to confirm
-		time.Sleep(5 * time.Second)
+		time.Sleep(AutomationFundConfirmWait)
 	}
 
 	// Transfer GAS to AutomationAnchor with taskId as data
@@ -1015,7 +1015,7 @@ func fetchUserAddressesFromDB(db database.RepositoryInterface, maxCount int) []s
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), FetchUserAddressTimeout)
 	defer cancel()
 
 	// Query account_pool table directly for addresses (limit to maxCount)

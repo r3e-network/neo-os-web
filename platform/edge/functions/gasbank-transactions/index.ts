@@ -33,26 +33,34 @@ export async function handler(req: Request): Promise<Response> {
   if (ensured instanceof Response) return ensured;
 
   const supabase = supabaseServiceClient();
-  const { data: accounts, error: accErr } = await supabase
-    .from("gasbank_accounts")
-    .select("id")
-    .eq("user_id", auth.userId)
-    .limit(1);
-  if (accErr) return errorResponse("SERVER_002", { message: `failed to load gasbank account: ${accErr.message}` }, req);
-  if (!accounts || accounts.length === 0) return json({ transactions: [] }, {}, req);
 
-  const accountId = String(accounts[0]?.id ?? "").trim();
-  if (!accountId) return json({ transactions: [] }, {}, req);
+  try {
+    const { data: accounts, error: accErr } = await supabase
+      .from("gasbank_accounts")
+      .select("id")
+      .eq("user_id", auth.userId)
+      .limit(1);
+    if (accErr)
+      return errorResponse("SERVER_002", { message: `failed to load gasbank account: ${accErr.message}` }, req);
+    if (!accounts || accounts.length === 0) return json({ transactions: [] }, {}, req);
 
-  const { data, error: listErr } = await supabase
-    .from("gasbank_transactions")
-    .select("*")
-    .eq("account_id", accountId)
-    .order("created_at", { ascending: false })
-    .limit(50);
+    const accountId = String(accounts[0]?.id ?? "").trim();
+    if (!accountId) return json({ transactions: [] }, {}, req);
 
-  if (listErr) return errorResponse("SERVER_002", { message: `failed to list transactions: ${listErr.message}` }, req);
-  return json({ transactions: data ?? [] }, {}, req);
+    const { data, error: listErr } = await supabase
+      .from("gasbank_transactions")
+      .select("*")
+      .eq("account_id", accountId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (listErr)
+      return errorResponse("SERVER_002", { message: `failed to list transactions: ${listErr.message}` }, req);
+    return json({ transactions: data ?? [] }, {}, req);
+  } catch (err) {
+    console.error("Gasbank transactions error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {

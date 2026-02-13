@@ -37,60 +37,65 @@ export async function handler(req: Request): Promise<Response> {
   const chain = getChainConfig(chainId);
   if (!chain) return notFoundError("chain", req);
 
-  // Query on-chain balances
-  const rpcUrl = chain.rpc_urls?.[0] || getNeoRpcUrl();
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "getnep17balances",
-      params: [walletCheck.address],
-    }),
-  });
+  try {
+    // Query on-chain balances
+    const rpcUrl = chain.rpc_urls?.[0] || getNeoRpcUrl();
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "getnep17balances",
+        params: [walletCheck.address],
+      }),
+    });
 
-  if (!res.ok) {
-    return errorResponse("SERVER_002", { message: "RPC request failed" }, req);
-  }
-
-  const data = await res.json();
-  if (data.error) {
-    return errorResponse("SERVER_002", { message: data.error.message }, req);
-  }
-
-  // Parse balances
-  const balances: Nep17Balance[] = data.result?.balance || [];
-  const result: Record<string, string> = {};
-
-  // Get native contract addresses for this chain
-  const gasHash = getNativeContractAddress(chainId, "gas")?.toLowerCase();
-  const neoHash = getNativeContractAddress(chainId, "neo")?.toLowerCase();
-
-  for (const b of balances) {
-    const hash = b.assethash.toLowerCase();
-    const amount = BigInt(b.amount);
-    const decimals = hash === gasHash ? 8n : 0n;
-    const divisor = 10n ** decimals;
-    const intPart = amount / divisor;
-    const fracPart = amount % divisor;
-
-    let symbol = "UNKNOWN";
-    if (hash === gasHash) symbol = "GAS";
-    else if (hash === neoHash) symbol = "NEO";
-
-    if (decimals > 0n) {
-      result[symbol] = `${intPart}.${fracPart.toString().padStart(Number(decimals), "0")}`;
-    } else {
-      result[symbol] = intPart.toString();
+    if (!res.ok) {
+      return errorResponse("SERVER_002", { message: "RPC request failed" }, req);
     }
+
+    const data = await res.json();
+    if (data.error) {
+      return errorResponse("SERVER_002", { message: data.error.message }, req);
+    }
+
+    // Parse balances
+    const balances: Nep17Balance[] = data.result?.balance || [];
+    const result: Record<string, string> = {};
+
+    // Get native contract addresses for this chain
+    const gasHash = getNativeContractAddress(chainId, "gas")?.toLowerCase();
+    const neoHash = getNativeContractAddress(chainId, "neo")?.toLowerCase();
+
+    for (const b of balances) {
+      const hash = b.assethash.toLowerCase();
+      const amount = BigInt(b.amount);
+      const decimals = hash === gasHash ? 8n : 0n;
+      const divisor = 10n ** decimals;
+      const intPart = amount / divisor;
+      const fracPart = amount % divisor;
+
+      let symbol = "UNKNOWN";
+      if (hash === gasHash) symbol = "GAS";
+      else if (hash === neoHash) symbol = "NEO";
+
+      if (decimals > 0n) {
+        result[symbol] = `${intPart}.${fracPart.toString().padStart(Number(decimals), "0")}`;
+      } else {
+        result[symbol] = intPart.toString();
+      }
+    }
+
+    // Ensure GAS and NEO are always present
+    if (!result.GAS) result.GAS = "0.00000000";
+    if (!result.NEO) result.NEO = "0";
+
+    return json({ address: walletCheck.address, chain_id: chainId, balances: result }, {}, req);
+  } catch (err) {
+    console.error("Wallet balance error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-
-  // Ensure GAS and NEO are always present
-  if (!result.GAS) result.GAS = "0.00000000";
-  if (!result.NEO) result.NEO = "0";
-
-  return json({ address: walletCheck.address, chain_id: chainId, balances: result }, {}, req);
 }
 
 if (import.meta.main) {

@@ -35,22 +35,25 @@ export async function handler(req: Request): Promise<Response> {
   const limit = url.searchParams.get("limit") ?? undefined;
   const afterId = url.searchParams.get("after_id") ?? undefined;
 
-  const result = await queryTransactions(
-    {
-      app_id: appId,
-      chain_id: chainId,
-      limit: limit ? Number.parseInt(limit, 10) : undefined,
-      after_id: afterId,
-    },
-    req,
-  );
+  try {
+    const result = await queryTransactions(
+      {
+        app_id: appId,
+        chain_id: chainId,
+        limit: limit ? Number.parseInt(limit, 10) : undefined,
+        after_id: afterId,
+      },
+      req
+    );
 
-  if (result instanceof Response) return result;
-  return json(result, {}, req);
+    if (result instanceof Response) return result;
+    return json(result, {}, req);
+  } catch (err) {
+    console.error("Transactions list error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {
-  if (import.meta.main) {
   Deno.serve(handler);
-}
 }

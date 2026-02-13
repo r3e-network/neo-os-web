@@ -11,13 +11,7 @@ import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getChainConfig } from "../_shared/chains.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-// CORS headers for indexer responses
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
@@ -32,31 +26,34 @@ export async function handler(req: Request): Promise<Response> {
   const chain = getChainConfig(chainId);
   if (!chain) return notFoundError("chain", req);
 
-  // Use INDEXER Supabase credentials (isolated)
-  const supabaseUrl = Deno.env.get("INDEXER_SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("INDEXER_SUPABASE_SERVICE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  const neoNetwork = chain.is_testnet ? "testnet" : "mainnet";
+  try {
+    // Use INDEXER Supabase credentials (isolated)
+    const supabaseUrl = Deno.env.get("INDEXER_SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("INDEXER_SUPABASE_SERVICE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const neoNetwork = chain.is_testnet ? "testnet" : "mainnet";
 
-  const searchType = detectSearchType(query);
-  let result;
-  switch (searchType) {
-    case "transaction":
-      result = await searchTransaction(supabase, query, neoNetwork);
-      break;
-    case "address":
-      result = await searchAddress(supabase, query, neoNetwork);
-      break;
-    case "contract":
-      result = await searchContract(supabase, query);
-      break;
-    default:
-      result = await searchAll(supabase, query, neoNetwork);
+    const searchType = detectSearchType(query);
+    let result;
+    switch (searchType) {
+      case "transaction":
+        result = await searchTransaction(supabase, query, neoNetwork);
+        break;
+      case "address":
+        result = await searchAddress(supabase, query, neoNetwork);
+        break;
+      case "contract":
+        result = await searchContract(supabase, query);
+        break;
+      default:
+        result = await searchAll(supabase, query, neoNetwork);
+    }
+
+    return json(result, {}, req);
+  } catch (err) {
+    console.error("Explorer search error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-
-  return new Response(JSON.stringify(result), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 }
 
 if (import.meta.main) {
@@ -70,7 +67,7 @@ function detectSearchType(query: string): string {
   return "unknown";
 }
 
-async function searchTransaction(supabase: any, hash: string, network: string) {
+async function searchTransaction(supabase: SupabaseClient, hash: string, network: string) {
   let txQuery = supabase.from("indexer_transactions").select("*").eq("hash", hash);
   if (network) {
     txQuery = txQuery.eq("network", network);
@@ -108,7 +105,7 @@ async function searchTransaction(supabase: any, hash: string, network: string) {
   };
 }
 
-async function searchAddress(supabase: any, address: string, network: string) {
+async function searchAddress(supabase: SupabaseClient, address: string, network: string) {
   let txQuery = supabase
     .from("indexer_address_txs")
     .select("tx_hash, role, block_time", { count: "exact" })
@@ -123,7 +120,7 @@ async function searchAddress(supabase: any, address: string, network: string) {
   return { type: "address", found: (count || 0) > 0, address, tx_count: count, transactions: txs || [] };
 }
 
-async function searchContract(supabase: any, contractAddress: string) {
+async function searchContract(supabase: SupabaseClient, contractAddress: string) {
   const { data: calls, count } = await supabase
     .from("indexer_contract_calls")
     .select("tx_hash, method, gas_consumed, success", { count: "exact" })
@@ -142,7 +139,7 @@ async function searchContract(supabase: any, contractAddress: string) {
   };
 }
 
-async function searchAll(supabase: any, query: string, network: string) {
+async function searchAll(supabase: SupabaseClient, query: string, network: string) {
   // Try transaction first
   const txResult = await searchTransaction(supabase, query, network);
   if (txResult.found) return txResult;

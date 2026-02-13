@@ -36,16 +36,21 @@ export async function handler(req: Request): Promise<Response> {
   const jobId = (url.searchParams.get("id") ?? "").trim();
   if (!jobId) return validationError("id", "id required", req);
 
-  const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
-  const result = await getJSON(
-    `${neocomputeURL}/jobs/${encodeURIComponent(jobId)}`,
-    {
-      "X-User-ID": auth.userId,
-    },
-    req
-  );
-  if (result instanceof Response) return result;
-  return json(result, {}, req);
+  try {
+    const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
+    const result = await getJSON(
+      `${neocomputeURL}/jobs/${encodeURIComponent(jobId)}`,
+      {
+        "X-User-ID": auth.userId,
+      },
+      req
+    );
+    if (result instanceof Response) return result;
+    return json(result, {}, req);
+  } catch (err) {
+    console.error("Compute job error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {

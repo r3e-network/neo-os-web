@@ -37,20 +37,25 @@ export async function handler(req: Request): Promise<Response> {
   const limit = url.searchParams.get("limit") ?? undefined;
   const afterId = url.searchParams.get("after_id") ?? undefined;
 
-  const result = await queryEvents(
-    {
-      app_id: appId,
-      event_name: eventName,
-      contract_address: contractAddress,
-      chain_id: chainId,
-      limit: limit ? Number.parseInt(limit, 10) : undefined,
-      after_id: afterId,
-    },
-    req,
-  );
+  try {
+    const result = await queryEvents(
+      {
+        app_id: appId,
+        event_name: eventName,
+        contract_address: contractAddress,
+        chain_id: chainId,
+        limit: limit ? Number.parseInt(limit, 10) : undefined,
+        after_id: afterId,
+      },
+      req
+    );
 
-  if (result instanceof Response) return result;
-  return json(result, {}, req);
+    if (result instanceof Response) return result;
+    return json(result, {}, req);
+  } catch (err) {
+    console.error("Events list error:", err);
+    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  }
 }
 
 if (import.meta.main) {

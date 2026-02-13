@@ -109,7 +109,7 @@ export async function handler(req: Request): Promise<Response> {
     switch (body.action) {
       case "approve": {
         // Update status to approved
-        const updateData: any = {
+        const updateData: Record<string, string | undefined> = {
           status: "approved",
           reviewed_by: auth.userId,
           reviewed_at: now,

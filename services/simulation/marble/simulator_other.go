@@ -13,7 +13,7 @@ import (
 // Business flow: RequestBoost -> VerifyStake -> ApplyBoost
 func (s *MiniAppSimulator) SimulateGovBooster(ctx context.Context) error {
 	appID := "miniapp-govbooster"
-	amount := int64(100000000) // 1 GAS minimum
+	amount := int64(GovBoosterMinStake) // 1 GAS minimum
 
 	memo := fmt.Sprintf("gov:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -30,7 +30,7 @@ func (s *MiniAppSimulator) SimulateGovBooster(ctx context.Context) error {
 			return nil
 		}
 		proposalID := fmt.Sprintf("proposal-%d", time.Now().UnixNano())
-		lockDays := int64(randomInt(7, 90))
+		lockDays := int64(randomInt(GovBoosterMinLockDays, GovBoosterMaxLockDays))
 
 		// Request boost
 		_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "RequestBoost", []neoaccountsclient.ContractParam{
@@ -50,7 +50,7 @@ func (s *MiniAppSimulator) SimulateGovBooster(ctx context.Context) error {
 // SimulateGuardianPolicy simulates guardian policy setup.
 func (s *MiniAppSimulator) SimulateGuardianPolicy(ctx context.Context) error {
 	appID := "miniapp-guardianpolicy"
-	amount := int64(5000000)
+	amount := int64(GuardianPolicyFee)
 
 	memo := fmt.Sprintf("guardian:set:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -66,7 +66,7 @@ func (s *MiniAppSimulator) SimulateGuardianPolicy(ctx context.Context) error {
 // Business flow: Pay fee -> CheckIn -> (optionally) ClaimRewards
 func (s *MiniAppSimulator) SimulateDailyCheckin(ctx context.Context) error {
 	appID := "miniapp-dailycheckin"
-	amount := int64(100000) // 0.001 GAS check-in fee
+	amount := int64(DailyCheckinFee) // 0.001 GAS check-in fee
 
 	memo := fmt.Sprintf("checkin:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -97,7 +97,7 @@ func (s *MiniAppSimulator) SimulateDailyCheckin(ctx context.Context) error {
 		}
 
 		// Randomly claim rewards (20% chance)
-		if randomInt(1, 100) <= 20 {
+		if randomInt(1, DailyCheckinRewardChance) <= DailyCheckinRewardRoll {
 			_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "ClaimRewards", []neoaccountsclient.ContractParam{
 				{Type: "Hash160", Value: userAddress},
 			})
@@ -112,7 +112,7 @@ func (s *MiniAppSimulator) SimulateDailyCheckin(ctx context.Context) error {
 // SimulateGovMerc simulates governance mercenary voting.
 func (s *MiniAppSimulator) SimulateGovMerc(ctx context.Context) error {
 	appID := "miniapp-gov-merc"
-	amount := int64(10000000)
+	amount := int64(GovMercVoteFee)
 	memo := fmt.Sprintf("govmerc:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
@@ -126,7 +126,7 @@ func (s *MiniAppSimulator) SimulateGovMerc(ctx context.Context) error {
 // SimulateMasqueradeDAO simulates anonymous DAO voting.
 func (s *MiniAppSimulator) SimulateMasqueradeDAO(ctx context.Context) error {
 	appID := "miniapp-masqueradedao"
-	amount := int64(5000000)
+	amount := int64(MasqueradeDAOFee)
 	memo := fmt.Sprintf("masquerade:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *MiniAppSimulator) SimulateMasqueradeDAO(ctx context.Context) error {
 // SimulateGardenOfNeo simulates virtual garden planting.
 func (s *MiniAppSimulator) SimulateGardenOfNeo(ctx context.Context) error {
 	appID := "miniapp-garden-of-neo"
-	amount := int64(10000000)
+	amount := int64(GardenOfNeoPlantFee)
 	memo := fmt.Sprintf("garden:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
@@ -154,7 +154,7 @@ func (s *MiniAppSimulator) SimulateGardenOfNeo(ctx context.Context) error {
 // SimulateOnChainTarot simulates tarot card readings.
 func (s *MiniAppSimulator) SimulateOnChainTarot(ctx context.Context) error {
 	appID := "miniapp-on-chain-tarot"
-	amount := int64(5000000)
+	amount := int64(OnChainTarotFee)
 	memo := fmt.Sprintf("tarot:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
@@ -168,7 +168,7 @@ func (s *MiniAppSimulator) SimulateOnChainTarot(ctx context.Context) error {
 // SimulateExFiles simulates ex-files sharing.
 func (s *MiniAppSimulator) SimulateExFiles(ctx context.Context) error {
 	appID := "miniapp-exfiles"
-	amount := int64(5000000)
+	amount := int64(ExFilesFee)
 	memo := fmt.Sprintf("exfiles:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
@@ -182,7 +182,7 @@ func (s *MiniAppSimulator) SimulateExFiles(ctx context.Context) error {
 // SimulateBreakupContract simulates breakup contract creation.
 func (s *MiniAppSimulator) SimulateBreakupContract(ctx context.Context) error {
 	appID := "miniapp-breakupcontract"
-	amount := int64(10000000)
+	amount := int64(BreakupContractFee)
 	memo := fmt.Sprintf("breakup:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
@@ -196,7 +196,7 @@ func (s *MiniAppSimulator) SimulateBreakupContract(ctx context.Context) error {
 // SimulateMillionPieceMap simulates pixel map purchases.
 func (s *MiniAppSimulator) SimulateMillionPieceMap(ctx context.Context) error {
 	appID := "miniapp-million-piece-map"
-	amount := int64(1000000)
+	amount := int64(MillionPieceMapPixelPrice)
 	memo := fmt.Sprintf("map:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
@@ -210,7 +210,7 @@ func (s *MiniAppSimulator) SimulateMillionPieceMap(ctx context.Context) error {
 // SimulateCanvas simulates collaborative canvas drawing.
 func (s *MiniAppSimulator) SimulateCanvas(ctx context.Context) error {
 	appID := "miniapp-canvas"
-	amount := int64(1000000)
+	amount := int64(CanvasDrawFee)
 	memo := fmt.Sprintf("canvas:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
@@ -224,7 +224,7 @@ func (s *MiniAppSimulator) SimulateCanvas(ctx context.Context) error {
 // SimulateCandidateVote simulates candidate voting.
 func (s *MiniAppSimulator) SimulateCandidateVote(ctx context.Context) error {
 	appID := "miniapp-candidate-vote"
-	amount := int64(10000000)
+	amount := int64(CandidateVoteFee)
 	memo := fmt.Sprintf("vote:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {
@@ -238,7 +238,7 @@ func (s *MiniAppSimulator) SimulateCandidateVote(ctx context.Context) error {
 // SimulateNeoburger simulates NEO staking via NeoBurger.
 func (s *MiniAppSimulator) SimulateNeoburger(ctx context.Context) error {
 	appID := "miniapp-neoburger"
-	amount := int64(100000000)
+	amount := int64(NeoburgerStakeAmount)
 	memo := fmt.Sprintf("neoburger:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 	if err != nil {

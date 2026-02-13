@@ -14,7 +14,7 @@ import (
 // Business flow: CreateTable -> JoinTable -> StartHand
 func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
 	appID := "miniapp-secret-poker"
-	amount := int64(50000000)
+	amount := int64(SecretPokerBuyIn)
 
 	memo := fmt.Sprintf("poker:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -32,8 +32,8 @@ func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
 		}
 		tableID := atomic.LoadInt64(&s.secretPokerGames)
 
-		// Create table (every 5 games)
-		if tableID%5 == 1 {
+		// Create table (every N games)
+		if tableID%SecretPokerTableEveryN == 1 {
 			_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "CreateTable", []neoaccountsclient.ContractParam{
 				{Type: "Hash160", Value: playerAddress},
 				{Type: "Integer", Value: amount},
@@ -46,7 +46,7 @@ func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
 
 		// Join table
 		_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "JoinTable", []neoaccountsclient.ContractParam{
-			{Type: "Integer", Value: (tableID-1)/5 + 1},
+			{Type: "Integer", Value: (tableID-1)/SecretPokerTableEveryN + 1},
 			{Type: "Hash160", Value: playerAddress},
 		})
 		if err != nil {
@@ -54,10 +54,10 @@ func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
 			return fmt.Errorf("join table contract: %w", err)
 		}
 
-		// Start hand (every 4 joins)
-		if tableID%4 == 0 {
+		// Start hand (every N joins)
+		if tableID%SecretPokerHandEveryN == 0 {
 			_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "StartHand", []neoaccountsclient.ContractParam{
-				{Type: "Integer", Value: (tableID-1)/5 + 1},
+				{Type: "Integer", Value: (tableID-1)/SecretPokerTableEveryN + 1},
 			})
 			if err != nil {
 				atomic.AddInt64(&s.simulationErrors, 1)
@@ -66,13 +66,13 @@ func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
 		}
 	}
 
-	if randomInt(1, 4) == 1 {
+	if randomInt(1, SecretPokerWinChance) == 1 {
 		atomic.AddInt64(&s.secretPokerWins, 1)
 		winnerAddress, ok := s.getRandomUserAddressOrWarn(appID, "secret poker payout")
 		if !ok {
 			return nil
 		}
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, amount*3, "poker:win")
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, amount*SecretPokerPayoutMult, "poker:win")
 		if err != nil {
 			atomic.AddInt64(&s.simulationErrors, 1)
 			return fmt.Errorf("secret poker payout: %w", err)
@@ -85,7 +85,7 @@ func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
 // Business flow: PlacePrediction -> RequestResolve
 func (s *MiniAppSimulator) SimulateMicroPredict(ctx context.Context) error {
 	appID := "miniapp-micro-predict"
-	amount := int64(10000000)
+	amount := int64(MicroPredictBet)
 
 	memo := fmt.Sprintf("micro:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -102,7 +102,7 @@ func (s *MiniAppSimulator) SimulateMicroPredict(ctx context.Context) error {
 			return nil
 		}
 		direction := randomInt(0, 1) == 1
-		startPrice := int64(randomInt(30000, 50000)) * 100000000
+		startPrice := int64(randomInt(MicroPredictMinPrice, MicroPredictMaxPrice)) * MicroPredictPriceScale
 
 		// Place prediction
 		_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "PlacePrediction", []neoaccountsclient.ContractParam{
@@ -124,7 +124,7 @@ func (s *MiniAppSimulator) SimulateMicroPredict(ctx context.Context) error {
 		if !ok {
 			return nil
 		}
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, int64(float64(amount)*1.9), "micro:win")
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, int64(float64(amount)*MicroPredictPayoutRate), "micro:win")
 		if err != nil {
 			atomic.AddInt64(&s.simulationErrors, 1)
 			return fmt.Errorf("micro predict payout: %w", err)
@@ -137,7 +137,7 @@ func (s *MiniAppSimulator) SimulateMicroPredict(ctx context.Context) error {
 // Business flow: CreateEnvelope -> Claim (multiple times)
 func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
 	appID := "miniapp-red-envelope"
-	amount := int64(20000000)
+	amount := int64(RedEnvelopeAmount)
 
 	memo := fmt.Sprintf("redenv:%d", time.Now().UnixNano())
 	txHash, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -154,7 +154,7 @@ func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
 		if !ok {
 			return nil
 		}
-		packetCount := randomInt(3, 10)
+		packetCount := randomInt(RedEnvelopeMinPackets, RedEnvelopeMaxPackets)
 		envelopeID := atomic.LoadInt64(&s.redEnvelopeSends)
 
 		// Create envelope
@@ -162,7 +162,7 @@ func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
 			{Type: "Hash160", Value: creatorAddress},
 			{Type: "Integer", Value: amount},
 			{Type: "Integer", Value: packetCount},
-			{Type: "Integer", Value: 3600000}, // 1 hour expiry
+			{Type: "Integer", Value: RedEnvelopeExpiryMS}, // 1 hour expiry
 		})
 		if err != nil {
 			atomic.AddInt64(&s.simulationErrors, 1)
@@ -170,7 +170,7 @@ func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
 		}
 
 		// Simulate claims (1-3 claims per envelope)
-		claimCount := randomInt(1, 3)
+		claimCount := randomInt(RedEnvelopeMinClaims, RedEnvelopeMaxClaims)
 		for i := 0; i < claimCount; i++ {
 			claimerAddress, ok := s.getRandomUserAddressOrWarn(appID, "claim envelope")
 			if !ok {
@@ -187,7 +187,7 @@ func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
 		}
 	}
 
-	claimAmount := int64(randomInt(1, 20)) * 1000000
+	claimAmount := int64(randomInt(1, RedEnvelopeMaxClaimAmt)) * RedEnvelopeClaimUnit
 	winnerAddress, ok := s.getRandomUserAddressOrWarn(appID, "red envelope payout")
 	if !ok {
 		return nil
@@ -205,7 +205,7 @@ func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
 // Business flow: CreateCircle -> JoinCircle -> MakeDeposit -> RequestPayout
 func (s *MiniAppSimulator) SimulateGasCircle(ctx context.Context) error {
 	appID := "miniapp-gas-circle"
-	amount := int64(10000000)
+	amount := int64(GasCircleDepositAmount)
 
 	memo := fmt.Sprintf("circle:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -221,14 +221,14 @@ func (s *MiniAppSimulator) SimulateGasCircle(ctx context.Context) error {
 		if !ok {
 			return nil
 		}
-		circleID := (atomic.LoadInt64(&s.gasCircleDeposits)-1)/10 + 1
+		circleID := (atomic.LoadInt64(&s.gasCircleDeposits)-1)/GasCircleCreateEveryN + 1
 
-		// Create circle (every 10 deposits)
-		if atomic.LoadInt64(&s.gasCircleDeposits)%10 == 1 {
+		// Create circle (every N deposits)
+		if atomic.LoadInt64(&s.gasCircleDeposits)%GasCircleCreateEveryN == 1 {
 			_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "CreateCircle", []neoaccountsclient.ContractParam{
 				{Type: "Hash160", Value: memberAddress},
 				{Type: "Integer", Value: amount},
-				{Type: "Integer", Value: 10}, // max 10 members
+				{Type: "Integer", Value: GasCircleMaxMembers},
 			})
 			if err != nil {
 				atomic.AddInt64(&s.simulationErrors, 1)
@@ -257,13 +257,13 @@ func (s *MiniAppSimulator) SimulateGasCircle(ctx context.Context) error {
 		}
 	}
 
-	if randomInt(1, 10) == 1 {
+	if randomInt(1, GasCircleWinChance) == 1 {
 		atomic.AddInt64(&s.gasCircleWins, 1)
 		winnerAddress, ok := s.getRandomUserAddressOrWarn(appID, "gas circle payout")
 		if !ok {
 			return nil
 		}
-		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, amount*10, "circle:win")
+		_, err = s.invoker.PayoutToUser(ctx, appID, winnerAddress, amount*GasCirclePayoutMult, "circle:win")
 		if err != nil {
 			atomic.AddInt64(&s.simulationErrors, 1)
 			return fmt.Errorf("gas circle payout: %w", err)
@@ -276,14 +276,14 @@ func (s *MiniAppSimulator) SimulateGasCircle(ctx context.Context) error {
 // Business flow: Bury (encrypt) -> Fish (random pickup) -> Reveal (time unlock)
 func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 	appID := "miniapp-time-capsule"
-	buryFee := int64(20000000) // 0.2 GAS to bury
-	fishFee := int64(5000000)  // 0.05 GAS to fish
+	buryFee := int64(TimeCapsuleBuryFee)
+	fishFee := int64(TimeCapsuleFishFee)
 
 	// Randomly decide action: bury (40%), fish (40%), reveal (20%)
 	action := randomInt(1, 10)
 
 	switch {
-	case action <= 4:
+	case action <= TimeCapsuleBuryChance:
 		// Bury a new time capsule
 		memo := fmt.Sprintf("capsule:bury:%d", time.Now().UnixNano())
 		txHash, err := s.invoker.PayToApp(ctx, appID, buryFee, memo)
@@ -300,7 +300,7 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 				return nil
 			}
 			contentHash := hex.EncodeToString(generateRandomBytes())
-			unlockTime := time.Now().Add(time.Duration(randomInt(1, 365)) * 24 * time.Hour).Unix()
+			unlockTime := time.Now().Add(time.Duration(randomInt(1, TimeCapsuleMaxUnlockDays)) * 24 * time.Hour).Unix()
 
 			_, err = s.invoker.InvokeMiniAppContract(ctx, appID, "Bury", []neoaccountsclient.ContractParam{
 				{Type: "Hash160", Value: ownerAddress},
@@ -313,7 +313,7 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 				return fmt.Errorf("bury contract: %w", err)
 			}
 		}
-	case action <= 8:
+	case action <= TimeCapsuleFishChance:
 		// Fish for a random public capsule
 		memo := fmt.Sprintf("capsule:fish:%d", time.Now().UnixNano())
 		txHash, err := s.invoker.PayToApp(ctx, appID, fishFee, memo)
@@ -333,9 +333,9 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 // SimulateDevTipping simulates the EcoBoost developer tipping app.
 func (s *MiniAppSimulator) SimulateDevTipping(ctx context.Context) error {
 	appID := "miniapp-dev-tipping"
-	tipAmount := int64(randomInt(1, 10)) * 100000000 // 1-10 GAS
+	tipAmount := int64(randomInt(1, DevTippingMaxAmount)) * DevTippingUnit
 
-	devID := randomInt(1, 8)
+	devID := randomInt(1, DevTippingMaxDevID)
 	memo := fmt.Sprintf("tip:dev%d:%d", devID, time.Now().UnixNano())
 
 	_, err := s.invoker.PayToApp(ctx, appID, tipAmount, memo)
@@ -370,7 +370,7 @@ func (s *MiniAppSimulator) SimulateDevTipping(ctx context.Context) error {
 // SimulateGraveyard simulates digital graveyard.
 func (s *MiniAppSimulator) SimulateGraveyard(ctx context.Context) error {
 	appID := "miniapp-graveyard"
-	amount := int64(10000000)
+	amount := int64(GraveyardBurialFee)
 
 	memo := fmt.Sprintf("grave:bury:%d", time.Now().UnixNano())
 	_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -386,10 +386,10 @@ func (s *MiniAppSimulator) SimulateGraveyard(ctx context.Context) error {
 // Business flow: CreateGrant -> FundGrant -> WithdrawFunds
 func (s *MiniAppSimulator) SimulateGrantShare(ctx context.Context) error {
 	appID := "miniapp-grant-share"
-	amount := int64(50000000) // 0.5 GAS
+	amount := int64(GrantShareAmount)
 
 	// Randomly create or fund a grant
-	if randomInt(0, 4) == 0 {
+	if randomInt(0, GrantShareCreateChance) == 0 {
 		// Create a new grant
 		memo := fmt.Sprintf("grant:create:%d", time.Now().UnixNano())
 		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
@@ -400,7 +400,7 @@ func (s *MiniAppSimulator) SimulateGrantShare(ctx context.Context) error {
 		atomic.AddInt64(&s.grantShareCreates, 1)
 	} else {
 		// Fund an existing grant
-		grantID := fmt.Sprintf("grant-%d", randomInt(1, 100))
+		grantID := fmt.Sprintf("grant-%d", randomInt(1, GrantShareMaxGrantID))
 		memo := fmt.Sprintf("grant:fund:%s:%d", grantID, time.Now().UnixNano())
 		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 		if err != nil {
@@ -416,14 +416,14 @@ func (s *MiniAppSimulator) SimulateGrantShare(ctx context.Context) error {
 // Business flow: SearchDomain -> RegisterDomain -> RenewDomain
 func (s *MiniAppSimulator) SimulateNeoNS(ctx context.Context) error {
 	appID := "miniapp-neo-ns"
-	amount := int64(10000000) // 0.1 GAS base
+	amount := int64(NeoNSBasePrice)
 
 	// Randomly register or renew
-	if randomInt(0, 2) == 0 {
+	if randomInt(0, NeoNSRegisterChance) == 0 {
 		// Register a new domain
-		domainName := fmt.Sprintf("user%d.neo", randomInt(1000, 9999))
+		domainName := fmt.Sprintf("user%d.neo", randomInt(NeoNSMinDomainNum, NeoNSMaxDomainNum))
 		memo := fmt.Sprintf("nns:register:%s:%d", domainName, time.Now().UnixNano())
-		_, err := s.invoker.PayToApp(ctx, appID, amount*5, memo) // Registration costs more
+		_, err := s.invoker.PayToApp(ctx, appID, amount*NeoNSRegistrationMult, memo) // Registration costs more
 		if err != nil {
 			atomic.AddInt64(&s.simulationErrors, 1)
 			return fmt.Errorf("neo ns register: %w", err)
@@ -431,7 +431,7 @@ func (s *MiniAppSimulator) SimulateNeoNS(ctx context.Context) error {
 		atomic.AddInt64(&s.neoNSRegistrations, 1)
 	} else {
 		// Renew an existing domain
-		domainName := fmt.Sprintf("user%d.neo", randomInt(1, 500))
+		domainName := fmt.Sprintf("user%d.neo", randomInt(NeoNSRenewMinNum, NeoNSRenewMaxNum))
 		memo := fmt.Sprintf("nns:renew:%s:%d", domainName, time.Now().UnixNano())
 		_, err := s.invoker.PayToApp(ctx, appID, amount, memo)
 		if err != nil {
