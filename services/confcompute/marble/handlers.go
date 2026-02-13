@@ -2,6 +2,7 @@
 package neocompute
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -64,16 +65,12 @@ func (s *Service) handleGetJob(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, job)
 }
 
-func (s *Service) handleListJobs(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-
-	jobs := s.listJobs(userID)
-	if jobs == nil {
-		jobs = []*ExecuteResponse{}
-	}
-
-	httputil.WriteJSON(w, http.StatusOK, jobs)
+func (s *Service) handleListJobs() http.HandlerFunc {
+	return httputil.HandleNoBodyWithUserAuth(s.Logger(), func(_ context.Context, userID string) ([]*ExecuteResponse, error) {
+		jobs := s.listJobs(userID)
+		if jobs == nil {
+			jobs = []*ExecuteResponse{}
+		}
+		return jobs, nil
+	})
 }

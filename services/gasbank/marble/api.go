@@ -12,7 +12,7 @@ func (s *Service) registerRoutes() {
 	router := s.Router()
 
 	// User-facing endpoints (user auth handled in handler via httputil.RequireUserID)
-	router.HandleFunc("/account", s.handleGetAccount).Methods(http.MethodGet)
+	router.HandleFunc("/account", s.handleGetAccount()).Methods(http.MethodGet)
 	router.HandleFunc("/transactions", s.handleGetTransactions).Methods(http.MethodGet)
 	router.HandleFunc("/deposits", s.handleGetDeposits).Methods(http.MethodGet)
 

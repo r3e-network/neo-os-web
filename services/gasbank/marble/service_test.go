@@ -361,7 +361,7 @@ func TestHandleGetAccountNoUserID(t *testing.T) {
 	// No X-User-ID header
 
 	w := httptest.NewRecorder()
-	svc.handleGetAccount(w, req)
+	svc.handleGetAccount().ServeHTTP(w, req)
 
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusUnauthorized)
@@ -385,7 +385,7 @@ func TestHandleGetAccountSuccess(t *testing.T) {
 	req.Header.Set("X-User-ID", "user1")
 
 	w := httptest.NewRecorder()
-	svc.handleGetAccount(w, req)
+	svc.handleGetAccount().ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)

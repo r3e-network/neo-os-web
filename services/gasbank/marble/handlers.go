@@ -13,8 +13,8 @@ import (
 // =============================================================================
 
 // handleGetAccount returns the gas bank account for the authenticated user.
-func (s *Service) handleGetAccount(w http.ResponseWriter, r *http.Request) {
-	s.handlerHelper.HandleAuthenticated(w, r, func(ctx context.Context, userID string) (interface{}, error) {
+func (s *Service) handleGetAccount() http.HandlerFunc {
+	return httputil.HandleNoBodyWithUserAuth(s.Logger(), func(ctx context.Context, userID string) (*GetAccountResponse, error) {
 		return s.GetAccount(ctx, userID)
 	})
 }

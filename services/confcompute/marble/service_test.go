@@ -279,7 +279,7 @@ func TestHandleListJobs(t *testing.T) {
 	req := httptest.NewRequest("GET", "/jobs", nil)
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
-	svc.handleListJobs(rr, req)
+	svc.handleListJobs().ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
