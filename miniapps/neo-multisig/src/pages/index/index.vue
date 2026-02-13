@@ -63,6 +63,7 @@ import { ref, computed } from "vue";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useI18n } from "@/composables/useI18n";
 import { useMultisigHistory } from "@/composables/useMultisigHistory";
 import { useMultisigUI } from "@/composables/useMultisigUI";
@@ -132,12 +133,7 @@ const openHistory = (id: string) => {
   uni.navigateTo({ url: `/pages/sign/index?id=${id}` });
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[neo-multisig] boundary error:", error);
-};
-const resetAndReload = () => {
-  /* no async data to reload on home page */
-};
+const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("neo-multisig");
 </script>
 
 <style lang="scss" scoped>

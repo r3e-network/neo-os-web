@@ -46,6 +46,7 @@
 import { ref, computed, onMounted } from "vue";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useI18n } from "@/composables/useI18n";
 import { useDevTippingStats, type Developer } from "@/composables/useDevTippingStats";
 import { useDevTippingWallet } from "@/composables/useDevTippingWallet";
@@ -135,10 +136,7 @@ const handleSendTip = async () => {
   }
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[dev-tipping] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("dev-tipping");
 const resetAndReload = async () => {
   await refreshData();
 };

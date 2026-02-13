@@ -69,6 +69,7 @@ import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useCertificateActions } from "@/composables/useCertificateActions";
 import CertificateForm from "@/components/CertificateForm.vue";
 import TemplateList from "@/components/TemplateList.vue";
@@ -132,9 +133,7 @@ const sidebarItems = computed(() => [
   { label: t("sidebarActive"), value: templates.value.filter((tpl) => tpl.active).length },
 ]);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[soulbound-certificate] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("soulbound-certificate");
 const resetAndReload = async () => {
   await connect();
   if (address.value) {

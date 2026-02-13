@@ -77,6 +77,7 @@ import { ref, onMounted, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import StreamCreateForm from "@/components/StreamCreateForm.vue";
 import StreamList from "@/components/StreamList.vue";
 import { useStreamVault } from "./composables/useStreamVault";
@@ -125,9 +126,7 @@ const {
   cancelStream,
 } = useStreamVault(t);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[stream-vault] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("stream-vault");
 const resetAndReload = async () => {
   if (address.value) refreshStreams();
 };

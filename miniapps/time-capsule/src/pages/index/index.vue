@@ -58,6 +58,7 @@ import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useCapsuleCreation } from "@/composables/useCapsuleCreation";
 import { useCapsuleUnlock } from "@/composables/useCapsuleUnlock";
 import CapsuleList, { type Capsule } from "./components/CapsuleList.vue";
@@ -268,9 +269,7 @@ const handleFish = async () => {
   });
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[time-capsule] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("time-capsule");
 const resetAndReload = async () => {
   if (address.value) fetchData();
 };

@@ -69,6 +69,7 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import BankHeader from "./components/BankHeader.vue";
 import BankCard from "./components/BankCard.vue";
 import ConfigWarning from "./components/ConfigWarning.vue";
@@ -192,9 +193,7 @@ const goToDetail = (id: string) => {
   uni.navigateTo({ url: `/pages/detail/detail?id=${id}` });
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[piggy-bank] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("piggy-bank");
 const resetAndReload = async () => {
   if (isConnected.value) {
     await store.loadBanks();

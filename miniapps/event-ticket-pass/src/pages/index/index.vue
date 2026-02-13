@@ -79,6 +79,7 @@ import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useEventTicketContract } from "@/composables/useEventTicketContract";
 import EventCreateForm from "./components/EventCreateForm.vue";
 import EventList from "./components/EventList.vue";
@@ -146,9 +147,7 @@ const onTabChange = async (tab: string) => {
   }
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[event-ticket-pass] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("event-ticket-pass");
 
 const resetAndReload = async () => {
   if (address.value) {

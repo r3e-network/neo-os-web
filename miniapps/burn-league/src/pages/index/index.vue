@@ -68,6 +68,7 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 
 import HeroSection from "./components/HeroSection.vue";
 import StatsGrid from "./components/StatsGrid.vue";
@@ -232,10 +233,7 @@ const burnTokens = async () => {
   }
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[burn-league] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("burn-league");
 const resetAndReload = async () => {
   await refreshData();
 };

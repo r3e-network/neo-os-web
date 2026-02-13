@@ -53,6 +53,7 @@ import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import SwapTab from "./components/SwapTab.vue";
 import PoolTab from "./components/PoolTab.vue";
 
@@ -102,12 +103,7 @@ const sidebarItems = computed(() => [
   { label: t("sidebarRate"), value: popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "-" },
 ]);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[neo-swap] boundary error:", error);
-};
-const resetAndReload = () => {
-  /* no async data to reload */
-};
+const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("neo-swap");
 </script>
 
 <style lang="scss" scoped>

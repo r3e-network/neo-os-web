@@ -56,6 +56,7 @@ import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useGuardianPolicyContract } from "@/composables/useGuardianPolicyContract";
 
 import PoliciesList from "./components/PoliciesList.vue";
@@ -120,11 +121,8 @@ const sidebarItems = computed(() => [
   { label: t("sidebarClaimed"), value: gp.stats.value.claimedPolicies },
 ]);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[guardian-policy] boundary error:", error);
-};
-
-const resetAndReload = async () => {
+const { handleBoundaryError } = useHandleBoundaryError("guardian-policy");
+const resetAndReload = () => {
   gp.refreshData();
 };
 

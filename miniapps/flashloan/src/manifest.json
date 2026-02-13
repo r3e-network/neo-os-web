@@ -9,9 +9,6 @@
     "title": "Flash Loan",
     "router": {
       "mode": "hash"
-    },
-    "devServer": {
-      "port": 5173
     }
   }
 }

@@ -54,6 +54,7 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import LeaderboardSection, { type LeaderboardEntry } from "./components/LeaderboardSection.vue";
 import CheckInSection from "./components/CheckInSection.vue";
 import GiveKarmaForm from "./components/GiveKarmaForm.vue";
@@ -169,9 +170,7 @@ const computedAchievements = computed<Achievement[]>(() => [
   { id: "philanthropist", name: t("philanthropist"), progress: "0/100", percent: 0, unlocked: false },
 ]);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[social-karma] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("social-karma");
 const resetAndReload = async () => {
   await loadLeaderboard();
   await loadUserState();

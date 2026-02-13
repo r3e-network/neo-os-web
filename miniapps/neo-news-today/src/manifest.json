@@ -9,9 +9,6 @@
     "title": "Neo News Today",
     "router": {
       "mode": "hash"
-    },
-    "devServer": {
-      "port": 5173
     }
   }
 }

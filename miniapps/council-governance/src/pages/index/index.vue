@@ -70,6 +70,7 @@ import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useGovernance } from "@/composables/useGovernance";
 import ActiveProposalsTab from "./components/ActiveProposalsTab.vue";
 import HistoryProposalsTab from "./components/HistoryProposalsTab.vue";
@@ -171,10 +172,7 @@ const createProposal = async (proposalData: {
   }
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[council-governance] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("council-governance");
 const resetAndReload = async () => {
   await init();
 };

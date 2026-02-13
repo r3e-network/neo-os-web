@@ -133,6 +133,7 @@ import {
 } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useI18n } from "@/composables/useI18n";
 import { useTurtleGame, TurtleColor } from "@/composables/useTurtleGame";
 import { useTurtleMatching } from "@/composables/useTurtleMatching";
@@ -313,10 +314,8 @@ onUnmounted(() => {
   if (activeDelayTimer) clearTimeout(activeDelayTimer);
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[turtle-match] boundary error:", error);
-};
-const resetAndReload = async () => {
+const { handleBoundaryError } = useHandleBoundaryError("turtle-match");
+const resetAndReload = () => {
   loadStats();
 };
 </script>

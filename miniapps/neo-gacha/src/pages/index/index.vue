@@ -82,6 +82,7 @@ import { ref, computed, watch, onUnmounted } from "vue";
 import { MiniAppTemplate, SidebarPanel, WalletPrompt, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useI18n } from "@/composables/useI18n";
 import { useGachaMachines } from "@/composables/useGachaMachines";
 import type { Machine } from "@/types";
@@ -288,9 +289,7 @@ watch(address, () => {
   fetchMachines();
 }, { immediate: true });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[neo-gacha] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("neo-gacha");
 const resetAndReload = async () => {
   await fetchMachines();
 };

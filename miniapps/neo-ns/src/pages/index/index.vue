@@ -45,6 +45,7 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import DomainRegister from "./components/DomainRegister.vue";
 import DomainManagement from "./components/DomainManagement.vue";
 import ManageDomain from "./components/ManageDomain.vue";
@@ -267,9 +268,7 @@ watch(address, async (newAddr) => {
   }
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[neo-ns] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("neo-ns");
 const resetAndReload = async () => {
   if (address.value) {
     await loadMyDomains();

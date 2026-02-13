@@ -9,9 +9,6 @@
     "title": "乌龟对对碰",
     "router": {
       "mode": "hash"
-    },
-    "devServer": {
-      "port": 5174
     }
   }
 }

@@ -17,11 +17,7 @@ export const messages = {
   infoText: { en: "Trust activates after the configured inactivity window", zh: "信托将在设置的不活跃期后激活" },
   creating: { en: "Creating...", zh: "创建中..." },
   trustCreated: { en: "Trust created!", zh: "信托已创建！" },
-  receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
-  error: { en: "Error", zh: "错误" },
-  loading: { en: "Loading...", zh: "加载中..." },
   main: { en: "Main", zh: "主页" },
-  stats: { en: "Stats", zh: "统计" },
   statistics: { en: "Statistics", zh: "统计数据" },
   totalTrusts: { en: "Total Trusts", zh: "总信托数" },
   totalNeoValue: { en: "Total NEO", zh: "总 NEO" },
@@ -88,7 +84,6 @@ export const messages = {
   unknown: { en: "Unknown", zh: "未知" },
   notAvailable: { en: "N/A", zh: "暂无" },
 
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Timed inheritance with monthly releases and bNEO rewards",
     zh: "按月释放的遗产信托与 bNEO 奖励",
@@ -107,18 +102,6 @@ export const messages = {
   feature2Desc: { en: "bNEO staking accrues GAS rewards for heirs until the trust ends.", zh: "bNEO 质押持续产生 GAS 奖励，直至信托结束。" },
   feature3Name: { en: "Controlled Inheritance", zh: "可控继承" },
   feature3Desc: { en: "Monthly releases prevent sudden lump-sum transfers.", zh: "按月释放避免一次性大额转移。" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  // Shared component keys
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
-  docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-  docHowToUse: { en: "How to use", zh: "如何使用" },
-  docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
   sidebarBeneficiary: { en: "Beneficiary", zh: "受益" },
   sidebarActive: { en: "Active", zh: "活跃" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

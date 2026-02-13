@@ -4,7 +4,6 @@ export const messages = {
   markets: { en: "Markets", zh: "市场" },
   portfolio: { en: "Portfolio", zh: "投资组合" },
   create: { en: "Create", zh: "创建" },
-  docs: { en: "Docs", zh: "文档" },
 
   // Market List
   browseMarkets: { en: "Browse Markets", zh: "浏览市场" },
@@ -194,11 +193,6 @@ export const messages = {
   // Errors
   connectWallet: { en: "Connect wallet to continue", zh: "请连接钱包" },
   contractUnavailable: { en: "Contract not configured", zh: "合约未配置" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  error: { en: "Error", zh: "错误" },
-  loading: { en: "Loading...", zh: "加载中..." },
   failedToLoad: { en: "Failed to load", zh: "加载失败" },
 
   // Docs
@@ -246,17 +240,7 @@ export const messages = {
     en: "Create markets for crypto, sports, politics, and more.",
     zh: "为加密货币、体育、政治等创建市场。",
   },
-  docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-  docHowToUse: { en: "How to use", zh: "如何使用" },
-  docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
 
-  // Shared component keys
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
-  docBadge: { en: "Documentation", zh: "文档" },
-  docFooter: { en: "NeoHub MiniApp Protocol v2.4.0", zh: "NeoHub MiniApp Protocol v2.4.0" },
   sidebarVolume: { en: "Volume", zh: "交易量" },
   sidebarTraders: { en: "Traders", zh: "交易者" },
   portfolioValue: { en: "Portfolio Value", zh: "投资组合价值" },
@@ -264,6 +248,4 @@ export const messages = {
   sortByVolume: { en: "By Volume", zh: "按交易量" },
   sortByNewest: { en: "By Newest", zh: "按最新" },
   sortByEnding: { en: "By Ending", zh: "按结束时间" },
-  overview: { en: "Overview", zh: "概览" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

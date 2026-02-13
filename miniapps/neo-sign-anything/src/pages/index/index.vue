@@ -92,6 +92,7 @@
 <script setup lang="ts">
 import { MiniAppTemplate, NeoCard, NeoButton, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useI18n } from "@/composables/useI18n";
 import { useSignAnything } from "./composables/useSignAnything";
 
@@ -134,12 +135,7 @@ const {
   copyToClipboard,
 } = useSignAnything(t);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[neo-sign-anything] boundary error:", error);
-};
-const resetAndReload = () => {
-  /* no async data to reload */
-};
+const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("neo-sign-anything");
 </script>
 
 <style lang="scss" scoped>

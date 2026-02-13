@@ -9,9 +9,6 @@
     "title": "Gov Merc",
     "router": {
       "mode": "hash"
-    },
-    "devServer": {
-      "port": 5173
     }
   }
 }

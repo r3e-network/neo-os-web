@@ -100,6 +100,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import CampaignCard from "./components/CampaignCard.vue";
 import CampaignDetail from "./components/CampaignDetail.vue";
 import MyDonationsView from "./components/MyDonationsView.vue";
@@ -211,10 +212,7 @@ const handleCreateCampaign = async (data: {
   }
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[charity-vault] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("charity-vault");
 const resetAndReload = async () => {
   await init();
 };

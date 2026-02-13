@@ -87,6 +87,7 @@ import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import type { UniAppGlobals } from "@shared/types/globals";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 
 import { useNeoburgerCore } from "@/composables/useNeoburgerCore";
 import { useNeoburgerRewards } from "@/composables/useNeoburgerRewards";
@@ -236,9 +237,7 @@ onMounted(() => {
   loadPrices();
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[neoburger] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("neoburger");
 const resetAndReload = async () => {
   await loadBalances();
   await loadApy();

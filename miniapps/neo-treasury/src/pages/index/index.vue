@@ -96,6 +96,7 @@ import {
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { fetchTreasuryData, type TreasuryData, type CategoryBalance } from "@/utils/treasury";
 
 import TotalSummaryCard from "./components/TotalSummaryCard.vue";
@@ -205,9 +206,7 @@ onMounted(() => {
   loadData();
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[neo-treasury] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("neo-treasury");
 const resetAndReload = async () => {
   await loadData();
 };

@@ -77,6 +77,7 @@ import { ref, onMounted, computed } from "vue";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useI18n } from "@/composables/useI18n";
 import { useNewsData } from "./composables/useNewsData";
 
@@ -127,9 +128,7 @@ onMounted(async () => {
   await fetchArticles();
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[neo-news-today] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("neo-news-today");
 const resetAndReload = async () => {
   await fetchArticles();
 };

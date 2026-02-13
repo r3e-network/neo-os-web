@@ -67,6 +67,7 @@ import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useI18n } from "@/composables/useI18n";
 import { useMasqueradeProposals } from "@/composables/useMasqueradeProposals";
 import { useMasqueradeVoting, type VoteChoice } from "@/composables/useMasqueradeVoting";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import CreateProposal from "@/components/CreateProposal.vue";
 import ProposalList from "@/components/ProposalList.vue";
 import VoteForm from "@/components/VoteForm.vue";
@@ -144,9 +145,7 @@ const voteForm = computed({
   },
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[masquerade-dao] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("masquerade-dao");
 
 const resetAndReload = async () => {
   loadMasks(t);

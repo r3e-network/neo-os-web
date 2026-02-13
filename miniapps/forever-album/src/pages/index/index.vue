@@ -73,6 +73,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { MiniAppTemplate, NeoCard, NeoButton, WalletPrompt, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useI18n } from "@/composables/useI18n";
 import { useAlbumPhotos } from "@/composables/useAlbumPhotos";
 import { usePhotoUpload } from "@/composables/usePhotoUpload";
@@ -170,10 +171,7 @@ const onTabChange = (tabId: string) => {
   }
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[forever-album] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("forever-album");
 const resetAndReload = async () => {
   await loadPhotos();
 };

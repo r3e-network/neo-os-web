@@ -9,9 +9,6 @@
     "title": "Garden of Neo",
     "router": {
       "mode": "hash"
-    },
-    "devServer": {
-      "port": 5173
     }
   }
 }

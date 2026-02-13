@@ -50,6 +50,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import GraveyardHero from "./components/GraveyardHero.vue";
 import DestructionChamber from "./components/DestructionChamber.vue";
 import ConfirmDestroyModal from "./components/ConfirmDestroyModal.vue";
@@ -78,9 +79,7 @@ const {
   cleanupTimers,
 } = useGraveyardActions();
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[graveyard] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("graveyard");
 
 const resetAndReload = async () => {
   await loadStats();

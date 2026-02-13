@@ -54,6 +54,7 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import CapsuleCreate from "./components/CapsuleCreate.vue";
 import RewardClaim from "./components/RewardClaim.vue";
 import CapsuleDetails from "./components/CapsuleDetails.vue";
@@ -215,10 +216,7 @@ const fetchData = async () => {
   }
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[compound-capsule] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("compound-capsule");
 const resetAndReload = async () => {
   await fetchData();
 };

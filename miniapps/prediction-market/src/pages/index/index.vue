@@ -87,6 +87,7 @@
 import { ref, computed, onMounted } from "vue";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useI18n } from "@/composables/useI18n";
 import { usePredictionMarkets, type PredictionMarket } from "@/composables/usePredictionMarkets";
 import { usePredictionTrading, type TradeParams } from "@/composables/usePredictionTrading";
@@ -199,9 +200,7 @@ const marketStats = computed(() => [
   { label: t("sidebarTraders"), value: activeTraders.value },
 ]);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[prediction-market] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("prediction-market");
 const resetAndReload = async () => {
   await loadMarkets(t);
 };

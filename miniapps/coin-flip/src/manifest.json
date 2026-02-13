@@ -9,9 +9,6 @@
     "title": "Coin Flip",
     "router": {
       "mode": "hash"
-    },
-    "devServer": {
-      "port": 5173
     }
   }
 }

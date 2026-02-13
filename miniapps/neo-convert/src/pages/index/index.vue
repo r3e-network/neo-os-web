@@ -68,6 +68,7 @@ import { useResponsive } from "@shared/composables/useResponsive";
 import { MiniAppTemplate, NeoCard, NeoButton, ScrollReveal, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import AccountGenerator from "./components/AccountGenerator.vue";
 import ConverterTool from "./components/ConverterTool.vue";
 import { useI18n } from "@/composables/useI18n";
@@ -110,12 +111,7 @@ const sidebarItems = computed(() => [
   { label: t("sidebarMode"), value: isMobile.value ? t("sidebarMobile") : t("sidebarDesktop") },
 ]);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[neo-convert] boundary error:", error);
-};
-const resetAndReload = () => {
-  /* no async data to reload */
-};
+const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("neo-convert");
 </script>
 
 <style lang="scss" scoped>

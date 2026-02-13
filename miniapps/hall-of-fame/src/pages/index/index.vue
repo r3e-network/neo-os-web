@@ -68,6 +68,7 @@ import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { formatNumber } from "@shared/utils/format";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 
 import CategoryTabs from "./components/CategoryTabs.vue";
 import PeriodFilter from "./components/PeriodFilter.vue";
@@ -147,10 +148,7 @@ const { status, setStatus: showStatus, clearStatus } = useStatusMessage();
 const isLoading = ref(false);
 const fetchError = ref(false);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[hall-of-fame] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("hall-of-fame");
 const resetAndReload = async () => {
   await fetchLeaderboard();
 };

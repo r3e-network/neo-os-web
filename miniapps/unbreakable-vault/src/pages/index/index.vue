@@ -102,6 +102,7 @@ import { MiniAppTemplate, NeoButton, NeoInput, NeoCard, SidebarPanel, ErrorBound
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useVaultBreaker } from "@/composables/useVaultBreaker";
 import VaultCreate from "./components/VaultCreate.vue";
 import VaultList from "./components/VaultList.vue";
@@ -245,9 +246,7 @@ onMounted(() => {
   loadMyVaults();
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[unbreakable-vault] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("unbreakable-vault");
 const resetAndReload = async () => {
   breaker.loadRecentVaults();
   loadMyVaults();

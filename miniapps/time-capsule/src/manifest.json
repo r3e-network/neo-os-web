@@ -9,9 +9,6 @@
     "title": "Time Capsule",
     "router": {
       "mode": "hash"
-    },
-    "devServer": {
-      "port": 5173
     }
   }
 }

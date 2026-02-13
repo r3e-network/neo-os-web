@@ -41,6 +41,7 @@ import { ref, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import CreateContractForm from "./components/CreateContractForm.vue";
 import ContractList from "./components/ContractList.vue";
 import { useBreakupContract } from "./composables/useBreakupContract";
@@ -88,10 +89,7 @@ const {
   breakContract,
 } = useBreakupContract(t);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[breakup-contract] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("breakup-contract");
 const resetAndReload = async () => {
   await loadContracts();
 };

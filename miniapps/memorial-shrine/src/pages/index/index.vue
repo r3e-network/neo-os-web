@@ -90,6 +90,7 @@ import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import TombstoneCard from "./components/TombstoneCard.vue";
 import CreateMemorialForm from "./components/CreateMemorialForm.vue";
 import MemorialDetailModal from "./components/MemorialDetailModal.vue";
@@ -112,9 +113,7 @@ const {
   cleanupTimers,
 } = useMemorialActions();
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[memorial-shrine] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("memorial-shrine");
 
 const resetAndReload = async () => {
   await checkUrlForMemorial();

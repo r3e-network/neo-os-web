@@ -50,6 +50,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 
 import { useGrantProposals } from "@/composables/useGrantProposals";
 import { useGrantVoting } from "@/composables/useGrantVoting";
@@ -114,10 +115,7 @@ const poolStatsArray = computed(() => [
   { label: t("yourShare"), value: formatCount(displayedProposals.value), variant: "accent" as const },
 ]);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[grant-share] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("grant-share");
 const resetAndReload = async () => {
   await fetchGrants();
 };

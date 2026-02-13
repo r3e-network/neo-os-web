@@ -66,6 +66,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoButton, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import CountdownHero from "./components/CountdownHero.vue";
 import StreakDisplay from "./components/StreakDisplay.vue";
 import RewardProgress from "./components/RewardProgress.vue";
@@ -174,10 +175,7 @@ const utcTimeDisplay = computed(() => {
   return `${h}:${m}:${s}`;
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[daily-checkin] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("daily-checkin");
 const resetAndReload = async () => {
   await loadAll();
 };

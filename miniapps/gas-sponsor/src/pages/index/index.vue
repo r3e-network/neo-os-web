@@ -96,6 +96,7 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useGasTransfers } from "@/composables/useGasTransfers";
 import GasTank from "./components/GasTank.vue";
 import UserBalanceInfo from "./components/UserBalanceInfo.vue";
@@ -229,10 +230,7 @@ const requestSponsorship = async () => {
 const { donateAmount, sendAmount, recipientAddress, isDonating, isSending, handleDonate, handleSend } =
   useGasTransfers(showStatus, loadUserData);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[gas-sponsor] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("gas-sponsor");
 const resetAndReload = async () => {
   await loadUserData();
 };

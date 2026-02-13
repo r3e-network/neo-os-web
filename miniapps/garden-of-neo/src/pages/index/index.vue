@@ -44,6 +44,7 @@ import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import GardenTab from "./components/GardenTab.vue";
 import StatsTab from "./components/StatsTab.vue";
 
@@ -103,13 +104,7 @@ const updateStats = (newStats: Record<string, unknown>) => {
   stats.value = newStats;
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[garden-of-neo] boundary error:", error);
-};
-
-const resetAndReload = async () => {
-  // Garden data is loaded within GardenTab component
-};
+const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("garden-of-neo");
 
 // Wallet & Contract
 const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);

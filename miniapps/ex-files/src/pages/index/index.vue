@@ -55,6 +55,7 @@ import { onMounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 
 import QueryRecordForm from "./components/QueryRecordForm.vue";
 import MemoryArchive from "./components/MemoryArchive.vue";
@@ -107,10 +108,7 @@ const {
   init,
 } = useExFiles(t);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[ex-files] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("ex-files");
 const resetAndReload = async () => {
   await init();
 };

@@ -1,66 +1,14 @@
 {
-    "name": "Forever Album",
-    "appid": "miniapp-forever-album",
-    "description": "Store your most precious memories on the Neo blockchain forever. Features per-wallet albums, optional military-grade client-side encryption, and complete decentralized ownership of your data.",
-    "versionName": "1.1.0",
-    "versionCode": "110",
-    "transformPx": false,
-    "app-plus": {
-        "usingComponents": true,
-        "nvueCompiler": "uni-app",
-        "compilerVersion": 3,
-        "splashscreen": {
-            "alwaysShowBeforeRender": true,
-            "waiting": true,
-            "autoclose": true,
-            "delay": 0
-        },
-        "modules": {},
-        "distribute": {
-            "android": {
-                "permissions": [
-                    "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
-                    "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
-                    "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
-                    "<uses-permission android:name=\"android.permission.READ_LOGS\"/>",
-                    "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
-                    "<uses-feature android:name=\"android.hardware.camera.autofocus\"/>",
-                    "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
-                    "<uses-permission android:name=\"android.permission.CAMERA\"/>",
-                    "<uses-permission android:name=\"android.permission.GET_ACCOUNTS\"/>",
-                    "<uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>",
-                    "<uses-permission android:name=\"android.permission.CHANGE_WIFI_STATE\"/>",
-                    "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",
-                    "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>",
-                    "<uses-feature android:name=\"android.hardware.camera\"/>",
-                    "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
-                ]
-            },
-            "ios": {},
-            "sdkConfigs": {}
-        }
-    },
-    "quickapp": {},
-    "mp-weixin": {
-        "appid": "",
-        "setting": {
-            "urlCheck": false
-        },
-        "usingComponents": true
-    },
-    "h5": {
-        "title": "Forever Album",
-        "router": {
-            "base": "/miniapps/forever-album/",
-            "mode": "hash"
-        },
-        "optimization": {
-            "treeShaking": {
-                "enable": true
-            }
-        }
-    },
-    "bapp": {
-        "category": "social"
+  "name": "Forever Album",
+  "appid": "miniapp-forever-album",
+  "description": "Store your most precious memories on the Neo blockchain forever. Features per-wallet albums, optional military-grade client-side encryption, and complete decentralized ownership of your data.",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Forever Album",
+    "router": {
+      "mode": "hash"
     }
+  }
 }

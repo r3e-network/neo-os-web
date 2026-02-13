@@ -212,13 +212,8 @@ export const messages = {
   docsUrl: { en: "https://neoburger.github.io/", zh: "https://neoburger.github.io/" },
 
   // Status and utility
-  loading: { en: "Loading...", zh: "加载中..." },
   copySuccess: { en: "Copied", zh: "已复制" },
   copyFailed: { en: "Copy failed", zh: "复制失败" },
-  error: { en: "Error", zh: "错误" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
 
   // Rewards and staking (existing)
   yourBneo: { en: "Your bNEO", zh: "您的 bNEO" },
@@ -265,7 +260,6 @@ export const messages = {
   tabRewards: { en: "Rewards", zh: "奖励" },
   tabStats: { en: "Stats", zh: "统计" },
   statistics: { en: "Statistics", zh: "数据" },
-  docs: { en: "Docs", zh: "文档" },
 
   // Docs content
   docSubtitle: {
@@ -296,17 +290,8 @@ export const messages = {
     zh: "可随时将 bNEO 兑换回 NEO 并领取累积奖励。",
   },
 
-  // Shared component keys
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
-  docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-  docHowToUse: { en: "How to use", zh: "如何使用" },
-  docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
   sidebarNeoBalance: { en: "NEO Balance", zh: "NEO 余额" },
   sidebarBneoBalance: { en: "bNEO Balance", zh: "bNEO 余额" },
   sidebarTotalStaked: { en: "Total Staked", zh: "总质押量" },
   sidebarApr: { en: "APR", zh: "年化" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

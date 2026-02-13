@@ -101,6 +101,7 @@ import { useNeoEligibility } from "@/composables/useNeoEligibility";
 import { useEnvelopeActions } from "./composables/useEnvelopeActions";
 import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 
 import LuckyOverlay from "./components/LuckyOverlay.vue";
 import OpeningModal from "./components/OpeningModal.vue";
@@ -240,9 +241,7 @@ const sidebarItems = computed(() => [
   { label: t("sidebarPools"), value: pools.value.length },
 ]);
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[red-envelope] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("red-envelope");
 const resetAndReload = async () => {
   await loadEnvelopes();
 };

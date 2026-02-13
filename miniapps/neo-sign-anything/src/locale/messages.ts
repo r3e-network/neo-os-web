@@ -1,7 +1,6 @@
 export const messages = {
   appTitle: { en: "Neo Sign Anything", zh: "Neo 任意签" },
   home: { en: "Home", zh: "首页" },
-  docs: { en: "Docs", zh: "文档" },
   signTitle: { en: "Sign Anything", zh: "任意签" },
   signDesc: {
     en: "Cryptographically sign any message with your Neo address.",
@@ -21,9 +20,6 @@ export const messages = {
   signFailed: { en: "Signing failed", zh: "签名失败" },
   broadcastFailed: { en: "Broadcast failed", zh: "广播失败" },
   txPending: { en: "Transaction sent (ID pending)", zh: "交易已发送 (等待哈希)" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
   aboutTitle: { en: "About Neo Sign Anything", zh: "关于 Neo 任意签" },
   aboutText: {
     en: "This tool allows you to sign messages using your Neo private key. You can either generate an off-chain signature or broadcast the message to the blockchain as a transaction.",
@@ -61,8 +57,6 @@ export const messages = {
     en: "This miniapp works on Neo N3. Make sure your wallet is connected to the correct network before signing or broadcasting.",
     zh: "本小程序运行在 Neo N3 网络，请在签名或广播前确认钱包已连接正确网络。",
   },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
   sidebarWallet: { en: "Wallet", zh: "钱包" },
   sidebarBroadcastTx: { en: "Broadcast TX", zh: "广播交易" },
   sidebarMessageLength: { en: "Message Length", zh: "信息长度" },
@@ -70,7 +64,6 @@ export const messages = {
   disconnected: { en: "Disconnected", zh: "未连接" },
   yes: { en: "Yes", zh: "是" },
   no: { en: "No", zh: "否" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
   title: { en: "Neo Sign Anything", zh: "Neo 任意签" },
   docSubtitle: {
     en: "Cryptographically sign or broadcast any message on Neo N3",

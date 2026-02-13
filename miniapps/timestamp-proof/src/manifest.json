@@ -7,7 +7,8 @@
   "transformPx": false,
   "h5": {
     "title": "Timestamp Proof",
-    "template": "index.html",
-    "router": { "mode": "hash", "base": "./" }
+    "router": {
+      "mode": "hash"
+    }
   }
 }

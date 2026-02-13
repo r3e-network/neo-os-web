@@ -9,9 +9,6 @@
     "title": "Graveyard",
     "router": {
       "mode": "hash"
-    },
-    "devServer": {
-      "port": 5173
     }
   }
 }

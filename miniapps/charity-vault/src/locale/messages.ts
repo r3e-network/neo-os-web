@@ -5,7 +5,6 @@ export const messages = {
   donate: { en: "Donate", zh: "捐赠" },
   myDonations: { en: "My Donations", zh: "我的捐赠" },
   create: { en: "Create", zh: "创建" },
-  docs: { en: "Docs", zh: "文档" },
 
   // Campaign List
   browseCampaigns: { en: "Browse Campaigns", zh: "浏览活动" },
@@ -143,11 +142,6 @@ export const messages = {
   // Errors
   connectWallet: { en: "Connect wallet to continue", zh: "请连接钱包" },
   contractUnavailable: { en: "Contract not configured", zh: "合约未配置" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  error: { en: "Error", zh: "错误" },
-  loading: { en: "Loading...", zh: "加载中..." },
   failedToLoad: { en: "Failed to load", zh: "加载失败" },
 
   // Docs
@@ -195,16 +189,5 @@ export const messages = {
     en: "Receive verifiable reports on how donations were used.",
     zh: "接收关于捐赠如何使用的可验证报告。",
   },
-  docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-  docHowToUse: { en: "How to use", zh: "如何使用" },
-  docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
 
-  // Shared component keys
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
-  docBadge: { en: "Documentation", zh: "文档" },
-  docFooter: { en: "NeoHub MiniApp Protocol v2.4.0", zh: "NeoHub MiniApp Protocol v2.4.0" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 };

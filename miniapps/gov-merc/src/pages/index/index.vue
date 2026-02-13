@@ -89,6 +89,7 @@ import {
   ErrorBoundary,
 } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useGovMercPool } from "@/composables/useGovMercPool";
 
 const { t } = useI18n();
@@ -145,13 +146,7 @@ const appState = computed(() => ({
   isLoading: dataLoading.value,
 }));
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[gov-merc] boundary error:", error);
-};
-
-const resetAndReload = async () => {
-  // Data is loaded via useGovMercPool composable
-};
+const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("gov-merc");
 
 const sidebarItems = computed(() => [
   { label: t("totalPool"), value: `${formatNum(totalPool.value, 0)} NEO` },

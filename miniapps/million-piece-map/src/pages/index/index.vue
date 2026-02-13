@@ -52,6 +52,7 @@ import type { WalletSDK } from "@neo/types";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useMapTiles } from "@/composables/useMapTiles";
 import { useMapInteractions } from "@/composables/useMapInteractions";
 import MapGrid from "./components/MapGrid.vue";
@@ -132,9 +133,7 @@ watch(
   { immediate: true }
 );
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[million-piece-map] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("million-piece-map");
 const resetAndReload = async () => {
   await loadTiles();
 };

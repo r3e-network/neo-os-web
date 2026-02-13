@@ -145,6 +145,7 @@ import { useQuadraticContributions } from "@/composables/useQuadraticContributio
 import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import { formatAddress } from "@shared/utils/format";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import RoundForm from "./components/RoundForm.vue";
 import RoundList from "./components/RoundList.vue";
 import RoundAdminPanel from "./components/RoundAdminPanel.vue";
@@ -290,9 +291,7 @@ const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) =>
 const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => await claimProject(project);
 const handleClaimUnused = async () => await claimUnused();
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[quadratic-funding] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("quadratic-funding");
 const resetAndReload = async () => {
   await refreshRounds();
 };

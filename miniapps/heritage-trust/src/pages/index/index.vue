@@ -63,6 +63,7 @@ import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 
 import { useHeritageTrusts } from "@/composables/useHeritageTrusts";
 import { useHeritageBeneficiaries } from "@/composables/useHeritageBeneficiaries";
@@ -129,10 +130,7 @@ const {
 
 const { saveTrustName } = useHeritageBeneficiaries();
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[heritage-trust] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("heritage-trust");
 const resetAndReload = async () => {
   await fetchData();
 };

@@ -52,6 +52,7 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, SidebarPanel, ErrorBoundary, NeoStats } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import ProofCreateForm from "./components/ProofCreateForm.vue";
 import ProofList from "./components/ProofList.vue";
 import ProofVerify from "./components/ProofVerify.vue";
@@ -231,9 +232,7 @@ onMounted(async () => {
   await loadProofs();
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[timestamp-proof] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("timestamp-proof");
 const resetAndReload = async () => {
   await ensureContractAddress();
   await loadProofs();

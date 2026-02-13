@@ -112,6 +112,7 @@ import {
   ErrorBoundary,
 } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { useI18n } from "@/composables/useI18n";
 import { useWalletAnalysis } from "@/composables/useWalletAnalysis";
 import { useHealthScore } from "@/composables/useHealthScore";
@@ -211,9 +212,7 @@ onMounted(() => {
   loadChecklist();
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[wallet-health] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("wallet-health");
 const resetAndReload = async () => {
   await refreshBalances();
   loadChecklist();

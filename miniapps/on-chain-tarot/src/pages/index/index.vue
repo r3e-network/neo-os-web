@@ -65,6 +65,7 @@ import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
@@ -253,9 +254,7 @@ onUnmounted(() => {
   pollingTimers.length = 0;
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[on-chain-tarot] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("on-chain-tarot");
 const resetAndReload = async () => {
   await loadReadingCount();
 };

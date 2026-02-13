@@ -48,6 +48,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import NetworkStats from "./components/NetworkStats.vue";
 import SearchPanel from "./components/SearchPanel.vue";
 import SearchResult from "./components/SearchResult.vue";
@@ -103,10 +104,7 @@ const appState = computed(() => ({
   searchResult: searchResult.value,
 }));
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[explorer] boundary error:", error);
-};
-
+const { handleBoundaryError } = useHandleBoundaryError("explorer");
 const resetAndReload = async () => {
   await search();
 };

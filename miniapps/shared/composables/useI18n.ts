@@ -1,19 +1,12 @@
 import { ref } from "vue";
 import { getLocale, type Locale, type TranslationMap } from "../utils/i18n";
 import { commonMessages } from "../locale/common";
+import { baseMessages } from "../locale/base-messages";
 
 type InterpolationArgs = Record<string, string | number>;
 
-const DEFAULT_MESSAGES = {
-  docBadge: { en: "Documentation", zh: "文档" },
-  docFooter: {
-    en: "NeoHub MiniApp Protocol v2.4.0",
-    zh: "NeoHub MiniApp Protocol v2.4.0",
-  },
-} as const;
-
-type DefaultMessages = typeof DEFAULT_MESSAGES;
-type MergedMessages<T extends TranslationMap> = T & DefaultMessages;
+type BaseMessages = typeof baseMessages;
+type MergedMessages<T extends TranslationMap> = BaseMessages & T;
 
 const normalizeLocale = (lang?: string | null): Locale => {
   if (!lang) return "en";
@@ -24,8 +17,9 @@ const interpolate = (value: string, args: InterpolationArgs): string =>
   value.replace(/\{(\w+)\}/g, (_, key) => String(args[key] ?? `{${key}}`));
 
 export function createUseI18n<T extends TranslationMap>(messages: T) {
+  // Base messages provide defaults; app-specific messages override on conflict
   const mergedMessages = {
-    ...DEFAULT_MESSAGES,
+    ...baseMessages,
     ...messages,
   } as MergedMessages<T>;
   const currentLocale = ref<Locale>(getLocale());

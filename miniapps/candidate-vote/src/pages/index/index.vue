@@ -112,6 +112,7 @@ import type { GovernanceCandidate } from "./utils";
 import { useI18n } from "@/composables/useI18n";
 import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import CandidateList from "./components/CandidateList.vue";
 import CandidateDetailModal from "./components/CandidateDetailModal.vue";
 import InfoTab from "./components/InfoTab.vue";
@@ -219,9 +220,7 @@ const handleVoteFromModal = async (candidate: GovernanceCandidate) => {
   await handleVote(selectedCandidate.value);
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[candidate-vote] boundary error:", error);
-};
+const { handleBoundaryError } = useHandleBoundaryError("candidate-vote");
 
 const resetAndReload = async () => {
   await Promise.all([loadCandidates(), loadUserVote()]);

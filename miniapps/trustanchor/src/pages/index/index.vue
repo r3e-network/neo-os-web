@@ -97,6 +97,7 @@ import { formatNumber } from "@shared/utils/format";
 import { MiniAppTemplate, NeoButton, NeoCard, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import StatsGrid from "./components/StatsGrid.vue";
 import AgentsTab from "./components/AgentsTab.vue";
 import HistoryTab from "./components/HistoryTab.vue";
@@ -218,10 +219,8 @@ onMounted(() => {
   loadAll();
 });
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[trustanchor] boundary error:", error);
-};
-const resetAndReload = async () => {
+const { handleBoundaryError } = useHandleBoundaryError("trustanchor");
+const resetAndReload = () => {
   loadAll();
 };
 </script>
