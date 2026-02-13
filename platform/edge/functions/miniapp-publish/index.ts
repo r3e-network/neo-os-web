@@ -2,10 +2,7 @@
 // Updates submission record after external build pipeline publishes assets
 
 import "../_shared/init.ts";
-
-declare const Deno: {
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
+import "../_shared/deno.d.ts";
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv, getEnv } from "../_shared/env.ts";

@@ -1,24 +1,14 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { getChainConfig } from "../_shared/chains.ts";
 import { json } from "../_shared/response.ts";
-import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
+import { validationError, notFoundError } from "../_shared/error-codes.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-
-  const url = new URL(req.url);
+export const handler = createHandler({ method: "GET", auth: false }, async ({ req, url }) => {
   const query = url.searchParams.get("q")?.trim();
   if (!query) return validationError("q", "query required", req);
 
@@ -26,35 +16,30 @@ export async function handler(req: Request): Promise<Response> {
   const chain = getChainConfig(chainId);
   if (!chain) return notFoundError("chain", req);
 
-  try {
-    // Use INDEXER Supabase credentials (isolated)
-    const supabaseUrl = Deno.env.get("INDEXER_SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("INDEXER_SUPABASE_SERVICE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const neoNetwork = chain.is_testnet ? "testnet" : "mainnet";
+  // Use INDEXER Supabase credentials (isolated)
+  const supabaseUrl = Deno.env.get("INDEXER_SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("INDEXER_SUPABASE_SERVICE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const neoNetwork = chain.is_testnet ? "testnet" : "mainnet";
 
-    const searchType = detectSearchType(query);
-    let result;
-    switch (searchType) {
-      case "transaction":
-        result = await searchTransaction(supabase, query, neoNetwork);
-        break;
-      case "address":
-        result = await searchAddress(supabase, query, neoNetwork);
-        break;
-      case "contract":
-        result = await searchContract(supabase, query);
-        break;
-      default:
-        result = await searchAll(supabase, query, neoNetwork);
-    }
-
-    return json(result, {}, req);
-  } catch (err) {
-    console.error("Explorer search error:", err);
-    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
+  const searchType = detectSearchType(query);
+  let result;
+  switch (searchType) {
+    case "transaction":
+      result = await searchTransaction(supabase, query, neoNetwork);
+      break;
+    case "address":
+      result = await searchAddress(supabase, query, neoNetwork);
+      break;
+    case "contract":
+      result = await searchContract(supabase, query);
+      break;
+    default:
+      result = await searchAll(supabase, query, neoNetwork);
   }
-}
+
+  return json(result, {}, req);
+});
 
 if (import.meta.main) {
   Deno.serve(handler);

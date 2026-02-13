@@ -2,15 +2,12 @@
 import "../_shared/init.ts";
 
 // Deno global type definitions
-declare const Deno: {
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
+import "../_shared/deno.d.ts";
 
-import { handleCorsPreflight } from "../_shared/cors.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError } from "../_shared/error-codes.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
+import { supabaseServiceClient } from "../_shared/supabase.ts";
+import { createHandler } from "../_shared/handler.ts";
 
 type AppStatusResponse = {
   app_id: string;
@@ -39,30 +36,18 @@ type AppStatusFullResponse = AppStatusResponse & {
   approval_history?: ApprovalHistoryItem[];
 };
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "GET") {
-    const { errorResponse: err } = await import("../_shared/error-codes.ts");
-    return err("METHOD_NOT_ALLOWED", undefined, req);
-  }
+export const handler = createHandler(
+  { method: "GET", auth: "user", rateLimit: "app-status" },
+  async ({ req, auth, url }) => {
+    const appId = url.searchParams.get("app_id")?.trim();
+    const includeHistory = url.searchParams.get("include_history") === "true";
 
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-  const rl = await requireRateLimit(req, "app-status", auth);
-  if (rl) return rl;
+    if (!appId) {
+      return validationError("app_id", "app_id query parameter is required", req);
+    }
 
-  const url = new URL(req.url);
-  const appId = url.searchParams.get("app_id")?.trim();
-  const includeHistory = url.searchParams.get("include_history") === "true";
+    const supabase = supabaseServiceClient();
 
-  if (!appId) {
-    return validationError("app_id", "app_id query parameter is required", req);
-  }
-
-  const supabase = supabaseServiceClient();
-
-  try {
     // Load app with developer verification
     const { data: app, error: loadError } = await supabase
       .from("miniapp_registry")
@@ -119,8 +104,7 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     if (!isDeveloper && !isAdminReq) {
-      const { errorResponse: err } = await import("../_shared/error-codes.ts");
-      return err("AUTH_004", { message: "you can only view your own apps" }, req);
+      return errorResponse("AUTH_004", { message: "you can only view your own apps" }, req);
     }
 
     // Load approval history if requested
@@ -168,11 +152,8 @@ export async function handler(req: Request): Promise<Response> {
     };
 
     return json(response, {}, req);
-  } catch (err) {
-    console.error("App status error:", err);
-    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-}
+);
 
 if (import.meta.main) {
   Deno.serve(handler);

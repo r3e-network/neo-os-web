@@ -1,17 +1,11 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, notFoundError } from "../_shared/error-codes.ts";
 import { supabaseClient, supabaseServiceClient } from "../_shared/supabase.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
+import { createHandler } from "../_shared/handler.ts";
 
 type MiniAppMetaRow = {
   app_id: string;
@@ -182,56 +176,50 @@ async function loadMiniAppMeta(appIds: string[]): Promise<Record<string, MiniApp
   return map;
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
+export const handler = createHandler(
+  { method: "GET", auth: false, rateLimit: "miniapp-stats" },
+  async ({ req, url }) => {
+    const appId = url.searchParams.get("app_id");
+    const chainId = url.searchParams.get("chain_id");
 
-  // Rate limiting for public endpoint
-  const rateLimited = await requireRateLimit(req, "miniapp-stats");
-  if (rateLimited) return rateLimited;
+    const supabase = supabaseClient();
 
-  const url = new URL(req.url);
-  const appId = url.searchParams.get("app_id");
-  const chainId = url.searchParams.get("chain_id");
-
-  const supabase = supabaseClient();
-
-  if (appId) {
-    let query = supabase.from("miniapp_stats").select("*").eq("app_id", appId);
-    if (chainId) {
-      const { data, error: err } = await query.eq("chain_id", chainId).single();
+    if (appId) {
+      let query = supabase.from("miniapp_stats").select("*").eq("app_id", appId);
+      if (chainId) {
+        const { data, error: err } = await query.eq("chain_id", chainId).single();
+        if (err) return notFoundError("app", req);
+        const metaMap = await loadMiniAppMeta([appId]);
+        const merged = mergeStatsWithMeta(data as MiniAppStatsRow, metaMap[appId]);
+        return json(merged, req);
+      }
+      const { data, error: err } = await query.order("chain_id", { ascending: true });
       if (err) return notFoundError("app", req);
+      const rows = (data ?? []) as MiniAppStatsRow[];
       const metaMap = await loadMiniAppMeta([appId]);
-      const merged = mergeStatsWithMeta(data as MiniAppStatsRow, metaMap[appId]);
-      return json(merged, req);
+      const merged = rows.map((row) => mergeStatsWithMeta(row, metaMap[appId]));
+      return json({ stats: merged }, req);
     }
-    const { data, error: err } = await query.order("chain_id", { ascending: true });
-    if (err) return notFoundError("app", req);
-    const rows = (data ?? []) as MiniAppStatsRow[];
-    const metaMap = await loadMiniAppMeta([appId]);
-    const merged = rows.map((row) => mergeStatsWithMeta(row, metaMap[appId]));
-    return json({ stats: merged }, req);
-  }
 
-  // All apps stats
-  let allQuery = supabase.from("miniapp_stats").select("*");
-  if (chainId) {
-    allQuery = allQuery.eq("chain_id", chainId);
-  }
-  const { data, error: err } = await allQuery.order("total_transactions", { ascending: false }).limit(50);
+    // All apps stats
+    let allQuery = supabase.from("miniapp_stats").select("*");
+    if (chainId) {
+      allQuery = allQuery.eq("chain_id", chainId);
+    }
+    const { data, error: err } = await allQuery.order("total_transactions", { ascending: false }).limit(50);
 
-  if (err) return errorResponse("SERVER_002", { message: err.message }, req);
-  const statsRows = (data ?? []) as MiniAppStatsRow[];
-  const appIds = Array.from(new Set(statsRows.map((row) => row.app_id).filter(Boolean)));
-  const metaMap = await loadMiniAppMeta(appIds);
-  const merged = statsRows.map((row) => mergeStatsWithMeta(row, metaMap[row.app_id]));
-  const filtered = merged.filter((row) => {
-    const status = String((row as Record<string, unknown>).status ?? "").toLowerCase();
-    return status === "" || status === "active";
-  });
-  return json({ stats: filtered }, req);
-}
+    if (err) return errorResponse("SERVER_002", { message: err.message }, req);
+    const statsRows = (data ?? []) as MiniAppStatsRow[];
+    const appIds = Array.from(new Set(statsRows.map((row) => row.app_id).filter(Boolean)));
+    const metaMap = await loadMiniAppMeta(appIds);
+    const merged = statsRows.map((row) => mergeStatsWithMeta(row, metaMap[row.app_id]));
+    const filtered = merged.filter((row) => {
+      const status = String((row as Record<string, unknown>).status ?? "").toLowerCase();
+      return status === "" || status === "active";
+    });
+    return json({ stats: filtered }, req);
+  }
+);
 
 if (import.meta.main) {
   Deno.serve(handler);

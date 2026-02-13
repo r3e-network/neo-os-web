@@ -1,9 +1,11 @@
 /**
- * Environment Configuration Validation
+ * Environment Configuration Validation (Zod-based)
  *
  * Validates required environment variables at Edge function startup.
  * Provides clear error messages for missing or invalid configuration.
  */
+
+import { z } from "npm:zod";
 
 // Deno global type definitions
 declare const Deno: {
@@ -13,150 +15,46 @@ declare const Deno: {
 };
 
 // ============================================================================
-// Environment Variable Definitions
+// Zod Schema Definition
 // ============================================================================
 
-interface EnvVarSpec {
-  name: string;
-  required: boolean;
-  description: string;
-  validator?: (value: string) => boolean;
-  defaultValue?: string;
-  examples?: string[];
-}
+const envSchema = z.object({
+  // Core Infrastructure
+  DATABASE_URL: z.string().startsWith("postgresql://"),
+  SUPABASE_URL: z.string().url(),
+  SUPABASE_ANON_KEY: z.string().min(1),
+  JWT_SECRET: z.string().min(32),
 
-// Core Infrastructure
-const CORE_ENV_VARS: EnvVarSpec[] = [
-  {
-    name: "DATABASE_URL",
-    required: true,
-    description: "PostgreSQL connection string for database",
-    validator: (v) => v.startsWith("postgresql://"),
-  },
-  {
-    name: "SUPABASE_URL",
-    required: true,
-    description: "Supabase project URL",
-    validator: (v) => v.startsWith("https://"),
-  },
-  {
-    name: "SUPABASE_ANON_KEY",
-    required: true,
-    description: "Supabase anonymous/public key for RLS",
-  },
-  {
-    name: "JWT_SECRET",
-    required: true,
-    description: "Secret key for JWT token validation",
-    validator: (v) => v.length >= 32,
-  },
-];
+  // Neo Blockchain RPC
+  NEO_RPC_URL: z.string().startsWith("http"),
+  NEO_MAINNET_RPC_URL: z.string().startsWith("http").optional(),
+  NEO_TESTNET_RPC_URL: z.string().startsWith("http").optional(),
 
-// Neo Blockchain RPC
-const NEO_RPC_ENV_VARS: EnvVarSpec[] = [
-  {
-    name: "NEO_RPC_URL",
-    required: true,
-    description: "Primary Neo N3 RPC endpoint",
-    validator: (v) => v.startsWith("http"),
-  },
-  {
-    name: "NEO_MAINNET_RPC_URL",
-    required: false,
-    description: "Neo N3 Mainnet RPC endpoint",
-    validator: (v) => v.startsWith("http"),
-  },
-  {
-    name: "NEO_TESTNET_RPC_URL",
-    required: false,
-    description: "Neo N3 Testnet RPC endpoint",
-    validator: (v) => v.startsWith("http"),
-  },
-];
+  // Platform Services
+  SERVICE_LAYER_URL: z.string().startsWith("http"),
+  TXPROXY_URL: z.string().startsWith("http"),
+  PLATFORM_EDGE_URL: z.string().optional(),
 
-// Platform Services
-const PLATFORM_ENV_VARS: EnvVarSpec[] = [
-  {
-    name: "SERVICE_LAYER_URL",
-    required: true,
-    description: "Service layer gateway URL",
-    validator: (v) => v.startsWith("http"),
-  },
-  {
-    name: "TXPROXY_URL",
-    required: true,
-    description: "TxProxy service URL",
-    validator: (v) => v.startsWith("http"),
-  },
-  {
-    name: "PLATFORM_EDGE_URL",
-    required: false,
-    description: "Platform Edge base URL (optional)",
-  },
-];
+  // Security
+  EDGE_CORS_ORIGINS: z.string().min(1),
+  DENO_ENV: z.string().optional().default("production"),
 
-// Security
-const SECURITY_ENV_VARS: EnvVarSpec[] = [
-  {
-    name: "EDGE_CORS_ORIGINS",
-    required: true,
-    description: "CORS allowed origins (comma-separated, required in production)",
-    validator: (v) => v.length > 0,
-  },
-  {
-    name: "DENO_ENV",
-    required: false,
-    description: "Deno environment (development/production)",
-    defaultValue: "production",
-    examples: ["development", "production", "dev", "prod"],
-  },
-];
+  // Chain Configuration
+  CHAINS_CONFIG_JSON: z.string().optional(),
 
-// Chain Configuration
-const CHAIN_ENV_VARS: EnvVarSpec[] = [
-  {
-    name: "CHAINS_CONFIG_JSON",
-    required: false,
-    description: "Optional JSON override for chain configurations",
-  },
-];
+  // TEE Services (optional)
+  TEE_VRF_URL: z.string().optional(),
+  TEE_PRICEFEED_URL: z.string().optional(),
+  TEE_COMPUTE_URL: z.string().optional(),
+});
 
-// TEE Services (optional)
-const TEE_ENV_VARS: EnvVarSpec[] = [
-  {
-    name: "TEE_VRF_URL",
-    required: false,
-    description: "TEE VRF service URL",
-  },
-  {
-    name: "TEE_PRICEFEED_URL",
-    required: false,
-    description: "TEE PriceFeed service URL",
-  },
-  {
-    name: "TEE_COMPUTE_URL",
-    required: false,
-    description: "TEE Compute service URL",
-  },
-];
-
-// All environment categories
-const ALL_ENV_SPECS = [
-  ...CORE_ENV_VARS,
-  ...NEO_RPC_ENV_VARS,
-  ...PLATFORM_ENV_VARS,
-  ...SECURITY_ENV_VARS,
-  ...CHAIN_ENV_VARS,
-  ...TEE_ENV_VARS,
-];
+/** All env var names tracked by the schema */
+const ALL_ENV_KEYS = Object.keys(envSchema.shape) as (keyof typeof envSchema.shape)[];
 
 // ============================================================================
-// Validation Functions
+// Exported Interfaces (backward-compatible)
 // ============================================================================
 
-/**
- * Result of environment variable validation
- */
 export interface EnvValidationResult {
   valid: boolean;
   errors: ValidationError[];
@@ -175,61 +73,45 @@ export interface ValidationWarning {
   severity: "info";
 }
 
-/**
- * Validate a single environment variable
- */
-function validateEnvVar(spec: EnvVarSpec): ValidationError | ValidationWarning | null {
-  const value = Deno.env.get(spec.name);
+// ============================================================================
+// Internal Helpers
+// ============================================================================
 
-  // Check if required but missing
-  if (spec.required && !value && !spec.defaultValue) {
-    return {
-      variable: spec.name,
-      message: `Required environment variable not set: ${spec.name}`,
-      severity: "critical",
-    };
+/** Build a partial env object from Deno.env for all schema keys */
+function buildEnvObject(): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = {};
+  for (const key of ALL_ENV_KEYS) {
+    env[key] = Deno.env.get(key);
   }
-
-  // Use default value if present
-  const actualValue = value || spec.defaultValue;
-
-  // Skip validation if empty and not required
-  if (!actualValue) {
-    return null;
-  }
-
-  // Run custom validator if provided
-  if (spec.validator && !spec.validator(actualValue)) {
-    return {
-      variable: spec.name,
-      message: `Invalid value for ${spec.name}: ${actualValue}`,
-      severity: "critical",
-    };
-  }
-
-  return null;
+  return env;
 }
+
+/** Convert Zod issues into our ValidationError format */
+function zodIssuesToErrors(issues: z.ZodIssue[]): ValidationError[] {
+  return issues.map((issue) => ({
+    variable: issue.path.join("."),
+    message: `${issue.path.join(".")}: ${issue.message}`,
+    severity: "critical" as const,
+  }));
+}
+
+// ============================================================================
+// Exported Functions (signatures identical to previous implementation)
+// ============================================================================
 
 /**
  * Validate all environment variables
+ * @param _categories - Unused, kept for backward compatibility
  * @returns Validation result with errors and warnings
  */
-export function validateEnvironment(categories?: EnvVarSpec[]): EnvValidationResult {
-  const specs = categories || ALL_ENV_SPECS;
+export function validateEnvironment(_categories?: unknown): EnvValidationResult {
+  const env = buildEnvObject();
+  const result = envSchema.safeParse(env);
 
-  const errors: ValidationError[] = [];
+  const errors: ValidationError[] = result.success ? [] : zodIssuesToErrors(result.error.issues);
   const warnings: ValidationWarning[] = [];
 
-  for (const spec of specs) {
-    const result = validateEnvVar(spec);
-    if (result?.severity === "critical") {
-      errors.push(result);
-    } else if (result) {
-      warnings.push(result);
-    }
-  }
-
-  // Additional validation: check for development mode in production
+  // Additional validation: CORS must be set in production
   const denoEnv = Deno.env.get("DENO_ENV") || "";
   const isProduction = denoEnv.includes("prod");
   const corsOrigins = Deno.env.get("EDGE_CORS_ORIGINS");
@@ -269,11 +151,12 @@ export function getEnv(name: string, defaultValue?: string): string | undefined 
 }
 
 /**
- * Validate environment and throw if critical errors found
- * Use this at Edge function startup for fail-fast behavior
+ * Validate environment and throw if critical errors found.
+ * Use this at Edge function startup for fail-fast behavior.
+ * @param categories - Unused, kept for backward compatibility
  * @throws Error if validation fails
  */
-export function validateOrFail(categories?: EnvVarSpec[]): void {
+export function validateOrFail(categories?: unknown): void {
   const result = validateEnvironment(categories);
 
   if (!result.valid) {
@@ -281,7 +164,6 @@ export function validateOrFail(categories?: EnvVarSpec[]): void {
     throw new Error(`Environment validation failed:\n${errorMessages}`);
   }
 
-  // Log warnings if any (non-blocking)
   if (result.warnings.length > 0) {
     console.warn("[Environment] Warnings:");
     for (const warning of result.warnings) {

@@ -2,10 +2,7 @@
 // External developers submit their source code via Git URL for review
 
 import "../_shared/init.ts";
-
-declare const Deno: {
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
+import "../_shared/deno.d.ts";
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { sha256Hex } from "../_shared/hex.ts";

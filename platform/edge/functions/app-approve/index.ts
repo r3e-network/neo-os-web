@@ -2,21 +2,17 @@
 import "../_shared/init.ts";
 
 // Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
+import "../_shared/deno.d.ts";
 
-import { handleCorsPreflight } from "../_shared/cors.ts";
 import { getChainConfig } from "../_shared/chains.ts";
 import { normalizeUInt160 } from "../_shared/hex.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
-import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
+import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { invokeTxProxy } from "../_shared/txproxy.ts";
+import { createHandler } from "../_shared/handler.ts";
 
 type AppApprovalRequest = {
   app_id: string;
@@ -114,16 +110,7 @@ function statusToContractEnum(status: string): number {
   }
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-  const rl = await requireRateLimit(req, "app-approve", auth);
-  if (rl) return rl;
-
+export const handler = createHandler({ method: "POST", rateLimit: "app-approve" }, async ({ req, auth }) => {
   // Admin scope check - can be configured
   const scopeCheck = requireScope(req, auth, "admin");
   if (scopeCheck) {
@@ -337,7 +324,7 @@ export async function handler(req: Request): Promise<Response> {
   };
 
   return json(response, {}, req);
-}
+});
 
 if (import.meta.main) {
   Deno.serve(handler);

@@ -1,14 +1,8 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse } from "../_shared/error-codes.ts";
 import { supabaseClient } from "../_shared/supabase.ts";
@@ -79,36 +73,16 @@ function periodToDays(period: PeriodType): number {
   }
 }
 
-/**
- * Calculate growth rate for MiniApps based on daily transaction data
- * @param req - The incoming request
- * @param supabaseFactory - Optional supabase client factory for testing
- */
-export async function handler(
-  req: Request,
-  supabaseFactory?: () => ReturnType<typeof supabaseClient>
-): Promise<Response> {
-  // Handle CORS preflight
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
+export const handler = createHandler(
+  { method: "GET", auth: false, rateLimit: "market-trending" },
+  async ({ req, url }) => {
+    // Parse and validate query parameters
+    const { limit, period } = parseQueryParams(url);
+    const chainId = url.searchParams.get("chain_id") ?? "neo-n3-mainnet";
+    const days = periodToDays(period);
 
-  // Only accept GET requests
-  if (req.method !== "GET") {
-    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-  }
+    const supabase = supabaseClient();
 
-  const rateLimited = await requireRateLimit(req, "market-trending");
-  if (rateLimited) return rateLimited;
-
-  // Parse and validate query parameters
-  const url = new URL(req.url);
-  const { limit, period } = parseQueryParams(url);
-  const chainId = url.searchParams.get("chain_id") ?? "neo-n3-mainnet";
-  const days = periodToDays(period);
-
-  const supabase = supabaseFactory ? supabaseFactory() : supabaseClient();
-
-  try {
     // Step 1: Get today's transaction counts per app
     const { data: todayData, error: todayErr } = await supabase
       .from("miniapp_stats_daily")
@@ -302,12 +276,9 @@ export async function handler(
       {},
       req
     );
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    return errorResponse("SERVER_001", { message: `Internal server error: ${errMsg}` }, req);
   }
-}
+);
 
 if (import.meta.main) {
-  Deno.serve((req: Request) => handler(req));
+  Deno.serve(handler);
 }

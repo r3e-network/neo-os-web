@@ -82,9 +82,6 @@ func (e *DepositMismatchError) Unwrap() error {
 // Service implements the NeoGasBank service.
 type Service struct {
 	*commonservice.BaseService
-	// SECURITY FIX [M-01]: Replace global mutex with per-user locks for better concurrency.
-	// Global lock is kept for operations that need cross-user consistency (e.g., deposit confirmation).
-	mu sync.RWMutex
 	// userLocks provides fine-grained locking per user to improve concurrent performance.
 	// Different users' operations can now execute in parallel.
 	userLocks sync.Map // map[string]*sync.Mutex

@@ -1,11 +1,15 @@
 {
   "version": "5",
   "specifiers": {
-    "npm:@types/node@*": "18.16.19"
+    "npm:@types/node@*": "18.16.19",
+    "npm:zod@*": "4.3.6"
   },
   "npm": {
     "@types/node@18.16.19": {
       "integrity": "sha512-IXl7o+R9iti9eBW4Wg2hx1xQDig183jj7YLn8F7udNceyfkbn1ZxmzZXuak20gR40D7pIkIY1kYGx5VIGbaHKA=="
+    },
+    "zod@4.3.6": {
+      "integrity": "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="
     }
   },
   "redirects": {

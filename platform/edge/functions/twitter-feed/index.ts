@@ -1,6 +1,8 @@
-import { handleCorsPreflight } from "../_shared/cors.ts";
-import { json } from "../_shared/response.ts";
+import "../_shared/deno.d.ts";
+
+import { createHandler } from "../_shared/handler.ts";
 import { getEnv } from "../_shared/env.ts";
+import { json } from "../_shared/response.ts";
 
 interface Tweet {
   id: string;
@@ -16,10 +18,7 @@ interface TwitterApiTweet {
   created_at: string;
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-
+export const handler = createHandler({ method: "GET", auth: false }, async ({ req }) => {
   const bearerToken = getEnv("TWITTER_BEARER_TOKEN");
 
   // If no token, return mock data
@@ -53,7 +52,7 @@ export async function handler(req: Request): Promise<Response> {
   } catch {
     return json({ tweets: getMockTweets() }, {}, req);
   }
-}
+});
 
 function getMockTweets(): Tweet[] {
   return [

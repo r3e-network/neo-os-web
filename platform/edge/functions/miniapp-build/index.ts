@@ -2,27 +2,7 @@
 // Manually triggered by admin after approving a submission
 
 import "../_shared/init.ts";
-
-declare const Deno: {
-  serve(handler: (req: Request) => Promise<Response>): void;
-  Command: new (
-    cmd: string,
-    options?: {
-      args?: string[];
-      cwd?: string;
-      env?: Record<string, string>;
-      stdout?: "piped" | "inherit" | "null";
-      stderr?: "piped" | "inherit" | "null";
-      stdin?: "piped" | "inherit" | "null";
-    }
-  ) => {
-    output(): Promise<{ code: number; stdout: Uint8Array; stderr: Uint8Array }>;
-  };
-  readDirSync(path: string): Iterable<{ name: string; isDirectory: boolean; isSymlink: boolean }>;
-  readFile(path: string): Promise<Uint8Array>;
-  stat(path: string): Promise<{ size: number }>;
-  makeTempDir(options?: { prefix?: string }): string;
-};
+import "../_shared/deno.d.ts";
 
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv, getEnv } from "../_shared/env.ts";

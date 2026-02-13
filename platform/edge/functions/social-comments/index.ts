@@ -1,55 +1,40 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError } from "../_shared/error-codes.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { supabaseClient } from "../_shared/supabase.ts";
+import { supabaseClient, tryGetUser } from "../_shared/supabase.ts";
 import { getCommentVoteCounts } from "../_shared/community.ts";
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "GET") {
-    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-  }
+export const handler = createHandler(
+  { method: "GET", auth: false, rateLimit: "social-comments" },
+  async ({ req, url }) => {
+    const appId = url.searchParams.get("app_id")?.trim();
+    const parentId = url.searchParams.get("parent_id");
+    const limitRaw = url.searchParams.get("limit");
+    const offsetRaw = url.searchParams.get("offset");
 
-  const rateLimited = await requireRateLimit(req, "social-comments");
-  if (rateLimited) return rateLimited;
+    if (!appId) {
+      return validationError("app_id", "app_id is required", req);
+    }
 
-  const url = new URL(req.url);
-  const appId = url.searchParams.get("app_id")?.trim();
-  const parentId = url.searchParams.get("parent_id");
-  const limitRaw = url.searchParams.get("limit");
-  const offsetRaw = url.searchParams.get("offset");
+    let limit = 20;
+    if (limitRaw) {
+      const parsed = Number.parseInt(limitRaw, 10);
+      if (!Number.isNaN(parsed)) limit = parsed;
+    }
+    limit = Math.min(Math.max(limit, 1), 100);
 
-  if (!appId) {
-    return validationError("app_id", "app_id is required", req);
-  }
+    let offset = 0;
+    if (offsetRaw) {
+      const parsed = Number.parseInt(offsetRaw, 10);
+      if (!Number.isNaN(parsed)) offset = Math.max(parsed, 0);
+    }
 
-  let limit = 20;
-  if (limitRaw) {
-    const parsed = Number.parseInt(limitRaw, 10);
-    if (!Number.isNaN(parsed)) limit = parsed;
-  }
-  limit = Math.min(Math.max(limit, 1), 100);
+    const supabase = supabaseClient();
 
-  let offset = 0;
-  if (offsetRaw) {
-    const parsed = Number.parseInt(offsetRaw, 10);
-    if (!Number.isNaN(parsed)) offset = Math.max(parsed, 0);
-  }
-
-  const supabase = supabaseClient();
-
-  try {
     // Build query
     let query = supabase
       .from("social_comments")
@@ -103,11 +88,8 @@ export async function handler(req: Request): Promise<Response> {
       {},
       req
     );
-  } catch (err) {
-    console.error("Social comments error:", err);
-    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-}
+);
 
 if (import.meta.main) {
   Deno.serve(handler);

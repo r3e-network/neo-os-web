@@ -1,16 +1,11 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
-import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
-import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
+import { errorResponse, validationError } from "../_shared/error-codes.ts";
+import { supabaseClient } from "../_shared/supabase.ts";
 import {
   checkSpamLimit,
   isDeveloperOfApp,
@@ -25,17 +20,7 @@ interface CreateCommentRequest {
   parent_id?: string;
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "POST") {
-    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-  }
-
-  // Require authentication
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-
+export const handler = createHandler({ method: "POST", auth: "user" }, async ({ req, auth }) => {
   // Parse request body
   let body: CreateCommentRequest;
   try {
@@ -83,7 +68,7 @@ export async function handler(req: Request): Promise<Response> {
       .single();
 
     if (parentErr || !parent) {
-      return notFoundError("parent comment", req);
+      return errorResponse("NOTFOUND_001", { resource: "parent comment" }, req);
     }
     if (parent.app_id !== app_id) {
       return errorResponse("VAL_002", { field: "parent_id", message: "parent comment belongs to different app" }, req);
@@ -111,7 +96,7 @@ export async function handler(req: Request): Promise<Response> {
   await logSpamAction(supabase, userId, "comment", app_id);
 
   return json(comment, { status: 201 }, req);
-}
+});
 
 if (import.meta.main) {
   Deno.serve(handler);

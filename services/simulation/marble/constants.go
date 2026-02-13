@@ -191,15 +191,15 @@ const (
 	ThroneTaxDivisor  = 10 // Tax = bid / 10 (10%)
 
 	// Doomsday Clock
-	DoomsdayMaxKeys    = 5   // Max keys per purchase
-	DoomsdayWinChance  = 100 // 1-in-100 chance (1% timer expiry)
-	DoomsdayWinRoll    = 1   // Win if roll == 1
+	DoomsdayMaxKeys   = 5   // Max keys per purchase
+	DoomsdayWinChance = 100 // 1-in-100 chance (1% timer expiry)
+	DoomsdayWinRoll   = 1   // Win if roll == 1
 
 	// Secret Poker
-	SecretPokerWinChance       = 4 // 1-in-4 chance to win
-	SecretPokerPayoutMult      = 3 // Winner gets 3x buy-in
-	SecretPokerTableEveryN     = 5 // New table every 5 games
-	SecretPokerHandEveryN      = 4 // Start hand every 4 joins
+	SecretPokerWinChance   = 4 // 1-in-4 chance to win
+	SecretPokerPayoutMult  = 3 // Winner gets 3x buy-in
+	SecretPokerTableEveryN = 5 // New table every 5 games
+	SecretPokerHandEveryN  = 4 // Start hand every 4 joins
 
 	// Micro Predict
 	MicroPredictPayoutRate = 1.9 // Winner gets 1.9x bet
@@ -208,22 +208,22 @@ const (
 	MicroPredictPriceScale = 100_000_000 // Price in 8 decimals
 
 	// Red Envelope
-	RedEnvelopeMinPackets  = 3     // Minimum packets per envelope
-	RedEnvelopeMaxPackets  = 10    // Maximum packets per envelope
+	RedEnvelopeMinPackets  = 3       // Minimum packets per envelope
+	RedEnvelopeMaxPackets  = 10      // Maximum packets per envelope
 	RedEnvelopeExpiryMS    = 3600000 // 1 hour expiry in milliseconds
-	RedEnvelopeMinClaims   = 1     // Min claims per envelope
-	RedEnvelopeMaxClaims   = 3     // Max claims per envelope
-	RedEnvelopeMaxClaimAmt = 20    // Max claim amount in units
+	RedEnvelopeMinClaims   = 1       // Min claims per envelope
+	RedEnvelopeMaxClaims   = 3       // Max claims per envelope
+	RedEnvelopeMaxClaimAmt = 20      // Max claim amount in units
 
 	// Gas Circle
-	GasCircleMaxMembers    = 10 // Max members per circle
-	GasCircleCreateEveryN  = 10 // New circle every 10 deposits
-	GasCircleWinChance     = 10 // 1-in-10 chance to win
-	GasCirclePayoutMult    = 10 // Winner gets 10x deposit
+	GasCircleMaxMembers   = 10 // Max members per circle
+	GasCircleCreateEveryN = 10 // New circle every 10 deposits
+	GasCircleWinChance    = 10 // 1-in-10 chance to win
+	GasCirclePayoutMult   = 10 // Winner gets 10x deposit
 
 	// Time Capsule
-	TimeCapsuleBuryChance   = 4  // Out of 10 actions: 40% bury
-	TimeCapsuleFishChance   = 8  // Out of 10 actions: 40% fish (5-8)
+	TimeCapsuleBuryChance    = 4   // Out of 10 actions: 40% bury
+	TimeCapsuleFishChance    = 8   // Out of 10 actions: 40% fish (5-8)
 	TimeCapsuleMaxUnlockDays = 365 // Max unlock time in days
 
 	// Dev Tipping
@@ -243,10 +243,10 @@ const (
 	GrantShareMaxGrantID   = 100
 
 	// Neo NS
-	NeoNSMinDomainNum = 1000
-	NeoNSMaxDomainNum = 9999
-	NeoNSRenewMinNum  = 1
-	NeoNSRenewMaxNum  = 500
+	NeoNSMinDomainNum   = 1000
+	NeoNSMaxDomainNum   = 9999
+	NeoNSRenewMinNum    = 1
+	NeoNSRenewMaxNum    = 500
 	NeoNSRegisterChance = 2 // Out of 3 (randomInt(0,2)==0 => 33% register)
 )
 

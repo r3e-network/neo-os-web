@@ -24,20 +24,12 @@
 
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
-import { mustGetEnv } from "../_shared/env.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { requireHostScope } from "../_shared/scopes.ts";
-import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
+import { mustGetEnv } from "../_shared/env.ts";
 import { postJSON } from "../_shared/tee.ts";
 
 type AppExecuteRequest = {
@@ -93,90 +85,75 @@ async function loadAppScript(
   }
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "POST") {
-    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-  }
+export const handler = createHandler(
+  {
+    method: "POST",
+    auth: "user",
+    rateLimit: "compute-app-execute",
+    hostScope: "compute-app-execute",
+    requireWallet: true,
+  },
+  async ({ req, auth }) => {
+    let body: AppExecuteRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return errorResponse("BAD_JSON", undefined, req);
+    }
 
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
+    const appId = String(body.app_id ?? "").trim();
+    const scriptName = String(body.script_name ?? "").trim();
 
-  const rl = await requireRateLimit(req, "compute-app-execute", auth);
-  if (rl) return rl;
+    if (!appId) return validationError("app_id", "app_id required", req);
+    if (!scriptName) return validationError("script_name", "script_name required", req);
 
-  const scopeCheck = requireHostScope(req, auth, "compute-app-execute");
-  if (scopeCheck) return scopeCheck;
+    // Load script from app manifest
+    const loaded = await loadAppScript(appId, scriptName);
+    if (!loaded) return notFoundError("script", req);
 
-  const walletCheck = await requirePrimaryWallet(auth.userId, req);
-  if (walletCheck instanceof Response) return walletCheck;
+    // SECURITY: Validate script size to prevent DoS
+    const scriptSize = new TextEncoder().encode(loaded.script).length;
+    if (scriptSize > MAX_SCRIPT_SIZE) {
+      return validationError(
+        "script",
+        `script too large (${(scriptSize / 1024).toFixed(1)}KB / ${MAX_SCRIPT_SIZE / 1024}KB limit)`,
+        req
+      );
+    }
 
-  let body: AppExecuteRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse("BAD_JSON", undefined, req);
-  }
+    // SECURITY: Validate timeout to prevent long-running requests
+    if (body.timeout !== undefined) {
+      if (body.timeout < MIN_TIMEOUT_SECONDS || body.timeout > MAX_TIMEOUT_SECONDS) {
+        return validationError("timeout", `timeout must be ${MIN_TIMEOUT_SECONDS}-${MAX_TIMEOUT_SECONDS} seconds`, req);
+      }
+    }
 
-  const appId = String(body.app_id ?? "").trim();
-  const scriptName = String(body.script_name ?? "").trim();
+    // SECURITY: Validate secret_refs count to prevent excessive secret access
+    if (body.secret_refs && body.secret_refs.length > MAX_SECRET_REFS) {
+      return validationError("secret_refs", `maximum ${MAX_SECRET_REFS} secrets allowed`, req);
+    }
 
-  if (!appId) {
-    return validationError("app_id", "app_id required", req);
-  }
-  if (!scriptName) {
-    return validationError("script_name", "script_name required", req);
-  }
-
-  // Load script from app manifest
-  const loaded = await loadAppScript(appId, scriptName);
-  if (!loaded) {
-    return notFoundError("script", req);
-  }
-
-  // SECURITY: Validate script size to prevent DoS
-  const scriptSize = new TextEncoder().encode(loaded.script).length;
-  if (scriptSize > MAX_SCRIPT_SIZE) {
-    return validationError(
-      "script",
-      `script too large (${(scriptSize / 1024).toFixed(1)}KB / ${MAX_SCRIPT_SIZE / 1024}KB limit)`,
+    // Forward to NeoCompute service
+    const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
+    const result = await postJSON(
+      `${neocomputeURL}/execute`,
+      {
+        script: loaded.script,
+        entry_point: loaded.entryPoint,
+        input: body.input,
+        secret_refs: body.secret_refs,
+        timeout: body.timeout,
+        app_id: appId,
+        script_name: scriptName,
+      },
+      { "X-User-ID": auth.userId },
       req
     );
+
+    if (result instanceof Response) return result;
+    return json(result, {}, req);
   }
-
-  // SECURITY: Validate timeout to prevent long-running requests
-  if (body.timeout !== undefined) {
-    if (body.timeout < MIN_TIMEOUT_SECONDS || body.timeout > MAX_TIMEOUT_SECONDS) {
-      return validationError("timeout", `timeout must be ${MIN_TIMEOUT_SECONDS}-${MAX_TIMEOUT_SECONDS} seconds`, req);
-    }
-  }
-
-  // SECURITY: Validate secret_refs count to prevent excessive secret access
-  if (body.secret_refs && body.secret_refs.length > MAX_SECRET_REFS) {
-    return validationError("secret_refs", `maximum ${MAX_SECRET_REFS} secrets allowed`, req);
-  }
-
-  // Forward to NeoCompute service
-  const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
-  const result = await postJSON(
-    `${neocomputeURL}/execute`,
-    {
-      script: loaded.script,
-      entry_point: loaded.entryPoint,
-      input: body.input,
-      secret_refs: body.secret_refs,
-      timeout: body.timeout,
-      app_id: appId,
-      script_name: scriptName,
-    },
-    { "X-User-ID": auth.userId },
-    req
-  );
-
-  if (result instanceof Response) return result;
-  return json(result, {}, req);
-}
+);
 
 if (import.meta.main) {
   Deno.serve(handler);

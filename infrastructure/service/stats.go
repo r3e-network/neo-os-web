@@ -8,10 +8,10 @@ import (
 // It provides a fluent API for constructing statistics with optional locking
 // and conditional field inclusion.
 type StatsCollector struct {
-	mu       *sync.RWMutex
-	stats    map[string]any
-	locked   bool
-	collMu   sync.Mutex // Protects the stats map during concurrent writes
+	mu     *sync.RWMutex
+	stats  map[string]any
+	locked bool
+	collMu sync.Mutex // Protects the stats map during concurrent writes
 }
 
 // NewStatsCollector creates a new StatsCollector with an empty stats map.

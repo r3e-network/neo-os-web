@@ -1,16 +1,11 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError } from "../_shared/error-codes.ts";
-import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
+import { supabaseClient } from "../_shared/supabase.ts";
 import { verifyProofOfInteraction, validateRatingValue, sanitizeInput } from "../_shared/community.ts";
 
 interface RatingRequest {
@@ -19,16 +14,7 @@ interface RatingRequest {
   review_text?: string;
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "POST") {
-    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-  }
-
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-
+export const handler = createHandler({ method: "POST", auth: "user" }, async ({ req, auth }) => {
   let body: RatingRequest;
   try {
     body = await req.json();
@@ -79,7 +65,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   return json(data, { status: 201 }, req);
-}
+});
 
 if (import.meta.main) {
   Deno.serve(handler);

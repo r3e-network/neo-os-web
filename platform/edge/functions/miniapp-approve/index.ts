@@ -2,17 +2,12 @@
 // Admin approves/rejects submissions and optionally triggers build
 
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-declare const Deno: {
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv, getEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError } from "../_shared/error-codes.ts";
-import { requireAuth } from "../_shared/supabase.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface ApprovalRequest {
@@ -49,16 +44,7 @@ function resolveFunctionsBaseUrl(): string {
   return base.endsWith("/functions/v1") ? base : `${base}/functions/v1`;
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-  const rl = await requireRateLimit(req, "miniapp-approve", auth);
-  if (rl) return rl;
-
+export const handler = createHandler({ method: "POST", rateLimit: "miniapp-approve" }, async ({ req, auth }) => {
   // Check if user is admin
   const { data: isAdmin, error: adminCheckError } = await supabaseAdminCheck(auth.userId);
   if (adminCheckError || !isAdmin) {
@@ -234,7 +220,7 @@ export async function handler(req: Request): Promise<Response> {
     console.error("Approval error:", error);
     return errorResponse("SERVER_001", { message: (error as Error).message }, req);
   }
-}
+});
 
 // Admin check helper (SECURITY FIX: proper null handling and error checking)
 async function supabaseAdminCheck(userId: string): Promise<{

@@ -1,5 +1,6 @@
 import React from "react";
 import type { AppProps } from "next/app";
+import { Toaster } from "sonner";
 import { QueryProvider } from "@/lib/query";
 import { TRPCProvider } from "@/components/providers/TRPCProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -21,6 +22,7 @@ export default function App({ Component, pageProps, router }: AppProps) {
               <WalletDialogProvider>
                 <WalletAutoReconnect />
                 <Component {...pageProps} />
+                <Toaster richColors position="bottom-right" />
               </WalletDialogProvider>
             </ThemeProvider>
           </TRPCProvider>

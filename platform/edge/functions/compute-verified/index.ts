@@ -14,20 +14,12 @@
 
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
-import { mustGetEnv } from "../_shared/env.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError, notFoundError } from "../_shared/error-codes.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { requireHostScope } from "../_shared/scopes.ts";
-import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
+import { mustGetEnv } from "../_shared/env.ts";
 import { postJSON } from "../_shared/tee.ts";
 import { computeScriptHash, verifyScript } from "../_shared/script-verify.ts";
 
@@ -85,113 +77,82 @@ async function loadScript(appId: string, scriptName: string): Promise<{ script: 
   }
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
+export const handler = createHandler(
+  { method: "POST", auth: "user", rateLimit: "compute-verified", hostScope: "compute-verified", requireWallet: true },
+  async ({ req, auth }) => {
+    let body: ComputeVerifiedRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return errorResponse("BAD_JSON", undefined, req);
+    }
 
-  if (req.method !== "POST") {
-    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-  }
+    const appId = String(body.app_id ?? "").trim();
+    const contractHash = String(body.contract_hash ?? "").trim();
+    const scriptName = String(body.script_name ?? "").trim();
+    const seed = String(body.seed ?? "").trim();
+    const chainId = String(body.chain_id ?? "neo3-testnet").trim();
 
-  // Auth and rate limiting
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
+    // Validate required fields
+    if (!appId) return validationError("app_id", "app_id required", req);
+    if (!contractHash) return validationError("contract_hash", "contract_hash required", req);
+    if (!scriptName) return validationError("script_name", "script_name required", req);
+    if (!seed) return validationError("seed", "seed required", req);
 
-  const rl = await requireRateLimit(req, "compute-verified", auth);
-  if (rl) return rl;
+    // Get RPC URL for chain
+    const rpcUrl = CHAIN_RPC_URLS[chainId];
+    if (!rpcUrl) return errorResponse("VAL_006", { chain_id: chainId }, req);
 
-  const scopeCheck = requireHostScope(req, auth, "compute-verified");
-  if (scopeCheck) return scopeCheck;
+    // Load script from CDN
+    const loaded = await loadScript(appId, scriptName);
+    if (!loaded) return notFoundError("script", req);
 
-  const walletCheck = await requirePrimaryWallet(auth.userId, req);
-  if (walletCheck instanceof Response) return walletCheck;
+    // Verify script against on-chain registration
+    const verification = await verifyScript(contractHash, scriptName, loaded.script, rpcUrl);
+    if (!verification.valid) {
+      return errorResponse("AUTH_004", { message: `script verification failed: ${verification.error}` }, req);
+    }
 
-  // Parse request
-  let body: ComputeVerifiedRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse("BAD_JSON", undefined, req);
-  }
+    // Compute script hash for response
+    const scriptHash = await computeScriptHash(loaded.script);
 
-  const appId = String(body.app_id ?? "").trim();
-  const contractHash = String(body.contract_hash ?? "").trim();
-  const scriptName = String(body.script_name ?? "").trim();
-  const seed = String(body.seed ?? "").trim();
-  const chainId = String(body.chain_id ?? "neo3-testnet").trim();
-
-  // Validate required fields
-  if (!appId) {
-    return validationError("app_id", "app_id required", req);
-  }
-  if (!contractHash) {
-    return validationError("contract_hash", "contract_hash required", req);
-  }
-  if (!scriptName) {
-    return validationError("script_name", "script_name required", req);
-  }
-  if (!seed) {
-    return validationError("seed", "seed required", req);
-  }
-
-  // Get RPC URL for chain
-  const rpcUrl = CHAIN_RPC_URLS[chainId];
-  if (!rpcUrl) {
-    return errorResponse("VAL_006", { chain_id: chainId }, req);
-  }
-
-  // Load script from CDN
-  const loaded = await loadScript(appId, scriptName);
-  if (!loaded) {
-    return notFoundError("script", req);
-  }
-
-  // Verify script against on-chain registration
-  const verification = await verifyScript(contractHash, scriptName, loaded.script, rpcUrl);
-
-  if (!verification.valid) {
-    return errorResponse("AUTH_004", { message: `script verification failed: ${verification.error}` }, req);
-  }
-
-  // Compute script hash for response
-  const scriptHash = await computeScriptHash(loaded.script);
-
-  // Execute in TEE
-  const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
-  const result = await postJSON(
-    `${neocomputeURL}/execute`,
-    {
-      script: loaded.script,
-      entry_point: loaded.entryPoint,
-      input: {
-        ...body.input,
-        seed: seed,
-      },
-      app_id: appId,
-      script_name: scriptName,
-    },
-    { "X-User-ID": auth.userId },
-    req
-  );
-
-  if (result instanceof Response) return result;
-
-  // Return result with verification info
-  return json(
-    {
-      success: true,
-      result: result,
-      verification: {
+    // Execute in TEE
+    const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
+    const result = await postJSON(
+      `${neocomputeURL}/execute`,
+      {
+        script: loaded.script,
+        entry_point: loaded.entryPoint,
+        input: {
+          ...body.input,
+          seed: seed,
+        },
+        app_id: appId,
         script_name: scriptName,
-        script_hash: scriptHash,
-        script_version: verification.scriptInfo?.version,
-        verified: true,
       },
-    },
-    {},
-    req
-  );
-}
+      { "X-User-ID": auth.userId },
+      req
+    );
+
+    if (result instanceof Response) return result;
+
+    // Return result with verification info
+    return json(
+      {
+        success: true,
+        result: result,
+        verification: {
+          script_name: scriptName,
+          script_hash: scriptHash,
+          script_version: verification.scriptInfo?.version,
+          verified: true,
+        },
+      },
+      {},
+      req
+    );
+  }
+);
 
 if (import.meta.main) {
   Deno.serve(handler);

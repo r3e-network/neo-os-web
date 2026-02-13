@@ -11,11 +11,11 @@ import (
 // seen request IDs within a time window. It automatically cleans up expired
 // entries to prevent memory leaks.
 type ReplayProtection struct {
-	window          time.Duration
-	maxSize         int
-	mu              sync.RWMutex
-	seenRequests    map[string]time.Time
-	logger          *logging.Logger
+	window       time.Duration
+	maxSize      int
+	mu           sync.RWMutex
+	seenRequests map[string]time.Time
+	logger       *logging.Logger
 }
 
 // NewReplayProtection creates a new replay protection instance.

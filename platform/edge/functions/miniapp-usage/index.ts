@@ -1,18 +1,11 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError } from "../_shared/error-codes.ts";
-import { requireScope } from "../_shared/scopes.ts";
-import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
+import { supabaseServiceClient } from "../_shared/supabase.ts";
+import { createHandler } from "../_shared/handler.ts";
 
 type UsageRow = {
   app_id: string;
@@ -48,77 +41,68 @@ function normalizeUsageRow(
   };
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
+export const handler = createHandler(
+  { method: "GET", rateLimit: "miniapp-usage", scope: "miniapp-usage" },
+  async ({ req, auth, url }) => {
+    const appId = String(url.searchParams.get("app_id") ?? "").trim();
+    const chainId = String(url.searchParams.get("chain_id") ?? "").trim();
+    const date = resolveUsageDate(url.searchParams.get("date"));
+    if (!date) return validationError("date", "date must be YYYY-MM-DD", req);
 
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-  const rl = await requireRateLimit(req, "miniapp-usage", auth);
-  if (rl) return rl;
-  const scopeCheck = requireScope(req, auth, "miniapp-usage");
-  if (scopeCheck) return scopeCheck;
+    let limit = Number.parseInt(url.searchParams.get("limit") ?? "50", 10);
+    if (Number.isNaN(limit) || limit <= 0) limit = 50;
+    limit = Math.min(limit, 100);
 
-  const url = new URL(req.url);
-  const appId = String(url.searchParams.get("app_id") ?? "").trim();
-  const chainId = String(url.searchParams.get("chain_id") ?? "").trim();
-  const date = resolveUsageDate(url.searchParams.get("date"));
-  if (!date) return validationError("date", "date must be YYYY-MM-DD", req);
+    let supabase;
+    try {
+      supabase = supabaseServiceClient();
+    } catch (err) {
+      return errorResponse("SERVER_001", { message: String(err) }, req);
+    }
 
-  let limit = Number.parseInt(url.searchParams.get("limit") ?? "50", 10);
-  if (Number.isNaN(limit) || limit <= 0) limit = 50;
-  limit = Math.min(limit, 100);
+    if (appId) {
+      let query = supabase
+        .from("miniapp_usage")
+        .select("app_id, chain_id, usage_date, gas_used, governance_used, tx_count")
+        .eq("user_id", auth.userId)
+        .eq("usage_date", date)
+        .eq("app_id", appId);
 
-  let supabase;
-  try {
-    supabase = supabaseServiceClient();
-  } catch (err) {
-    return errorResponse("SERVER_001", { message: String(err) }, req);
-  }
+      if (chainId) {
+        query = query.eq("chain_id", chainId);
+      }
 
-  if (appId) {
+      const { data, error: err } = await query.maybeSingle();
+
+      if (err) return errorResponse("SERVER_002", { message: err.message }, req);
+
+      const usage = normalizeUsageRow(data ?? {}, { app_id: appId, chain_id: chainId, usage_date: date });
+      return json({ usage }, {}, req);
+    }
+
     let query = supabase
       .from("miniapp_usage")
       .select("app_id, chain_id, usage_date, gas_used, governance_used, tx_count")
       .eq("user_id", auth.userId)
-      .eq("usage_date", date)
-      .eq("app_id", appId);
+      .eq("usage_date", date);
 
     if (chainId) {
       query = query.eq("chain_id", chainId);
     }
 
-    const { data, error: err } = await query.maybeSingle();
+    const { data, error: err } = await query.order("gas_used", { ascending: false }).limit(limit);
 
     if (err) return errorResponse("SERVER_002", { message: err.message }, req);
 
-    const usage = normalizeUsageRow(data ?? {}, { app_id: appId, chain_id: chainId, usage_date: date });
-    return json({ usage }, {}, req);
+    const usage = Array.isArray(data)
+      ? data.map((row) =>
+          normalizeUsageRow(row as Record<string, unknown>, { app_id: "", chain_id: chainId, usage_date: date })
+        )
+      : [];
+
+    return json({ usage, date }, {}, req);
   }
-
-  let query = supabase
-    .from("miniapp_usage")
-    .select("app_id, chain_id, usage_date, gas_used, governance_used, tx_count")
-    .eq("user_id", auth.userId)
-    .eq("usage_date", date);
-
-  if (chainId) {
-    query = query.eq("chain_id", chainId);
-  }
-
-  const { data, error: err } = await query.order("gas_used", { ascending: false }).limit(limit);
-
-  if (err) return errorResponse("SERVER_002", { message: err.message }, req);
-
-  const usage = Array.isArray(data)
-    ? data.map((row) =>
-        normalizeUsageRow(row as Record<string, unknown>, { app_id: "", chain_id: chainId, usage_date: date })
-      )
-    : [];
-
-  return json({ usage, date }, {}, req);
-}
+);
 
 if (import.meta.main) {
   Deno.serve(handler);

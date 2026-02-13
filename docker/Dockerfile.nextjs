@@ -1,0 +1,75 @@
+# =============================================================================
+# Unified Next.js Dockerfile
+# Multi-stage build for Next.js standalone deployment
+# Build context: monorepo root
+#
+# Usage:
+#   docker build --build-arg APP_DIR=platform/host-app \
+#                --build-arg APP_FILTER=meshminiapp-host \
+#                -f docker/Dockerfile.nextjs .
+#
+#   docker build --build-arg APP_DIR=platform/admin-console \
+#                --build-arg APP_FILTER=admin-console \
+#                --build-arg APP_PORT=3002 \
+#                -f docker/Dockerfile.nextjs .
+# =============================================================================
+
+ARG APP_DIR
+ARG APP_FILTER
+ARG APP_PORT=3000
+
+FROM node:20-alpine AS base
+RUN corepack enable
+
+# --- deps stage: install dependencies ---
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+ARG APP_DIR
+COPY ${APP_DIR}/package.json ./${APP_DIR}/
+COPY packages/ ./packages/
+# Optional shared packages (e.g. miniapps/shared used by host-app)
+COPY miniapps/shared/package.jso[n] ./miniapps/shared/
+
+RUN pnpm install --frozen-lockfile
+
+# --- builder stage: build the Next.js app ---
+FROM base AS builder
+WORKDIR /app
+
+COPY --from=deps /app/ ./
+ARG APP_DIR
+ARG APP_FILTER
+COPY ${APP_DIR}/ ./${APP_DIR}/
+COPY miniapps/share[d]/ ./miniapps/shared/
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+RUN pnpm --filter ${APP_FILTER} build
+
+# --- runner stage: minimal production image ---
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+ARG APP_DIR
+ARG APP_PORT
+COPY --from=builder /app/${APP_DIR}/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/${APP_DIR}/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/${APP_DIR}/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE ${APP_PORT}
+ENV PORT=${APP_PORT}
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]

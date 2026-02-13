@@ -1,40 +1,25 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse } from "../_shared/error-codes.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { requireScope } from "../_shared/scopes.ts";
-import { ensureUserRow, requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
+import { supabaseServiceClient } from "../_shared/supabase.ts";
 
 // Returns the user's gasbank account (creates if missing).
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
+export const handler = createHandler(
+  {
+    method: "GET",
+    auth: "user",
+    rateLimit: "gasbank-account",
+    scope: "gasbank-account",
+    requireWallet: true,
+    ensureUser: true,
+  },
+  async ({ req, auth }) => {
+    const supabase = supabaseServiceClient();
 
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-  const rl = await requireRateLimit(req, "gasbank-account", auth);
-  if (rl) return rl;
-  const scopeCheck = requireScope(req, auth, "gasbank-account");
-  if (scopeCheck) return scopeCheck;
-  const walletCheck = await requirePrimaryWallet(auth.userId, req);
-  if (walletCheck instanceof Response) return walletCheck;
-
-  const ensured = await ensureUserRow(auth, {}, req);
-  if (ensured instanceof Response) return ensured;
-
-  const supabase = supabaseServiceClient();
-
-  try {
     const { data: existing, error: getErr } = await supabase
       .from("gasbank_accounts")
       .select("id,user_id,balance,reserved,created_at,updated_at")
@@ -54,11 +39,8 @@ export async function handler(req: Request): Promise<Response> {
       return errorResponse("SERVER_002", { message: `failed to create gasbank account: ${createErr.message}` }, req);
 
     return json({ account: created }, {}, req);
-  } catch (err) {
-    console.error("Gasbank account error:", err);
-    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-}
+);
 
 if (import.meta.main) {
   Deno.serve(handler);

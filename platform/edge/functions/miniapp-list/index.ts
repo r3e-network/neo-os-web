@@ -3,15 +3,12 @@
 // Combines both external submissions and internal miniapps
 
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-declare const Deno: {
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse } from "../_shared/error-codes.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export interface MiniappListResponse {
@@ -54,19 +51,11 @@ interface MiniappRegistryRow {
   updated_at: string;
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-
-  if (req.method !== "GET") {
-    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-  }
-
+export const handler = createHandler({ method: "GET", auth: false }, async ({ req, url }) => {
   try {
     const supabase = createClient(mustGetEnv("SUPABASE_URL"), mustGetEnv("SUPABASE_ANON_KEY"));
 
     // Get query parameters
-    const url = new URL(req.url);
     const category = url.searchParams.get("category");
     const sourceType = url.searchParams.get("source_type"); // "external" or "internal"
     const since = url.searchParams.get("since");
@@ -133,7 +122,7 @@ export async function handler(req: Request): Promise<Response> {
     console.error("Miniapp list error:", err);
     return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-}
+});
 
 if (import.meta.main) {
   Deno.serve(handler);

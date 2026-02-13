@@ -1,12 +1,10 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-import { handleCorsPreflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, notFoundError } from "../_shared/error-codes.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { requireScope } from "../_shared/scopes.ts";
-import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { getNeoRpcUrl } from "../_shared/k8s-config.ts";
 import { getChainConfig, getNativeContractAddress } from "../_shared/chains.ts";
 
@@ -29,30 +27,16 @@ interface TransactionItem {
   counterparty: string;
 }
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "GET") {
-    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-  }
+export const handler = createHandler(
+  { method: "GET", auth: "user", rateLimit: "wallet-transactions", scope: "wallet-transactions", requireWallet: true },
+  async ({ req, auth, wallet }) => {
+    // Parse query params
+    const url = new URL(req.url);
+    const chainId = url.searchParams.get("chain_id")?.trim() || "neo-n3-mainnet";
+    const chain = getChainConfig(chainId);
+    if (!chain) return notFoundError("chain", req);
+    const limit = Math.min(100, parseInt(url.searchParams.get("limit") || "20"));
 
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-  const rl = await requireRateLimit(req, "wallet-transactions", auth);
-  if (rl) return rl;
-  const scopeCheck = requireScope(req, auth, "wallet-transactions");
-  if (scopeCheck) return scopeCheck;
-  const walletCheck = await requirePrimaryWallet(auth.userId, req);
-  if (walletCheck instanceof Response) return walletCheck;
-
-  // Parse query params
-  const url = new URL(req.url);
-  const chainId = url.searchParams.get("chain_id")?.trim() || "neo-n3-mainnet";
-  const chain = getChainConfig(chainId);
-  if (!chain) return notFoundError("chain", req);
-  const limit = Math.min(100, parseInt(url.searchParams.get("limit") || "20"));
-
-  try {
     // Query transaction history via RPC
     const rpcUrl = chain.rpc_urls?.[0] || getNeoRpcUrl();
     const res = await fetch(rpcUrl, {
@@ -62,7 +46,7 @@ export async function handler(req: Request): Promise<Response> {
         jsonrpc: "2.0",
         id: 1,
         method: "getnep17transfers",
-        params: [walletCheck.address],
+        params: [wallet.address],
       }),
     });
 
@@ -112,7 +96,7 @@ export async function handler(req: Request): Promise<Response> {
 
     return json(
       {
-        address: walletCheck.address,
+        address: wallet.address,
         chain_id: chainId,
         transactions: transactions.slice(0, limit),
         total: transactions.length,
@@ -120,11 +104,8 @@ export async function handler(req: Request): Promise<Response> {
       {},
       req
     );
-  } catch (err) {
-    console.error("Wallet transactions error:", err);
-    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-}
+);
 
 function getAssetSymbol(hash: string, chainId: string): string {
   const h = hash.toLowerCase();

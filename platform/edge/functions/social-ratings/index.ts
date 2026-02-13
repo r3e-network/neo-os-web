@@ -1,38 +1,23 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
 import { errorResponse, validationError } from "../_shared/error-codes.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { supabaseClient, tryGetUser } from "../_shared/supabase.ts";
 
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "GET") {
-    return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
-  }
+export const handler = createHandler(
+  { method: "GET", auth: false, rateLimit: "social-ratings" },
+  async ({ req, url }) => {
+    const appId = url.searchParams.get("app_id")?.trim();
 
-  const rateLimited = await requireRateLimit(req, "social-ratings");
-  if (rateLimited) return rateLimited;
+    if (!appId) {
+      return validationError("app_id", "app_id is required", req);
+    }
 
-  const url = new URL(req.url);
-  const appId = url.searchParams.get("app_id")?.trim();
+    const supabase = supabaseClient();
 
-  if (!appId) {
-    return validationError("app_id", "app_id is required", req);
-  }
-
-  const supabase = supabaseClient();
-
-  try {
     // Get weighted rating via RPC
     const { data: ratingData, error: rpcErr } = await supabase.rpc("calculate_app_rating_weighted", {
       p_app_id: appId,
@@ -78,11 +63,8 @@ export async function handler(req: Request): Promise<Response> {
       {},
       req
     );
-  } catch (err) {
-    console.error("Social ratings error:", err);
-    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-}
+);
 
 if (import.meta.main) {
   Deno.serve(handler);

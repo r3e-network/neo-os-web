@@ -1,44 +1,28 @@
 // Initialize environment validation at startup (fail-fast)
 import "../_shared/init.ts";
+import "../_shared/deno.d.ts";
 
-// Deno global type definitions
-declare const Deno: {
-  env: { get(key: string): string | undefined };
-  serve(handler: (req: Request) => Promise<Response>): void;
-};
-
-import { handleCorsPreflight } from "../_shared/cors.ts";
-import { mustGetEnv } from "../_shared/env.ts";
+import { createHandler } from "../_shared/handler.ts";
 import { json } from "../_shared/response.ts";
-import { errorResponse, validationError } from "../_shared/error-codes.ts";
-import { requireRateLimit } from "../_shared/ratelimit.ts";
+import { validationError } from "../_shared/error-codes.ts";
+import { mustGetEnv } from "../_shared/env.ts";
 import { getJSON } from "../_shared/tee.ts";
 
 // Public read proxy to the TEE datafeed service (or a cache you add later).
-export async function handler(req: Request): Promise<Response> {
-  const preflight = handleCorsPreflight(req);
-  if (preflight) return preflight;
-  if (req.method !== "GET") return errorResponse("METHOD_NOT_ALLOWED", undefined, req);
+export const handler = createHandler(
+  { method: "GET", auth: false, rateLimit: "datafeed-price" },
+  async ({ req, url }) => {
+    const rawSymbol = (url.searchParams.get("symbol") ?? "").trim();
+    if (!rawSymbol) return validationError("symbol", "symbol required", req);
+    const normalizedSymbol = rawSymbol.toUpperCase();
+    const symbol = /[-/_]/.test(normalizedSymbol) ? normalizedSymbol : `${normalizedSymbol}-USD`;
 
-  const url = new URL(req.url);
-  const rawSymbol = (url.searchParams.get("symbol") ?? "").trim();
-  if (!rawSymbol) return validationError("symbol", "symbol required", req);
-  const normalizedSymbol = rawSymbol.toUpperCase();
-  const symbol = /[-/_]/.test(normalizedSymbol) ? normalizedSymbol : `${normalizedSymbol}-USD`;
-
-  const rl = await requireRateLimit(req, "datafeed-price");
-  if (rl) return rl;
-
-  try {
     const neofeedsURL = mustGetEnv("NEOFEEDS_URL").replace(/\/$/, "");
     const result = await getJSON(`${neofeedsURL}/price/${encodeURIComponent(symbol)}`, {}, req);
     if (result instanceof Response) return result;
     return json(result, {}, req);
-  } catch (err) {
-    console.error("Datafeed price error:", err);
-    return errorResponse("SERVER_001", { message: (err as Error).message }, req);
   }
-}
+);
 
 if (import.meta.main) {
   Deno.serve(handler);
