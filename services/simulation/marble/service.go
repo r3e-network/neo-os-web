@@ -96,13 +96,7 @@ func New(cfg Config) (*Service, error) {
 	})
 
 	// Get account pool URL
-	accountPoolURL := strings.TrimSpace(cfg.AccountPoolURL)
-	if accountPoolURL == "" {
-		accountPoolURL = strings.TrimSpace(os.Getenv("NEOACCOUNTS_SERVICE_URL"))
-	}
-	if accountPoolURL == "" {
-		accountPoolURL = "https://neoaccounts:8085" // Default service mesh URL
-	}
+	accountPoolURL := runtime.ResolveString(cfg.AccountPoolURL, "NEOACCOUNTS_SERVICE_URL", "https://neoaccounts:8085")
 
 	// Get MiniApps list - environment variable takes precedence
 	miniAppsEnv := strings.TrimSpace(os.Getenv("SIMULATION_MINIAPPS"))
@@ -121,52 +115,15 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	// Get interval configuration
-	minIntervalMS := cfg.MinIntervalMS
-	if minIntervalMS == 0 {
-		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MIN_MS"); envVal != "" {
-			if _, err := fmt.Sscanf(envVal, "%d", &minIntervalMS); err != nil {
-				slog.Warn("invalid SIMULATION_TX_INTERVAL_MIN_MS", "value", envVal, "error", err)
-			}
-		}
-	}
-	if minIntervalMS == 0 {
-		minIntervalMS = DefaultMinIntervalMS
-	}
-
-	maxIntervalMS := cfg.MaxIntervalMS
-	if maxIntervalMS == 0 {
-		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MAX_MS"); envVal != "" {
-			if _, err := fmt.Sscanf(envVal, "%d", &maxIntervalMS); err != nil {
-				slog.Warn("invalid SIMULATION_TX_INTERVAL_MAX_MS", "value", envVal, "error", err)
-			}
-		}
-	}
-	if maxIntervalMS == 0 {
-		maxIntervalMS = DefaultMaxIntervalMS
-	}
+	minIntervalMS := runtime.ResolveInt(cfg.MinIntervalMS, "SIMULATION_TX_INTERVAL_MIN_MS", DefaultMinIntervalMS)
+	maxIntervalMS := runtime.ResolveInt(cfg.MaxIntervalMS, "SIMULATION_TX_INTERVAL_MAX_MS", DefaultMaxIntervalMS)
 
 	// Get amount configuration
-	minAmount := cfg.MinAmount
-	if minAmount == 0 {
-		minAmount = DefaultMinAmount
-	}
-	maxAmount := cfg.MaxAmount
-	if maxAmount == 0 {
-		maxAmount = DefaultMaxAmount
-	}
+	minAmount := int64(runtime.ResolveInt(int(cfg.MinAmount), "", int(DefaultMinAmount)))
+	maxAmount := int64(runtime.ResolveInt(int(cfg.MaxAmount), "", int(DefaultMaxAmount)))
 
 	// Get workers per app configuration
-	workersPerApp := cfg.WorkersPerApp
-	if workersPerApp == 0 {
-		if envVal := os.Getenv("SIMULATION_WORKERS_PER_APP"); envVal != "" {
-			if _, err := fmt.Sscanf(envVal, "%d", &workersPerApp); err != nil {
-				slog.Warn("invalid SIMULATION_WORKERS_PER_APP", "value", envVal, "error", err)
-			}
-		}
-	}
-	if workersPerApp <= 0 {
-		workersPerApp = DefaultWorkersPerApp
-	}
+	workersPerApp := runtime.ResolveInt(cfg.WorkersPerApp, "SIMULATION_WORKERS_PER_APP", DefaultWorkersPerApp)
 
 	// Initialize account pool client with MarbleRun mTLS client for secure mesh communication
 	// NOTE: Don't send ServiceID when using MarbleRun mTLS - let the neoaccounts service

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/config"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/crypto"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
@@ -69,10 +68,10 @@ func New(cfg Config) (*Service, error) {
 	}
 	s.attestationHash = marble.ComputeAttestationHash(cfg.Marble, ServiceID)
 
-	if key, ok := cfg.Marble.Secret("NEOVRF_SIGNING_KEY"); ok && len(key) >= 32 {
+	if key, ok, err := marble.RequireSecret(cfg.Marble, "NEOVRF_SIGNING_KEY", 32, strict); err != nil {
+		return nil, fmt.Errorf("neovrf: %w", err)
+	} else if ok {
 		s.signingKey = key
-	} else if strict {
-		return nil, fmt.Errorf("neovrf: NEOVRF_SIGNING_KEY is required and must be at least 32 bytes")
 	} else {
 		s.Logger().WithFields(nil).Warn("NEOVRF_SIGNING_KEY not configured; generating ephemeral signing key (development/testing only)")
 	}
@@ -81,15 +80,7 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 
-	replayWindow := cfg.ReplayWindow
-	if replayWindow <= 0 {
-		if parsed, ok := config.ParseEnvDuration("NEOVRF_REPLAY_WINDOW"); ok {
-			replayWindow = parsed
-		}
-	}
-	if replayWindow <= 0 {
-		replayWindow = 10 * time.Minute
-	}
+	replayWindow := runtime.ResolveDuration(cfg.ReplayWindow, "NEOVRF_REPLAY_WINDOW", 10*time.Minute)
 	// Use size-limited replay protection to prevent unbounded memory growth.
 	const maxReplayEntries = 100000
 	s.replayProtection = security.NewReplayProtectionWithMaxSize(replayWindow, maxReplayEntries, base.Logger())

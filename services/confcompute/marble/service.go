@@ -19,7 +19,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"os"
 	"sync"
 	"time"
 
@@ -113,17 +112,9 @@ func New(cfg Config) (*Service, error) {
 		RequiredSecrets: requiredSecrets,
 	})
 
-	resultTTL := DefaultResultTTL
-	if cfg.ResultTTL > 0 {
-		resultTTL = cfg.ResultTTL
-	} else if envTTL := loadResultTTLOverride(); envTTL > 0 {
-		resultTTL = envTTL
-	}
+	resultTTL := runtime.ResolveDuration(cfg.ResultTTL, neocomputeResultTTLEnv, DefaultResultTTL)
 
-	cleanupInterval := defaultCleanupInterval
-	if cfg.CleanupInterval > 0 {
-		cleanupInterval = cfg.CleanupInterval
-	}
+	cleanupInterval := runtime.ResolveDuration(cfg.CleanupInterval, "", defaultCleanupInterval)
 
 	s := &Service{
 		BaseService:     base,
@@ -132,17 +123,15 @@ func New(cfg Config) (*Service, error) {
 		secretProvider:  cfg.SecretProvider,
 	}
 
-	key, ok := cfg.Marble.Secret("COMPUTE_MASTER_KEY")
-	switch {
-	case ok && len(key) >= 32:
+	if key, ok, err := marble.RequireSecret(cfg.Marble, "COMPUTE_MASTER_KEY", 32, strict); err != nil {
+		return nil, fmt.Errorf("neocompute: %w", err)
+	} else if ok {
 		s.masterKey = key
 		signingKey, err := deriveSigningKey(key)
 		if err == nil {
 			s.signingKey = signingKey
 		}
-	case strict:
-		return nil, fmt.Errorf("neocompute: COMPUTE_MASTER_KEY is required and must be at least 32 bytes")
-	default:
+	} else {
 		// Development/testing fallback: generate an ephemeral master key.
 		buf := make([]byte, 32)
 		if _, err := rand.Read(buf); err != nil {
@@ -214,18 +203,6 @@ func deriveSigningKey(masterKey []byte) ([]byte, error) {
 		return nil, err
 	}
 	return key, nil
-}
-
-func loadResultTTLOverride() time.Duration {
-	value := os.Getenv(neocomputeResultTTLEnv)
-	if value == "" {
-		return 0
-	}
-	ttl, err := time.ParseDuration(value)
-	if err != nil || ttl <= 0 {
-		return 0
-	}
-	return ttl
 }
 
 // storeJob stores a job result for later retrieval.

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Sync all MiniApps to Cloudflare R2 CDN."""
+"""Sync all MiniApps to Cloudflare R2 CDN with correct prefix."""
 
 import boto3
-import os
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -12,11 +11,11 @@ AWS_ACCESS_KEY_ID = "cc77eee149d8f679bc0f751ca346a236"
 AWS_SECRET_ACCESS_KEY = (
     "***REMOVED***"
 )
-APPS_DIR = Path("/home/neo/git/miniapps-repo/apps")
+APPS_DIR = Path("/home/neo/git/miniapps/apps")
 
 
 def sync_app(app_name: str):
-    """Sync a single miniapp to R2."""
+    """Sync a single miniapp to R2 under miniapps/ prefix."""
     app_path = APPS_DIR / app_name
 
     s3 = boto3.client(
@@ -28,15 +27,15 @@ def sync_app(app_name: str):
     )
 
     files = [
-        ("index.html", "index.html", "text/html"),
-        ("public/logo.jpg", "logo.jpg", "image/png"),
-        ("public/banner.jpg", "banner.jpg", "image/png"),
+        ("index.html", "miniapps/index.html", "text/html"),
+        ("public/logo.jpg", "miniapps/logo.jpg", "image/png"),
+        ("public/banner.jpg", "miniapps/banner.jpg", "image/png"),
     ]
 
     results = []
     for local_name, s3_key, content_type in files:
         full_local = app_path / local_name
-        full_s3_key = f"{app_name}/{s3_key}"
+        full_s3_key = f"miniapps/{app_name}/{s3_key.split('/')[-1]}"
 
         try:
             with open(full_local, "rb") as f:
@@ -59,6 +58,7 @@ def sync_app(app_name: str):
 def main():
     print(f"Syncing all MiniApps to R2 CDN...")
     print(f"Bucket: {BUCKET_NAME}")
+    print(f"Prefix: miniapps/")
     print("-" * 60)
 
     apps = sorted([d.name for d in APPS_DIR.iterdir() if d.is_dir()])

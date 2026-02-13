@@ -16,7 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/hex"
+	"encoding/hex"
+
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
 )
 
@@ -64,8 +65,8 @@ func EnvOrSecretBytes(m *marble.Marble, envKey string) ([]byte, error) {
 	}
 
 	// Check if hex-encoded
-	if strings.HasPrefix(value, "0x") {
-		return hex.DecodeString(value)
+	if strings.HasPrefix(value, "0x") || strings.HasPrefix(value, "0X") {
+		return hex.DecodeString(strings.TrimPrefix(strings.TrimPrefix(value, "0x"), "0X"))
 	}
 
 	return []byte(value), nil
@@ -326,13 +327,13 @@ func ChainConfigValue(chainMeta map[string]string, envKey string, secretKey stri
 	// Try chain meta first
 	if chainMeta != nil {
 		if value := chainMeta[envKey]; value != "" {
-			return hex.TrimPrefix(value)
+			return strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(value), "0x"), "0X")
 		}
 	}
 
 	// Try environment variable
 	if value := strings.TrimSpace(os.Getenv(envKey)); value != "" {
-		return hex.TrimPrefix(value)
+		return strings.TrimPrefix(strings.TrimPrefix(value, "0x"), "0X")
 	}
 
 	return defaultValue

@@ -113,22 +113,8 @@ func New(cfg Config) (*Service, error) {
 		DB:      cfg.DB,
 	})
 
-	triggerConcurrency := cfg.TriggerConcurrency
-	if triggerConcurrency <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOFLOW_TRIGGER_CONCURRENCY"); ok && parsed > 0 {
-			triggerConcurrency = parsed
-		} else {
-			triggerConcurrency = 10
-		}
-	}
-	anchoredTaskConcurrency := cfg.AnchoredTaskConcurrency
-	if anchoredTaskConcurrency <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOFLOW_ANCHORED_TASK_CONCURRENCY"); ok && parsed > 0 {
-			anchoredTaskConcurrency = parsed
-		} else {
-			anchoredTaskConcurrency = 10
-		}
-	}
+	triggerConcurrency := runtime.ResolveInt(cfg.TriggerConcurrency, "NEOFLOW_TRIGGER_CONCURRENCY", 10)
+	anchoredTaskConcurrency := runtime.ResolveInt(cfg.AnchoredTaskConcurrency, "NEOFLOW_ANCHORED_TASK_CONCURRENCY", 10)
 
 	s := &Service{
 		BaseService: base,

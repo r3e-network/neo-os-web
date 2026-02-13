@@ -22,7 +22,6 @@ import (
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
 	gasbankclient "github.com/R3E-Network/neo-miniapps-platform/infrastructure/gasbank/client"
 	gsclient "github.com/R3E-Network/neo-miniapps-platform/infrastructure/globalsigner/client"
-	slhex "github.com/R3E-Network/neo-miniapps-platform/infrastructure/hex"
 	sllogging "github.com/R3E-Network/neo-miniapps-platform/infrastructure/logging"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
 	slmetrics "github.com/R3E-Network/neo-miniapps-platform/infrastructure/metrics"
@@ -392,11 +391,19 @@ func resolveContracts(chainMeta *chaincfg.ChainConfig) chain.ContractAddresses {
 }
 
 func resolveAddress(contractValue string, m *marble.Marble, envKey string) string {
-	addr := slhex.TrimPrefix(contractValue)
+	addr := trimHexPrefix(contractValue)
 	if addr == "" {
-		addr = slhex.TrimPrefix(config.EnvOrSecret(m, envKey, ""))
+		addr = trimHexPrefix(config.EnvOrSecret(m, envKey, ""))
 	}
 	return addr
+}
+
+// trimHexPrefix removes optional "0x"/"0X" prefix and surrounding whitespace from a hex string.
+func trimHexPrefix(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.TrimPrefix(s, "0x")
+	s = strings.TrimPrefix(s, "0X")
+	return s
 }
 
 func initTEESigner(ctx context.Context, m *marble.Marble, serviceType string, chainClient *chain.Client) chain.TEESigner {
@@ -445,7 +452,7 @@ func loadTEEPrivateKey(m *marble.Marble) string {
 				return secretStr
 			}
 			if len(secretStr) == 64 || len(secretStr) == 66 {
-				return slhex.TrimPrefix(secretStr)
+				return trimHexPrefix(secretStr)
 			}
 			return hex.EncodeToString(secret)
 		}
@@ -455,16 +462,16 @@ func loadTEEPrivateKey(m *marble.Marble) string {
 				return secretStr
 			}
 			if len(secretStr) == 64 || len(secretStr) == 66 {
-				return slhex.TrimPrefix(secretStr)
+				return trimHexPrefix(secretStr)
 			}
 			return hex.EncodeToString(secret)
 		}
 	}
 	if key := strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY")); key != "" {
-		return slhex.TrimPrefix(key)
+		return trimHexPrefix(key)
 	}
 	if key := strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY")); key != "" {
-		return slhex.TrimPrefix(key)
+		return trimHexPrefix(key)
 	}
 	return ""
 }

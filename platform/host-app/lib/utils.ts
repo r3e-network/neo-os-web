@@ -1,6 +1,9 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+// Re-export validation functions from canonical source
+export { isValidEmail } from "./security/validation";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -20,19 +23,6 @@ export function sanitizeInput(input: string): string {
     .replace(/&gt;/g, "") // Remove HTML entity >
     .trim()
     .slice(0, 1000); // Limit length to prevent DoS
-}
-
-/**
- * Validates email format with strict RFC 5322 compliant regex
- */
-export function isValidEmail(email: string): boolean {
-  if (typeof email !== "string" || email.length > 254) return false;
-
-  // RFC 5322 compliant email regex (simplified but strict)
-  const emailRegex =
-    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-
-  return emailRegex.test(email);
 }
 
 /**
@@ -98,11 +88,7 @@ function interpolate(template: string, values?: Record<string, string | number>)
   return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? `{${key}}`));
 }
 
-function translateTime(
-  key: string,
-  options?: Record<string, string | number>,
-  t?: TimeAgoTranslate,
-): string {
+function translateTime(key: string, options?: Record<string, string | number>, t?: TimeAgoTranslate): string {
   const fallback = interpolate(FALLBACK_TIME[key] ?? key, options);
   if (!t) return fallback;
   const translated = t(key, options);

@@ -87,21 +87,9 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	contracts := chain.ContractAddressesFromEnv()
-	gasAddress := strings.TrimSpace(cfg.GasAddress)
-	if gasAddress == "" {
-		gasAddress = strings.TrimSpace(os.Getenv("CONTRACT_GAS_ADDRESS"))
-	}
-	if gasAddress == "" {
-		gasAddress = defaultGASContractAddress
-	}
-	paymentHubAddress := strings.TrimSpace(cfg.PaymentHubAddress)
-	if paymentHubAddress == "" {
-		paymentHubAddress = strings.TrimSpace(contracts.PaymentHub)
-	}
-	governanceAddress := strings.TrimSpace(cfg.GovernanceAddress)
-	if governanceAddress == "" {
-		governanceAddress = strings.TrimSpace(contracts.Governance)
-	}
+	gasAddress := runtime.ResolveString(cfg.GasAddress, "CONTRACT_GAS_ADDRESS", defaultGASContractAddress)
+	paymentHubAddress := runtime.ResolveString(cfg.PaymentHubAddress, "", strings.TrimSpace(contracts.PaymentHub))
+	governanceAddress := runtime.ResolveString(cfg.GovernanceAddress, "", strings.TrimSpace(contracts.Governance))
 
 	if strict {
 		if cfg.ChainClient == nil {
@@ -112,10 +100,7 @@ func New(cfg Config) (*Service, error) {
 		}
 	}
 
-	replayWindow := cfg.ReplayWindow
-	if replayWindow <= 0 {
-		replayWindow = 1 * time.Hour
-	}
+	replayWindow := runtime.ResolveDuration(cfg.ReplayWindow, "", 1*time.Hour)
 
 	base := commonservice.NewBase(&commonservice.BaseConfig{
 		ID:      ServiceID,

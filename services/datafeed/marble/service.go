@@ -194,31 +194,24 @@ func New(cfg Config) (*Service, error) {
 	s.httpCircuitBreaker = resilience.New(resilience.DefaultServiceCBConfig(s.Logger()))
 
 	// Initialize rate limiter (defaults: 100 req/s, burst 200)
-	rateLimitPerSecond := cfg.RateLimitPerSecond
-	if rateLimitPerSecond <= 0 {
-		rateLimitPerSecond = 100
-	}
-	rateLimitBurst := cfg.RateLimitBurst
-	if rateLimitBurst <= 0 {
-		rateLimitBurst = 200
-	}
-	s.rateLimiter = middleware.NewRateLimiter(rateLimitPerSecond, rateLimitBurst, base.Logger())
+	s.rateLimiter = middleware.NewRateLimiter(
+		runtime.ResolveInt(cfg.RateLimitPerSecond, "", 100),
+		runtime.ResolveInt(cfg.RateLimitBurst, "", 200),
+		base.Logger(),
+	)
 
 	// Initialize request timeout (default: 30 seconds)
-	s.requestTimeout = cfg.RequestTimeout
-	if s.requestTimeout <= 0 {
-		s.requestTimeout = 30 * time.Second
-	}
+	s.requestTimeout = runtime.ResolveDuration(cfg.RequestTimeout, "", 30*time.Second)
 
 	if s.chainClient != nil && s.priceFeedAddress != "" {
 		s.priceFeed = chain.NewPriceFeedContract(s.chainClient, s.priceFeedAddress)
 	}
 
 	// Load signing key
-	if key, ok := cfg.Marble.Secret("NEOFEEDS_SIGNING_KEY"); ok && len(key) >= 32 {
+	if key, ok, err := marble.RequireSecret(cfg.Marble, "NEOFEEDS_SIGNING_KEY", 32, strict); err != nil {
+		return nil, fmt.Errorf("neofeeds: %w", err)
+	} else if ok {
 		s.signingKey = key
-	} else if strict {
-		return nil, fmt.Errorf("neofeeds: NEOFEEDS_SIGNING_KEY is required and must be at least 32 bytes")
 	} else {
 		s.Logger().WithFields(nil).Warn("NEOFEEDS_SIGNING_KEY not configured; price responses will be unsigned (development/testing only)")
 	}
@@ -242,14 +235,7 @@ func New(cfg Config) (*Service, error) {
 		s.sources[src.ID] = src
 	}
 
-	sourceConcurrency := cfg.SourceConcurrency
-	if sourceConcurrency <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOFEEDS_SOURCE_CONCURRENCY"); ok && parsed > 0 {
-			sourceConcurrency = parsed
-		} else {
-			sourceConcurrency = 8
-		}
-	}
+	sourceConcurrency := runtime.ResolveInt(cfg.SourceConcurrency, "NEOFEEDS_SOURCE_CONCURRENCY", 8)
 	s.sourceSem = make(chan struct{}, sourceConcurrency)
 
 	// Register chain push worker if enabled.

@@ -23,7 +23,6 @@ import (
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/crypto"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/database"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/globalsigner/supabase"
-	slhex "github.com/R3E-Network/neo-miniapps-platform/infrastructure/hex"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/logging"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/marble"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/runtime"
@@ -495,7 +494,7 @@ func (s *Service) Sign(ctx context.Context, req *SignRequest) (*SignResponse, er
 		return nil, err
 	}
 
-	data, err := slhex.DecodeString(req.Data)
+	data, err := decodeHexString(req.Data)
 	if err != nil {
 		return nil, fmt.Errorf("invalid data hex: %w", err)
 	}
@@ -580,7 +579,7 @@ func (s *Service) SignRaw(ctx context.Context, req *SignRawRequest) (*SignRespon
 		return nil, err
 	}
 
-	data, err := slhex.DecodeString(req.Data)
+	data, err := decodeHexString(req.Data)
 	if err != nil {
 		return nil, fmt.Errorf("invalid data hex: %w", err)
 	}
@@ -1074,4 +1073,12 @@ func (s *Service) ListKeyVersions() []*KeyVersion {
 // Logger returns the service logger.
 func (s *Service) Logger() *logging.Logger {
 	return s.BaseService.Logger()
+}
+
+// decodeHexString decodes a hex string to bytes, stripping optional "0x"/"0X" prefix.
+func decodeHexString(value string) ([]byte, error) {
+	value = strings.TrimSpace(value)
+	value = strings.TrimPrefix(value, "0x")
+	value = strings.TrimPrefix(value, "0X")
+	return hex.DecodeString(value)
 }

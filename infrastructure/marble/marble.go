@@ -17,7 +17,8 @@ import (
 	"github.com/edgelesssys/ego/attestation"
 	"github.com/edgelesssys/ego/enclave"
 
-	slhex "github.com/R3E-Network/neo-miniapps-platform/infrastructure/hex"
+	"encoding/hex"
+
 	slhttputil "github.com/R3E-Network/neo-miniapps-platform/infrastructure/httputil"
 	"github.com/R3E-Network/neo-miniapps-platform/infrastructure/logging"
 )
@@ -319,7 +320,7 @@ func (m *Marble) Secret(name string) ([]byte, bool) {
 	}
 
 	decoded := []byte(envValue)
-	if hexDecoded, hexOk := slhex.TryDecode(envValue); hexOk {
+	if hexDecoded, hexOk := tryHexDecode(envValue); hexOk {
 		decoded = hexDecoded
 	}
 
@@ -371,6 +372,22 @@ func (m *Marble) MarbleType() string {
 // IsEnclave returns true if running inside an SGX enclave.
 func (m *Marble) IsEnclave() bool {
 	return m.report != nil
+}
+
+// tryHexDecode attempts to decode a hex string (with optional 0x prefix),
+// returning (data, true) on success or (nil, false) on any error.
+func tryHexDecode(value string) ([]byte, bool) {
+	value = strings.TrimSpace(value)
+	value = strings.TrimPrefix(value, "0x")
+	value = strings.TrimPrefix(value, "0X")
+	if value == "" || len(value)%2 != 0 {
+		return nil, false
+	}
+	result, err := hex.DecodeString(value)
+	if err != nil {
+		return nil, false
+	}
+	return result, true
 }
 
 // zeroBytes securely zeros a byte slice.

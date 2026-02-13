@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -136,10 +135,7 @@ func New(cfg Config) (*Service, error) {
 		DB:      cfg.DB,
 	})
 
-	depositAddress := strings.TrimSpace(cfg.DepositAddress)
-	if depositAddress == "" {
-		depositAddress = strings.TrimSpace(os.Getenv("GASBANK_DEPOSIT_ADDRESS"))
-	}
+	depositAddress := runtime.ResolveString(cfg.DepositAddress, "GASBANK_DEPOSIT_ADDRESS", "")
 	if requireDepositAddress && depositAddress == "" {
 		return nil, fmt.Errorf("neogasbank: GASBANK_DEPOSIT_ADDRESS is required in production")
 	}

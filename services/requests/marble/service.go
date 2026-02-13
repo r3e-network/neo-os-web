@@ -249,23 +249,9 @@ func New(cfg Config) (*Service, error) {
 		}
 	}
 
-	maxResult := cfg.MaxResultBytes
-	if maxResult <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOREQUESTS_MAX_RESULT_BYTES"); ok && parsed > 0 {
-			maxResult = parsed
-		} else {
-			maxResult = defaultMaxResultBytes
-		}
-	}
+	maxResult := runtime.ResolveInt(cfg.MaxResultBytes, "NEOREQUESTS_MAX_RESULT_BYTES", defaultMaxResultBytes)
 
-	maxErrorLen := cfg.MaxErrorLen
-	if maxErrorLen <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOREQUESTS_MAX_ERROR_LEN"); ok && parsed > 0 {
-			maxErrorLen = parsed
-		} else {
-			maxErrorLen = defaultMaxErrorLen
-		}
-	}
+	maxErrorLen := runtime.ResolveInt(cfg.MaxErrorLen, "NEOREQUESTS_MAX_ERROR_LEN", defaultMaxErrorLen)
 
 	rngMode := strings.ToLower(strings.TrimSpace(cfg.RNGResultMode))
 	if rngMode == "" {
@@ -287,45 +273,19 @@ func New(cfg Config) (*Service, error) {
 		}
 	}
 
-	txWait := cfg.TxWait
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_WAIT")); raw != "" {
-		txWait = strings.EqualFold(raw, "true") || raw == "1"
-	}
+	txWait := runtime.ResolveBool(cfg.TxWait, "NEOREQUESTS_TX_WAIT")
 
-	statsRollupInterval := cfg.StatsRollupInterval
-	if statsRollupInterval <= 0 {
-		if parsed, ok := runtime.ParseEnvDuration("NEOREQUESTS_STATS_ROLLUP_INTERVAL"); ok {
-			statsRollupInterval = parsed
-		} else {
-			statsRollupInterval = 30 * time.Minute
-		}
-	}
+	statsRollupInterval := runtime.ResolveDuration(cfg.StatsRollupInterval, "NEOREQUESTS_STATS_ROLLUP_INTERVAL", 30*time.Minute)
 
-	onchainUsage := cfg.OnchainUsage
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ONCHAIN_USAGE")); raw != "" {
-		onchainUsage = runtime.ParseBoolValue(raw)
-	}
-	onchainTxUsage := cfg.OnchainTxUsage
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_USAGE")); raw != "" {
-		onchainTxUsage = runtime.ParseBoolValue(raw)
-	} else if !onchainTxUsage {
+	onchainUsage := runtime.ResolveBool(cfg.OnchainUsage, "NEOREQUESTS_ONCHAIN_USAGE")
+	onchainTxUsage := runtime.ResolveBool(cfg.OnchainTxUsage, "NEOREQUESTS_TX_USAGE")
+	if !onchainTxUsage && strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_USAGE")) == "" {
 		onchainTxUsage = true
 	}
 
-	enforceAppRegistry := cfg.EnforceAppRegistry
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ENFORCE_APPREGISTRY")); raw != "" {
-		enforceAppRegistry = runtime.ParseBoolValue(raw)
-	}
+	enforceAppRegistry := runtime.ResolveBool(cfg.EnforceAppRegistry, "NEOREQUESTS_ENFORCE_APPREGISTRY")
 
-	requestIndexTTL := cfg.RequestIndexTTL
-	if requestIndexTTL <= 0 {
-		if parsed, ok := runtime.ParseEnvDuration("NEOREQUESTS_REQUEST_INDEX_TTL"); ok {
-			requestIndexTTL = parsed
-		}
-	}
-	if requestIndexTTL <= 0 {
-		requestIndexTTL = defaultRequestIndexTTL
-	}
+	requestIndexTTL := runtime.ResolveDuration(cfg.RequestIndexTTL, "NEOREQUESTS_REQUEST_INDEX_TTL", defaultRequestIndexTTL)
 
 	cacheSeconds := cfg.AppRegistryCacheSeconds
 	if cacheSeconds <= 0 {
