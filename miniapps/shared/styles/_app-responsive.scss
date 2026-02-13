@@ -1,0 +1,208 @@
+/**
+ * Shared App.vue Responsive Styles
+ *
+ * Consolidates the duplicated @media blocks found across all miniapp App.vue files.
+ * Two layout variants exist in the codebase:
+ *
+ * Variant A (Bootstrap-like breakpoints):
+ *   @include app-responsive-a;
+ *
+ * Variant B (simplified breakpoints):
+ *   @include app-responsive-b;
+ *
+ * Optional add-ons (included automatically in both variants where appropriate):
+ *   @include app-orientation;
+ *   @include app-reduced-motion;
+ *   @include app-retina;
+ *   @include app-dark-mode;
+ */
+
+// ============================================================================
+// Variant A — Bootstrap-like 6-tier breakpoints
+// Includes: .hide-xs, .hide-sm, .hide-md, .hide-lg, .hide-xl, .hide-xxl
+// ============================================================================
+
+@mixin app-responsive-a {
+  @media (max-width: 575.98px) {
+    .app-container {
+      padding: 8px;
+      font-size: 14px;
+    }
+    .hide-xs {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 576px) and (max-width: 767.98px) {
+    .app-container {
+      padding: 12px;
+      font-size: 15px;
+    }
+    .hide-sm {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 991.98px) {
+    .app-container {
+      padding: 16px;
+      font-size: 16px;
+    }
+    .hide-md {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 992px) and (max-width: 1199.98px) {
+    .app-container {
+      padding: 20px;
+      max-width: 960px;
+      margin: 0 auto;
+      font-size: 16px;
+    }
+    .hide-lg {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 1200px) and (max-width: 1399.98px) {
+    .app-container {
+      padding: 24px;
+      max-width: 1140px;
+      margin: 0 auto;
+      font-size: 16px;
+    }
+    .hide-xl {
+      display: none !important;
+    }
+  }
+
+  @media (min-width: 1400px) {
+    .app-container {
+      padding: 32px;
+      max-width: 1320px;
+      margin: 0 auto;
+      font-size: 16px;
+    }
+    .hide-xxl {
+      display: none !important;
+    }
+  }
+}
+
+// ============================================================================
+// Variant B — Simplified 4-tier breakpoints
+// Uses .is-mobile / .is-tablet / .is-desktop class-gated hide rules
+// ============================================================================
+
+@mixin app-responsive-b {
+  @media screen and (max-width: 480px) {
+    .app-container {
+      padding: 8px;
+    }
+    .app-container.is-mobile .hide-mobile {
+      display: none !important;
+    }
+  }
+
+  @media screen and (min-width: 481px) and (max-width: 768px) {
+    .app-container {
+      padding: 12px;
+    }
+  }
+
+  @media screen and (min-width: 769px) and (max-width: 1023px) {
+    .app-container {
+      padding: 20px;
+    }
+    .app-container.is-tablet .hide-tablet {
+      display: none !important;
+    }
+  }
+
+  @media screen and (min-width: 1024px) {
+    .app-container {
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .app-container.is-desktop .hide-desktop {
+      display: none !important;
+    }
+  }
+}
+
+// ============================================================================
+// Orientation
+// ============================================================================
+
+@mixin app-orientation-a {
+  @media (orientation: portrait) {
+    .app-container.is-portrait {
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+  }
+
+  @media (orientation: landscape) and (max-height: 600px) {
+    .app-container.is-landscape {
+      min-height: 100vh;
+    }
+    .landscape-hide {
+      display: none !important;
+    }
+  }
+}
+
+@mixin app-orientation-b {
+  @media screen and (orientation: portrait) {
+    .app-container {
+      min-height: 100vh;
+    }
+  }
+
+  @media screen and (orientation: landscape) and (max-height: 600px) {
+    .app-container {
+      min-height: 100vh;
+    }
+  }
+}
+
+// ============================================================================
+// Accessibility — reduced motion
+// ============================================================================
+
+@mixin app-reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    .app-container * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+// ============================================================================
+// High-DPI / Retina
+// ============================================================================
+
+@mixin app-retina {
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .app-container.is-retina {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  }
+}
+
+// ============================================================================
+// Dark mode
+// ============================================================================
+
+@mixin app-dark-mode {
+  @media (prefers-color-scheme: dark) {
+    .app-container {
+      color-scheme: dark;
+    }
+  }
+}

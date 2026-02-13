@@ -5,6 +5,7 @@ go 1.24.9
 toolchain go1.24.11
 
 require (
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/dop251/goja v0.0.0-20251201205617-2bb4c724c0f9
 	github.com/edgelesssys/ego v1.8.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
@@ -15,6 +16,7 @@ require (
 	github.com/nspcc-dev/rfc6979 v0.2.4
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sirupsen/logrus v1.9.4
+	github.com/sony/gobreaker/v2 v2.4.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/crypto v0.47.0

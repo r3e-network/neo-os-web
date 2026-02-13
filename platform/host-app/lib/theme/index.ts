@@ -1,6 +1,9 @@
 /**
  * Theme system with dark mode support
+ * Wraps next-themes for production-grade theme management
  */
+
+export { useTheme, ThemeProvider } from "next-themes";
 
 export type Theme = "light" | "dark" | "system";
 

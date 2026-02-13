@@ -53,10 +53,12 @@ overrides:
   '@types/react': ^18.3.1
   '@types/react-dom': ^18.3.0
   jspdf: '>=4.1.0'
-  '@intlify/core-base': '>=9.1.11'
+  '@intlify/core-base': '>=9.14.0'
   '@intlify/message-resolver': '>=9.1.11'
+  '@intlify/shared': '>=9.14.0'
   '@intlify/vue-devtools>@intlify/message-resolver': '>=9.1.11'
   esbuild: '>=0.25.0'
+  qs: '>=6.13.0'
   dompurify: '>=3.2.4'
   lodash: '>=4.17.23'
   ws: '>=8.17.1'
@@ -2802,12 +2804,18 @@ importers:
       framer-motion:
         specifier: ^12.23.26
         version: 12.29.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      lru-cache:
+        specifier: ^11.2.6
+        version: 11.2.6
       lucide-react:
         specifier: ^0.562.0
         version: 0.562.0(react@18.3.1)
       next:
         specifier: ^16.1.6
         version: 16.1.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.0)(babel-plugin-react-compiler@1.0.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.97.3)
+      next-themes:
+        specifier: ^0.4.6
+        version: 0.4.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       pino:
         specifier: ^10.1.0
         version: 10.3.0
@@ -4554,10 +4562,6 @@ packages:
   '@intlify/shared@11.2.8':
     resolution: {integrity: sha512-l6e4NZyUgv8VyXXH4DbuucFOBmxLF56C/mqh2tvApbzl2Hrhi1aTDcuv5TKdxzfHYmpO3UB0Cz04fgDT9vszfw==}
     engines: {node: '>= 16'}
-
-  '@intlify/shared@9.1.9':
-    resolution: {integrity: sha512-xKGM1d0EAxdDFCWedcYXOm6V5Pfw/TMudd6/qCdEb4tv0hk9EKeg7lwQF1azE0dP2phvx0yXxrt7UQK+IZjNdw==}
-    engines: {node: '>= 10'}
 
   '@intlify/shared@9.14.5':
     resolution: {integrity: sha512-9gB+E53BYuAEMhbCAxVgG38EZrk59sxBtv3jSizNL2hEWlgjBjAw1AwpLHtNaeda12pe6W20OGEa0TwuMSRbyQ==}
@@ -9998,6 +10002,10 @@ packages:
     resolution: {integrity: sha512-vFrFJkWtJvJnD5hg+hJvVE8Lh/TcMzKnTgCWmtBipwI5yLX/iX+5UB2tfuyODF5E7k9xEzMdYgGqaSb1c0c5Yw==}
     engines: {node: 20 || >=22}
 
+  lru-cache@11.2.6:
+    resolution: {integrity: sha512-ESL2CrkS/2wTPfuend7Zhkzo2u0daGJ/A2VucJOgQ/C48S/zB8MMeMHSGKYpXhIjbPxfuezITkaBH1wqv00DDQ==}
+    engines: {node: 20 || >=22}
+
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
@@ -10298,6 +10306,12 @@ packages:
 
   nested-error-stacks@2.0.1:
     resolution: {integrity: sha512-SrQrok4CATudVzBS7coSz26QRSmlK9TzzoFbeKfcPBUFPjcQM9Rqvr/DlJkOrwI/0KcgvMub1n1g5Jt9EgRn4A==}
+
+  next-themes@0.4.6:
+    resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
+    peerDependencies:
+      react: ^18.3.1
+      react-dom: ^18.3.1
 
   next@16.1.6:
     resolution: {integrity: sha512-hkyRkcu5x/41KoqnROkfTm2pZVbKxvbZRuNvKXLRXxs3VfyO0WhY50TQS40EuKO9SW3rBj/sF3WbVwDACeMZyw==}
@@ -14148,7 +14162,7 @@ snapshots:
       '@dcloudio/uni-i18n': 3.0.0-4060620250520001
       '@dcloudio/uni-shared': 3.0.0-4060620250520001
       '@intlify/core-base': 11.2.8
-      '@intlify/shared': 9.1.9
+      '@intlify/shared': 11.2.8
       '@intlify/vue-devtools': 9.1.9
       '@rollup/pluginutils': 5.3.0(rollup@4.56.0)
       '@vue/compiler-core': 3.4.21
@@ -15192,7 +15206,7 @@ snapshots:
   '@intlify/message-compiler@9.1.9':
     dependencies:
       '@intlify/message-resolver': 9.1.11
-      '@intlify/shared': 9.1.9
+      '@intlify/shared': 11.2.8
       source-map: 0.6.1
 
   '@intlify/message-resolver@9.1.11': {}
@@ -15201,11 +15215,9 @@ snapshots:
     dependencies:
       '@intlify/message-compiler': 9.1.9
       '@intlify/message-resolver': 9.1.11
-      '@intlify/shared': 9.1.9
+      '@intlify/shared': 11.2.8
 
   '@intlify/shared@11.2.8': {}
-
-  '@intlify/shared@9.1.9': {}
 
   '@intlify/shared@9.14.5': {}
 
@@ -15213,7 +15225,7 @@ snapshots:
     dependencies:
       '@intlify/message-resolver': 9.1.11
       '@intlify/runtime': 9.1.9
-      '@intlify/shared': 9.1.9
+      '@intlify/shared': 11.2.8
 
   '@isaacs/balanced-match@4.0.1': {}
 
@@ -22604,6 +22616,8 @@ snapshots:
 
   lru-cache@11.2.5: {}
 
+  lru-cache@11.2.6: {}
+
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
@@ -22979,6 +22993,11 @@ snapshots:
   neo-async@2.6.2: {}
 
   nested-error-stacks@2.0.1: {}
+
+  next-themes@0.4.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   next@16.1.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.0)(babel-plugin-react-compiler@1.0.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.97.3):
     dependencies:

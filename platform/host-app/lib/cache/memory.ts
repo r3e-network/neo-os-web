@@ -1,55 +1,28 @@
 /**
  * In-memory cache with TTL support
- * Simple LRU-like cache for API responses
+ * Wraps lru-cache for production-grade LRU eviction
  */
 
-interface CacheEntry<T> {
-  data: T;
-  expiresAt: number;
-}
+import { LRUCache } from "lru-cache";
 
 class MemoryCache {
-  private cache = new Map<string, CacheEntry<unknown>>();
-  private maxSize: number;
-  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+  // lru-cache v11 constrains V extends {} — use `object | string | number | boolean`
+  private cache: LRUCache<string, object | string | number | boolean>;
 
   constructor(maxSize = 1000) {
-    this.maxSize = maxSize;
-    // Cleanup expired entries every 60 seconds
-    this.startCleanup();
-  }
-
-  private startCleanup(): void {
-    if (typeof setInterval !== "undefined") {
-      this.cleanupInterval = setInterval(() => this.cleanup(), 60 * 1000);
-    }
-  }
-
-  private cleanup(): void {
-    const now = Date.now();
-    for (const [key, entry] of this.cache) {
-      if (now > entry.expiresAt) {
-        this.cache.delete(key);
-      }
-    }
+    this.cache = new LRUCache<string, object | string | number | boolean>({
+      max: maxSize,
+      allowStale: false,
+    });
   }
 
   get<T>(key: string): T | null {
-    const entry = this.cache.get(key) as CacheEntry<T> | undefined;
-    if (!entry) return null;
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      return null;
-    }
-    return entry.data;
+    const value = this.cache.get(key);
+    return value === undefined ? null : (value as T);
   }
 
   set<T>(key: string, data: T, ttlMs: number): void {
-    if (this.cache.size >= this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey) this.cache.delete(firstKey);
-    }
-    this.cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+    this.cache.set(key, data as object | string | number | boolean, { ttl: ttlMs });
   }
 
   delete(key: string): void {
@@ -61,10 +34,6 @@ class MemoryCache {
   }
 
   destroy(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
     this.cache.clear();
   }
 }

@@ -1,17 +1,11 @@
 /**
  * Structured logging utility with trace ID support
+ * Wraps pino for production-grade structured logging
  */
 
-type LogLevel = "debug" | "info" | "warn" | "error";
+import pino from "pino";
 
-interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: string;
-  traceId?: string;
-  spanId?: string;
-  context?: Record<string, unknown>;
-}
+type LogLevel = "debug" | "info" | "warn" | "error";
 
 // Global trace context (request-scoped in SSR, session-scoped in browser)
 let globalTraceId: string | undefined;
@@ -41,79 +35,50 @@ export function clearTraceContext(): void {
   globalSpanId = undefined;
 }
 
-class Logger {
-  private name: string;
+const pinoLevel = process.env.NODE_ENV === "development" ? "debug" : "info";
 
-  constructor(name: string) {
-    this.name = name;
-  }
-
-  private log(level: LogLevel, message: string, context?: Record<string, unknown>) {
-    const entry: LogEntry = {
-      level,
-      message,
-      timestamp: new Date().toISOString(),
-      traceId: globalTraceId,
-      spanId: globalSpanId,
-      context: { ...context, logger: this.name },
-    };
-
-    const output = JSON.stringify(entry);
-    if (level === "error") {
-      console.error(output);
-    } else if (level === "warn") {
-      console.warn(output);
-    } else {
-      console.log(output);
-    }
-  }
-
-  debug(message: string, context?: Record<string, unknown>) {
-    if (process.env.NODE_ENV === "development") {
-      this.log("debug", message, context);
-    }
-  }
-
-  info(message: string, context?: Record<string, unknown>) {
-    this.log("info", message, context);
-  }
-
-  warn(message: string, context?: Record<string, unknown>) {
-    this.log("warn", message, context);
-  }
-
-  error(message: string, context?: Record<string, unknown>) {
-    this.log("error", message, context);
-  }
-
-  /** Create child logger with additional context */
-  child(childContext: Record<string, unknown>): ChildLogger {
-    return new ChildLogger(this.name, childContext);
-  }
+function makePinoInstance(name: string): pino.Logger {
+  return pino({
+    name,
+    level: pinoLevel,
+    ...(process.env.NODE_ENV === "development" && {
+      transport: { target: "pino-pretty", options: { colorize: true } },
+    }),
+  });
 }
 
-class ChildLogger extends Logger {
-  private baseContext: Record<string, unknown>;
+class Logger {
+  private pino: pino.Logger;
 
-  constructor(name: string, baseContext: Record<string, unknown>) {
-    super(name);
-    this.baseContext = baseContext;
+  constructor(name: string, pinoInstance?: pino.Logger) {
+    this.pino = pinoInstance ?? makePinoInstance(name);
   }
 
   debug(message: string, context?: Record<string, unknown>) {
-    super.debug(message, { ...this.baseContext, ...context });
+    this.pino.debug({ ...this.traceBindings(), ...context }, message);
   }
 
   info(message: string, context?: Record<string, unknown>) {
-    super.info(message, { ...this.baseContext, ...context });
+    this.pino.info({ ...this.traceBindings(), ...context }, message);
   }
 
   warn(message: string, context?: Record<string, unknown>) {
-    super.warn(message, { ...this.baseContext, ...context });
+    this.pino.warn({ ...this.traceBindings(), ...context }, message);
   }
 
   error(message: string, context?: Record<string, unknown>) {
-    super.error(message, { ...this.baseContext, ...context });
+    this.pino.error({ ...this.traceBindings(), ...context }, message);
+  }
+
+  child(childContext: Record<string, unknown>): Logger {
+    return new Logger("", this.pino.child(childContext));
+  }
+
+  private traceBindings(): Record<string, unknown> {
+    const ctx: Record<string, unknown> = {};
+    if (globalTraceId) ctx.traceId = globalTraceId;
+    if (globalSpanId) ctx.spanId = globalSpanId;
+    return ctx;
   }
 }
 

@@ -45,31 +45,22 @@ describe("MemoryCache", () => {
   });
 
   describe("TTL expiration", () => {
-    it("should return null for expired entry", () => {
-      const now = Date.now();
-      jest.spyOn(Date, "now").mockReturnValueOnce(now);
+    const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-      apiCache.set("expiring", "value", 100);
+    it("should return null for expired entry", async () => {
+      apiCache.set("expiring", "value", 50);
 
-      // Advance time past TTL
-      jest.spyOn(Date, "now").mockReturnValue(now + 200);
+      // Wait past TTL (lru-cache uses performance.now internally)
+      await delay(100);
 
       expect(apiCache.get("expiring")).toBeNull();
-
-      jest.restoreAllMocks();
     });
 
     it("should return value before TTL expires", () => {
-      const now = Date.now();
-      jest.spyOn(Date, "now").mockReturnValueOnce(now);
+      apiCache.set("alive", "value", 5000);
 
-      apiCache.set("alive", "value", 1000);
-
-      jest.spyOn(Date, "now").mockReturnValue(now + 500);
-
+      // Immediate read — well within TTL
       expect(apiCache.get("alive")).toBe("value");
-
-      jest.restoreAllMocks();
     });
   });
 

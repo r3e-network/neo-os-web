@@ -1,26 +1,34 @@
 /**
  * Input validation utilities
  * Supports Neo N3 address validation
+ * Powered by zod schemas with backward-compatible function API
  */
 
+import { z } from "zod";
 import type { ChainType } from "../chains/types";
 
 // ============================================================================
-// Patterns
+// Zod Schemas
 // ============================================================================
 
-const NEO_N3_ADDRESS_PATTERN = /^N[A-Za-z0-9]{33}$/;
-const TX_HASH_PATTERN = /^0x[a-fA-F0-9]{64}$/;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const URL_PATTERN = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
+const neoN3AddressSchema = z.string().regex(/^N[A-Za-z0-9]{33}$/);
+const txHashSchema = z.string().regex(/^0x[a-fA-F0-9]{64}$/);
+const uuidSchema = z.string().uuid();
+const urlSchema = z.string().regex(/^https?:\/\/[^\s/$.?#].[^\s]*$/i);
+const appIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/);
+const emailSchema = z
+  .string()
+  .max(254)
+  .regex(
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/,
+  );
 
 // ============================================================================
 // Address Validation
 // ============================================================================
 
 export function isValidNeoAddress(address: string): boolean {
-  if (!address || typeof address !== "string") return false;
-  return NEO_N3_ADDRESS_PATTERN.test(address);
+  return neoN3AddressSchema.safeParse(address).success;
 }
 
 export function isValidWalletAddress(address: string, chainType?: ChainType): boolean {
@@ -40,28 +48,23 @@ export function detectAddressChainType(address: string): ChainType | null {
 // ============================================================================
 
 export function isValidAppId(appId: string): boolean {
-  if (!appId || typeof appId !== "string") return false;
-  return /^[a-zA-Z0-9_-]{1,64}$/.test(appId);
+  return appIdSchema.safeParse(appId).success;
 }
 
 export function isValidEmail(email: string): boolean {
-  if (!email || typeof email !== "string" || email.length > 254) return false;
-  return /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(email);
+  return emailSchema.safeParse(email).success;
 }
 
 export function isValidUUID(uuid: string): boolean {
-  if (!uuid || typeof uuid !== "string") return false;
-  return UUID_PATTERN.test(uuid);
+  return uuidSchema.safeParse(uuid).success;
 }
 
 export function isValidUrl(url: string): boolean {
-  if (!url || typeof url !== "string") return false;
-  return URL_PATTERN.test(url);
+  return urlSchema.safeParse(url).success;
 }
 
 export function isValidTxHash(hash: string): boolean {
-  if (!hash || typeof hash !== "string") return false;
-  return TX_HASH_PATTERN.test(hash);
+  return txHashSchema.safeParse(hash).success;
 }
 
 // ============================================================================
