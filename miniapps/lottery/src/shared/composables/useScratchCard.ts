@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { parseInvokeResult } from "@shared/utils/neo";
 
 export interface ScratchTicket {
@@ -17,7 +18,10 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export function useScratchCard() {
-  const { address, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
+  const { address, invokeContract, invokeRead } = useWallet() as WalletSDK;
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? "Contract address not found" : key,
+  );
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const playerTickets = ref<ScratchTicket[]>([]);
@@ -33,11 +37,10 @@ export function useScratchCard() {
   };
 
   const getContract = async () => {
-    const contract = await getContractAddress();
-    if (!contract) {
-      throw new Error("Contract address not found");
-    }
-    return contract;
+    return ensureContractAddress({
+      silentChainCheck: true,
+      contractUnavailableMessage: "Contract address not found",
+    });
   };
 
   const formatPrize = (prizeRaw: number | string): string => {
