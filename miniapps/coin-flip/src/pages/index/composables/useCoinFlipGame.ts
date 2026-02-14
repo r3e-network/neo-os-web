@@ -225,8 +225,7 @@ export function useCoinFlipGame(
           ],
         });
 
-        const settleResult = settleTx as unknown as Record<string, unknown> | undefined;
-        const settleTxid = extractTxid(settleResult);
+        const settleTxid = extractTxid(settleTx);
         if (settleTxid) {
           const resolvedEvent = await waitForEvent(settleTxid, "BetResolved");
           if (resolvedEvent) {

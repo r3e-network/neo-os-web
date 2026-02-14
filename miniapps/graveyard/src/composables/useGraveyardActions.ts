@@ -8,7 +8,6 @@ import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { extractTxid } from "@shared/utils/transaction";
 import type { HistoryItem } from "@/types";
 
 const APP_ID = "miniapp-graveyard";
@@ -82,7 +81,7 @@ export function useGraveyardActions() {
         contract
       );
 
-      const txid = extractTxid(tx);
+      const txid = tx.txid;
       let evt: { created_at?: string; state?: unknown[] } | null = null;
       if (txid) {
         try {

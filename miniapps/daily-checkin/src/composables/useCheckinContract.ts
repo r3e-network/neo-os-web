@@ -3,7 +3,7 @@ import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { formatGas } from "@shared/utils/format";
-import { createSidebarItems, extractTxid } from "@shared/utils";
+import { createSidebarItems } from "@shared/utils";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -163,7 +163,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
         contract
       );
 
-      const txid = extractTxid(tx);
+      const txid = tx.txid;
       const result = txid
         ? await waitForPendingOrConfirm(txid, "CheckedIn", waitForEvent)
         : { pending: true };
@@ -194,7 +194,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
       const { invoke, waitForEvent } = await processPayment("0", "claim");
       const tx = await invoke("claimRewards", [{ type: "Hash160", value: address.value }], contract);
 
-      const txid = extractTxid(tx);
+      const txid = tx.txid;
       const result = txid
         ? await waitForPendingOrConfirm(txid, "RewardsClaimed", waitForEvent)
         : { pending: true };

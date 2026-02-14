@@ -91,8 +91,7 @@ export function useGachaPublish() {
         ],
       });
 
-      const createResult = createTx as unknown as Record<string, unknown> | undefined;
-      const createTxId = extractTxid(createResult);
+      const createTxId = extractTxid(createTx);
       const createdEvent = createTxId ? await waitForEvent(createTxId, "MachineCreated") : null;
       if (!createdEvent) {
         throw new Error(t("createPending"));
@@ -145,8 +144,7 @@ export function useGachaPublish() {
           ],
         });
 
-        const itemResult = itemTx as unknown as Record<string, unknown> | undefined;
-        const itemTxId = extractTxid(itemResult);
+        const itemTxId = extractTxid(itemTx);
         if (itemTxId) {
           await waitForEvent(itemTxId, "MachineItemAdded");
         }

@@ -104,8 +104,7 @@ export function useGachaPlay() {
         contract
       );
 
-      const txResult = initiateTx as unknown as Record<string, unknown> | undefined;
-      const initiateTxid = extractTxid(txResult);
+      const initiateTxid = extractTxid(initiateTx);
       const initiatedEvent = initiateTxid ? await waitForEvent(initiateTxid, "PlayInitiated") : null;
       if (!initiatedEvent) {
         throw new Error(t("playPending"));
@@ -155,8 +154,7 @@ export function useGachaPlay() {
         contract
       );
 
-      const settleResult = settleTx as unknown as Record<string, unknown> | undefined;
-      const settleTxid = extractTxid(settleResult);
+      const settleTxid = extractTxid(settleTx);
       if (settleTxid) {
         await waitForEvent(settleTxid, "PlayResolved");
       }

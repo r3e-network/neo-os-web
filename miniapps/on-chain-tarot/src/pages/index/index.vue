@@ -63,7 +63,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage, pollForEvent } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createPrimaryStatsTemplateConfig, createSidebarItems, extractTxid, pollForTxEvent } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems, pollForTxEvent } from "@shared/utils";
 
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
@@ -159,7 +159,7 @@ const draw = async () => {
       ],
       contract
     );
-    const txid = extractTxid(tx);
+    const txid = tx.txid;
     const requestedEvt = txid ? await waitForEvent(txid, "ReadingRequested") : null;
     if (!requestedEvt) throw new Error(t("readingPending"));
     const requestedRecord = requestedEvt as unknown as Record<string, unknown>;
