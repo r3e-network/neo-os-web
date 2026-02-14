@@ -90,6 +90,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `b25dd33`
 
+### Refactor (Continued 4)
+
+- Replaced direct contract-address lookups with shared resolver usage in `lottery` and `neo-swap`.
+- Removed unused contract/wallet scaffolding from `memorial-shrine` composables.
+- Reduced remaining direct `getContractAddress()` usages in miniapps to 3 files (`lottery` scratch card, `turtle-match`, `neoburger`).
+
+### Verification (Continued 4)
+
+- `node scripts/validate-miniapps.mjs` passed (52/52).
+- `pnpm turbo typecheck --filter='./miniapps/*'` passed.
+- `pnpm turbo build --filter=miniapp-memorial-shrine --filter=miniapp-lottery --filter=miniapp-neo-swap` passed (warnings only).
+
+### Commit Breakdown (Continued 4)
+
+- `28858c7`
+
 ## [2.1.0] - 2026-02-11
 
 ### Security Hardening
