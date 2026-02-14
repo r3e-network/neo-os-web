@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
+import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -14,13 +14,12 @@ export function useMapInteractions(
   ensureContractAddress: () => Promise<string>,
   loadTiles: () => Promise<void>,
 ) {
-  const { address, connect, invokeContract, chainType } = useWallet() as WalletSDK;
+  const { address, connect } = useWallet() as WalletSDK;
   const { processPayment } = usePaymentFlow(APP_ID);
-  const { list: listEvents } = useEvents();
 
   const isPurchasing = ref(false);
   const zoomLevel = ref(1);
-  const { status, setStatus, clearStatus } = useStatusMessage();
+  const { status, setStatus } = useStatusMessage();
 
   const zoomIn = () => {
     if (zoomLevel.value < 2) zoomLevel.value += 0.25;
@@ -30,15 +29,8 @@ export function useMapInteractions(
     if (zoomLevel.value > 0.5) zoomLevel.value -= 0.25;
   };
 
-  const waitForEvent = async (txid: string, eventName: string) => {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
-      const match = res.events.find((evt) => evt.tx_hash === txid);
-      if (match) return match;
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    }
-    return null;
-  };
+  const isPendingEventError = (error: unknown, eventName: string) =>
+    error instanceof Error && error.message.includes(`Event "${eventName}" not found`);
 
   const purchaseTile = async (tilePrice: number) => {
     if (isPurchasing.value) return;
@@ -57,7 +49,7 @@ export function useMapInteractions(
       }
       const contract = await ensureContractAddress();
       const tile = tiles.value[selectedTile.value];
-      const { receiptId, invoke } = await processPayment(tilePrice.toString(), `map:claim:${tile.x}:${tile.y}`);
+      const { receiptId, invoke, waitForEvent } = await processPayment(tilePrice.toString(), `map:claim:${tile.x}:${tile.y}`);
       if (!receiptId) {
         throw new Error("Receipt missing");
       }
@@ -74,8 +66,16 @@ export function useMapInteractions(
       const txid = String(
         (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
       );
-      const evt = txid ? await waitForEvent(txid, "PieceClaimed") : null;
-      if (!evt) {
+      if (txid) {
+        try {
+          await waitForEvent(txid, "PieceClaimed");
+        } catch (e: unknown) {
+          if (isPendingEventError(e, "PieceClaimed")) {
+            throw new Error("Claim pending");
+          }
+          throw e;
+        }
+      } else {
         throw new Error("Claim pending");
       }
       await loadTiles();

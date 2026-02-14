@@ -13,10 +13,10 @@ const APP_ID = "miniapp-dailycheckin";
 const CHECK_IN_FEE = 0.001;
 
 export function useCheckinContract(t: (key: string, params?: Record<string, string>) => string) {
-  const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+  const { address, connect, invokeRead } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
+  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+  const { ensure: ensureContractAddress } = useContractAddress(t);
 
   // User state
   const currentStreak = ref(0);
@@ -54,17 +54,20 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
     { label: t("unclaimed"), value: `${formatGas(unclaimedRewards.value)} GAS` },
   ]);
 
-  const waitForEvent = async (
+  const waitForPendingOrConfirm = async (
     txid: string,
-    eventName: string
-  ): Promise<{ event: Record<string, unknown> | null; pending: boolean }> => {
-    for (let attempt = 0; attempt < 20; attempt++) {
-      const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
-      const match = res.events.find((evt) => evt.tx_hash === txid);
-      if (match) return { event: match, pending: false };
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+    eventName: string,
+    waitForEvent: (txid: string, eventName: string, timeoutMs?: number) => Promise<unknown>,
+  ): Promise<{ pending: boolean }> => {
+    try {
+      await waitForEvent(txid, eventName);
+      return { pending: false };
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message.includes(`Event "${eventName}" not found`)) {
+        return { pending: true };
+      }
+      throw e;
     }
-    return { event: null, pending: true };
   };
 
   const loadUserStats = async () => {
@@ -147,7 +150,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
       if (!address.value) throw new Error(t("connectWallet"));
 
       const contract = await ensureContractAddress();
-      const { receiptId, invoke } = await processPayment(String(CHECK_IN_FEE), "checkin");
+      const { receiptId, invoke, waitForEvent } = await processPayment(String(CHECK_IN_FEE), "checkin");
       if (!receiptId) throw new Error(t("receiptMissing"));
 
       const tx = await invoke(
@@ -162,7 +165,9 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
       const txid = String(
         (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
       );
-      const result = txid ? await waitForEvent(txid, "CheckedIn") : { event: null, pending: true };
+      const result = txid
+        ? await waitForPendingOrConfirm(txid, "CheckedIn", waitForEvent)
+        : { pending: true };
 
       if (result.pending) {
         setStatus(t("pendingConfirmation", { action: t("checkinSuccess") }), "success");
@@ -187,13 +192,15 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
       if (!address.value) throw new Error(t("connectWallet"));
 
       const contract = await ensureContractAddress();
-      const { invoke } = await processPayment("0", "claim");
+      const { invoke, waitForEvent } = await processPayment("0", "claim");
       const tx = await invoke("claimRewards", [{ type: "Hash160", value: address.value }], contract);
 
       const txid = String(
         (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
       );
-      const result = txid ? await waitForEvent(txid, "RewardsClaimed") : { event: null, pending: true };
+      const result = txid
+        ? await waitForPendingOrConfirm(txid, "RewardsClaimed", waitForEvent)
+        : { pending: true };
 
       if (result.pending) {
         setStatus(t("pendingConfirmation", { action: t("claimSuccess") }), "success");

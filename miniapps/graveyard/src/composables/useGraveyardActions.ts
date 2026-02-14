@@ -1,5 +1,5 @@
 import { ref, computed, onMounted, onUnmounted, watch, type Ref } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
+import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -14,10 +14,9 @@ const APP_ID = "miniapp-graveyard";
 
 export function useGraveyardActions() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
+  const { address, connect, invokeRead } = useWallet() as WalletSDK;
   const { processPayment, isLoading } = usePaymentFlow(APP_ID);
   const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
-  const { list: listEvents } = useEvents();
 
   const totalDestroyed = ref(0);
   const gasReclaimed = ref(0);
@@ -38,15 +37,8 @@ export function useGraveyardActions() {
   ]);
   let shakeTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const waitForEvent = async (txid: string, eventName: string) => {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
-      const match = res.events.find((evt) => evt.tx_hash === txid);
-      if (match) return match;
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    }
-    return null;
-  };
+  const isPendingEventError = (error: unknown, eventName: string) =>
+    error instanceof Error && error.message.includes(`Event "${eventName}" not found`);
 
   const initiateDestroy = () => {
     if (!assetHash.value) {
@@ -72,7 +64,10 @@ export function useGraveyardActions() {
       if (!address.value) throw new Error(t("connectWallet"));
       const contract = await ensureContractAddress();
 
-      const { receiptId, invoke } = await processPayment("0.1", `graveyard:bury:${assetHash.value.slice(0, 10)}`);
+      const { receiptId, invoke, waitForEvent } = await processPayment(
+        "0.1",
+        `graveyard:bury:${assetHash.value.slice(0, 10)}`
+      );
       if (!receiptId) throw new Error(t("receiptMissing"));
 
       const tx = await invoke(
@@ -89,7 +84,18 @@ export function useGraveyardActions() {
       const txid = String(
         (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
       );
-      const evt = txid ? await waitForEvent(txid, "MemoryBuried") : null;
+      let evt: { created_at?: string; state?: unknown[] } | null = null;
+      if (txid) {
+        try {
+          evt = (await waitForEvent(txid, "MemoryBuried")) as { created_at?: string; state?: unknown[] } | null;
+        } catch (e: unknown) {
+          if (isPendingEventError(e, "MemoryBuried")) {
+            evt = null;
+          } else {
+            throw e;
+          }
+        }
+      }
       if (!evt) throw new Error(t("buryPending"));
 
       const evtRecord = evt as unknown as Record<string, unknown>;
