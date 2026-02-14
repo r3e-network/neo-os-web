@@ -7,7 +7,7 @@ import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { extractTxid, waitForEventByTransaction } from "@shared/utils/transaction";
+import { extractTxid } from "@shared/utils/transaction";
 
 const APP_ID = "miniapp-lottery";
 
@@ -142,11 +142,12 @@ export function useLotteryState(t: (key: string) => string) {
         { type: "Integer", value: "0" },
       ]);
 
-      if (!extractTxid(result)) {
+      const txid = extractTxid(result);
+      if (!txid) {
         throw new Error("Transaction failed");
       }
 
-      const event = await waitForEventByTransaction(result, "TicketPurchased", waitForEvent);
+      const event = await waitForEvent(txid, "TicketPurchased");
       if (!event) {
         throw new Error("Failed to get ticket event");
       }
