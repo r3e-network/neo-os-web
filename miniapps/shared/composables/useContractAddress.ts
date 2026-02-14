@@ -3,6 +3,15 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { requireNeoChain } from "@shared/utils/chain";
 
+type EnsureOptions = {
+  silentChainCheck?: boolean;
+  contractUnavailableMessage?: string;
+};
+
+type EnsureSafeOptions = {
+  silentChainCheck?: boolean;
+};
+
 /**
  * Shared composable for contract address resolution with chain validation.
  *
@@ -14,33 +23,39 @@ export function useContractAddress(t: (key: string) => string) {
   const { chainType, getContractAddress } = useWallet() as WalletSDK;
   const contractAddress = ref<string | null>(null);
 
+  const resolveAddress = async () => {
+    if (!contractAddress.value) {
+      contractAddress.value = await getContractAddress();
+    }
+    return contractAddress.value;
+  };
+
   /**
    * Resolve contract address or throw.
    * Use inside a try/catch block where the caller handles the error.
    */
-  const ensure = async (): Promise<string> => {
-    if (!requireNeoChain(chainType, t)) {
+  const ensure = async (options: EnsureOptions = {}): Promise<string> => {
+    const silentChainCheck = options.silentChainCheck ?? false;
+    if (!requireNeoChain(chainType, silentChainCheck ? undefined : t, undefined, { silent: silentChainCheck })) {
       throw new Error(t("wrongChain"));
     }
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
+    const resolved = await resolveAddress();
+    if (!resolved) {
+      throw new Error(options.contractUnavailableMessage || t("contractUnavailable") || "Contract address unavailable");
     }
-    if (!contractAddress.value) {
-      throw new Error(t("contractUnavailable") || "Contract address unavailable");
-    }
-    return contractAddress.value;
+    return resolved;
   };
 
   /**
    * Resolve contract address, returning false on failure.
    * Use as a guard: `if (!(await ensureSafe())) return;`
    */
-  const ensureSafe = async (): Promise<boolean> => {
-    if (!requireNeoChain(chainType, t)) return false;
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
+  const ensureSafe = async (options: EnsureSafeOptions = {}): Promise<boolean> => {
+    const silentChainCheck = options.silentChainCheck ?? false;
+    if (!requireNeoChain(chainType, silentChainCheck ? undefined : t, undefined, { silent: silentChainCheck })) {
+      return false;
     }
-    return !!contractAddress.value;
+    return !!(await resolveAddress());
   };
 
   return { contractAddress, ensure, ensureSafe };

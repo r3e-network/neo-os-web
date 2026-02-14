@@ -6,6 +6,7 @@ import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { parseInvokeResult } from "@shared/utils/neo";
 import type { RoundItem } from "../pages/index/components/RoundList.vue";
 
@@ -14,11 +15,13 @@ const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
 export function useQuadraticRounds() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
+  const { ensure: ensureAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? t("contractMissing") : t(key),
+  );
 
   const rounds = ref<RoundItem[]>([]);
   const selectedRoundId = ref<string>("");
-  const contractAddress = ref<string | null>(null);
   const isRefreshingRounds = ref(false);
   const isCreatingRound = ref(false);
   const isAddingMatching = ref(false);
@@ -50,16 +53,7 @@ export function useQuadraticRounds() {
   });
 
   const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t, undefined, { silent: true })) {
-      throw new Error(t("wrongChain"));
-    }
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) {
-      throw new Error(t("contractMissing"));
-    }
-    return contractAddress.value;
+    return ensureAddress({ silentChainCheck: true });
   };
 
   const parseBigInt = (value: unknown) => {

@@ -4,7 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { parseInvokeResult } from "@shared/utils/neo";
-import { requireNeoChain } from "@shared/utils/chain";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 const STATUS_ACTIVE = 1;
@@ -66,9 +66,9 @@ export function useGovernance(
   currentChainId: { value: string },
 ) {
   const { t } = createUseI18n(messages)();
-  const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, invokeContract, invokeRead } = useWallet() as WalletSDK;
+  const { contractAddress, ensure: ensureAddress } = useContractAddress(t);
 
-  const contractAddress = ref<string | null>(null);
   const proposals = ref<Proposal[]>([]);
   const selectedProposal = ref<Proposal | null>(null);
   const loadingProposals = ref(false);
@@ -95,18 +95,16 @@ export function useGovernance(
   const API_HOST = getApiBase();
 
   const ensureContractAddress = async (showMessage = true) => {
-    if (!requireNeoChain(chainType, showMessage ? t : undefined, undefined, { silent: !showMessage })) {
-      if (showMessage) showStatus(t("wrongChain"), "error");
+    try {
+      await ensureAddress({ silentChainCheck: !showMessage });
+      return true;
+    } catch (e: unknown) {
+      if (showMessage) {
+        const message = e instanceof Error ? e.message : "";
+        showStatus(message === t("wrongChain") ? t("wrongChain") : t("contractUnavailable"), "error");
+      }
       return false;
     }
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) {
-      if (showMessage) showStatus(t("contractUnavailable"), "error");
-      return false;
-    }
-    return true;
   };
 
   const readMethod = async (operation: string, args: { type: string; value: unknown }[] = []) => {
