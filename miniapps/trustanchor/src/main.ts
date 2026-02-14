@@ -1,6 +1,6 @@
-import { createApp } from "vue";
 import App from "./App.vue";
+import { createMiniAppEntry } from "@shared/utils";
 
-const app = createApp(App);
-
-app.mount("#app");
+export function createApp() {
+  return createMiniAppEntry(App);
+}

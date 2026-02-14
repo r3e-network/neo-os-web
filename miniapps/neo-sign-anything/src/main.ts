@@ -1,10 +1,6 @@
-import { createSSRApp } from "vue";
 import App from "./App.vue";
+import { createMiniAppEntry } from "@shared/utils";
 
-// No need to install i18n plugin if using custom composable
 export function createApp() {
-    const app = createSSRApp(App);
-    return {
-        app,
-    };
+  return createMiniAppEntry(App);
 }
