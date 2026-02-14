@@ -8,6 +8,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { createSidebarItems } from "@shared/utils";
 import type { ContractStatus, RelationshipContractView } from "@/types";
 
 const APP_ID = "miniapp-breakupcontract";
@@ -33,15 +34,11 @@ export function useBreakupContract(t: (key: string) => string) {
     contracts: contracts.value.length,
   }));
 
-  const sidebarItems = computed(() => {
-    const active = contracts.value.filter((c) => c.status === "active").length;
-    const broken = contracts.value.filter((c) => c.status === "broken").length;
-    return [
-      { label: t("tabContracts"), value: contracts.value.length },
-      { label: t("active"), value: active },
-      { label: t("broken"), value: broken },
-    ];
-  });
+  const sidebarItems = createSidebarItems(t, [
+    { labelKey: "tabContracts", value: () => contracts.value.length },
+    { labelKey: "active", value: () => contracts.value.filter((c) => c.status === "active").length },
+    { labelKey: "broken", value: () => contracts.value.filter((c) => c.status === "broken").length },
+  ]);
 
   const parseContract = (
     id: number,

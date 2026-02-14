@@ -1,8 +1,6 @@
 <template>
   <view class="health-dashboard">
-    <NeoCard variant="erobo-neo">
-      <NeoStats :stats="stats" />
-    </NeoCard>
+    <MiniAppTabStats variant="erobo-neo" :stats="stats" />
 
     <NeoCard variant="erobo" class="balance-card">
       <view class="section-header">
@@ -27,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoStats, NeoButton } from "@shared/components";
+import { MiniAppTabStats, NeoCard, NeoButton } from "@shared/components";
 import type { StatItem } from "@shared/components";
 
 defineProps<{

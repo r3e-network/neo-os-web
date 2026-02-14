@@ -20,9 +20,7 @@
       </view>
     </NeoCard>
 
-    <NeoCard :title="t('yourStats')" variant="erobo">
-      <NeoStats :stats="userStats" />
-    </NeoCard>
+    <MiniAppTabStats :title="t('yourStats')" variant="erobo" :stats="userStats" />
 
     <NeoCard :title="t('recentCheckins')" variant="erobo">
       <view v-if="checkinHistory.length === 0" class="empty-state">
@@ -43,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoStats, type StatItem } from "@shared/components";
+import { MiniAppTabStats, NeoCard, type StatItem } from "@shared/components";
 import { formatGas } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";

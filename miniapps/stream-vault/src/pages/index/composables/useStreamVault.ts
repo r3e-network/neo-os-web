@@ -8,6 +8,7 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
+import { createSidebarItems } from "@shared/utils";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { StreamItem, StreamStatus } from "@/types";
 
@@ -39,10 +40,10 @@ export function useStreamVault(t: (key: string) => string) {
 
   const appState = computed(() => ({}));
 
-  const sidebarItems = computed(() => [
-    { label: "Created Streams", value: createdStreams.value.length },
-    { label: "Beneficiary Streams", value: beneficiaryStreams.value.length },
-    { label: "Total Streams", value: createdStreams.value.length + beneficiaryStreams.value.length },
+  const sidebarItems = createSidebarItems(t, [
+    { labelKey: "sidebarCreatedStreams", value: () => createdStreams.value.length },
+    { labelKey: "sidebarBeneficiaryStreams", value: () => beneficiaryStreams.value.length },
+    { labelKey: "sidebarTotalStreams", value: () => createdStreams.value.length + beneficiaryStreams.value.length },
   ]);
 
   const parseStream = (raw: unknown, id: string): StreamItem | null => {

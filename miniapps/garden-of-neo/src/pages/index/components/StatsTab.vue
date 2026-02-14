@@ -1,14 +1,12 @@
 <template>
   <view class="tab-content-glass">
-    <NeoCard variant="erobo-neo">
-      <NeoStats :stats="statsData" />
-    </NeoCard>
+    <MiniAppTabStats variant="erobo-neo" :stats="statsData" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoCard, NeoStats } from "@shared/components";
+import { MiniAppTabStats } from "@shared/components";
 import type { StatItem } from "@shared/components/NeoStats.vue";
 
 const props = defineProps<{

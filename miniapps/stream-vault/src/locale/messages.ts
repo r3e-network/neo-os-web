@@ -41,6 +41,9 @@ export const messages = {
   emptyVaults: { en: "No vaults yet", zh: "暂无金库" },
   refresh: { en: "Refresh", zh: "刷新" },
   connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
+  sidebarCreatedStreams: { en: "Created Streams", zh: "已创建流" },
+  sidebarBeneficiaryStreams: { en: "Beneficiary Streams", zh: "受益流" },
+  sidebarTotalStreams: { en: "Total Streams", zh: "总流数量" },
 
   statusActive: { en: "Active", zh: "活跃" },
   statusCompleted: { en: "Completed", zh: "已完成" },

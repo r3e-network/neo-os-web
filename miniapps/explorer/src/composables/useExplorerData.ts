@@ -2,6 +2,7 @@ import { ref, computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber } from "@shared/utils/format";
+import { createSidebarItems } from "@shared/utils";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useTicker } from "@shared/composables/useTicker";
 import type { StatItem } from "@shared/components/NeoStats.vue";
@@ -125,11 +126,11 @@ export function useExplorerData(t: (key: string) => string) {
     { label: t("transactions"), value: formatNum(stats.value.testnet.txCount), variant: "default" },
   ]);
 
-  const sidebarItems = computed(() => [
-    { label: t("blockHeight"), value: formatNum(stats.value.mainnet.height) },
-    { label: t("transactions"), value: formatNum(stats.value.mainnet.txCount) },
-    { label: t("sidebarNetwork"), value: selectedNetwork.value },
-    { label: t("sidebarRecentTxs"), value: recentTxs.value.length },
+  const sidebarItems = createSidebarItems(t, [
+    { labelKey: "blockHeight", value: () => formatNum(stats.value.mainnet.height) },
+    { labelKey: "transactions", value: () => formatNum(stats.value.mainnet.txCount) },
+    { labelKey: "sidebarNetwork", value: () => selectedNetwork.value },
+    { labelKey: "sidebarRecentTxs", value: () => recentTxs.value.length },
   ]);
 
   const fetchStats = async () => {

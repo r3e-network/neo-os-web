@@ -4,6 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { sha256Hex } from "@shared/utils/hash";
 import { formatHash } from "@shared/utils/format";
+import { createSidebarItems } from "@shared/utils";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -39,11 +40,11 @@ export function useExFiles(t: (key: string) => string) {
     isLoading: isLoading.value,
   }));
 
-  const sidebarItems = computed(() => [
-    { label: t("totalRecords"), value: records.value.length },
-    { label: t("averageRating"), value: averageRating.value },
-    { label: t("totalQueries"), value: totalQueries.value },
-    { label: t("sidebarWallet"), value: address.value ? t("connected") : t("disconnected") },
+  const sidebarItems = createSidebarItems(t, [
+    { labelKey: "totalRecords", value: () => records.value.length },
+    { labelKey: "averageRating", value: () => averageRating.value },
+    { labelKey: "totalQueries", value: () => totalQueries.value },
+    { labelKey: "sidebarWallet", value: () => (address.value ? t("connected") : t("disconnected")) },
   ]);
 
   const sortedRecords = computed(() =>

@@ -23,16 +23,14 @@
       </view>
     </NeoCard>
 
-    <NeoCard :title="t('yourWallet')" variant="erobo-neo">
-      <NeoStats :stats="infoStats" />
-    </NeoCard>
+    <MiniAppTabStats :title="t('yourWallet')" variant="erobo-neo" :stats="infoStats" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { formatAddress } from "@shared/utils/format";
-import { NeoCard, NeoStats, type StatItem } from "@shared/components";
+import { MiniAppTabStats, NeoCard, type StatItem } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 

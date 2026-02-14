@@ -1,16 +1,12 @@
 <template>
   <view class="stats-grid mb-6">
-    <NeoCard :title="t('mainnet')" variant="erobo" class="flex-1">
-      <NeoStats :stats="mainnetStats" />
-    </NeoCard>
-    <NeoCard :title="t('testnet')" variant="erobo-neo" class="flex-1">
-      <NeoStats :stats="testnetStats" />
-    </NeoCard>
+    <MiniAppTabStats :title="t('mainnet')" variant="erobo" class="flex-1" :stats="mainnetStats" />
+    <MiniAppTabStats :title="t('testnet')" variant="erobo-neo" class="flex-1" :stats="testnetStats" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoStats, type StatItem } from "@shared/components";
+import { MiniAppTabStats, type StatItem } from "@shared/components";
 
 defineProps<{
   mainnetStats: StatItem[];

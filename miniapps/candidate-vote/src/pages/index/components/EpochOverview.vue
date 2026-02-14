@@ -1,12 +1,10 @@
 <template>
-  <NeoCard variant="erobo">
-    <NeoStats :stats="epochStats" />
-  </NeoCard>
+  <MiniAppTabStats variant="erobo" :stats="epochStats" />
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoCard, NeoStats, type StatItem } from "@shared/components";
+import { MiniAppTabStats, type StatItem } from "@shared/components";
 import { formatNumber } from "@shared/utils/format";
 
 const props = defineProps<{
