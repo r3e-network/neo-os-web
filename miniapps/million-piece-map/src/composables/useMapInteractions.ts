@@ -4,6 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { extractTxid } from "@shared/utils/transaction";
 import type { Tile } from "./useMapTiles";
 
 const APP_ID = "miniapp-millionpiecemap";
@@ -63,9 +64,7 @@ export function useMapInteractions(
         ],
         contract,
       );
-      const txid = String(
-        (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
-      );
+      const txid = extractTxid(tx);
       if (txid) {
         try {
           await waitForEvent(txid, "PieceClaimed");

@@ -4,7 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { sha256Hex } from "@shared/utils/hash";
 import { formatHash } from "@shared/utils/format";
-import { createSidebarItems } from "@shared/utils";
+import { createSidebarItems, extractTxid } from "@shared/utils";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -200,9 +200,7 @@ export function useExFiles(t: (key: string) => string) {
         ],
         contractAddress.value as string,
       );
-      const txid = String(
-        (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || "",
-      );
+      const txid = extractTxid(tx);
       if (txid) {
         const evt = await waitForEvent(txid, "RecordQueried");
         if (evt) {

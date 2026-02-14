@@ -7,6 +7,7 @@ import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { extractTxid } from "@shared/utils/transaction";
 import type { Machine, MachineItem } from "@/types";
 
 const APP_ID = "miniapp-neo-gacha";
@@ -104,7 +105,7 @@ export function useGachaPlay() {
       );
 
       const txResult = initiateTx as unknown as Record<string, unknown> | undefined;
-      const initiateTxid = String(txResult?.txid || txResult?.txHash || "");
+      const initiateTxid = extractTxid(txResult);
       const initiatedEvent = initiateTxid ? await waitForEvent(initiateTxid, "PlayInitiated") : null;
       if (!initiatedEvent) {
         throw new Error(t("playPending"));
@@ -155,7 +156,7 @@ export function useGachaPlay() {
       );
 
       const settleResult = settleTx as unknown as Record<string, unknown> | undefined;
-      const settleTxid = String(settleResult?.txid || settleResult?.txHash || "");
+      const settleTxid = extractTxid(settleResult);
       if (settleTxid) {
         await waitForEvent(settleTxid, "PlayResolved");
       }

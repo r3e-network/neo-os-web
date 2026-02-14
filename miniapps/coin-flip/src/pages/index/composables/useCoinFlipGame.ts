@@ -9,6 +9,7 @@ import { useGameState } from "@shared/composables/useGameState";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { extractTxid } from "@shared/utils/transaction";
 import { audioManager } from "../../../utils/audio";
 import type { GameResult } from "../components/CoinArena.vue";
 
@@ -225,7 +226,7 @@ export function useCoinFlipGame(
         });
 
         const settleResult = settleTx as unknown as Record<string, unknown> | undefined;
-        const settleTxid = String(settleResult?.txid || settleResult?.txHash || "");
+        const settleTxid = extractTxid(settleResult);
         if (settleTxid) {
           const resolvedEvent = await waitForEvent(settleTxid, "BetResolved");
           if (resolvedEvent) {

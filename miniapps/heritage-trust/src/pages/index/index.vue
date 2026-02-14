@@ -62,7 +62,7 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems, extractTxid } from "@shared/utils";
 
 import { useHeritageTrusts } from "@/composables/useHeritageTrusts";
 import { useHeritageBeneficiaries } from "@/composables/useHeritageBeneficiaries";
@@ -222,9 +222,7 @@ const handleCreate = async () => {
       ],
     });
 
-    const txid = String(
-      (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
-    );
+    const txid = extractTxid(tx);
     if (txid) {
       // Wait for TrustCreated event
       for (let attempt = 0; attempt < 20; attempt += 1) {
