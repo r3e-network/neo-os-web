@@ -4,7 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { isTxEventPendingError } from "@shared/utils/transaction";
+import { isTxEventPendingError, waitForEventByTransaction } from "@shared/utils/transaction";
 import type { Tile } from "./useMapTiles";
 
 const APP_ID = "miniapp-millionpiecemap";
@@ -61,17 +61,16 @@ export function useMapInteractions(
         ],
         contract,
       );
-      const txid = tx.txid;
-      if (txid) {
-        try {
-          await waitForEvent(txid, "PieceClaimed");
-        } catch (e: unknown) {
-          if (isTxEventPendingError(e, "PieceClaimed")) {
-            throw new Error("Claim pending");
-          }
-          throw e;
+      let claimEvent: unknown = null;
+      try {
+        claimEvent = await waitForEventByTransaction(tx, "PieceClaimed", waitForEvent);
+      } catch (e: unknown) {
+        if (isTxEventPendingError(e, "PieceClaimed")) {
+          throw new Error("Claim pending");
         }
-      } else {
+        throw e;
+      }
+      if (!claimEvent) {
         throw new Error("Claim pending");
       }
       await loadTiles();

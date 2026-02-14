@@ -4,7 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { sha256Hex } from "@shared/utils/hash";
 import { formatHash } from "@shared/utils/format";
-import { createSidebarItems } from "@shared/utils";
+import { createSidebarItems, waitForEventByTransaction } from "@shared/utils";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -200,21 +200,18 @@ export function useExFiles(t: (key: string) => string) {
         ],
         contractAddress.value as string,
       );
-      const txid = tx.txid;
-      if (txid) {
-        const evt = await waitForEvent(txid, "RecordQueried");
-        if (evt) {
-          const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
-          const recordId = Number(values[0] || 0);
-          if (recordId > 0) {
-            const recordRes = await invokeRead({
-              scriptHash: contractAddress.value as string,
-              operation: "getRecord",
-              args: [{ type: "Integer", value: recordId }],
-            });
-            const data = parseInvokeResult(recordRes);
-            queryResult.value = parseRecord(recordId, data);
-          }
+      const evt = await waitForEventByTransaction(tx, "RecordQueried", waitForEvent);
+      if (evt) {
+        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+        const recordId = Number(values[0] || 0);
+        if (recordId > 0) {
+          const recordRes = await invokeRead({
+            scriptHash: contractAddress.value as string,
+            operation: "getRecord",
+            args: [{ type: "Integer", value: recordId }],
+          });
+          const data = parseInvokeResult(recordRes);
+          queryResult.value = parseRecord(recordId, data);
         }
       }
       showStatus(t("recordQueried"), "success");
