@@ -121,6 +121,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `7dd7cb8`
 
+### Refactor (Continued 6)
+
+- Replaced duplicated manual event polling loops with shared payment-flow event waiting in `daily-checkin`, `graveyard`, and `million-piece-map`.
+- Preserved app-specific pending/success behavior by mapping shared timeout signals to existing user messaging.
+
+### Verification (Continued 6)
+
+- `node scripts/validate-miniapps.mjs` passed (52/52).
+- `pnpm turbo typecheck --filter='./miniapps/*'` passed.
+- `pnpm turbo build --filter=miniapp-dailycheckin --filter=miniapp-millionpiecemap --filter=miniapp-graveyard` passed (warnings only).
+
+### Commit Breakdown (Continued 6)
+
+- `be7fb86`
+
 ## [2.1.0] - 2026-02-11
 
 ### Security Hardening
