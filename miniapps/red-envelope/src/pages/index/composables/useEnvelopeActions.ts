@@ -86,6 +86,26 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
     }
   };
 
+  const waitForEnvelopeEvent = async (
+    tx: unknown,
+    eventName: string,
+    limit: number,
+    pendingMessage: string,
+  ): Promise<EventRecord | null> => {
+    const txid = extractTxid(tx);
+    if (!txid) return null;
+
+    return pollForTxEvent<EventRecord>({
+      listEvents: async () => {
+        const result = await listEvents({ app_id: APP_ID, event_name: eventName, limit });
+        return result.events || [];
+      },
+      txid,
+      timeoutMs: 30000,
+      errorMessage: pendingMessage,
+    });
+  };
+
   const create = async () => {
     if (deps.isLoading.value) return;
     try {
@@ -136,18 +156,7 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
         ],
       });
 
-      const txid = extractTxid(tx);
-      const createdEvt = txid
-        ? await pollForTxEvent<EventRecord>({
-            listEvents: async () => {
-              const result = await listEvents({ app_id: APP_ID, event_name: "EnvelopeCreated", limit: 40 });
-              return result.events || [];
-            },
-            txid,
-            timeoutMs: 30000,
-            errorMessage: t("envelopePending"),
-          })
-        : null;
+      const createdEvt = await waitForEnvelopeEvent(tx, "EnvelopeCreated", 40, t("envelopePending"));
 
       if (!createdEvt) {
         throw new Error(t("envelopePending"));
@@ -211,18 +220,7 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
         ],
       });
 
-      const txid = extractTxid(tx);
-      const openedEvt = txid
-        ? await pollForTxEvent<EventRecord>({
-            listEvents: async () => {
-              const result = await listEvents({ app_id: APP_ID, event_name: "EnvelopeOpened", limit: 25 });
-              return result.events || [];
-            },
-            txid,
-            timeoutMs: 30000,
-            errorMessage: t("openPending"),
-          })
-        : null;
+      const openedEvt = await waitForEnvelopeEvent(tx, "EnvelopeOpened", 25, t("openPending"));
 
       if (!openedEvt) {
         throw new Error(t("openPending"));
