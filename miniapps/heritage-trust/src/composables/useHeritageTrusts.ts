@@ -1,21 +1,18 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
+import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
-import { parseGas, toFixed8, toFixedDecimals, sleep } from "@shared/utils/format";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { parseGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
+import { parseInvokeResult } from "@shared/utils/neo";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Trust } from "../pages/index/components/TrustCard.vue";
 
-const APP_ID = "miniapp-heritage-trust";
-
 export function useHeritageTrusts() {
   const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead, getBalance } = useWallet() as WalletSDK;
-  const { list: listEvents } = useEvents();
   const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
     key === "contractUnavailable" ? t("error") : t(key),
   );
@@ -43,16 +40,6 @@ export function useHeritageTrusts() {
     const num = Number(value ?? 0);
     if (!Number.isFinite(num) || num <= 0) return 0;
     return num > 1e12 ? num : num * 1000;
-  };
-
-  const waitForEvent = async (txid: string, eventName: string) => {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
-      const match = res.events.find((evt) => evt.tx_hash === txid);
-      if (match) return match;
-      await sleep(1500);
-    }
-    return null;
   };
 
   const fetchData = async () => {

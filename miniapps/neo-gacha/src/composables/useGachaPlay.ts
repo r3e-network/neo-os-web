@@ -1,7 +1,6 @@
 import { ref } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
+import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { sleep } from "@shared/utils/format";
 import { parseStackItem } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -16,8 +15,7 @@ export function useGachaPlay() {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
   const { address } = useWallet() as WalletSDK;
-  const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
-  const { list: listEvents } = useEvents();
+  const { processPayment } = usePaymentFlow(APP_ID);
 
   const isPlaying = ref(false);
   const showResult = ref(false);
@@ -58,20 +56,6 @@ export function useGachaPlay() {
     return availableItems[availableItems.length - 1].index;
   };
 
-  const waitForResolved = async (playId: string) => {
-    for (let attempt = 0; attempt < 20; attempt++) {
-      const res = await listEvents({ app_id: APP_ID, event_name: "PlayResolved", limit: 25 });
-      const match = res.events.find((evt) => {
-        const evtRecord = evt as unknown as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
-        return String(values[3] ?? "") === String(playId);
-      });
-      if (match) return match;
-      await sleep(1500);
-    }
-    return null;
-  };
-
   const resetResult = () => {
     showResult.value = false;
     resultItem.value = null;
@@ -104,7 +88,7 @@ export function useGachaPlay() {
       if (!contract) return;
 
       const payAmount = gasInputFromRaw(machine.priceRaw);
-      const { receiptId, invoke } = await processPayment(payAmount, `gacha:${machine.id}`);
+      const { receiptId, invoke, waitForEvent } = await processPayment(payAmount, `gacha:${machine.id}`);
       if (!receiptId) {
         throw new Error(t("receiptMissing"));
       }
