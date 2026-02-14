@@ -33,6 +33,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `4f5f551`
 - `c8ebb28`
 
+### Refactor (Continued)
+
+- Replaced duplicated contract-resolution and event-pagination logic in 5 miniapps with shared `useContractAddress` and `useAllEvents`.
+- Extended `useAllEvents` with optional per-event error handling to preserve app-level fallback behavior.
+- Added shared `createPrimaryStatsTemplateConfig` and adopted it across 12 miniapps with repeated primary+stats tab setups.
+- Replaced the last direct index-page `NeoStats` usage (`timestamp-proof`) with shared `MiniAppTabStats`.
+- Updated miniapp validator conventions to recognize `createPrimaryStatsTemplateConfig` as a shared template-config helper.
+
+### Verification (Continued)
+
+- `node scripts/validate-miniapps.mjs` passed (52/52) after each refactor batch.
+- `pnpm turbo build:h5 --filter='./miniapps/*'` passed (53/53; warnings only).
+- `pnpm --filter miniapp-timestamp-proof build:h5` passed.
+- `pnpm --filter miniapp-coinflip build:h5` passed.
+- `pnpm --filter miniapp-self-loan build:h5` passed.
+
+### Commit Breakdown (Continued)
+
+- `5c8a661`
+- `078ccca`
+- `df196bf`
+- `e8230b0`
+- `758cd34`
+
 ## [2.1.0] - 2026-02-11
 
 ### Security Hardening
