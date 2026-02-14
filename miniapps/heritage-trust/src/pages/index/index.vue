@@ -63,7 +63,7 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import { useHeritageTrusts } from "@/composables/useHeritageTrusts";
 import { useHeritageBeneficiaries } from "@/composables/useHeritageBeneficiaries";
@@ -75,13 +75,10 @@ import StatsCard from "./components/StatsCard.vue";
 const { t } = createUseI18n(messages)();
 const { address, connect, invokeContract, getBalance, chainType, getContractAddress } = useWallet() as WalletSDK;
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "main", labelKey: "createTrust", icon: "➕", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
-  ],
-  docFeatureCount: 3,
-});
+const templateConfig = createPrimaryStatsTemplateConfig(
+  { key: "main", labelKey: "createTrust", icon: "➕", default: true },
+  { docFeatureCount: 3 },
+);
 
 const activeTab = ref("main");
 

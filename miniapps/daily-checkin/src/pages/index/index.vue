@@ -67,7 +67,7 @@ import { useTicker } from "@shared/composables/useTicker";
 import { messages } from "@/locale/messages";
 import { MiniAppShell, NeoButton, NeoCard } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { createPrimaryStatsTemplateConfig } from "@shared/utils";
 import CountdownHero from "./components/CountdownHero.vue";
 import StreakDisplay from "./components/StreakDisplay.vue";
 import RewardProgress from "./components/RewardProgress.vue";
@@ -98,13 +98,10 @@ const {
 } = useCheckinContract(t);
 
 // Template configuration
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "checkin", labelKey: "checkin", icon: "✅", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
-  ],
-  fireworks: true,
-});
+const templateConfig = createPrimaryStatsTemplateConfig(
+  { key: "checkin", labelKey: "checkin", icon: "✅", default: true },
+  { fireworks: true },
+);
 
 // Reactive state bridge for template stat bindings
 const appState = computed(() => ({

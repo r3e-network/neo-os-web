@@ -64,7 +64,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
@@ -74,12 +74,7 @@ import { TAROT_DECK } from "./components/tarot-data";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "game", labelKey: "game", icon: "🎴", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
-  ],
-});
+const templateConfig = createPrimaryStatsTemplateConfig({ key: "game", labelKey: "game", icon: "🎴", default: true });
 const activeTab = ref("game");
 const appState = computed(() => ({
   readingsCount: readingsCount.value,

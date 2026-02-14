@@ -54,7 +54,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppShell, MiniAppTabStats } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 import CapsuleCreate from "./components/CapsuleCreate.vue";
 import RewardClaim from "./components/RewardClaim.vue";
 import CapsuleDetails from "./components/CapsuleDetails.vue";
@@ -64,13 +64,10 @@ const isLoading = ref(false);
 
 const { t, locale } = createUseI18n(messages)();
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "main", labelKey: "main", icon: "💊", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
-  ],
-  fireworks: true,
-});
+const templateConfig = createPrimaryStatsTemplateConfig(
+  { key: "main", labelKey: "main", icon: "💊", default: true },
+  { fireworks: true },
+);
 
 const activeTab = ref("main");
 

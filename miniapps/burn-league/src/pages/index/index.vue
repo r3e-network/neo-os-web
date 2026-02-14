@@ -68,7 +68,7 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppShell } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import HeroSection from "./components/HeroSection.vue";
 import StatsGrid from "./components/StatsGrid.vue";
@@ -78,13 +78,10 @@ import StatsTab from "./components/StatsTab.vue";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "game", labelKey: "game", icon: "🎮", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
-  ],
-  fireworks: true,
-});
+const templateConfig = createPrimaryStatsTemplateConfig(
+  { key: "game", labelKey: "game", icon: "🎮", default: true },
+  { fireworks: true },
+);
 
 const activeTab = ref("game");
 
