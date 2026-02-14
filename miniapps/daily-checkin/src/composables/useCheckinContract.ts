@@ -3,6 +3,7 @@ import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { formatGas } from "@shared/utils/format";
+import { createSidebarItems } from "@shared/utils";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -38,12 +39,12 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
   // History
   const checkinHistory = ref<{ streak: number; time: string; reward: number }[]>([]);
 
-  const sidebarItems = computed(() => [
-    { label: t("currentStreak"), value: `${currentStreak.value} ${t("days")}` },
-    { label: t("highestStreak"), value: `${highestStreak.value} ${t("days")}` },
-    { label: t("totalUserCheckins"), value: totalUserCheckins.value },
-    { label: t("unclaimed"), value: `${formatGas(unclaimedRewards.value)} GAS` },
-    { label: t("totalClaimed"), value: `${formatGas(totalClaimed.value)} GAS` },
+  const sidebarItems = createSidebarItems(t, [
+    { labelKey: "currentStreak", value: () => `${currentStreak.value} ${t("days")}` },
+    { labelKey: "highestStreak", value: () => `${highestStreak.value} ${t("days")}` },
+    { labelKey: "totalUserCheckins", value: () => totalUserCheckins.value },
+    { labelKey: "unclaimed", value: () => `${formatGas(unclaimedRewards.value)} GAS` },
+    { labelKey: "totalClaimed", value: () => `${formatGas(totalClaimed.value)} GAS` },
   ]);
 
   const userStats = computed<StatItem[]>(() => [

@@ -1,6 +1,7 @@
 import { ref, computed, onMounted, watch } from "vue";
-import { useWallet, usePayments, useEvents } from "@neo/uniapp-sdk";
+import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import { ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -38,7 +39,7 @@ export function useGarden(
   ensureContractAddress: () => Promise<void>,
 ) {
   const { address, connect, invokeRead, invokeContract } = useWallet();
-  const { payGAS, isLoading } = usePayments(APP_ID);
+  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
   const { list: listEvents } = useEvents();
 
   const createEmptyPlots = (): Plot[] =>
@@ -185,20 +186,15 @@ export function useGarden(
       await ensureContractAddress();
 
       showStatus(t("plantingSeed"), "loading");
-      const payment = await payGAS(seed.price, `plant:${seed.id}`);
-      const receiptId = payment.receipt_id;
+      const { receiptId, invoke } = await processPayment(seed.price, `plant:${seed.id}`);
       if (!receiptId) throw new Error(t("receiptMissing"));
 
-      await invokeContract({
-        scriptHash: contractAddress()!,
-        operation: "plant",
-        args: [
-          { type: "Hash160", value: address.value },
-          { type: "Integer", value: seed.id },
-          { type: "String", value: "" },
-          { type: "Integer", value: receiptId },
-        ],
-      });
+      await invoke(contractAddress()!, "plant", [
+        { type: "Hash160", value: address.value },
+        { type: "Integer", value: seed.id },
+        { type: "String", value: "" },
+        { type: "Integer", value: receiptId },
+      ]);
       showStatus(t("plantSuccess"), "success");
       await refreshGarden();
     } catch (e: unknown) {

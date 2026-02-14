@@ -5,7 +5,6 @@
     :t="t"
     :status-message="status"
     class="theme-trustanchor"
-    @tab-change="activeTab = $event"
     :sidebar-items="sidebarItems"
     :sidebar-title="t('overview')"
     :fallback-message="t('errorFallback')"
@@ -14,7 +13,7 @@
 <!-- Overview Tab (default) -->
     <template #content>
       
-        <StatsGrid :my-stake="myStake" :pending-rewards="pendingRewards" :total-rewards="totalRewards" />
+        <MiniAppTabStats variant="erobo" class="mb-6" :stats="trustStats" />
 
         <NeoCard variant="erobo" class="mb-4 px-1">
           <view class="section-header mb-4">
@@ -93,10 +92,9 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber } from "@shared/utils/format";
-import { MiniAppShell, NeoButton, NeoCard, NeoInput } from "@shared/components";
+import { MiniAppShell, MiniAppTabStats, NeoButton, NeoCard, NeoInput, type StatItem } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import StatsGrid from "./components/StatsGrid.vue";
 import AgentsTab from "./components/AgentsTab.vue";
 import HistoryTab from "./components/HistoryTab.vue";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -109,15 +107,12 @@ const { status } = useStatusMessage();
 const { address, connect } = useWallet() as WalletSDK;
 
 const {
-  isLoading,
-  error,
   agents,
   stats,
   myStake,
   pendingRewards,
   totalRewards,
   setError,
-  clearError,
   loadAll,
   stake,
   unstake,
@@ -133,8 +128,6 @@ const templateConfig = createTemplateConfig({
   docSubtitleKey: "docsSubtitle",
   docFeatureCount: 3,
 });
-
-const activeTab = ref("overview");
 const stakeAmount = ref("");
 const unstakeAmount = ref("");
 const isStaking = ref(false);
@@ -148,6 +141,13 @@ const appState = computed(() => ({
 }));
 
 const formatNum = (n: number | string) => formatNumber(n, 2);
+
+const trustStats = computed<StatItem[]>(() => [
+  { label: t("myStake"), value: `${formatNum(myStake.value)} NEO` },
+  { label: t("pendingRewards"), value: `${formatNum(pendingRewards.value)} GAS`, variant: "success" },
+  { label: t("totalRewards"), value: `${formatNum(totalRewards.value)} GAS`, variant: "accent" },
+  { label: t("zeroFee"), value: t("zeroFeeDesc"), variant: "erobo" },
+]);
 
 const sidebarItems = createSidebarItems(t, [
   { labelKey: "stake", value: () => `${formatNum(myStake.value)} NEO` },

@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="status"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -130,7 +129,6 @@ const templateConfig = createTemplateConfig({
   ],
 });
 
-const activeTab = ref("vote");
 const preferredChainId = computed(() => appChainId.value || chainId.value || "neo-n3-testnet");
 
 const governancePortalUrl = computed(() =>

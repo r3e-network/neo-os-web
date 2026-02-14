@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="status"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -68,7 +67,6 @@ const templateConfig = createTemplateConfig({
   docFeatureCount: 3,
 });
 
-const activeTab = ref("swap");
 const selectedPair = ref("neo-gas");
 
 const popularPairs = [

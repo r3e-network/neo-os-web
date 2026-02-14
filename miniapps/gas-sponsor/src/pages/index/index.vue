@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="status"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -109,7 +108,7 @@ import SendForm from "./components/SendForm.vue";
 
 const { t } = createUseI18n(messages)();
 
-const { address, connect, invokeContract, chainType } = useWallet() as WalletSDK;
+const { address, connect } = useWallet() as WalletSDK;
 const { isRequestingSponsorship: isRequesting, checkEligibility, requestSponsorship: apiRequest } = useGasSponsor();
 
 const ELIGIBILITY_THRESHOLD = 0.1;
@@ -122,9 +121,7 @@ const templateConfig = createTemplateConfig({
     { key: "stats", labelKey: "tabStats", icon: "📊" },
   ],
 });
-const activeTab = ref("sponsor");
 const appState = computed(() => ({
-  activeTab: activeTab.value,
   address: address.value,
   gasBalance: gasBalance.value,
   isEligible: isEligible.value,
@@ -138,7 +135,7 @@ const dailyLimit = ref("0.1");
 const resetsAt = ref("");
 const loading = ref(true);
 const requestAmount = ref("0.01");
-const { status, setStatus: showStatus, clearStatus } = useStatusMessage();
+const { status, setStatus: showStatus } = useStatusMessage();
 
 const quickAmounts = [0.01, 0.02, 0.03, 0.04];
 

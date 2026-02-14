@@ -2,6 +2,7 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { createSidebarItems } from "@shared/utils";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -33,11 +34,11 @@ export function useSignAnything(t: (key: string) => string) {
     hasSigned: !!signature.value,
   }));
 
-  const sidebarItems = computed(() => [
-    { label: t("sidebarWallet"), value: address.value ? t("connected") : t("disconnected") },
-    { label: t("signatureResult"), value: signature.value ? t("yes") : t("no") },
-    { label: t("sidebarBroadcastTx"), value: txHash.value ? t("yes") : t("no") },
-    { label: t("sidebarMessageLength"), value: message.value.length },
+  const sidebarItems = createSidebarItems(t, [
+    { labelKey: "sidebarWallet", value: () => (address.value ? t("connected") : t("disconnected")) },
+    { labelKey: "signatureResult", value: () => (signature.value ? t("yes") : t("no")) },
+    { labelKey: "sidebarBroadcastTx", value: () => (txHash.value ? t("yes") : t("no")) },
+    { labelKey: "sidebarMessageLength", value: () => message.value.length },
   ]);
 
   // --- Actions ---

@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="status"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -35,7 +34,7 @@
       </template>
 
       <template #tab-stats>
-        <StatsCard :stats="gp.stats" :t="t" />
+        <MiniAppTabStats variant="erobo-neo" class="mb-6" :stats="guardianStats" />
 
         <!-- Action History -->
         <ActionHistory :action-history="gp.actionHistory" :t="t" />
@@ -45,12 +44,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { computed, watch } from "vue";
 import { useWallet, useEvents, useDatafeed } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell } from "@shared/components";
+import { MiniAppShell, MiniAppTabStats, type StatItem } from "@shared/components";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useAllEvents } from "@shared/composables/useAllEvents";
@@ -61,7 +60,6 @@ import { useGuardianPolicyContract } from "@/composables/useGuardianPolicyContra
 
 import PoliciesList from "./components/PoliciesList.vue";
 import CreatePolicyForm from "./components/CreatePolicyForm.vue";
-import StatsCard from "./components/StatsCard.vue";
 import ActionHistory from "./components/ActionHistory.vue";
 
 const { t } = createUseI18n(messages)();
@@ -79,13 +77,21 @@ const gp = useGuardianPolicyContract(wallet, ensureContractAddress, listAllEvent
 
 const templateConfig = createPrimaryStatsTemplateConfig({ key: "main", labelKey: "main", icon: "📋", default: true });
 
-const activeTab = ref("main");
-
 const appState = computed(() => ({
   totalPolicies: gp.stats.value.totalPolicies,
   activePolicies: gp.stats.value.activePolicies,
   claimedPolicies: gp.stats.value.claimedPolicies,
 }));
+
+const guardianStats = computed<StatItem[]>(() => {
+  const stats = gp.stats.value ?? { totalPolicies: 0, activePolicies: 0, claimedPolicies: 0, totalCoverage: 0 };
+  return [
+    { label: t("totalPolicies"), value: stats.totalPolicies },
+    { label: t("activePoliciesCount"), value: stats.activePolicies },
+    { label: t("claimedPolicies"), value: stats.claimedPolicies },
+    { label: t("totalCoverage"), value: `${stats.totalCoverage} GAS`, variant: "accent" },
+  ];
+});
 
 const sidebarItems = createSidebarItems(t, [
   { labelKey: "sidebarPolicies", value: () => gp.stats.value.totalPolicies },
