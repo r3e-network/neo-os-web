@@ -140,10 +140,11 @@ export function useHybridTarot(
           ],
         });
 
+        const txid = extractTxid(tx);
         const event = await waitForEventByTransaction(tx, "ReadingCompleted", waitForEvent);
         return {
           success: !!event,
-          txid: extractTxid(tx),
+          txid,
         };
       },
 

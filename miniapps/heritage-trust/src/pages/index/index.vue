@@ -62,7 +62,7 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createPrimaryStatsTemplateConfig, createSidebarItems, extractTxid, pollForTxEvent } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems, waitForListedEventByTransaction } from "@shared/utils";
 
 import { useHeritageTrusts } from "@/composables/useHeritageTrusts";
 import { useHeritageBeneficiaries } from "@/composables/useHeritageBeneficiaries";
@@ -222,34 +222,30 @@ const handleCreate = async () => {
       ],
     });
 
-    const txid = extractTxid(tx);
-    if (txid) {
-      const timeoutErrorMessage = "__TRUST_CREATED_EVENT_TIMEOUT__";
-      try {
-        const match = await pollForTxEvent({
-          listEvents: async () => {
-            const { useEvents } = await import("@neo/uniapp-sdk");
-            const { list } = useEvents();
-            const res = await list({ app_id: "miniapp-heritage-trust", event_name: "TrustCreated", limit: 25 });
-            return res.events || [];
-          },
-          txid,
-          timeoutMs: 30000,
-          pollIntervalMs: 1500,
-          errorMessage: timeoutErrorMessage,
-        });
+    const timeoutErrorMessage = "__TRUST_CREATED_EVENT_TIMEOUT__";
+    try {
+      const match = await waitForListedEventByTransaction(tx, {
+        listEvents: async () => {
+          const { useEvents } = await import("@neo/uniapp-sdk");
+          const { list } = useEvents();
+          const res = await list({ app_id: "miniapp-heritage-trust", event_name: "TrustCreated", limit: 25 });
+          return res.events || [];
+        },
+        timeoutMs: 30000,
+        pollIntervalMs: 1500,
+        errorMessage: timeoutErrorMessage,
+      });
 
-        if (match) {
-          const values = Array.isArray(match.state) ? match.state.map(parseStackItem) : [];
-          const trustId = String(values[0] || "");
-          if (trustId) {
-            saveTrustName(trustId, newTrust.value.name);
-          }
+      if (match) {
+        const values = Array.isArray(match.state) ? match.state.map(parseStackItem) : [];
+        const trustId = String(values[0] || "");
+        if (trustId) {
+          saveTrustName(trustId, newTrust.value.name);
         }
-      } catch (e: unknown) {
-        if (!(e instanceof Error) || e.message !== timeoutErrorMessage) {
-          throw e;
-        }
+      }
+    } catch (e: unknown) {
+      if (!(e instanceof Error) || e.message !== timeoutErrorMessage) {
+        throw e;
       }
     }
 

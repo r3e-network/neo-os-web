@@ -63,7 +63,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage, pollForEvent } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createPrimaryStatsTemplateConfig, createSidebarItems, pollForTxEvent, waitForEventByTransaction } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems, waitForListedEventByTransaction } from "@shared/utils";
 
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
@@ -105,13 +105,12 @@ const tarotStats = computed(() => [
   { label: t("cardsDrawnCount"), value: drawn.value.length },
 ]);
 
-const waitForEvent = async (txid: string, eventName: string) => {
-  return pollForTxEvent({
+const waitForEventByTx = async (tx: unknown, eventName: string) => {
+  return waitForListedEventByTransaction(tx, {
     listEvents: async () => {
       const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
       return res.events || [];
     },
-    txid,
     timeoutMs: 30000,
     pollIntervalMs: 1500,
     errorMessage: t("readingPending"),
@@ -159,7 +158,7 @@ const draw = async () => {
       ],
       contract
     );
-    const requestedEvt = await waitForEventByTransaction(tx, "ReadingRequested", waitForEvent);
+    const requestedEvt = await waitForEventByTx(tx, "ReadingRequested");
     if (!requestedEvt) throw new Error(t("readingPending"));
     const requestedRecord = requestedEvt as unknown as Record<string, unknown>;
     const requestedValues = Array.isArray(requestedRecord?.state)

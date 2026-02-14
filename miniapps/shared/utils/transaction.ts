@@ -51,3 +51,22 @@ export async function pollForTxEvent<T extends { tx_hash?: string }>(
     errorMessage,
   });
 }
+
+export interface WaitForListedEventByTransactionParams<T extends { tx_hash?: string }> {
+  listEvents: () => Promise<T[]>;
+  timeoutMs: number;
+  pollIntervalMs?: number;
+  errorMessage: string;
+}
+
+export async function waitForListedEventByTransaction<T extends { tx_hash?: string }>(
+  tx: unknown,
+  params: WaitForListedEventByTransactionParams<T>,
+): Promise<T | null> {
+  const txid = extractTxid(tx);
+  if (!txid) {
+    return null;
+  }
+
+  return pollForTxEvent({ ...params, txid });
+}

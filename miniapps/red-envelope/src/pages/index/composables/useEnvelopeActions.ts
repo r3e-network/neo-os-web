@@ -6,7 +6,7 @@ import { messages } from "@/locale/messages";
 import { toFixed8, fromFixed8 } from "@shared/utils/format";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { extractTxid, pollForTxEvent } from "@shared/utils/transaction";
+import { waitForListedEventByTransaction } from "@shared/utils/transaction";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
 
@@ -92,15 +92,11 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
     limit: number,
     pendingMessage: string,
   ): Promise<EventRecord | null> => {
-    const txid = extractTxid(tx);
-    if (!txid) return null;
-
-    return pollForTxEvent<EventRecord>({
+    return waitForListedEventByTransaction<EventRecord>(tx, {
       listEvents: async () => {
         const result = await listEvents({ app_id: APP_ID, event_name: eventName, limit });
         return result.events || [];
       },
-      txid,
       timeoutMs: 30000,
       errorMessage: pendingMessage,
     });
