@@ -136,6 +136,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `be7fb86`
 
+### Refactor (Continued 7)
+
+- Removed stale/unused event-polling helpers in `heritage-trust`.
+- Simplified `neo-gacha` play flow by sourcing `waitForEvent` from `processPayment` response and deleting unreachable polling scaffolding.
+
+### Verification (Continued 7)
+
+- `node scripts/validate-miniapps.mjs` passed (52/52).
+- `pnpm turbo typecheck --filter='./miniapps/*'` passed.
+- `pnpm turbo build --filter=miniapp-neo-gacha --filter=miniapp-heritage-trust` passed (warnings only).
+
+### Commit Breakdown (Continued 7)
+
+- `f57c537`
+
 ## [2.1.0] - 2026-02-11
 
 ### Security Hardening
