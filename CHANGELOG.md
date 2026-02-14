@@ -75,6 +75,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `7f4b947`
 - `70e58ba`
 
+### Refactor (Continued 3)
+
+- Extended shared `useContractAddress` with optional silent chain-check handling to support guard-style flows without UI noise.
+- Migrated remaining special-case resolvers in `quadratic-funding` and `council-governance` to the shared helper while preserving app-specific error messaging behavior.
+
+### Verification (Continued 3)
+
+- `node scripts/validate-miniapps.mjs` passed (52/52).
+- `pnpm turbo typecheck --filter='./miniapps/*'` passed.
+- `pnpm turbo build --filter=miniapp-quadratic-funding --filter=miniapp-council-governance` passed (warnings only).
+
+### Commit Breakdown (Continued 3)
+
+- `b25dd33`
+
 ## [2.1.0] - 2026-02-11
 
 ### Security Hardening
