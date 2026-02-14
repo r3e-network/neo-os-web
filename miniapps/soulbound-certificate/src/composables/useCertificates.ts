@@ -3,16 +3,18 @@ import QRCode from "qrcode";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { parseInvokeResult } from "@shared/utils/neo";
-import { requireNeoChain } from "@shared/utils/chain";
 import type { TemplateItem, CertificateItem } from "@/types";
 
 export function useCertificates() {
   const { t } = createUseI18n(messages)();
-  const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, invokeContract, invokeRead } = useWallet() as WalletSDK;
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? t("contractMissing") : t(key),
+  );
 
-  const contractAddress = ref<string | null>(null);
   const templates = ref<TemplateItem[]>([]);
   const certificates = ref<CertificateItem[]>([]);
   const certQrs = reactive<Record<string, string>>({});
@@ -68,19 +70,6 @@ export function useCertificates() {
       revoked: parseBool(raw.revoked),
       revokedTime: Number.parseInt(String(raw.revokedTime || "0"), 10) || 0,
     };
-  };
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t)) {
-      throw new Error(t("wrongChain"));
-    }
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) {
-      throw new Error(t("contractMissing"));
-    }
-    return contractAddress.value;
   };
 
   const fetchTemplateIds = async (issuerAddress: string) => {

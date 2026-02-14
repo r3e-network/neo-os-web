@@ -4,6 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { parseInvokeResult, normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import type { Machine, MachineItem } from "@/types";
@@ -11,10 +12,10 @@ import type { Machine, MachineItem } from "@/types";
 export function useGachaManagement() {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
-  const { address, invokeRead, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, invokeRead, invokeContract } = useWallet() as WalletSDK;
+  const { ensure: ensureContractAddress } = useContractAddress(t);
 
   const actionLoading = ref<Record<string, boolean>>({});
-  const contractAddress = ref<string | null>(null);
 
   const numberFrom = (value: unknown) => {
     const num = Number(value ?? 0);
@@ -41,16 +42,6 @@ export function useGachaManagement() {
 
   const setActionLoading = (key: string, value: boolean) => {
     actionLoading.value[key] = value;
-  };
-
-  const ensureContractAddress = async () => {
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) {
-      throw new Error(t("contractUnavailable"));
-    }
-    return contractAddress.value;
   };
 
   const updateMachinePrice = async (machine: Machine, onSuccess?: () => Promise<void>) => {

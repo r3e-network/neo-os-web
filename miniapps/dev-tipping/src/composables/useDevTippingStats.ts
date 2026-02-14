@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { parseGas, formatNumber } from "@shared/utils/format";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 
@@ -23,13 +24,15 @@ export interface RecentTip {
 }
 
 export function useDevTippingStats() {
-  const { invokeRead, getContractAddress } = useWallet() as WalletSDK;
+  const { invokeRead } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? "Contract unavailable" : key,
+  );
 
   const developers = ref<Developer[]>([]);
   const recentTips = ref<RecentTip[]>([]);
   const totalDonated = ref(0);
-  const contractAddress = ref<string | null>(null);
   const isLoading = ref(false);
 
   const formatNum = (n: number) => formatNumber(n, 2);
@@ -37,14 +40,6 @@ export function useDevTippingStats() {
   const toNumber = (value: unknown) => {
     const num = Number(value ?? 0);
     return Number.isFinite(num) ? num : 0;
-  };
-
-  const ensureContractAddress = async () => {
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) throw new Error("Contract unavailable");
-    return contractAddress.value;
   };
 
   const loadDevelopers = async (t: Function) => {

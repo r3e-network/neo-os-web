@@ -1,9 +1,8 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { requireNeoChain } from "@shared/utils/chain";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatNumber } from "@shared/utils/format";
 
 const APP_ID = "miniapp-millionpiecemap";
@@ -32,7 +31,10 @@ export type Tile = {
 };
 
 export function useMapTiles() {
-  const { address, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, invokeRead } = useWallet() as WalletSDK;
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? "Contract unavailable" : key
+  );
 
   const tiles = ref<Tile[]>(
     Array.from({ length: GRID_SIZE }, (_, i) => ({
@@ -46,7 +48,6 @@ export function useMapTiles() {
   );
 
   const selectedTile = ref(0);
-  const contractAddress = ref<string | null>(null);
 
   const selectedX = computed(() => selectedTile.value % GRID_WIDTH);
   const selectedY = computed(() => Math.floor(selectedTile.value / GRID_WIDTH));
@@ -54,16 +55,6 @@ export function useMapTiles() {
   const totalSpent = computed(() => ownedTiles.value * TILE_PRICE);
   const coverage = computed(() => Math.round((ownedTiles.value / GRID_SIZE) * 100));
   const formatNum = (n: number) => formatNumber(n, 2);
-
-  const ensureContractAddress = async () => {
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) {
-      throw new Error("Contract unavailable");
-    }
-    return contractAddress.value as string;
-  };
 
   const getOwnerColorIndex = (owner: string) => {
     if (!owner) return 0;

@@ -2,7 +2,7 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { parseInvokeResult, normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -12,12 +12,12 @@ import type { Machine, MachineItem } from "@/types";
 export function useGachaMachines() {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
-  const { address, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, invokeRead } = useWallet() as WalletSDK;
+  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
 
   const machines = ref<Machine[]>([]);
   const selectedMachine = ref<Machine | null>(null);
   const isLoadingMachines = ref(false);
-  const contractAddress = ref<string | null>(null);
   const actionLoading = ref<Record<string, boolean>>({});
 
   const walletHash = computed(() => {
@@ -63,13 +63,6 @@ export function useGachaMachines() {
     if (assetType === 2) return "🖼️";
     if (assetType === 1) return "🪙";
     return "📦";
-  };
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t)) throw new Error(t("wrongChain"));
-    if (!contractAddress.value) contractAddress.value = await getContractAddress();
-    if (!contractAddress.value) throw new Error(t("contractUnavailable"));
-    return contractAddress.value;
   };
 
   const fetchMachineItems = async (contract: string, machineId: number, itemCount: number) => {

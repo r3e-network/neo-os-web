@@ -4,6 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { parseInvokeResult, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -32,11 +33,11 @@ interface MachineData {
 
 export function useGachaPublish() {
   const { t } = createUseI18n(messages)();
-  const { address, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
+  const { address, invokeContract, invokeRead } = useWallet() as WalletSDK;
   const { waitForEvent } = usePaymentFlow(APP_ID);
+  const { ensure: ensureContractAddress } = useContractAddress(t);
 
   const isPublishing = ref(false);
-  const contractAddress = ref<string | null>(null);
 
   const numberFrom = (value: unknown) => {
     const num = Number(value ?? 0);
@@ -53,16 +54,6 @@ export function useGachaPublish() {
     }
     const scriptHash = addressToScriptHash(trimmed);
     return scriptHash ? `0x${scriptHash}` : "";
-  };
-
-  const ensureContractAddress = async () => {
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) {
-      throw new Error(t("contractUnavailable"));
-    }
-    return contractAddress.value;
   };
 
   const publishMachine = async (
