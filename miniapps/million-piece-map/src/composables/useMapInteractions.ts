@@ -4,6 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { isTxEventPendingError } from "@shared/utils/transaction";
 import type { Tile } from "./useMapTiles";
 
 const APP_ID = "miniapp-millionpiecemap";
@@ -28,9 +29,6 @@ export function useMapInteractions(
   const zoomOut = () => {
     if (zoomLevel.value > 0.5) zoomLevel.value -= 0.25;
   };
-
-  const isPendingEventError = (error: unknown, eventName: string) =>
-    error instanceof Error && error.message.includes(`Event "${eventName}" not found`);
 
   const purchaseTile = async (tilePrice: number) => {
     if (isPurchasing.value) return;
@@ -68,7 +66,7 @@ export function useMapInteractions(
         try {
           await waitForEvent(txid, "PieceClaimed");
         } catch (e: unknown) {
-          if (isPendingEventError(e, "PieceClaimed")) {
+          if (isTxEventPendingError(e, "PieceClaimed")) {
             throw new Error("Claim pending");
           }
           throw e;

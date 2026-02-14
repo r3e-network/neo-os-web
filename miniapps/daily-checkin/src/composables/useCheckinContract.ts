@@ -3,7 +3,7 @@ import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { formatGas } from "@shared/utils/format";
-import { createSidebarItems } from "@shared/utils";
+import { createSidebarItems, isTxEventPendingError } from "@shared/utils";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -64,7 +64,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
       await waitForEvent(txid, eventName);
       return { pending: false };
     } catch (e: unknown) {
-      if (e instanceof Error && e.message.includes(`Event "${eventName}" not found`)) {
+      if (isTxEventPendingError(e, eventName)) {
         return { pending: true };
       }
       throw e;

@@ -14,6 +14,10 @@ export function extractTxid(tx: unknown): string {
   return String(result.txid || result.txHash || "");
 }
 
+export function isTxEventPendingError(error: unknown, eventName: string): boolean {
+  return error instanceof Error && error.message.includes(`Event "${eventName}" not found`);
+}
+
 export interface PollForTxEventParams<T extends { tx_hash?: string }> {
   listEvents: () => Promise<T[]>;
   txid: string;

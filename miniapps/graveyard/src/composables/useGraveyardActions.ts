@@ -8,6 +8,7 @@ import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { isTxEventPendingError } from "@shared/utils/transaction";
 import type { HistoryItem } from "@/types";
 
 const APP_ID = "miniapp-graveyard";
@@ -36,9 +37,6 @@ export function useGraveyardActions() {
     { value: 5, label: t("memoryTypeOther") },
   ]);
   let shakeTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const isPendingEventError = (error: unknown, eventName: string) =>
-    error instanceof Error && error.message.includes(`Event "${eventName}" not found`);
 
   const initiateDestroy = () => {
     if (!assetHash.value) {
@@ -87,7 +85,7 @@ export function useGraveyardActions() {
         try {
           evt = (await waitForEvent(txid, "MemoryBuried")) as { created_at?: string; state?: unknown[] } | null;
         } catch (e: unknown) {
-          if (isPendingEventError(e, "MemoryBuried")) {
+          if (isTxEventPendingError(e, "MemoryBuried")) {
             evt = null;
           } else {
             throw e;
