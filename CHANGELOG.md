@@ -106,6 +106,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `28858c7`
 
+### Refactor (Continued 5)
+
+- Migrated the final three direct contract-address call sites (`lottery` scratch card, `neoburger`, `turtle-match`) to shared `useContractAddress`.
+- Reduced direct `getContractAddress()` usage in `miniapps/*/src` to zero.
+
+### Verification (Continued 5)
+
+- `node scripts/validate-miniapps.mjs` passed (52/52).
+- `pnpm turbo typecheck --filter='./miniapps/*'` passed.
+- `pnpm turbo build --filter=miniapp-lottery --filter=miniapp-neoburger --filter=miniapp-turtle-match` passed (warnings only).
+
+### Commit Breakdown (Continued 5)
+
+- `7dd7cb8`
+
 ## [2.1.0] - 2026-02-11
 
 ### Security Hardening
