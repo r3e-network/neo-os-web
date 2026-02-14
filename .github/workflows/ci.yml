@@ -1,11 +1,11 @@
 name: CI Pipeline
 
 on:
-  schedule:
-    # Runs once daily at 02:00 UTC
-    - cron: "0 2 * * *"
+  push:
+    branches: [main, develop]
 
 permissions:
+  actions: read
   contents: read
   security-events: write
 
@@ -14,8 +14,51 @@ env:
   NODE_VERSION: "20"
 
 jobs:
+  daily-push-gate:
+    name: Daily Push Gate
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.gate.outputs.should_run }}
+    steps:
+      - name: Decide whether CI should run for this push
+        id: gate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = context.ref.replace("refs/heads/", "");
+            const workflowId = "ci.yml";
+            const currentRunId = context.runId;
+
+            const dayStart = new Date();
+            dayStart.setUTCHours(0, 0, 0, 0);
+
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              workflow_id: workflowId,
+              branch,
+              event: "push",
+              per_page: 100,
+            });
+
+            const hasEarlierRunToday = data.workflow_runs.some((run) => {
+              if (run.id === currentRunId) return false;
+              const createdAt = new Date(run.created_at);
+              return createdAt >= dayStart;
+            });
+
+            const shouldRun = !hasEarlierRunToday;
+            core.info(`Branch: ${branch}`);
+            core.info(`Day start (UTC): ${dayStart.toISOString()}`);
+            core.info(`Earlier push runs today: ${hasEarlierRunToday ? "yes" : "no"}`);
+            core.setOutput("should_run", shouldRun ? "true" : "false");
+
   lint:
     name: Lint
+    needs: daily-push-gate
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -36,6 +79,8 @@ jobs:
 
   build:
     name: Build
+    needs: daily-push-gate
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -78,7 +123,8 @@ jobs:
 
   unit-tests:
     name: Unit Tests
-    needs: build
+    needs: [daily-push-gate, build]
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -104,7 +150,8 @@ jobs:
 
   contract-tests:
     name: Contracts (neo-express)
-    needs: build
+    needs: [daily-push-gate, build]
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -137,7 +184,8 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    needs: build
+    needs: [daily-push-gate, build]
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -155,7 +203,8 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    needs: build
+    needs: [daily-push-gate, build]
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -173,6 +222,8 @@ jobs:
 
   host-app-build:
     name: Host App Build (Next.js)
+    needs: daily-push-gate
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -205,6 +256,8 @@ jobs:
 
   sdk-build:
     name: SDK Build (TypeScript)
+    needs: daily-push-gate
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -232,6 +285,8 @@ jobs:
 
   miniapp-build:
     name: MiniApps Build
+    needs: daily-push-gate
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -264,6 +319,8 @@ jobs:
 
   edge-functions-check:
     name: Edge Functions Check (Deno)
+    needs: daily-push-gate
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -285,6 +342,8 @@ jobs:
 
   security-scan:
     name: Security Scan
+    needs: daily-push-gate
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -322,7 +381,8 @@ jobs:
 
   docker-build:
     name: Docker Build
-    needs: [unit-tests, integration-tests, e2e-tests, security-scan]
+    needs: [daily-push-gate, unit-tests, integration-tests, e2e-tests, security-scan]
+    if: needs.daily-push-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -348,6 +408,7 @@ jobs:
     name: CI Summary
     needs:
       [
+        daily-push-gate,
         lint,
         build,
         unit-tests,
@@ -362,7 +423,7 @@ jobs:
         docker-build,
       ]
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && needs.daily-push-gate.outputs.should_run == 'true'
     steps:
       - name: Check all jobs status
         run: |
