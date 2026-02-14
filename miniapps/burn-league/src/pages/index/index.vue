@@ -67,7 +67,7 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { MiniAppShell } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems, waitForEventByTransaction } from "@shared/utils";
 
 import HeroSection from "./components/HeroSection.vue";
 import StatsGrid from "./components/StatsGrid.vue";
@@ -203,7 +203,7 @@ const burnTokens = async () => {
     ]);
 
     // Wait for event confirmation
-    await waitForEvent(result.txid, "GasBurned");
+    await waitForEventByTransaction(result, "GasBurned", waitForEvent);
 
     setStatus(`${t("burned")} ${amount} GAS ${t("success")}`, "success");
     burnAmount.value = "1";

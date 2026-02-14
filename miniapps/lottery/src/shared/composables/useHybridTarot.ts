@@ -12,6 +12,7 @@
 
 import type { ComputeVerifiedRequest } from "./useHybridCompute";
 import { useHybridCompute } from "./useHybridCompute";
+import { extractTxid, waitForEventByTransaction } from "@shared/utils/transaction";
 
 // Contract and app configuration
 const APP_ID = "on-chain-tarot";
@@ -93,8 +94,8 @@ export function useHybridTarot(
           ],
         });
 
-        const txid = tx.txid;
-        const event = await waitForEvent(txid, "ReadingInitiated");
+        const txid = extractTxid(tx);
+        const event = await waitForEventByTransaction(tx, "ReadingInitiated", waitForEvent);
         if (!event) throw new Error("Reading initiation failed");
 
         const values = event.state.map(parseStackItem);
@@ -139,10 +140,10 @@ export function useHybridTarot(
           ],
         });
 
-        const event = await waitForEvent(tx.txid, "ReadingCompleted");
+        const event = await waitForEventByTransaction(tx, "ReadingCompleted", waitForEvent);
         return {
           success: !!event,
-          txid: tx.txid,
+          txid: extractTxid(tx),
         };
       },
 
