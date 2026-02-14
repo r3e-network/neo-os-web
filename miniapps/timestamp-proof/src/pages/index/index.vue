@@ -15,7 +15,7 @@
       <template #content>
         
           <!-- Mobile: Quick Stats -->
-          <NeoStats :stats="mobileStats" class="mobile-stats" />
+          <MiniAppTabStats :stats="mobileStats" class="mobile-stats" />
 
           <ProofList :t="t" :proofs="proofs" />
         
@@ -50,7 +50,7 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, NeoStats } from "@shared/components";
+import { MiniAppShell, MiniAppTabStats } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import ProofCreateForm from "./components/ProofCreateForm.vue";
