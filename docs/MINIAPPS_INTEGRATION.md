@@ -16,6 +16,20 @@ node scripts/auto-discover-miniapps.js
 # 3. Deploy miniapps and registry to platform
 ```
 
+## Scaffold Template Presets
+
+New miniapps created with `node scripts/create-miniapp.mjs` now generate `src/pages/index/index.vue` from shared preset utilities instead of inline template objects.
+
+- Preset definitions live in `miniapps/shared/utils/templatePresets.ts`.
+- Generated pages call `createTemplateConfigFromPreset(...)` from `@shared/utils`.
+- Generated pages render `MiniAppShell` (shared wrapper over `MiniAppTemplate` + `ErrorBoundary`).
+- Shared `createTemplateConfig(...)` still auto-appends the docs tab and standard feature flags.
+- `templateType: custom` remains supported and resolves to the shared `custom` preset.
+- Shared stats wrappers (`MiniAppOperationStats`, `MiniAppTabStats`) should be used for repeated `NeoCard + NeoStats` blocks.
+- `scripts/validate-miniapps.mjs` enforces shared-template usage (`MiniAppTemplate` or `MiniAppShell`) and shared template-config imports.
+
+This keeps scaffold output aligned with the platform template contract while allowing future preset changes in one place.
+
 ## Directory Structure
 
 ```

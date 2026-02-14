@@ -3,7 +3,8 @@
  *
  * Validates all miniapps have correct structure and consistent data.
  * Checks: manifest existence, schema validation, required files,
- *         registry sync, orphan entries, contract address format.
+ *         registry sync, orphan entries, index page template conventions,
+ *         contract address format.
  *
  * Usage: node scripts/validate-miniapps.mjs
  * Exit:  0 = all pass, 1 = any fail
@@ -73,7 +74,7 @@ const CONTRACT_RE = /^(0x[0-9a-fA-F]{40}|)$/;
 
 // ── Checks ────────────────────────────────────────────────────────────
 
-const TOTAL_CHECKS = 6;
+const TOTAL_CHECKS = 7;
 let failures = 0;
 
 async function checkManifestExistence(dirs) {
@@ -236,8 +237,70 @@ async function checkOrphanEntries(manifestIds) {
   }
 }
 
+function hasNamedImport(source, importName) {
+  const importPattern = new RegExp(
+    `import\\s*\\{[^}]*\\b${importName}\\b[^}]*\\}\\s*from\\s*["'][^"']+["']`,
+    "m",
+  );
+  return importPattern.test(source);
+}
+
+async function checkIndexPageTemplateConventions(dirs) {
+  heading(6, TOTAL_CHECKS, "Checking index page template conventions...");
+  const issues = [];
+
+  for (const dir of dirs) {
+    const indexPagePath = join(MINIAPPS_DIR, dir, "src", "pages", "index", "index.vue");
+    if (!(await fileExists(indexPagePath))) {
+      issues.push({ dir, issue: "missing src/pages/index/index.vue" });
+      continue;
+    }
+
+    let source;
+    try {
+      source = await readFile(indexPagePath, "utf-8");
+    } catch (err) {
+      issues.push({ dir, issue: `cannot read index page: ${err.message}` });
+      continue;
+    }
+
+    const usesSharedTemplate = /<\s*(MiniAppTemplate|MiniAppShell)\b/.test(source);
+    if (!usesSharedTemplate) {
+      issues.push({ dir, issue: "index page does not use <MiniAppTemplate> or <MiniAppShell>" });
+    }
+
+    const hasSharedTemplateImport =
+      hasNamedImport(source, "MiniAppTemplate") || hasNamedImport(source, "MiniAppShell");
+    if (!hasSharedTemplateImport) {
+      issues.push({ dir, issue: "index page does not import MiniAppTemplate or MiniAppShell" });
+    }
+
+    const hasTemplateConfigImport =
+      hasNamedImport(source, "createTemplateConfig") ||
+      hasNamedImport(source, "createTemplateConfigFromPreset");
+
+    if (!hasTemplateConfigImport) {
+      issues.push({
+        dir,
+        issue: "index page does not import createTemplateConfig or createTemplateConfigFromPreset",
+      });
+    }
+  }
+
+  if (issues.length === 0) {
+    ok(
+      `${dirs.length}/${dirs.length} miniapps index pages use MiniAppTemplate/MiniAppShell and import shared template config helpers`,
+    );
+  } else {
+    failures++;
+    for (const { dir, issue } of issues) {
+      fail(`${dir}: ${issue}`);
+    }
+  }
+}
+
 async function checkContractAddresses(dirs, missingManifests) {
-  heading(6, TOTAL_CHECKS, "Validating contract addresses...");
+  heading(7, TOTAL_CHECKS, "Validating contract addresses...");
   const validDirs = dirs.filter((d) => !missingManifests.includes(d));
   const issues = [];
 
@@ -281,6 +344,7 @@ async function main() {
   await checkRequiredFiles(dirs);
   await checkRegistrySync(manifestIds);
   await checkOrphanEntries(manifestIds);
+  await checkIndexPageTemplateConventions(dirs);
   await checkContractAddresses(dirs, missingManifests);
 
   // Summary

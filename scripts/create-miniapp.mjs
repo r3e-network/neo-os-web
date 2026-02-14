@@ -300,14 +300,11 @@ function genNeoManifest(opts) {
 }
 
 function genMainTs() {
-  return `import { createSSRApp } from "vue";
+  return `import { createMiniAppEntry } from "@shared/utils";
 import App from "./App.vue";
 
 export function createApp() {
-    const app = createSSRApp(App);
-    return {
-        app,
-    };
+  return createMiniAppEntry(App);
 }
 `;
 }
@@ -446,7 +443,7 @@ export function useI18n() {
 
 function genIndexPage(templateType) {
   return `<template>
-  <MiniAppTemplate
+  <MiniAppShell
     :config="templateConfig"
     :state="appState"
     :t="t"
@@ -459,34 +456,20 @@ function genIndexPage(templateType) {
         </NeoCard>
       </view>
     </template>
-  </MiniAppTemplate>
+  </MiniAppShell>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { MiniAppTemplate, NeoCard } from "@shared/components";
-import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { computed } from "vue";
+import { MiniAppShell, NeoCard } from "@shared/components";
+import { createTemplateConfigFromPreset } from "@shared/utils";
 import { useI18n } from "@/composables/useI18n";
 
 const { t } = useI18n();
 
-const templateConfig: MiniAppTemplateConfig = {
-  contentType: "${templateType}",
-  tabs: [
-    { key: "main", labelKey: "title", icon: "🏠", default: true },
-    { key: "docs", labelKey: "docs", icon: "📖" },
-  ],
-  features: {
-    chainWarning: true,
-    statusMessages: true,
-    docs: {
-      titleKey: "title",
-      subtitleKey: "description",
-      stepKeys: [],
-      featureKeys: [],
-    },
-  },
-};
+const templateConfig = createTemplateConfigFromPreset("${templateType}", {
+  tabs: [{ key: "main", labelKey: "title", icon: "🏠", default: true }],
+});
 
 const appState = computed(() => ({}));
 </script>

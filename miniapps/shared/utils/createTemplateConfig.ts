@@ -1,6 +1,6 @@
 import type { MiniAppTemplateConfig, TabConfig, ContentType, DocsConfig } from "@shared/types/template-config";
 
-interface CreateTemplateConfigOptions {
+export interface CreateTemplateConfigOptions {
   /** Custom tabs BEFORE the auto-appended docs tab */
   tabs: TabConfig[];
   /** Defaults to "two-column" */

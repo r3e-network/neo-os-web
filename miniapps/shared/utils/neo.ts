@@ -163,3 +163,23 @@ export function normalizeScriptHash(hash: string): string {
 
   return normalized;
 }
+
+/**
+ * Compare an owner value from contract/event data against a wallet address.
+ *
+ * Supports direct address equality and script-hash comparison.
+ *
+ * @param owner - Owner value from chain data
+ * @param address - Wallet address to match against
+ * @returns True when owner belongs to the wallet address
+ */
+export function ownerMatchesAddress(owner: unknown, address: string | null | undefined): boolean {
+  if (!address) return false;
+
+  const value = String(owner || "");
+  if (value === address) return true;
+
+  const normalized = normalizeScriptHash(value);
+  const addressHash = addressToScriptHash(address);
+  return Boolean(normalized && addressHash && normalized === addressHash);
+}

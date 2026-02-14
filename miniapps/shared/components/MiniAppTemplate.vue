@@ -1,8 +1,10 @@
 <template>
   <ResponsiveLayout :desktop-breakpoint="1024" :tabs="navTabs" :active-tab="activeTab" @tab-change="handleTabChange">
-    <!-- Pass through desktop sidebar slot -->
-    <template #desktop-sidebar>
-      <slot name="desktop-sidebar" />
+    <!-- Desktop sidebar: app slot first, shared prop fallback second -->
+    <template v-if="hasDesktopSidebarContent" #desktop-sidebar>
+      <slot name="desktop-sidebar">
+        <SidebarPanel v-if="hasSidebarProps" :title="props.sidebarTitle" :items="normalizedSidebarItems" />
+      </slot>
     </template>
 
     <!-- Chain Warning -->
@@ -77,7 +79,7 @@
 <script setup lang="ts">
 import { computed, ref, useSlots } from "vue";
 import type { MiniAppTemplateConfig, StatConfig } from "@shared/types/template-config";
-import { ResponsiveLayout, NeoCard, NeoStats, NeoDoc, ChainWarning } from "@shared/components";
+import { ResponsiveLayout, NeoCard, NeoStats, NeoDoc, ChainWarning, SidebarPanel } from "@shared/components";
 import Fireworks from "@shared/components/Fireworks.vue";
 import type { NavTab } from "@shared/components/NavBar.vue";
 import { useChainValidation } from "@shared/composables/useChainValidation";
@@ -118,6 +120,10 @@ const props = defineProps<{
   statusMessage?: { msg: string; type: "success" | "error" } | null;
   /** Whether fireworks animation is active */
   fireworksActive?: boolean;
+  /** Shared desktop sidebar title (used when desktop-sidebar slot is not provided) */
+  sidebarTitle?: string;
+  /** Shared desktop sidebar items (used when desktop-sidebar slot is not provided) */
+  sidebarItems?: Array<{ label: string; value: string | number | boolean | null | undefined }>;
 }>();
 
 const emit = defineEmits<{
@@ -216,6 +222,16 @@ const showStatus = computed(() => props.config.features?.statusMessages !== fals
 
 // --- Slot detection ---
 const hasSlot = (name: string): boolean => !!slots[name];
+
+const normalizedSidebarItems = computed(() =>
+  (props.sidebarItems ?? []).map((item) => ({
+    label: item.label,
+    value: typeof item.value === "number" || typeof item.value === "string" ? item.value : String(item.value ?? ""),
+  }))
+);
+
+const hasSidebarProps = computed(() => Boolean(props.sidebarTitle) || normalizedSidebarItems.value.length > 0);
+const hasDesktopSidebarContent = computed(() => hasSlot("desktop-sidebar") || hasSidebarProps.value);
 </script>
 
 <style lang="scss" scoped>

@@ -78,6 +78,9 @@ export { default as ErrorToast } from "./ErrorToast.vue";
 // Vue Components - Template System
 // ============================================================================
 export { default as MiniAppTemplate } from "./MiniAppTemplate.vue";
+export { default as MiniAppShell } from "./MiniAppShell.vue";
+export { default as MiniAppOperationStats } from "./MiniAppOperationStats.vue";
+export { default as MiniAppTabStats } from "./MiniAppTabStats.vue";
 
 // ============================================================================
 // Type Exports
