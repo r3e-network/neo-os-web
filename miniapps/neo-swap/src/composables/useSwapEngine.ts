@@ -4,6 +4,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import { toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Token } from "@/types";
 
@@ -13,8 +14,9 @@ const TOKENS: Token[] = [
 ];
 
 export function useSwapEngine(t: Ref<(key: string) => string>) {
-  const { getAddress, invokeContract, balances, getContractAddress, chainType } = useWallet() as WalletSDK;
-  const SWAP_ROUTER = ref<string | null>(null);
+  const { getAddress, invokeContract, balances, chainType } = useWallet() as WalletSDK;
+  const { contractAddress: SWAP_ROUTER, ensure: ensureRouterAddress, ensureSafe: ensureRouterAddressSafe } =
+    useContractAddress((key: string) => (key === "contractUnavailable" ? t.value("swapRouterUnavailable") : t.value(key)));
 
   const fromToken = ref<Token>({ ...TOKENS[0] });
   const toToken = ref<Token>({ ...TOKENS[1] });
@@ -99,11 +101,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
 
   async function loadRouter() {
     if (SWAP_ROUTER.value) return;
-    try {
-      SWAP_ROUTER.value = await getContractAddress();
-    } catch {
-      /* non-critical: swap router address load */
-    }
+    await ensureRouterAddressSafe({ silentChainCheck: true });
   }
 
   function onFromAmountChange() {
@@ -170,8 +168,12 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
       const minOutputAmount = expectedOutput * (1 - slippageTolerance);
       const toDecimals = toToken.value.decimals;
       const minOutputInt = toFixedDecimals(minOutputAmount.toString(), toDecimals);
-      const routerAddress = SWAP_ROUTER.value || (await getContractAddress());
-      if (!routerAddress) throw new Error(t.value("swapRouterUnavailable"));
+      const routerAddress =
+        SWAP_ROUTER.value ||
+        (await ensureRouterAddress({
+          silentChainCheck: true,
+          contractUnavailableMessage: t.value("swapRouterUnavailable"),
+        }));
       const sender = await getAddress();
       const deadline = Math.floor(Date.now() / 1000) + 600;
       const path = [

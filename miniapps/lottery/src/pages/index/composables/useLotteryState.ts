@@ -5,6 +5,7 @@ import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 const APP_ID = "miniapp-lottery";
@@ -26,9 +27,12 @@ interface BuyResult {
 }
 
 export function useLotteryState(t: (key: string) => string) {
-  const { address, connect, chainType, invokeRead, invokeContract, getContractAddress } = useWallet() as WalletSDK;
+  const { address, connect, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
   const { processPayment } = usePaymentFlow(APP_ID);
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? "Contract address not found" : t(key),
+  );
 
   const isLoading = ref(false);
   const error = ref<string | null>(null);
@@ -56,11 +60,7 @@ export function useLotteryState(t: (key: string) => string) {
     if (!requireNeoChain(chainType.value, t)) return;
 
     try {
-      const contract = await getContractAddress();
-      if (!contract) {
-        setError("Contract address not found");
-        return;
-      }
+      const contract = await ensureContractAddress({ silentChainCheck: true });
 
       const res = await invokeRead({
         scriptHash: contract,
@@ -126,10 +126,7 @@ export function useLotteryState(t: (key: string) => string) {
       throw new Error("Wrong chain");
     }
 
-    const contract = await getContractAddress();
-    if (!contract) {
-      throw new Error("Contract address not found");
-    }
+    const contract = await ensureContractAddress({ silentChainCheck: true });
 
     buyingType.value = lotteryType;
     clearError();

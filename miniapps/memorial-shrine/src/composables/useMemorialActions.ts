@@ -1,33 +1,18 @@
-import { ref, onUnmounted } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
+import { ref } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { readQueryParam } from "@shared/utils/url";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import type { Memorial } from "@/types";
-
-const APP_ID = "miniapp-memorial-shrine";
 
 export function useMemorialActions() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead, getContractAddress } = useWallet() as WalletSDK;
-  const { isLoading } = usePaymentFlow(APP_ID);
 
   const memorials = ref<Memorial[]>([]);
   const visitedMemorials = ref<Memorial[]>([]);
   const recentObituaries = ref<{ id: number; name: string; text: string }[]>([]);
   const selectedMemorial = ref<Memorial | null>(null);
-  const contractAddress = ref<string | null>(null);
   const shareStatus = ref<string | null>(null);
   let shareStatusTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const ensureContract = async () => {
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    return contractAddress.value;
-  };
 
   const loadMemorials = async () => {
     memorials.value = [
