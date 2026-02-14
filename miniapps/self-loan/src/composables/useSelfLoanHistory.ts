@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { useEvents } from "@neo/uniapp-sdk";
 import { parseStackItem } from "@shared/utils/neo";
+import { useAllEvents } from "@shared/composables/useAllEvents";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
@@ -36,6 +37,11 @@ export function useSelfLoanHistory() {
     useSelfLoanCore();
 
   const { list: listEvents } = useEvents();
+  const { listAllEvents } = useAllEvents(listEvents, APP_ID, {
+    onError: (error: unknown, eventName: string) => {
+      handleError(error, { operation: "listEvents", metadata: { eventName } });
+    },
+  });
 
   const stats = ref<LoanStats>({ totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 });
   const loanHistory = ref<LoanHistoryEntry[]>([]);
@@ -44,24 +50,6 @@ export function useSelfLoanHistory() {
     const val = String(value || "");
     if (val === currentAddress) return true;
     return false;
-  };
-
-  const listAllEvents = async (eventName: string) => {
-    const events: unknown[] = [];
-    let afterId: string | undefined;
-    let hasMore = true;
-    while (hasMore) {
-      try {
-        const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 50, after_id: afterId });
-        events.push(...res.events);
-        hasMore = Boolean(res.has_more && res.last_id);
-        afterId = res.last_id || undefined;
-      } catch (e: unknown) {
-        handleError(e, { operation: "listEvents", metadata: { eventName } });
-        break;
-      }
-    }
-    return events;
   };
 
   const loadHistoryFromContract = async () => {

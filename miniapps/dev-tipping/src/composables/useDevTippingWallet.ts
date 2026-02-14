@@ -1,26 +1,22 @@
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { toFixed8 } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export function useDevTippingWallet(APP_ID: string) {
-  const { address, connect, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, connect } = useWallet() as WalletSDK;
   const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) => {
+    if (key === "wrongChain") return "Wrong chain";
+    if (key === "contractUnavailable") return "Contract unavailable";
+    return key;
+  });
   
   const MIN_TIP = 0.001;
   const { status, setStatus, clearStatus } = useStatusMessage();
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, (key: string) => key)) {
-      throw new Error("Wrong chain");
-    }
-    const contract = await getContractAddress();
-    if (!contract) throw new Error("Contract unavailable");
-    return contract;
-  };
 
   const sendTip = async (
     selectedDevId: number,

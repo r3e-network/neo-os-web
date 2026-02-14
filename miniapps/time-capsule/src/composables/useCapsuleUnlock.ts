@@ -2,8 +2,9 @@ import { ref, computed } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useAllEvents } from "@shared/composables/useAllEvents";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
-import { requireNeoChain } from "@shared/utils/chain";
 import { ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -15,11 +16,14 @@ const CONTENT_STORE_KEY = "time-capsule-content";
 
 export function useCapsuleUnlock() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
   const { processPayment, isProcessing: paymentProcessing } = usePaymentFlow(APP_ID);
   const { list: listEvents } = useEvents();
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? t("error") : t(key),
+  );
+  const { listAllEvents } = useAllEvents(listEvents, APP_ID);
 
-  const contractAddress = ref<string | null>(null);
   const isProcessing = ref(false);
   const localContent = ref<Record<string, string>>({});
 
@@ -52,31 +56,7 @@ export function useCapsuleUnlock() {
 
   localContent.value = loadLocalContent();
 
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t)) {
-      throw new Error(t("wrongChain"));
-    }
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) throw new Error(t("error"));
-    return contractAddress.value;
-  };
-
   const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
-
-  const listAllEvents = async (eventName: string) => {
-    const events: unknown[] = [];
-    let afterId: string | undefined;
-    let hasMore = true;
-    while (hasMore) {
-      const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 50, after_id: afterId });
-      events.push(...res.events);
-      hasMore = Boolean(res.has_more && res.last_id);
-      afterId = res.last_id || undefined;
-    }
-    return events;
-  };
 
   const open = async (cap: Capsule, onStatus?: (msg: string, type: string) => void) => {
     if (cap.locked) {

@@ -2,10 +2,10 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber, parseGas, toFixedDecimals } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
@@ -33,12 +33,11 @@ export function useSelfLoanCore() {
   const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage, canRetry } = useErrorHandler();
 
-  const { address, connect, invokeContract, invokeRead, getBalance, chainType, getContractAddress } =
-    useWallet() as WalletSDK;
+  const { address, connect, invokeContract, invokeRead, getBalance, chainType } = useWallet() as WalletSDK;
+  const { ensure: ensureContractAddress } = useContractAddress(t);
 
   const isLoading = ref(false);
   const neoBalance = ref(0);
-  const contractAddress = ref<string | null>(null);
   const platformStats = ref<PlatformStats>({
     ltvTier1Bps: 2000,
     ltvTier2Bps: 3000,
@@ -113,19 +112,6 @@ export function useSelfLoanCore() {
     if (total === 0) return 0;
     return Math.round((loan.value.collateralLocked / total) * 100);
   });
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t)) {
-      throw new Error(t("wrongChain"));
-    }
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) {
-      throw new Error(t("contractUnavailable"));
-    }
-    return contractAddress.value;
-  };
 
   const validateCollateral = (amount: string, balance: number): string | null => {
     const num = parseFloat(amount);

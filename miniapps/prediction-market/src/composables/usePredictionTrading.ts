@@ -2,15 +2,20 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { requireNeoChain } from "@shared/utils/chain";
 import type { PredictionMarket, MarketOrder, MarketPosition, TradeParams } from "@/types";
 
 export type { MarketOrder, MarketPosition, TradeParams };
 
 export function usePredictionTrading(APP_ID: string) {
-  const { address, chainType, invokeContract, getContractAddress } = useWallet() as WalletSDK;
+  const { address, invokeContract } = useWallet() as WalletSDK;
   const { processPayment, isLoading: isTrading } = usePaymentFlow(APP_ID);
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) => {
+    if (key === "wrongChain") return "Wrong chain";
+    if (key === "contractUnavailable") return "Contract unavailable";
+    return key;
+  });
 
   const yourOrders = ref<MarketOrder[]>([]);
   const yourPositions = ref<MarketPosition[]>([]);
@@ -26,15 +31,6 @@ export function usePredictionTrading(APP_ID: string) {
   const totalPnL = computed(() => {
     return yourPositions.value.reduce((sum, pos) => sum + (pos.pnl || 0), 0);
   });
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, (key: string) => key)) {
-      throw new Error("Wrong chain");
-    }
-    const contract = await getContractAddress();
-    if (!contract) throw new Error("Contract unavailable");
-    return contract;
-  };
 
   const executeTrade = async (market: PredictionMarket, params: TradeParams, t: Function): Promise<boolean> => {
     error.value = null;
