@@ -1,11 +1,8 @@
 <template>
   <view class="tab-content">
-    <NeoCard variant="erobo">
+    <MiniAppTabStats variant="erobo" :title="t('poolSubtitle')" :stats="poolStats" stats-position="bottom">
       <view class="pool-overview">
-        <text class="pool-title">{{ t("poolSubtitle") }}</text>
         <text class="pool-subtitle">{{ t("poolInfo") }}</text>
-
-        <NeoStats :stats="poolStats" />
 
         <view v-if="routerAddress" class="router-row">
           <text class="router-label">{{ t("routerLabel") }}</text>
@@ -16,19 +13,18 @@
           {{ t("openDex") }}
         </NeoButton>
       </view>
-    </NeoCard>
+    </MiniAppTabStats>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import type { WalletSDK } from "@neo/types";
-import { NeoCard, NeoStats, NeoButton } from "@shared/components";
+import { MiniAppTabStats, NeoButton, type StatItem } from "@shared/components";
 import { useDatafeed, useWallet } from "@neo/uniapp-sdk";
-import type { StatItem } from "@shared/components/NeoStats.vue";
 import type { UniAppGlobals } from "@shared/types/globals";
 
-const props = defineProps<{
+defineProps<{
   t: (key: string) => string;
 }>();
 
@@ -106,14 +102,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.pool-title {
-  font-size: 16px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-primary);
 }
 
 .pool-subtitle {

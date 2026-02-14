@@ -2,13 +2,12 @@ import { ref, computed, watch } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber, parseGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
+import { ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { parseInvokeResult } from "@shared/utils/neo";
 import type { StatItem } from "@shared/components/NeoStats.vue";
 
 const APP_ID = "miniapp-gov-merc";
@@ -17,9 +16,9 @@ export function useGovMercPool(t: (key: string) => string) {
   const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
   const { processPayment, isLoading } = usePaymentFlow(APP_ID);
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
+  const { ensure: ensureContractAddress } = useContractAddress(t);
   const { listAllEvents } = useAllEvents(listEvents, APP_ID);
-  const { status, setStatus, clearStatus } = useStatusMessage();
+  const { status, setStatus } = useStatusMessage();
 
   const depositAmount = ref("");
   const withdrawAmount = ref("");
@@ -34,6 +33,11 @@ export function useGovMercPool(t: (key: string) => string) {
   const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
   const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
+  const ensureConnectedAddress = async () => {
+    if (!address.value) await connect();
+    if (!address.value) throw new Error(t("error"));
+    return address.value;
+  };
 
   const poolStats = computed<StatItem[]>(() => [
     { label: t("totalPool"), value: `${formatNum(totalPool.value, 0)} NEO`, variant: "success" },
@@ -100,14 +104,13 @@ export function useGovMercPool(t: (key: string) => string) {
       return;
     }
     try {
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("error"));
+      const walletAddress = await ensureConnectedAddress();
       const contract = await ensureContractAddress();
       await invokeContract({
         scriptHash: contract,
         operation: "DepositNeo",
         args: [
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: walletAddress },
           { type: "Integer", value: amount },
         ],
       });
@@ -127,14 +130,13 @@ export function useGovMercPool(t: (key: string) => string) {
       return;
     }
     try {
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("error"));
+      const walletAddress = await ensureConnectedAddress();
       const contract = await ensureContractAddress();
       await invokeContract({
         scriptHash: contract,
         operation: "WithdrawNeo",
         args: [
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: walletAddress },
           { type: "Integer", value: amount },
         ],
       });
@@ -154,15 +156,14 @@ export function useGovMercPool(t: (key: string) => string) {
       return;
     }
     try {
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("error"));
+      const walletAddress = await ensureConnectedAddress();
       const contract = await ensureContractAddress();
       const { receiptId, invoke } = await processPayment(bidAmount.value, `bid:${currentEpoch.value}`);
       if (!receiptId) throw new Error(t("receiptMissing"));
       await invoke(
         "placeBid",
         [
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: walletAddress },
           { type: "Integer", value: toFixed8(bidAmount.value) },
           { type: "Integer", value: receiptId },
         ],

@@ -5,44 +5,41 @@
       :state="appState"
       :t="t"
       :status-message="status"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
       :on-boundary-error="handleBoundaryError"
       :on-boundary-retry="resetAndReload">
       <template #content>
-        
-          <NeoCard class="mb-6" variant="erobo">
-            <view class="form-group-neo">
-              <NeoInput
-                v-model="depositAmount"
-                type="number"
-                placeholder="0"
-                suffix="NEO"
-                :label="t('depositAmount')"
-              />
-              <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
-                {{ t("depositNeo") }}
-              </NeoButton>
-            </view>
-          </NeoCard>
+        <NeoCard class="mb-6" variant="erobo">
+          <view class="form-group-neo">
+            <NeoInput
+              v-model="depositAmount"
+              type="number"
+              placeholder="0"
+              suffix="NEO"
+              :label="t('depositAmount')"
+            />
+            <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
+              {{ t("depositNeo") }}
+            </NeoButton>
+          </view>
+        </NeoCard>
 
-          <NeoCard class="mb-6" variant="erobo">
-            <view class="form-group-neo">
-              <NeoInput
-                v-model="withdrawAmount"
-                type="number"
-                placeholder="0"
-                suffix="NEO"
-                :label="t('withdrawAmount')"
-              />
-              <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
-                {{ t("withdrawNeo") }}
-              </NeoButton>
-            </view>
-          </NeoCard>
-        
+        <NeoCard class="mb-6" variant="erobo">
+          <view class="form-group-neo">
+            <NeoInput
+              v-model="withdrawAmount"
+              type="number"
+              placeholder="0"
+              suffix="NEO"
+              :label="t('withdrawAmount')"
+            />
+            <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
+              {{ t("withdrawNeo") }}
+            </NeoButton>
+          </view>
+        </NeoCard>
       </template>
 
       <template #operation>
@@ -74,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppShell, MiniAppTabStats, NeoButton, NeoInput, NeoCard } from "@shared/components";
@@ -88,8 +85,6 @@ const templateConfig = createPrimaryStatsTemplateConfig(
   { key: "rent", labelKey: "rent", icon: "💰", default: true },
   { statsTab: { labelKey: "tabStats" } },
 );
-
-const activeTab = ref("rent");
 
 const {
   address,
@@ -111,7 +106,6 @@ const {
 } = useGovMercPool(t);
 
 const appState = computed(() => ({
-  activeTab: activeTab.value,
   address: address.value,
   totalPool: totalPool.value,
   currentEpoch: currentEpoch.value,

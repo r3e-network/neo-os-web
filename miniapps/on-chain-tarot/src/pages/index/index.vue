@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="status"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -52,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -62,7 +61,7 @@ import { MiniAppShell, MiniAppOperationStats, NeoButton } from "@shared/componen
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { formatErrorMessage, pollForEvent } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 
@@ -75,7 +74,6 @@ import { TAROT_DECK } from "./components/tarot-data";
 const { t } = createUseI18n(messages)();
 
 const templateConfig = createPrimaryStatsTemplateConfig({ key: "game", labelKey: "game", icon: "🎴", default: true });
-const activeTab = ref("game");
 const appState = computed(() => ({
   readingsCount: readingsCount.value,
   hasDrawn: hasDrawn.value,
@@ -87,10 +85,10 @@ const sidebarItems = createSidebarItems(t, [
 ]);
 
 const APP_ID = "miniapp-onchaintarot";
-const { address, connect, invokeContract } = useWallet() as WalletSDK;
+const { address, connect } = useWallet() as WalletSDK;
 const { processPayment, isLoading } = usePaymentFlow(APP_ID);
 const { list: listEvents } = useEvents();
-const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
+const { ensure: ensureContractAddress } = useContractAddress(t);
 
 // Use the imported full deck
 const tarotDeck = TAROT_DECK;
@@ -106,36 +104,38 @@ const tarotStats = computed(() => [
   { label: t("readings"), value: readingsCount.value },
   { label: t("cardsDrawn"), value: drawn.value.length },
 ]);
-const pollingTimers: ReturnType<typeof setTimeout>[] = [];
 
 const waitForEvent = async (txid: string, eventName: string) => {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
-    const match = res.events.find((evt) => evt.tx_hash === txid);
-    if (match) return match;
-    await new Promise((resolve) => {
-      const timer = setTimeout(resolve, 1500);
-      pollingTimers.push(timer);
-    });
-  }
-  return null;
+  return pollForEvent(
+    async () => {
+      const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
+      return res.events || [];
+    },
+    (evt: { tx_hash?: string }) => evt.tx_hash === txid,
+    {
+      timeoutMs: 30000,
+      pollIntervalMs: 1500,
+      errorMessage: t("readingPending"),
+    }
+  );
 };
 
 const waitForReading = async (readingId: string) => {
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const res = await listEvents({ app_id: APP_ID, event_name: "ReadingCompleted", limit: 25 });
-    const match = res.events.find((evt) => {
-      const evtRecord = evt as unknown as Record<string, unknown>;
-      const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
+  return pollForEvent(
+    async () => {
+      const res = await listEvents({ app_id: APP_ID, event_name: "ReadingCompleted", limit: 25 });
+      return res.events || [];
+    },
+    (evt: Record<string, unknown>) => {
+      const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
       return String(values[0] ?? "") === String(readingId);
-    });
-    if (match) return match;
-    await new Promise((resolve) => {
-      const timer = setTimeout(resolve, 1500);
-      pollingTimers.push(timer);
-    });
-  }
-  return null;
+    },
+    {
+      timeoutMs: 45000,
+      pollIntervalMs: 1500,
+      errorMessage: t("readingPending"),
+    }
+  );
 };
 
 const draw = async () => {
@@ -161,7 +161,6 @@ const draw = async () => {
       ],
       contract
     );
-
     const txid = String(
       (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
     );
@@ -225,11 +224,6 @@ const loadReadingCount = async () => {
 
 onMounted(async () => {
   await loadReadingCount();
-});
-
-onUnmounted(() => {
-  pollingTimers.forEach((timer) => clearTimeout(timer));
-  pollingTimers.length = 0;
 });
 
 const { handleBoundaryError } = useHandleBoundaryError("on-chain-tarot");
