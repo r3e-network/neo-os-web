@@ -7,6 +7,7 @@ import { messages } from "@/locale/messages";
 import { fromFixed8, formatHash } from "@shared/utils/format";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { pollForEvent } from "@shared/utils/errorHandling";
+import { extractTxid } from "@shared/utils/transaction";
 
 const APP_ID = "miniapp-redenvelope";
 
@@ -243,8 +244,7 @@ export function useRedEnvelopeOpen() {
       ],
     });
 
-    const result = tx as unknown as Record<string, unknown> | undefined;
-    return { txid: String(result?.txid || result?.txHash || "") };
+    return { txid: extractTxid(tx) };
   };
 
   const openClaim = async (claimId: string): Promise<{ txid: string }> => {
@@ -260,8 +260,7 @@ export function useRedEnvelopeOpen() {
       ],
     });
 
-    const result = tx as unknown as Record<string, unknown> | undefined;
-    return { txid: String(result?.txid || result?.txHash || "") };
+    return { txid: extractTxid(tx) };
   };
 
   const transferClaim = async (claimId: string, to: string): Promise<{ txid: string }> => {
@@ -278,8 +277,7 @@ export function useRedEnvelopeOpen() {
       ],
     });
 
-    const result = tx as unknown as Record<string, unknown> | undefined;
-    return { txid: String(result?.txid || result?.txHash || "") };
+    return { txid: extractTxid(tx) };
   };
 
   const reclaimPool = async (poolId: string): Promise<{ txid: string }> => {
@@ -295,8 +293,7 @@ export function useRedEnvelopeOpen() {
       ],
     });
 
-    const result = tx as unknown as Record<string, unknown> | undefined;
-    return { txid: String(result?.txid || result?.txHash || "") };
+    return { txid: extractTxid(tx) };
   };
 
   return {

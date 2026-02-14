@@ -5,8 +5,8 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { toFixed8, fromFixed8 } from "@shared/utils/format";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { pollForEvent } from "@shared/utils/errorHandling";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { extractTxid, pollForTxEvent } from "@shared/utils/transaction";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
 
@@ -136,18 +136,17 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
         ],
       });
 
-      const txid = String(
-        (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
-      );
+      const txid = extractTxid(tx);
       const createdEvt = txid
-        ? await pollForEvent(
-            async () => {
+        ? await pollForTxEvent<EventRecord>({
+            listEvents: async () => {
               const result = await listEvents({ app_id: APP_ID, event_name: "EnvelopeCreated", limit: 40 });
               return result.events || [];
             },
-            (evt: EventRecord) => evt.tx_hash === txid,
-            { timeoutMs: 30000, errorMessage: t("envelopePending") }
-          )
+            txid,
+            timeoutMs: 30000,
+            errorMessage: t("envelopePending"),
+          })
         : null;
 
       if (!createdEvt) {
@@ -212,18 +211,17 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
         ],
       });
 
-      const txid = String(
-        (tx as { txid?: string; txHash?: string })?.txid || (tx as { txid?: string; txHash?: string })?.txHash || ""
-      );
+      const txid = extractTxid(tx);
       const openedEvt = txid
-        ? await pollForEvent(
-            async () => {
+        ? await pollForTxEvent<EventRecord>({
+            listEvents: async () => {
               const result = await listEvents({ app_id: APP_ID, event_name: "EnvelopeOpened", limit: 25 });
               return result.events || [];
             },
-            (evt: EventRecord) => evt.tx_hash === txid,
-            { timeoutMs: 30000, errorMessage: t("openPending") }
-          )
+            txid,
+            timeoutMs: 30000,
+            errorMessage: t("openPending"),
+          })
         : null;
 
       if (!openedEvt) {
