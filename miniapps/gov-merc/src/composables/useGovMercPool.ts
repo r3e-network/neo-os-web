@@ -2,7 +2,7 @@ import { ref, computed, watch } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber, parseGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { addressToScriptHash, normalizeScriptHash, parseStackItem } from "@shared/utils/neo";
+import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useAllEvents } from "@shared/composables/useAllEvents";
@@ -33,14 +33,7 @@ export function useGovMercPool(t: (key: string) => string) {
   const isBusy = computed(() => isLoading.value || dataLoading.value);
   const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
-  const ownerMatches = (value: unknown) => {
-    if (!address.value) return false;
-    const val = String(value || "");
-    if (val === address.value) return true;
-    const normalized = normalizeScriptHash(val);
-    const addrHash = addressToScriptHash(address.value);
-    return Boolean(normalized && addrHash && normalized === addrHash);
-  };
+  const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
 
   const poolStats = computed<StatItem[]>(() => [
     { label: t("totalPool"), value: `${formatNum(totalPool.value, 0)} NEO`, variant: "success" },

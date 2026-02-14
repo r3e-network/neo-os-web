@@ -3,7 +3,7 @@ import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { sha256Hex } from "@shared/utils/hash";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { normalizeScriptHash, ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -53,14 +53,7 @@ export function useMasqueradeProposals(APP_ID: string) {
     return contract;
   };
 
-  const ownerMatches = (value: unknown) => {
-    if (!address.value) return false;
-    const val = String(value || "");
-    if (val === address.value) return true;
-    const normalized = normalizeScriptHash(val);
-    const addrHash = addressToScriptHash(address.value);
-    return Boolean(normalized && addrHash && normalized === addrHash);
-  };
+  const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
 
   const loadMasks = async (_t: Function) => {
     if (!address.value) return;

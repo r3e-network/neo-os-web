@@ -3,6 +3,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber } from "@shared/utils/format";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useTicker } from "@shared/composables/useTicker";
 import type { StatItem } from "@shared/components/NeoStats.vue";
 
 export interface TransactionRecord {
@@ -112,8 +113,6 @@ export function useExplorerData(t: (key: string) => string) {
     testnet: { height: 0, txCount: 0 },
   });
 
-  let statsInterval: ReturnType<typeof setInterval> | null = null;
-
   const formatNum = (n: number) => formatNumber(n, 0);
 
   const mainnetStats = computed<StatItem[]>(() => [
@@ -205,6 +204,8 @@ export function useExplorerData(t: (key: string) => string) {
     }
   };
 
+  const statsTicker = useTicker(fetchStats, 15000);
+
   const search = async () => {
     const query = searchQuery.value.trim();
     if (!query) {
@@ -262,14 +263,11 @@ export function useExplorerData(t: (key: string) => string) {
   const startPolling = () => {
     fetchStats();
     fetchRecentTxs();
-    statsInterval = setInterval(fetchStats, 15000);
+    statsTicker.start();
   };
 
   const stopPolling = () => {
-    if (statsInterval) {
-      clearInterval(statsInterval);
-      statsInterval = null;
-    }
+    statsTicker.stop();
   };
 
   const watchNetwork = () => {

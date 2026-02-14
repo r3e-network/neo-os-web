@@ -1,6 +1,6 @@
 import { ref, computed } from "vue";
 import type { WalletSDK } from "@neo/types";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Policy, Level } from "../pages/index/components/PoliciesList.vue";
 import type { ActionHistoryItem } from "../pages/index/components/ActionHistory.vue";
@@ -37,14 +37,7 @@ export function useGuardianPolicyContract(
     totalCoverage: policies.value.reduce((sum, p) => sum + (p.coverageValue || 0), 0),
   }));
 
-  const ownerMatches = (value: unknown) => {
-    if (!address.value) return false;
-    const val = String(value || "");
-    if (val === address.value) return true;
-    const normalized = normalizeScriptHash(val);
-    const addrHash = addressToScriptHash(address.value);
-    return Boolean(normalized && addrHash && normalized === addrHash);
-  };
+  const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
 
   const formatWithDecimals = (value: string, decimals: number) => {
     const cleaned = String(value || "").replace(/[^\d]/g, "");

@@ -4,7 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Capsule } from "../pages/index/components/CapsuleList.vue";
@@ -63,14 +63,7 @@ export function useCapsuleUnlock() {
     return contractAddress.value;
   };
 
-  const ownerMatches = (value: unknown) => {
-    if (!address.value) return false;
-    const val = String(value || "");
-    if (val === address.value) return true;
-    const normalized = normalizeScriptHash(val);
-    const addrHash = addressToScriptHash(address.value);
-    return Boolean(normalized && addrHash && normalized === addrHash);
-  };
+  const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
 
   const listAllEvents = async (eventName: string) => {
     const events: unknown[] = [];

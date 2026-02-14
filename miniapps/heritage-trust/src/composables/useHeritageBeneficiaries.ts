@@ -3,7 +3,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 
 const TRUST_NAME_KEY = "heritage-trust-names";
 
@@ -32,14 +32,7 @@ export function useHeritageBeneficiaries() {
     }
   };
 
-  const ownerMatches = (value: unknown) => {
-    if (!address.value) return false;
-    const val = String(value || "");
-    if (val === address.value) return true;
-    const normalized = normalizeScriptHash(val);
-    const addrHash = addressToScriptHash(address.value);
-    return Boolean(normalized && addrHash && normalized === addrHash);
-  };
+  const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
 
   return {
     trustNames,

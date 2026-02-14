@@ -1,9 +1,10 @@
-import { ref, computed, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 import type { PriceData } from "@shared/utils/price";
 import { getPrices } from "@shared/utils/price";
 import { formatCompactNumber } from "@shared/utils/format";
 import type { UniAppGlobals } from "@shared/types/globals";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useTicker } from "@shared/composables/useTicker";
 import { messages } from "@/locale/messages";
 
 const APY_CACHE_KEY = "neoburger_apy_cache";
@@ -13,6 +14,9 @@ const LOCAL_STATS_MOCK = {
   total_staked: 1425367,
   total_staked_formatted: "1.43M",
 };
+const APY_ANIMATION_DURATION_MS = 2000;
+const APY_ANIMATION_STEPS = 60;
+const APY_ANIMATION_INTERVAL_MS = APY_ANIMATION_DURATION_MS / APY_ANIMATION_STEPS;
 const isLocalPreview =
   typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
 
@@ -26,7 +30,21 @@ export function useNeoburgerStats() {
   const totalStaked = ref<number | null>(null);
   const totalStakedFormatted = ref<string | null>(null);
 
-  let apyAnimationTimer: ReturnType<typeof setInterval> | null = null;
+  let apyAnimationTarget = 0;
+  let apyAnimationIncrement = 0;
+  let apyAnimationCurrent = 0;
+  let apyAnimationStep = 0;
+
+  const apyAnimationTicker = useTicker(() => {
+    apyAnimationCurrent += apyAnimationIncrement;
+    apyAnimationStep += 1;
+    animatedApy.value = apyAnimationCurrent.toFixed(1);
+
+    if (apyAnimationStep >= APY_ANIMATION_STEPS) {
+      animatedApy.value = apyAnimationTarget.toFixed(1);
+      apyAnimationTicker.stop();
+    }
+  }, APY_ANIMATION_INTERVAL_MS);
 
   const aprDisplay = computed(() =>
     loadingApy.value ? t("apyPlaceholder") : `${animatedApy.value}%`,
@@ -45,27 +63,11 @@ export function useNeoburgerStats() {
   });
 
   function animateApy() {
-    const target = apy.value;
-    const duration = 2000;
-    const steps = 60;
-    const increment = target / steps;
-    let current = 0;
-    let step = 0;
-
-    if (apyAnimationTimer) clearInterval(apyAnimationTimer);
-
-    apyAnimationTimer = setInterval(() => {
-      current += increment;
-      step++;
-      animatedApy.value = current.toFixed(1);
-      if (step >= steps) {
-        animatedApy.value = target.toFixed(1);
-        if (apyAnimationTimer) {
-          clearInterval(apyAnimationTimer);
-          apyAnimationTimer = null;
-        }
-      }
-    }, duration / steps);
+    apyAnimationTarget = apy.value;
+    apyAnimationIncrement = apyAnimationTarget / APY_ANIMATION_STEPS;
+    apyAnimationCurrent = 0;
+    apyAnimationStep = 0;
+    apyAnimationTicker.start();
   }
 
   const fetchStats = async () => {
@@ -147,13 +149,8 @@ export function useNeoburgerStats() {
   }
 
   function cleanup() {
-    if (apyAnimationTimer) {
-      clearInterval(apyAnimationTimer);
-      apyAnimationTimer = null;
-    }
+    apyAnimationTicker.stop();
   }
-
-  onUnmounted(cleanup);
 
   return {
     apy,

@@ -1,6 +1,6 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useWallet, usePayments, useEvents } from "@neo/uniapp-sdk";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -65,14 +65,7 @@ export function useGarden(
   );
   const isBusy = computed(() => isLoading.value || dataLoading.value || isHarvesting.value);
 
-  const ownerMatches = (value: unknown) => {
-    if (!address.value) return false;
-    const val = String(value || "");
-    if (val === address.value) return true;
-    const normalized = normalizeScriptHash(val);
-    const addrHash = addressToScriptHash(address.value);
-    return Boolean(normalized && addrHash && normalized === addrHash);
-  };
+  const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
 
   const seedByType = (seedType: number) => seeds.value.find((seed) => seed.id === seedType);
 
