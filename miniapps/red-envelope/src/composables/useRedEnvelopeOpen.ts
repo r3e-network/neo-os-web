@@ -44,6 +44,11 @@ export type ClaimItem = {
   message: string;
 };
 
+type ContractArg = {
+  type: string;
+  value: string | number | boolean;
+};
+
 export function useRedEnvelopeOpen() {
   const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
@@ -231,69 +236,50 @@ export function useRedEnvelopeOpen() {
     }
   };
 
-  const claimFromPool = async (poolId: string): Promise<{ txid: string }> => {
+  const invokeEnvelopeAction = async (
+    operation: string,
+    buildArgs: (userAddress: string) => ContractArg[],
+  ): Promise<{ txid: string }> => {
     const contract = await ensureContractAddress();
-    if (!address.value) throw new Error(t("connectWallet"));
+    const userAddress = address.value;
+    if (!userAddress) throw new Error(t("connectWallet"));
 
     const tx = await invokeContract({
       scriptHash: contract,
-      operation: "claimFromPool",
-      args: [
-        { type: "Integer", value: poolId },
-        { type: "Hash160", value: address.value },
-      ],
+      operation,
+      args: buildArgs(userAddress),
     });
 
     return { txid: extractTxid(tx) };
+  };
+
+  const claimFromPool = async (poolId: string): Promise<{ txid: string }> => {
+    return invokeEnvelopeAction("claimFromPool", (userAddress) => [
+      { type: "Integer", value: poolId },
+      { type: "Hash160", value: userAddress },
+    ]);
   };
 
   const openClaim = async (claimId: string): Promise<{ txid: string }> => {
-    const contract = await ensureContractAddress();
-    if (!address.value) throw new Error(t("connectWallet"));
-
-    const tx = await invokeContract({
-      scriptHash: contract,
-      operation: "openClaim",
-      args: [
-        { type: "Integer", value: claimId },
-        { type: "Hash160", value: address.value },
-      ],
-    });
-
-    return { txid: extractTxid(tx) };
+    return invokeEnvelopeAction("openClaim", (userAddress) => [
+      { type: "Integer", value: claimId },
+      { type: "Hash160", value: userAddress },
+    ]);
   };
 
   const transferClaim = async (claimId: string, to: string): Promise<{ txid: string }> => {
-    const contract = await ensureContractAddress();
-    if (!address.value) throw new Error(t("connectWallet"));
-
-    const tx = await invokeContract({
-      scriptHash: contract,
-      operation: "transferClaim",
-      args: [
-        { type: "Integer", value: claimId },
-        { type: "Hash160", value: address.value },
-        { type: "Hash160", value: to },
-      ],
-    });
-
-    return { txid: extractTxid(tx) };
+    return invokeEnvelopeAction("transferClaim", (userAddress) => [
+      { type: "Integer", value: claimId },
+      { type: "Hash160", value: userAddress },
+      { type: "Hash160", value: to },
+    ]);
   };
 
   const reclaimPool = async (poolId: string): Promise<{ txid: string }> => {
-    const contract = await ensureContractAddress();
-    if (!address.value) throw new Error(t("connectWallet"));
-
-    const tx = await invokeContract({
-      scriptHash: contract,
-      operation: "reclaimPool",
-      args: [
-        { type: "Integer", value: poolId },
-        { type: "Hash160", value: address.value },
-      ],
-    });
-
-    return { txid: extractTxid(tx) };
+    return invokeEnvelopeAction("reclaimPool", (userAddress) => [
+      { type: "Integer", value: poolId },
+      { type: "Hash160", value: userAddress },
+    ]);
   };
 
   return {
