@@ -79,17 +79,15 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppShell, MiniAppTabStats, NeoButton, NeoInput, NeoCard } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useGovMercPool } from "@/composables/useGovMercPool";
 
 const { t } = createUseI18n(messages)();
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "rent", labelKey: "rent", icon: "💰", default: true },
-    { key: "stats", labelKey: "tabStats", icon: "📊" },
-  ],
-});
+const templateConfig = createPrimaryStatsTemplateConfig(
+  { key: "rent", labelKey: "rent", icon: "💰", default: true },
+  { statsTab: { labelKey: "tabStats" } },
+);
 
 const activeTab = ref("rent");
 

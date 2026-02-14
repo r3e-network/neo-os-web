@@ -56,7 +56,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useGuardianPolicyContract } from "@/composables/useGuardianPolicyContract";
 
 import PoliciesList from "./components/PoliciesList.vue";
@@ -77,12 +77,7 @@ const { listAllEvents } = useAllEvents(listEvents, APP_ID);
 
 const gp = useGuardianPolicyContract(wallet, ensureContractAddress, listAllEvents, processPayment, setStatus, t);
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "main", labelKey: "main", icon: "📋", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
-  ],
-});
+const templateConfig = createPrimaryStatsTemplateConfig({ key: "main", labelKey: "main", icon: "📋", default: true });
 
 const activeTab = ref("main");
 

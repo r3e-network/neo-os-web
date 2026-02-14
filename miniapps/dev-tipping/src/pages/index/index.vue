@@ -46,7 +46,7 @@ import { ref, computed, onMounted } from "vue";
 import { MiniAppShell } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
 import { useDevTippingStats, type Developer } from "@/composables/useDevTippingStats";
 import { useDevTippingWallet } from "@/composables/useDevTippingWallet";
@@ -62,13 +62,12 @@ const { address, isLoading, status, setStatus, sendTip } = useDevTippingWallet(A
 
 const activeTab = ref<string>("send");
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "send", labelKey: "sendTip", icon: "💰", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
-  ],
-  fireworks: true,
-});
+const templateConfig = createPrimaryStatsTemplateConfig(
+  { key: "send", labelKey: "sendTip", icon: "💰", default: true },
+  {
+    fireworks: true,
+  },
+);
 
 const appState = computed(() => ({
   totalDonated: totalDonated.value,

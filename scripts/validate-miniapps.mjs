@@ -277,12 +277,14 @@ async function checkIndexPageTemplateConventions(dirs) {
 
     const hasTemplateConfigImport =
       hasNamedImport(source, "createTemplateConfig") ||
-      hasNamedImport(source, "createTemplateConfigFromPreset");
+      hasNamedImport(source, "createTemplateConfigFromPreset") ||
+      hasNamedImport(source, "createPrimaryStatsTemplateConfig");
 
     if (!hasTemplateConfigImport) {
       issues.push({
         dir,
-        issue: "index page does not import createTemplateConfig or createTemplateConfigFromPreset",
+        issue:
+          "index page does not import createTemplateConfig, createTemplateConfigFromPreset, or createPrimaryStatsTemplateConfig",
       });
     }
   }

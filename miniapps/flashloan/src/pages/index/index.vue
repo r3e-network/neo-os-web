@@ -62,7 +62,7 @@ import { MiniAppShell, MiniAppOperationStats, NeoButton, NeoInput, ErrorToast } 
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 
 import { useFlashloanCore } from "@/composables/useFlashloanCore";
 import LoanRequest from "./components/LoanRequest.vue";
@@ -95,12 +95,10 @@ const {
   invokeContract,
 } = useFlashloanCore();
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "main", labelKey: "main", icon: "⚡", default: true },
-    { key: "stats", labelKey: "tabStats", icon: "📊" },
-  ],
-});
+const templateConfig = createPrimaryStatsTemplateConfig(
+  { key: "main", labelKey: "main", icon: "⚡", default: true },
+  { statsTab: { labelKey: "tabStats" } },
+);
 const activeTab = ref("main");
 const appState = computed(() => ({
   activeTab: activeTab.value,

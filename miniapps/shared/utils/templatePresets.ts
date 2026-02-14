@@ -1,4 +1,4 @@
-import type { ContentType, DocsConfig, MiniAppTemplateConfig } from "@shared/types/template-config";
+import type { ContentType, DocsConfig, MiniAppTemplateConfig, TabConfig } from "@shared/types/template-config";
 import { createTemplateConfig, type CreateTemplateConfigOptions } from "./createTemplateConfig";
 
 type PresetConfigOptions = Omit<CreateTemplateConfigOptions, "tabs" | "contentType">;
@@ -50,5 +50,35 @@ export function createTemplateConfigFromPreset(
     ...options,
     contentType: preset.contentType,
     docs: options.docs ?? presetDocs,
+  });
+}
+
+interface CreatePrimaryStatsTemplateConfigOptions extends Omit<CreateTemplateConfigOptions, "tabs"> {
+  statsTab?: Partial<TabConfig>;
+}
+
+/**
+ * Shared helper for the common "primary action + stats" tab layout.
+ * Keeps docs/fireworks/content options centralized while allowing per-app tab labels/icons.
+ */
+export function createPrimaryStatsTemplateConfig(
+  primaryTab: TabConfig,
+  options: CreatePrimaryStatsTemplateConfigOptions = {},
+): MiniAppTemplateConfig {
+  const { statsTab, ...config } = options;
+  const normalizedPrimary: TabConfig = {
+    ...primaryTab,
+    default: primaryTab.default ?? true,
+  };
+  const normalizedStats: TabConfig = {
+    key: "stats",
+    labelKey: "stats",
+    icon: "📊",
+    ...statsTab,
+  };
+
+  return createTemplateConfig({
+    ...config,
+    tabs: [normalizedPrimary, normalizedStats],
   });
 }
