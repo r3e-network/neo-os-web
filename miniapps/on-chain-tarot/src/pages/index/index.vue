@@ -63,7 +63,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage, pollForEvent } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createPrimaryStatsTemplateConfig, createSidebarItems, extractTxid } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems, extractTxid, pollForTxEvent } from "@shared/utils";
 
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
@@ -106,18 +106,16 @@ const tarotStats = computed(() => [
 ]);
 
 const waitForEvent = async (txid: string, eventName: string) => {
-  return pollForEvent(
-    async () => {
+  return pollForTxEvent({
+    listEvents: async () => {
       const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
       return res.events || [];
     },
-    (evt: { tx_hash?: string }) => evt.tx_hash === txid,
-    {
-      timeoutMs: 30000,
-      pollIntervalMs: 1500,
-      errorMessage: t("readingPending"),
-    }
-  );
+    txid,
+    timeoutMs: 30000,
+    pollIntervalMs: 1500,
+    errorMessage: t("readingPending"),
+  });
 };
 
 const waitForReading = async (readingId: string) => {
