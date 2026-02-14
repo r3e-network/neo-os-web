@@ -2,9 +2,9 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { sha256Hex } from "@shared/utils/hash";
-import { requireNeoChain } from "@shared/utils/chain";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -26,10 +26,12 @@ export interface CapsuleFormData {
 
 export function useCapsuleCreation() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, connect, invokeContract } = useWallet() as WalletSDK;
   const { processPayment, isProcessing: paymentProcessing } = usePaymentFlow(APP_ID);
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? t("error") : t(key),
+  );
 
-  const contractAddress = ref<string | null>(null);
   const isProcessing = ref(false);
   const { status, setStatus, clearStatus } = useStatusMessage();
 
@@ -53,17 +55,6 @@ export function useCapsuleCreation() {
       daysValue <= MAX_LOCK_DAYS
     );
   });
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t)) {
-      throw new Error(t("wrongChain"));
-    }
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) throw new Error(t("error"));
-    return contractAddress.value;
-  };
 
   const saveLocalContent = (hash: string, content: string) => {
     if (!hash) return;

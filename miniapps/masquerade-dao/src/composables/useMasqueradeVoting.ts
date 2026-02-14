@@ -2,7 +2,7 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { requireNeoChain } from "@shared/utils/chain";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -16,8 +16,13 @@ export interface Vote {
 }
 
 export function useMasqueradeVoting(APP_ID: string) {
-  const { address, chainType, invokeContract, getContractAddress } = useWallet() as WalletSDK;
+  const { address } = useWallet() as WalletSDK;
   const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) => {
+    if (key === "wrongChain") return "Wrong chain";
+    if (key === "contractUnavailable") return "Contract unavailable";
+    return key;
+  });
   
   const VOTE_FEE = 0.01;
   const proposalId = ref("");
@@ -25,15 +30,6 @@ export function useMasqueradeVoting(APP_ID: string) {
   const myVotes = ref<Vote[]>([]);
 
   const canVote = computed(() => Boolean(proposalId.value));
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, (key: string) => key)) {
-      throw new Error("Wrong chain");
-    }
-    const contract = await getContractAddress();
-    if (!contract) throw new Error("Contract unavailable");
-    return contract;
-  };
 
   const submitVote = async (
     selectedMaskId: string | null,

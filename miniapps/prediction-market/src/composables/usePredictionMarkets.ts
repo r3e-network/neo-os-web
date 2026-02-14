@@ -2,14 +2,19 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { parseInvokeResult } from "@shared/utils/neo";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { requireNeoChain } from "@shared/utils/chain";
 import type { PredictionMarket, MarketFilters } from "@/types";
 
 export type { PredictionMarket, MarketFilters };
 
 export function usePredictionMarkets() {
-  const { address, invokeRead, getContractAddress, chainType } = useWallet() as WalletSDK;
+  const { address, invokeRead } = useWallet() as WalletSDK;
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) => {
+    if (key === "wrongChain") return "Wrong chain";
+    if (key === "contractUnavailable") return "Contract unavailable";
+    return key;
+  });
 
   const markets = ref<PredictionMarket[]>([]);
   const loadingMarkets = ref(false);
@@ -59,15 +64,6 @@ export function usePredictionMarkets() {
 
     return result;
   });
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, (key: string) => key)) {
-      throw new Error("Wrong chain");
-    }
-    const contract = await getContractAddress();
-    if (!contract) throw new Error("Contract unavailable");
-    return contract;
-  };
 
   const loadMarkets = async (t: Function) => {
     loadingMarkets.value = true;

@@ -2,9 +2,9 @@ import { ref, computed } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatAddress, parseGas } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
 import { normalizeScriptHash, addressToScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
@@ -18,11 +18,13 @@ const KEY_PRICE_INCREMENT_BPS = 10n;
 export function useDoomsdayGame() {
   const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage, canRetry } = useErrorHandler();
-  const { address, connect, invokeRead, invokeContract, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, connect, invokeRead, invokeContract } = useWallet() as WalletSDK;
   const { processPayment, isLoading: isPaying } = usePaymentFlow(APP_ID);
   const { list: listEvents } = useEvents();
+  const { contractAddress, ensure: ensureContractAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? t("error") : t(key),
+  );
 
-  const contractAddress = ref<string | null>(null);
   const roundId = ref(0);
   const totalPot = ref(0);
   const isRoundActive = ref(false);
@@ -66,13 +68,6 @@ export function useDoomsdayGame() {
   });
 
   const estimatedCost = computed(() => (Number(estimatedCostRaw.value) / 1e8).toFixed(2));
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t)) throw new Error(t("wrongChain"));
-    if (!contractAddress.value) contractAddress.value = await getContractAddress();
-    if (!contractAddress.value) throw new Error(t("error"));
-    return contractAddress.value;
-  };
 
   const loadRoundData = async () => {
     await ensureContractAddress();

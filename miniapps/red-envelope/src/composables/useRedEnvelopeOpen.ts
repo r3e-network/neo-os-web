@@ -2,9 +2,9 @@ import { ref } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { fromFixed8, formatHash } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { pollForEvent } from "@shared/utils/errorHandling";
 
@@ -45,8 +45,9 @@ export type ClaimItem = {
 
 export function useRedEnvelopeOpen() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
+  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
 
   const envelopes = ref<EnvelopeItem[]>([]);
   const claims = ref<ClaimItem[]>([]);
@@ -54,20 +55,6 @@ export function useRedEnvelopeOpen() {
   const loadingEnvelopes = ref(false);
   const loadingClaims = ref(false);
   const loadingPools = ref(false);
-  const contractAddress = ref<string | null>(null);
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t)) {
-      throw new Error(t("wrongChain"));
-    }
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) {
-      throw new Error(t("contractUnavailable"));
-    }
-    return contractAddress.value;
-  };
 
   const parseEnvelopeData = (data: unknown): Record<string, unknown> | null => {
     if (!data || typeof data !== "object") return null;

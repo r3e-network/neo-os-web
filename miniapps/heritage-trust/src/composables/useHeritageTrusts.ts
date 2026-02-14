@@ -2,9 +2,9 @@ import { ref, computed } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { parseGas, toFixed8, toFixedDecimals, sleep } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -14,13 +14,14 @@ const APP_ID = "miniapp-heritage-trust";
 
 export function useHeritageTrusts() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead, getBalance, chainType, getContractAddress } =
-    useWallet() as WalletSDK;
+  const { address, connect, invokeContract, invokeRead, getBalance } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? t("error") : t(key),
+  );
 
   const isLoading = ref(false);
   const isLoadingData = ref(false);
-  const contractAddress = ref<string | null>(null);
   const trusts = ref<Trust[]>([]);
   const { status, setStatus, clearStatus } = useStatusMessage();
 
@@ -32,19 +33,6 @@ export function useHeritageTrusts() {
     totalNeoValue: trusts.value.reduce((sum, t) => sum + (t.neoValue || 0), 0),
     activeTrusts: trusts.value.filter((t) => t.status === "active" || t.status === "triggered").length,
   }));
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t)) {
-      throw new Error(t("wrongChain"));
-    }
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
-    }
-    if (!contractAddress.value) {
-      throw new Error(t("error"));
-    }
-    return contractAddress.value;
-  };
 
   const toNumber = (value: unknown) => {
     const num = Number(value ?? 0);

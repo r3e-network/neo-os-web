@@ -2,9 +2,9 @@ import { ref, computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { toFixed8 } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 const APP_ID = "miniapp-redenvelope";
@@ -16,7 +16,8 @@ const BEST_LUCK_BONUS_RATE = 5n; // 5%
 
 export function useRedEnvelopeCreation() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, chainType, getContractAddress } = useWallet() as WalletSDK;
+  const { address, connect } = useWallet() as WalletSDK;
+  const { ensure: ensureContractAddress } = useContractAddress(t);
 
   const name = ref("");
   const description = ref("");
@@ -29,17 +30,6 @@ export function useRedEnvelopeCreation() {
   const isLoading = ref(false);
 
   const defaultBlessing = computed(() => t("defaultBlessing"));
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, t)) {
-      throw new Error(t("wrongChain"));
-    }
-    const contract = await getContractAddress();
-    if (!contract) {
-      throw new Error(t("contractUnavailable"));
-    }
-    return contract;
-  };
 
   const generatePreviewSeed = (totalAmount: string, packetCount: string): Uint8Array => {
     const data = `preview:${totalAmount}:${packetCount}:${Date.now()}`;

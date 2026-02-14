@@ -2,9 +2,9 @@ import { ref, computed } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { sha256Hex } from "@shared/utils/hash";
 import { normalizeScriptHash, ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { requireNeoChain } from "@shared/utils/chain";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -28,9 +28,14 @@ export interface Proposal {
 }
 
 export function useMasqueradeProposals(APP_ID: string) {
-  const { address, chainType, invokeRead, getContractAddress } = useWallet() as WalletSDK;
+  const { address, invokeRead } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
   const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+  const { ensure: ensureContractAddress } = useContractAddress((key: string) => {
+    if (key === "wrongChain") return "Wrong chain";
+    if (key === "contractUnavailable") return "Contract unavailable";
+    return key;
+  });
 
   const masks = ref<Mask[]>([]);
   const proposals = ref<Proposal[]>([]);
@@ -43,15 +48,6 @@ export function useMasqueradeProposals(APP_ID: string) {
   const MASK_FEE = 0.1;
 
   const canCreateMask = computed(() => Boolean(identitySeed.value.trim()));
-
-  const ensureContractAddress = async () => {
-    if (!requireNeoChain(chainType, (key: string) => key)) {
-      throw new Error("Wrong chain");
-    }
-    const contract = await getContractAddress();
-    if (!contract) throw new Error("Contract unavailable");
-    return contract;
-  };
 
   const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
 
