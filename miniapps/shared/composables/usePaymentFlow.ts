@@ -11,7 +11,7 @@
 
 import { ref } from "vue";
 import { usePayments, useWallet, useEvents } from "@neo/uniapp-sdk";
-import { pollForEvent } from "@shared/utils/errorHandling";
+import { extractTxid, pollForTxEvent } from "@shared/utils/transaction";
 
 type InvokeArg = {
   type: string;
@@ -73,15 +73,15 @@ export function usePaymentFlow(appId: string, options?: PaymentFlowOptions) {
           scriptHash,
           operation,
           args,
-        })) as { txid?: string; txHash?: string };
+        })) as unknown;
 
-        const txid = tx.txid || tx.txHash || "";
+        const txid = extractTxid(tx);
         return { txid, receiptId };
       };
 
       const waitForEvent = async (txid: string, eventName: string, timeoutMs = 30000) => {
-        return pollForEvent(
-          async () => {
+        return pollForTxEvent({
+          listEvents: async () => {
             const result = await listEvents({
               app_id: appId,
               event_name: eventName,
@@ -89,12 +89,10 @@ export function usePaymentFlow(appId: string, options?: PaymentFlowOptions) {
             });
             return result.events || [];
           },
-          (event: { tx_hash?: string }) => event.tx_hash === txid,
-          {
-            timeoutMs,
-            errorMessage: `Event "${eventName}" not found for transaction ${txid}`,
-          }
-        );
+          txid,
+          timeoutMs,
+          errorMessage: `Event "${eventName}" not found for transaction ${txid}`,
+        });
       };
 
       /** Signal success — sets success ref and calls onSuccess callback */
