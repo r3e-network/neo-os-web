@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="errorStatus"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -72,8 +71,6 @@ const templateConfig = createTemplateConfig({
   ],
   docFeatureCount: 4,
 });
-
-const activeTab = ref("leaderboard");
 
 const appState = computed(() => ({
   karma: userKarma.value,

@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :fireworks-active="showWinOverlay"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('gameErrorFallback')"
@@ -65,7 +64,7 @@
 
 <script setup lang="ts">
 import "../../static/coin-flip.css";
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -110,7 +109,6 @@ const templateConfig = createPrimaryStatsTemplateConfig(
   { fireworks: true },
 );
 
-const activeTab = ref("game");
 
 const gameStats = computed<StatItem[]>(() => [
   { label: t("totalGames"), value: wins.value + losses.value },

@@ -6,7 +6,6 @@
       :t="t"
       :status-message="errorStatus"
       class="theme-timestamp-proof"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('proofStats')"
       :fallback-message="t('errorFallback')"
@@ -75,7 +74,6 @@ const sidebarItems = createSidebarItems(t, [
   { labelKey: "latestId", value: () => (proofs.value.length > 0 ? `#${proofs.value[0].id}` : "—") },
 ]);
 
-const activeTab = ref("proofs");
 const { address, invokeContract, invokeRead, chainType, getContractAddress } = useWallet() as WalletSDK;
 const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
 const { contractAddress, ensureSafe: ensureContractAddress } = useContractAddress(t);

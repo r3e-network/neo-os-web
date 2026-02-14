@@ -6,7 +6,6 @@
       :t="t"
       :status-message="status"
       :fireworks-active="status?.type === 'success'"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -83,7 +82,6 @@ const templateConfig = createPrimaryStatsTemplateConfig(
   { fireworks: true },
 );
 
-const activeTab = ref("game");
 
 const appState = computed(() => ({
   totalBurned: totalBurned.value,

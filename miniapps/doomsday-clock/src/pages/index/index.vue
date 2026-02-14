@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="statusMsg"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('doomsdayErrorFallback')"
@@ -70,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { formatNumber } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useTicker } from "@shared/composables/useTicker";
@@ -109,7 +108,6 @@ const templateConfig = createTemplateConfig({
   ],
 });
 
-const activeTab = ref("game");
 
 const appState = computed(() => ({
   roundId: game.roundId.value,

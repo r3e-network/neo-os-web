@@ -6,7 +6,6 @@
       :t="t"
       :status-message="status"
       class="pond-theme"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -196,7 +195,6 @@ const {
   resetLocalGame,
 } = useTurtleMatching();
 
-const activeTab = ref("play");
 const boxCount = ref(5);
 const showSplash = ref(true);
 const showBlindbox = ref(false);

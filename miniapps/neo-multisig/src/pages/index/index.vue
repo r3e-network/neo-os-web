@@ -85,7 +85,6 @@ const templateConfig = createTemplateConfig({
   docStepPrefix: "docStep",
   docFeaturePrefix: "docFeature",
 });
-const activeTab = ref("home");
 const appState = computed(() => ({
   totalTxs: history.value.length,
   pending: pendingCount.value,
@@ -104,7 +103,6 @@ const handleTabChange = (tabId: string) => {
     uni.navigateTo({ url: "/pages/docs/index" });
     return;
   }
-  activeTab.value = tabId;
 };
 
 const navigateToCreate = () => {

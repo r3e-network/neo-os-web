@@ -4,7 +4,6 @@
     :state="appState"
     :t="t"
     :status-message="status"
-    @tab-change="activeTab = $event"
     :sidebar-items="sidebarItems"
     :sidebar-title="t('overview')"
     :fallback-message="t('flashloanErrorFallback')"
@@ -99,9 +98,7 @@ const templateConfig = createPrimaryStatsTemplateConfig(
   { key: "main", labelKey: "main", icon: "⚡", default: true },
   { statsTab: { labelKey: "tabStats" } },
 );
-const activeTab = ref("main");
 const appState = computed(() => ({
-  activeTab: activeTab.value,
   address: address.value,
   isLoading: isLoading.value,
   poolBalance: poolBalance.value,

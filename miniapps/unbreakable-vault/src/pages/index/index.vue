@@ -5,7 +5,6 @@
     :t="t"
     :status-message="breaker.status.value"
     class="theme-unbreakable-vault"
-    @tab-change="activeTab = $event"
     :sidebar-items="sidebarItems"
     :sidebar-title="t('overview')"
     :fallback-message="t('errorFallback')"
@@ -137,7 +136,6 @@ const sidebarItems = createSidebarItems(t, [
   { labelKey: "sidebarAttemptFee", value: () => `${breaker.attemptFeeDisplay.value} GAS` },
 ]);
 
-const activeTab = ref("create");
 
 const bounty = ref("");
 const vaultTitle = ref("");

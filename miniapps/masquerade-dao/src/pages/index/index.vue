@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="combinedStatus"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -60,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { MiniAppShell } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -92,7 +91,6 @@ const {
 
 const { proposalId, status: voteStatus, isLoading: isVoting, canVote, submitVote } = useMasqueradeVoting(APP_ID);
 
-const activeTab = ref("identity");
 
 const templateConfig = createTemplateConfig({
   tabs: [

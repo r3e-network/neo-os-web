@@ -6,7 +6,6 @@
       :t="t"
       :status-message="status"
       :fireworks-active="!!status && status.type === 'success'"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -83,7 +82,6 @@ interface Entrant {
   score: number;
 }
 
-const activeTab = ref("main");
 
 const templateConfig = createTemplateConfig({
   tabs: [{ key: "main", labelKey: "tabLeaderboard", icon: "📋", default: true }],

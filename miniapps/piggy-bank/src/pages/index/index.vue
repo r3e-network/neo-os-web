@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="status"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -85,7 +84,6 @@ const { piggyBanks, currentChainId, alchemyApiKey, walletConnectProjectId, userA
   storeToRefs(store);
 
 // Tab state
-const activeTab = ref("main");
 
 const templateConfig = createTemplateConfig({
   tabs: [

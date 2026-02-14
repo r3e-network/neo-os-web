@@ -6,7 +6,6 @@
       :t="t"
       :status-message="status"
       :fireworks-active="status?.type === 'success'"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -46,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -66,7 +65,6 @@ const templateConfig = createTemplateConfig({
   tabs: [{ key: "main", labelKey: "map", icon: "🗺️", default: true }],
   fireworks: true,
 });
-const activeTab = ref("main");
 const appState = computed(() => ({
   ownedTiles: ownedTiles.value,
   coverage: coverage.value,

@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="core.status.value"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('selfLoanErrorFallback')"
@@ -91,7 +90,6 @@ const templateConfig = createPrimaryStatsTemplateConfig(
   { docFeatureCount: 3 },
 );
 
-const activeTab = ref("main");
 
 const appState = computed(() => ({
   hasLoan: !!core.loan.value,

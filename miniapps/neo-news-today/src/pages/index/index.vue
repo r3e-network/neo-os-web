@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="status"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -72,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { onMounted, computed } from "vue";
 import { MiniAppShell, MiniAppOperationStats, NeoCard, NeoButton } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
@@ -88,7 +87,6 @@ const { loading, articles, errorMessage, fetchArticles, formatDate, openArticle 
 const templateConfig = createTemplateConfig({
   tabs: [{ key: "news", labelKey: "news", icon: "📰", default: true }],
 });
-const activeTab = ref("news");
 const appState = computed(() => ({
   articleCount: articles.value.length,
   loading: loading.value,
