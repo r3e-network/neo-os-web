@@ -1,20 +1,20 @@
 <template>
-  <MiniAppTemplate
+  <MiniAppShell
     :config="templateConfig"
     :state="appState"
     :t="t"
     :status-message="status"
     class="theme-time-capsule"
     @tab-change="activeTab = $event"
-  >
-    <template #desktop-sidebar>
-      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-    </template>
-
+    :sidebar-items="sidebarItems"
+    :sidebar-title="t('overview')"
+    :fallback-message="t('errorFallback')"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload">
     <template #content>
-      <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+      
         <CapsuleList :capsules="capsules" :current-time="currentTime" :t="t" @open="handleOpen" />
-      </ErrorBoundary>
+      
     </template>
 
     <template #operation>
@@ -47,16 +47,17 @@
         @create="handleCreate"
       />
     </template>
-  </MiniAppTemplate>
+  </MiniAppShell>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useTicker } from "@shared/composables/useTicker";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
+import { MiniAppShell, NeoCard, NeoButton } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
@@ -107,18 +108,12 @@ const {
 
 const isBusy = computed(() => createBusy.value || unlockBusy.value || isLoadingData.value);
 
-let countdownInterval: number | null = null;
+const countdownTicker = useTicker(() => {
+  currentTime.value = Date.now();
+}, 1000);
 
 onMounted(() => {
-  countdownInterval = setInterval(() => {
-    currentTime.value = Date.now();
-  }, 1000) as unknown as number;
-});
-
-onUnmounted(() => {
-  if (countdownInterval) {
-    clearInterval(countdownInterval);
-  }
+  countdownTicker.start();
 });
 
 watch(

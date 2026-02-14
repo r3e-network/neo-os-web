@@ -1,20 +1,19 @@
 <template>
   <view class="theme-coin-flip">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :fireworks-active="showWinOverlay"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- Game content - LEFT panel -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('gameErrorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetGame">
+<!-- Game content - LEFT panel -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetGame" :fallback-message="t('gameErrorFallback')">
+        
           <!-- Wallet Connection Warning -->
           <view v-if="!address" class="wallet-warning">
             <NeoCard variant="warning" class="text-center">
@@ -40,7 +39,7 @@
             :t="t as (key: string) => string"
             @close="showWinOverlay = false"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <!-- RIGHT panel: Bet Controls -->
@@ -58,11 +57,9 @@
 
       <!-- Stats tab -->
       <template #tab-stats>
-        <NeoCard variant="erobo" class="mb-6">
-          <NeoStats :stats="gameStats" />
-        </NeoCard>
+        <MiniAppTabStats variant="erobo" class="mb-6" :stats="gameStats" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -73,15 +70,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import {
-  MiniAppTemplate,
-  NeoCard,
-  NeoStats,
-  NeoButton,
-  SidebarPanel,
-  type StatItem,
-  ErrorBoundary,
-} from "@shared/components";
+import { MiniAppShell, MiniAppTabStats, NeoCard, NeoButton, type StatItem } from "@shared/components";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import CoinArena from "./components/CoinArena.vue";
 import BetControls from "./components/BetControls.vue";

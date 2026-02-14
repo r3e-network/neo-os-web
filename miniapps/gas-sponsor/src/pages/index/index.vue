@@ -1,23 +1,22 @@
 <template>
   <view class="theme-gas-sponsor">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- Main Tab — LEFT panel -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- Main Tab — LEFT panel -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <!-- Gas Tank Visualization -->
           <GasTank :fuel-level-percent="fuelLevelPercent" :gas-balance="gasBalance" :is-eligible="isEligible" :t="t" />
-        </ErrorBoundary>
+        
       </template>
 
       <!-- Main Tab — RIGHT panel -->
@@ -84,7 +83,7 @@
           :t="t"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 <script setup lang="ts">
@@ -94,7 +93,7 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";

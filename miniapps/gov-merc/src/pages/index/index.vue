@@ -1,19 +1,18 @@
 <template>
   <view class="theme-gov-merc">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <NeoCard class="mb-6" variant="erobo">
             <view class="form-group-neo">
               <NeoInput
@@ -43,7 +42,7 @@
               </NeoButton>
             </view>
           </NeoCard>
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -68,11 +67,9 @@
       </template>
 
       <template #tab-stats>
-        <NeoCard variant="erobo-neo">
-          <NeoStats :stats="poolStats" />
-        </NeoCard>
+        <MiniAppTabStats variant="erobo-neo" :stats="poolStats" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -80,15 +77,7 @@
 import { ref, computed } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import {
-  MiniAppTemplate,
-  NeoButton,
-  NeoInput,
-  NeoCard,
-  NeoStats,
-  SidebarPanel,
-  ErrorBoundary,
-} from "@shared/components";
+import { MiniAppShell, MiniAppTabStats, NeoButton, NeoInput, NeoCard } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useGovMercPool } from "@/composables/useGovMercPool";

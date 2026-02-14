@@ -1,20 +1,19 @@
 <template>
   <view class="theme-piggy-bank">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- Main Tab (default) - LEFT panel -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- Main Tab (default) - LEFT panel -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <BankHeader
             :chain-label="currentChain?.shortName || 'Neo N3'"
             :user-address="userAddress"
@@ -38,7 +37,7 @@
               />
             </view>
           </scroll-view>
-        </ErrorBoundary>
+        
       </template>
 
       <!-- Main Tab - RIGHT panel -->
@@ -58,7 +57,7 @@
           @save="saveSettings"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -70,7 +69,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import messages from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import BankHeader from "./components/BankHeader.vue";

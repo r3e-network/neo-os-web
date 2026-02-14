@@ -1,19 +1,19 @@
 <template>
   <view class="theme-quadratic-funding">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="roundsStatus"
       @tab-change="onTabChange"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- Rounds Tab (default) -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- Rounds Tab (default) -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <RoundForm ref="roundFormRef" @create="handleCreateRound" />
 
           <RoundList
@@ -41,7 +41,7 @@
             @finalize="handleFinalize"
             @claim-unused="handleClaimUnused"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <!-- Projects Tab -->
@@ -125,14 +125,13 @@
       </template>
 
       <template #operation>
-        <NeoCard variant="erobo" :title="t('quickContribute')">
-          <NeoStats :stats="opStats" />
+        <MiniAppOperationStats variant="erobo" :title="t('quickContribute')" :stats="opStats">
           <NeoButton size="sm" variant="primary" class="op-btn" @click="onTabChange('contribute')">
             {{ t("tabContribute") }}
           </NeoButton>
-        </NeoCard>
+        </MiniAppOperationStats>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -143,7 +142,7 @@ import { messages } from "@/locale/messages";
 import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
-import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoCard, NeoButton } from "@shared/components";
 import { formatAddress } from "@shared/utils/format";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";

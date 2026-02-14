@@ -1,25 +1,24 @@
 <template>
   <view class="theme-timestamp-proof">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="errorStatus"
       class="theme-timestamp-proof"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('proofStats')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('proofStats')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <!-- Mobile: Quick Stats -->
           <NeoStats :stats="mobileStats" class="mobile-stats" />
 
           <ProofList :t="t" :proofs="proofs" />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -36,7 +35,7 @@
           @verify="verifyProof"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -51,7 +50,7 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary, NeoStats } from "@shared/components";
+import { MiniAppShell, NeoStats } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import ProofCreateForm from "./components/ProofCreateForm.vue";

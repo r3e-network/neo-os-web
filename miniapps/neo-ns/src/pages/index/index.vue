@@ -1,18 +1,18 @@
 <template>
   <view class="theme-neo-ns">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <ManageDomain
             v-if="managingDomain"
             :t="t"
@@ -24,13 +24,13 @@
           />
 
           <DomainManagement v-else :t="t" :domains="myDomains" @manage="showManage" @renew="handleRenew" />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
         <DomainRegister :t="t" :nns-contract="NNS_CONTRACT" @status="showStatus" @refresh="loadMyDomains" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -43,7 +43,7 @@ import { messages } from "@/locale/messages";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";

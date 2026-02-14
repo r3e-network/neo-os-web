@@ -1,18 +1,18 @@
 <template>
-  <MiniAppTemplate
+  <MiniAppShell
     :config="templateConfig"
     :state="appState"
     :t="t"
     :status-message="status"
     class="theme-stream-vault"
     @tab-change="activeTab = $event"
-  >
-    <template #desktop-sidebar>
-      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-    </template>
-
+    :sidebar-items="sidebarItems"
+    :sidebar-title="t('overview')"
+    :fallback-message="t('errorFallback')"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload">
     <template #content>
-      <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+      
         <view class="vaults-header">
           <text class="section-title">{{ t("vaultsTab") }}</text>
           <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshStreams">
@@ -63,20 +63,20 @@
             </template>
           </StreamList>
         </view>
-      </ErrorBoundary>
+      
     </template>
 
     <template #operation>
       <StreamCreateForm :loading="isLoading" @create="handleCreateVault" />
     </template>
-  </MiniAppTemplate>
+  </MiniAppShell>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
+import { MiniAppShell, NeoCard, NeoButton } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import StreamCreateForm from "@/components/StreamCreateForm.vue";

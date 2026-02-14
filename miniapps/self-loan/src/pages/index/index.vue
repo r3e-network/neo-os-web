@@ -1,23 +1,19 @@
 <template>
   <view class="theme-self-loan">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="core.status.value"
       @tab-change="activeTab = $event"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- Main Tab (default) — LEFT panel -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('selfLoanErrorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- Main Tab (default) — LEFT panel -->
       <template #content>
-        <ErrorBoundary
-          @error="handleBoundaryError"
-          @retry="resetAndReload"
-          :fallback-message="t('selfLoanErrorFallback')"
-        >
+        
           <view v-if="!core.address.value" class="wallet-prompt mb-4">
             <NeoCard variant="warning" class="text-center">
               <text class="mb-2 block font-bold">{{ t("connectWalletToUse") }}</text>
@@ -41,7 +37,7 @@
             :current-l-t-v="core.currentLTV.value"
             :t="t"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <!-- Main Tab — RIGHT panel -->
@@ -64,7 +60,7 @@
       <template #tab-stats>
         <StatsTab :stats="history.stats.value" :loan-history="history.loanHistory.value" :t="t" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -73,7 +69,7 @@ import { ref, computed, onMounted } from "vue";
 import { toFixedDecimals } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, SidebarPanel } from "@shared/components";
+import { MiniAppShell, NeoCard, NeoButton } from "@shared/components";
 import PositionSummary from "./components/PositionSummary.vue";
 import CollateralStatus from "./components/CollateralStatus.vue";
 import BorrowForm from "./components/BorrowForm.vue";

@@ -1,19 +1,18 @@
 <template>
   <view class="theme-candidate-vote">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <!-- Candidate List -->
           <CandidateList
             :candidates="candidates"
@@ -24,7 +23,7 @@
             @select="selectCandidate"
             @view-details="openCandidateDetail"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -85,7 +84,7 @@
       <template #tab-info>
         <InfoTab :address="address" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
 
     <!-- Candidate Detail Modal -->
     <CandidateDetailModal
@@ -111,7 +110,7 @@ import type { WalletSDK } from "@neo/types";
 import type { GovernanceCandidate } from "./utils";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, NeoCard, NeoButton } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import CandidateList from "./components/CandidateList.vue";

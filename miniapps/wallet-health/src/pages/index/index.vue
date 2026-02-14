@@ -1,18 +1,18 @@
 <template>
   <view class="theme-wallet-health">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="onTabChange"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <RiskAlerts
             :is-unsupported="isUnsupported"
             :status="status"
@@ -43,7 +43,7 @@
             />
             <Recommendations :recommendations="recommendations" :t="t" />
           </view>
-        </ErrorBoundary>
+        
       </template>
 
       <template #tab-checklist>
@@ -79,8 +79,7 @@
       </template>
 
       <template #operation>
-        <NeoCard variant="erobo" :title="t('healthSummary')">
-          <NeoStats :stats="opStats" />
+        <MiniAppOperationStats variant="erobo" :title="t('healthSummary')" :stats="opStats">
           <NeoButton v-if="!address" size="sm" variant="primary" class="op-btn" @click="connectWallet">
             {{ t("connectWallet") }}
           </NeoButton>
@@ -94,23 +93,15 @@
           >
             {{ isRefreshing ? t("loading") : t("refresh") }}
           </NeoButton>
-        </NeoCard>
+        </MiniAppOperationStats>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
-import {
-  MiniAppTemplate,
-  NeoCard,
-  NeoButton,
-  NeoStats,
-  AppIcon,
-  SidebarPanel,
-  ErrorBoundary,
-} from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoCard, NeoButton, AppIcon } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";

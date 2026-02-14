@@ -1,19 +1,18 @@
 <template>
   <view class="theme-grant-share">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="statusMessage ? { msg: statusMessage, type: statusType } : null"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <ProposalGallery
             :grants="grants"
             :loading="loading"
@@ -25,11 +24,15 @@
             @select="goToDetail"
             @copy-link="copyLink"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
-        <NeoCard variant="erobo" :title="t('quickActions')">
+        <MiniAppOperationStats
+          variant="erobo"
+          :title="t('quickActions')"
+          :stats="poolStatsArray"
+          stats-position="bottom">
           <view class="op-actions">
             <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="fetchGrants">
               {{ loading ? t("loading") : t("refreshProposals") }}
@@ -38,10 +41,9 @@
               {{ t("createProposal") }}
             </NeoButton>
           </view>
-          <NeoStats :stats="poolStatsArray" />
-        </NeoCard>
+        </MiniAppOperationStats>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -49,7 +51,7 @@
 import { ref, computed, onMounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoButton } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 

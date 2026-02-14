@@ -1,20 +1,19 @@
 <template>
   <view class="theme-council-governance">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       :fireworks-active="status?.type === 'success'"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <ActiveProposalsTab
             :proposals="activeProposals"
             :status="status"
@@ -26,7 +25,7 @@
             @create="activeTab = 'create'"
             @select="selectProposal"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #tab-history>
@@ -38,14 +37,13 @@
       </template>
 
       <template #operation>
-        <NeoCard variant="erobo" :title="t('quickActions')">
-          <NeoStats :stats="opStats" />
+        <MiniAppOperationStats variant="erobo" :title="t('quickActions')" :stats="opStats">
           <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'create'">
             {{ t("createProposal") }}
           </NeoButton>
-        </NeoCard>
+        </MiniAppOperationStats>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
 
     <ProposalDetailsModal
       v-if="selectedProposal"
@@ -68,7 +66,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoButton } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";

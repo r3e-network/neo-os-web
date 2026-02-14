@@ -1,20 +1,19 @@
 <template>
-  <MiniAppTemplate
+  <MiniAppShell
     :config="templateConfig"
     :state="appState"
     :t="t"
     :status-message="status"
     :fireworks-active="status?.type === 'success'"
     class="theme-daily-checkin"
-  >
-    <!-- Desktop Sidebar -->
-    <template #desktop-sidebar>
-      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-    </template>
-
-    <!-- LEFT panel: Timer + Streak -->
+    :sidebar-items="sidebarItems"
+    :sidebar-title="t('overview')"
+    :fallback-message="t('errorFallback')"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload">
+<!-- LEFT panel: Timer + Streak -->
     <template #content>
-      <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+      
         <CountdownHero
           :countdown-progress="countdownProgress"
           :countdown-label="countdownLabel"
@@ -23,7 +22,7 @@
         />
 
         <StreakDisplay :current-streak="currentStreak" :highest-streak="highestStreak" />
-      </ErrorBoundary>
+      
     </template>
 
     <!-- RIGHT panel: Check-in Action -->
@@ -58,14 +57,15 @@
       />
       <StatsTab :global-stats="globalStats" :user-stats="userStats" :checkin-history="checkinHistory" />
     </template>
-  </MiniAppTemplate>
+  </MiniAppShell>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useTicker } from "@shared/composables/useTicker";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoButton, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, NeoButton, NeoCard } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 import CountdownHero from "./components/CountdownHero.vue";
@@ -123,7 +123,9 @@ const milestones = [
 
 // Countdown
 const now = ref(Date.now());
-let countdownInterval: ReturnType<typeof setInterval> | null = null;
+const countdownTicker = useTicker(() => {
+  now.value = Date.now();
+}, 1000);
 
 // Global UTC countdown (same for all users)
 const currentUtcDay = computed(() => Math.floor(now.value / MS_PER_DAY));
@@ -167,17 +169,8 @@ const resetAndReload = async () => {
 };
 
 onMounted(async () => {
-  countdownInterval = setInterval(() => {
-    now.value = Date.now();
-  }, 1000);
-
+  countdownTicker.start();
   await loadAll();
-});
-
-onUnmounted(() => {
-  if (countdownInterval) {
-    clearInterval(countdownInterval);
-  }
 });
 </script>
 

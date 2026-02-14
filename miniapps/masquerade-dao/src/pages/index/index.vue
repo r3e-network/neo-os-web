@@ -1,19 +1,18 @@
 <template>
   <view class="theme-masquerade">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="combinedStatus"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <ProposalList
             :items="masks"
             :selectedId="selectedMaskId"
@@ -22,7 +21,7 @@
             :t="t"
             @select="selectedMaskId = $event"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -56,13 +55,13 @@
           @select="voteForm.proposalId = $event"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useMasqueradeProposals } from "@/composables/useMasqueradeProposals";

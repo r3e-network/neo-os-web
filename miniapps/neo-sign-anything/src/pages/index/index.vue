@@ -1,18 +1,18 @@
 <template>
   <view class="theme-neo-sign-anything">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="onTabChange"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <view class="header">
             <text class="title">{{ t("signTitle") }}</text>
             <text class="subtitle">{{ t("signDesc") }}</text>
@@ -46,7 +46,7 @@
           <view v-if="!address" class="connect-prompt">
             <text class="connect-text">{{ t("connectWallet") }}</text>
           </view>
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -85,12 +85,12 @@
           </view>
         </NeoCard>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
-import { MiniAppTemplate, NeoCard, NeoButton, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { createTemplateConfig } from "@shared/utils/createTemplateConfig";

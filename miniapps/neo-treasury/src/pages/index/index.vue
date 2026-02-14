@@ -1,20 +1,19 @@
 <template>
   <view class="theme-neo-treasury">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- Overview Tab (default) — LEFT panel -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- Overview Tab (default) — LEFT panel -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <!-- Main Content -->
           <view v-if="data">
             <!-- Background Refresh Indicator -->
@@ -53,7 +52,7 @@
               {{ t("retry") }}
             </NeoButton>
           </view>
-        </ErrorBoundary>
+        
       </template>
 
       <!-- Da Hongfei Tab -->
@@ -71,28 +70,19 @@
       </template>
 
       <template #operation>
-        <NeoCard variant="erobo" :title="t('treasuryInfo')">
-          <NeoStats :stats="opStats" />
+        <MiniAppOperationStats variant="erobo" :title="t('treasuryInfo')" :stats="opStats">
           <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="loadData">
             {{ loading ? t("refreshing") : t("refreshData") }}
           </NeoButton>
-        </NeoCard>
+        </MiniAppOperationStats>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import {
-  MiniAppTemplate,
-  NeoCard,
-  NeoButton,
-  NeoStats,
-  AppIcon,
-  SidebarPanel,
-  ErrorBoundary,
-} from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoButton, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";

@@ -1,19 +1,19 @@
 <template>
   <view class="theme-neo-multisig">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="handleTabChange"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- LEFT panel: Activity & Stats -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- LEFT panel: Activity & Stats -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <HeroSection :title="t('appTitle')" :headline="t('homeTitle')" :subtitle="t('homeSubtitle')" />
 
           <ActivitySection
@@ -37,7 +37,7 @@
             :pending-label="t('statPending')"
             :completed-label="t('statCompleted')"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <!-- RIGHT panel: Create / Load -->
@@ -54,13 +54,13 @@
           @load="loadTransaction"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";

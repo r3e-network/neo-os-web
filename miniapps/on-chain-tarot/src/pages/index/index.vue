@@ -1,20 +1,19 @@
 <template>
   <view class="theme-on-chain-tarot">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- Game Tab (default) — LEFT panel -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- Game Tab (default) — LEFT panel -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <GameArea
             v-model:question="question"
             :drawn="drawn"
@@ -27,12 +26,12 @@
           />
 
           <ReadingDisplay v-if="hasDrawn && allFlipped" :reading="getReading()" />
-        </ErrorBoundary>
+        
       </template>
 
       <!-- RIGHT panel: Actions -->
       <template #operation>
-        <NeoCard variant="erobo">
+        <MiniAppOperationStats :stats="tarotStats" stats-position="bottom">
           <view class="action-buttons">
             <NeoButton variant="primary" size="lg" block :loading="isLoading" :disabled="hasDrawn" @click="draw">
               {{ t("drawingCards") }}
@@ -41,15 +40,14 @@
               {{ t("reset") }}
             </NeoButton>
           </view>
-        </NeoCard>
-        <NeoStats :stats="tarotStats" />
+        </MiniAppOperationStats>
       </template>
 
       <!-- Stats Tab -->
       <template #tab-stats>
         <StatisticsTab :readings-count="readingsCount" :t="t" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -60,7 +58,7 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { parseStackItem } from "@shared/utils/neo";
-import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoButton } from "@shared/components";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";

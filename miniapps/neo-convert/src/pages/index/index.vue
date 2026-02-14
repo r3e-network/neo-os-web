@@ -1,20 +1,19 @@
 <template>
   <view class="theme-neo-convert">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- LEFT panel: Account Generator -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- LEFT panel: Account Generator -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <view class="hero">
             <ScrollReveal animation="fade-down" :duration="800">
               <text class="hero-icon">🛠️</text>
@@ -26,7 +25,7 @@
           <ScrollReveal animation="fade-up" :delay="200" key="gen">
             <AccountGenerator />
           </ScrollReveal>
-        </ErrorBoundary>
+        
       </template>
 
       <template #tab-convert>
@@ -58,14 +57,14 @@
           </view>
         </NeoCard>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useResponsive } from "@shared/composables/useResponsive";
-import { MiniAppTemplate, NeoCard, NeoButton, ScrollReveal, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, NeoCard, NeoButton, ScrollReveal } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import AccountGenerator from "./components/AccountGenerator.vue";

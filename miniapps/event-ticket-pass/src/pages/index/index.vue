@@ -1,19 +1,18 @@
 <template>
   <view class="theme-event-ticket-pass">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="onTabChange"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <EventList
             :t="t"
             :address="address"
@@ -25,7 +24,7 @@
             @issue="contract.openIssueModal"
             @toggle="contract.toggleEvent"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -62,7 +61,7 @@
           @checkin="contract.checkInTicket"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
   <TicketIssueModal
     :t="t"
@@ -81,7 +80,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";

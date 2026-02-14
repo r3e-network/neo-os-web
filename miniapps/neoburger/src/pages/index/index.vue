@@ -1,20 +1,19 @@
 <template>
   <view class="theme-neoburger">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       :fireworks-active="!!status && status.type === 'success'"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <view class="neoburger-shell">
             <HeroSection
               :total-staked-display="totalStakedDisplay"
@@ -24,7 +23,7 @@
 
             <StatsPanel @switch-to-jazz="switchToJazz" @open-link="openExternal" />
           </view>
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -76,7 +75,7 @@
       <template #tab-docs>
         <DocsPanel @open-docs="openExternal" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -84,7 +83,7 @@
 import { ref, computed, onMounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import type { UniAppGlobals } from "@shared/types/globals";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";

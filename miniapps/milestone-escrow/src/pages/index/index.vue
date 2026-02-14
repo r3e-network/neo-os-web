@@ -1,19 +1,18 @@
 <template>
   <view class="theme-milestone-escrow">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <view class="escrows-header">
             <text class="section-title">{{ t("escrowsTab") }}</text>
             <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
@@ -44,13 +43,13 @@
             @cancel="cancelEscrow"
             @claim="claimMilestone"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
         <EscrowForm @create="onCreateEscrow" ref="escrowFormRef" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -58,7 +57,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoButton, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, NeoCard, NeoButton } from "@shared/components";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import EscrowForm from "./components/EscrowForm.vue";
 import EscrowList from "./components/EscrowList.vue";

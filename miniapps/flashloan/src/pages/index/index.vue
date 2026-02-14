@@ -1,22 +1,17 @@
 <template>
-  <MiniAppTemplate
+  <MiniAppShell
     :config="templateConfig"
     :state="appState"
     :t="t"
     :status-message="status"
     @tab-change="activeTab = $event"
-  >
-    <!-- Desktop Sidebar -->
-    <template #desktop-sidebar>
-      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-    </template>
-
+    :sidebar-items="sidebarItems"
+    :sidebar-title="t('overview')"
+    :fallback-message="t('flashloanErrorFallback')"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload">
     <template #content>
-      <ErrorBoundary
-        @error="handleBoundaryError"
-        @retry="resetAndReload"
-        :fallback-message="t('flashloanErrorFallback')"
-      >
+      
         <ErrorToast :show="!!errorMessage" :message="errorMessage ?? ''" type="error" @close="clearErrorStatus" />
 
         <LoanRequest
@@ -31,7 +26,7 @@
           @lookup="handleLookup"
           @request-loan="handleRequestLoan"
         />
-      </ErrorBoundary>
+      
     </template>
 
     <template #tab-stats>
@@ -41,35 +36,29 @@
     </template>
 
     <template #operation>
-      <NeoCard variant="erobo" :title="t('statusLookup')">
+      <MiniAppOperationStats
+        variant="erobo"
+        :title="t('statusLookup')"
+        :stats="opStats"
+        stats-position="bottom"
+        :show-stats="!!loanDetails">
         <view class="op-field">
           <NeoInput v-model="loanIdInput" :placeholder="t('loanIdPlaceholder')" size="sm" />
         </view>
         <NeoButton size="sm" variant="primary" class="op-btn" :disabled="isLoading" @click="handleLookup">
           {{ isLoading ? t("checking") : t("checkStatus") }}
         </NeoButton>
-        <view v-if="loanDetails" class="op-result">
-          <NeoStats :stats="opStats" />
-        </view>
-      </NeoCard>
+        <view v-if="loanDetails" class="op-result"></view>
+      </MiniAppOperationStats>
     </template>
-  </MiniAppTemplate>
+  </MiniAppShell>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import {
-  MiniAppTemplate,
-  NeoCard,
-  NeoButton,
-  NeoInput,
-  NeoStats,
-  ErrorBoundary,
-  ErrorToast,
-  SidebarPanel,
-} from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoButton, NeoInput, ErrorToast } from "@shared/components";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";

@@ -1,20 +1,19 @@
 <template>
   <view class="theme-hall-of-fame">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       :fireworks-active="!!status && status.type === 'success'"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <!-- Category Tabs -->
           <CategoryTabs :categories="categories" :active-category="activeCategory" @select="setCategory" />
 
@@ -37,14 +36,14 @@
             :title="fetchError ? t('leaderboardUnavailable') : t('leaderboardEmpty')"
             :subtitle="fetchError ? t('tryAgain') : undefined"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
         <!-- Period Filter -->
         <PeriodFilter :periods="periods" :active-period="activePeriod" @select="setPeriod" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -55,7 +54,7 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { formatNumber } from "@shared/utils/format";

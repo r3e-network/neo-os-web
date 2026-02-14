@@ -1,20 +1,18 @@
 <template>
   <view class="theme-garden-of-neo">
-    <MiniAppTemplate :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event">
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+    <MiniAppShell :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event" :sidebar-items="sidebarItems" :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <GardenTab
             :t="t"
             :contract-address="contractAddress"
             :ensure-contract-address="ensureContractAddress"
             @update:stats="updateStats"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #tab-stats>
@@ -27,14 +25,13 @@
       </template>
 
       <template #operation>
-        <NeoCard variant="erobo" :title="t('gardenActions')">
-          <NeoStats :stats="opStats" />
+        <MiniAppOperationStats variant="erobo" :title="t('gardenActions')" :stats="opStats">
           <view class="op-hint">
             <text class="op-hint-text">{{ t("plantFee") }}</text>
           </view>
-        </NeoCard>
+        </MiniAppOperationStats>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -42,7 +39,7 @@
 import { ref, computed } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";

@@ -1,19 +1,19 @@
 <template>
   <view class="theme-turtle-match">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       class="pond-theme"
       @tab-change="activeTab = $event"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <view class="game-container">
             <PlayerStats :stats="stats" :t="t" />
 
@@ -62,7 +62,7 @@
             @close="showResult = false"
           />
           <GameSplash :visible="showSplash" @complete="showSplash = false" />
-        </ErrorBoundary>
+        
       </template>
 
       <template #tab-guide>
@@ -74,8 +74,7 @@
       </template>
 
       <template #operation>
-        <NeoCard variant="erobo" :title="t('operationPanelTitle')">
-          <NeoStats :stats="opStats" />
+        <MiniAppOperationStats variant="erobo" :title="t('operationPanelTitle')" :stats="opStats">
           <view v-if="!isConnected" class="op-connect">
             <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="connect">
               {{ t("connectWallet") }}
@@ -114,23 +113,15 @@
               <text class="op-hint-text">{{ t("autoOpening") }}</text>
             </view>
           </view>
-        </NeoCard>
+        </MiniAppOperationStats>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import {
-  MiniAppTemplate,
-  NeoCard,
-  NeoButton,
-  NeoInput,
-  NeoStats,
-  SidebarPanel,
-  ErrorBoundary,
-} from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoButton, NeoInput } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";

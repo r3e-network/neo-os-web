@@ -1,18 +1,18 @@
 <template>
   <view class="theme-neo-news">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <!-- Loading State -->
           <view v-if="loading" class="nnt-loading">
             <view class="nnt-spinner" />
@@ -57,24 +57,23 @@
               </NeoCard>
             </template>
           </view>
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
-        <NeoCard variant="erobo" :title="t('feedStatus')">
-          <NeoStats :stats="opStats" />
+        <MiniAppOperationStats variant="erobo" :title="t('feedStatus')" :stats="opStats">
           <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="fetchArticles">
             {{ t("refreshFeed") }}
           </NeoButton>
-        </NeoCard>
+        </MiniAppOperationStats>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoCard, NeoButton } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";

@@ -1,19 +1,19 @@
 <template>
   <view class="theme-million-piece">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       :fireworks-active="status?.type === 'success'"
       @tab-change="activeTab = $event"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <MapGrid
             :tiles="tiles"
             :selected-x="selectedX"
@@ -25,7 +25,7 @@
             @zoom-in="zoomIn"
             @zoom-out="zoomOut"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -39,9 +39,9 @@
           :t="t"
           @purchase="purchaseTile"
         />
-        <NeoStats :stats="mapStats" />
+        <MiniAppOperationStats variant="erobo-neo" :stats="mapStats" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -51,7 +51,7 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useMapTiles } from "@/composables/useMapTiles";

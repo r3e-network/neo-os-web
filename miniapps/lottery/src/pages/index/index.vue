@@ -1,24 +1,19 @@
 <template>
   <view class="theme-lottery">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="errorStatus"
       :fireworks-active="showFireworks"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('lotteryErrorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary
-          @error="handleBoundaryError"
-          @retry="resetAndReload"
-          :fallback-message="t('lotteryErrorFallback')"
-        >
+        
           <!-- Wallet Prompt -->
           <view v-if="!address && activeTab === 'game'" class="wallet-prompt-container">
             <NeoCard variant="warning" class="mb-4 text-center">
@@ -54,11 +49,11 @@
             :t="t"
             @buy="handleBuy"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
-        <NeoCard variant="erobo" :title="t('game')">
+        <MiniAppOperationStats variant="erobo" :title="t('game')" :stats="lotteryStats" stats-position="bottom">
           <view class="action-buttons">
             <NeoButton
               v-if="instantTypes.length > 0"
@@ -81,8 +76,7 @@
               {{ t("playNow") }}
             </NeoButton>
           </view>
-        </NeoCard>
-        <NeoStats :stats="lotteryStats" />
+        </MiniAppOperationStats>
       </template>
 
       <template #tab-winners>
@@ -99,7 +93,7 @@
           :t="t"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
 
     <!-- Scratch Modal -->
     <ScratchModal
@@ -117,7 +111,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { MiniAppTemplate, NeoButton, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoButton, NeoCard } from "@shared/components";
 import ScratchModal from "./components/ScratchModal.vue";
 import GameCardGrid from "./components/GameCardGrid.vue";
 import WinnersTab from "./components/WinnersTab.vue";

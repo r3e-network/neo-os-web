@@ -1,19 +1,18 @@
 <template>
   <view class="theme-memorial-shrine">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <view class="header">
             <text class="title">{{ t("title") }}</text>
             <text class="tagline">{{ t("tagline") }}</text>
@@ -46,7 +45,7 @@
               @click="openMemorial(memorial.id)"
             />
           </view>
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -70,7 +69,7 @@
           <text>{{ t("noTributes") }}</text>
         </view>
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
 
     <!-- Memorial Detail Modal -->
     <MemorialDetailModal
@@ -88,7 +87,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";

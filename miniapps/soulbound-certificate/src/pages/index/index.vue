@@ -1,18 +1,18 @@
 <template>
   <view class="theme-soulbound-certificate">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="onTabChange"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <TemplateList
             :templates="templates"
             :refreshing="isRefreshing"
@@ -23,7 +23,7 @@
             @issue="openIssueModal"
             @toggle="toggleTemplate"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -51,7 +51,7 @@
           @revoke="revokeCertificate"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
 
     <IssueModal
       :visible="issueModalOpen"
@@ -67,7 +67,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";

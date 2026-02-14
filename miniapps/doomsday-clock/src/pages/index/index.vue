@@ -1,22 +1,18 @@
 <template>
   <view class="theme-doomsday">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="statusMsg"
       @tab-change="activeTab = $event"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('doomsdayErrorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary
-          @error="handleBoundaryError"
-          @retry="resetAndReload"
-          :fallback-message="t('doomsdayErrorFallback')"
-        >
+        
           <ErrorToast :show="!!errorMessage" :message="errorMessage ?? ''" type="error" @close="errorMessage = ''" />
           <view v-if="!game.address" class="wallet-prompt">
             <NeoCard variant="warning" class="text-center">
@@ -40,7 +36,7 @@
             :current-event-description="currentEventDescription"
             :t="t"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -69,16 +65,17 @@
       <template #tab-history>
         <HistoryList :history="game.history" :t="t" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { formatNumber } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useTicker } from "@shared/composables/useTicker";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoButton, ErrorBoundary, ErrorToast, SidebarPanel } from "@shared/components";
+import { MiniAppShell, NeoCard, NeoButton, ErrorToast } from "@shared/components";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import ClockFace from "./components/ClockFace.vue";
 import GameStats from "./components/GameStats.vue";
@@ -127,18 +124,14 @@ const sidebarItems = createSidebarItems(t, [
   { labelKey: "sidebarTimeLeft", value: () => timer.countdown.value },
 ]);
 
-let interval: ReturnType<typeof setInterval> | null = null;
+const timerTicker = useTicker(() => timer.updateNow(), 1000);
 
 onMounted(async () => {
   await refreshData();
-  interval = setInterval(() => timer.updateNow(), 1000);
+  timerTicker.start();
 });
 
 watch(game.address, async () => await game.loadUserKeys());
-
-onUnmounted(() => {
-  if (interval) clearInterval(interval);
-});
 </script>
 
 <style lang="scss" scoped>

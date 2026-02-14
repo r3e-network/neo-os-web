@@ -1,21 +1,20 @@
 <template>
   <view class="theme-red-envelope">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       :fireworks-active="!!luckyMessage"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- Create Tab (default) - LEFT panel -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- Create Tab (default) - LEFT panel -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <LuckyOverlay :lucky-message="luckyMessage" :t="t" @close="luckyMessage = null" />
           <OpeningModal
             :visible="showOpeningModal"
@@ -27,7 +26,7 @@
             @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
             @close="showOpeningModal = false"
           />
-        </ErrorBoundary>
+        
       </template>
       <template #operation>
         <CreateForm
@@ -87,7 +86,7 @@
           @reclaim-pool="handleReclaimPool"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -100,7 +99,7 @@ import { useRedEnvelopeOpen } from "@/composables/useRedEnvelopeOpen";
 import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
 import { useNeoEligibility } from "@/composables/useNeoEligibility";
 import { useEnvelopeActions } from "./composables/useEnvelopeActions";
-import { MiniAppTemplate, ErrorBoundary, SidebarPanel } from "@shared/components";
+import { MiniAppShell } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 

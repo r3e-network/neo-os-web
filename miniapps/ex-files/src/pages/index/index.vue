@@ -1,22 +1,21 @@
 <template>
   <view class="theme-ex-files">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
         <!-- Memory Archive -->
         <MemoryArchive :sorted-records="sortedRecords" :t="t" @view="viewRecord" />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -42,11 +41,9 @@
       </template>
 
       <template #tab-stats>
-        <NeoCard variant="erobo">
-          <NeoStats :stats="statsData" />
-        </NeoCard>
+        <MiniAppTabStats variant="erobo" :stats="statsData" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -54,7 +51,7 @@
 import { onMounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, MiniAppTabStats } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
 

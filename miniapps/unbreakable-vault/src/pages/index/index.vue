@@ -1,18 +1,18 @@
 <template>
-  <MiniAppTemplate
+  <MiniAppShell
     :config="templateConfig"
     :state="appState"
     :t="t"
     :status-message="breaker.status.value"
     class="theme-unbreakable-vault"
     @tab-change="activeTab = $event"
-  >
-    <template #desktop-sidebar>
-      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-    </template>
-
+    :sidebar-items="sidebarItems"
+    :sidebar-title="t('overview')"
+    :fallback-message="t('errorFallback')"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload">
     <template #content>
-      <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+      
         <VaultList
           :t="t"
           :title="t('myVaults')"
@@ -25,7 +25,7 @@
           <text class="vault-created-label">{{ t("vaultCreated") }}</text>
           <text class="vault-created-id">#{{ createdVaultId }}</text>
         </NeoCard>
-      </ErrorBoundary>
+      
     </template>
 
     <template #operation>
@@ -86,7 +86,7 @@
         @select="breaker.selectVault"
       />
     </template>
-  </MiniAppTemplate>
+  </MiniAppShell>
 </template>
 
 <script setup lang="ts">
@@ -99,7 +99,7 @@ import { sha256Hex } from "@shared/utils/hash";
 import { normalizeScriptHash, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
 import { toFixed8 } from "@shared/utils/format";
 import { useContractAddress } from "@shared/composables/useContractAddress";
-import { MiniAppTemplate, NeoButton, NeoInput, NeoCard, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, NeoButton, NeoInput, NeoCard } from "@shared/components";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";

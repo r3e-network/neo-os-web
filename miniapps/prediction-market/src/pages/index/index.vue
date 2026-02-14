@@ -1,20 +1,20 @@
 <template>
   <view class="theme-prediction-market">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="statusMessage"
       @tab-change="handleTabChange"
-    >
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <!-- Desktop Sidebar - Stats -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- Markets Tab (default content) - LEFT panel -->
+<!-- Markets Tab (default content) - LEFT panel -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <MarketList
             :markets="filteredMarkets"
             :categories="categories"
@@ -27,12 +27,12 @@
             @selectCategory="setCategory"
             @toggleSort="toggleSort"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <!-- RIGHT panel: Actions -->
       <template #operation>
-        <NeoCard variant="erobo" :title="t('markets')">
+        <MiniAppOperationStats variant="erobo" :title="t('markets')" :stats="marketStats" stats-position="bottom">
           <view class="action-buttons">
             <NeoButton variant="primary" size="lg" block @click="activeTab = 'create'">
               {{ t("create") }}
@@ -41,8 +41,7 @@
               {{ t("portfolio") }}
             </NeoButton>
           </view>
-        </NeoCard>
-        <NeoStats :stats="marketStats" />
+        </MiniAppOperationStats>
       </template>
 
       <!-- Trading Tab -->
@@ -79,13 +78,13 @@
       <template #tab-create>
         <CreateMarketForm :is-creating="isCreating" @submit="createMarket" />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, ErrorBoundary, SidebarPanel } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoButton } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";

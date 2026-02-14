@@ -1,19 +1,19 @@
 <template>
   <view class="theme-neo-gacha">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="status"
       :fireworks-active="showFireworks"
       @tab-change="activeTab = $event"
-    >
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <MarketplaceTab
             :machines="machines"
             :is-loading="isLoadingMachines"
@@ -30,7 +30,7 @@
             @close-result="resetResult"
             @buy="handleBuy"
           />
-        </ErrorBoundary>
+        
       </template>
 
       <template #operation>
@@ -62,7 +62,7 @@
           @withdraw-item="handleWithdrawItem"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
 
     <WalletPrompt
       :visible="showWalletPrompt"
@@ -75,7 +75,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
-import { MiniAppTemplate, SidebarPanel, WalletPrompt, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, WalletPrompt } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createUseI18n } from "@shared/composables/useI18n";

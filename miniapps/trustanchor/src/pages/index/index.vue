@@ -1,20 +1,19 @@
 <template>
-  <MiniAppTemplate
+  <MiniAppShell
     :config="templateConfig"
     :state="appState"
     :t="t"
     :status-message="status"
     class="theme-trustanchor"
     @tab-change="activeTab = $event"
-  >
-    <!-- Desktop Sidebar -->
-    <template #desktop-sidebar>
-      <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-    </template>
-
-    <!-- Overview Tab (default) -->
+    :sidebar-items="sidebarItems"
+    :sidebar-title="t('overview')"
+    :fallback-message="t('errorFallback')"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload">
+<!-- Overview Tab (default) -->
     <template #content>
-      <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+      
         <StatsGrid :my-stake="myStake" :pending-rewards="pendingRewards" :total-rewards="totalRewards" />
 
         <NeoCard variant="erobo" class="mb-4 px-1">
@@ -40,7 +39,7 @@
             </NeoButton>
           </view>
         </NeoCard>
-      </ErrorBoundary>
+      
     </template>
 
     <template #operation>
@@ -86,7 +85,7 @@
     <template #tab-history>
       <HistoryTab :stats="stats" />
     </template>
-  </MiniAppTemplate>
+  </MiniAppShell>
 </template>
 
 <script setup lang="ts">
@@ -94,7 +93,7 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber } from "@shared/utils/format";
-import { MiniAppTemplate, NeoButton, NeoCard, NeoInput, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, NeoButton, NeoCard, NeoInput } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import StatsGrid from "./components/StatsGrid.vue";

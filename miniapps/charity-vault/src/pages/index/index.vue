@@ -1,20 +1,19 @@
 <template>
   <view class="theme-charity-vault">
-    <MiniAppTemplate
+    <MiniAppShell
       :config="templateConfig"
       :state="appState"
       :t="t"
       :status-message="statusMessage"
       @tab-change="activeTab = $event"
-    >
-      <!-- Desktop Sidebar -->
-      <template #desktop-sidebar>
-        <SidebarPanel :title="t('overview')" :items="sidebarItems" />
-      </template>
-
-      <!-- LEFT panel: Campaign List -->
+      :sidebar-items="sidebarItems"
+      :sidebar-title="t('overview')"
+      :fallback-message="t('errorFallback')"
+      :on-boundary-error="handleBoundaryError"
+      :on-boundary-retry="resetAndReload">
+<!-- LEFT panel: Campaign List -->
       <template #content>
-        <ErrorBoundary @error="handleBoundaryError" @retry="resetAndReload" :fallback-message="t('errorFallback')">
+        
           <!-- Category Filter -->
           <view class="category-filter">
             <scroll-view scroll-x class="category-scroll">
@@ -47,12 +46,12 @@
               @click="selectCampaign(campaign)"
             />
           </view>
-        </ErrorBoundary>
+        
       </template>
 
       <!-- RIGHT panel: Actions -->
       <template #operation>
-        <NeoCard variant="erobo" :title="t('quickActions')">
+        <MiniAppOperationStats variant="erobo" :title="t('quickActions')" :stats="charityStats" stats-position="bottom">
           <view class="action-buttons">
             <NeoButton variant="primary" size="lg" block @click="activeTab = 'create'">
               {{ t("create") }}
@@ -61,8 +60,7 @@
               {{ t("myDonationsTab") }}
             </NeoButton>
           </view>
-        </NeoCard>
-        <NeoStats :stats="charityStats" />
+        </MiniAppOperationStats>
       </template>
 
       <template #tab-donate>
@@ -91,7 +89,7 @@
           @submit="handleCreateCampaign"
         />
       </template>
-    </MiniAppTemplate>
+    </MiniAppShell>
   </view>
 </template>
 
@@ -99,7 +97,7 @@
 import { ref, computed, onMounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppTemplate, NeoCard, NeoButton, NeoStats, SidebarPanel, ErrorBoundary } from "@shared/components";
+import { MiniAppShell, MiniAppOperationStats, NeoButton } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import CampaignCard from "./components/CampaignCard.vue";
