@@ -59,16 +59,6 @@ type ChainIntegrated interface {
 }
 
 // =============================================================================
-// Worker Interfaces
-// =============================================================================
-
-// BackgroundWorker represents a service that runs background tasks.
-type BackgroundWorker interface {
-	// Workers returns the number of active background workers.
-	Workers() int
-}
-
-// =============================================================================
 // Health Check Interface
 // =============================================================================
 

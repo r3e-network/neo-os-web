@@ -318,28 +318,6 @@ func GetPort(serviceID string, defaultPort int) int {
 }
 
 // =============================================================================
-// Chain Configuration Helpers
-// =============================================================================
-
-// ChainConfigValue gets a chain configuration value with fallback.
-// Priority: chain meta config -> environment variable -> secret -> default
-func ChainConfigValue(chainMeta map[string]string, envKey string, secretKey string, defaultValue string) string {
-	// Try chain meta first
-	if chainMeta != nil {
-		if value := chainMeta[envKey]; value != "" {
-			return strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(value), "0x"), "0X")
-		}
-	}
-
-	// Try environment variable
-	if value := strings.TrimSpace(os.Getenv(envKey)); value != "" {
-		return strings.TrimPrefix(strings.TrimPrefix(value, "0x"), "0X")
-	}
-
-	return defaultValue
-}
-
-// =============================================================================
 // Timeouts
 // =============================================================================
 

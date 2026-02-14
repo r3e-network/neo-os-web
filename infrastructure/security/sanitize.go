@@ -172,15 +172,6 @@ func SanitizeHeaders(headers map[string][]string) map[string][]string {
 	return sanitized
 }
 
-// AddSensitivePattern adds a custom sensitive pattern to the sanitizer
-func AddSensitivePattern(name string, pattern *regexp.Regexp, mask string) {
-	sensitivePatterns = append(sensitivePatterns, SensitivePattern{
-		Name:    name,
-		Pattern: pattern,
-		Mask:    mask,
-	})
-}
-
 // IsSensitiveKey checks if a key name suggests sensitive data
 func IsSensitiveKey(key string) bool {
 	lowerKey := strings.ToLower(key)
