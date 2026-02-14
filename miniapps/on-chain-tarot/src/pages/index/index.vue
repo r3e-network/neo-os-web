@@ -80,7 +80,7 @@ const appState = computed(() => ({
 }));
 const sidebarItems = createSidebarItems(t, [
   { labelKey: "readings", value: () => readingsCount.value },
-  { labelKey: "cardsDrawn", value: () => drawn.value.length },
+  { labelKey: "cardsDrawnCount", value: () => drawn.value.length },
   { labelKey: "allRevealed", value: () => (allFlipped.value ? t("yes") : t("no")) },
 ]);
 
@@ -102,7 +102,7 @@ const question = ref("");
 
 const tarotStats = computed(() => [
   { label: t("readings"), value: readingsCount.value },
-  { label: t("cardsDrawn"), value: drawn.value.length },
+  { label: t("cardsDrawnCount"), value: drawn.value.length },
 ]);
 
 const waitForEvent = async (txid: string, eventName: string) => {

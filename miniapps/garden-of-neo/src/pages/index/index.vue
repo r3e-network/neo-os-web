@@ -1,6 +1,6 @@
 <template>
   <view class="theme-garden-of-neo">
-    <MiniAppShell :config="templateConfig" :state="appState" :t="t" @tab-change="activeTab = $event" :sidebar-items="sidebarItems" :sidebar-title="t('overview')"
+    <MiniAppShell :config="templateConfig" :state="appState" :t="t" :sidebar-items="sidebarItems" :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
       :on-boundary-error="handleBoundaryError"
       :on-boundary-retry="resetAndReload">
@@ -52,9 +52,7 @@ const templateConfig = createPrimaryStatsTemplateConfig(
   { key: "garden", labelKey: "garden", icon: "🌱", default: true },
   { docFeatureCount: 3 },
 );
-const activeTab = ref("garden");
 const appState = computed(() => ({
-  activeTab: activeTab.value,
   totalPlants: stats.value.totalPlants,
   readyToHarvest: stats.value.readyToHarvest,
   totalHarvested: stats.value.totalHarvested,

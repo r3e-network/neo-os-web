@@ -6,7 +6,6 @@
       :t="t"
       :status-message="status"
       :fireworks-active="status?.type === 'success'"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -60,8 +59,6 @@ const APP_ID = "miniapp-dev-tipping";
 const { developers, recentTips, totalDonated, formatNum, loadDevelopers, loadRecentTips } = useDevTippingStats();
 const { address, isLoading, status, setStatus, sendTip } = useDevTippingWallet(APP_ID);
 
-const activeTab = ref<string>("send");
-
 const templateConfig = createPrimaryStatsTemplateConfig(
   { key: "send", labelKey: "sendTip", icon: "💰", default: true },
   {
@@ -94,7 +91,6 @@ const refreshData = async () => {
 const handleSelectDev = (dev: Developer) => {
   selectedDevId.value = dev.id;
   setStatus(`${t("selected")} ${dev.name}`, "success");
-  activeTab.value = "send";
 };
 
 const handleSendTip = async () => {

@@ -5,7 +5,6 @@
       :state="appState"
       :t="t"
       :status-message="status"
-      @tab-change="activeTab = $event"
       :sidebar-items="sidebarItems"
       :sidebar-title="t('overview')"
       :fallback-message="t('errorFallback')"
@@ -41,12 +40,12 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { parseInvokeResult } from "@shared/utils/neo";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import { MiniAppShell } from "@shared/components";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { domainToTokenId, ensureNeoWalletAndChain, handleNeoInvocation } from "@/utils/neoHelpers";
 import DomainRegister from "./components/DomainRegister.vue";
 import DomainManagement from "./components/DomainManagement.vue";
 import ManageDomain from "./components/ManageDomain.vue";
@@ -62,7 +61,6 @@ const APP_ID = "miniapp-neo-ns";
 const NNS_CONTRACT = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
 const { address, connect, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
 
-const activeTab = ref("register");
 const appState = computed(() => ({
   domainCount: myDomains.value.length,
   walletConnected: !!address.value,
@@ -92,24 +90,27 @@ function cancelManage() {
 }
 
 async function handleRenew(domain: Domain) {
-  if (!requireNeoChain(chainType, t)) return;
-  if (!address.value) {
-    showStatus(t("connectWalletFirst"), "error");
+  if (!ensureNeoWalletAndChain(chainType, address.value, t, showStatus)) {
     return;
   }
 
   loading.value = true;
   try {
-    await invokeContract({
-      scriptHash: NNS_CONTRACT,
-      operation: "renew",
-      args: [{ type: "String", value: domain.name }],
-    });
+    const renewResult = await handleNeoInvocation(
+      () =>
+        invokeContract({
+          scriptHash: NNS_CONTRACT,
+          operation: "renew",
+          args: [{ type: "String", value: domain.name }],
+        }),
+      t,
+      "renewalFailed",
+      showStatus,
+    );
+    if (renewResult === null) return;
 
     showStatus(domain.name + " " + t("renewed"), "success");
     await loadMyDomains();
-  } catch (e: unknown) {
-    showStatus(formatErrorMessage(e, t("renewalFailed")), "error");
   } finally {
     loading.value = false;
   }
@@ -117,26 +118,29 @@ async function handleRenew(domain: Domain) {
 
 async function handleSetTarget(targetAddress: string) {
   if (!managingDomain.value || !targetAddress) return;
-  if (!requireNeoChain(chainType, t)) return;
-  if (!address.value) {
-    showStatus(t("connectWalletFirst"), "error");
+  if (!ensureNeoWalletAndChain(chainType, address.value, t, showStatus)) {
     return;
   }
 
   loading.value = true;
   try {
-    await invokeContract({
-      scriptHash: NNS_CONTRACT,
-      operation: "setTarget",
-      args: [
-        { type: "String", value: managingDomain.value.name },
-        { type: "Hash160", value: targetAddress },
-      ],
-    });
+    const setTargetResult = await handleNeoInvocation(
+      () =>
+        invokeContract({
+          scriptHash: NNS_CONTRACT,
+          operation: "setTarget",
+          args: [
+            { type: "String", value: managingDomain.value.name },
+            { type: "Hash160", value: targetAddress },
+          ],
+        }),
+      t,
+      "error",
+      showStatus,
+    );
+    if (setTargetResult === null) return;
 
     showStatus(t("targetSet"), "success");
-  } catch (e: unknown) {
-    showStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     loading.value = false;
   }
@@ -149,31 +153,29 @@ async function handleTransfer(transferAddress: string) {
   loading.value = true;
   try {
     const tokenId = domainToTokenId(managingDomain.value.name.replace(".neo", ""));
-
-    await invokeContract({
-      scriptHash: NNS_CONTRACT,
-      operation: "transfer",
-      args: [
-        { type: "Hash160", value: transferAddress },
-        { type: "ByteArray", value: tokenId },
-        { type: "Any", value: null },
-      ],
-    });
+    const transferResult = await handleNeoInvocation(
+      () =>
+        invokeContract({
+          scriptHash: NNS_CONTRACT,
+          operation: "transfer",
+          args: [
+            { type: "Hash160", value: transferAddress },
+            { type: "ByteArray", value: tokenId },
+            { type: "Any", value: null },
+          ],
+        }),
+      t,
+      "error",
+      showStatus,
+    );
+    if (transferResult === null) return;
 
     showStatus(t("transferred"), "success");
     managingDomain.value = null;
     await loadMyDomains();
-  } catch (e: unknown) {
-    showStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     loading.value = false;
   }
-}
-
-function domainToTokenId(name: string): string {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(name.toLowerCase() + ".neo");
-  return btoa(String.fromCharCode(...bytes));
 }
 
 async function loadMyDomains() {
