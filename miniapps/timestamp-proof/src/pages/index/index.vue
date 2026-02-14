@@ -51,7 +51,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppShell, MiniAppTabStats } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createTemplateConfig, createSidebarItems, waitForEventByTransaction } from "@shared/utils";
 import ProofCreateForm from "./components/ProofCreateForm.vue";
 import ProofList from "./components/ProofList.vue";
 import ProofVerify from "./components/ProofVerify.vue";
@@ -155,8 +155,8 @@ const createProof = async () => {
       contractAddress.value as string
     )) as { txid: string };
 
-    if (tx.txid) {
-      await waitForEvent(tx.txid, "ProofCreated");
+    const proofEvent = await waitForEventByTransaction(tx, "ProofCreated", waitForEvent);
+    if (proofEvent) {
       proofContent.value = "";
       await loadProofs();
     }

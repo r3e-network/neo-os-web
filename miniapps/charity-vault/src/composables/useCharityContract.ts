@@ -6,6 +6,7 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { waitForEventByTransaction } from "@shared/utils/transaction";
 import type { CharityCampaign, Donation } from "@/types";
 
 const APP_ID = "miniapp-charity-vault";
@@ -167,8 +168,8 @@ export function useCharityContract(t: (key: string) => string) {
         contractAddress.value as string
       )) as { txid: string };
 
-      if (tx.txid) {
-        await waitForEvent(tx.txid, "DonationMade");
+      const donationEvent = await waitForEventByTransaction(tx, "DonationMade", waitForEvent);
+      if (donationEvent) {
         await loadCampaigns();
         await loadMyDonations();
         await loadRecentDonations(selectedCampaign.value.id);
@@ -220,8 +221,8 @@ export function useCharityContract(t: (key: string) => string) {
         contractAddress.value as string
       )) as { txid: string };
 
-      if (tx.txid) {
-        await waitForEvent(tx.txid, "CampaignCreated");
+      const campaignEvent = await waitForEventByTransaction(tx, "CampaignCreated", waitForEvent);
+      if (campaignEvent) {
         await loadCampaigns();
         return true; // signal success for tab switch
       }

@@ -53,7 +53,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppShell } from "@shared/components";
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createTemplateConfig, createSidebarItems, waitForEventByTransaction } from "@shared/utils";
 import LeaderboardSection, { type LeaderboardEntry } from "./components/LeaderboardSection.vue";
 import CheckInSection from "./components/CheckInSection.vue";
 import GiveKarmaForm from "./components/GiveKarmaForm.vue";
@@ -217,8 +217,8 @@ const dailyCheckIn = async () => {
       [{ type: "Integer", value: String(receiptId) }],
       contractAddress.value as string
     )) as { txid: string };
-    if (tx.txid) {
-      await waitForEvent(tx.txid, "KarmaEarned");
+    const earnedEvent = await waitForEventByTransaction(tx, "KarmaEarned", waitForEvent);
+    if (earnedEvent) {
       hasCheckedIn.value = true;
       checkInStreak.value += 1;
       await loadLeaderboard();
@@ -247,8 +247,8 @@ const handleGiveKarma = async (data: { address: string; amount: number; reason: 
       ],
       contractAddress.value as string
     )) as { txid: string };
-    if (tx.txid) {
-      await waitForEvent(tx.txid, "KarmaGiven");
+    const givenEvent = await waitForEventByTransaction(tx, "KarmaGiven", waitForEvent);
+    if (givenEvent) {
       giveKarmaFormRef.value?.reset();
       await loadLeaderboard();
     }
