@@ -10,6 +10,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Refactor
+
+- Standardized bootstrapping for all 52 miniapps via a shared entry helper.
+- Unified all 52 index pages on `MiniAppShell` with centralized error-boundary wiring.
+- Added and adopted shared `MiniAppOperationStats` and `MiniAppTabStats` wrappers.
+- Added template preset utilities and scaffold generation based on `MiniAppShell`.
+- Updated miniapp validation to accept and enforce shared template usage (`MiniAppTemplate` or `MiniAppShell`).
+- Extracted shared `useTicker` and `ownerMatchesAddress` reuse paths to reduce duplication.
+- Updated miniapp integration docs for the standardized composition model.
+
+### Verification
+
+- `node scripts/validate-miniapps.mjs` passed (52/52).
+- `pnpm turbo typecheck --filter='./miniapps/*'` passed.
+- `pnpm turbo build:h5 --filter='./miniapps/*'` passed (53/53; warnings only).
+
+### Commit Breakdown
+
+- `24c1e3f`
+- `bb74012`
+- `4f5f551`
+- `c8ebb28`
+
 ## [2.1.0] - 2026-02-11
 
 ### Security Hardening
