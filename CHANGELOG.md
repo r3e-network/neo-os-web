@@ -57,6 +57,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `e8230b0`
 - `758cd34`
 
+### Refactor (Continued 2)
+
+- Reused shared `useContractAddress` in 6 additional composables (`dev-tipping`, `soulbound-certificate`, `neo-gacha` publish/machines/management, and `million-piece-map` tiles).
+- Preserved existing user-facing error copy where miniapps used app-specific contract-missing messages.
+- Removed one stale unused import during the `million-piece-map` migration.
+
+### Verification (Continued 2)
+
+- `node scripts/validate-miniapps.mjs` passed (52/52).
+- `pnpm turbo typecheck --filter='./miniapps/*'` passed.
+- `pnpm turbo typecheck --filter=miniapp-dev-tipping --filter=miniapp-soulbound-certificate --filter=miniapp-neo-gacha --filter=miniapp-millionpiecemap` passed.
+- `pnpm turbo build --filter=miniapp-dev-tipping --filter=miniapp-soulbound-certificate --filter=miniapp-neo-gacha --filter=miniapp-millionpiecemap` passed (warnings only).
+
+### Commit Breakdown (Continued 2)
+
+- `7f4b947`
+- `70e58ba`
+
 ## [2.1.0] - 2026-02-11
 
 ### Security Hardening
