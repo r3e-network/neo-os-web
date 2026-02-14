@@ -7,7 +7,7 @@ import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { extractTxid } from "@shared/utils/transaction";
+import { waitForEventByTransaction } from "@shared/utils/transaction";
 import type { Machine, MachineItem } from "@/types";
 
 const APP_ID = "miniapp-neo-gacha";
@@ -104,8 +104,7 @@ export function useGachaPlay() {
         contract
       );
 
-      const initiateTxid = extractTxid(initiateTx);
-      const initiatedEvent = initiateTxid ? await waitForEvent(initiateTxid, "PlayInitiated") : null;
+      const initiatedEvent = await waitForEventByTransaction(initiateTx, "PlayInitiated", waitForEvent);
       if (!initiatedEvent) {
         throw new Error(t("playPending"));
       }
@@ -154,10 +153,7 @@ export function useGachaPlay() {
         contract
       );
 
-      const settleTxid = extractTxid(settleTx);
-      if (settleTxid) {
-        await waitForEvent(settleTxid, "PlayResolved");
-      }
+      await waitForEventByTransaction(settleTx, "PlayResolved", waitForEvent);
 
       if (options.onSuccess) await options.onSuccess();
     } catch (e: unknown) {

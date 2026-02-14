@@ -9,7 +9,7 @@ import { useGameState } from "@shared/composables/useGameState";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { extractTxid } from "@shared/utils/transaction";
+import { waitForEventByTransaction } from "@shared/utils/transaction";
 import { audioManager } from "../../../utils/audio";
 import type { GameResult } from "../components/CoinArena.vue";
 
@@ -187,8 +187,7 @@ export function useCoinFlipGame(
         { type: "Integer", value: String(receiptId) },
       ])) as { txid: string; receiptId: string };
 
-      const initiateTxid = initiateResult.txid;
-      const initiatedEvent = initiateTxid ? await waitForEvent(initiateTxid, "BetInitiated") : null;
+      const initiatedEvent = await waitForEventByTransaction(initiateResult, "BetInitiated", waitForEvent);
       if (!initiatedEvent) throw new Error(t("betPending"));
 
       const initiatedRecord = initiatedEvent as unknown as Record<string, unknown>;
@@ -225,25 +224,22 @@ export function useCoinFlipGame(
           ],
         });
 
-        const settleTxid = extractTxid(settleTx);
-        if (settleTxid) {
-          const resolvedEvent = await waitForEvent(settleTxid, "BetResolved");
-          if (resolvedEvent) {
-            const resolvedRecord = resolvedEvent as unknown as Record<string, unknown>;
-            const values = Array.isArray(resolvedRecord?.state)
-              ? (resolvedRecord.state as unknown[]).map(parseStackItem)
-              : [];
-            const payoutRaw = values[3];
-            const payoutValue = Number(payoutRaw || 0) / 1e8;
+        const resolvedEvent = await waitForEventByTransaction(settleTx, "BetResolved", waitForEvent);
+        if (resolvedEvent) {
+          const resolvedRecord = resolvedEvent as unknown as Record<string, unknown>;
+          const values = Array.isArray(resolvedRecord?.state)
+            ? (resolvedRecord.state as unknown[]).map(parseStackItem)
+            : [];
+          const payoutRaw = values[3];
+          const payoutValue = Number(payoutRaw || 0) / 1e8;
 
-            if (simulated.won) {
-              recordWin(payoutValue);
-              totalWon.value += payoutValue;
-              winAmount.value = payoutValue.toFixed(2);
-              showWinOverlay.value = true;
-            } else {
-              recordLoss();
-            }
+          if (simulated.won) {
+            recordWin(payoutValue);
+            totalWon.value += payoutValue;
+            winAmount.value = payoutValue.toFixed(2);
+            showWinOverlay.value = true;
+          } else {
+            recordLoss();
           }
         }
       } catch (settleError: unknown) {

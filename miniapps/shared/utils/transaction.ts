@@ -18,6 +18,20 @@ export function isTxEventPendingError(error: unknown, eventName: string): boolea
   return error instanceof Error && error.message.includes(`Event "${eventName}" not found`);
 }
 
+export async function waitForEventByTransaction<T>(
+  tx: unknown,
+  eventName: string,
+  waitForEvent: (txid: string, eventName: string, timeoutMs?: number) => Promise<T>,
+  timeoutMs?: number,
+): Promise<T | null> {
+  const txid = extractTxid(tx);
+  if (!txid) {
+    return null;
+  }
+
+  return waitForEvent(txid, eventName, timeoutMs);
+}
+
 export interface PollForTxEventParams<T extends { tx_hash?: string }> {
   listEvents: () => Promise<T[]>;
   txid: string;

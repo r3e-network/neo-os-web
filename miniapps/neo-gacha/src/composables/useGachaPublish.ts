@@ -8,7 +8,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { extractTxid } from "@shared/utils/transaction";
+import { waitForEventByTransaction } from "@shared/utils/transaction";
 
 const APP_ID = "miniapp-neo-gacha";
 
@@ -91,8 +91,7 @@ export function useGachaPublish() {
         ],
       });
 
-      const createTxId = extractTxid(createTx);
-      const createdEvent = createTxId ? await waitForEvent(createTxId, "MachineCreated") : null;
+      const createdEvent = await waitForEventByTransaction(createTx, "MachineCreated", waitForEvent);
       if (!createdEvent) {
         throw new Error(t("createPending"));
       }
@@ -144,10 +143,7 @@ export function useGachaPublish() {
           ],
         });
 
-        const itemTxId = extractTxid(itemTx);
-        if (itemTxId) {
-          await waitForEvent(itemTxId, "MachineItemAdded");
-        }
+        await waitForEventByTransaction(itemTx, "MachineItemAdded", waitForEvent);
       }
 
       options.setStatus(t("publishSuccess"), "success");
