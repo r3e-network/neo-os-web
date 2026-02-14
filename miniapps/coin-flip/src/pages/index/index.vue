@@ -71,7 +71,7 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { MiniAppShell, MiniAppTabStats, NeoCard, NeoButton, type StatItem } from "@shared/components";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 import CoinArena from "./components/CoinArena.vue";
 import BetControls from "./components/BetControls.vue";
 import ResultOverlay from "./components/ResultOverlay.vue";
@@ -105,13 +105,10 @@ const {
   handleFlip,
 } = useCoinFlipGame(wallet, t);
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "game", labelKey: "game", icon: "\uD83C\uDFAE", default: true },
-    { key: "stats", labelKey: "stats", icon: "\uD83D\uDCCA" },
-  ],
-  fireworks: true,
-});
+const templateConfig = createPrimaryStatsTemplateConfig(
+  { key: "game", labelKey: "game", icon: "\uD83C\uDFAE", default: true },
+  { fireworks: true },
+);
 
 const activeTab = ref("game");
 

@@ -77,7 +77,7 @@ import StatsTab from "./components/StatsTab.vue";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
 import { useSelfLoanCore } from "@/composables/useSelfLoanCore";
 import { useSelfLoanHistory } from "@/composables/useSelfLoanHistory";
 
@@ -86,13 +86,10 @@ const { handleError, canRetry, clearError } = useErrorHandler();
 const core = useSelfLoanCore();
 const history = useSelfLoanHistory();
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "main", labelKey: "main", icon: "💰", default: true },
-    { key: "stats", labelKey: "stats", icon: "📊" },
-  ],
-  docFeatureCount: 3,
-});
+const templateConfig = createPrimaryStatsTemplateConfig(
+  { key: "main", labelKey: "main", icon: "💰", default: true },
+  { docFeatureCount: 3 },
+);
 
 const activeTab = ref("main");
 
