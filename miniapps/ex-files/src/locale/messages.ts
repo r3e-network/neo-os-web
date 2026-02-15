@@ -1,8 +1,8 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Ex Files", zh: "前任档案" },
+  // App translations
+  title: { en: "Ex Files", zh: "前任档案" },
   subtitle: { en: "Anonymous record vault", zh: "匿名记录保险库" },
 
   // Stats
@@ -60,7 +60,6 @@ title: { en: "Ex Files", zh: "前任档案" },
   recordQueried: { en: "Record queried", zh: "记录已查询" },
   failedToLoad: { en: "Failed to load records", zh: "加载记录失败" },
   missingContract: { en: "Contract not configured", zh: "合约未配置" },
-  connectWallet: { en: "Connect wallet first", zh: "请先连接钱包" },
 
   // Sample memories
   firstDate: { en: "First Date", zh: "初次约会" },
@@ -88,18 +87,24 @@ title: { en: "Ex Files", zh: "前任档案" },
     zh: "前任档案仅将内容哈希与轻量元数据（类型、评分、时间）存储在链上。上传前在本地哈希，之后可用同一哈希验证记录存在，无需暴露原文。",
   },
   step1: { en: "Connect your wallet and open Create Record.", zh: "连接钱包并打开创建记录。" },
-  step2: { en: "Enter content or URL, choose type and rating; the hash is generated locally.", zh: "输入内容或链接，选择类型与评分；哈希在本地生成。" },
+  step2: {
+    en: "Enter content or URL, choose type and rating; the hash is generated locally.",
+    zh: "输入内容或链接，选择类型与评分；哈希在本地生成。",
+  },
   step3: { en: "Submit the hash and metadata on-chain.", zh: "将哈希与元数据提交到链上。" },
-  step4: { en: "Query by hash later, or report/delete records when needed.", zh: "之后可按哈希查询，必要时可举报或删除记录。" },
+  step4: {
+    en: "Query by hash later, or report/delete records when needed.",
+    zh: "之后可按哈希查询，必要时可举报或删除记录。",
+  },
   feature1Name: { en: "Local Hashing", zh: "本地哈希" },
   feature1Desc: { en: "Only hashes are uploaded; raw content stays with you.", zh: "仅上传哈希，原始内容留在本地。" },
   feature2Name: { en: "On-chain Evidence", zh: "链上证明" },
   feature2Desc: { en: "Timestamps and metadata prove record existence.", zh: "时间戳与元数据证明记录存在。" },
   feature3Name: { en: "Report & Delete", zh: "举报与删除" },
   feature3Desc: { en: "Soft delete your own records and flag abuse.", zh: "支持软删除自有记录并举报不当内容。" },
-    sidebarWallet: { en: "Wallet", zh: "钱包" },
-    connected: { en: "Connected", zh: "已连接" },
-    disconnected: { en: "Disconnected", zh: "未连接" },
+  sidebarWallet: { en: "Wallet", zh: "钱包" },
+  connected: { en: "Connected", zh: "已连接" },
+  disconnected: { en: "Disconnected", zh: "未连接" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

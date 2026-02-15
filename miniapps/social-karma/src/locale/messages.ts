@@ -75,7 +75,6 @@ const appMessages = {
   gifter: { en: "Gifter", zh: "赠送者" },
   receiver: { en: "Receiver", zh: "接收者" },
   philanthropist: { en: "Philanthropist", zh: "慈善家" },
-  connectWallet: { en: "Please connect wallet", zh: "请连接钱包" },
 
   docSubtitle: { en: "Social reputation system on blockchain", zh: "区块链社交声誉系统" },
   docDescription: {

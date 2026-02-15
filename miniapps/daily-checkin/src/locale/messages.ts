@@ -30,7 +30,6 @@ const appMessages = {
   claimSuccess: { en: "Rewards claimed!", zh: "奖励已领取!" },
   pendingConfirmation: { en: "{action} (pending confirmation)", zh: "{action}（等待确认）" },
   error: { en: "Error occurred", zh: "发生错误" },
-  connectWallet: { en: "Connect wallet first", zh: "请先连接钱包" },
   docSubtitle: { en: "Earn GAS by checking in daily", zh: "每日签到赚取 GAS" },
   docDescription: {
     en: "Check in every day to build your streak. Complete 7 consecutive days to earn 1 GAS, then earn 1.5 GAS for every additional 7 days. Miss a day and your streak resets!",

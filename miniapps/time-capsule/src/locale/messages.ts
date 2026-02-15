@@ -59,7 +59,6 @@ const appMessages = {
     zh: "未找到本地消息，下面展示链上哈希。",
   },
   notUnlocked: { en: "Capsule is still locked", zh: "胶囊仍处于锁定状态" },
-  connectWallet: { en: "Please connect wallet", zh: "请连接钱包" },
   invalidLockDuration: { en: "Lock duration must be between 1 and 3650 days.", zh: "锁定时长需在 1 到 3650 天之间。" },
   message: { en: "Message:", zh: "消息：" },
   tabCapsules: { en: "Capsules", zh: "胶囊" },

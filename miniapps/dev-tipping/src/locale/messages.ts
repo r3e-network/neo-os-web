@@ -1,8 +1,8 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Dev Tipping", zh: "开发者打赏" },
+  // App translations
+  title: { en: "Dev Tipping", zh: "开发者打赏" },
   subtitle: { en: "Support developers", zh: "支持开发者" },
   developers: { en: "Developers", zh: "开发者" },
   topDevelopers: { en: "Top Developers", zh: "顶级开发者" },
@@ -25,7 +25,6 @@ title: { en: "Dev Tipping", zh: "开发者打赏" },
   tipSent: { en: "Tip sent successfully!", zh: "打赏发送成功！" },
   invalidAmount: { en: "Invalid amount", zh: "无效金额" },
   minTip: { en: "Minimum tip is 0.001 GAS", zh: "最低打赏为 0.001 GAS" },
-  connectWallet: { en: "Connect wallet first", zh: "请先连接钱包" },
   recentTips: { en: "Recent Tips", zh: "最近打赏" },
   totalDonated: { en: "Total Donated", zh: "总打赏额" },
   defaultDevName: { en: "Dev #{id}", zh: "开发者 #{id}" },

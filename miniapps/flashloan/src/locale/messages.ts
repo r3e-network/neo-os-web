@@ -1,8 +1,8 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Flash Loan", zh: "闪电贷" },
+  // App translations
+  title: { en: "Flash Loan", zh: "闪电贷" },
   instructionMode: { en: "INSTRUCTIONAL MODE", zh: "教学模式" },
   instructionNote: {
     en: "Flash loans must be executed programmatically. Use this miniapp to monitor pool status and loan history.",
@@ -41,7 +41,6 @@ title: { en: "Flash Loan", zh: "闪电贷" },
   loanStatusLoaded: { en: "Loan status loaded", zh: "贷款状态已加载" },
   loanNotFound: { en: "Loan not found", zh: "未找到该贷款" },
   invalidLoanId: { en: "Invalid loan ID", zh: "无效贷款 ID" },
-  connectWallet: { en: "Please connect your wallet", zh: "请连接钱包" },
   main: { en: "Status", zh: "状态" },
   stats: { en: "Activity", zh: "活动" },
   docs: { en: "Learn", zh: "学习" },
@@ -56,7 +55,7 @@ title: { en: "Flash Loan", zh: "闪电贷" },
   callbackMethodPlaceholder: { en: "Enter callback method name", zh: "输入回调方法名" },
   flashloanInfo: {
     en: "Flash loans must be repaid within a single transaction. The callback contract will receive the loan and must repay the principal + fee atomically.",
-    zh: "闪电贷必须在单笔交易中偿还。回调合约将收到贷款，并必须原子化偿还本金+手续费。"
+    zh: "闪电贷必须在单笔交易中偿还。回调合约将收到贷款，并必须原子化偿还本金+手续费。",
   },
   requestLoan: { en: "Request Loan", zh: "请求贷款" },
   requesting: { en: "Requesting...", zh: "请求中..." },
@@ -129,15 +128,15 @@ title: { en: "Flash Loan", zh: "闪电贷" },
   },
   notAvailable: { en: "Unavailable", zh: "不可用" },
   live: { en: "LIVE", zh: "实时" },
-    feature1Name: { en: "Atomic Execution", zh: "原子执行" },
-    feature1Desc: { en: "Borrow and repay in a single transaction.", zh: "在单笔交易中借还。" },
-    feature2Name: { en: "Pool Monitoring", zh: "池子监控" },
-    feature2Desc: { en: "Track liquidity and loan history on-chain.", zh: "链上追踪流动性与贷款历史。" },
-    sidebarPoolBalance: { en: "Pool Balance", zh: "池余额" },
-    sidebarRecentLoans: { en: "Recent Loans", zh: "近期贷款" },
-    sidebarTotalLoans: { en: "Total Loans", zh: "贷款总数" },
-    sidebarTotalVolume: { en: "Total Volume", zh: "总交易量" },
-    flashloanErrorFallback: { en: "Something went wrong", zh: "出现错误" },
+  feature1Name: { en: "Atomic Execution", zh: "原子执行" },
+  feature1Desc: { en: "Borrow and repay in a single transaction.", zh: "在单笔交易中借还。" },
+  feature2Name: { en: "Pool Monitoring", zh: "池子监控" },
+  feature2Desc: { en: "Track liquidity and loan history on-chain.", zh: "链上追踪流动性与贷款历史。" },
+  sidebarPoolBalance: { en: "Pool Balance", zh: "池余额" },
+  sidebarRecentLoans: { en: "Recent Loans", zh: "近期贷款" },
+  sidebarTotalLoans: { en: "Total Loans", zh: "贷款总数" },
+  sidebarTotalVolume: { en: "Total Volume", zh: "总交易量" },
+  flashloanErrorFallback: { en: "Something went wrong", zh: "出现错误" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

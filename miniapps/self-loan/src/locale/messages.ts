@@ -98,7 +98,6 @@ const appMessages = {
     zh: "此应用需要 Neo N3 网络，请切换网络。",
   },
   insufficientNeo: { en: "Insufficient NEO balance", zh: "NEO 余额不足" },
-  connectWallet: { en: "Please connect wallet", zh: "请连接钱包" },
   repayLoan: { en: "Repay Loan", zh: "还款" },
   repaying: { en: "Repaying...", zh: "还款中..." },
   repaySuccess: { en: "Loan repaid successfully", zh: "还款成功" },

@@ -22,7 +22,6 @@ const appMessages = {
   minutesShort: { en: "m", zh: "分钟" },
   enterValidAmount: { en: "Enter a whole-number NEO amount", zh: "请输入整数 NEO 金额" },
   loadFailed: { en: "Failed to load data", zh: "加载失败" },
-  connectWallet: { en: "Please connect your wallet", zh: "请连接钱包" },
   capsuleCreated: { en: "Capsule created", zh: "胶囊已创建" },
   capsuleUnlocked: { en: "Capsule unlocked", zh: "胶囊已解锁" },
   unlockFailed: { en: "Unlock failed", zh: "解锁失败" },
