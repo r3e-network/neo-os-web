@@ -1,8 +1,8 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Garden of Neo", zh: "Neo花园" },
+  // App translations
+  title: { en: "Garden of Neo", zh: "Neo花园" },
   subtitle: { en: "Grow blockchain plants and harvest rewards", zh: "种植区块链植物并收获奖励" },
   garden: { en: "Garden", zh: "花园" },
   yourGarden: { en: "Your Garden", zh: "你的花园" },
@@ -24,7 +24,6 @@ title: { en: "Garden of Neo", zh: "Neo花园" },
   harvested2: { en: "Harvested", zh: "已收获" }, // cleanup dupes if needed but keeping safe
   harvestedPlants: { en: "plants!", zh: "株植物！" },
   noReady: { en: "No plants ready to harvest", zh: "没有可收获的植物" },
-  connectWallet: { en: "Connect wallet", zh: "连接钱包" },
   missingContract: { en: "Contract not configured", zh: "合约未配置" },
   failedToLoad: { en: "Failed to load garden", zh: "加载花园失败" },
   harvestSuccess: { en: "Plant harvested", zh: "植物已收获" },
@@ -61,8 +60,8 @@ title: { en: "Garden of Neo", zh: "Neo花园" },
     en: "Harvest mature plants to claim on-chain GAS rewards.",
     zh: "成熟后收获植物领取链上 GAS 奖励。",
   },
-    sidebarHarvested: { en: "Harvested", zh: "已收获" },
-    gardenActions: { en: "Garden Status", zh: "花园状态" },
+  sidebarHarvested: { en: "Harvested", zh: "已收获" },
+  gardenActions: { en: "Garden Status", zh: "花园状态" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

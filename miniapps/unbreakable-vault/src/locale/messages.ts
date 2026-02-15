@@ -1,8 +1,8 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
+  // App translations
+  title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
   create: { en: "Create", zh: "创建" },
   break: { en: "Break", zh: "破解" },
   bountyLabel: { en: "Bounty", zh: "悬赏金" },
@@ -48,7 +48,6 @@ title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
   remainingDaysLabel: { en: "Days Left", zh: "剩余天数" },
   recentVaults: { en: "Recent Vaults", zh: "最新保险库" },
   noRecentVaults: { en: "No vaults found", zh: "暂无保险库" },
-  connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
   vaultNotFound: { en: "Vault not found", zh: "未找到保险库" },
   vaultCreateFailed: { en: "Create failed", zh: "创建失败" },
   vaultAttemptFailed: { en: "Attempt failed", zh: "破解失败" },
@@ -65,8 +64,14 @@ title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
   },
   step1: { en: "Create a vault with bounty, difficulty, and secret hash", zh: "设置悬赏、难度与密钥哈希创建保险库" },
   step2: { en: "Share the vault ID publicly for challengers", zh: "公开保险库编号吸引挑战者" },
-  step3: { en: "Challengers pay 0.1 / 0.5 / 1 GAS based on difficulty", zh: "挑战者按难度支付 0.1 / 0.5 / 1 GAS 尝试破解" },
-  step4: { en: "Correct secret wins the bounty; expired vaults can be reclaimed", zh: "密钥正确可获悬赏，过期后创建者可取回" },
+  step3: {
+    en: "Challengers pay 0.1 / 0.5 / 1 GAS based on difficulty",
+    zh: "挑战者按难度支付 0.1 / 0.5 / 1 GAS 尝试破解",
+  },
+  step4: {
+    en: "Correct secret wins the bounty; expired vaults can be reclaimed",
+    zh: "密钥正确可获悬赏，过期后创建者可取回",
+  },
   feature1Name: { en: "Hash-Locked Security", zh: "哈希锁定" },
   feature1Desc: { en: "Only the SHA-256 hash is stored on-chain.", zh: "链上仅保存 SHA-256 哈希。" },
   feature2Name: { en: "Bounty Growth", zh: "悬赏增长" },

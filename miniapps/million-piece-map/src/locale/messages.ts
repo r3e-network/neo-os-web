@@ -1,8 +1,8 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Million Piece Map", zh: "百万像素地图" },
+  // App translations
+  title: { en: "Million Piece Map", zh: "百万像素地图" },
   subtitle: { en: "Pixel territory conquest", zh: "像素领土征服" },
   territoryMap: { en: "Map", zh: "地图" },
   claimTerritory: { en: "Claim", zh: "占领" },
@@ -28,7 +28,6 @@ title: { en: "Million Piece Map", zh: "百万像素地图" },
   coverage: { en: "Coverage", zh: "覆盖率" },
   tileAlreadyOwned: { en: "Territory already claimed!", zh: "领土已被占领！" },
   tilePurchased: { en: "Territory claimed successfully!", zh: "领土占领成功！" },
-  connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
   claimPending: { en: "Claim pending", zh: "占领确认中" },
   map: { en: "Map", zh: "地图" },
   docSubtitle: {
@@ -63,7 +62,7 @@ title: { en: "Million Piece Map", zh: "百万像素地图" },
     en: "This app requires Neo N3. Please switch networks.",
     zh: "此应用需要 Neo N3 网络，请切换网络。",
   },
-    sidebarTilePrice: { en: "Tile Price", zh: "地块价格" },
+  sidebarTilePrice: { en: "Tile Price", zh: "地块价格" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

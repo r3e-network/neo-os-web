@@ -86,7 +86,6 @@ const appMessages = {
   feature3Name: { en: "Revocation + Verify", zh: "撤销与核验" },
   feature3Desc: { en: "Issuers can revoke and verifiers can check status.", zh: "发行方可撤销，核验方可查询状态。" },
   ariaTemplates: { en: "Templates", zh: "模板" },
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   sidebarActive: { en: "Active", zh: "启用" },
 } as const;
 

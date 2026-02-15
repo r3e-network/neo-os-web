@@ -1,8 +1,8 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "On-Chain Tarot", zh: "链上塔罗" },
+  // App translations
+  title: { en: "On-Chain Tarot", zh: "链上塔罗" },
   subtitle: { en: "Blockchain-powered divination", zh: "区块链占卜" },
   drawYourCards: { en: "Draw Your Cards", zh: "抽取您的牌" },
   drawCards: { en: "Draw 3 Cards (0.05 GAS)", zh: "抽取 3 张牌 (0.05 GAS)" },
@@ -20,7 +20,6 @@ title: { en: "On-Chain Tarot", zh: "链上塔罗" },
     en: "A three-card reading drawn on-chain for transparency.",
     zh: "链上抽取的三张牌解读。",
   },
-  connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
   readingPending: { en: "Reading pending", zh: "解读确认中" },
   cardsDrawnCount: { en: "Cards Drawn", zh: "抽取卡牌数" },
   totalSpent: { en: "Total Spent", zh: "总花费" },

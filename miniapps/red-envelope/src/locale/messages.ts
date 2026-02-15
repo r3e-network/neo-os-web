@@ -20,7 +20,6 @@ const appMessages = {
   envelopeSent: { en: "Envelope sent!", zh: "红包已发送！" },
   openedFrom: { en: "Opened from {0}!", zh: "已打开来自 {0} 的红包！" },
   congratulations: { en: "Congratulations", zh: "恭喜发财" },
-  connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
   envelopePending: { en: "Envelope pending on-chain", zh: "红包创建确认中" },
   openPending: { en: "Open pending", zh: "打开确认中" },
   envelopeNotReady: { en: "Envelope not ready yet", zh: "红包尚未准备好" },

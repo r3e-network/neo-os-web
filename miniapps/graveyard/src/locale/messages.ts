@@ -1,8 +1,8 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Graveyard", zh: "数字墓地" },
+  // App translations
+  title: { en: "Graveyard", zh: "数字墓地" },
   subtitle: { en: "Encrypted memory burial on-chain", zh: "加密记忆的链上埋葬" },
   destructionStats: { en: "Burial Stats", zh: "埋葬统计" },
   rip: { en: "R.I.P", zh: "R.I.P" },
@@ -30,10 +30,12 @@ title: { en: "Graveyard", zh: "数字墓地" },
   confirmText: { en: "Are you absolutely sure? The hash will be permanent.", zh: "您确定吗？哈希将永久保留。" },
   confirmDestroy: { en: "Yes, Bury It", zh: "确认埋葬" },
   forgetConfirmTitle: { en: "Confirm Forgetting", zh: "确认遗忘" },
-  forgetConfirmText: { en: "This will erase the hash and destroy keys. Continue?", zh: "这会清除哈希并销毁密钥，是否继续？" },
+  forgetConfirmText: {
+    en: "This will erase the hash and destroy keys. Continue?",
+    zh: "这会清除哈希并销毁密钥，是否继续？",
+  },
   forgetAction: { en: "Forget", zh: "遗忘" },
   forgetSuccess: { en: "Memory forgotten successfully", zh: "记忆已成功遗忘" },
-  connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
   buryPending: { en: "Burial confirmation pending", zh: "埋葬确认中" },
   docSubtitle: { en: "On-chain burial and right-to-forget flow", zh: "链上埋葬与遗忘流程" },
   docDescription: {
@@ -56,7 +58,7 @@ title: { en: "Graveyard", zh: "数字墓地" },
   memoryTypeWish: { en: "Wish", zh: "愿望" },
   memoryTypeConfession: { en: "Confession", zh: "告白" },
   memoryTypeOther: { en: "Other", zh: "其他" },
-    totalDestroyed: { en: "Total Buried", zh: "总埋葬数" },
+  totalDestroyed: { en: "Total Buried", zh: "总埋葬数" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
