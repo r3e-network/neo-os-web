@@ -1,13 +1,11 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
+import { useEvents } from "@neo/uniapp-sdk";
 import { formatAddress, parseGas } from "@shared/utils/format";
-import { normalizeScriptHash, addressToScriptHash, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { normalizeScriptHash, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { HistoryEvent } from "../pages/index/components/HistoryList.vue";
 
@@ -15,15 +13,24 @@ const APP_ID = "miniapp-doomsday-clock";
 const BASE_KEY_PRICE = 10000000n;
 const KEY_PRICE_INCREMENT_BPS = 10n;
 
+/** Manages doomsday clock game state, key purchases, and prize pool. */
 export function useDoomsdayGame() {
   const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage, canRetry } = useErrorHandler();
-  const { address, connect, invokeRead, invokeContract } = useWallet() as WalletSDK;
-  const { processPayment, isLoading: isPaying } = usePaymentFlow(APP_ID);
+  const {
+    address,
+    ensureWallet,
+    read,
+    invoke,
+    invokeDirectly,
+    contractAddress,
+    ensureContractAddress,
+    isProcessing: isPaying,
+  } = useContractInteraction({
+    appId: APP_ID,
+    t: (key: string) => (key === "contractUnavailable" ? t("error") : t(key)),
+  });
   const { list: listEvents } = useEvents();
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("error") : t(key),
-  );
 
   const roundId = ref(0);
   const totalPot = ref(0);
@@ -32,7 +39,7 @@ export function useDoomsdayGame() {
   const userKeys = ref(0);
   const keyCount = ref("1");
   const keyValidationError = ref<string | null>(null);
-  const { status, setStatus, clearStatus } = useStatusMessage();
+  const { status, setStatus } = useStatusMessage();
   const history = ref<HistoryEvent[]>([]);
   const loading = ref(false);
   const isClaiming = ref(false);
@@ -72,12 +79,7 @@ export function useDoomsdayGame() {
   const loadRoundData = async () => {
     await ensureContractAddress();
     try {
-      const statusRes = await invokeRead({
-        scriptHash: contractAddress.value as string,
-        operation: "getGameStatus",
-        args: [],
-      });
-      const data = parseInvokeResult(statusRes);
+      const data = await read("getGameStatus");
       if (data && typeof data === "object") {
         const statusMap = data as Record<string, unknown>;
         roundId.value = Number(statusMap.roundId || 0);
@@ -100,15 +102,11 @@ export function useDoomsdayGame() {
       return;
     }
     try {
-      const res = await invokeRead({
-        scriptHash: contractAddress.value as string,
-        operation: "getPlayerKeys",
-        args: [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: roundId.value },
-        ],
-      });
-      userKeys.value = Number(parseInvokeResult(res) || 0);
+      const parsed = await read("getPlayerKeys", [
+        { type: "Hash160", value: address.value as string },
+        { type: "Integer", value: roundId.value },
+      ]);
+      userKeys.value = Number(parsed || 0);
     } catch (e: unknown) {
       handleError(e, { operation: "loadUserKeys", metadata: { roundId: roundId.value } });
       userKeys.value = 0;
@@ -131,8 +129,8 @@ export function useDoomsdayGame() {
 
       const items: HistoryEvent[] = [];
 
-      keysRes.events.forEach((evt: Record<string, unknown>) => {
-        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+      keysRes.events.forEach((evt) => {
+        const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
         const player = String(values[0] || "");
         const keys = Number(values[1] || 0);
         const potContribution = parseGas(values[2]);
@@ -144,8 +142,8 @@ export function useDoomsdayGame() {
         });
       });
 
-      winnerRes.events.forEach((evt: Record<string, unknown>) => {
-        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+      winnerRes.events.forEach((evt) => {
+        const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
         const winner = String(values[0] || "");
         const prize = parseGas(values[1]);
         const round = Number(values[2] || 0);
@@ -157,8 +155,8 @@ export function useDoomsdayGame() {
         });
       });
 
-      roundRes.events.forEach((evt: Record<string, unknown>) => {
-        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+      roundRes.events.forEach((evt) => {
+        const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
         const round = Number(values[0] || 0);
         const end = Number(values[1] || 0) * 1000;
         const endText = end ? new Date(end).toLocaleString() : "--";
@@ -170,7 +168,7 @@ export function useDoomsdayGame() {
         });
       });
 
-      history.value = items.sort((a, b) => b.id - a.id);
+      history.value = items.sort((a, b) => Number(b.id) - Number(a.id));
     } catch (e: unknown) {
       handleError(e, { operation: "loadHistory" });
       history.value = [];
@@ -187,7 +185,7 @@ export function useDoomsdayGame() {
   return {
     APP_ID,
     address,
-    connect,
+    ensureWallet,
     contractAddress,
     roundId,
     totalPot,
@@ -198,7 +196,6 @@ export function useDoomsdayGame() {
     keyValidationError,
     status,
     setStatus,
-    clearStatus,
     history,
     loading,
     isClaiming,
@@ -213,8 +210,8 @@ export function useDoomsdayGame() {
     loadUserKeys,
     loadHistory,
     validateKeyCount,
-    invokeContract,
-    processPayment,
+    invokeDirectly,
+    invoke,
     t,
     handleError,
     getUserMessage,

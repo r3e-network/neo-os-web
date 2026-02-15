@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   // App translations
   title: { en: "Prediction Market", zh: "预测市场" },
   markets: { en: "Markets", zh: "市场" },
@@ -26,7 +28,6 @@ export const messages = {
   totalVolume: { en: "Total Volume", zh: "总交易量" },
   endsIn: { en: "Ends in", zh: "结束于" },
   viewDetails: { en: "View Details", zh: "查看详情" },
-  days: { en: "days", zh: "天" },
   hours: { en: "hours", zh: "小时" },
   minutes: { en: "minutes", zh: "分钟" },
 
@@ -52,7 +53,6 @@ export const messages = {
   shares: { en: "shares", zh: "份" },
   totalPrice: { en: "Total Price", zh: "总价格" },
   confirmTrade: { en: "Confirm Trade", zh: "确认交易" },
-  insufficientBalance: { en: "Insufficient balance", zh: "余额不足" },
   invalidAmount: { en: "Invalid amount", zh: "无效数量" },
   tradeSuccess: { en: "Trade successful", zh: "交易成功" },
   tradeError: { en: "Trade failed", zh: "交易失败" },
@@ -241,6 +241,9 @@ export const messages = {
     zh: "为加密货币、体育、政治等创建市场。",
   },
 
+  avgLabel: { en: "Avg", zh: "均价" },
+  ariaOrders: { en: "Orders", zh: "订单" },
+  ariaPositions: { en: "Positions", zh: "持仓" },
   sidebarVolume: { en: "Volume", zh: "交易量" },
   sidebarTraders: { en: "Traders", zh: "交易者" },
   portfolioValue: { en: "Portfolio Value", zh: "投资组合价值" },
@@ -248,4 +251,6 @@ export const messages = {
   sortByVolume: { en: "By Volume", zh: "按交易量" },
   sortByNewest: { en: "By Newest", zh: "按最新" },
   sortByEnding: { en: "By Ending", zh: "按结束时间" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

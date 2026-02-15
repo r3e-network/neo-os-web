@@ -24,19 +24,24 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { RecentTip } from "../composables/useDevTippingStats";
+
+const { t } = createUseI18n(messages)();
 
 interface Props {
   totalDonated: number;
   recentTips: RecentTip[];
   formatNum: (n: number) => string;
-  t: Function;
 }
 
 defineProps<Props>();
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .stats-grid-neo {
   display: grid;
   grid-template-columns: 1fr;
@@ -48,17 +53,13 @@ defineProps<Props>();
 }
 
 .stat-label-neo {
+  @include stat-label;
   color: var(--cafe-muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
 }
 
 .stat-value-neo {
-  font-size: 28px;
+  @include mono-number(28px);
   color: var(--cafe-neon);
-  font-family: "JetBrains Mono", monospace;
-  font-weight: bold;
   text-shadow: var(--cafe-neon-glow-strong);
 }
 
@@ -90,9 +91,8 @@ defineProps<Props>();
 }
 
 .recent-tip-amount-glass {
+  @include mono-number;
   margin-left: auto;
   color: var(--cafe-neon);
-  font-family: "JetBrains Mono", monospace;
-  font-weight: bold;
 }
 </style>

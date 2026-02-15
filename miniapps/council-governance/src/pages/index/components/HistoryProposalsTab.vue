@@ -5,9 +5,7 @@
     </view>
     <NeoCard v-for="p in proposals" :key="p.id" class="mb-6" variant="erobo" @click="$emit('select', p)">
       <view class="proposal-header-neo">
-        <text :class="['status-badge-neo', getStatusClass(p.status)]">
-          {{ getStatusText(p.status) }}
-        </text>
+        <StatusBadge :status="getStatusBadgeStatus(p.status)" :label="getStatusText(p.status)" />
         <text class="proposal-id-neo">#{{ p.id }}</text>
       </view>
       <text class="proposal-title-neo">{{ p.title }}</text>
@@ -20,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, StatusBadge } from "@shared/components";
 
 const props = defineProps<{
   proposals: {
@@ -41,15 +39,11 @@ const STATUS_REVOKED = 4;
 const STATUS_EXPIRED = 5;
 const STATUS_EXECUTED = 6;
 
-const getStatusClass = (status: number) => {
-  const classes: Record<number, string> = {
-    [STATUS_PASSED]: "passed",
-    [STATUS_REJECTED]: "rejected",
-    [STATUS_REVOKED]: "revoked",
-    [STATUS_EXPIRED]: "expired",
-    [STATUS_EXECUTED]: "executed",
-  };
-  return classes[status] || "";
+const getStatusBadgeStatus = (status: number): "success" | "error" | "inactive" | "pending" => {
+  if (status === STATUS_PASSED || status === STATUS_EXECUTED) return "success";
+  if (status === STATUS_REJECTED) return "error";
+  if (status === STATUS_REVOKED || status === STATUS_EXPIRED) return "inactive";
+  return "pending";
 };
 
 const getStatusText = (status: number) => {
@@ -90,40 +84,6 @@ const getStatusText = (status: number) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-}
-
-.status-badge-neo {
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  padding: 4px 10px;
-  border-radius: 99px;
-  letter-spacing: 0.05em;
-
-  &.passed {
-    background: rgba(0, 229, 153, 0.1);
-    color: var(--senate-success);
-    border: 1px solid rgba(0, 229, 153, 0.2);
-    box-shadow: 0 0 10px rgba(0, 229, 153, 0.1);
-  }
-  &.rejected {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--senate-danger);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
-  }
-  &.revoked,
-  &.expired {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  &.executed {
-    background: rgba(112, 0, 255, 0.1);
-    color: var(--senate-executed);
-    border: 1px solid rgba(112, 0, 255, 0.2);
-    box-shadow: 0 0 10px rgba(112, 0, 255, 0.1);
-  }
 }
 
 .proposal-id-neo {

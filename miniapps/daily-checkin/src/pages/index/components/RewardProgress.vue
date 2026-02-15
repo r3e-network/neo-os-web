@@ -37,16 +37,18 @@ defineProps<{
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
-.reward-milestones { display: flex; justify-content: space-between; gap: 12px; }
+.reward-milestones {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
 
 .milestone {
+  @include card-base(12px, 12px);
   flex: 1;
   text-align: center;
-  padding: 12px;
-  background: var(--bg-card, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  border-radius: 12px;
   opacity: 0.5;
   transition: all 0.3s;
   display: flex;
@@ -68,14 +70,15 @@ defineProps<{
   }
 }
 
-.milestone-icon { font-size: 24px; margin-bottom: 8px; }
+.milestone-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
 
 .milestone-day {
+  @include stat-label;
   display: block;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
 }
 
 .milestone-reward {

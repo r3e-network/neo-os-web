@@ -9,13 +9,25 @@
     <view class="policy-row">
       <text class="policy-label">{{ t("policyTypeLabel") }}</text>
       <view class="policy-actions">
-        <NeoButton size="sm" :variant="policyType === 1 ? 'primary' : 'secondary'" @click="$emit('update:policyType', 1)">
+        <NeoButton
+          size="sm"
+          :variant="policyType === 1 ? 'primary' : 'secondary'"
+          @click="$emit('update:policyType', 1)"
+        >
           {{ t("policyTypeBasic") }}
         </NeoButton>
-        <NeoButton size="sm" :variant="policyType === 2 ? 'primary' : 'secondary'" @click="$emit('update:policyType', 2)">
+        <NeoButton
+          size="sm"
+          :variant="policyType === 2 ? 'primary' : 'secondary'"
+          @click="$emit('update:policyType', 2)"
+        >
           {{ t("policyTypeBalanced") }}
         </NeoButton>
-        <NeoButton size="sm" :variant="policyType === 3 ? 'primary' : 'secondary'" @click="$emit('update:policyType', 3)">
+        <NeoButton
+          size="sm"
+          :variant="policyType === 3 ? 'primary' : 'secondary'"
+          @click="$emit('update:policyType', 3)"
+        >
           {{ t("policyTypeGuardian") }}
         </NeoButton>
       </view>
@@ -46,7 +58,13 @@
         suffix="USD"
         class="input"
       />
-      <NeoButton size="sm" variant="secondary" class="price-btn" :loading="isFetchingPrice" @click="$emit('fetchPrice')">
+      <NeoButton
+        size="sm"
+        variant="secondary"
+        class="price-btn"
+        :loading="isFetchingPrice"
+        @click="$emit('fetchPrice')"
+      >
         {{ t("fetchPrice") }}
       </NeoButton>
     </view>
@@ -61,6 +79,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   assetType: string;
@@ -70,8 +90,9 @@ defineProps<{
   startPrice: string;
   premium: string;
   isFetchingPrice: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits([
   "update:assetType",
@@ -87,16 +108,18 @@ defineEmits([
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
-.create-card { margin-top: $spacing-6; }
+.create-card {
+  margin-top: $spacing-6;
+}
 .policy-row {
   margin-bottom: $spacing-4;
 }
 .policy-label {
+  @include stat-label;
   display: block;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-secondary);
   margin-bottom: $spacing-2;

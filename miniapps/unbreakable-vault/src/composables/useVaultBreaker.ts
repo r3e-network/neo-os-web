@@ -1,19 +1,24 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { parseInvokeResult, parseStackItem, normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
+import { useEvents } from "@neo/uniapp-sdk";
+import { parseStackItem, normalizeScriptHash } from "@shared/utils/neo";
 import { bytesToHex, formatGas, toFixed8 } from "@shared/utils/format";
-import { useContractAddress } from "@shared/composables/useContractAddress";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 const ATTEMPT_FEE = 0.1;
 
+/** Handles vault break attempts, listing vaults, and claiming rewards. */
 export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
-  const { address, connect, invokeRead } = useWallet() as WalletSDK;
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+  const {
+    address,
+    ensureWallet,
+    ensureContractAddress,
+    contractAddress,
+    read,
+    invoke,
+    isProcessing: isLoading,
+  } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
   const { status, setStatus, clearStatus } = useStatusMessage();
 
@@ -72,7 +77,7 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     try {
       const res = await listEvents({ app_id: APP_ID, event_name: "VaultCreated", limit: 12 });
       const vaults = res.events
-        .map((evt: Record<string, unknown>) => {
+        .map((evt) => {
           const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
           const id = String(values[0] ?? "");
           const creator = String(values[1] ?? "");
@@ -91,13 +96,7 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     if (!vaultIdInput.value) return;
     clearStatus();
     try {
-      const contract = await ensureContractAddress();
-      const res = await invokeRead({
-        scriptHash: contract,
-        operation: "GetVaultDetails",
-        args: [{ type: "Integer", value: vaultIdInput.value }],
-      });
-      const parsed = parseInvokeResult(res);
+      const parsed = await read("GetVaultDetails", [{ type: "Integer", value: vaultIdInput.value }]);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(t("vaultNotFound"));
       const data = parsed as Record<string, unknown>;
       const creator = String(data.creator || "");
@@ -130,23 +129,14 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     if (!canAttempt.value || isLoading.value) return;
     clearStatus();
     try {
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("connectWallet"));
-      const contract = await ensureContractAddress();
+      await ensureWallet();
       const feeBase = vaultDetails.value?.attemptFee ?? toFixed8(ATTEMPT_FEE);
-      const { receiptId, invoke } = await processPayment(formatGas(feeBase), `vault:attempt:${vaultIdInput.value}`);
-      if (!receiptId) throw new Error(t("receiptMissing"));
-      const res = await invoke(
-        "attemptBreak",
-        [
-          { type: "Integer", value: vaultIdInput.value },
-          { type: "Hash160", value: address.value as string },
-          { type: "ByteArray", value: toHex(attemptSecret.value) },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contract
-      );
-      const resRecord = res as Record<string, unknown>;
+      const result = await invoke(formatGas(feeBase), `vault:attempt:${vaultIdInput.value}`, "attemptBreak", [
+        { type: "Integer", value: vaultIdInput.value },
+        { type: "Hash160", value: address.value as string },
+        { type: "ByteArray", value: toHex(attemptSecret.value) },
+      ]);
+      const resRecord = result?.tx as Record<string, unknown> | undefined;
       const stackArr = resRecord?.stack as unknown[] | undefined;
       const firstItem = stackArr?.[0] as Record<string, unknown> | undefined;
       const success = Boolean(firstItem?.value ?? resRecord?.result);

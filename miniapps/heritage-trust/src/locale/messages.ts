@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   // App translations
   title: { en: "Heritage Trust", zh: "遗产信托" },
   yourTrusts: { en: "Your Trusts", zh: "您的信托" },
@@ -15,10 +17,8 @@ export const messages = {
   notes: { en: "Notes (optional)", zh: "备注（可选）" },
   notesPlaceholder: { en: "Add context for heirs", zh: "给继承人补充说明" },
   infoText: { en: "Trust activates after the configured inactivity window", zh: "信托将在设置的不活跃期后激活" },
-  creating: { en: "Creating...", zh: "创建中..." },
   trustCreated: { en: "Trust created!", zh: "信托已创建！" },
   main: { en: "Main", zh: "主页" },
-  statistics: { en: "Statistics", zh: "统计数据" },
   totalTrusts: { en: "Total Trusts", zh: "总信托数" },
   totalNeoValue: { en: "Total NEO", zh: "总 NEO" },
   activeTrusts: { en: "Active Trusts", zh: "活跃信托" },
@@ -37,7 +37,6 @@ export const messages = {
   triggerCondition: { en: "Trigger Condition", zh: "触发条件" },
   now: { en: "Now", zh: "现在" },
   inactivityPeriod: { en: "Inactivity Period", zh: "不活跃期" },
-  days: { en: "days", zh: "天" },
   trustActivates: { en: "Trust Activates", zh: "信托激活" },
   automatic: { en: "Automatic", zh: "自动" },
   documentId: { en: "Document ID", zh: "文档编号" },
@@ -104,4 +103,6 @@ export const messages = {
   feature3Desc: { en: "Monthly releases prevent sudden lump-sum transfers.", zh: "按月释放避免一次性大额转移。" },
   sidebarBeneficiary: { en: "Beneficiary", zh: "受益" },
   sidebarActive: { en: "Active", zh: "活跃" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

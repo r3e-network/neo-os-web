@@ -1,6 +1,11 @@
 <template>
   <view class="tab-content">
-    <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="status-card">
+    <NeoCard
+      v-if="status"
+      :variant="status.type === 'error' ? 'danger' : 'erobo-neo'"
+      class="status-card"
+      :role="status.type === 'error' ? 'alert' : undefined"
+    >
       <text class="status-text">{{ status.msg }}</text>
     </NeoCard>
 
@@ -27,7 +32,7 @@
           <text class="power-value">{{ votingPower }}</text>
         </view>
         <view class="text-right">
-          <text class="power-label" style="text-align: right">{{ t("councilMember") }}</text>
+          <text class="power-label power-label--right">{{ t("councilMember") }}</text>
           <text class="candidate-status">{{ isCandidate ? t("yes") : t("no") }}</text>
         </view>
       </view>
@@ -141,6 +146,7 @@ const getQuorumPercent = (p: { yesVotes: number; noVotes: number }) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .tab-content {
   padding: 20px;
@@ -259,9 +265,8 @@ const getQuorumPercent = (p: { yesVotes: number; noVotes: number }) => {
   padding: 12px;
   margin-bottom: 24px;
   text-align: center;
-  font-weight: 700;
+  @include stat-label;
   font-size: 12px;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
@@ -291,13 +296,13 @@ const getQuorumPercent = (p: { yesVotes: number; noVotes: number }) => {
   align-items: center;
 }
 .power-label {
+  @include stat-label;
   display: block;
   margin-bottom: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
-  letter-spacing: 0.1em;
+
+  &--right {
+    text-align: right;
+  }
 }
 .power-value {
   font-size: 32px;
@@ -363,11 +368,9 @@ const getQuorumPercent = (p: { yesVotes: number; noVotes: number }) => {
 .quorum-header-neo {
   display: flex;
   justify-content: space-between;
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
   margin-bottom: 8px;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
 }
 
 .bg-success {

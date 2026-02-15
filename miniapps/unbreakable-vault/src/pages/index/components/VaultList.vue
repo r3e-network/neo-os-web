@@ -1,25 +1,30 @@
 <template>
   <NeoCard variant="erobo" class="recent-vaults">
     <text class="section-title">{{ title }}</text>
-    <view v-if="vaults.length === 0" class="empty-state">
-      <text class="empty-text">{{ emptyText }}</text>
-    </view>
-    <view v-else class="vault-list">
-      <view v-for="vault in vaults" :key="vault.id" class="vault-item" role="button" tabindex="0" :aria-label="`Vault #${vault.id}`" @click="$emit('select', vault.id)">
-        <view class="vault-meta">
-          <text class="vault-id">#{{ vault.id }}</text>
-          <text class="vault-bounty">{{ formatGas(vault.bounty) }} GAS</text>
+    <ItemList :items="vaults" item-key="id" :empty-text="emptyText">
+      <template #item="{ item: vault }">
+        <view
+          class="vault-item"
+          role="button"
+          tabindex="0"
+          :aria-label="`Vault #${vault.id}`"
+          @click="$emit('select', vault.id)"
+        >
+          <view class="vault-meta">
+            <text class="vault-id">#{{ vault.id }}</text>
+            <text class="vault-bounty">{{ formatGas(vault.bounty) }} GAS</text>
+          </view>
+          <text class="vault-creator mono">{{
+            vault.creator ? formatAddress(vault.creator) : formatDate(vault.created)
+          }}</text>
         </view>
-        <text class="vault-creator mono">{{
-          vault.creator ? formatAddress(vault.creator) : formatDate(vault.created)
-        }}</text>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
 import { formatAddress, formatGas } from "@shared/utils/format";
 
 interface Vault {
@@ -30,7 +35,6 @@ interface Vault {
 }
 
 defineProps<{
-  t: (key: string) => string;
   title: string;
   emptyText: string;
   vaults: Vault[];

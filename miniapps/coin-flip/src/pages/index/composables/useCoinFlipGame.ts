@@ -1,10 +1,9 @@
 import { ref, computed } from "vue";
 import type { WalletSDK } from "@neo/types";
-import { formatNumber, sleep, toFixed8 } from "@shared/utils/format";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { formatNum, sleep, toFixed8 } from "@shared/utils/format";
 import { sha256Hex, sha256HexFromHex } from "@shared/utils/hash";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { parseStackItem } from "@shared/utils/neo";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { useGameState } from "@shared/composables/useGameState";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -42,16 +41,11 @@ const simulateCoinFlip = async (
   return { won, outcome };
 };
 
-export function useCoinFlipGame(
-  wallet: WalletSDK,
-  t: (key: string) => string,
-) {
-  const { address, connect, invokeContract, invokeRead, chainType } = wallet;
-  const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
-  const { handleError, canRetry, clearError, lastCategory } = useErrorHandler();
-  const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
-  const { wins, losses, winRate, totalGames, recordWin, recordLoss } = useGameState();
+export function useCoinFlipGame(wallet: WalletSDK, t: (key: string) => string) {
+  const { address, ensureWallet, read, invoke, invokeDirectly } = useContractInteraction({ appId: APP_ID, t, wallet });
+  const { handleError, canRetry, clearError } = useErrorHandler();
+  const { status: errorStatus, setStatus: setErrorStatus } = useStatusMessage(5000);
+  const { wins, losses, totalGames, recordWin, recordLoss } = useGameState();
 
   const betAmount = ref("1");
   const choice = ref<"heads" | "tails">("heads");
@@ -66,8 +60,6 @@ export function useCoinFlipGame(
   const validationError = ref<string | null>(null);
   const canRetryError = ref(false);
   const lastOperation = ref<string | null>(null);
-
-  const formatNum = (n: number) => formatNumber(n, 2);
 
   const validateBetAmount = (amount: string): string | null => {
     const num = parseFloat(amount);
@@ -85,36 +77,29 @@ export function useCoinFlipGame(
 
   const ensureScriptHash = async () => {
     if (flipScriptHash.value) return flipScriptHash.value;
-    const contract = await ensureContractAddress();
 
     try {
-      const info = await invokeRead({ scriptHash: contract, operation: "getFlipScriptInfo" });
-      const parsed = parseInvokeResult(info);
+      const parsed = await read("getFlipScriptInfo");
       let hash = "";
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         hash = String((parsed as Record<string, unknown>).hash ?? "");
       }
       if (!hash) {
-        const direct = await invokeRead({
-          scriptHash: contract,
-          operation: "getScriptHash",
-          args: [{ type: "String", value: SCRIPT_NAME }],
-        });
-        const parsedDirect = parseInvokeResult(direct);
+        const parsedDirect = await read("getScriptHash", [{ type: "String", value: SCRIPT_NAME }]);
         hash = Array.isArray(parsedDirect) ? String(parsedDirect[0] ?? "") : String(parsedDirect ?? "");
       }
       if (!hash) throw new Error(t("scriptHashMissing"));
       flipScriptHash.value = hash.replace(/^0x/i, "");
       return flipScriptHash.value;
     } catch (e: unknown) {
-      handleError(e, { operation: "ensureScriptHash", metadata: { contract } });
+      handleError(e, { operation: "ensureScriptHash" });
       throw e;
     }
   };
 
   const connectWallet = async () => {
     try {
-      await connect();
+      await ensureWallet();
     } catch (e: unknown) {
       handleError(e, { operation: "connectWallet" });
       setErrorStatus(formatErrorMessage(e, t("error")), "error");
@@ -147,17 +132,10 @@ export function useCoinFlipGame(
     }
     validationError.value = null;
 
-    if (!address.value) {
-      try {
-        await connect();
-      } catch (e: unknown) {
-        handleError(e, { operation: "connectBeforeFlip" });
-        setErrorStatus(t("connectWalletToPlay"), "error");
-        return;
-      }
-    }
-
-    if (!address.value) {
+    try {
+      await ensureWallet();
+    } catch (e: unknown) {
+      handleError(e, { operation: "connectBeforeFlip" });
       setErrorStatus(t("connectWalletToPlay"), "error");
       return;
     }
@@ -171,23 +149,21 @@ export function useCoinFlipGame(
     lastOperation.value = "flip";
 
     try {
-      const contract = await ensureContractAddress();
       const amountBase = toFixed8(betAmount.value);
       if (amountBase === "0") throw new Error(t("invalidBetAmount"));
 
-      const { receiptId, invoke: invokeWithReceipt } = await processPayment(
+      const { txid, waitForEvent } = await invoke(
         betAmount.value,
-        `coinflip:${choice.value}:${betAmount.value}`
+        `coinflip:${choice.value}:${betAmount.value}`,
+        "initiateBet",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Integer", value: amountBase },
+          { type: "Boolean", value: choice.value === "heads" },
+        ]
       );
 
-      const initiateResult = (await invokeWithReceipt("initiateBet", [
-        { type: "Hash160", value: address.value as string },
-        { type: "Integer", value: amountBase },
-        { type: "Boolean", value: choice.value === "heads" },
-        { type: "Integer", value: String(receiptId) },
-      ])) as { txid: string; receiptId: string };
-
-      const initiatedEvent = await waitForEventByTransaction(initiateResult, "BetInitiated", waitForEvent);
+      const initiatedEvent = await waitForEventByTransaction({ txid, receiptId: "" }, "BetInitiated", waitForEvent);
       if (!initiatedEvent) throw new Error(t("betPending"));
 
       const initiatedRecord = initiatedEvent as unknown as Record<string, unknown>;
@@ -213,18 +189,18 @@ export function useCoinFlipGame(
       const scriptHash = await ensureScriptHash();
 
       try {
-        const settleTx = await invokeContract({
-          scriptHash: contract,
-          operation: "settleBet",
-          args: [
-            { type: "Hash160", value: address.value as string },
-            { type: "Integer", value: betId },
-            { type: "Boolean", value: simulated.won },
-            { type: "ByteArray", value: scriptHash },
-          ],
-        });
+        const { txid: settleTxid } = await invokeDirectly("settleBet", [
+          { type: "Hash160", value: address.value as string },
+          { type: "Integer", value: betId },
+          { type: "Boolean", value: simulated.won },
+          { type: "ByteArray", value: scriptHash },
+        ]);
 
-        const resolvedEvent = await waitForEventByTransaction(settleTx, "BetResolved", waitForEvent);
+        const resolvedEvent = await waitForEventByTransaction(
+          { txid: settleTxid, receiptId: "" },
+          "BetResolved",
+          waitForEvent
+        );
         if (resolvedEvent) {
           const resolvedRecord = resolvedEvent as unknown as Record<string, unknown>;
           const values = Array.isArray(resolvedRecord?.state)

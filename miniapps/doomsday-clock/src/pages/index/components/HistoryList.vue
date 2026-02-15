@@ -1,25 +1,27 @@
 <template>
   <NeoCard variant="erobo">
-    <view v-if="history.length === 0" class="empty-state">
-      <text>{{ t("noHistory") }}</text>
-    </view>
-    <view class="history-list">
-      <view v-for="event in history" :key="event.id" class="history-item-glass">
+    <ItemList
+      :items="history as unknown as Record<string, unknown>[]"
+      item-key="id"
+      :empty-text="t('noHistory')"
+      :aria-label="t('ariaHistory')"
+    >
+      <template #item="{ item }">
         <view class="history-header">
-          <text class="history-title-glass">{{ event.title }}</text>
-          <text class="history-date-glass">{{ event.date }}</text>
+          <text class="history-title-glass">{{ (item as unknown as HistoryEvent).title }}</text>
+          <text class="history-date-glass">{{ (item as unknown as HistoryEvent).date }}</text>
         </view>
-        <text class="history-desc-glass">{{ event.details }}</text>
-      </view>
-    </view>
+        <text class="history-desc-glass">{{ (item as unknown as HistoryEvent).details }}</text>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
 
 export interface HistoryEvent {
-  id: number;
+  id: string | number;
   title: string;
   details: string;
   date: string;
@@ -34,6 +36,7 @@ defineProps<{
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .empty-state {
   text-align: center;

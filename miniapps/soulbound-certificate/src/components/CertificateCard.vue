@@ -5,9 +5,10 @@
         <text class="template-title">{{ cert.templateName || `#${cert.templateId}` }}</text>
         <text class="template-subtitle">{{ cert.issuerName || addressShort(cert.owner) }}</text>
       </view>
-      <text :class="['status-pill', cert.revoked ? 'revoked' : 'active']">
-        {{ cert.revoked ? t("certificateRevoked") : t("certificateValid") }}
-      </text>
+      <StatusBadge
+        :status="cert.revoked ? 'error' : 'success'"
+        :label="cert.revoked ? t('certificateRevoked') : t('certificateValid')"
+      />
     </view>
 
     <view class="certificate-body">
@@ -27,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoButton } from "@shared/components";
+import { NeoButton, StatusBadge } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import type { CertificateItem } from "@/types";
@@ -109,21 +110,5 @@ const addressShort = (value: string) => {
 
 .copy-btn {
   align-self: flex-start;
-}
-
-.status-pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--soul-accent);
-
-  &.revoked {
-    background: rgba(239, 68, 68, 0.2);
-    color: var(--soul-danger);
-  }
 }
 </style>

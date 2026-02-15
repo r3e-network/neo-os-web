@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   // App translations
   title: { en: "GrantShare", zh: "资助共享" },
   subtitle: { en: "Community Funding Platform", zh: "社区资助平台" },
@@ -9,7 +11,6 @@ export const messages = {
   activeGrants: { en: "Latest Proposals", zh: "最新提案" },
   noActiveGrants: { en: "No proposals found", zh: "暂无提案" },
   loading: { en: "Loading proposals...", zh: "提案加载中..." },
-  error: { en: "Error", zh: "错误" },
   loadFailed: { en: "Unable to load proposals", zh: "提案加载失败" },
   by: { en: "by", zh: "创建者" },
   copyDiscussion: { en: "Copy Discussion Link", zh: "复制讨论链接" },
@@ -29,7 +30,6 @@ export const messages = {
   statusCancelled: { en: "Cancelled", zh: "已取消" },
   statusRejected: { en: "Rejected", zh: "已拒绝" },
   statusExpired: { en: "Expired", zh: "已过期" },
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Community funding with transparent milestone tracking",
     zh: "透明里程碑追踪的社区资助",
@@ -69,21 +69,11 @@ export const messages = {
     en: "Monitor proposal status and milestone progress.",
     zh: "追踪提案状态与里程碑进度。",
   },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
   back: { en: "Back", zh: "返回" },
   details: { en: "Details", zh: "详情" },
   noDescription: { en: "No description provided.", zh: "暂无描述。" },
   voting: { en: "Voting", zh: "投票" },
   discussionLink: { en: "Discussion Link", zh: "讨论链接" },
-  // Shared component keys
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
-  docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-  docHowToUse: { en: "How to use", zh: "如何使用" },
-  docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

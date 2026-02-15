@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   appTitle: {
     en: "Neo Multisig",
     zh: "Neo 多重签名",
@@ -9,8 +11,6 @@ export const messages = {
   },
   tabHome: { en: "Home", zh: "首页" },
   tabDocs: { en: "Docs", zh: "文档" },
-  copy: { en: "Copy", zh: "复制" },
-  copied: { en: "Copied", zh: "已复制" },
 
   homeTitle: {
     en: "Multi-sig control without the chaos.",
@@ -87,7 +87,6 @@ export const messages = {
   buttonCreating: { en: "Creating...", zh: "创建中..." },
 
   signTitle: { en: "Sign Request", zh: "签名请求" },
-  loading: { en: "Loading...", zh: "加载中..." },
   statusLabel: { en: "Status", zh: "状态" },
   statusPending: { en: "Pending", zh: "待签名" },
   statusReady: { en: "Ready", zh: "可广播" },
@@ -158,12 +157,10 @@ export const messages = {
     en: "Track request status, signatures, and broadcast readiness.",
     zh: "统一追踪请求状态、签名进度与可广播状态。",
   },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
   sidebarTotalTxs: { en: "Total Txs", zh: "总交易数" },
   sidebarNoActivity: { en: "No Activity Yet", zh: "暂无活动" },
+  ariaSigners: { en: "Signers", zh: "签名人" },
   sidebarTotalTxsLabel: { en: "Total Txs", zh: "总交易数" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-  error: { en: "Error", zh: "错误" }
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

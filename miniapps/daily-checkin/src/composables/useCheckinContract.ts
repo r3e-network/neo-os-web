@@ -1,23 +1,19 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { useEvents } from "@neo/uniapp-sdk";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { formatGas } from "@shared/utils/format";
+import { parseStackItem } from "@shared/utils/neo";
 import { createSidebarItems, isTxEventPendingError } from "@shared/utils";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import type { StatItem } from "@shared/components";
+import type { StatsDisplayItem } from "@shared/components";
 
 const APP_ID = "miniapp-dailycheckin";
 const CHECK_IN_FEE = 0.001;
 
 export function useCheckinContract(t: (key: string, params?: Record<string, string>) => string) {
-  const { address, connect, invokeRead } = useWallet() as WalletSDK;
+  const { address, ensureWallet, read, invoke, isProcessing: isLoading } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
-  const { ensure: ensureContractAddress } = useContractAddress(t);
 
   // User state
   const currentStreak = ref(0);
@@ -47,7 +43,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
     { labelKey: "totalClaimed", value: () => `${formatGas(totalClaimed.value)} GAS` },
   ]);
 
-  const userStats = computed<StatItem[]>(() => [
+  const userStats = computed<StatsDisplayItem[]>(() => [
     { label: t("currentStreak"), value: `${currentStreak.value} ${t("days")}`, variant: "accent" },
     { label: t("highestStreak"), value: `${highestStreak.value} ${t("days")}`, variant: "success" },
     { label: t("totalUserCheckins"), value: totalUserCheckins.value },
@@ -58,7 +54,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
   const waitForPendingOrConfirm = async (
     txid: string,
     eventName: string,
-    waitForEvent: (txid: string, eventName: string, timeoutMs?: number) => Promise<unknown>,
+    waitForEvent: (txid: string, eventName: string, timeoutMs?: number) => Promise<unknown>
   ): Promise<{ pending: boolean }> => {
     try {
       await waitForEvent(txid, eventName);
@@ -74,13 +70,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
   const loadUserStats = async () => {
     if (!address.value) return;
     try {
-      const contract = await ensureContractAddress();
-      const res = await invokeRead({
-        scriptHash: contract,
-        operation: "GetUserStats",
-        args: [{ type: "Hash160", value: address.value }],
-      });
-      const data = parseInvokeResult(res);
+      const data = await read("GetUserStats", [{ type: "Hash160", value: address.value }]);
       if (Array.isArray(data)) {
         currentStreak.value = Number(data[0] ?? 0);
         highestStreak.value = Number(data[1] ?? 0);
@@ -96,13 +86,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
 
   const loadGlobalStats = async () => {
     try {
-      const contract = await ensureContractAddress();
-      const res = await invokeRead({
-        scriptHash: contract,
-        operation: "GetPlatformStats",
-        args: [],
-      });
-      const data = parseInvokeResult(res);
+      const data = await read("GetPlatformStats", []);
       if (Array.isArray(data)) {
         globalStats.value = {
           totalUsers: Number(data[0] ?? 0),
@@ -145,28 +129,13 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
     clearStatus();
 
     try {
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) throw new Error(t("connectWallet"));
+      await ensureWallet();
 
-      const contract = await ensureContractAddress();
-      const { receiptId, invoke, waitForEvent } = await processPayment(String(CHECK_IN_FEE), "checkin");
-      if (!receiptId) throw new Error(t("receiptMissing"));
+      const { txid, waitForEvent } = await invoke(String(CHECK_IN_FEE), "checkin", "checkIn", [
+        { type: "Hash160", value: address.value as string },
+      ]);
 
-      const tx = await invoke(
-        "checkIn",
-        [
-          { type: "Hash160", value: address.value },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contract
-      );
-
-      const txid = tx.txid;
-      const result = txid
-        ? await waitForPendingOrConfirm(txid, "CheckedIn", waitForEvent)
-        : { pending: true };
+      const result = txid ? await waitForPendingOrConfirm(txid, "CheckedIn", waitForEvent) : { pending: true };
 
       if (result.pending) {
         setStatus(t("pendingConfirmation", { action: t("checkinSuccess") }), "success");
@@ -190,14 +159,11 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
     try {
       if (!address.value) throw new Error(t("connectWallet"));
 
-      const contract = await ensureContractAddress();
-      const { invoke, waitForEvent } = await processPayment("0", "claim");
-      const tx = await invoke("claimRewards", [{ type: "Hash160", value: address.value }], contract);
+      const { txid, waitForEvent } = await invoke("0", "claim", "claimRewards", [
+        { type: "Hash160", value: address.value },
+      ]);
 
-      const txid = tx.txid;
-      const result = txid
-        ? await waitForPendingOrConfirm(txid, "RewardsClaimed", waitForEvent)
-        : { pending: true };
+      const result = txid ? await waitForPendingOrConfirm(txid, "RewardsClaimed", waitForEvent) : { pending: true };
 
       if (result.pending) {
         setStatus(t("pendingConfirmation", { action: t("claimSuccess") }), "success");

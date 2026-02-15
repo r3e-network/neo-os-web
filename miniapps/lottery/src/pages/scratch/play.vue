@@ -64,6 +64,7 @@ import { ref, onMounted, computed } from "vue";
 import { useLotteryTypes, LotteryType, PRIZE_TIERS } from "../../shared/composables/useLotteryTypes";
 import { useScratchCard } from "../../shared/composables/useScratchCard";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import ChineseLuckyOverlay from "./components/ChineseLuckyOverlay.vue";
 import { useI18n } from "../../composables/useI18n";
 
@@ -114,7 +115,7 @@ const buyTicket = async () => {
     setStatus(t("scratchBought"), "success");
     initCanvas();
   } catch (e: unknown) {
-    setStatus(t("scratchBuyFailed", { error: (e as Error).message }), "error");
+    setStatus(formatErrorMessage(e, t("scratchBuyFailed", { error: "" })), "error");
   }
 };
 
@@ -135,7 +136,7 @@ const revealAll = async () => {
       setStatus(t("scratchTryAgain"), "info");
     }
   } catch (e: unknown) {
-    setStatus(t("scratchRevealFailed", { error: (e as Error).message }), "error");
+    setStatus(formatErrorMessage(e, t("scratchRevealFailed", { error: "" })), "error");
   }
 };
 

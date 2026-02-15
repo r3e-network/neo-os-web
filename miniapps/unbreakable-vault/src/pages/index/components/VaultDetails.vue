@@ -38,9 +38,10 @@
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
 import { formatAddress, formatGas } from "@shared/utils/format";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
-  t: (key: string) => string;
   details: {
     id: string;
     creator: string;
@@ -56,16 +57,18 @@ const props = defineProps<{
   };
 }>();
 
+const { t } = createUseI18n(messages)();
+
 const formatExpiryDate = (expiryTime: number): string => {
   if (!expiryTime) return "-";
   return new Date(expiryTime * 1000).toLocaleDateString();
 };
 
 const statusLabel = (status: string): string => {
-  if (status === "broken") return props.t("broken");
-  if (status === "expired") return props.t("expired");
-  if (status === "claimable") return props.t("claimable");
-  return props.t("active");
+  if (status === "broken") return t("broken");
+  if (status === "expired") return t("expired");
+  if (status === "claimable") return t("claimable");
+  return t("active");
 };
 </script>
 

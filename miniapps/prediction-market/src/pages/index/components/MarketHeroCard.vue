@@ -63,16 +63,11 @@ import type { PredictionMarket } from "@/composables/usePredictionMarkets";
 
 interface Props {
   market: PredictionMarket;
-  t?: (key: string, args?: Record<string, string | number>) => string;
 }
 
 const props = defineProps<Props>();
 
-const { t: i18nT } = createUseI18n(messages)();
-const t = (key: string, args?: Record<string, string | number>) => {
-  if (props.t) return props.t(key, args);
-  return i18nT(key as never, args);
-};
+const { t } = createUseI18n(messages)();
 
 const categoryLabelMap = {
   crypto: "categoryCrypto",

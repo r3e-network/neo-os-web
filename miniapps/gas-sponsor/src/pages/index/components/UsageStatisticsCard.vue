@@ -27,14 +27,17 @@
 
 <script setup lang="ts">
 import { NeoCard, AppIcon } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   usedQuota: string;
   remainingQuota: number;
   dailyLimit: string;
   resetTime: string;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
 </script>

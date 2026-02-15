@@ -62,6 +62,8 @@ defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .activity-section {
   position: relative;
   z-index: 10;
@@ -69,9 +71,7 @@ defineEmits<{
 }
 
 .section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @include section-header;
   margin-bottom: 16px;
 }
 
@@ -94,7 +94,7 @@ defineEmits<{
 }
 
 .empty-state {
-  text-align: center;
+  @include empty-state;
   padding: 48px 24px;
   background: var(--multi-card-soft);
   border: 1px dashed var(--multi-divider);

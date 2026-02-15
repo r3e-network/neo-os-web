@@ -7,10 +7,10 @@
 
         <!-- Graduation Marks -->
         <view class="tank-graduations">
-          <view class="graduation-mark" style="top: 20%"></view>
-          <view class="graduation-mark" style="top: 40%"></view>
-          <view class="graduation-mark" style="top: 60%"></view>
-          <view class="graduation-mark" style="top: 80%"></view>
+          <view class="graduation-mark mark-20"></view>
+          <view class="graduation-mark mark-40"></view>
+          <view class="graduation-mark mark-60"></view>
+          <view class="graduation-mark mark-80"></view>
         </view>
 
         <view class="tank-body">
@@ -40,13 +40,16 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   fuelLevelPercent: number;
   gasBalance: string;
   isEligible: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
 </script>
@@ -55,8 +58,16 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.gas-tank-card { margin-bottom: 16px; }
-.gas-tank-container { display: flex; flex-direction: column; align-items: center; padding: 24px; gap: 24px; }
+.gas-tank-card {
+  margin-bottom: 16px;
+}
+.gas-tank-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  gap: 24px;
+}
 
 .gas-tank {
   position: relative;
@@ -74,7 +85,7 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
 .tank-grid {
   position: absolute;
   inset: 0;
-  background-image: 
+  background-image:
     linear-gradient(var(--gas-tank-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--gas-tank-grid) 1px, transparent 1px);
   background-size: 20px 20px;
@@ -98,12 +109,25 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
   height: 1px;
   background: var(--gas-tank-graduation);
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     right: 18px;
     top: -3px;
     font-size: 8px;
     color: var(--gas-text-muted);
+  }
+
+  &.mark-20 {
+    top: 20%;
+  }
+  &.mark-40 {
+    top: 40%;
+  }
+  &.mark-60 {
+    top: 60%;
+  }
+  &.mark-80 {
+    top: 80%;
   }
 }
 
@@ -150,14 +174,40 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
   bottom: -10px;
 }
 
-.b1 { width: 6px; height: 6px; left: 20%; animation-duration: 3s; animation-delay: 0s; }
-.b2 { width: 4px; height: 4px; left: 50%; animation-duration: 5s; animation-delay: 1s; }
-.b3 { width: 8px; height: 8px; left: 80%; animation-duration: 4s; animation-delay: 2s; }
+.b1 {
+  width: 6px;
+  height: 6px;
+  left: 20%;
+  animation-duration: 3s;
+  animation-delay: 0s;
+}
+.b2 {
+  width: 4px;
+  height: 4px;
+  left: 50%;
+  animation-duration: 5s;
+  animation-delay: 1s;
+}
+.b3 {
+  width: 8px;
+  height: 8px;
+  left: 80%;
+  animation-duration: 4s;
+  animation-delay: 2s;
+}
 
 @keyframes bubble-rise {
-  0% { transform: translateY(0); opacity: 0; }
-  50% { opacity: 1; }
-  100% { transform: translateY(-100px); opacity: 0; }
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
 }
 
 .tank-gauge {

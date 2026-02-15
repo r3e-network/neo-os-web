@@ -1,81 +1,76 @@
 <template>
-  <view class="theme-dev-tipping">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :fireworks-active="status?.type === 'success'"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- Main Tab — LEFT panel -->
-      <template #content>
-        
-          <TipList :developers="developers" :formatNum="formatNum" :t="t" @select="handleSelectDev" />
-        
-      </template>
+  <MiniAppPage
+    name="dev-tipping"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :fireworks-active="status?.type === 'success'"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="refreshData"
+  >
+    <!-- Main Tab — LEFT panel -->
+    <template #content>
+      <TipList :developers="developers" :formatNum="formatNum" @select="handleSelectDev" />
+    </template>
 
-      <!-- Main Tab — RIGHT panel -->
-      <template #operation>
-        <TipForm
-          :developers="developers"
-          v-model="selectedDevId"
-          v-model:amount="tipAmount"
-          v-model:message="tipMessage"
-          v-model:tipperName="tipperName"
-          v-model:anonymous="anonymous"
-          :isLoading="isLoading"
-          :t="t"
-          @submit="handleSendTip"
-        />
-      </template>
+    <!-- Main Tab — RIGHT panel -->
+    <template #operation>
+      <TipForm
+        :developers="developers"
+        v-model="selectedDevId"
+        v-model:amount="tipAmount"
+        v-model:message="tipMessage"
+        v-model:tipperName="tipperName"
+        v-model:anonymous="anonymous"
+        :isLoading="isLoading"
+        @submit="handleSendTip"
+      />
+    </template>
 
-      <template #tab-stats>
-        <WalletInfo :totalDonated="totalDonated" :recentTips="recentTips" :formatNum="formatNum" :t="t" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #tab-stats>
+      <WalletInfo :totalDonated="totalDonated" :recentTips="recentTips" :formatNum="formatNum" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppShell } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
-import { useDevTippingStats, type Developer } from "@/composables/useDevTippingStats";
+import { useDevTippingStats } from "@/composables/useDevTippingStats";
 import { useDevTippingWallet } from "@/composables/useDevTippingWallet";
-import TipForm from "@/components/TipForm.vue";
 import TipList from "@/components/TipList.vue";
-import WalletInfo from "@/components/WalletInfo.vue";
 
-const { t } = createUseI18n(messages)();
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "dev-tipping",
+  messages,
+  template: {
+    tabs: [
+      { key: "send", labelKey: "sendTip", icon: "💰", default: true },
+      { key: "stats", labelKey: "stats", icon: "📊" },
+    ],
+    fireworks: true,
+  },
+  sidebarItems: [
+    { labelKey: "developers", value: () => developers.value.length },
+    { labelKey: "totalDonated", value: () => formatNum(totalDonated.value) },
+    { labelKey: "recentTips", value: () => recentTips.value.length },
+  ],
+});
 const APP_ID = "miniapp-dev-tipping";
 
 const { developers, recentTips, totalDonated, formatNum, loadDevelopers, loadRecentTips } = useDevTippingStats();
 const { address, isLoading, status, setStatus, sendTip } = useDevTippingWallet(APP_ID);
 
-const templateConfig = createPrimaryStatsTemplateConfig(
-  { key: "send", labelKey: "sendTip", icon: "💰", default: true },
-  {
-    fireworks: true,
-  },
-);
-
 const appState = computed(() => ({
   totalDonated: totalDonated.value,
   developerCount: developers.value.length,
 }));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "developers", value: () => developers.value.length },
-  { labelKey: "totalDonated", value: () => formatNum(totalDonated.value) },
-  { labelKey: "recentTips", value: () => recentTips.value.length },
-]);
 
 const selectedDevId = ref<number | null>(null);
 const tipAmount = ref("1");
@@ -84,8 +79,8 @@ const tipperName = ref("");
 const anonymous = ref(false);
 
 const refreshData = async () => {
-  await loadDevelopers(t);
-  await loadRecentTips(APP_ID, t);
+  await loadDevelopers();
+  await loadRecentTips(APP_ID);
 };
 
 const handleSelectDev = (dev: Developer) => {
@@ -102,7 +97,6 @@ const handleSendTip = async () => {
     tipMessage.value,
     tipperName.value,
     anonymous.value,
-    t,
     () => {
       tipAmount.value = "1";
       tipMessage.value = "";
@@ -114,11 +108,6 @@ const handleSendTip = async () => {
   if (success) {
     await refreshData();
   }
-};
-
-const { handleBoundaryError } = useHandleBoundaryError("dev-tipping");
-const resetAndReload = async () => {
-  await refreshData();
 };
 
 onMounted(() => {

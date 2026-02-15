@@ -7,60 +7,100 @@
       </NeoButton>
     </view>
 
-    <view v-if="rounds.length === 0" class="empty-state">
-      <NeoCard variant="erobo" class="p-6 text-center opacity-70">
-        <text class="text-xs">{{ t("emptyRounds") }}</text>
-      </NeoCard>
-    </view>
-
-    <view v-else class="round-cards">
-      <view v-for="round in rounds" :key="`round-${round.id}`" class="round-card">
-        <view class="round-card__header">
-          <view>
-            <text class="round-title">{{ round.title || `#${round.id}` }}</text>
-            <text class="round-subtitle">#{{ round.id }} · {{ round.assetSymbol }}</text>
+    <ItemList
+      :items="rounds as unknown as Record<string, unknown>[]"
+      item-key="id"
+      :empty-text="t('emptyRounds')"
+      :aria-label="t('ariaRounds')"
+    >
+      <template #empty>
+        <NeoCard variant="erobo" class="p-6 text-center opacity-70">
+          <text class="text-xs">{{ t("emptyRounds") }}</text>
+        </NeoCard>
+      </template>
+      <template #item="{ item }">
+        <view class="round-card">
+          <view class="round-card__header">
+            <view>
+              <text class="round-title">{{
+                (item as unknown as RoundItem).title || `#${(item as unknown as RoundItem).id}`
+              }}</text>
+              <text class="round-subtitle"
+                >#{{ (item as unknown as RoundItem).id }} · {{ (item as unknown as RoundItem).assetSymbol }}</text
+              >
+            </view>
+            <text :class="['status-pill', (item as unknown as RoundItem).status]">{{
+              roundStatusLabel((item as unknown as RoundItem).status)
+            }}</text>
           </view>
-          <text :class="['status-pill', round.status]">{{ roundStatusLabel(round.status) }}</text>
+
+          <text class="round-desc">{{ (item as unknown as RoundItem).description || "--" }}</text>
+
+          <view class="round-metrics">
+            <view>
+              <text class="metric-label">{{ t("matchingPool") }}</text>
+              <text class="metric-value"
+                >{{
+                  formatAmount((item as unknown as RoundItem).assetSymbol, (item as unknown as RoundItem).matchingPool)
+                }}
+                {{ (item as unknown as RoundItem).assetSymbol }}</text
+              >
+            </view>
+            <view>
+              <text class="metric-label">{{ t("matchingRemaining") }}</text>
+              <text class="metric-value"
+                >{{
+                  formatAmount(
+                    (item as unknown as RoundItem).assetSymbol,
+                    (item as unknown as RoundItem).matchingRemaining
+                  )
+                }}
+                {{ (item as unknown as RoundItem).assetSymbol }}</text
+              >
+            </view>
+            <view>
+              <text class="metric-label">{{ t("totalContributed") }}</text>
+              <text class="metric-value"
+                >{{
+                  formatAmount(
+                    (item as unknown as RoundItem).assetSymbol,
+                    (item as unknown as RoundItem).totalContributed
+                  )
+                }}
+                {{ (item as unknown as RoundItem).assetSymbol }}</text
+              >
+            </view>
+            <view>
+              <text class="metric-label">{{ t("projectCount") }}</text>
+              <text class="metric-value">{{ (item as unknown as RoundItem).projectCount.toString() }}</text>
+            </view>
+          </view>
+
+          <view class="round-meta">
+            <text class="meta-item"
+              >{{ t("roundSchedule") }}:
+              {{
+                formatSchedule((item as unknown as RoundItem).startTime, (item as unknown as RoundItem).endTime)
+              }}</text
+            >
+            <text class="meta-item"
+              >{{ t("roundCreator") }}: {{ formatAddress((item as unknown as RoundItem).creator) }}</text
+            >
+          </view>
+
+          <view class="round-actions">
+            <NeoButton size="sm" variant="secondary" @click="emitSelect(item as unknown as RoundItem)">
+              {{ selectedRoundId === (item as unknown as RoundItem).id ? t("selectedRound") : t("selectRound") }}
+            </NeoButton>
+          </view>
         </view>
-
-        <text class="round-desc">{{ round.description || "--" }}</text>
-
-        <view class="round-metrics">
-          <view>
-            <text class="metric-label">{{ t("matchingPool") }}</text>
-            <text class="metric-value">{{ formatAmount(round.assetSymbol, round.matchingPool) }} {{ round.assetSymbol }}</text>
-          </view>
-          <view>
-            <text class="metric-label">{{ t("matchingRemaining") }}</text>
-            <text class="metric-value">{{ formatAmount(round.assetSymbol, round.matchingRemaining) }} {{ round.assetSymbol }}</text>
-          </view>
-          <view>
-            <text class="metric-label">{{ t("totalContributed") }}</text>
-            <text class="metric-value">{{ formatAmount(round.assetSymbol, round.totalContributed) }} {{ round.assetSymbol }}</text>
-          </view>
-          <view>
-            <text class="metric-label">{{ t("projectCount") }}</text>
-            <text class="metric-value">{{ round.projectCount.toString() }}</text>
-          </view>
-        </view>
-
-        <view class="round-meta">
-          <text class="meta-item">{{ t("roundSchedule") }}: {{ formatSchedule(round.startTime, round.endTime) }}</text>
-          <text class="meta-item">{{ t("roundCreator") }}: {{ formatAddress(round.creator) }}</text>
-        </view>
-
-        <view class="round-actions">
-          <NeoButton size="sm" variant="secondary" @click="emitSelect(round)">
-            {{ selectedRoundId === round.id ? t("selectedRound") : t("selectRound") }}
-          </NeoButton>
-        </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard, NeoButton, ItemList } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -101,6 +141,8 @@ const emitSelect = (round: RoundItem) => emit("select", round);
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .round-list {
   display: flex;
   flex-direction: column;
@@ -166,9 +208,9 @@ const emitSelect = (round: RoundItem) => emit("select", round);
 }
 
 .metric-label {
+  @include stat-label;
   font-size: 10px;
   color: var(--qf-muted);
-  text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 

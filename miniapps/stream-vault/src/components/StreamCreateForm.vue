@@ -3,7 +3,11 @@
     <NeoCard variant="erobo-neo">
       <view class="form-group">
         <NeoInput v-model="localForm.name" :label="t('vaultName')" :placeholder="t('vaultNamePlaceholder')" />
-        <NeoInput v-model="localForm.beneficiary" :label="t('beneficiary')" :placeholder="t('beneficiaryPlaceholder')" />
+        <NeoInput
+          v-model="localForm.beneficiary"
+          :label="t('beneficiary')"
+          :placeholder="t('beneficiaryPlaceholder')"
+        />
 
         <view class="input-group">
           <text class="input-label">{{ t("assetType") }}</text>
@@ -41,14 +45,7 @@
 
         <NeoInput v-model="localForm.notes" type="textarea" :label="t('notes')" :placeholder="t('notesPlaceholder')" />
 
-        <NeoButton
-          variant="primary"
-          size="lg"
-          block
-          :loading="loading"
-          :disabled="loading"
-          @click="handleCreate"
-        >
+        <NeoButton variant="primary" size="lg" block :loading="loading" :disabled="loading" @click="handleCreate">
           {{ loading ? t("creating") : t("createVault") }}
         </NeoButton>
       </view>
@@ -63,15 +60,18 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
 const emit = defineEmits<{
-  (e: "create", payload: {
-    name: string;
-    beneficiary: string;
-    asset: string;
-    total: string;
-    rate: string;
-    intervalDays: string;
-    notes: string;
-  }): void;
+  (
+    e: "create",
+    payload: {
+      name: string;
+      beneficiary: string;
+      asset: string;
+      total: string;
+      rate: string;
+      intervalDays: string;
+      notes: string;
+    }
+  ): void;
 }>();
 
 const props = defineProps<{
@@ -90,16 +90,19 @@ const localForm = reactive({
   notes: "",
 });
 
-watch(() => props.loading, (newVal) => {
-  if (!newVal) {
-    localForm.name = "";
-    localForm.beneficiary = "";
-    localForm.total = localForm.asset === "NEO" ? "10" : "20";
-    localForm.rate = "1";
-    localForm.intervalDays = "30";
-    localForm.notes = "";
+watch(
+  () => props.loading,
+  (newVal) => {
+    if (!newVal) {
+      localForm.name = "";
+      localForm.beneficiary = "";
+      localForm.total = localForm.asset === "NEO" ? "10" : "20";
+      localForm.rate = "1";
+      localForm.intervalDays = "30";
+      localForm.notes = "";
+    }
   }
-});
+);
 
 const handleCreate = () => {
   emit("create", { ...localForm });
@@ -108,6 +111,7 @@ const handleCreate = () => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .app-container {
   display: flex;
@@ -128,11 +132,10 @@ const handleCreate = () => {
 }
 
 .input-label {
+  @include stat-label;
   font-size: 12px;
-  font-weight: 700;
   color: var(--stream-muted);
   letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .asset-toggle {

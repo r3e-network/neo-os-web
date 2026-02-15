@@ -10,9 +10,7 @@
       <view class="shine-effect pointer-events-none absolute inset-0 z-0" />
 
       <view class="game-header relative z-10 mb-1 text-center">
-        <text
-          class="game-title text-sm font-black tracking-tighter text-white uppercase decoration-2 opacity-80"
-        >
+        <text class="game-title text-sm font-black tracking-tighter text-white uppercase decoration-2 opacity-80">
           {{ game.name }}
         </text>
         <view class="mt-1 flex justify-center">
@@ -41,9 +39,7 @@
       </view>
 
       <view class="game-stats relative z-10 mt-auto mb-5 text-center">
-        <text class="mb-1 block text-[10px] font-bold tracking-[0.1em] text-white uppercase opacity-70">
-          >JACKPOT</text
-        >
+        <text class="mb-1 block text-[10px] font-bold tracking-[0.1em] text-white uppercase opacity-70"> >JACKPOT</text>
         <text class="glow-text block text-3xl leading-none font-black text-white italic">
           {{ game.maxJackpotDisplay.split(" ")[0] }}
           <text class="ml-1 text-xs italic opacity-70">GAS</text>
@@ -74,14 +70,17 @@
 
 <script setup lang="ts">
 import { NeoButton, AppIcon } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { LotteryTypeInfo } from "../../../shared/composables/useLotteryTypes";
+
+const { t } = createUseI18n(messages)();
 
 defineProps<{
   instantTypes: LotteryTypeInfo[];
   isLoading: boolean;
   buyingType: number | null;
   isConnected: boolean;
-  t: (key: string) => string;
 }>();
 
 defineEmits<{

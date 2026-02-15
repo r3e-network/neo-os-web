@@ -3,7 +3,13 @@
     <view class="content-card">
       <view class="card-header">
         <text class="card-title">{{ t("topContributors") }}</text>
-        <view class="refresh-btn" role="button" tabindex="0" :aria-label="t('refresh') || 'Refresh leaderboard'" @click="emitRefresh">
+        <view
+          class="refresh-btn"
+          role="button"
+          tabindex="0"
+          :aria-label="t('refresh') || 'Refresh leaderboard'"
+          @click="emitRefresh"
+        >
           <text aria-hidden="true">🔄</text>
         </view>
       </view>
@@ -30,7 +36,7 @@
           </view>
           <view class="karma-badge">
             <text class="karma-amount">{{ entry.karma }}</text>
-            <text class="karma-label-small">Karma</text>
+            <text class="karma-label-small">{{ t("sidebarKarma") }}</text>
           </view>
         </view>
       </view>
@@ -63,6 +69,7 @@ const emitRefresh = () => emit("refresh");
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
 .leaderboard-section {
   display: flex;
   flex-direction: column;

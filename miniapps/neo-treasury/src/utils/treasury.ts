@@ -8,9 +8,11 @@ const RPC_ENDPOINTS = [
   "https://neo-rpc1.red4sec.com:443",
 ];
 
-// Contract addresses
-const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-const GAS_CONTRACT = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+// Contract addresses (from shared constants)
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+
+const NEO_CONTRACT = BLOCKCHAIN_CONSTANTS.NEO_HASH;
+const GAS_CONTRACT = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 
 // Import shared price utils
 import { getPrices as getSharedPrices, type PriceData } from "@shared/utils/price";

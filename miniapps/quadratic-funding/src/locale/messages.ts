@@ -1,20 +1,15 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Quadratic Funding", zh: "二次方资助" },
   tabRounds: { en: "Rounds", zh: "轮次" },
   tabProjects: { en: "Projects", zh: "项目" },
   tabContribute: { en: "Contribute", zh: "捐助" },
-  docs: { en: "Docs", zh: "文档" },
 
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
 
   refresh: { en: "Refresh", zh: "刷新" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
 
   roundTitle: { en: "Round title", zh: "轮次名称" },
   roundTitlePlaceholder: { en: "Public Goods Round", zh: "公共资助轮次" },
@@ -24,7 +19,10 @@ export const messages = {
   assetNeo: { en: "NEO", zh: "NEO" },
   assetGas: { en: "GAS", zh: "GAS" },
   matchingPool: { en: "Matching pool", zh: "匹配资金池" },
-  matchingPoolHint: { en: "Matching pool is locked at creation; you can top up later.", zh: "匹配池创建时锁定，可后续追加。" },
+  matchingPoolHint: {
+    en: "Matching pool is locked at creation; you can top up later.",
+    zh: "匹配池创建时锁定，可后续追加。",
+  },
   roundStart: { en: "Start time", zh: "开始时间" },
   roundStartPlaceholder: { en: "2025-06-01 09:00", zh: "2025-06-01 09:00" },
   roundEnd: { en: "End time", zh: "结束时间" },
@@ -121,9 +119,11 @@ export const messages = {
   feature2Desc: { en: "Each project has a dedicated record and funding stats.", zh: "每个项目有独立档案与资金统计。" },
   feature3Name: { en: "Donor Signals", zh: "捐助信号" },
   feature3Desc: { en: "Unique donor totals enable quadratic matching.", zh: "记录唯一捐助者金额以支持二次方匹配。" },
-  overview: { en: "Overview", zh: "概览" },
   sidebarSelectedRound: { en: "Selected Round", zh: "已选轮次" },
   sidebarMatchingPool: { en: "Matching Pool", zh: "匹配资金池" },
+  ariaProjects: { en: "Projects", zh: "项目" },
+  ariaRounds: { en: "Rounds", zh: "轮次" },
   quickContribute: { en: "Quick Contribute", zh: "快捷捐助" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

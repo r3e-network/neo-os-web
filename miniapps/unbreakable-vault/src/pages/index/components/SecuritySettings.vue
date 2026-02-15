@@ -9,7 +9,7 @@
         :variant="difficulty === level ? 'primary' : 'secondary'"
         @click="$emit('update:difficulty', level)"
       >
-        {{ t(`difficulty${['Easy', 'Medium', 'Hard'][level - 1]}`) }}
+        {{ t(`difficulty${["Easy", "Medium", "Hard"][level - 1]}`) }}
       </NeoButton>
     </view>
   </view>
@@ -17,11 +17,14 @@
 
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
-  t: (key: string) => string;
   difficulty: number;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   (e: "update:difficulty", value: number): void;

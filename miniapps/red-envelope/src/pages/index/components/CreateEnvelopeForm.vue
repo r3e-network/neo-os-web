@@ -86,6 +86,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoInput, NeoButton, AppIcon } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
 
@@ -99,8 +101,9 @@ defineProps<{
   minHoldDays: string;
   envelopeType: EnvelopeType;
   isLoading: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits([
   "update:envelopeType",

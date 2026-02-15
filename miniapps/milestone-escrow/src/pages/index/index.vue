@@ -1,69 +1,64 @@
 <template>
-  <view class="theme-milestone-escrow">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <view class="escrows-header">
-            <text class="section-title">{{ t("escrowsTab") }}</text>
-            <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
-              {{ t("refresh") }}
-            </NeoButton>
-          </view>
+  <MiniAppPage
+    name="milestone-escrow"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    @tab-change="activeTab = $event"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload"
+  >
+    <template #content>
+      <view class="escrows-header">
+        <text class="section-title">{{ t("escrowsTab") }}</text>
+        <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
+          {{ t("refresh") }}
+        </NeoButton>
+      </view>
 
-          <view v-if="!address" class="empty-state">
-            <NeoCard variant="erobo" class="p-6 text-center">
-              <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
-              <NeoButton size="sm" variant="primary" @click="connectWallet">
-                {{ t("connectWallet") }}
-              </NeoButton>
-            </NeoCard>
-          </view>
+      <view v-if="!address" class="empty-state">
+        <NeoCard variant="erobo" class="p-6 text-center">
+          <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
+          <NeoButton size="sm" variant="primary" @click="connectWallet">
+            {{ t("connectWallet") }}
+          </NeoButton>
+        </NeoCard>
+      </view>
 
-          <EscrowList
-            v-else
-            :creator-escrows="creatorEscrows"
-            :beneficiary-escrows="beneficiaryEscrows"
-            :approving-id="approvingId"
-            :cancelling-id="cancellingId"
-            :claiming-id="claimingId"
-            :status-label-func="statusLabel"
-            :format-amount-func="formatAmount"
-            :format-address-func="formatAddress"
-            @approve="approveMilestone"
-            @cancel="cancelEscrow"
-            @claim="claimMilestone"
-          />
-        
-      </template>
+      <EscrowList
+        v-else
+        :creator-escrows="creatorEscrows"
+        :beneficiary-escrows="beneficiaryEscrows"
+        :approving-id="approvingId"
+        :cancelling-id="cancellingId"
+        :claiming-id="claimingId"
+        :status-label-func="statusLabel"
+        :format-amount-func="formatAmount"
+        :format-address-func="formatAddress"
+        @approve="approveMilestone"
+        @cancel="cancelEscrow"
+        @claim="claimMilestone"
+      />
+    </template>
 
-      <template #operation>
-        <EscrowForm @create="onCreateEscrow" ref="escrowFormRef" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #operation>
+      <EscrowForm @create="onCreateEscrow" ref="escrowFormRef" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, NeoCard, NeoButton } from "@shared/components";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage, NeoCard, NeoButton } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import EscrowForm from "./components/EscrowForm.vue";
 import EscrowList from "./components/EscrowList.vue";
 import { useEscrowContract } from "@/composables/useEscrowContract";
-
-const { t } = createUseI18n(messages)();
 
 const {
   address,
@@ -85,12 +80,22 @@ const {
   cancelEscrow,
 } = useEscrowContract();
 
-const escrowFormRef = ref<InstanceType<typeof EscrowForm> | null>(null);
-
-const templateConfig = createTemplateConfig({
-  tabs: [{ key: "create", labelKey: "createTab", icon: "➕", default: true }],
-  docFeatureCount: 3,
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "milestone-escrow",
+  messages,
+  template: {
+    tabs: [{ key: "create", labelKey: "createTab", icon: "➕", default: true }],
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    { labelKey: "createTab", value: () => creatorEscrows.value.length },
+    { labelKey: "escrowsTab", value: () => beneficiaryEscrows.value.length },
+    { labelKey: "statusActive", value: () => creatorEscrows.value.filter((e) => e.status === "active").length },
+    { labelKey: "statusCompleted", value: () => creatorEscrows.value.filter((e) => e.status === "completed").length },
+  ],
 });
+
+const escrowFormRef = ref<InstanceType<typeof EscrowForm> | null>(null);
 
 const activeTab = ref("create");
 
@@ -98,13 +103,6 @@ const appState = computed(() => ({
   creatorEscrows: creatorEscrows.value.length,
   beneficiaryEscrows: beneficiaryEscrows.value.length,
 }));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "createTab", value: () => creatorEscrows.value.length },
-  { labelKey: "escrowsTab", value: () => beneficiaryEscrows.value.length },
-  { labelKey: "statusActive", value: () => creatorEscrows.value.filter((e) => e.status === "active").length },
-  { labelKey: "statusCompleted", value: () => creatorEscrows.value.filter((e) => e.status === "completed").length },
-]);
 
 const onCreateEscrow = async (data: {
   name: string;
@@ -116,9 +114,6 @@ const onCreateEscrow = async (data: {
   await handleCreateEscrow(data, escrowFormRef.value);
 };
 
-const handleBoundaryError = (error: Error) => {
-  console.error("[milestone-escrow] boundary error:", error);
-};
 const resetAndReload = async () => {
   if (address.value) {
     await refreshEscrows();

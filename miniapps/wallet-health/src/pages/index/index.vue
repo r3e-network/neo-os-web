@@ -1,125 +1,123 @@
 <template>
-  <view class="theme-wallet-health">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      @tab-change="onTabChange"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <RiskAlerts
-            :is-unsupported="isUnsupported"
-            :status="status"
-            :risk-label="riskLabel"
-            :risk-class="riskClass"
-            :risk-icon="riskIcon"
-            :t="t"
-            @switch-chain="switchToAppChain"
-          />
+  <MiniAppPage
+    name="wallet-health"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    @tab-change="onTabChange"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload"
+  >
+    <template #content>
+      <RiskAlerts
+        :is-unsupported="isUnsupported"
+        :status="status"
+        :risk-label="riskLabel"
+        :risk-class="riskClass"
+        :risk-icon="riskIcon"
+        @switch-chain="switchToAppChain"
+      />
 
-          <view v-if="!address" class="empty-state">
-            <NeoCard variant="erobo" class="p-6 text-center">
-              <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
-              <NeoButton size="sm" variant="primary" @click="connectWallet">
-                {{ t("connectWallet") }}
-              </NeoButton>
-            </NeoCard>
-          </view>
-
-          <view v-else class="health-stack">
-            <HealthDashboard
-              :stats="healthStats"
-              :neo-display="neoDisplay"
-              :gas-display="gasDisplay"
-              :is-refreshing="isRefreshing"
-              :t="t"
-              @refresh="refreshBalances"
-            />
-            <Recommendations :recommendations="recommendations" :t="t" />
-          </view>
-        
-      </template>
-
-      <template #tab-checklist>
-        <NeoCard variant="erobo-neo" class="score-card">
-          <view class="score-header">
-            <text class="section-title">{{ t("sectionChecklist") }}</text>
-            <text class="score-value">{{ safetyScore }}%</text>
-          </view>
-          <view class="progress-bar">
-            <view class="progress-fill" :style="{ width: `${safetyScore}%` }" />
-          </view>
-        </NeoCard>
-
-        <NeoCard variant="erobo" class="checklist-card">
-          <view v-for="item in checklistItems" :key="item.id" class="checklist-item">
-            <view class="checklist-content">
-              <text class="checklist-title">{{ item.title }}</text>
-              <text class="checklist-desc">{{ item.desc }}</text>
-            </view>
-            <NeoButton
-              size="sm"
-              :variant="item.done ? 'primary' : 'secondary'"
-              :disabled="item.auto"
-              @click="toggleChecklist(item.id)"
-            >
-              <AppIcon :name="item.done ? 'check' : 'x'" :size="14" />
-              <text class="checklist-action">
-                {{ item.auto ? t("autoChecked") : item.done ? t("markUndo") : t("markDone") }}
-              </text>
-            </NeoButton>
-          </view>
-        </NeoCard>
-      </template>
-
-      <template #operation>
-        <MiniAppOperationStats variant="erobo" :title="t('healthSummary')" :stats="opStats">
-          <NeoButton v-if="!address" size="sm" variant="primary" class="op-btn" @click="connectWallet">
+      <view v-if="!address" class="empty-state">
+        <NeoCard variant="erobo" class="p-6 text-center">
+          <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
+          <NeoButton size="sm" variant="primary" @click="connectWallet">
             {{ t("connectWallet") }}
           </NeoButton>
+        </NeoCard>
+      </view>
+
+      <view v-else class="health-stack">
+        <HealthDashboard
+          :stats="healthStats"
+          :neo-display="neoDisplay"
+          :gas-display="gasDisplay"
+          :is-refreshing="isRefreshing"
+          @refresh="refreshBalances"
+        />
+        <Recommendations :recommendations="recommendations" />
+      </view>
+    </template>
+
+    <template #tab-checklist>
+      <NeoCard variant="erobo-neo" class="score-card">
+        <view class="score-header">
+          <text class="section-title">{{ t("sectionChecklist") }}</text>
+          <text class="score-value">{{ safetyScore }}%</text>
+        </view>
+        <view class="progress-bar">
+          <view class="progress-fill" :style="{ width: `${safetyScore}%` }" />
+        </view>
+      </NeoCard>
+
+      <NeoCard variant="erobo" class="checklist-card">
+        <view v-for="item in checklistItems" :key="item.id" class="checklist-item">
+          <view class="checklist-content">
+            <text class="checklist-title">{{ item.title }}</text>
+            <text class="checklist-desc">{{ item.desc }}</text>
+          </view>
           <NeoButton
-            v-else
             size="sm"
-            variant="primary"
-            class="op-btn"
-            :disabled="isRefreshing"
-            @click="refreshBalances"
+            :variant="item.done ? 'primary' : 'secondary'"
+            :disabled="item.auto"
+            @click="toggleChecklist(item.id)"
           >
-            {{ isRefreshing ? t("loading") : t("refresh") }}
+            <AppIcon :name="item.done ? 'check' : 'x'" :size="14" />
+            <text class="checklist-action">
+              {{ item.auto ? t("autoChecked") : item.done ? t("markUndo") : t("markDone") }}
+            </text>
           </NeoButton>
-        </MiniAppOperationStats>
-      </template>
-    </MiniAppShell>
-  </view>
+        </view>
+      </NeoCard>
+    </template>
+
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('healthSummary')">
+        <NeoButton v-if="!address" size="sm" variant="primary" class="op-btn" @click="connectWallet">
+          {{ t("connectWallet") }}
+        </NeoButton>
+        <NeoButton v-else size="sm" variant="primary" class="op-btn" :disabled="isRefreshing" @click="refreshBalances">
+          {{ isRefreshing ? t("loading") : t("refresh") }}
+        </NeoButton>
+        <StatsDisplay :items="opStats" layout="rows" />
+      </NeoCard>
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
-import { MiniAppShell, MiniAppOperationStats, NeoCard, NeoButton, AppIcon } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage, NeoCard, NeoButton } from "@shared/components";
 import { messages } from "@/locale/messages";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useWalletAnalysis } from "@/composables/useWalletAnalysis";
 import { useHealthScore } from "@/composables/useHealthScore";
 import HealthDashboard from "./components/HealthDashboard.vue";
 import RiskAlerts from "./components/RiskAlerts.vue";
 import Recommendations from "./components/Recommendations.vue";
 
-const { t } = createUseI18n(messages)();
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "health", labelKey: "tabHealth", icon: "shield", default: true },
-    { key: "checklist", labelKey: "tabChecklist", icon: "check" },
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "wallet-health",
+  messages,
+  template: {
+    tabs: [
+      { key: "health", labelKey: "tabHealth", icon: "shield", default: true },
+      { key: "checklist", labelKey: "tabChecklist", icon: "check" },
+    ],
+    docSubtitleKey: "docsSubtitle",
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    { labelKey: "statConnection", value: () => (address.value ? t("statusConnected") : t("statusDisconnected")) },
+    { labelKey: "statNetwork", value: () => chainLabel.value },
+    { labelKey: "statNeo", value: () => neoDisplay.value },
+    { labelKey: "statGas", value: () => gasDisplay.value },
+    { labelKey: "statScore", value: () => `${safetyScore.value}%` },
   ],
-  docSubtitleKey: "docsSubtitle",
-  docFeatureCount: 3,
 });
 
 const {
@@ -148,15 +146,7 @@ const appState = computed(() => ({
   safetyScore: safetyScore.value,
 }));
 
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "statConnection", value: () => (address.value ? t("statusConnected") : t("statusDisconnected")) },
-  { labelKey: "statNetwork", value: () => chainLabel.value },
-  { labelKey: "statNeo", value: () => neoDisplay.value },
-  { labelKey: "statGas", value: () => gasDisplay.value },
-  { labelKey: "statScore", value: () => `${safetyScore.value}%` },
-]);
-
-const opStats = computed(() => [
+const opStats = computed<StatsDisplayItem[]>(() => [
   { label: t("statConnection"), value: address.value ? t("statusConnected") : t("statusDisconnected") },
   { label: t("statNeo"), value: neoDisplay.value },
   { label: t("statGas"), value: gasDisplay.value },
@@ -189,7 +179,6 @@ onMounted(() => {
   loadChecklist();
 });
 
-const { handleBoundaryError } = useHandleBoundaryError("wallet-health");
 const resetAndReload = async () => {
   await refreshBalances();
   loadChecklist();

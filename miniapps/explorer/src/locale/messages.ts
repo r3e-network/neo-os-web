@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Neo Explorer", zh: "Neo 浏览器" },
   subtitle: { en: "Search transactions, addresses, contracts", zh: "搜索交易、地址、合约" },
@@ -68,4 +70,6 @@ title: { en: "Neo Explorer", zh: "Neo 浏览器" },
   },
     sidebarNetwork: { en: "Network", zh: "网络" },
     sidebarRecentTxs: { en: "Recent TXs", zh: "最近交易" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -1,97 +1,89 @@
 <template>
-  <view class="modal-overlay" @click.self="$emit('close')">
-    <view class="modal-content">
-      <NeoCard variant="erobo-neo">
-        <template #header-extra>
-          <view class="close-btn" @click="$emit('close')">×</view>
-        </template>
+  <ActionModal :visible="true" :closeable="true" size="lg" @close="$emit('close')">
+    <view class="proposal-detail-content">
+      <view class="detail-header">
+        <text :class="['proposal-id', proposal.type === 1 && 'text-accent']">
+          {{ proposal.type === 0 ? t("textType") : t("policyType") }} #{{ proposal.id }}
+        </text>
+      </view>
 
-        <view class="proposal-detail-content">
-          <view class="detail-header">
-            <text :class="['proposal-id', proposal.type === 1 && 'text-accent']">
-              {{ proposal.type === 0 ? t("textType") : t("policyType") }} #{{ proposal.id }}
-            </text>
+      <text class="detail-title">{{ proposal.title }}</text>
+      <text class="detail-description">{{ proposal.description }}</text>
+
+      <view v-if="proposal.type === 1" class="policy-details">
+        <text class="section-label">{{ t("policyDetails") }}</text>
+        <view class="policy-detail-row">
+          <text class="label-mute">{{ t("policyMethod") }}</text>
+          <text class="value-highlight">{{ getPolicyMethodLabel(proposal.policyMethod) }}</text>
+        </view>
+        <view class="policy-detail-row">
+          <text class="label-mute">{{ t("policyValue") }}</text>
+          <text class="value-mono">{{ proposal.policyValue || "-" }}</text>
+        </view>
+      </view>
+
+      <!-- Timeline -->
+      <view class="timeline-section">
+        <text class="section-label">{{ t("timeline") }}</text>
+        <view class="timeline">
+          <view class="timeline-item">
+            <view class="timeline-dot active"></view>
+            <text class="timeline-text">{{ t("proposalCreated") }}</text>
           </view>
-
-          <text class="detail-title">{{ proposal.title }}</text>
-          <text class="detail-description">{{ proposal.description }}</text>
-
-          <view v-if="proposal.type === 1" class="policy-details">
-            <text class="section-label">{{ t("policyDetails") }}</text>
-            <view class="policy-detail-row">
-              <text class="label-mute">{{ t("policyMethod") }}</text>
-              <text class="value-highlight">{{ getPolicyMethodLabel(proposal.policyMethod) }}</text>
-            </view>
-            <view class="policy-detail-row">
-              <text class="label-mute">{{ t("policyValue") }}</text>
-              <text class="value-mono">{{ proposal.policyValue || "-" }}</text>
-            </view>
+          <view class="timeline-item">
+            <view :class="['timeline-dot', proposal.status >= 2 ? 'active' : 'inactive']"></view>
+            <text class="timeline-text">{{ t("votingEnds") }}</text>
           </view>
-
-          <!-- Timeline -->
-          <view class="timeline-section">
-            <text class="section-label">{{ t("timeline") }}</text>
-            <view class="timeline">
-              <view class="timeline-item">
-                <view class="timeline-dot active"></view>
-                <text class="timeline-text">{{ t("proposalCreated") }}</text>
-              </view>
-              <view class="timeline-item">
-                <view :class="['timeline-dot', proposal.status >= 2 ? 'active' : 'inactive']"></view>
-                <text class="timeline-text">{{ t("votingEnds") }}</text>
-              </view>
-              <view class="timeline-item">
-                <view :class="['timeline-dot', proposal.status === 6 ? 'active' : 'inactive']"></view>
-                <text class="timeline-text">{{ t("execution") }}</text>
-              </view>
-            </view>
-          </view>
-
-          <!-- Voting Section -->
-          <view v-if="proposal.status === 1" class="voting-section">
-            <text class="section-label mb-4 text-center">{{ t("castYourVote") }}</text>
-            <view class="vote-buttons">
-              <NeoButton
-                variant="primary"
-                block
-                :disabled="!canVote"
-                :loading="isVoting"
-                @click="$emit('vote', proposal.id, 'for')"
-              >
-                {{ t("for") }} ({{ proposal.yesVotes }})
-              </NeoButton>
-              <NeoButton
-                variant="danger"
-                block
-                :disabled="!canVote"
-                :loading="isVoting"
-                @click="$emit('vote', proposal.id, 'against')"
-              >
-                {{ t("against") }} ({{ proposal.noVotes }})
-              </NeoButton>
-            </view>
-            <view v-if="!canVote" class="vote-hint">
-              <text v-if="!address">{{ t("connectWallet") }}</text>
-              <text v-else-if="!isCandidate">{{ t("notCandidate") }}</text>
-              <text v-else>{{ t("alreadyVoted") }}</text>
-            </view>
-          </view>
-
-          <!-- Execution Section -->
-          <view v-if="canExecute" class="execution-section mt-4 border-t border-white/10 pt-4">
-            <NeoButton variant="success" block :loading="isVoting" @click="$emit('execute', proposal.id)">
-              {{ t("execute") }}
-            </NeoButton>
+          <view class="timeline-item">
+            <view :class="['timeline-dot', proposal.status === 6 ? 'active' : 'inactive']"></view>
+            <text class="timeline-text">{{ t("execution") }}</text>
           </view>
         </view>
-      </NeoCard>
+      </view>
+
+      <!-- Voting Section -->
+      <view v-if="proposal.status === 1" class="voting-section">
+        <text class="section-label mb-4 text-center">{{ t("castYourVote") }}</text>
+        <view class="vote-buttons">
+          <NeoButton
+            variant="primary"
+            block
+            :disabled="!canVote"
+            :loading="isVoting"
+            @click="$emit('vote', proposal.id, 'for')"
+          >
+            {{ t("for") }} ({{ proposal.yesVotes }})
+          </NeoButton>
+          <NeoButton
+            variant="danger"
+            block
+            :disabled="!canVote"
+            :loading="isVoting"
+            @click="$emit('vote', proposal.id, 'against')"
+          >
+            {{ t("against") }} ({{ proposal.noVotes }})
+          </NeoButton>
+        </view>
+        <view v-if="!canVote" class="vote-hint">
+          <text v-if="!address">{{ t("connectWallet") }}</text>
+          <text v-else-if="!isCandidate">{{ t("notCandidate") }}</text>
+          <text v-else>{{ t("alreadyVoted") }}</text>
+        </view>
+      </view>
+
+      <!-- Execution Section -->
+      <view v-if="canExecute" class="execution-section mt-4 border-t border-white/10 pt-4">
+        <NeoButton variant="success" block :loading="isVoting" @click="$emit('execute', proposal.id)">
+          {{ t("execute") }}
+        </NeoButton>
+      </view>
     </view>
-  </view>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoCard, NeoButton } from "@shared/components";
+import { ActionModal, NeoButton } from "@shared/components";
 
 const props = defineProps<{
   proposal: {
@@ -122,10 +114,6 @@ const canVote = computed(() => {
 
 const canExecute = computed(() => {
   const isExpired = props.proposal.expiryTime < Date.now();
-  // Status 1 is Active. If expired and active, maybe valuable to execute.
-  // Or if status is already 'Passed' (assuming status 2).
-  // We'll show it if expired AND candidate AND status is not executed (6) or rejected.
-  // Assuming status: 1=Active, 6=Executed.
   return props.isCandidate && isExpired && props.proposal.status !== 6;
 });
 
@@ -145,42 +133,6 @@ const getPolicyMethodLabel = (method?: string) =>
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  animation: fadeIn 0.3s ease-out;
-}
-.modal-content {
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: slideUp 0.3s ease-out;
-}
-.close-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: var(--text-primary);
-  opacity: 0.6;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    opacity: 1;
-    transform: rotate(90deg);
-  }
-}
 
 .detail-header {
   display: flex;
@@ -332,25 +284,5 @@ const getPolicyMethodLabel = (method?: string) =>
 }
 .mb-4 {
   margin-bottom: 16px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 </style>

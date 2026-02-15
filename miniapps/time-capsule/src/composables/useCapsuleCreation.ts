@@ -1,11 +1,8 @@
 import { ref, computed } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { sha256Hex } from "@shared/utils/hash";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Capsule } from "../pages/index/components/CapsuleList.vue";
@@ -24,16 +21,22 @@ export interface CapsuleFormData {
   category: number;
 }
 
+/** Manages time capsule creation with content hashing and lock duration. */
 export function useCapsuleCreation() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract } = useWallet() as WalletSDK;
-  const { processPayment, isProcessing: paymentProcessing } = usePaymentFlow(APP_ID);
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("error") : t(key),
-  );
+  const {
+    address,
+    ensureWallet,
+    ensureContractAddress,
+    invoke,
+    isProcessing: paymentProcessing,
+  } = useContractInteraction({
+    appId: APP_ID,
+    t: (key: string) => (key === "contractUnavailable" ? t("error") : t(key)),
+  });
 
   const isProcessing = ref(false);
-  const { status, setStatus, clearStatus } = useStatusMessage();
+  const { status, setStatus } = useStatusMessage();
 
   const newCapsule = ref<CapsuleFormData>({
     title: "",
@@ -75,18 +78,7 @@ export function useCapsuleCreation() {
       setStatus(t("creatingCapsule"), "loading");
       isProcessing.value = true;
 
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(t("connectWallet"));
-      }
-
-      const contract = await ensureContractAddress();
-      const { receiptId, invoke: invokeWithReceipt } = await processPayment(
-        BURY_FEE,
-        `time-capsule:bury:${Date.now()}`
-      );
+      await ensureWallet();
 
       const daysValue = Number.parseInt(newCapsule.value.days, 10);
       if (!Number.isFinite(daysValue) || daysValue < MIN_LOCK_DAYS || daysValue > MAX_LOCK_DAYS) {
@@ -99,14 +91,13 @@ export function useCapsuleCreation() {
       const content = newCapsule.value.content.trim();
       const contentHash = await sha256Hex(content);
 
-      await invokeWithReceipt(contract, "bury", [
-        { type: "Hash160", value: address.value },
+      await invoke(BURY_FEE, `time-capsule:bury:${Date.now()}`, "bury", [
+        { type: "Hash160", value: address.value as string },
         { type: "String", value: contentHash },
         { type: "String", value: newCapsule.value.title.trim().slice(0, 100) },
         { type: "Integer", value: String(unlockTimestamp) },
         { type: "Boolean", value: newCapsule.value.isPublic },
         { type: "Integer", value: String(newCapsule.value.category) },
-        { type: "Integer", value: String(receiptId) },
       ]);
 
       saveLocalContent(contentHash, content);

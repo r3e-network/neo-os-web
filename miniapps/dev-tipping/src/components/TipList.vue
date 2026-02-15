@@ -1,41 +1,48 @@
 <template>
   <NeoCard variant="erobo">
-    <view v-for="dev in developers" :key="dev.id" class="dev-card-glass" @click="$emit('select', dev)">
-      <view class="dev-card-header">
-        <view class="dev-avatar-glass">
-          <text class="avatar-emoji">👨‍💻</text>
-          <view class="avatar-badge-glass">{{ dev.rank }}</view>
+    <ItemList :items="developers" item-key="id">
+      <template #item="{ item: dev }">
+        <view class="dev-card-glass" @click="$emit('select', dev)">
+          <view class="dev-card-header">
+            <view class="dev-avatar-glass">
+              <text class="avatar-emoji">👨‍💻</text>
+              <view class="avatar-badge-glass">{{ dev.rank }}</view>
+            </view>
+            <view class="dev-info">
+              <text class="dev-name-glass">{{ dev.name }}</text>
+              <text class="dev-projects-glass">
+                <text class="project-icon">🧩</text>
+                {{ dev.role }}
+              </text>
+              <text class="dev-contributions-glass">{{ dev.tipCount }} {{ t("tipsCount") }}</text>
+            </view>
+          </view>
+          <view class="dev-card-footer-glass">
+            <view class="tip-stats">
+              <text class="tip-label-glass">{{ t("totalTips") }}</text>
+              <text class="tip-amount-glass">{{ formatNum(dev.totalTips) }} GAS</text>
+            </view>
+            <view class="tip-action">
+              <text class="tip-icon text-glass">💚</text>
+            </view>
+          </view>
         </view>
-        <view class="dev-info">
-          <text class="dev-name-glass">{{ dev.name }}</text>
-          <text class="dev-projects-glass">
-            <text class="project-icon">🧩</text>
-            {{ dev.role }}
-          </text>
-          <text class="dev-contributions-glass">{{ dev.tipCount }} {{ t("tipsCount") }}</text>
-        </view>
-      </view>
-      <view class="dev-card-footer-glass">
-        <view class="tip-stats">
-          <text class="tip-label-glass">{{ t("totalTips") }}</text>
-          <text class="tip-amount-glass">{{ formatNum(dev.totalTips) }} GAS</text>
-        </view>
-        <view class="tip-action">
-          <text class="tip-icon text-glass">💚</text>
-        </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { Developer } from "../composables/useDevTippingStats";
+
+const { t } = createUseI18n(messages)();
 
 interface Props {
   developers: Developer[];
   formatNum: (n: number) => string;
-  t: Function;
 }
 
 defineProps<Props>();
@@ -46,6 +53,8 @@ defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .dev-card-glass {
   background: var(--cafe-panel-weak);
   padding: 16px;
@@ -97,10 +106,9 @@ defineEmits<{
 }
 
 .dev-name-glass {
-  font-size: 16px;
+  @include mono-number(16px);
   font-weight: 800;
   color: var(--cafe-text-strong);
-  font-family: "JetBrains Mono", monospace;
   display: block;
 }
 
@@ -133,16 +141,14 @@ defineEmits<{
 }
 
 .tip-label-glass {
+  @include stat-label;
   font-size: 10px;
-  text-transform: uppercase;
   color: var(--cafe-muted);
 }
 
 .tip-amount-glass {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 18px;
+  @include mono-number(18px);
   color: var(--cafe-neon);
-  font-weight: bold;
   text-shadow: var(--cafe-neon-glow);
 }
 </style>

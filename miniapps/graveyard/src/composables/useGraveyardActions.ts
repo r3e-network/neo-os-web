@@ -1,11 +1,9 @@
-import { ref, computed, onMounted, onUnmounted, watch, type Ref } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
+import { ref, computed } from "vue";
+import { useEvents } from "@neo/uniapp-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { parseStackItem } from "@shared/utils/neo";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { isTxEventPendingError, waitForEventByTransaction } from "@shared/utils/transaction";
@@ -15,15 +13,22 @@ const APP_ID = "miniapp-graveyard";
 
 export function useGraveyardActions() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeRead } = useWallet() as WalletSDK;
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
+  const {
+    address,
+    ensureWallet,
+    read,
+    invoke,
+    contractAddress,
+    ensureContractAddress,
+    isProcessing: isLoading,
+  } = useContractInteraction({ appId: APP_ID, t });
+  const { list: listEvents } = useEvents();
 
   const totalDestroyed = ref(0);
   const gasReclaimed = ref(0);
   const assetHash = ref("");
   const memoryType = ref(1);
-  const { status, setStatus, clearStatus } = useStatusMessage();
+  const { status, setStatus } = useStatusMessage();
   const history = ref<HistoryItem[]>([]);
   const showConfirm = ref(false);
   const isDestroying = ref(false);
@@ -58,30 +63,22 @@ export function useGraveyardActions() {
     isDestroying.value = true;
 
     try {
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("connectWallet"));
-      const contract = await ensureContractAddress();
+      await ensureWallet();
 
-      const { receiptId, invoke, waitForEvent } = await processPayment(
+      const { txid, waitForEvent } = await invoke(
         "0.1",
-        `graveyard:bury:${assetHash.value.slice(0, 10)}`
-      );
-      if (!receiptId) throw new Error(t("receiptMissing"));
-
-      const tx = await invoke(
+        `graveyard:bury:${assetHash.value.slice(0, 10)}`,
         "BuryMemory",
         [
           { type: "Hash160", value: address.value as string },
           { type: "String", value: assetHash.value },
           { type: "Integer", value: String(memoryType.value) },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contract
+        ]
       );
 
       let evt: { created_at?: string; state?: unknown[] } | null = null;
       try {
-        evt = (await waitForEventByTransaction(tx, "MemoryBuried", waitForEvent)) as {
+        evt = (await waitForEventByTransaction({ txid, receiptId: "" }, "MemoryBuried", waitForEvent)) as {
           created_at?: string;
           state?: unknown[];
         } | null;
@@ -118,12 +115,11 @@ export function useGraveyardActions() {
 
   const loadStats = async () => {
     if (!contractAddress.value) {
-      contractAddress.value = (await ensureContractAddress()) as string;
+      await ensureContractAddress();
     }
     if (!contractAddress.value) return;
     try {
-      const statsRes = await invokeRead({ scriptHash: contractAddress.value, operation: "getPlatformStats" });
-      const parsed = parseInvokeResult(statsRes);
+      const parsed = await read("getPlatformStats");
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         const stats = parsed as Record<string, unknown>;
         const total = Number(stats.totalBuried ?? stats.totalMemories ?? 0);
@@ -136,8 +132,8 @@ export function useGraveyardActions() {
         }
         return;
       }
-      const totalRes = await invokeRead({ scriptHash: contractAddress.value, operation: "totalMemories" });
-      totalDestroyed.value = Number(parseInvokeResult(totalRes) || 0);
+      const totalResult = await read("totalMemories");
+      totalDestroyed.value = Number(totalResult || 0);
       gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
     } catch (e: unknown) {
       /* non-critical: graveyard stats fetch */
@@ -157,12 +153,7 @@ export function useGraveyardActions() {
           let forgotten = false;
           if (memoryId) {
             try {
-              const detailRes = await invokeRead({
-                scriptHash: contract,
-                operation: "getMemoryDetails",
-                args: [{ type: "Integer", value: memoryId }],
-              });
-              const parsed = parseInvokeResult(detailRes);
+              const parsed = await read("getMemoryDetails", [{ type: "Integer", value: memoryId }]);
               if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
                 const detail = parsed as Record<string, unknown>;
                 forgotten = Boolean(detail.forgotten);
@@ -171,7 +162,7 @@ export function useGraveyardActions() {
                 }
               }
             } catch {
-              /* Individual memory detail fetch failure — skip enrichment */
+              /* Individual memory detail fetch failure -- skip enrichment */
             }
           }
           return {
@@ -207,22 +198,12 @@ export function useGraveyardActions() {
 
     forgettingId.value = item.id;
     try {
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("connectWallet"));
-      const contract = await ensureContractAddress();
+      await ensureWallet();
 
-      const { receiptId, invoke } = await processPayment("1", `graveyard:forget:${item.id}`);
-      if (!receiptId) throw new Error(t("receiptMissing"));
-
-      await invoke(
-        "ForgetMemory",
-        [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: String(item.id) },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contract
-      );
+      await invoke("1", `graveyard:forget:${item.id}`, "ForgetMemory", [
+        { type: "Hash160", value: address.value as string },
+        { type: "Integer", value: String(item.id) },
+      ]);
 
       history.value = history.value.map((entry) => (entry.id === item.id ? { ...entry, forgotten: true } : entry));
       setStatus(t("forgetSuccess"), "success");

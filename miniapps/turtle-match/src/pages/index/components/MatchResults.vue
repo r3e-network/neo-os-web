@@ -13,9 +13,13 @@
 </template>
 
 <script setup lang="ts">
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { formatGas } from "@shared/utils/format";
 import TurtleSprite from "./TurtleSprite.vue";
 import type { TurtleColor } from "../../composables/useTurtleGame";
+
+const { t } = createUseI18n(messages)();
 
 interface Match {
   color: TurtleColor;
@@ -24,7 +28,6 @@ interface Match {
 
 interface Props {
   matches: Match[];
-  t: Function;
 }
 
 defineProps<Props>();

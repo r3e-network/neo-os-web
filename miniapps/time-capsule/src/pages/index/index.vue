@@ -1,20 +1,19 @@
 <template>
-  <MiniAppShell
+  <MiniAppPage
+    name="time-capsule"
     :config="templateConfig"
     :state="appState"
     :t="t"
     :status-message="status"
-    class="theme-time-capsule"
-    @tab-change="activeTab = $event"
     :sidebar-items="sidebarItems"
-    :sidebar-title="t('overview')"
-    :fallback-message="t('errorFallback')"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
     :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="resetAndReload">
+    :on-boundary-retry="resetAndReload"
+    @tab-change="activeTab = $event"
+  >
     <template #content>
-      
-        <CapsuleList :capsules="capsules" :current-time="currentTime" :t="t" @open="handleOpen" />
-      
+      <CapsuleList :capsules="capsules" :current-time="currentTime" :t="t" @open="handleOpen" />
     </template>
 
     <template #operation>
@@ -47,43 +46,49 @@
         @create="handleCreate"
       />
     </template>
-  </MiniAppShell>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { useTicker } from "@shared/composables/useTicker";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, NeoCard, NeoButton } from "@shared/components";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useCapsuleCreation } from "@/composables/useCapsuleCreation";
 import { useCapsuleUnlock } from "@/composables/useCapsuleUnlock";
 import CapsuleList, { type Capsule } from "./components/CapsuleList.vue";
-import CreateCapsuleForm from "./components/CreateCapsuleForm.vue";
 
-const { t } = createUseI18n(messages)();
-const { address } = useWallet() as WalletSDK;
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "capsules", labelKey: "tabCapsules", icon: "🔒", default: true },
-    { key: "create", labelKey: "tabCreate", icon: "➕" },
+const {
+  t,
+  templateConfig,
+  sidebarItems,
+  sidebarTitle,
+  fallbackMessage,
+  status: actionStatus,
+  setStatus,
+  clearStatus,
+  handleBoundaryError,
+} = createMiniApp({
+  name: "time-capsule",
+  messages,
+  template: {
+    tabs: [
+      { key: "capsules", labelKey: "tabCapsules", icon: "🔒", default: true },
+      { key: "create", labelKey: "tabCreate", icon: "➕" },
+    ],
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    { labelKey: "sidebarTotalCapsules", value: () => capsules.value.length },
+    { labelKey: "sidebarLocked", value: () => capsules.value.filter((c) => c.locked).length },
+    { labelKey: "sidebarRevealed", value: () => capsules.value.filter((c) => c.revealed).length },
   ],
-  docFeatureCount: 3,
+  statusTimeoutMs: 4000,
 });
-
-const appState = computed(() => ({}));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "sidebarTotalCapsules", value: () => capsules.value.length },
-  { labelKey: "sidebarLocked", value: () => capsules.value.filter((c) => c.locked).length },
-  { labelKey: "sidebarRevealed", value: () => capsules.value.filter((c) => c.revealed).length },
-]);
+const { address } = useWallet() as WalletSDK;
 
 const activeTab = ref("capsules");
 
@@ -91,20 +96,11 @@ const capsules = ref<Capsule[]>([]);
 const currentTime = ref(Date.now());
 const isLoadingData = ref(false);
 
+const appState = computed(() => ({}));
+
 const { newCapsule, status: createStatus, isBusy: createBusy, canCreate, create } = useCapsuleCreation();
-const { status: actionStatus, setStatus, clearStatus } = useStatusMessage(4000);
 const status = computed(() => actionStatus.value ?? createStatus.value);
-const {
-  isBusy: unlockBusy,
-  open,
-  fish,
-  ownerMatches,
-  listAllEvents,
-  ensureContractAddress,
-  invokeRead,
-  parseInvokeResult,
-  localContent,
-} = useCapsuleUnlock();
+const { isBusy: unlockBusy, open, fish, loadCapsules } = useCapsuleUnlock();
 
 const isBusy = computed(() => createBusy.value || unlockBusy.value || isLoadingData.value);
 
@@ -119,108 +115,17 @@ onMounted(() => {
 watch(
   address,
   () => {
-    fetchData();
+    loadData();
   },
   { immediate: true }
 );
 
-const toNumber = (value: unknown) => {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : 0;
-};
-
-const buildCapsuleFromDetails = (
-  id: string,
-  data: Record<string, unknown>,
-  fallback?: { unlockTime?: number; isPublic?: boolean }
-) => {
-  const contentHash = String(data.contentHash || "");
-  const unlockTime = toNumber(data.unlockTime ?? fallback?.unlockTime ?? 0);
-  const isPublic = typeof data.isPublic === "boolean" ? data.isPublic : Boolean(data.isPublic ?? fallback?.isPublic);
-  const revealed = Boolean(data.isRevealed);
-  const title = String(data.title || "");
-  const unlockDate = unlockTime ? new Date(unlockTime * 1000).toISOString().split("T")[0] : "N/A";
-  const content = contentHash ? localContent.value[contentHash] : "";
-
-  return {
-    id,
-    title,
-    contentHash,
-    unlockDate,
-    unlockTime,
-    locked: !revealed && Date.now() < unlockTime * 1000,
-    revealed,
-    isPublic,
-    content,
-  } as Capsule;
-};
-
-const fetchData = async () => {
+const loadData = async () => {
   if (!address.value) return;
   isLoadingData.value = true;
   try {
-    const contract = await ensureContractAddress();
-    const buriedEvents = await listAllEvents("CapsuleBuried");
-
-    const userCapsules = await Promise.all(
-      buriedEvents.map(async (evt) => {
-        const values = Array.isArray(evt?.state) ? evt.state.map((s: unknown) => parseInvokeResult(s)) : [];
-        const owner = values[0];
-        const id = String(values[1] || "");
-        const unlockTimeEvent = toNumber(values[2] || 0);
-        const isPublicEvent = Boolean(values[3]);
-        if (!id || !ownerMatches(owner)) return null;
-
-        try {
-          const capsuleRes = await invokeRead({
-            scriptHash: contract,
-            operation: "getCapsuleDetails",
-            args: [{ type: "Integer", value: id }],
-          });
-          const parsed = parseInvokeResult(capsuleRes);
-          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-            const data = parsed as Record<string, unknown>;
-            return buildCapsuleFromDetails(id, data, { unlockTime: unlockTimeEvent, isPublic: isPublicEvent });
-          }
-        } catch {
-          // fallback to event values
-        }
-
-        return buildCapsuleFromDetails(
-          id,
-          { contentHash: "", title: "", unlockTime: unlockTimeEvent, isPublic: isPublicEvent, isRevealed: false },
-          { unlockTime: unlockTimeEvent, isPublic: isPublicEvent }
-        );
-      })
-    );
-
-    let resolvedCapsules = userCapsules.filter(Boolean) as Capsule[];
-
-    if (resolvedCapsules.length === 0) {
-      const totalRes = await invokeRead({
-        scriptHash: contract,
-        operation: "totalCapsules",
-        args: [],
-      });
-      const totalCapsules = Number(parseInvokeResult(totalRes) || 0);
-      const discovered: Capsule[] = [];
-      for (let i = 1; i <= totalCapsules; i++) {
-        const capsuleRes = await invokeRead({
-          scriptHash: contract,
-          operation: "getCapsuleDetails",
-          args: [{ type: "Integer", value: String(i) }],
-        });
-        const parsed = parseInvokeResult(capsuleRes);
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
-        const data = parsed as Record<string, unknown>;
-        if (!ownerMatches(data.owner)) continue;
-        discovered.push(buildCapsuleFromDetails(String(i), data));
-      }
-      resolvedCapsules = discovered;
-    }
-
-    capsules.value = resolvedCapsules.sort((a, b) => Number(b.id) - Number(a.id));
-  } catch (e: unknown) {
+    capsules.value = await loadCapsules();
+  } catch {
     /* non-critical: capsule data fetch */
   } finally {
     isLoadingData.value = false;
@@ -230,7 +135,7 @@ const fetchData = async () => {
 const handleCreate = async () => {
   await create(() => {
     activeTab.value = "capsules";
-    fetchData();
+    loadData();
   });
 };
 
@@ -238,7 +143,7 @@ const handleOpen = async (cap: Capsule) => {
   await open(cap, (msg, type) => {
     setStatus(msg, type);
     if (type !== "error") {
-      fetchData();
+      loadData();
     }
   });
 };
@@ -249,9 +154,8 @@ const handleFish = async () => {
   });
 };
 
-const { handleBoundaryError } = useHandleBoundaryError("time-capsule");
 const resetAndReload = async () => {
-  if (address.value) fetchData();
+  if (address.value) loadData();
 };
 </script>
 

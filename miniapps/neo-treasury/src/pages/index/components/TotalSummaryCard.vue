@@ -51,6 +51,7 @@ const formatTime = (ts: number): string => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .summary-card {
   margin-bottom: 24px;
@@ -90,15 +91,12 @@ const formatTime = (ts: number): string => {
 }
 
 .token-split {
+  @include card-base(16px, 20px);
   width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--bg-card, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  border-radius: 16px;
   backdrop-filter: blur(10px);
-  padding: 20px;
   margin-top: 8px;
 }
 
@@ -115,12 +113,9 @@ const formatTime = (ts: number): string => {
 }
 
 .token-label {
-  font-size: 11px;
+  @include stat-label;
   font-weight: 600;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
-  text-transform: uppercase;
   margin-bottom: 6px;
-  letter-spacing: 0.1em;
 }
 
 .token-value {

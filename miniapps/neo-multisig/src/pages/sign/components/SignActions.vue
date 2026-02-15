@@ -24,7 +24,14 @@
 
     <view v-if="broadcastTxId" class="broadcast-success">
       <text class="success-text">{{ t("broadcastedTitle") }}</text>
-      <text class="tx-id" role="button" :aria-label="t('copy')" tabindex="0" @click="$emit('copy', broadcastTxId)" @keydown.enter="$emit('copy', broadcastTxId)">
+      <text
+        class="tx-id"
+        role="button"
+        :aria-label="t('copy')"
+        tabindex="0"
+        @click="$emit('copy', broadcastTxId)"
+        @keydown.enter="$emit('copy', broadcastTxId)"
+      >
         {{ t("broadcastedTxid") }}: {{ broadcastTxId }}
       </text>
     </view>
@@ -33,15 +40,18 @@
 
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 defineProps<{
-  t: (key: string) => string;
   isComplete: boolean;
   hasUserSigned: boolean;
   isProcessing: boolean;
   status: string;
   broadcastTxId: string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   sign: [];

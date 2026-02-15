@@ -8,7 +8,7 @@
 
   <view v-if="!address" class="empty-state">
     <NeoCard variant="erobo" class="p-6 text-center">
-      <text class="text-sm block mb-3">{{ t("walletNotConnected") }}</text>
+      <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
       <NeoButton size="sm" variant="primary" @click="$emit('connect')">
         {{ t("connectWallet") }}
       </NeoButton>
@@ -28,9 +28,10 @@
           <text class="ticket-title">{{ ticket.eventName || `#${ticket.eventId}` }}</text>
           <text class="ticket-subtitle">{{ ticket.venue || t("venueFallback") }}</text>
         </view>
-        <text :class="['status-pill', ticket.used ? 'used' : 'active']">
-          {{ ticket.used ? t("ticketUsed") : t("ticketValid") }}
-        </text>
+        <StatusBadge
+          :status="ticket.used ? 'error' : 'active'"
+          :label="ticket.used ? t('ticketUsed') : t('ticketValid')"
+        />
       </view>
 
       <view class="ticket-meta">
@@ -55,16 +56,19 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard, NeoButton, StatusBadge } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { TicketItem } from "@/types";
 
 const props = defineProps<{
-  t: (key: string) => string;
   address: string | null;
   tickets: TicketItem[];
   ticketQrs: Record<string, string>;
   isRefreshing: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "refresh"): void;
@@ -73,7 +77,7 @@ const emit = defineEmits<{
 }>();
 
 const formatSchedule = (startTime: number, endTime: number) => {
-  if (!startTime || !endTime) return props.t("dateUnknown");
+  if (!startTime || !endTime) return t("dateUnknown");
   const start = new Date(startTime * 1000);
   const end = new Date(endTime * 1000);
   return `${start.toLocaleString()} - ${end.toLocaleString()}`;
@@ -81,6 +85,8 @@ const formatSchedule = (startTime: number, endTime: number) => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .tickets-header {
   display: flex;
   align-items: center;
@@ -134,10 +140,9 @@ const formatSchedule = (startTime: number, endTime: number) => {
 }
 
 .meta-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--ticket-muted);
 }
 
@@ -180,22 +185,6 @@ const formatSchedule = (startTime: number, endTime: number) => {
 
 .copy-btn {
   align-self: flex-start;
-}
-
-.status-pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(245, 158, 11, 0.2);
-  color: var(--ticket-accent);
-}
-
-.status-pill.used {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--ticket-danger);
 }
 
 .empty-state {

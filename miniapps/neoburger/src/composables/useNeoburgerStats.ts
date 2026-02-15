@@ -17,8 +17,7 @@ const LOCAL_STATS_MOCK = {
 const APY_ANIMATION_DURATION_MS = 2000;
 const APY_ANIMATION_STEPS = 60;
 const APY_ANIMATION_INTERVAL_MS = APY_ANIMATION_DURATION_MS / APY_ANIMATION_STEPS;
-const isLocalPreview =
-  typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
+const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
 
 export function useNeoburgerStats() {
   const { t } = createUseI18n(messages)();
@@ -46,9 +45,7 @@ export function useNeoburgerStats() {
     }
   }, APY_ANIMATION_INTERVAL_MS);
 
-  const aprDisplay = computed(() =>
-    loadingApy.value ? t("apyPlaceholder") : `${animatedApy.value}%`,
-  );
+  const aprDisplay = computed(() => (loadingApy.value ? t("apyPlaceholder") : `${animatedApy.value}%`));
 
   const totalStakedDisplay = computed(() => {
     if (totalStakedFormatted.value) return totalStakedFormatted.value;
@@ -70,7 +67,7 @@ export function useNeoburgerStats() {
     apyAnimationTicker.start();
   }
 
-  const fetchStats = async () => {
+  const loadStats = async () => {
     if (isLocalPreview) {
       return LOCAL_STATS_MOCK;
     }
@@ -120,7 +117,7 @@ export function useNeoburgerStats() {
       loadingApy.value = true;
       const cached = readCachedApy();
       if (cached !== null) apy.value = cached;
-      const data = await fetchStats();
+      const data = await loadStats();
       if (data) {
         const nextApy = parseFloat(data.apy ?? data.apr);
         if (Number.isFinite(nextApy) && nextApy >= 0) {

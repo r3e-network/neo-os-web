@@ -12,6 +12,8 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 export interface ActionHistoryItem {
   id: string;
@@ -22,8 +24,9 @@ export interface ActionHistoryItem {
 
 defineProps<{
   actionHistory: ActionHistoryItem[];
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const getActionIcon = (type: string) => {
   const iconMap: Record<string, string> = {
@@ -47,7 +50,9 @@ const getActionIcon = (type: string) => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   background: transparent;
   color: var(--text-primary);
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 .history-icon {
   width: 32px;

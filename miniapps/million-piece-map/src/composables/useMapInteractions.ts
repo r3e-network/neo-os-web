@@ -1,7 +1,5 @@
 import { ref } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { isTxEventPendingError, waitForEventByTransaction } from "@shared/utils/transaction";
@@ -13,10 +11,10 @@ export function useMapInteractions(
   tiles: { value: Tile[] },
   selectedTile: { value: number },
   ensureContractAddress: () => Promise<string>,
-  loadTiles: () => Promise<void>,
+  loadTiles: () => Promise<void>
 ) {
-  const { address, connect } = useWallet() as WalletSDK;
-  const { processPayment } = usePaymentFlow(APP_ID);
+  const t = (key: string) => key;
+  const { address, ensureWallet, invoke } = useContractInteraction({ appId: APP_ID, t });
 
   const isPurchasing = ref(false);
   const zoomLevel = ref(1);
@@ -39,31 +37,18 @@ export function useMapInteractions(
 
     isPurchasing.value = true;
     try {
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error("Please connect wallet");
-      }
-      const contract = await ensureContractAddress();
+      await ensureWallet();
       const tile = tiles.value[selectedTile.value];
-      const { receiptId, invoke, waitForEvent } = await processPayment(tilePrice.toString(), `map:claim:${tile.x}:${tile.y}`);
-      if (!receiptId) {
-        throw new Error("Receipt missing");
-      }
-      const tx = await invoke(
-        "claimPiece",
-        [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: String(tile.x) },
-          { type: "Integer", value: String(tile.y) },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contract,
-      );
+
+      const { txid, waitForEvent } = await invoke(tilePrice.toString(), `map:claim:${tile.x}:${tile.y}`, "claimPiece", [
+        { type: "Hash160", value: address.value as string },
+        { type: "Integer", value: String(tile.x) },
+        { type: "Integer", value: String(tile.y) },
+      ]);
+
       let claimEvent: unknown = null;
       try {
-        claimEvent = await waitForEventByTransaction(tx, "PieceClaimed", waitForEvent);
+        claimEvent = await waitForEvent(txid, "PieceClaimed");
       } catch (e: unknown) {
         if (isTxEventPendingError(e, "PieceClaimed")) {
           throw new Error("Claim pending");

@@ -10,7 +10,7 @@
         <text class="machine-creator">{{ t("byLabel") }} {{ formatAddress(machine.creator) }}</text>
       </view>
     </view>
-    
+
     <view class="card-body">
       <view class="prize-preview">
         <text class="prize-label">{{ t("topPrizeLabel") }}</text>
@@ -53,14 +53,15 @@ defineProps<{
     itemCount: number;
     forSale?: boolean;
     salePrice?: string;
-  }
+  };
 }>();
 
-defineEmits(['select']);
+defineEmits(["select"]);
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .machine-card {
   height: 100%;
@@ -119,29 +120,30 @@ defineEmits(['select']);
 }
 
 .card-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $spacing-2;
+  @include grid-layout(2, $spacing-2);
   margin-bottom: $spacing-3;
   padding: $spacing-2;
   background: var(--gacha-surface-strong);
   border-radius: 8px;
 }
 
-.prize-preview, .odds-preview {
+.prize-preview,
+.odds-preview {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.prize-label, .odds-label {
+.prize-label,
+.odds-label {
   font-size: 9px;
   text-transform: uppercase;
   color: var(--text-secondary);
   margin-bottom: 2px;
 }
 
-.prize-value, .odds-value {
+.prize-value,
+.odds-value {
   font-size: 11px;
   font-weight: 700;
   color: var(--text-primary);

@@ -15,15 +15,25 @@
         @input="onInput"
       />
     </view>
-    <view v-if="showMax" class="max-btn" role="button" :aria-label="t('max')" tabindex="0" @click="$emit('max')" @keydown.enter="$emit('max')">{{ t("max") }}</view>
+    <view
+      v-if="showMax"
+      class="max-btn"
+      role="button"
+      :aria-label="t('max')"
+      tabindex="0"
+      @click="$emit('max')"
+      @keydown.enter="$emit('max')"
+      >{{ t("max") }}</view
+    >
   </view>
 </template>
 
 <script setup lang="ts">
 import type { Token } from "@/types";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
-  t: (key: string) => string;
   token: Token;
   modelValue: string;
   label: string;
@@ -31,6 +41,8 @@ const props = defineProps<{
   disabled?: boolean;
   showMax?: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;

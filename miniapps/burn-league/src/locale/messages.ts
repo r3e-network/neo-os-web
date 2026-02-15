@@ -1,6 +1,8 @@
-export const messages = {
-    // App translations
-title: { en: "Burn League", zh: "燃烧联盟" },
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  // App translations
+  title: { en: "Burn League", zh: "燃烧联盟" },
   subtitle: { en: "Burn tokens, earn rewards", zh: "燃烧代币，赚取奖励" },
   totalBurned: { en: "Total Burned", zh: "总燃烧量" },
   youBurned: { en: "You Burned", zh: "你的燃烧量" },
@@ -9,22 +11,14 @@ title: { en: "Burn League", zh: "燃烧联盟" },
   amountPlaceholder: { en: "Amount to burn", zh: "燃烧数量" },
   estimatedRewards: { en: "Estimated Rewards", zh: "预估奖励" },
   points: { en: "GAS", zh: "GAS" },
-  loading: { en: "Loading...", zh: "加载中..." },
   burning: { en: "Burning...", zh: "燃烧中..." },
   burnNow: { en: "Burn Now", zh: "立即燃烧" },
   leaderboard: { en: "Leaderboard", zh: "排行榜" },
   burned: { en: "Burned", zh: "已燃烧" },
   success: { en: "successfully!", zh: "成功！" },
-  error: { en: "Error", zh: "错误" },
   minBurn: { en: "Minimum burn is {amount} GAS", zh: "最低燃烧 {amount} GAS" },
-  receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
   missingContract: { en: "Contract not configured", zh: "合约未配置" },
   loadFailed: { en: "Failed to load burn data", zh: "燃烧数据加载失败" },
-  game: { en: "Game", zh: "游戏" },
-  stats: { en: "Stats", zh: "统计" },
-  statistics: { en: "Statistics", zh: "统计数据" },
-  totalGames: { en: "Total Games", zh: "总游戏数" },
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Competitive token burning with seasonal rewards",
     zh: "带有赛季奖励的竞争性代币销毁",
@@ -64,19 +58,11 @@ title: { en: "Burn League", zh: "燃烧联盟" },
     en: "Earn seasonal rewards based on your burn contribution.",
     zh: "根据销毁贡献获取赛季奖励。",
   },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
-    sidebarRank: { en: "Rank", zh: "排名" },
-    sidebarBurns: { en: "Burns", zh: "燃烧次数" },
-    sidebarRewardPool: { en: "Reward Pool", zh: "奖励池" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+  // App-specific sidebar keys
+  ariaLeaderboard: { en: "Leaderboard", zh: "排行榜" },
+  sidebarRank: { en: "Rank", zh: "排名" },
+  sidebarBurns: { en: "Burns", zh: "燃烧次数" },
+  sidebarRewardPool: { en: "Reward Pool", zh: "奖励池" },
+} as const;
+
+export const messages = mergeMessages(appMessages);

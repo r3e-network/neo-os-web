@@ -5,7 +5,14 @@
       <text class="balance-text">{{ t("balance") }}: {{ formatAmount(balance) }}</text>
     </view>
     <view class="token-input-row">
-      <view class="token-select" role="button" :aria-label="`${t('balance')}: ${symbol}`" tabindex="0" @click="$emit('select-token')" @keydown.enter="$emit('select-token')">
+      <view
+        class="token-select"
+        role="button"
+        :aria-label="`${t('balance')}: ${symbol}`"
+        tabindex="0"
+        @click="$emit('select-token')"
+        @keydown.enter="$emit('select-token')"
+      >
         <AppIcon :name="symbol.toLowerCase()" :size="32" />
         <view class="token-info">
           <text class="token-symbol">{{ symbol }}</text>
@@ -26,6 +33,8 @@
 
 <script setup lang="ts">
 import { AppIcon, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   label: string;
@@ -33,8 +42,9 @@ defineProps<{
   balance: number;
   amount: string;
   disabled?: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["select-token", "update:amount"]);
 

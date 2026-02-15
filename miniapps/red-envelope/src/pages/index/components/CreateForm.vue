@@ -10,7 +10,6 @@
       v-model:minNeoRequired="minNeoRequired"
       v-model:minHoldDays="minHoldDays"
       :is-loading="isLoading"
-      :t="t"
       @create="$emit('create')"
     />
   </view>
@@ -23,7 +22,6 @@ import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
 
 const props = defineProps<{
   isLoading: boolean;
-  t: (key: string, params?: Record<string, string | number>) => string;
 }>();
 
 const emit = defineEmits<{

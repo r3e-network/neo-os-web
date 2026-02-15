@@ -1,4 +1,6 @@
-:global(.theme-prediction-market) {
+@use "@shared/styles/mixins.scss" as *;
+
+@include theme-dark("prediction-market") {
   // Primary colors - trading themed
   --predict-bg: #0a0e1a;
   --predict-bg-secondary: #111827;
@@ -45,8 +47,7 @@
   --predict-text-bright: #fff;
 }
 
-:global(.theme-light .theme-prediction-market),
-:global([data-theme="light"] .theme-prediction-market) {
+@include theme-light("prediction-market") {
   --predict-bg: #f9fafb;
   --predict-bg-secondary: #f3f4f6;
   --predict-accent: #3b82f6;

@@ -14,12 +14,11 @@
 
     <view class="market-shell">
       <view class="left-column">
-        <MarketHeroCard :market="market" :t="t" />
+        <MarketHeroCard :market="market" />
 
         <MarketOrderList
           :market-orders="marketOrders"
           :market-positions="marketPositions"
-          :t="t"
           @cancel-order="(id) => emit('cancel-order', id)"
         />
 
@@ -28,17 +27,11 @@
           :market-id="market.id"
           :market-orders="marketOrders"
           :market-positions="marketPositions"
-          :t="t"
         />
       </view>
 
       <view class="right-column">
-        <MarketTradeForm
-          :market="market"
-          :is-trading="isTrading"
-          :t="t"
-          @trade="(payload) => emit('trade', payload)"
-        />
+        <MarketTradeForm :market="market" :is-trading="isTrading" @trade="(payload) => emit('trade', payload)" />
       </view>
     </view>
   </view>
@@ -63,7 +56,6 @@ interface Props {
   yourOrders: ViewOrder[];
   yourPositions: MarketPosition[];
   isTrading: boolean;
-  t?: (key: string, args?: Record<string, string | number>) => string;
 }
 
 const props = defineProps<Props>();
@@ -73,11 +65,7 @@ const emit = defineEmits<{
   (e: "cancel-order", orderId: number): void;
 }>();
 
-const { t: i18nT } = createUseI18n(messages)();
-const t = (key: string, args?: Record<string, string | number>) => {
-  if (props.t) return props.t(key, args);
-  return i18nT(key as never, args);
-};
+const { t } = createUseI18n(messages)();
 
 const commentFeedRef = ref<InstanceType<typeof MarketCommentFeed> | null>(null);
 

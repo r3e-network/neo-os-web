@@ -1,8 +1,14 @@
 <template>
-  <NeoModal :visible="visible" :title="t('decryptTitle')" closeable @close="$emit('close')">
+  <ActionModal :visible="visible" :title="t('decryptTitle')" @close="$emit('close')">
     <view class="decrypt-body">
       <NeoInput v-model="localPassword" type="password" :placeholder="t('enterPassword')" />
-      <NeoButton variant="secondary" size="sm" class="decrypt-btn" :loading="decrypting" @click="$emit('decrypt', localPassword)">
+      <NeoButton
+        variant="secondary"
+        size="sm"
+        class="decrypt-btn"
+        :loading="decrypting"
+        @click="$emit('decrypt', localPassword)"
+      >
         {{ decrypting ? t("decrypting") : t("decryptConfirm") }}
       </NeoButton>
 
@@ -13,15 +19,18 @@
         </NeoButton>
       </view>
     </view>
-  </NeoModal>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { NeoModal, NeoButton, NeoInput } from "@shared/components";
+import { ActionModal, NeoButton, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 const props = defineProps<{
-  t: (key: string) => string;
   visible: boolean;
   decrypting: boolean;
   preview: string;
@@ -35,9 +44,12 @@ const emit = defineEmits<{
 
 const localPassword = ref("");
 
-watch(() => props.visible, (newVal) => {
-  if (!newVal) localPassword.value = "";
-});
+watch(
+  () => props.visible,
+  (newVal) => {
+    if (!newVal) localPassword.value = "";
+  }
+);
 </script>
 
 <style lang="scss" scoped>

@@ -1,22 +1,29 @@
 <template>
   <view class="proofs-list">
     <text class="section-title">{{ t("recentProofs") }}</text>
-    <view v-if="proofs.length === 0" class="empty-state">
-      <text>{{ t("noProofs") }}</text>
-    </view>
-    <view v-else class="proof-cards">
-      <view v-for="proof in proofs" :key="proof.id" class="proof-card">
-        <text class="proof-id">#{{ proof.id }}</text>
-        <text class="proof-timestamp">{{ formatTime(proof.timestamp) }}</text>
+    <ItemList
+      :items="proofs as unknown as Record<string, unknown>[]"
+      item-key="id"
+      :empty-text="t('noProofs')"
+      :aria-label="t('ariaProofs')"
+    >
+      <template #item="{ item }">
+        <text class="proof-id">#{{ (item as unknown as TimestampProof).id }}</text>
+        <text class="proof-timestamp">{{ formatTime((item as unknown as TimestampProof).timestamp) }}</text>
         <text class="proof-content">
-          >{{ proof.content.slice(0, 50) }}{{ proof.content.length > 50 ? "..." : "" }}</text
+          >{{ (item as unknown as TimestampProof).content.slice(0, 50)
+          }}{{ (item as unknown as TimestampProof).content.length > 50 ? "..." : "" }}</text
         >
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </view>
 </template>
 
 <script setup lang="ts">
+import { ItemList } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+
 interface TimestampProof {
   id: number;
   content: string;
@@ -27,9 +34,10 @@ interface TimestampProof {
 }
 
 defineProps<{
-  t: (key: string) => string;
   proofs: TimestampProof[];
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const formatTime = (timestamp: number): string => {
   return new Date(timestamp).toLocaleString();
@@ -38,6 +46,7 @@ const formatTime = (timestamp: number): string => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 @import "../timestamp-proof-theme.scss";
 
 .proofs-list {

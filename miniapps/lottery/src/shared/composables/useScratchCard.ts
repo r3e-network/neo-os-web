@@ -3,6 +3,8 @@ import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { parseInvokeResult } from "@shared/utils/neo";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { parseGas } from "@shared/utils/format";
 
 export interface ScratchTicket {
   id: string;
@@ -13,14 +15,10 @@ export interface ScratchTicket {
   seed?: string;
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback;
-}
-
 export function useScratchCard() {
   const { address, invokeContract, invokeRead } = useWallet() as WalletSDK;
   const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? "Contract address not found" : key,
+    key === "contractUnavailable" ? "Contract address not found" : key
   );
   const isLoading = ref(false);
   const error = ref<string | null>(null);
@@ -44,9 +42,8 @@ export function useScratchCard() {
   };
 
   const formatPrize = (prizeRaw: number | string): string => {
-    const prize = typeof prizeRaw === "string" ? parseFloat(prizeRaw) : prizeRaw;
-    if (prize <= 0) return "0";
-    return (prize / 100000000).toFixed(2);
+    const value = parseGas(prizeRaw);
+    return value > 0 ? value.toFixed(2) : "0";
   };
 
   const getTicket = async (ticketId: string): Promise<ScratchTicket | null> => {
@@ -162,8 +159,7 @@ export function useScratchCard() {
       const ticketId = txResult.receiptId || txResult.receipt_id || txResult.txid;
       return { ticketId };
     } catch (error: unknown) {
-      const message = getErrorMessage(error, "Failed to buy ticket");
-      setError(message);
+      setError(formatErrorMessage(error, "Failed to buy ticket"));
       throw error;
     } finally {
       isLoading.value = false;
@@ -225,8 +221,7 @@ export function useScratchCard() {
         revealed,
       };
     } catch (error: unknown) {
-      const message = getErrorMessage(error, "Failed to reveal ticket");
-      setError(message);
+      setError(formatErrorMessage(error, "Failed to reveal ticket"));
       throw error;
     } finally {
       isLoading.value = false;

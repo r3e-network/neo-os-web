@@ -7,26 +7,20 @@
           <text>🔥 {{ streak }} {{ t("dayStreak") }}</text>
         </view>
       </view>
-      
+
       <view class="checkin-body">
         <view class="reward-display">
           <text class="reward-amount">+{{ calculateReward() }}</text>
           <text class="reward-label">{{ t("karmaPoints") }}</text>
         </view>
-        
-        <button 
-          class="action-button primary"
-          :disabled="hasCheckedIn || isCheckingIn"
-          @click="emitCheckIn"
-        >
+
+        <button class="action-button primary" :disabled="hasCheckedIn || isCheckingIn" @click="emitCheckIn">
           <text v-if="isCheckingIn">{{ t("checkingIn") }}...</text>
           <text v-else-if="hasCheckedIn">✓ {{ t("checkedIn") }}</text>
           <text v-else>{{ t("checkInNow") }}</text>
         </button>
-        
-        <text v-if="hasCheckedIn" class="next-checkin">
-          {{ t("nextCheckIn") }}: {{ nextTime }}
-        </text>
+
+        <text v-if="hasCheckedIn" class="next-checkin"> {{ t("nextCheckIn") }}: {{ nextTime }} </text>
       </view>
     </view>
   </view>
@@ -60,6 +54,7 @@ const emitCheckIn = () => emit("checkIn");
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
 .checkin-section {
   display: flex;
   flex-direction: column;
@@ -128,17 +123,17 @@ const emitCheckIn = () => emit("checkIn");
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &.primary {
     background: linear-gradient(135deg, var(--karma-primary), var(--karma-secondary));
     color: white;
-    
+
     &:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
     }
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;

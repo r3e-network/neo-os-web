@@ -1,27 +1,39 @@
 <template>
   <NeoCard variant="erobo" class="leaderboard-card">
-    <view class="leaderboard-list">
-      <view
-        v-for="(entry, i) in leaderboard"
-        :key="i"
-        :class="['leader-item', entry.isUser && 'highlight', `rank-${entry.rank}`]"
-      >
-        <view class="leader-rank-container">
-          <text class="leader-medal">{{ getMedalIcon(entry.rank) }}</text>
-          <text class="leader-rank">#{{ entry.rank }}</text>
+    <ItemList
+      :items="leaderboard as unknown as Record<string, unknown>[]"
+      :scrollable="true"
+      :max-height="400"
+      :aria-label="t('ariaLeaderboard')"
+    >
+      <template #item="{ item, index }">
+        <view
+          :class="[
+            'leader-item',
+            (item as unknown as LeaderEntry).isUser && 'highlight',
+            `rank-${(item as unknown as LeaderEntry).rank}`,
+          ]"
+        >
+          <view class="leader-rank-container">
+            <text class="leader-medal">{{ getMedalIcon((item as unknown as LeaderEntry).rank) }}</text>
+            <text class="leader-rank">#{{ (item as unknown as LeaderEntry).rank }}</text>
+          </view>
+          <text class="leader-addr">{{ (item as unknown as LeaderEntry).address }}</text>
+          <view class="leader-burned-container">
+            <text class="leader-burned">{{ formatNum((item as unknown as LeaderEntry).burned) }}</text>
+            <text class="leader-burned-suffix">GAS</text>
+          </view>
         </view>
-        <text class="leader-addr">{{ entry.address }}</text>
-        <view class="leader-burned-container">
-          <text class="leader-burned">{{ formatNum(entry.burned) }}</text>
-          <text class="leader-burned-suffix">GAS</text>
-        </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+import { formatNumber } from "@shared/utils/format";
 
 export interface LeaderEntry {
   rank: number;
@@ -34,10 +46,9 @@ defineProps<{
   leaderboard: LeaderEntry[];
 }>();
 
-const formatNum = (n: number) => {
-  if (n === undefined || n === null) return "0";
-  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
-};
+const { t } = createUseI18n(messages)();
+
+const formatNum = (n: number) => formatNumber(n, 2);
 
 const getMedalIcon = (rank: number): string => {
   if (rank === 1) return "🥇";
@@ -50,6 +61,7 @@ const getMedalIcon = (rank: number): string => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .leaderboard-list {
   display: flex;
@@ -97,14 +109,12 @@ const getMedalIcon = (rank: number): string => {
 }
 
 .leader-addr {
+  @include text-truncate;
   font-size: 11px;
   font-family: $font-mono;
   color: var(--text-primary, rgba(255, 255, 255, 0.8));
   flex: 1;
   padding: 0 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .leader-burned-container {

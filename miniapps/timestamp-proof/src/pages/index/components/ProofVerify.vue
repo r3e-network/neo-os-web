@@ -20,6 +20,9 @@
 </template>
 
 <script setup lang="ts">
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+
 interface TimestampProof {
   id: number;
   content: string;
@@ -30,11 +33,12 @@ interface TimestampProof {
 }
 
 defineProps<{
-  t: (key: string) => string;
   isVerifying: boolean;
   verifiedProof: TimestampProof | null;
   verifyError: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   verify: [];
@@ -49,6 +53,7 @@ const formatTime = (timestamp: number): string => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 @import "../timestamp-proof-theme.scss";
 
 .verify-section {

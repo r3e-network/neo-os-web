@@ -5,7 +5,14 @@
         <text class="label">{{ t("address") }}</text>
         <view class="value-row">
           <text class="value">{{ account.address }}</text>
-          <view class="copy-btn" @click="$emit('copy', account.address)" role="button" tabindex="0" :aria-label="t('copyAddress')" @keydown.enter="$emit('copy', account.address)">
+          <view
+            class="copy-btn"
+            @click="$emit('copy', account.address)"
+            role="button"
+            tabindex="0"
+            :aria-label="t('copyAddress')"
+            @keydown.enter="$emit('copy', account.address)"
+          >
             <text class="icon" aria-hidden="true">📋</text>
           </view>
         </view>
@@ -17,7 +24,14 @@
         <text class="label">{{ t("pubKey") }}</text>
         <view class="value-row">
           <text class="value truncate">{{ account.publicKey }}</text>
-          <view class="copy-btn" @click="$emit('copy', account.publicKey)" role="button" tabindex="0" :aria-label="t('copyPublicKey')" @keydown.enter="$emit('copy', account.publicKey)">
+          <view
+            class="copy-btn"
+            @click="$emit('copy', account.publicKey)"
+            role="button"
+            tabindex="0"
+            :aria-label="t('copyPublicKey')"
+            @keydown.enter="$emit('copy', account.publicKey)"
+          >
             <text class="icon" aria-hidden="true">📋</text>
           </view>
         </view>
@@ -42,7 +56,14 @@
           >
             <text class="icon" aria-hidden="true">{{ showSecrets ? "🙈" : "👁️" }}</text>
           </view>
-          <view class="copy-btn" @click="$emit('copy', account.privateKey)" role="button" tabindex="0" :aria-label="t('copyPrivateKey')" @keydown.enter="$emit('copy', account.privateKey)">
+          <view
+            class="copy-btn"
+            @click="$emit('copy', account.privateKey)"
+            role="button"
+            tabindex="0"
+            :aria-label="t('copyPrivateKey')"
+            @keydown.enter="$emit('copy', account.privateKey)"
+          >
             <text class="icon" aria-hidden="true">📋</text>
           </view>
         </view>
@@ -57,7 +78,14 @@
         </view>
         <view class="value-row">
           <text class="value blur" :class="{ revealed: showSecrets }">{{ account.wif }}</text>
-          <view class="copy-btn" @click="$emit('copy', account.wif)" role="button" tabindex="0" :aria-label="t('copyWif')" @keydown.enter="$emit('copy', account.wif)">
+          <view
+            class="copy-btn"
+            @click="$emit('copy', account.wif)"
+            role="button"
+            tabindex="0"
+            :aria-label="t('copyWif')"
+            @keydown.enter="$emit('copy', account.wif)"
+          >
             <text class="icon" aria-hidden="true">📋</text>
           </view>
         </view>
@@ -94,6 +122,8 @@
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
 import ScrollReveal from "@shared/components/ScrollReveal.vue";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { NeoAccount } from "@/services/neo";
 
 defineProps<{
@@ -101,8 +131,9 @@ defineProps<{
   showSecrets: boolean;
   addressQr: string;
   wifQr: string;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   (e: "copy", text: string): void;

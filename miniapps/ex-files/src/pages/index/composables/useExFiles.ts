@@ -1,15 +1,13 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { useEvents } from "@neo/uniapp-sdk";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { parseStackItem } from "@shared/utils/neo";
 import { sha256Hex } from "@shared/utils/hash";
 import { formatHash } from "@shared/utils/format";
-import { createSidebarItems, waitForEventByTransaction } from "@shared/utils";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { createSidebarItems } from "@shared/utils";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { useContractAddress } from "@shared/composables/useContractAddress";
-import type { StatItem } from "@shared/components/NeoStats.vue";
+import type { StatsDisplayItem } from "@shared/components";
 import type { RecordItem } from "../components/QueryRecordForm.vue";
 
 const APP_ID = "miniapp-exfiles";
@@ -17,11 +15,16 @@ const CREATE_FEE = "0.1";
 const QUERY_FEE = "0.05";
 
 export function useExFiles(t: (key: string) => string) {
-  const { address, connect, invokeRead } = useWallet() as WalletSDK;
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+  const {
+    address,
+    ensureWallet,
+    read,
+    invoke,
+    ensureContractAddress,
+    isProcessing: isLoading,
+  } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
-  const { status, setStatus: showStatus, clearStatus } = useStatusMessage();
+  const { status, setStatus: showStatus } = useStatusMessage();
 
   // --- Reactive state ---
   const activeTab = ref("files");
@@ -47,18 +50,16 @@ export function useExFiles(t: (key: string) => string) {
     { labelKey: "sidebarWallet", value: () => (address.value ? t("connected") : t("disconnected")) },
   ]);
 
-  const sortedRecords = computed(() =>
-    [...records.value].sort((a, b) => b.createTime - a.createTime),
-  );
+  const sortedRecords = computed(() => [...records.value].sort((a, b) => b.createTime - a.createTime));
 
   const averageRating = computed(() => {
     if (!records.value.length) return "0.0";
-    const total = records.value.reduce((sum, record) => sum + record.rating, 0);
+    const total = records.value.reduce((sum: number, record: RecordItem) => sum + record.rating, 0);
     return (total / records.value.length).toFixed(1);
   });
 
   const totalQueries = computed(() =>
-    records.value.reduce((sum, record) => sum + record.queryCount, 0),
+    records.value.reduce((sum: number, record: RecordItem) => sum + record.queryCount, 0)
   );
 
   const canCreate = computed(() => {
@@ -66,7 +67,7 @@ export function useExFiles(t: (key: string) => string) {
     return recordContent.value.trim().length > 0 && rating >= 1 && rating <= 5;
   });
 
-  const statsData = computed<StatItem[]>(() => [
+  const statsData = computed<StatsDisplayItem[]>(() => [
     { label: t("totalRecords"), value: records.value.length, variant: "default" },
     { label: t("averageRating"), value: averageRating.value, variant: "accent" },
     { label: t("totalQueries"), value: totalQueries.value, variant: "default" },
@@ -103,21 +104,16 @@ export function useExFiles(t: (key: string) => string) {
     const ids = Array.from(
       new Set(
         res.events
-          .map((evt: Record<string, unknown>) => {
+          .map((evt) => {
             const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
             return Number(values[0] || 0);
           })
-          .filter((id: number) => id > 0),
-      ),
+          .filter((id: number) => id > 0)
+      )
     );
     const list: RecordItem[] = [];
     for (const id of ids) {
-      const recordRes = await invokeRead({
-        scriptHash: contractAddress.value as string,
-        operation: "getRecord",
-        args: [{ type: "Integer", value: id }],
-      });
-      const data = parseInvokeResult(recordRes);
+      const data = await read("getRecord", [{ type: "Integer", value: id }]);
       list.push(parseRecord(id, data));
     }
     records.value = list;
@@ -140,30 +136,16 @@ export function useExFiles(t: (key: string) => string) {
       return;
     }
     try {
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(t("connectWallet"));
-      }
-      await ensureContractAddress();
+      await ensureWallet();
       const hashHex = await sha256Hex(recordContent.value.trim());
-      const { receiptId, invoke } = await processPayment(CREATE_FEE, `create:${hashHex.slice(0, 8)}`);
-      if (!receiptId) {
-        throw new Error(t("receiptMissing"));
-      }
-      // Contract signature: CreateRecord(creator, dataHash, rating, category, receiptId)
-      await invoke(
-        "CreateRecord",
-        [
-          { type: "Hash160", value: address.value as string },
-          { type: "ByteArray", value: hashHex },
-          { type: "Integer", value: rating },
-          { type: "Integer", value: recordCategory.value },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contractAddress.value as string,
-      );
+
+      await invoke(CREATE_FEE, `create:${hashHex.slice(0, 8)}`, "CreateRecord", [
+        { type: "Hash160", value: address.value as string },
+        { type: "ByteArray", value: hashHex },
+        { type: "Integer", value: rating },
+        { type: "Integer", value: recordCategory.value },
+      ]);
+
       showStatus(t("recordCreated"), "success");
       recordContent.value = "";
       recordRating.value = "3";
@@ -177,40 +159,23 @@ export function useExFiles(t: (key: string) => string) {
   const queryRecord = async () => {
     if (!queryInput.value.trim() || isLoading.value) return;
     try {
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(t("connectWallet"));
-      }
-      await ensureContractAddress();
+      await ensureWallet();
       const input = queryInput.value.trim();
       const isHash = /^(0x)?[0-9a-fA-F]{64}$/.test(input);
       const hashHex = isHash ? input.replace(/^0x/, "") : await sha256Hex(input);
-      const { receiptId, invoke, waitForEvent } = await processPayment(QUERY_FEE, `query:${hashHex.slice(0, 8)}`);
-      if (!receiptId) {
-        throw new Error(t("receiptMissing"));
-      }
-      const tx = await invoke(
-        "queryByHash",
-        [
-          { type: "Hash160", value: address.value as string },
-          { type: "ByteArray", value: hashHex },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contractAddress.value as string,
-      );
-      const evt = await waitForEventByTransaction(tx, "RecordQueried", waitForEvent);
+
+      const { txid, waitForEvent } = await invoke(QUERY_FEE, `query:${hashHex.slice(0, 8)}`, "queryByHash", [
+        { type: "Hash160", value: address.value as string },
+        { type: "ByteArray", value: hashHex },
+      ]);
+
+      const evt = await waitForEvent(txid, "RecordQueried");
       if (evt) {
-        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+        const evtRecord = evt as unknown as Record<string, unknown>;
+        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
         const recordId = Number(values[0] || 0);
         if (recordId > 0) {
-          const recordRes = await invokeRead({
-            scriptHash: contractAddress.value as string,
-            operation: "getRecord",
-            args: [{ type: "Integer", value: recordId }],
-          });
-          const data = parseInvokeResult(recordRes);
+          const data = await read("getRecord", [{ type: "Integer", value: recordId }]);
           queryResult.value = parseRecord(recordId, data);
         }
       }

@@ -1,10 +1,12 @@
 <template>
-  <NeoCard variant="erobo" class="creator-studio">
-    <view class="studio-header">
-      <text class="title">{{ t("studioTitle") }}</text>
-      <text class="subtitle">{{ t("studioSubtitle") }}</text>
-    </view>
-
+  <FormCard
+    :title="t('studioTitle')"
+    :description="t('studioSubtitle')"
+    :submit-label="t('createMachineAction')"
+    :submit-loading="props.publishing"
+    :submit-disabled="!isValid || props.publishing"
+    @submit="publish"
+  >
     <view class="form-step">
       <text class="label">{{ t("machineNameLabel") }}</text>
       <NeoInput v-model="form.name" :placeholder="t('machineNamePlaceholder')" />
@@ -44,7 +46,14 @@
         <view v-for="(item, idx) in form.items" :key="idx" class="inventory-item">
           <view class="item-header">
             <text class="item-idx">#{{ idx + 1 }}</text>
-            <text class="remove-btn" role="button" tabindex="0" :aria-label="t('removeItem', { index: idx + 1 }) || `Remove item #${idx + 1}`" @click="removeItem(idx)">✕</text>
+            <text
+              class="remove-btn"
+              role="button"
+              tabindex="0"
+              :aria-label="t('removeItem', { index: idx + 1 }) || `Remove item #${idx + 1}`"
+              @click="removeItem(idx)"
+              >✕</text
+            >
           </view>
 
           <view class="item-inputs">
@@ -95,23 +104,12 @@
         {{ t("inventoryNote") }}
       </text>
     </view>
-
-    <NeoButton
-      variant="primary"
-      block
-      size="lg"
-      :disabled="!isValid || props.publishing"
-      :loading="props.publishing"
-      @click="publish"
-    >
-      {{ t("createMachineAction") }}
-    </NeoButton>
-  </NeoCard>
+  </FormCard>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { NeoInput, NeoButton, FormCard } from "@shared/components";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -241,33 +239,15 @@ const publish = () => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
-
-.studio-header {
-  margin-bottom: $spacing-4;
-  border-bottom: 1px solid var(--gacha-divider);
-  padding-bottom: $spacing-3;
-}
-
-.title {
-  font-size: 18px;
-  font-weight: 800;
-  display: block;
-}
-
-.subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
+@use "@shared/styles/mixins.scss" as *;
 
 .form-step {
   margin-bottom: $spacing-4;
 }
 
 .label {
+  @include stat-label;
   font-size: 11px;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  font-weight: 700;
   margin-bottom: 6px;
   display: block;
 }

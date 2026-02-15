@@ -5,15 +5,16 @@ import { toFixedDecimals, toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useContractAddress } from "@shared/composables/useContractAddress";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { messages } from "@/locale/messages";
 
-const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+const NEO_CONTRACT = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 
 export function useNeoburgerCore() {
   const { t } = createUseI18n(messages)();
   const { getAddress, invokeContract, getBalance, chainType } = useWallet() as WalletSDK;
   const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("contractUnavailable") : t(key),
+    key === "contractUnavailable" ? t("contractUnavailable") : t(key)
   );
 
   const neoBalance = ref(0);

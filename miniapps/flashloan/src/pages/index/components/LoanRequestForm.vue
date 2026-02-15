@@ -1,10 +1,24 @@
 <template>
   <NeoCard variant="erobo" class="loan-card">
     <view class="tabs" role="tablist">
-      <view :class="['tab', { active: activeTab === 'lookup' }]" role="tab" tabindex="0" :aria-selected="activeTab === 'lookup'" :aria-label="t('tabLookup')" @click="activeTab = 'lookup'">
+      <view
+        :class="['tab', { active: activeTab === 'lookup' }]"
+        role="tab"
+        tabindex="0"
+        :aria-selected="activeTab === 'lookup'"
+        :aria-label="t('tabLookup')"
+        @click="activeTab = 'lookup'"
+      >
         <text>{{ t("tabLookup") }}</text>
       </view>
-      <view :class="['tab', { active: activeTab === 'create' }]" role="tab" tabindex="0" :aria-selected="activeTab === 'create'" :aria-label="t('tabCreate')" @click="activeTab = 'create'">
+      <view
+        :class="['tab', { active: activeTab === 'create' }]"
+        role="tab"
+        tabindex="0"
+        :aria-selected="activeTab === 'create'"
+        :aria-label="t('tabCreate')"
+        @click="activeTab = 'create'"
+      >
         <text>{{ t("tabCreate") }}</text>
       </view>
     </view>
@@ -70,7 +84,7 @@
     <view v-if="activeTab === 'create'" class="tab-content">
       <view class="form-section">
         <text class="section-title">{{ t("requestLoanTitle") }}</text>
-        
+
         <view class="input-section">
           <NeoInput
             v-model="loanAmount"
@@ -101,12 +115,12 @@
           <text class="info-text">{{ t("flashloanInfo") }}</text>
         </view>
 
-        <NeoButton 
-          variant="primary" 
-          size="lg" 
-          block 
-          :loading="isCreating" 
-          @click="handleRequestLoan" 
+        <NeoButton
+          variant="primary"
+          size="lg"
+          block
+          :loading="isCreating"
+          @click="handleRequestLoan"
           class="execute-btn"
           :disabled="!canRequest"
         >
@@ -121,6 +135,8 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 export interface LoanDetails {
   id: string;
@@ -137,8 +153,9 @@ const props = defineProps<{
   loanId: string;
   loanDetails: LoanDetails | null;
   isLoading: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits(["update:loanId", "lookup", "request-loan"]);
 
@@ -157,9 +174,9 @@ const canRequest = computed(() => {
 
 const statusText = (status: LoanDetails["status"]) => {
   const map = {
-    pending: props.t("statusPending"),
-    success: props.t("statusSuccess"),
-    failed: props.t("statusFailed"),
+    pending: t("statusPending"),
+    success: t("statusSuccess"),
+    failed: t("statusFailed"),
   };
   return map[status] || status;
 };
@@ -182,6 +199,7 @@ const handleRequestLoan = async () => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .tabs {
   display: flex;
@@ -198,7 +216,7 @@ const handleRequestLoan = async () => {
   color: var(--text-secondary);
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  
+
   &.active {
     color: var(--text-primary);
     border-bottom-color: var(--flash-success);
@@ -237,11 +255,8 @@ const handleRequestLoan = async () => {
 }
 
 .status-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 0.1em;
 }
 
 .status-value {
@@ -276,9 +291,8 @@ const handleRequestLoan = async () => {
 }
 
 .empty-text {
-  font-size: 11px;
+  @include stat-label;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 

@@ -8,6 +8,7 @@ import { messages } from "@/locale/messages";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export type { StatusType, StatusMessage as Status } from "@shared/composables/useStatusMessage";
 export type Terms = { ltvPercent: number; minDurationHours: number };
@@ -180,10 +181,70 @@ export function useSelfLoanCore() {
     }
   };
 
-  const fetchBalance = async () => {
+  const loadBalance = async () => {
     if (!address.value) return;
     const neo = await getBalance("NEO");
     neoBalance.value = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
+  };
+
+  const takeLoan = async (onFetchData: () => Promise<void>, onError?: (e: unknown, retryable: boolean) => void) => {
+    if (isLoading.value) return;
+
+    const validation = validateCollateral(collateralAmount.value, neoBalance.value);
+    if (validation) {
+      setStatus(validation, "error");
+      return validation;
+    }
+
+    const collateral = Number(toFixedDecimals(collateralAmount.value, 0));
+    const ltvPercent = selectedLtvPercent.value;
+    const feeBps = platformFeeBps.value;
+    const grossBorrow = (collateral * ltvPercent) / 100;
+    const feeAmount = (grossBorrow * feeBps) / 10000;
+    const netBorrow = Math.max(grossBorrow - feeAmount, 0);
+
+    if (!address.value) {
+      try {
+        await connect();
+      } catch (e: unknown) {
+        handleError(e, { operation: "connectBeforeTakeLoan" });
+        setStatus(formatErrorMessage(e, t("error")), "error");
+        return;
+      }
+    }
+
+    if (!address.value) {
+      setStatus(t("connectWallet"), "error");
+      return;
+    }
+
+    isLoading.value = true;
+
+    try {
+      const selfLoanAddress = await ensureContractAddress();
+
+      await invokeContract({
+        scriptHash: selfLoanAddress,
+        operation: "CreateLoan",
+        args: [
+          { type: "Hash160", value: address.value },
+          { type: "Integer", value: collateral },
+          { type: "Integer", value: selectedTier.value },
+        ],
+      });
+
+      setStatus(t("loanApproved").replace("{amount}", fmt(netBorrow, 2)), "success");
+      collateralAmount.value = "";
+      await onFetchData();
+    } catch (e: unknown) {
+      handleError(e, { operation: "takeLoan", metadata: { collateral, tier: selectedTier.value } });
+      const userMsg = formatErrorMessage(e, t("error"));
+      const retryable = canRetry(e);
+      setStatus(userMsg, "error");
+      onError?.(e, retryable);
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   return {
@@ -210,19 +271,13 @@ export function useSelfLoanCore() {
     validateCollateral,
     loadLoanPosition,
     loadPlatformStats,
-    fetchBalance,
+    loadBalance,
+    takeLoan,
     fmt,
     t,
     handleError,
     getUserMessage,
     canRetry,
     APP_ID,
-    invokeContract,
-    invokeRead,
-    toNumber,
-    parseInvokeResult,
-    parseGas,
-    toFixedDecimals,
-    chainType,
   };
 }

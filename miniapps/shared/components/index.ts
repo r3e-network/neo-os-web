@@ -17,20 +17,6 @@
  */
 
 // ============================================================================
-// React Components (DEPRECATED - Will be removed in v3.0)
-// ============================================================================
-// These React components are kept for backward compatibility only.
-// All new development should use Vue components below.
-// Migration guide: Replace <Card /> with <NeoCard />, <Button /> with <NeoButton />, etc.
-//
-// @deprecated Legacy re-exports maintained for backward compatibility
-// export { Card } from "./Card";
-// export { StatBox } from "./StatBox";
-// export { StatsGrid } from "./StatsGrid";
-// export { Button } from "./Button";
-// export { Input } from "./Input";
-
-// ============================================================================
 // Vue Components - Layout
 // ============================================================================
 export { default as AppLayout } from "./AppLayout.vue";
@@ -48,10 +34,8 @@ export { default as NeoButton } from "./NeoButton.vue";
 export { default as NeoInput } from "./NeoInput.vue";
 export { default as NeoModal } from "./NeoModal.vue";
 export { default as NeoDoc } from "./NeoDoc.vue";
-export { default as NeoStats } from "./NeoStats.vue";
 export { default as GradientCard } from "./GradientCard.vue";
 export { default as ScrollReveal } from "./ScrollReveal.vue";
-export { default as BlurGlow } from "./BlurGlow.vue";
 
 // ============================================================================
 // Vue Components - Navigation
@@ -79,11 +63,26 @@ export { default as ErrorToast } from "./ErrorToast.vue";
 // ============================================================================
 export { default as MiniAppTemplate } from "./MiniAppTemplate.vue";
 export { default as MiniAppShell } from "./MiniAppShell.vue";
-export { default as MiniAppOperationStats } from "./MiniAppOperationStats.vue";
-export { default as MiniAppTabStats } from "./MiniAppTabStats.vue";
+export { default as MiniAppPage } from "./MiniAppPage.vue";
+
+// ============================================================================
+// Vue Components - Shared Primitives
+// ============================================================================
+export { default as StatsDisplay } from "./StatsDisplay.vue";
+export { default as StatsTab } from "./StatsTab.vue";
+export { default as ActionModal } from "./ActionModal.vue";
+export { default as ItemList } from "./ItemList.vue";
+export { default as FormCard } from "./FormCard.vue";
+export { default as HeroSection } from "./HeroSection.vue";
+export { default as CountdownTimer } from "./CountdownTimer.vue";
+export { default as StatusBadge } from "./StatusBadge.vue";
 
 // ============================================================================
 // Type Exports
 // ============================================================================
 export type { NavTab } from "./NavBar.vue";
 export type { CardVariant } from "./NeoCard.vue";
+export type { StatsDisplayItem, StatsDisplayLayout } from "./StatsDisplay.vue";
+export type { ActionModalVariant, ActionModalSize } from "./ActionModal.vue";
+export type { HeroVariant } from "./HeroSection.vue";
+export type { BadgeStatus } from "./StatusBadge.vue";

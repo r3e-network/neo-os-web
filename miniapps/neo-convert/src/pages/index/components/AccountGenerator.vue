@@ -3,7 +3,14 @@
     <NeoCard>
       <view class="header">
         <view class="brand">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
             <path d="M4 4H28V28H4V4Z" fill="#00E599" />
             <path
               d="M22.5 10L16.5 10L16.5 13.5L13.5 13.5L13.5 10L9.5 10L9.5 22L13.5 22L13.5 18.5L16.5 18.5L16.5 22L22.5 22L22.5 10Z"
@@ -29,7 +36,6 @@
         :show-secrets="showSecrets"
         :address-qr="addressQr"
         :wif-qr="wifQr"
-        :t="t"
         @copy="copy"
         @toggle-secrets="showSecrets = !showSecrets"
         @download-pdf="downloadPdf"
@@ -71,7 +77,7 @@ import { ref, onUnmounted } from "vue";
 import { NeoCard, NeoButton } from "@shared/components";
 import ScrollReveal from "@shared/components/ScrollReveal.vue";
 import AccountDetails from "./AccountDetails.vue";
-import { generateAccount, type NeoAccount } from "@/services/neo";
+import { generateAccount } from "@/services/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";

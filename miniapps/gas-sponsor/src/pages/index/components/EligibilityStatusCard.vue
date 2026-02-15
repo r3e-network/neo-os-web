@@ -19,13 +19,16 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   gasBalance: string;
   remainingQuota: number;
   userAddress: string;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
 </script>
@@ -34,7 +37,20 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.eligibility-check { display: flex; flex-direction: column; gap: $spacing-2; }
-.check-item { display: flex; align-items: center; gap: $spacing-2; font-size: 10px; font-weight: $font-weight-bold; }
-.check-icon { font-weight: $font-weight-black; color: var(--neo-green); }
+.eligibility-check {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  font-size: 10px;
+  font-weight: $font-weight-bold;
+}
+.check-icon {
+  font-weight: $font-weight-black;
+  color: var(--neo-green);
+}
 </style>

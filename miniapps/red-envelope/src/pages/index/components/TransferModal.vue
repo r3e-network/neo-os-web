@@ -1,47 +1,36 @@
 <template>
-  <view class="transfer-overlay" v-if="visible">
-    <view class="transfer-panel">
-      <view class="panel-header">
-        <text class="panel-title">{{ t("transferEnvelope") }}</text>
-        <NeoButton variant="ghost" size="sm" @click="$emit('close')">✕</NeoButton>
-      </view>
-
-      <view class="envelope-info">
-        <text class="info-label">🧧 #{{ envelope?.id }}</text>
-        <text class="info-amount">{{ envelope?.totalAmount }} GAS</text>
-      </view>
-
-      <view class="input-section">
-        <NeoInput
-          :modelValue="recipient"
-          @update:modelValue="recipient = $event"
-          :placeholder="t('recipientAddress')"
-        />
-      </view>
-
-      <view v-if="errorMsg" class="error-msg">
-        <text>{{ errorMsg }}</text>
-      </view>
-
-      <view class="panel-actions">
-        <NeoButton
-          variant="primary"
-          size="lg"
-          block
-          :loading="transferring"
-          :disabled="!recipient.trim()"
-          @click="handleTransfer"
-        >
-          {{ t("transferEnvelope") }}
-        </NeoButton>
-      </view>
+  <ActionModal :visible="visible" :title="t('transferEnvelope')" :closeable="true" @close="$emit('close')">
+    <view class="envelope-info">
+      <text class="info-label">🧧 #{{ envelope?.id }}</text>
+      <text class="info-amount">{{ envelope?.totalAmount }} GAS</text>
     </view>
-  </view>
+
+    <view class="input-section">
+      <NeoInput :modelValue="recipient" @update:modelValue="recipient = $event" :placeholder="t('recipientAddress')" />
+    </view>
+
+    <view v-if="errorMsg" class="error-msg">
+      <text>{{ errorMsg }}</text>
+    </view>
+
+    <template #actions>
+      <NeoButton
+        variant="primary"
+        size="lg"
+        block
+        :loading="transferring"
+        :disabled="!recipient.trim()"
+        @click="handleTransfer"
+      >
+        {{ t("transferEnvelope") }}
+      </NeoButton>
+    </template>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { NeoButton, NeoInput } from "@shared/components";
+import { ActionModal, NeoButton, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 

@@ -20,7 +20,13 @@
         <view v-if="photo.encrypted" class="lock-icon" aria-hidden="true">{{ t("encrypted") }}</view>
       </view>
 
-      <view class="photo-item placeholder" role="button" tabindex="0" :aria-label="t('addPhoto')" @click="$emit('upload')">
+      <view
+        class="photo-item placeholder"
+        role="button"
+        tabindex="0"
+        :aria-label="t('addPhoto')"
+        @click="$emit('upload')"
+      >
         <text class="plus-icon" aria-hidden="true">+</text>
         <text class="add-label">{{ t("addPhoto") }}</text>
       </view>
@@ -35,13 +41,16 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { PhotoItem } from "@/types";
 
 defineProps<{
-  t: (key: string) => string;
   photos: PhotoItem[];
   loading: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   (e: "view", photo: PhotoItem): void;
@@ -50,13 +59,12 @@ defineEmits<{
 </script>
 
 <style scoped lang="scss">
+@use "@shared/styles/mixins.scss" as *;
 .gallery-card {
   padding: 16px;
 }
 .gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  @include grid-layout(3, 12px);
 }
 .photo-item {
   aspect-ratio: 1 / 1;

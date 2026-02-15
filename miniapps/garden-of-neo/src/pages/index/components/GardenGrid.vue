@@ -54,15 +54,14 @@ const getGrowthStage = (growth: number): string => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .garden-card-glass {
   margin-bottom: $spacing-6;
 }
 
 .garden-grid-glass {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-4;
+  @include grid-layout(3, $spacing-4);
   padding: $spacing-2;
 }
 

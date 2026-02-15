@@ -51,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { NeoCard } from "@shared/components";
 
 export interface RecordItem {
   id: number;

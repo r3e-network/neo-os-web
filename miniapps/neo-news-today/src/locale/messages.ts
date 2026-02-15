@@ -1,13 +1,14 @@
-export const messages = {
-    // App translations
-title: { en: "Neo News Today", zh: "Neo今日新闻" },
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  // App translations
+  title: { en: "Neo News Today", zh: "Neo今日新闻" },
   tagline: { en: "Latest Neo Ecosystem News", zh: "Neo生态最新资讯" },
   loading: { en: "Loading articles...", zh: "加载文章中..." },
   noArticles: { en: "No articles available", zh: "暂无文章" },
   loadFailed: { en: "Unable to load articles", zh: "文章加载失败" },
   readMore: { en: "Read Report", zh: "阅读报告" },
   news: { en: "News", zh: "新闻" },
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: { en: "Daily digest for the Neo ecosystem", zh: "Neo 生态每日快讯" },
   docDescription: {
     en: "Neo News Today (NNT) delivers curated news, interviews, and events from the Neo ecosystem. Track releases, dApp launches, and community initiatives in one place without leaving your wallet.",
@@ -23,25 +24,14 @@ title: { en: "Neo News Today", zh: "Neo今日新闻" },
   feature2Desc: { en: "Highlighting developers and projects.", zh: "聚焦开发者和项目。" },
   feature3Name: { en: "Curated Feed", zh: "精选信息流" },
   feature3Desc: { en: "Daily highlights in a streamlined view.", zh: "每日重点内容一页查看。" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
-    articles: { en: "Articles", zh: "文章" },
-    latest: { en: "Latest", zh: "最新" },
-    status: { en: "Status", zh: "状态" },
-    ready: { en: "Ready", zh: "就绪" },
-    articleImage: { en: "Article image", zh: "文章图片" },
-    feedStatus: { en: "Feed Status", zh: "信息流状态" },
-    refreshFeed: { en: "Refresh Feed", zh: "刷新信息流" },
-    overview: { en: "Overview", zh: "概览" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-    wrongChain: { en: "Wrong Network", zh: "网络错误" },
-    wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-    switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    error: { en: "Error", zh: "错误" }
-};
+  articles: { en: "Articles", zh: "文章" },
+  latest: { en: "Latest", zh: "最新" },
+  status: { en: "Status", zh: "状态" },
+  ready: { en: "Ready", zh: "就绪" },
+  articleImage: { en: "Article image", zh: "文章图片" },
+  articleDetail: { en: "Article Detail", zh: "文章详情" },
+  feedStatus: { en: "Feed Status", zh: "信息流状态" },
+  refreshFeed: { en: "Refresh Feed", zh: "刷新信息流" },
+} as const;
+
+export const messages = mergeMessages(appMessages);

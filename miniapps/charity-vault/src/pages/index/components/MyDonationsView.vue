@@ -32,15 +32,18 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { Donation } from "@/types";
 
 interface Props {
   donations: Donation[];
   totalDonated: number;
-  t: (key: string) => string;
 }
 
 const props = defineProps<Props>();
+
+const { t } = createUseI18n(messages)();
 
 const sortedDonations = computed(() => {
   return [...props.donations].sort((a, b) => b.timestamp - a.timestamp);

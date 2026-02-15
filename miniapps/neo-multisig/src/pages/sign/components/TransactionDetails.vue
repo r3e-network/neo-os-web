@@ -3,7 +3,15 @@
     <text class="card-title">{{ t("detailsTitle") }}</text>
     <view class="detail-row">
       <text class="label">{{ t("detailId") }}</text>
-      <text class="value copy" role="button" :aria-label="t('copy')" tabindex="0" @click="$emit('copy', request.id)" @keydown.enter="$emit('copy', request.id)">{{ request.id }} ({{ t("copy") }})</text>
+      <text
+        class="value copy"
+        role="button"
+        :aria-label="t('copy')"
+        tabindex="0"
+        @click="$emit('copy', request.id)"
+        @keydown.enter="$emit('copy', request.id)"
+        >{{ request.id }} ({{ t("copy") }})</text
+      >
     </view>
     <view class="detail-row">
       <text class="label">{{ t("detailMemo") }}</text>
@@ -22,13 +30,16 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { MultisigRequest } from "../../../services/api";
 
 defineProps<{
-  t: (key: string) => string;
   request: MultisigRequest;
   chainLabel: string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   copy: [value: string];

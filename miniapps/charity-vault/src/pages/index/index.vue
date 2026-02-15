@@ -1,113 +1,118 @@
 <template>
-  <view class="theme-charity-vault">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="statusMessage"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- LEFT panel: Campaign List -->
-      <template #content>
-        
-          <!-- Category Filter -->
-          <view class="category-filter">
-            <scroll-view scroll-x class="category-scroll">
-              <view
-                v-for="cat in categories"
-                :key="cat.id"
-                class="category-chip"
-                :class="{ active: selectedCategory === cat.id }"
-                @click="selectedCategory = cat.id"
-              >
-                <text>{{ cat.label }}</text>
-              </view>
-            </scroll-view>
+  <MiniAppPage
+    name="charity-vault"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="statusMessage"
+    @tab-change="activeTab = $event"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="init"
+  >
+    <!-- LEFT panel: Campaign List -->
+    <template #content>
+      <!-- Category Filter -->
+      <view class="category-filter">
+        <scroll-view scroll-x class="category-scroll">
+          <view
+            v-for="cat in categories"
+            :key="cat.id"
+            class="category-chip"
+            :class="{ active: selectedCategory === cat.id }"
+            @click="selectedCategory = cat.id"
+          >
+            <text>{{ cat.label }}</text>
           </view>
+        </scroll-view>
+      </view>
 
-          <!-- Campaign List -->
-          <view class="campaign-list">
-            <view v-if="loadingCampaigns" class="loading-state">
-              <text>{{ t("loading") }}</text>
-            </view>
-            <view v-else-if="filteredCampaigns.length === 0" class="empty-state">
-              <text>{{ t("noCampaigns") }}</text>
-            </view>
-            <CampaignCard
-              v-else
-              v-for="campaign in filteredCampaigns"
-              :key="campaign.id"
-              :campaign="campaign"
-              :t="t as (key: string) => string"
-              @click="selectCampaign(campaign)"
-            />
-          </view>
-        
-      </template>
-
-      <!-- RIGHT panel: Actions -->
-      <template #operation>
-        <MiniAppOperationStats variant="erobo" :title="t('quickActions')" :stats="charityStats" stats-position="bottom">
-          <view class="action-buttons">
-            <NeoButton variant="primary" size="lg" block @click="activeTab = 'create'">
-              {{ t("create") }}
-            </NeoButton>
-            <NeoButton variant="secondary" size="lg" block @click="activeTab = 'my-donations'">
-              {{ t("myDonationsTab") }}
-            </NeoButton>
-          </view>
-        </MiniAppOperationStats>
-      </template>
-
-      <template #tab-donate>
-        <CampaignDetail
-          v-if="selectedCampaign"
-          :campaign="selectedCampaign"
-          :recent-donations="recentDonations"
-          :is-donating="isDonating"
-          :t="t as (key: string) => string"
-          @donate="makeDonation"
-          @back="
-            activeTab = 'campaigns';
-            selectedCampaign = null;
-          "
+      <!-- Campaign List -->
+      <view class="campaign-list">
+        <view v-if="loadingCampaigns" class="loading-state" role="status" aria-live="polite">
+          <text>{{ t("loading") }}</text>
+        </view>
+        <view v-else-if="filteredCampaigns.length === 0" class="empty-state" role="status">
+          <text>{{ t("noCampaigns") }}</text>
+        </view>
+        <CampaignCard
+          v-else
+          v-for="campaign in filteredCampaigns"
+          :key="campaign.id"
+          :campaign="campaign"
+          @click="selectCampaign(campaign)"
         />
-      </template>
+      </view>
+    </template>
 
-      <template #tab-my-donations>
-        <MyDonationsView :donations="myDonations" :total-donated="totalDonated" :t="t as (key: string) => string" />
-      </template>
+    <!-- RIGHT panel: Actions -->
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('quickActions')">
+        <view class="action-buttons">
+          <NeoButton variant="primary" size="lg" block @click="activeTab = 'create'">
+            {{ t("create") }}
+          </NeoButton>
+          <NeoButton variant="secondary" size="lg" block @click="activeTab = 'my-donations'">
+            {{ t("myDonationsTab") }}
+          </NeoButton>
+        </view>
+        <StatsDisplay :items="charityStats" layout="rows" />
+      </NeoCard>
+    </template>
 
-      <template #tab-create>
-        <CreateCampaignForm
-          :is-creating="isCreating"
-          :t="t as (key: string) => string"
-          @submit="handleCreateCampaign"
-        />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #tab-donate>
+      <CampaignDetail
+        v-if="selectedCampaign"
+        :campaign="selectedCampaign"
+        :recent-donations="recentDonations"
+        :is-donating="isDonating"
+        @donate="makeDonation"
+        @back="
+          activeTab = 'campaigns';
+          selectedCampaign = null;
+        "
+      />
+    </template>
+
+    <template #tab-my-donations>
+      <MyDonationsView :donations="myDonations" :total-donated="totalDonated" />
+    </template>
+
+    <template #tab-create>
+      <CreateCampaignForm :is-creating="isCreating" @submit="handleCreateCampaign" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, MiniAppOperationStats, NeoButton } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
 import CampaignCard from "./components/CampaignCard.vue";
-import CampaignDetail from "./components/CampaignDetail.vue";
-import MyDonationsView from "./components/MyDonationsView.vue";
-import CreateCampaignForm from "./components/CreateCampaignForm.vue";
 import { useCharityContract } from "@/composables/useCharityContract";
 import type { CharityCampaign } from "@/types";
 
-const { t } = createUseI18n(messages)();
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "charity-vault",
+  messages,
+  template: {
+    tabs: [
+      { key: "campaigns", labelKey: "campaigns", icon: "❤️", default: true },
+      { key: "donate", labelKey: "myDonationsTab", icon: "💰" },
+      { key: "my-donations", labelKey: "myDonationsTab", icon: "📋" },
+      { key: "create", labelKey: "create", icon: "➕" },
+    ],
+    docFeatureCount: 4,
+  },
+  sidebarItems: [
+    { labelKey: "campaigns", value: () => campaigns.value.length },
+    { labelKey: "myDonations", value: () => myDonations.value.length },
+    { labelKey: "totalRaised", value: () => `${totalRaised.value.toFixed(2)} GAS` },
+  ],
+});
 
 const {
   selectedCampaign,
@@ -130,23 +135,7 @@ const {
 
 const statusMessage = computed(() => (errorMessage.value ? { msg: errorMessage.value, type: "error" as const } : null));
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "campaigns", labelKey: "campaigns", icon: "❤️", default: true },
-    { key: "donate", labelKey: "myDonationsTab", icon: "💰" },
-    { key: "my-donations", labelKey: "myDonationsTab", icon: "📋" },
-    { key: "create", labelKey: "create", icon: "➕" },
-  ],
-  docFeatureCount: 4,
-});
-
 const activeTab = ref("campaigns");
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "campaigns", value: () => campaigns.value.length },
-  { labelKey: "myDonations", value: () => myDonations.value.length },
-  { labelKey: "totalRaised", value: () => `${totalRaised.value.toFixed(2)} GAS` },
-]);
 
 const appState = computed(() => ({
   campaignCount: campaigns.value.length,
@@ -193,11 +182,6 @@ const handleCreateCampaign = async (data: {
   if (success) {
     activeTab.value = "campaigns";
   }
-};
-
-const { handleBoundaryError } = useHandleBoundaryError("charity-vault");
-const resetAndReload = async () => {
-  await init();
 };
 
 // Initialize

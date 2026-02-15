@@ -2,10 +2,10 @@
   <view v-if="luckyMessage" class="lucky-overlay" aria-hidden="true" @click="$emit('close')">
     <view class="lucky-card-glass" role="dialog" aria-modal="true" :aria-label="t('congratulations')" @click.stop>
       <view class="card-glow"></view>
-      
+
       <view class="lucky-content">
         <text class="lucky-header">🎉 {{ t("congratulations") }} 🎉</text>
-        
+
         <view class="amount-circle">
           <view class="amount-inner">
             <text class="lucky-amount">{{ luckyMessage.amount }}</text>
@@ -24,7 +24,12 @@
       </view>
 
       <view class="coins-rain">
-        <view v-for="i in 15" :key="i" class="coin-item" :style="{ animationDelay: `${Math.random() * 2}s`, left: `${Math.random() * 100}%` }">
+        <view
+          v-for="i in 15"
+          :key="i"
+          class="coin-item"
+          :style="{ animationDelay: `${Math.random() * 2}s`, left: `${Math.random() * 100}%` }"
+        >
           <AppIcon name="money" :size="24" class="text-gold" />
         </view>
       </view>
@@ -34,11 +39,14 @@
 
 <script setup lang="ts">
 import { AppIcon, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   luckyMessage: { amount: number; from: string } | null;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["close"]);
 </script>
@@ -46,6 +54,7 @@ defineEmits(["close"]);
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .lucky-overlay {
   position: fixed;
@@ -67,13 +76,17 @@ defineEmits(["close"]);
   border: 1px solid rgba(255, 69, 58, 0.3);
   border-radius: 32px;
   overflow: hidden;
-  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(220, 38, 38, 0.2);
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.8),
+    0 0 40px rgba(220, 38, 38, 0.2);
   animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .card-glow {
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 200px;
   background: radial-gradient(circle at top center, rgba(239, 68, 68, 0.4) 0%, transparent 70%);
   pointer-events: none;
@@ -89,11 +102,10 @@ defineEmits(["close"]);
 }
 
 .lucky-header {
+  @include stat-label;
   font-size: 18px;
   font-weight: 800;
   color: var(--red-envelope-gold-warm);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   margin-bottom: 32px;
   text-shadow: 0 0 15px rgba(253, 224, 71, 0.4);
 }
@@ -110,9 +122,9 @@ defineEmits(["close"]);
   margin-bottom: 32px;
   box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
   position: relative;
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: -10px;
     border-radius: 50%;
@@ -193,22 +205,42 @@ defineEmits(["close"]);
 }
 
 @keyframes rain {
-  0% { transform: translateY(0) rotate(0deg); }
-  100% { transform: translateY(500px) rotate(360deg); }
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(500px) rotate(360deg);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.5; }
-  100% { transform: scale(1.2); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
 }
 </style>

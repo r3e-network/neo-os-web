@@ -1,19 +1,18 @@
 import { ref, computed } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
 import { formatGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { useContractAddress } from "@shared/composables/useContractAddress";
-import { parseInvokeResult, normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
+import { normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import type { Machine, MachineItem } from "@/types";
 
+const APP_ID = "miniapp-neo-gacha";
+
 export function useGachaMachines() {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
-  const { address, invokeRead } = useWallet() as WalletSDK;
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
+  const { address, contractAddress, ensureContractAddress, read } = useContractInteraction({ appId: APP_ID, t });
 
   const machines = ref<Machine[]>([]);
   const selectedMachine = ref<Machine | null>(null);
@@ -68,12 +67,14 @@ export function useGachaMachines() {
   const fetchMachineItems = async (contract: string, machineId: number, itemCount: number) => {
     const items: MachineItem[] = [];
     for (let index = 1; index <= itemCount; index++) {
-      const itemRes = await invokeRead({
-        scriptHash: contract,
-        operation: "GetMachineItem",
-        args: [{ type: "Integer", value: String(machineId) }, { type: "Integer", value: String(index) }],
-      });
-      const itemMap = parseInvokeResult(itemRes) as Record<string, unknown> | null;
+      const itemMap = (await read(
+        "GetMachineItem",
+        [
+          { type: "Integer", value: String(machineId) },
+          { type: "Integer", value: String(index) },
+        ],
+        contract
+      )) as Record<string, unknown> | null;
       if (!itemMap || typeof itemMap !== "object") continue;
       const decimals = numberFrom(itemMap.decimals);
       const amountRaw = numberFrom(itemMap.amount);
@@ -100,17 +101,22 @@ export function useGachaMachines() {
     return items;
   };
 
-  const fetchMachines = async () => {
+  const loadMachines = async () => {
     isLoadingMachines.value = true;
     try {
       const contract = await ensureContractAddress();
-      if (!contract) { machines.value = []; return; }
-      const totalRes = await invokeRead({ scriptHash: contract, operation: "TotalMachines" });
-      const total = numberFrom(parseInvokeResult(totalRes));
+      if (!contract) {
+        machines.value = [];
+        return;
+      }
+      const total = numberFrom(await read("TotalMachines", [], contract));
       const loaded: Machine[] = [];
       for (let machineId = 1; machineId <= total; machineId++) {
-        const machineRes = await invokeRead({ scriptHash: contract, operation: "GetMachine", args: [{ type: "Integer", value: String(machineId) }] });
-        const machineMap = parseInvokeResult(machineRes) as Record<string, unknown> | null;
+        const machineMap = (await read(
+          "GetMachine",
+          [{ type: "Integer", value: String(machineId) }],
+          contract
+        )) as Record<string, unknown> | null;
         if (!machineMap || typeof machineMap !== "object" || !machineMap.name) continue;
         const itemCount = numberFrom(machineMap.itemCount);
         const items = await fetchMachineItems(contract, machineId, itemCount);
@@ -118,10 +124,18 @@ export function useGachaMachines() {
         const availableWeight = availableItems.reduce((sum, item) => sum + item.probability, 0);
         const normalizedItems = items.map((item) => {
           const available = isItemAvailable(item);
-          const displayProbability = availableWeight > 0 && available ? Number(((item.probability / availableWeight) * 100).toFixed(2)) : 0;
+          const displayProbability =
+            availableWeight > 0 && available ? Number(((item.probability / availableWeight) * 100).toFixed(2)) : 0;
           return { ...item, available, displayProbability };
         });
-        const topItem = availableItems.length ? availableItems.reduce((prev, curr) => (curr.probability < prev.probability ? curr : prev), availableItems[0]) : items.length ? items[0] : null;
+        const topItem = availableItems.length
+          ? availableItems.reduce(
+              (prev, curr) => (curr.probability < prev.probability ? curr : prev),
+              availableItems[0]
+            )
+          : items.length
+            ? items[0]
+            : null;
         const creatorHash = normalizeScriptHash(String(machineMap.creator || ""));
         const ownerHash = normalizeScriptHash(String(machineMap.owner || ""));
         const salePriceRaw = numberFrom(machineMap.salePrice);
@@ -170,7 +184,7 @@ export function useGachaMachines() {
         selectedMachine.value = updated;
       }
     } catch (e: unknown) {
-      handleError(e, { operation: "fetchMachines" });
+      handleError(e, { operation: "loadMachines" });
     } finally {
       isLoadingMachines.value = false;
     }
@@ -192,7 +206,7 @@ export function useGachaMachines() {
     actionLoading,
     walletHash,
     ensureContractAddress,
-    fetchMachines,
+    loadMachines,
     selectMachine,
     setActionLoading,
     numberFrom,
@@ -201,7 +215,7 @@ export function useGachaMachines() {
     toFixedDecimals,
     parseTags,
     isItemAvailable,
-    invokeRead,
+    read,
     address,
     handleError,
     t,

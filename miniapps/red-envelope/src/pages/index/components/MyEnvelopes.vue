@@ -141,13 +141,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { EnvelopeItem, ClaimItem } from "@/composables/useRedEnvelopeOpen";
 
 const props = defineProps<{
   envelopes: EnvelopeItem[];
   claims: ClaimItem[];
   currentAddress: string;
-  t: (key: string) => string;
 }>();
 
 defineEmits<{
@@ -159,10 +160,10 @@ defineEmits<{
   "reclaim-pool": [pool: EnvelopeItem];
 }>();
 
-const t = props.t;
+const { t } = createUseI18n(messages)();
 
 const spreadingEnvelopes = computed(() =>
-  props.envelopes.filter((e) => e.type === "spreading" && e.currentHolder === props.currentAddress),
+  props.envelopes.filter((e) => e.type === "spreading" && e.currentHolder === props.currentAddress)
 );
 
 const myPools = computed(() => props.envelopes.filter((e) => e.type === "lucky" && e.creator === props.currentAddress));

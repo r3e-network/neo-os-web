@@ -1,4 +1,6 @@
-:global(.theme-neo-gacha) {
+@use "@shared/styles/mixins.scss" as *;
+
+@include theme-dark("neo-gacha") {
   --gacha-bg: #0b0b12;
   --gacha-surface: rgba(14, 16, 24, 0.9);
   --gacha-surface-alt: rgba(255, 255, 255, 0.05);
@@ -51,11 +53,9 @@
   --text-secondary: rgba(231, 232, 246, 0.72);
   --text-muted: rgba(196, 197, 219, 0.6);
   --border-color: var(--gacha-panel-border);
-  --shadow-color: rgba(0, 0, 0, 0.35);
 }
 
-:global(.theme-light .theme-neo-gacha),
-:global([data-theme="light"] .theme-neo-gacha) {
+@include theme-light("neo-gacha") {
   --gacha-bg: #f7f3ff;
   --gacha-surface: rgba(255, 255, 255, 0.92);
   --gacha-surface-alt: rgba(255, 255, 255, 0.7);

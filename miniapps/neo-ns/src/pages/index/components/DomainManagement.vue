@@ -21,12 +21,15 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { Domain } from "@/types";
 
 defineProps<{
-  t: (key: string) => string;
   domains: Domain[];
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   (e: "manage", domain: Domain): void;

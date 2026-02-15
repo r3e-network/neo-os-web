@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   appTitle: { en: "Neo Sign Anything", zh: "Neo 任意签" },
   home: { en: "Home", zh: "首页" },
   signTitle: { en: "Sign Anything", zh: "任意签" },
@@ -13,7 +15,6 @@ export const messages = {
   broadcastBtn: { en: "Broadcast Message (On-chain)", zh: "广播信息 (上链)" },
   signatureResult: { en: "Signature", zh: "签名结果" },
   broadcastResult: { en: "Transaction Hash", zh: "交易哈希" },
-  copy: { en: "Copy", zh: "复制" },
   copySuccess: { en: "Copied", zh: "已复制" },
   connectWallet: { en: "Please connect your wallet to proceed.", zh: "请连接钱包以继续。" },
   broadcastSuccess: { en: "Message broadcasted successfully!", zh: "信息广播成功！" },
@@ -119,4 +120,4 @@ export const messages = {
   },
 } as const;
 
-export default messages;
+export const messages = mergeMessages(appMessages);

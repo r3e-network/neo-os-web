@@ -1,5 +1,5 @@
 <template>
-  <NeoModal :visible="visible" :title="t('sharePhoto')" :closeable="true" @close="$emit('close')">
+  <ActionModal :visible="visible" :title="t('sharePhoto')" @close="$emit('close')">
     <view class="share-body">
       <view class="share-preview" v-if="photo">
         <image :src="photo.data" mode="aspectFill" class="share-thumb" :alt="t('sharePreviewImage')" />
@@ -9,11 +9,25 @@
       <view class="share-options">
         <text class="options-title">{{ t("shareOptions") }}</text>
         <view class="option-list" role="radiogroup" :aria-label="t('shareOptions')">
-          <view class="option-item" role="radio" tabindex="0" :aria-checked="shareMethod === 'link'" :aria-label="t('shareViaLink')" @click="shareMethod = 'link'">
+          <view
+            class="option-item"
+            role="radio"
+            tabindex="0"
+            :aria-checked="shareMethod === 'link'"
+            :aria-label="t('shareViaLink')"
+            @click="shareMethod = 'link'"
+          >
             <view :class="['option-radio', { active: shareMethod === 'link' }]" aria-hidden="true"></view>
             <text class="option-label">{{ t("shareViaLink") }}</text>
           </view>
-          <view class="option-item" role="radio" tabindex="0" :aria-checked="shareMethod === 'address'" :aria-label="t('shareToAddress')" @click="shareMethod = 'address'">
+          <view
+            class="option-item"
+            role="radio"
+            tabindex="0"
+            :aria-checked="shareMethod === 'address'"
+            :aria-label="t('shareToAddress')"
+            @click="shareMethod = 'address'"
+          >
             <view :class="['option-radio', { active: shareMethod === 'address' }]" aria-hidden="true"></view>
             <text class="option-label">{{ t("shareToAddress") }}</text>
           </view>
@@ -29,7 +43,7 @@
       </view>
     </view>
 
-    <template #footer>
+    <template #actions>
       <NeoButton size="sm" variant="ghost" @click="$emit('close')">
         {{ t("cancel") }}
       </NeoButton>
@@ -37,20 +51,23 @@
         {{ sharing ? t("sharing") : t("confirmShare") }}
       </NeoButton>
     </template>
-  </NeoModal>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { NeoModal, NeoButton, NeoInput } from "@shared/components";
+import { ActionModal, NeoButton, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { PhotoItem } from "@/types";
 
 const props = defineProps<{
-  t: (key: string) => string;
   visible: boolean;
   photo: PhotoItem | null;
   sharing: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -67,6 +84,7 @@ const handleShare = () => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
 .share-body {
   display: flex;
   flex-direction: column;

@@ -1,19 +1,34 @@
 import { ref, computed } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { parseInvokeResult } from "@shared/utils/neo";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { PredictionMarket, MarketFilters } from "@/types";
 
 export type { PredictionMarket, MarketFilters };
 
-export function usePredictionMarkets() {
-  const { address, invokeRead } = useWallet() as WalletSDK;
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) => {
-    if (key === "wrongChain") return "Wrong chain";
-    if (key === "contractUnavailable") return "Contract unavailable";
-    return key;
+const APP_ID = "miniapp-prediction-market";
+
+export interface UsePredictionMarketsReturn {
+  markets: ReturnType<typeof ref<PredictionMarket[]>>;
+  filteredMarkets: ReturnType<typeof computed<PredictionMarket[]>>;
+  categories: ReturnType<typeof computed<{ id: string; label: string }[]>>;
+  loadingMarkets: ReturnType<typeof ref<boolean>>;
+  totalVolume: ReturnType<typeof computed<number>>;
+  activeTraders: ReturnType<typeof ref<number>>;
+  error: ReturnType<typeof ref<string | null>>;
+  filters: ReturnType<typeof ref<MarketFilters>>;
+  getCategoryCount: (catId: string) => number;
+  loadMarkets: () => Promise<void>;
+  setCategory: (cat: string) => void;
+  toggleSort: () => void;
+}
+
+export function usePredictionMarkets(): UsePredictionMarketsReturn {
+  const { t } = createUseI18n(messages)();
+  const { read } = useContractInteraction({
+    appId: APP_ID,
+    t,
   });
 
   const markets = ref<PredictionMarket[]>([]);
@@ -65,19 +80,12 @@ export function usePredictionMarkets() {
     return result;
   });
 
-  const loadMarkets = async (t: Function) => {
+  const loadMarkets = async () => {
     loadingMarkets.value = true;
     error.value = null;
 
     try {
-      const contract = await ensureContractAddress();
-      const res = await invokeRead({
-        scriptHash: contract,
-        operation: "getMarkets",
-        args: [{ type: "Integer", value: "50" }],
-      });
-
-      const parsed = parseInvokeResult(res);
+      const parsed = await read("getMarkets", [{ type: "Integer", value: "50" }]);
       if (Array.isArray(parsed)) {
         markets.value = parsed.map((m: Record<string, unknown>) => ({
           id: Number(m.id),
@@ -97,12 +105,7 @@ export function usePredictionMarkets() {
       }
 
       // Load active traders count
-      const tradersRes = await invokeRead({
-        scriptHash: contract,
-        operation: "getActiveTraderCount",
-        args: [],
-      });
-      activeTraders.value = Number(parseInvokeResult(tradersRes) || 0);
+      activeTraders.value = Number((await read("getActiveTraderCount", [])) || 0);
     } catch (e: unknown) {
       error.value = formatErrorMessage(e, "Failed to load markets");
       // Fallback to mock data

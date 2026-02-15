@@ -13,10 +13,10 @@
       <text class="stat-label">{{ t("activeTraders") }}</text>
       <text class="stat-value">{{ activeTraders }}</text>
     </view>
-    
+
     <text class="stats-title categories-title">{{ t("categories") }}</text>
-    <view 
-      v-for="cat in categories" 
+    <view
+      v-for="cat in categories"
       :key="cat.id"
       class="category-item"
       :class="{ active: selectedCategory === cat.id }"
@@ -29,7 +29,11 @@
 </template>
 
 <script setup lang="ts">
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { Category } from "@/types";
+
+const { t } = createUseI18n(messages)();
 
 interface Props {
   totalMarkets: number;
@@ -37,7 +41,6 @@ interface Props {
   activeTraders: number;
   categories: Category[];
   selectedCategory: string;
-  t: Function;
   getCategoryCount: (id: string) => number;
   formatCurrency: (value: number) => string;
 }
@@ -72,7 +75,7 @@ defineEmits<{
   justify-content: space-between;
   padding: 12px 0;
   border-bottom: 1px solid var(--pm-border);
-  
+
   &:last-child {
     border-bottom: none;
   }
@@ -97,14 +100,14 @@ defineEmits<{
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.05);
   }
-  
+
   &.active {
     background: rgba(99, 102, 241, 0.2);
-    
+
     .category-name {
       color: var(--pm-primary);
     }

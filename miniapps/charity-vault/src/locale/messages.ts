@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   // App translations
   title: { en: "Charity Vault", zh: "慈善金库" },
   campaigns: { en: "Campaigns", zh: "活动" },
@@ -59,7 +61,6 @@ export const messages = {
   donationSuccess: { en: "Donation successful!", zh: "捐赠成功！" },
   donationPending: { en: "Processing donation...", zh: "正在处理捐赠..." },
   donationFailed: { en: "Donation failed", zh: "捐赠失败" },
-  insufficientBalance: { en: "Insufficient balance", zh: "余额不足" },
   invalidAmount: { en: "Invalid amount", zh: "无效金额" },
   minimumDonation: { en: "Minimum donation: 0.1 GAS", zh: "最小捐赠：0.1 GAS" },
 
@@ -190,4 +191,6 @@ export const messages = {
     zh: "接收关于捐赠如何使用的可验证报告。",
   },
 
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

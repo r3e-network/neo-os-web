@@ -1,5 +1,15 @@
 <template>
-  <NeoModal :visible="visible" :title="t('issueTitle')" :closeable="true" @close="$emit('close')">
+  <ActionModal
+    :visible="visible"
+    :title="t('issueTitle')"
+    :closeable="true"
+    :confirm-label="loading ? t('issuing') : t('issue')"
+    :cancel-label="t('cancel')"
+    :confirm-loading="loading"
+    @close="$emit('close')"
+    @cancel="$emit('close')"
+    @confirm="handleIssue"
+  >
     <view class="form-group">
       <NeoInput
         :model-value="localForm.recipient"
@@ -26,21 +36,12 @@
         :placeholder="t('memoPlaceholder')"
       />
     </view>
-
-    <template #footer>
-      <NeoButton size="sm" variant="secondary" @click="$emit('close')">
-        {{ t("cancel") }}
-      </NeoButton>
-      <NeoButton size="sm" variant="primary" :loading="loading" @click="handleIssue">
-        {{ loading ? t("issuing") : t("issue") }}
-      </NeoButton>
-    </template>
-  </NeoModal>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
 import { reactive } from "vue";
-import { NeoModal, NeoButton, NeoInput } from "@shared/components";
+import { ActionModal, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -71,3 +72,11 @@ const handleIssue = () => {
   });
 };
 </script>
+
+<style lang="scss" scoped>
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+</style>

@@ -5,16 +5,17 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
 import { parseGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { parseInvokeResult } from "@shared/utils/neo";
+import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { waitForListedEventByTransaction } from "@shared/utils";
 import type { Trust } from "../pages/index/components/TrustCard.vue";
 
 export function useHeritageTrusts() {
   const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead, getBalance } = useWallet() as WalletSDK;
   const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("error") : t(key),
+    key === "contractUnavailable" ? t("error") : t(key)
   );
 
   const isLoading = ref(false);
@@ -42,7 +43,7 @@ export function useHeritageTrusts() {
     return num > 1e12 ? num : num * 1000;
   };
 
-  const fetchData = async () => {
+  const loadData = async () => {
     try {
       if (!address.value) {
         await connect();
@@ -157,7 +158,7 @@ export function useHeritageTrusts() {
         args: [{ type: "Integer", value: trust.id }],
       });
       setStatus(t("heartbeat"), "success");
-      await fetchData();
+      await loadData();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
@@ -180,7 +181,7 @@ export function useHeritageTrusts() {
         args: [{ type: "Integer", value: trust.id }],
       });
       setStatus(t("claimYield"), "success");
-      await fetchData();
+      await loadData();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
@@ -199,7 +200,7 @@ export function useHeritageTrusts() {
         args: [{ type: "Integer", value: trust.id }],
       });
       setStatus(t("claimReleased"), "success");
-      await fetchData();
+      await loadData();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
@@ -218,7 +219,151 @@ export function useHeritageTrusts() {
         args: [{ type: "Integer", value: trust.id }],
       });
       setStatus(t("executeTrust"), "success");
-      await fetchData();
+      await loadData();
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const createTrust = async (
+    form: {
+      name: string;
+      beneficiary: string;
+      neoValue: string;
+      gasValue: string;
+      monthlyNeo: string;
+      monthlyGas: string;
+      releaseMode: string;
+      intervalDays: string;
+      notes: string;
+    },
+    saveTrustName: (id: string, name: string) => void,
+    onSuccess: () => void
+  ) => {
+    const neoAmount = Number(toFixedDecimals(form.neoValue, 0));
+    let gasAmountDisplay = Number.parseFloat(form.gasValue);
+    if (!Number.isFinite(gasAmountDisplay)) gasAmountDisplay = 0;
+
+    let monthlyNeoAmount = Number(toFixedDecimals(form.monthlyNeo, 0));
+    let monthlyGasDisplay = Number.parseFloat(form.monthlyGas);
+    if (!Number.isFinite(monthlyGasDisplay)) monthlyGasDisplay = 0;
+    const intervalDays = Number(toFixedDecimals(form.intervalDays, 0));
+    const releaseMode = form.releaseMode;
+
+    const onlyRewards = releaseMode === "rewardsOnly";
+    if (releaseMode !== "fixed") {
+      gasAmountDisplay = 0;
+      monthlyGasDisplay = 0;
+    }
+    if (releaseMode === "rewardsOnly") {
+      monthlyNeoAmount = 0;
+    }
+    if (neoAmount <= 0) {
+      monthlyNeoAmount = 0;
+    }
+    if (gasAmountDisplay <= 0) {
+      monthlyGasDisplay = 0;
+    }
+
+    if (
+      isLoading.value ||
+      !form.name.trim() ||
+      !form.beneficiary ||
+      !(neoAmount > 0 || gasAmountDisplay > 0) ||
+      !(intervalDays > 0)
+    ) {
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      setStatus(t("creating"), "loading");
+
+      if (!address.value) {
+        await connect();
+      }
+      if (!address.value) {
+        throw new Error(t("error"));
+      }
+
+      if (onlyRewards && neoAmount <= 0) {
+        throw new Error(t("rewardsRequireNeo"));
+      }
+      if (!onlyRewards && neoAmount > 0 && monthlyNeoAmount <= 0) {
+        throw new Error(t("invalidReleaseSchedule"));
+      }
+      if (releaseMode === "fixed" && gasAmountDisplay > 0 && monthlyGasDisplay <= 0) {
+        throw new Error(t("invalidReleaseSchedule"));
+      }
+
+      const neo = await getBalance("NEO");
+      const neoBalance = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
+      if (neoAmount > neoBalance) {
+        throw new Error(t("insufficientNeo"));
+      }
+      if (gasAmountDisplay > 0) {
+        const gas = await getBalance("GAS");
+        const gasBalance = typeof gas === "string" ? parseFloat(gas) || 0 : typeof gas === "number" ? gas : 0;
+        if (gasAmountDisplay > gasBalance) {
+          throw new Error(t("insufficientGas"));
+        }
+      }
+
+      const contract = await ensureContractAddress();
+      if (!contract) {
+        throw new Error(t("error"));
+      }
+
+      const tx = await invokeContract({
+        scriptHash: contract,
+        operation: "createTrust",
+        args: [
+          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: form.beneficiary },
+          { type: "Integer", value: neoAmount },
+          { type: "Integer", value: toFixed8(gasAmountDisplay) },
+          { type: "Integer", value: intervalDays },
+          { type: "Integer", value: monthlyNeoAmount },
+          { type: "Integer", value: toFixed8(monthlyGasDisplay) },
+          { type: "Boolean", value: onlyRewards },
+          { type: "String", value: form.name.trim().slice(0, 100) },
+          { type: "String", value: form.notes.trim().slice(0, 300) },
+          { type: "Integer", value: "0" },
+        ],
+      });
+
+      const timeoutErrorMessage = "__TRUST_CREATED_EVENT_TIMEOUT__";
+      try {
+        const match = await waitForListedEventByTransaction(tx, {
+          listEvents: async () => {
+            const { useEvents } = await import("@neo/uniapp-sdk");
+            const { list } = useEvents();
+            const res = await list({ app_id: "miniapp-heritage-trust", event_name: "TrustCreated", limit: 25 });
+            return res.events || [];
+          },
+          timeoutMs: 30000,
+          pollIntervalMs: 1500,
+          errorMessage: timeoutErrorMessage,
+        });
+
+        if (match) {
+          const values = Array.isArray(match.state) ? match.state.map(parseStackItem) : [];
+          const trustId = String(values[0] || "");
+          if (trustId) {
+            saveTrustName(trustId, form.name);
+          }
+        }
+      } catch (e: unknown) {
+        if (!(e instanceof Error) || e.message !== timeoutErrorMessage) {
+          throw e;
+        }
+      }
+
+      setStatus(t("trustCreated"), "success");
+      onSuccess();
+      await loadData();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
@@ -236,11 +381,12 @@ export function useHeritageTrusts() {
     status,
     setStatus,
     clearStatus,
-    fetchData,
+    loadData,
     heartbeatTrust,
     claimYield,
     claimReleased,
     executeTrust,
+    createTrust,
     ensureContractAddress,
   };
 }

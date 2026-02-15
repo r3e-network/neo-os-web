@@ -9,7 +9,9 @@
       >
         <view class="flex items-center gap-3">
           <view class="winner-medal flex h-8 w-8 items-center justify-center rounded-full bg-black/20">
-            <text>{{ i === 0 ? "\uD83E\uDD47" : i === 1 ? "\uD83E\uDD48" : i === 2 ? "\uD83E\uDD49" : "\uD83C\uDF96\uFE0F" }}</text>
+            <text>{{
+              i === 0 ? "\uD83E\uDD47" : i === 1 ? "\uD83E\uDD48" : i === 2 ? "\uD83E\uDD49" : "\uD83C\uDF96\uFE0F"
+            }}</text>
           </view>
           <view>
             <text class="block text-sm font-bold">{{ formatAddress(w.address) }}</text>
@@ -25,10 +27,13 @@
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
 import { formatAddress } from "@shared/utils/format";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 defineProps<{
   winners: Array<{ address: string; round: number; prize: number }>;
   formatNum: (n: number | string) => string;
-  t: (key: string, params?: Record<string, unknown>) => string;
 }>();
 </script>

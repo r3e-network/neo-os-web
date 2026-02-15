@@ -1,7 +1,13 @@
 <template>
-  <NeoModal :visible="visible" :title="t('photoViewer')" :closeable="true" @close="$emit('close')">
+  <ActionModal :visible="visible" :title="t('photoViewer')" @close="$emit('close')">
     <view class="viewer-body">
-      <image v-if="photo && !photo.encrypted" :src="photo.data" mode="aspectFit" class="viewer-img" :alt="t('viewingPhoto')" />
+      <image
+        v-if="photo && !photo.encrypted"
+        :src="photo.data"
+        mode="aspectFit"
+        class="viewer-img"
+        :alt="t('viewingPhoto')"
+      />
       <view v-else-if="photo" class="encrypted-notice">
         <text class="notice-text">{{ t("encryptedPhotoNotice") }}</text>
         <NeoButton size="sm" variant="primary" @click="$emit('decrypt')">
@@ -9,7 +15,7 @@
         </NeoButton>
       </view>
     </view>
-    <template #footer>
+    <template #actions>
       <NeoButton v-if="showShare" size="sm" variant="secondary" @click="$emit('share')">
         {{ t("share") }}
       </NeoButton>
@@ -17,19 +23,22 @@
         {{ t("close") }}
       </NeoButton>
     </template>
-  </NeoModal>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
-import { NeoModal, NeoButton } from "@shared/components";
+import { ActionModal, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { PhotoItem } from "@/types";
 
 const props = defineProps<{
-  t: (key: string) => string;
   visible: boolean;
   photo: PhotoItem | null;
   showShare?: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "close"): void;

@@ -1,90 +1,85 @@
 <template>
-  <view class="theme-gov-merc">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        <NeoCard class="mb-6" variant="erobo">
-          <view class="form-group-neo">
-            <NeoInput
-              v-model="depositAmount"
-              type="number"
-              placeholder="0"
-              suffix="NEO"
-              :label="t('depositAmount')"
-            />
-            <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
-              {{ t("depositNeo") }}
-            </NeoButton>
-          </view>
-        </NeoCard>
+  <MiniAppPage
+    name="gov-merc"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+  >
+    <template #content>
+      <NeoCard class="mb-6" variant="erobo">
+        <view class="form-group-neo">
+          <NeoInput v-model="depositAmount" type="number" placeholder="0" suffix="NEO" :label="t('depositAmount')" />
+          <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
+            {{ t("depositNeo") }}
+          </NeoButton>
+        </view>
+      </NeoCard>
 
-        <NeoCard class="mb-6" variant="erobo">
-          <view class="form-group-neo">
-            <NeoInput
-              v-model="withdrawAmount"
-              type="number"
-              placeholder="0"
-              suffix="NEO"
-              :label="t('withdrawAmount')"
-            />
-            <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
-              {{ t("withdrawNeo") }}
-            </NeoButton>
-          </view>
-        </NeoCard>
-      </template>
+      <NeoCard class="mb-6" variant="erobo">
+        <view class="form-group-neo">
+          <NeoInput v-model="withdrawAmount" type="number" placeholder="0" suffix="NEO" :label="t('withdrawAmount')" />
+          <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
+            {{ t("withdrawNeo") }}
+          </NeoButton>
+        </view>
+      </NeoCard>
+    </template>
 
-      <template #operation>
-        <NeoCard variant="erobo" class="mb-6">
-          <view class="form-group-neo">
-            <NeoInput v-model="bidAmount" type="number" placeholder="0" suffix="GAS" :label="t('bidAmount')" />
-            <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="placeBid">
-              {{ t("placeBid") }}
-            </NeoButton>
-          </view>
-        </NeoCard>
+    <template #operation>
+      <NeoCard variant="erobo" class="mb-6">
+        <view class="form-group-neo">
+          <NeoInput v-model="bidAmount" type="number" placeholder="0" suffix="GAS" :label="t('bidAmount')" />
+          <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="placeBid">
+            {{ t("placeBid") }}
+          </NeoButton>
+        </view>
+      </NeoCard>
 
-        <NeoCard variant="erobo">
-          <view v-if="bids.length === 0" class="empty-neo p-8 text-center font-bold uppercase opacity-60">
-            {{ t("noBids") }}
-          </view>
-          <view v-for="bid in bids" :key="bid.address" class="bid-row">
-            <view class="bid-address">{{ bid.address }}</view>
-            <view class="bid-amount">{{ formatNum(bid.amount, 2) }} GAS</view>
-          </view>
-        </NeoCard>
-      </template>
+      <NeoCard variant="erobo">
+        <view v-if="bids.length === 0" class="empty-neo p-8 text-center font-bold uppercase opacity-60">
+          {{ t("noBids") }}
+        </view>
+        <view v-for="bid in bids" :key="bid.address" class="bid-row">
+          <view class="bid-address">{{ bid.address }}</view>
+          <view class="bid-amount">{{ formatNum(bid.amount, 2) }} GAS</view>
+        </view>
+      </NeoCard>
+    </template>
 
-      <template #tab-stats>
-        <MiniAppTabStats variant="erobo-neo" :stats="poolStats" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #tab-stats>
+      <StatsTab :grid-items="poolStats" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, MiniAppTabStats, NeoButton, NeoInput, NeoCard } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage, NeoButton, NeoInput, NeoCard } from "@shared/components";
 import { useGovMercPool } from "@/composables/useGovMercPool";
 
-const { t } = createUseI18n(messages)();
-
-const templateConfig = createPrimaryStatsTemplateConfig(
-  { key: "rent", labelKey: "rent", icon: "💰", default: true },
-  { statsTab: { labelKey: "tabStats" } },
-);
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "gov-merc",
+  messages,
+  template: {
+    tabs: [
+      { key: "rent", labelKey: "rent", icon: "💰", default: true },
+      { key: "stats", labelKey: "stats", icon: "📊" },
+    ],
+  },
+  sidebarItems: [
+    { labelKey: "totalPool", value: () => `${formatNum(totalPool.value, 0)} NEO` },
+    { labelKey: "currentEpoch", value: () => currentEpoch.value },
+    { labelKey: "yourDeposits", value: () => `${formatNum(userDeposits.value, 0)} NEO` },
+    { labelKey: "activeBids", value: () => bids.value.length },
+  ],
+});
 
 const {
   address,
@@ -111,15 +106,6 @@ const appState = computed(() => ({
   currentEpoch: currentEpoch.value,
   isLoading: dataLoading.value,
 }));
-
-const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("gov-merc");
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "totalPool", value: () => `${formatNum(totalPool.value, 0)} NEO` },
-  { labelKey: "currentEpoch", value: () => currentEpoch.value },
-  { labelKey: "yourDeposits", value: () => `${formatNum(userDeposits.value, 0)} NEO` },
-  { labelKey: "activeBids", value: () => bids.value.length },
-]);
 </script>
 
 <style lang="scss" scoped>

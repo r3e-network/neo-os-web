@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Ex Files", zh: "前任档案" },
   subtitle: { en: "Anonymous record vault", zh: "匿名记录保险库" },
@@ -52,7 +54,6 @@ title: { en: "Ex Files", zh: "前任档案" },
   // Status
   viewing: { en: "Viewing", zh: "查看中" },
   memoryUploaded: { en: "Memory uploaded to archive!", zh: "回忆已上传到档案！" },
-  error: { en: "Error", zh: "错误" },
   invalidContent: { en: "Enter content to hash", zh: "请输入内容" },
   invalidRating: { en: "Rating must be between 1 and 5", zh: "评分必须在 1-5 之间" },
   recordCreated: { en: "Record created", zh: "记录已创建" },
@@ -60,7 +61,6 @@ title: { en: "Ex Files", zh: "前任档案" },
   failedToLoad: { en: "Failed to load records", zh: "加载记录失败" },
   missingContract: { en: "Contract not configured", zh: "合约未配置" },
   connectWallet: { en: "Connect wallet first", zh: "请先连接钱包" },
-  receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
 
   // Sample memories
   firstDate: { en: "First Date", zh: "初次约会" },
@@ -80,7 +80,6 @@ title: { en: "Ex Files", zh: "前任档案" },
   tabFiles: { en: "Archive", zh: "档案" },
   tabUpload: { en: "Upload", zh: "上传" },
   tabStats: { en: "Stats", zh: "统计" },
-  docs: { en: "Docs", zh: "文档" },
 
   // Docs
   docSubtitle: { en: "Hashed records with private lookup", zh: "哈希记录与私密检索" },
@@ -98,19 +97,9 @@ title: { en: "Ex Files", zh: "前任档案" },
   feature2Desc: { en: "Timestamps and metadata prove record existence.", zh: "时间戳与元数据证明记录存在。" },
   feature3Name: { en: "Report & Delete", zh: "举报与删除" },
   feature3Desc: { en: "Soft delete your own records and flag abuse.", zh: "支持软删除自有记录并举报不当内容。" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     sidebarWallet: { en: "Wallet", zh: "钱包" },
     connected: { en: "Connected", zh: "已连接" },
     disconnected: { en: "Disconnected", zh: "未连接" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -1,32 +1,24 @@
 <template>
-  <NeoCard variant="erobo-neo">
-    <view class="form-group">
-      <NeoInput v-model="localForm.name" :label="t('projectName')" :placeholder="t('projectNamePlaceholder')" />
-      <NeoInput
-        v-model="localForm.description"
-        type="textarea"
-        :label="t('projectDescription')"
-        :placeholder="t('projectDescriptionPlaceholder')"
-      />
-      <NeoInput v-model="localForm.link" :label="t('projectLink')" :placeholder="t('projectLinkPlaceholder')" />
-
-      <NeoButton
-        variant="primary"
-        size="lg"
-        block
-        :loading="isLoading"
-        :disabled="isLoading"
-        @click="emitRegister"
-      >
-        {{ isLoading ? t("registeringProject") : t("registerProject") }}
-      </NeoButton>
-    </view>
-  </NeoCard>
+  <FormCard
+    :submit-label="isLoading ? t('registeringProject') : t('registerProject')"
+    :submit-loading="isLoading"
+    :submit-disabled="isLoading"
+    @submit="emitRegister"
+  >
+    <NeoInput v-model="localForm.name" :label="t('projectName')" :placeholder="t('projectNamePlaceholder')" />
+    <NeoInput
+      v-model="localForm.description"
+      type="textarea"
+      :label="t('projectDescription')"
+      :placeholder="t('projectDescriptionPlaceholder')"
+    />
+    <NeoInput v-model="localForm.link" :label="t('projectLink')" :placeholder="t('projectLinkPlaceholder')" />
+  </FormCard>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref } from "vue";
-import { NeoInput, NeoButton, NeoCard } from "@shared/components";
+import { NeoInput, FormCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -48,7 +40,9 @@ const emitRegister = () => {
 };
 
 defineExpose({
-  setLoading: (loading: boolean) => { isLoading.value = loading; },
+  setLoading: (loading: boolean) => {
+    isLoading.value = loading;
+  },
   reset: () => {
     localForm.name = "";
     localForm.description = "";
@@ -57,10 +51,4 @@ defineExpose({
 });
 </script>
 
-<style lang="scss" scoped>
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-</style>
+<style lang="scss" scoped></style>

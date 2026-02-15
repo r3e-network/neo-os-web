@@ -5,26 +5,30 @@
       <text class="count-badge">{{ streams.length }}</text>
     </view>
 
-    <view v-if="streams.length === 0" class="empty-state">
-      <NeoCard variant="erobo" class="p-6 text-center opacity-70">
-        <text class="text-xs">{{ emptyText }}</text>
-      </NeoCard>
-    </view>
-
-    <StreamCard
-      v-for="stream in streams"
-      :key="`${type}-${stream.id}`"
-      :stream="stream"
-      :is-creator="type === 'created'"
+    <ItemList
+      :items="streams as unknown as Record<string, unknown>[]"
+      item-key="id"
+      :empty-text="emptyText"
+      :aria-label="t('ariaStreams')"
     >
-      <template #actions="{ stream: s }">
-        <slot name="actions" :stream="s" :type="type" />
+      <template #empty>
+        <NeoCard variant="erobo" class="p-6 text-center opacity-70">
+          <text class="text-xs">{{ emptyText }}</text>
+        </NeoCard>
       </template>
-    </StreamCard>
+      <template #item="{ item }">
+        <StreamCard :stream="item as unknown as StreamItem" :is-creator="type === 'created'">
+          <template #actions="{ stream: s }">
+            <slot name="actions" :stream="s" :type="type" />
+          </template>
+        </StreamCard>
+      </template>
+    </ItemList>
   </view>
 </template>
 
 <script setup lang="ts">
+import { ItemList, NeoCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import type { StreamItem } from "./StreamCard.vue";

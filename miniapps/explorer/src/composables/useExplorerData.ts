@@ -5,7 +5,8 @@ import { formatNumber } from "@shared/utils/format";
 import { createSidebarItems } from "@shared/utils";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useTicker } from "@shared/composables/useTicker";
-import type { StatItem } from "@shared/components/NeoStats.vue";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import type { StatsDisplayItem } from "@shared/components";
 
 export interface TransactionRecord {
   hash: string;
@@ -116,12 +117,12 @@ export function useExplorerData(t: (key: string) => string) {
 
   const formatNum = (n: number) => formatNumber(n, 0);
 
-  const mainnetStats = computed<StatItem[]>(() => [
+  const mainnetStats = computed<StatsDisplayItem[]>(() => [
     { label: t("blockHeight"), value: formatNum(stats.value.mainnet.height), variant: "default" },
     { label: t("transactions"), value: formatNum(stats.value.mainnet.txCount), variant: "default" },
   ]);
 
-  const testnetStats = computed<StatItem[]>(() => [
+  const testnetStats = computed<StatsDisplayItem[]>(() => [
     { label: t("blockHeight"), value: formatNum(stats.value.testnet.height), variant: "default" },
     { label: t("transactions"), value: formatNum(stats.value.testnet.txCount), variant: "default" },
   ]);
@@ -133,7 +134,7 @@ export function useExplorerData(t: (key: string) => string) {
     { labelKey: "sidebarRecentTxs", value: () => recentTxs.value.length },
   ]);
 
-  const fetchStats = async () => {
+  const loadStats = async () => {
     try {
       const cached = uni.getStorageSync(STATS_CACHE_KEY);
       if (cached) stats.value = JSON.parse(cached);
@@ -167,7 +168,7 @@ export function useExplorerData(t: (key: string) => string) {
     }
   };
 
-  const fetchRecentTxs = async () => {
+  const loadRecentTxs = async () => {
     try {
       const cached = uni.getStorageSync(TXS_CACHE_KEY);
       if (cached) recentTxs.value = JSON.parse(cached);
@@ -205,7 +206,7 @@ export function useExplorerData(t: (key: string) => string) {
     }
   };
 
-  const statsTicker = useTicker(fetchStats, 15000);
+  const statsTicker = useTicker(loadStats, 15000);
 
   const search = async () => {
     const query = searchQuery.value.trim();
@@ -255,15 +256,15 @@ export function useExplorerData(t: (key: string) => string) {
         setStatus(t("noResults"), "error");
       }
     } catch (e: unknown) {
-      setStatus(t("searchFailed"), "error");
+      setStatus(formatErrorMessage(e, t("searchFailed")), "error");
     } finally {
       isLoading.value = false;
     }
   };
 
   const startPolling = () => {
-    fetchStats();
-    fetchRecentTxs();
+    loadStats();
+    loadRecentTxs();
     statsTicker.start();
   };
 
@@ -273,7 +274,7 @@ export function useExplorerData(t: (key: string) => string) {
 
   const watchNetwork = () => {
     watch(selectedNetwork, () => {
-      fetchRecentTxs();
+      loadRecentTxs();
     });
   };
 

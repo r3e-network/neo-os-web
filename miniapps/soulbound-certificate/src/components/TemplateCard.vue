@@ -37,12 +37,7 @@
       >
         {{ template.issued >= template.maxSupply ? t("soldOut") : t("issueCertificate") }}
       </NeoButton>
-      <NeoButton
-        size="sm"
-        variant="secondary"
-        :loading="togglingId === template.id"
-        @click="$emit('toggle', template)"
-      >
+      <NeoButton size="sm" variant="secondary" :loading="togglingId === template.id" @click="$emit('toggle', template)">
         {{ template.active ? t("deactivate") : t("activate") }}
       </NeoButton>
     </view>
@@ -77,6 +72,7 @@ const addressShort = (value: string) => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 @import "../pages/index/soulbound-certificate-theme.scss";
 
 .template-card__header {
@@ -105,10 +101,9 @@ const addressShort = (value: string) => {
 }
 
 .meta-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--soul-muted);
 }
 
@@ -123,9 +118,9 @@ const addressShort = (value: string) => {
 }
 
 .metric-label {
+  @include stat-label;
   font-size: 10px;
   color: var(--soul-muted);
-  text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 

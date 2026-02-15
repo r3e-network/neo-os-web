@@ -1,12 +1,29 @@
 <template>
   <view class="rate-card">
-    <view class="rate-header" role="button" :aria-expanded="showDetails" :aria-label="t('exchangeRate')" tabindex="0" @click="showDetails = !showDetails" @keydown.enter="showDetails = !showDetails">
+    <view
+      class="rate-header"
+      role="button"
+      :aria-expanded="showDetails"
+      :aria-label="t('exchangeRate')"
+      tabindex="0"
+      @click="showDetails = !showDetails"
+      @keydown.enter="showDetails = !showDetails"
+    >
       <view class="rate-info">
         <text class="rate-label">{{ t("exchangeRate") }}</text>
         <text class="rate-value">1 {{ fromSymbol }} ≈ {{ exchangeRate }} {{ toSymbol }}</text>
       </view>
       <view class="rate-actions">
-        <AppIcon name="history" :size="20" class="refresh-icon" role="button" :aria-label="t('exchangeRate')" tabindex="0" @click.stop="$emit('refresh')" @keydown.enter.stop="$emit('refresh')" />
+        <AppIcon
+          name="history"
+          :size="20"
+          class="refresh-icon"
+          role="button"
+          :aria-label="t('exchangeRate')"
+          tabindex="0"
+          @click.stop="$emit('refresh')"
+          @keydown.enter.stop="$emit('refresh')"
+        />
         <AppIcon name="chevron-right" :size="16" :rotate="showDetails ? 270 : 90" />
       </view>
     </view>
@@ -36,6 +53,8 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { AppIcon } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
   fromSymbol: string;
@@ -45,8 +64,9 @@ const props = defineProps<{
   slippage: string;
   liquidityPool: string;
   minReceived: string;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["refresh"]);
 
@@ -111,7 +131,9 @@ const priceImpactClass = computed(() => {
 .refresh-icon {
   cursor: pointer;
   transition: opacity 0.2s;
-  &:active { opacity: 0.6; }
+  &:active {
+    opacity: 0.6;
+  }
 }
 
 .details-accordion {
@@ -137,9 +159,17 @@ const priceImpactClass = computed(() => {
   font-weight: 700;
   color: var(--text-primary);
 
-  &.impact-low { color: var(--swap-impact-low); }
-  &.impact-medium { color: var(--swap-impact-medium); }
-  &.impact-high { color: var(--swap-impact-high); }
-  &.impact-na { color: var(--text-secondary); }
+  &.impact-low {
+    color: var(--swap-impact-low);
+  }
+  &.impact-medium {
+    color: var(--swap-impact-medium);
+  }
+  &.impact-high {
+    color: var(--swap-impact-high);
+  }
+  &.impact-na {
+    color: var(--text-secondary);
+  }
 }
 </style>

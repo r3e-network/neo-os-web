@@ -1,33 +1,33 @@
 <template>
   <NeoCard variant="erobo" class="mb-4">
-    <view class="seeds-list">
-      <view
-        v-for="seed in seeds"
-        :key="seed.id"
-        class="seed-item-glass"
-        role="button"
-        tabindex="0"
-        :aria-label="`${seed.name} — ${seed.price} GAS`"
-        @click="$emit('plant', seed)"
-      >
-        <view class="seed-icon-wrapper-glass">
-          <text class="seed-icon">{{ seed.icon }}</text>
+    <ItemList :items="seeds" item-key="id">
+      <template #item="{ item: seed }">
+        <view
+          class="seed-item-glass"
+          role="button"
+          tabindex="0"
+          :aria-label="`${seed.name} — ${seed.price} GAS`"
+          @click="$emit('plant', seed)"
+        >
+          <view class="seed-icon-wrapper-glass">
+            <text class="seed-icon">{{ seed.icon }}</text>
+          </view>
+          <view class="seed-info">
+            <text class="seed-name-glass">{{ seed.name }}</text>
+            <text class="seed-time-glass">⏱ {{ seed.growTime }}{{ hoursLabel }}</text>
+          </view>
+          <view class="seed-price-tag-glass">
+            <text class="seed-price-glass">{{ seed.price }}</text>
+            <text class="seed-currency-glass">GAS</text>
+          </view>
         </view>
-        <view class="seed-info">
-          <text class="seed-name-glass">{{ seed.name }}</text>
-          <text class="seed-time-glass">⏱ {{ seed.growTime }}{{ hoursLabel }}</text>
-        </view>
-        <view class="seed-price-tag-glass">
-          <text class="seed-price-glass">{{ seed.price }}</text>
-          <text class="seed-currency-glass">GAS</text>
-        </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
 import type { Seed } from "../composables/useGarden";
 
 defineProps<{
@@ -43,6 +43,7 @@ defineEmits<{
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .seeds-list {
   display: flex;

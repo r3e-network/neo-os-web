@@ -37,7 +37,11 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { Mask } from "../composables/useMasqueradeProposals";
+
+const { t } = createUseI18n(messages)();
 
 interface FormData {
   proposalId: string;
@@ -48,18 +52,19 @@ interface Props {
   masks: Mask[];
   selectedMaskId: string | null;
   canVote: boolean;
-  t: Function;
 }
 
 defineProps<Props>();
 
 defineEmits<{
-  'update:selectedMaskId': [id: string];
+  "update:selectedMaskId": [id: string];
   vote: [choice: number];
 }>();
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -73,10 +78,7 @@ defineEmits<{
 }
 
 .input-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  @include stat-label;
   color: var(--mask-muted);
   margin-left: 4px;
 }

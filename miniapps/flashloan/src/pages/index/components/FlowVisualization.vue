@@ -1,7 +1,5 @@
 <template>
   <NeoCard variant="erobo-neo" class="flow-card">
-
-    
     <view class="flow-diagram-glass">
       <!-- Step 1: Borrow -->
       <view class="flow-step">
@@ -56,10 +54,10 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
-defineProps<{
-  t: (key: string) => string;
-}>();
+const { t } = createUseI18n(messages)();
 </script>
 
 <style lang="scss" scoped>
@@ -121,10 +119,13 @@ defineProps<{
 
 .step-ring {
   position: absolute;
-  top: -4px; right: -4px; bottom: -4px; left: -4px;
+  top: -4px;
+  right: -4px;
+  bottom: -4px;
+  left: -4px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 50%;
-  
+
   &.pulse {
     border-color: rgba(0, 229, 153, 0.3);
     animation: ring-pulse 2s infinite;
@@ -137,7 +138,7 @@ defineProps<{
   text-transform: uppercase;
   color: var(--text-secondary);
   letter-spacing: 0.1em;
-  
+
   &.highlight {
     color: var(--flash-success);
     text-shadow: 0 0 10px rgba(0, 229, 153, 0.4);
@@ -165,11 +166,12 @@ defineProps<{
 
 .connector-pulse {
   position: absolute;
-  top: 0; bottom: 0;
+  top: 0;
+  bottom: 0;
   width: 40%;
   background: linear-gradient(90deg, transparent, var(--flash-success), transparent);
   animation: connector-flow 1.5s infinite linear;
-  
+
   &.delay {
     animation-delay: 0.75s;
   }
@@ -203,13 +205,26 @@ defineProps<{
 }
 
 @keyframes ring-pulse {
-  0% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.2); opacity: 0; }
-  100% { transform: scale(1); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
 
 @keyframes connector-flow {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
 }
 </style>

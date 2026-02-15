@@ -47,15 +47,18 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { NeoCard, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { Candidate } from "@neo/uniapp-sdk";
 
 defineProps<{
   voteWeight: string;
   selectedCandidate: Candidate | null;
   isLoading: boolean;
-  t: (key: string, ...args: unknown[]) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["update:voteWeight", "register"]);
 
@@ -68,6 +71,7 @@ const truncateAddress = (addr: string) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .vote-form {
   display: flex;
@@ -86,11 +90,9 @@ const truncateAddress = (addr: string) => {
 }
 
 .selected-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
   color: var(--candidate-neo-green);
-  letter-spacing: 0.1em;
   display: block;
   margin-bottom: 4px;
 }

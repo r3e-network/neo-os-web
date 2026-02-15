@@ -6,7 +6,6 @@
       :selected-y="selectedY"
       :is-owned="isOwned"
       :tile-price="tilePrice"
-      :t="t"
     />
     <NeoButton
       variant="primary"
@@ -24,6 +23,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import TileInfo from "./TileInfo.vue";
 
 defineProps<{
@@ -33,8 +34,9 @@ defineProps<{
   isOwned: boolean;
   tilePrice: number;
   isPurchasing: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["purchase"]);
 </script>

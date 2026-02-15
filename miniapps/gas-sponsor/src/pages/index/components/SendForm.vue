@@ -5,7 +5,11 @@
         <text class="form-subtitle">{{ t("sendSubtitle") }}</text>
         <view class="input-section">
           <text class="input-label">{{ t("recipientAddress") }}</text>
-          <NeoInput :model-value="recipient" @update:model-value="$emit('update:recipient', $event)" :placeholder="t('recipientPlaceholder')" />
+          <NeoInput
+            :model-value="recipient"
+            @update:model-value="$emit('update:recipient', $event)"
+            :placeholder="t('recipientPlaceholder')"
+          />
         </view>
         <view class="input-section">
           <text class="input-label">{{ t("sendAmount") }}</text>
@@ -20,7 +24,13 @@
               <text class="preset-unit">GAS</text>
             </view>
           </view>
-          <NeoInput :model-value="amount" @update:model-value="$emit('update:amount', $event)" type="number" placeholder="0.1" suffix="GAS" />
+          <NeoInput
+            :model-value="amount"
+            @update:model-value="$emit('update:amount', $event)"
+            type="number"
+            placeholder="0.1"
+            suffix="GAS"
+          />
         </view>
         <NeoButton variant="primary" size="lg" block :loading="loading" @click="$emit('send')">
           {{ loading ? t("sending") : t("sendBtn") }}
@@ -53,6 +63,7 @@ const presets = [0.05, 0.1, 0.2, 0.5];
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 @import "../gas-sponsor-theme.scss";
 
 .app-container {
@@ -75,11 +86,10 @@ const presets = [0.05, 0.1, 0.2, 0.5];
 }
 
 .form-subtitle {
+  @include stat-label;
   font-weight: 800;
   font-size: 14px;
   color: var(--gas-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   margin-bottom: 4px;
   text-shadow: 0 0 8px var(--gas-accent-glow);
 }
@@ -91,18 +101,15 @@ const presets = [0.05, 0.1, 0.2, 0.5];
 }
 
 .input-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
   color: var(--gas-accent-secondary);
   letter-spacing: 0.05em;
   text-shadow: var(--gas-status-shadow);
 }
 
 .preset-amounts {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  @include grid-layout(4, 12px);
   margin-bottom: 12px;
 }
 

@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "On-Chain Tarot", zh: "链上塔罗" },
   subtitle: { en: "Blockchain-powered divination", zh: "区块链占卜" },
@@ -20,9 +22,6 @@ title: { en: "On-Chain Tarot", zh: "链上塔罗" },
   },
   connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
   readingPending: { en: "Reading pending", zh: "解读确认中" },
-  game: { en: "Game", zh: "游戏" },
-  statistics: { en: "Statistics", zh: "统计数据" },
-  totalGames: { en: "Total Games", zh: "总游戏数" },
   cardsDrawnCount: { en: "Cards Drawn", zh: "抽取卡牌数" },
   totalSpent: { en: "Total Spent", zh: "总花费" },
 
@@ -62,4 +61,6 @@ title: { en: "On-Chain Tarot", zh: "链上塔罗" },
   allRevealed: { en: "All Revealed", zh: "全部揭示" },
   yes: { en: "Yes", zh: "是" },
   no: { en: "No", zh: "否" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

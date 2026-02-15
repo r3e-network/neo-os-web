@@ -1,116 +1,122 @@
 <template>
-  <view class="theme-neo-treasury">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- Overview Tab (default) — LEFT panel -->
-      <template #content>
-        
-          <!-- Main Content -->
-          <view v-if="data">
-            <!-- Background Refresh Indicator -->
-            <view v-if="loading" class="soft-loading">
-              <AppIcon name="loader" :size="16" class="animate-spin" />
-              <text class="soft-loading-text">{{ t("refreshing") }}</text>
-            </view>
-
-            <TotalSummaryCard
-              :total-usd="data.totalUsd"
-              :total-neo="data.totalNeo"
-              :total-gas="data.totalGas"
-              :last-updated="data.lastUpdated"
-              :t="t"
-            />
-
-            <PriceGrid :prices="data.prices" />
-
-            <FoundersList :categories="data.categories" :t="t" @select="goToFounder" />
-          </view>
-
-          <!-- Initial Loading State (Only if no data) -->
-          <view v-else-if="loading" class="loading-container">
-            <view class="skeleton-card mb-4"></view>
-            <view class="loading-overlay">
-              <AppIcon name="loader" :size="48" class="mb-4 animate-spin" />
-              <text class="loading-label">{{ t("loading") }}</text>
-            </view>
-          </view>
-
-          <!-- Error State -->
-          <view v-else-if="error" class="error-container">
-            <AppIcon name="alert-circle" :size="48" class="text-danger mb-4" />
-            <text class="error-label">{{ error }}</text>
-            <NeoButton variant="primary" class="mt-4" @click="loadData">
-              {{ t("retry") }}
-            </NeoButton>
-          </view>
-        
-      </template>
-
-      <!-- Da Hongfei Tab -->
-      <template #tab-da>
-        <view v-if="data">
-          <FounderDetail :category="daCategory!" :prices="data.prices" :t="t" />
+  <MiniAppPage
+    name="neo-treasury"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    @tab-change="activeTab = $event"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="loadData"
+  >
+    <!-- Overview Tab (default) — LEFT panel -->
+    <template #content>
+      <!-- Main Content -->
+      <view v-if="data">
+        <!-- Background Refresh Indicator -->
+        <view v-if="loading" class="soft-loading" role="status" aria-live="polite">
+          <AppIcon name="loader" :size="16" class="animate-spin" aria-hidden="true" />
+          <text class="soft-loading-text">{{ t("refreshing") }}</text>
         </view>
-      </template>
 
-      <!-- Erik Zhang Tab -->
-      <template #tab-erik>
-        <view v-if="data">
-          <FounderDetail :category="erikCategory!" :prices="data.prices" :t="t" />
+        <TotalSummaryCard
+          :total-usd="data.totalUsd"
+          :total-neo="data.totalNeo"
+          :total-gas="data.totalGas"
+          :last-updated="data.lastUpdated"
+          :t="t"
+        />
+
+        <PriceGrid :prices="data.prices" />
+
+        <FoundersList :categories="data.categories" :t="t" @select="goToFounder" />
+      </view>
+
+      <!-- Initial Loading State (Only if no data) -->
+      <view v-else-if="loading" class="loading-container" role="status" aria-live="polite">
+        <view class="skeleton-card mb-4" aria-hidden="true"></view>
+        <view class="loading-overlay">
+          <AppIcon name="loader" :size="48" class="mb-4 animate-spin" aria-hidden="true" />
+          <text class="loading-label">{{ t("loading") }}</text>
         </view>
-      </template>
+      </view>
 
-      <template #operation>
-        <MiniAppOperationStats variant="erobo" :title="t('treasuryInfo')" :stats="opStats">
-          <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="loadData">
-            {{ loading ? t("refreshing") : t("refreshData") }}
-          </NeoButton>
-        </MiniAppOperationStats>
-      </template>
-    </MiniAppShell>
-  </view>
+      <!-- Error State -->
+      <view v-else-if="error" class="error-container" role="alert" aria-live="assertive">
+        <AppIcon name="alert-circle" :size="48" class="text-danger mb-4" />
+        <text class="error-label">{{ error }}</text>
+        <NeoButton variant="primary" class="mt-4" @click="loadData">
+          {{ t("retry") }}
+        </NeoButton>
+      </view>
+    </template>
+
+    <!-- Da Hongfei Tab -->
+    <template #tab-da>
+      <view v-if="data">
+        <FounderDetail :category="daCategory!" :prices="data.prices" :t="t" />
+      </view>
+    </template>
+
+    <!-- Erik Zhang Tab -->
+    <template #tab-erik>
+      <view v-if="data">
+        <FounderDetail :category="erikCategory!" :prices="data.prices" :t="t" />
+      </view>
+    </template>
+
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('treasuryInfo')">
+        <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="loadData">
+          {{ loading ? t("refreshing") : t("refreshData") }}
+        </NeoButton>
+        <StatsDisplay :items="opStats" layout="rows" />
+      </NeoCard>
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { MiniAppShell, MiniAppOperationStats, NeoButton, AppIcon } from "@shared/components";
-import { createUseI18n } from "@shared/composables/useI18n";
+import { MiniAppPage, NeoButton, AppIcon } from "@shared/components";
 import { messages } from "@/locale/messages";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
-import { fetchTreasuryData, type TreasuryData, type CategoryBalance } from "@/utils/treasury";
+import { createMiniApp } from "@shared/utils/createMiniApp";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { fetchTreasuryData } from "@/utils/treasury";
 
 import TotalSummaryCard from "./components/TotalSummaryCard.vue";
 import PriceGrid from "./components/PriceGrid.vue";
 import FoundersList from "./components/FoundersList.vue";
-import FounderDetail from "./components/FounderDetail.vue";
-
-const { t } = createUseI18n(messages)();
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "total", labelKey: "tabTotal", icon: "📊", default: true },
-    { key: "da", labelKey: "tabDa", icon: "👤" },
-    { key: "erik", labelKey: "tabErik", icon: "👤" },
-  ],
-  docFeatureCount: 3,
-});
 
 const activeTab = ref("total");
 const loading = ref(true);
 const error = ref("");
-const { status } = useStatusMessage();
 const data = ref<TreasuryData | null>(null);
+
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
+  name: "neo-treasury",
+  messages,
+  template: {
+    tabs: [
+      { key: "total", labelKey: "tabTotal", icon: "📊", default: true },
+      { key: "da", labelKey: "tabDa", icon: "👤" },
+      { key: "erik", labelKey: "tabErik", icon: "👤" },
+    ],
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    {
+      labelKey: "sidebarTotalUsd",
+      value: () => (data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—"),
+    },
+    { labelKey: "sidebarTotalNeo", value: () => data.value?.totalNeo?.toLocaleString() ?? "—" },
+    { labelKey: "sidebarTotalGas", value: () => data.value?.totalGas?.toLocaleString() ?? "—" },
+    { labelKey: "sidebarFounders", value: () => data.value?.categories?.length ?? 0 },
+  ],
+});
 
 const appState = computed(() => ({
   loading: loading.value,
@@ -118,17 +124,7 @@ const appState = computed(() => ({
   totalUsd: data.value?.totalUsd,
 }));
 
-const sidebarItems = createSidebarItems(t, [
-  {
-    labelKey: "sidebarTotalUsd",
-    value: () => (data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—"),
-  },
-  { labelKey: "sidebarTotalNeo", value: () => data.value?.totalNeo?.toLocaleString() ?? "—" },
-  { labelKey: "sidebarTotalGas", value: () => data.value?.totalGas?.toLocaleString() ?? "—" },
-  { labelKey: "sidebarFounders", value: () => data.value?.categories?.length ?? 0 },
-]);
-
-const opStats = computed(() => [
+const opStats = computed<StatsDisplayItem[]>(() => [
   { label: t("sidebarTotalUsd"), value: data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—" },
   { label: t("sidebarTotalNeo"), value: data.value?.totalNeo?.toLocaleString() ?? "—" },
   { label: t("sidebarTotalGas"), value: data.value?.totalGas?.toLocaleString() ?? "—" },
@@ -172,7 +168,7 @@ async function loadData() {
     uni.setStorageSync(CACHE_KEY, JSON.stringify(freshData));
   } catch (e: unknown) {
     if (!data.value) {
-      error.value = t("loadFailed");
+      error.value = formatErrorMessage(e, t("loadFailed"));
     } else {
     }
   } finally {
@@ -183,11 +179,6 @@ async function loadData() {
 onMounted(() => {
   loadData();
 });
-
-const { handleBoundaryError } = useHandleBoundaryError("neo-treasury");
-const resetAndReload = async () => {
-  await loadData();
-};
 </script>
 
 <style lang="scss" scoped>

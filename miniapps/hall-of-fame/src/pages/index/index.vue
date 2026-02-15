@@ -1,72 +1,64 @@
 <template>
-  <view class="theme-hall-of-fame">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :fireworks-active="!!status && status.type === 'success'"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <!-- Category Tabs -->
-          <CategoryTabs :categories="categories" :active-category="activeCategory" @select="setCategory" />
+  <MiniAppPage
+    name="hall-of-fame"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :fireworks-active="!!status && status.type === 'success'"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="fetchLeaderboard"
+  >
+    <template #content>
+      <!-- Category Tabs -->
+      <CategoryTabs :categories="categories" :active-category="activeCategory" @select="setCategory" />
 
-          <!-- Leaderboard List -->
-          <view class="leaderboard-list">
-            <EntrantCard
-              v-for="(entrant, index) in leaderboard"
-              :key="entrant.id"
-              :entrant="entrant"
-              :rank="index + 1"
-              :top-score="topScore"
-              :voting-id="votingId"
-              :boost-label="t('boost')"
-              @vote="handleVote"
-            />
-          </view>
+      <!-- Leaderboard List -->
+      <view class="leaderboard-list">
+        <EntrantCard
+          v-for="(entrant, index) in leaderboard"
+          :key="entrant.id"
+          :entrant="entrant"
+          :rank="index + 1"
+          :top-score="topScore"
+          :voting-id="votingId"
+          :boost-label="t('boost')"
+          @vote="handleVote"
+        />
+      </view>
 
-          <EmptyState
-            v-if="!isLoading && leaderboard.length === 0"
-            :title="fetchError ? t('leaderboardUnavailable') : t('leaderboardEmpty')"
-            :subtitle="fetchError ? t('tryAgain') : undefined"
-          />
-        
-      </template>
+      <EmptyState
+        v-if="!isLoading && leaderboard.length === 0"
+        :title="fetchError ? t('leaderboardUnavailable') : t('leaderboardEmpty')"
+        :subtitle="fetchError ? t('tryAgain') : undefined"
+      />
+    </template>
 
-      <template #operation>
-        <!-- Period Filter -->
-        <PeriodFilter :periods="periods" :active-period="activePeriod" @select="setPeriod" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #operation>
+      <!-- Period Filter -->
+      <PeriodFilter :periods="periods" :active-period="activePeriod" @select="setPeriod" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { initTheme, listenForThemeChanges } from "@shared/utils/theme";
-import { MiniAppShell } from "@shared/components";
+import { MiniAppPage } from "@shared/components";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { formatNumber } from "@shared/utils/format";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 
 import CategoryTabs from "./components/CategoryTabs.vue";
-import PeriodFilter from "./components/PeriodFilter.vue";
 import EntrantCard from "./components/EntrantCard.vue";
 import EmptyState from "./components/EmptyState.vue";
-
-const { t } = createUseI18n(messages)();
 
 const APP_ID = "miniapp-hall-of-fame";
 const { address, connect, chainType } = useWallet() as WalletSDK;
@@ -82,23 +74,42 @@ interface Entrant {
   score: number;
 }
 
+const activeCategory = ref<Category>("people");
+const activePeriod = ref<Period>("month");
+const entrants = ref<Entrant[]>([]);
+const votingId = ref<string | null>(null);
+const isLoading = ref(false);
+const fetchError = ref(false);
 
-const templateConfig = createTemplateConfig({
-  tabs: [{ key: "main", labelKey: "tabLeaderboard", icon: "📋", default: true }],
-  fireworks: true,
+const {
+  t,
+  templateConfig,
+  sidebarItems,
+  sidebarTitle,
+  fallbackMessage,
+  status,
+  setStatus,
+  clearStatus,
+  handleBoundaryError,
+} = createMiniApp({
+  name: "hall-of-fame",
+  messages,
+  template: {
+    tabs: [{ key: "main", labelKey: "tabLeaderboard", icon: "📋", default: true }],
+    fireworks: true,
+  },
+  sidebarItems: [
+    { labelKey: "catPeople", value: () => entrants.value.filter((e) => e.category === "people").length },
+    { labelKey: "catCommunity", value: () => entrants.value.filter((e) => e.category === "community").length },
+    { labelKey: "catDeveloper", value: () => entrants.value.filter((e) => e.category === "developer").length },
+    { labelKey: "topScore", value: () => (topScore.value ? formatNumber(topScore.value, 0) : "—") },
+  ],
 });
 
 const appState = computed(() => ({
   leaderboardCount: leaderboard.value.length,
   activeCategory: activeCategory.value,
 }));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "catPeople", value: () => entrants.value.filter((e) => e.category === "people").length },
-  { labelKey: "catCommunity", value: () => entrants.value.filter((e) => e.category === "community").length },
-  { labelKey: "catDeveloper", value: () => entrants.value.filter((e) => e.category === "developer").length },
-  { labelKey: "topScore", value: () => (topScore.value ? formatNumber(topScore.value, 0) : "—") },
-]);
 
 const categories = computed(() => [
   { id: "people", label: t("catPeople") },
@@ -112,19 +123,6 @@ const periods = computed(() => [
   { id: "month", label: t("period30d") },
   { id: "all", label: t("periodAll") },
 ]);
-
-const activeCategory = ref<Category>("people");
-const activePeriod = ref<Period>("month");
-const entrants = ref<Entrant[]>([]);
-const votingId = ref<string | null>(null);
-const { status, setStatus: showStatus, clearStatus } = useStatusMessage();
-const isLoading = ref(false);
-const fetchError = ref(false);
-
-const { handleBoundaryError } = useHandleBoundaryError("hall-of-fame");
-const resetAndReload = async () => {
-  await fetchLeaderboard();
-};
 
 const buildLeaderboardUrl = () => {
   const params = new URLSearchParams();
@@ -196,9 +194,9 @@ async function handleVote(entrant: Entrant) {
 
     await response.json();
     await fetchLeaderboard();
-    showStatus(t("voteSuccess"), "success");
+    setStatus(t("voteSuccess"), "success");
   } catch (e: unknown) {
-    showStatus(formatErrorMessage(e, t("voteFailed")), "error");
+    setStatus(formatErrorMessage(e, t("voteFailed")), "error");
   } finally {
     votingId.value = null;
   }

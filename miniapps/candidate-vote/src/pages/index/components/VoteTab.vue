@@ -9,7 +9,6 @@
       :epoch-end-time="epochEndTime"
       :epoch-total-votes="epochTotalVotes"
       :current-strategy="currentStrategy"
-      :t="t"
     />
 
     <CandidateList
@@ -17,7 +16,6 @@
       :selected-candidate="selectedCandidate"
       :total-votes="totalVotes"
       :is-loading="candidatesLoading"
-      :t="t"
       @select="selectCandidate"
     />
 
@@ -25,7 +23,6 @@
       v-model:voteWeight="localVoteWeight"
       :selected-candidate="selectedCandidate"
       :is-loading="isLoading"
-      :t="t"
       @register="$emit('registerVote')"
     />
 
@@ -33,7 +30,6 @@
       :pending-rewards-value="pendingRewardsValue"
       :has-claimed="hasClaimed"
       :is-loading="isLoading"
-      :t="t"
       @claim="$emit('claimRewards')"
     />
   </view>
@@ -42,11 +38,15 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { Candidate } from "@neo/uniapp-sdk";
 import EpochOverview from "./EpochOverview.vue";
 import RegisterVoteForm from "./RegisterVoteForm.vue";
 import RewardsPanel from "./RewardsPanel.vue";
 import CandidateList from "./CandidateList.vue";
+
+const { t } = createUseI18n(messages)();
 
 const props = defineProps<{
   status: { msg: string; type: string } | null;
@@ -62,7 +62,6 @@ const props = defineProps<{
   selectedCandidate: Candidate | null;
   totalVotes: string;
   candidatesLoading: boolean;
-  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 const emit = defineEmits(["registerVote", "claimRewards", "update:voteWeight", "selectCandidate"]);

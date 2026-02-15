@@ -1,14 +1,12 @@
 import { ref } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { parseInvokeResult, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
+import { addressToScriptHash, parseStackItem } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { waitForEventByTransaction } from "@shared/utils/transaction";
+import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 
 const APP_ID = "miniapp-neo-gacha";
 
@@ -34,9 +32,8 @@ interface MachineData {
 
 export function useGachaPublish() {
   const { t } = createUseI18n(messages)();
-  const { address, invokeContract, invokeRead } = useWallet() as WalletSDK;
+  const { address, ensureContractAddress, invokeDirectly, read } = useContractInteraction({ appId: APP_ID, t });
   const { waitForEvent } = usePaymentFlow(APP_ID);
-  const { ensure: ensureContractAddress } = useContractAddress(t);
 
   const isPublishing = ref(false);
 
@@ -78,20 +75,16 @@ export function useGachaPublish() {
       options.setStatus(t("publishing"), "warning");
 
       const priceRaw = toFixed8(machineData.price);
-      const createTx = await invokeContract({
-        scriptHash: contract,
-        operation: "CreateMachine",
-        args: [
-          { type: "Hash160", value: address.value as string },
-          { type: "String", value: machineData.name },
-          { type: "String", value: machineData.description || "" },
-          { type: "String", value: machineData.category || "" },
-          { type: "String", value: machineData.tags || "" },
-          { type: "Integer", value: priceRaw },
-        ],
-      });
+      const createResult = await invokeDirectly("CreateMachine", [
+        { type: "Hash160", value: address.value as string },
+        { type: "String", value: machineData.name },
+        { type: "String", value: machineData.description || "" },
+        { type: "String", value: machineData.category || "" },
+        { type: "String", value: machineData.tags || "" },
+        { type: "Integer", value: priceRaw },
+      ]);
 
-      const createdEvent = await waitForEventByTransaction(createTx, "MachineCreated", waitForEvent);
+      const createdEvent = await waitForEventByTransaction(createResult.tx, "MachineCreated", waitForEvent);
       if (!createdEvent) {
         throw new Error(t("createPending"));
       }
@@ -114,11 +107,7 @@ export function useGachaPublish() {
         if (assetTypeValue === 1) {
           let decimals = 8;
           try {
-            const decimalsRes = await invokeRead({
-              scriptHash: assetHash,
-              operation: "Decimals",
-            });
-            decimals = numberFrom(parseInvokeResult(decimalsRes));
+            decimals = numberFrom(await read("Decimals", [], assetHash));
           } catch {
             /* Token decimals read failed — default to 8 */
             decimals = 8;
@@ -127,23 +116,19 @@ export function useGachaPublish() {
         }
         const tokenId = assetTypeValue === 2 ? item.tokenId : "";
 
-        const itemTx = await invokeContract({
-          scriptHash: contract,
-          operation: "AddMachineItem",
-          args: [
-            { type: "Hash160", value: address.value as string },
-            { type: "Integer", value: machineId },
-            { type: "String", value: item.name },
-            { type: "Integer", value: String(item.probability) },
-            { type: "String", value: item.rarity },
-            { type: "Integer", value: String(assetTypeValue) },
-            { type: "Hash160", value: assetHash },
-            { type: "Integer", value: amountRaw },
-            { type: "String", value: tokenId },
-          ],
-        });
+        const itemResult = await invokeDirectly("AddMachineItem", [
+          { type: "Hash160", value: address.value as string },
+          { type: "Integer", value: machineId },
+          { type: "String", value: item.name },
+          { type: "Integer", value: String(item.probability) },
+          { type: "String", value: item.rarity },
+          { type: "Integer", value: String(assetTypeValue) },
+          { type: "Hash160", value: assetHash },
+          { type: "Integer", value: amountRaw },
+          { type: "String", value: tokenId },
+        ]);
 
-        await waitForEventByTransaction(itemTx, "MachineItemAdded", waitForEvent);
+        await waitForEventByTransaction(itemResult.tx, "MachineItemAdded", waitForEvent);
       }
 
       options.setStatus(t("publishSuccess"), "success");

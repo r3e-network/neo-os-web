@@ -1,10 +1,10 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useEvents } from "@neo/uniapp-sdk";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { sha256Hex } from "@shared/utils/hash";
-import { normalizeScriptHash, ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { normalizeScriptHash, ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -28,14 +28,15 @@ export interface Proposal {
 }
 
 export function useMasqueradeProposals(APP_ID: string) {
-  const { address, invokeRead } = useWallet() as WalletSDK;
+  const { t } = createUseI18n(messages)();
+  const {
+    address,
+    read,
+    invoke,
+    isProcessing: isLoading,
+    ensureContractAddress,
+  } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) => {
-    if (key === "wrongChain") return "Wrong chain";
-    if (key === "contractUnavailable") return "Contract unavailable";
-    return key;
-  });
 
   const masks = ref<Mask[]>([]);
   const proposals = ref<Proposal[]>([]);
@@ -51,10 +52,10 @@ export function useMasqueradeProposals(APP_ID: string) {
 
   const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
 
-  const loadMasks = async (_t: Function) => {
+  const loadMasks = async () => {
     if (!address.value) return;
     try {
-      const contract = await ensureContractAddress();
+      await ensureContractAddress();
       const events = await listEvents({ app_id: APP_ID, event_name: "MaskCreated", limit: 50 });
 
       const owned = events.events
@@ -70,12 +71,7 @@ export function useMasqueradeProposals(APP_ID: string) {
 
       const details = await Promise.all(
         owned.map(async (mask) => {
-          const res = await invokeRead({
-            scriptHash: contract,
-            operation: "getMask",
-            args: [{ type: "Integer", value: mask.id }],
-          });
-          const parsed = parseInvokeResult(res);
+          const parsed = await read("getMask", [{ type: "Integer", value: mask.id }]);
           const values = Array.isArray(parsed) ? parsed : [];
           const owner = String(values[0] ?? "");
           const identity = String(values[1] ?? "");
@@ -104,17 +100,10 @@ export function useMasqueradeProposals(APP_ID: string) {
     }
   };
 
-  const loadProposals = async (t: Function) => {
+  const loadProposals = async () => {
     try {
-      const contract = await ensureContractAddress();
-      // Load active proposals from contract
-      const res = await invokeRead({
-        scriptHash: contract,
-        operation: "getActiveProposals",
-        args: [],
-      });
+      const parsed = await read("getActiveProposals");
 
-      const parsed = parseInvokeResult(res);
       if (Array.isArray(parsed)) {
         proposals.value = parsed.map((p: Record<string, unknown>, idx: number) => ({
           id: String(p.id || idx + 1),
@@ -132,32 +121,23 @@ export function useMasqueradeProposals(APP_ID: string) {
     }
   };
 
-  const createMask = async (t: Function) => {
+  const createMask = async () => {
     if (!canCreateMask.value || isLoading.value) return false;
     clearStatus();
 
     try {
-      const contract = await ensureContractAddress();
       const hash = identityHash.value || (await sha256Hex(identitySeed.value));
-      const { receiptId, invoke } = await processPayment(String(MASK_FEE), `mask:create:${hash.slice(0, 8)}`);
 
-      if (!receiptId) throw new Error(t("receiptMissing"));
-
-      await invoke(
-        "createMask",
-        [
-          { type: "Hash160", value: address.value as string },
-          { type: "ByteArray", value: hash },
-          { type: "Integer", value: String(maskType.value) },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contract
-      );
+      await invoke(String(MASK_FEE), `mask:create:${hash.slice(0, 8)}`, "createMask", [
+        { type: "Hash160", value: address.value as string },
+        { type: "ByteArray", value: hash },
+        { type: "Integer", value: String(maskType.value) },
+      ]);
 
       setStatus(t("maskCreated"), "success");
       identitySeed.value = "";
       identityHash.value = "";
-      await loadMasks(t);
+      await loadMasks();
       return true;
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");

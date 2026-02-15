@@ -23,14 +23,16 @@
       </view>
     </NeoCard>
 
-    <MiniAppTabStats :title="t('yourWallet')" variant="erobo-neo" :stats="infoStats" />
+    <NeoCard :title="t('yourWallet')" variant="erobo-neo">
+      <StatsDisplay :items="infoStats" layout="grid" />
+    </NeoCard>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import { formatAddress } from "@shared/utils/format";
-import { MiniAppTabStats, NeoCard, type StatItem } from "@shared/components";
+import { StatsDisplay, NeoCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -40,7 +42,7 @@ const props = defineProps<{
   address: string | null;
 }>();
 
-const infoStats = computed<StatItem[]>(() => [
+const infoStats = computed<StatsDisplayItem[]>(() => [
   { label: t("wallet"), value: props.address ? formatAddress(props.address) : t("notConnected") },
   { label: t("votingPower"), value: props.address ? t("basedOnNeo") : "--" },
 ]);

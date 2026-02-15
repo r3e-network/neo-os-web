@@ -1,132 +1,94 @@
 <template>
-  <view class="theme-gas-sponsor">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- Main Tab — LEFT panel -->
-      <template #content>
-        
-          <!-- Gas Tank Visualization -->
-          <GasTank :fuel-level-percent="fuelLevelPercent" :gas-balance="gasBalance" :is-eligible="isEligible" :t="t" />
-        
-      </template>
+  <MiniAppPage
+    name="gas-sponsor"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload"
+  >
+    <!-- Main Tab — LEFT panel -->
+    <template #content>
+      <!-- Gas Tank Visualization -->
+      <GasTank :fuel-level-percent="fuelLevelPercent" :gas-balance="gasBalance" :is-eligible="isEligible" />
+    </template>
 
-      <!-- Main Tab — RIGHT panel -->
-      <template #operation>
-        <!-- Request Sponsored Gas -->
-        <RequestGasCard
-          :is-eligible="isEligible"
-          :remaining-quota="remainingQuota"
-          v-model:requestAmount="requestAmount"
-          :max-request-amount="maxRequestAmount"
-          :is-requesting="isRequesting"
-          :quick-amounts="quickAmounts"
-          :t="t"
-          @request="requestSponsorship"
-        />
-      </template>
+    <!-- Main Tab — RIGHT panel -->
+    <template #operation>
+      <!-- Request Sponsored Gas -->
+      <RequestGasCard
+        :is-eligible="isEligible"
+        :remaining-quota="remainingQuota"
+        v-model:requestAmount="requestAmount"
+        :max-request-amount="maxRequestAmount"
+        :is-requesting="isRequesting"
+        :quick-amounts="quickAmounts"
+        @request="requestSponsorship"
+      />
+    </template>
 
-      <template #tab-donate>
-        <DonateForm v-model="donateAmount" :loading="isDonating" @donate="handleDonate" />
-      </template>
+    <template #tab-donate>
+      <DonateForm v-model="donateAmount" :loading="isDonating" @donate="handleDonate" />
+    </template>
 
-      <template #tab-send>
-        <SendForm
-          :recipient="recipientAddress"
-          :amount="sendAmount"
-          :loading="isSending"
-          @update:recipient="recipientAddress = $event"
-          @update:amount="sendAmount = $event"
-          @send="handleSend"
-        />
-      </template>
+    <template #tab-send>
+      <SendForm
+        :recipient="recipientAddress"
+        :amount="sendAmount"
+        :loading="isSending"
+        @update:recipient="recipientAddress = $event"
+        @update:amount="sendAmount = $event"
+        @send="handleSend"
+      />
+    </template>
 
-      <template #tab-stats>
-        <!-- User Balance Info -->
-        <UserBalanceInfo
-          :loading="loading"
-          :user-address="userAddress"
-          :gas-balance="gasBalance"
-          :is-eligible="isEligible"
-          :t="t"
-        />
+    <template #tab-stats>
+      <!-- User Balance Info -->
+      <UserBalanceInfo
+        :loading="loading"
+        :user-address="userAddress"
+        :gas-balance="gasBalance"
+        :is-eligible="isEligible"
+      />
 
-        <DailyQuotaCard
-          :quota-percent="quotaPercent"
-          :daily-limit="dailyLimit"
-          :used-quota="usedQuota"
-          :remaining-quota="remainingQuota"
-          :reset-time="resetTime"
-          :t="t"
-        />
+      <DailyQuotaCard
+        :quota-percent="quotaPercent"
+        :daily-limit="dailyLimit"
+        :used-quota="usedQuota"
+        :remaining-quota="remainingQuota"
+        :reset-time="resetTime"
+      />
 
-        <UsageStatisticsCard
-          :used-quota="usedQuota"
-          :remaining-quota="remainingQuota"
-          :daily-limit="dailyLimit"
-          :reset-time="resetTime"
-          :t="t"
-        />
+      <UsageStatisticsCard
+        :used-quota="usedQuota"
+        :remaining-quota="remainingQuota"
+        :daily-limit="dailyLimit"
+        :reset-time="resetTime"
+      />
 
-        <EligibilityStatusCard
-          :gas-balance="gasBalance"
-          :remaining-quota="remainingQuota"
-          :user-address="userAddress"
-          :t="t"
-        />
-      </template>
-    </MiniAppShell>
-  </view>
+      <EligibilityStatusCard :gas-balance="gasBalance" :remaining-quota="remainingQuota" :user-address="userAddress" />
+    </template>
+  </MiniAppPage>
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useWallet, useGasSponsor } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { MiniAppShell } from "@shared/components";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useGasTransfers } from "@/composables/useGasTransfers";
 import GasTank from "./components/GasTank.vue";
-import UserBalanceInfo from "./components/UserBalanceInfo.vue";
-import RequestGasCard from "./components/RequestGasCard.vue";
-import DailyQuotaCard from "./components/DailyQuotaCard.vue";
-import UsageStatisticsCard from "./components/UsageStatisticsCard.vue";
-import EligibilityStatusCard from "./components/EligibilityStatusCard.vue";
-import DonateForm from "./components/DonateForm.vue";
-import SendForm from "./components/SendForm.vue";
-
-const { t } = createUseI18n(messages)();
 
 const { address, connect } = useWallet() as WalletSDK;
 const { isRequestingSponsorship: isRequesting, checkEligibility, requestSponsorship: apiRequest } = useGasSponsor();
 
 const ELIGIBILITY_THRESHOLD = 0.1;
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "sponsor", labelKey: "tabSponsor", icon: "🎁", default: true },
-    { key: "donate", labelKey: "tabDonate", icon: "❤️" },
-    { key: "send", labelKey: "tabSend", icon: "📤" },
-    { key: "stats", labelKey: "tabStats", icon: "📊" },
-  ],
-});
-const appState = computed(() => ({
-  address: address.value,
-  gasBalance: gasBalance.value,
-  isEligible: isEligible.value,
-  isLoading: loading.value,
-}));
 
 const userAddress = ref("");
 const gasBalance = ref("0");
@@ -135,8 +97,6 @@ const dailyLimit = ref("0.1");
 const resetsAt = ref("");
 const loading = ref(true);
 const requestAmount = ref("0.01");
-const { status, setStatus: showStatus } = useStatusMessage();
-
 const quickAmounts = [0.01, 0.02, 0.03, 0.04];
 
 const isEligible = computed(() => parseFloat(gasBalance.value) < ELIGIBILITY_THRESHOLD);
@@ -152,12 +112,34 @@ const fuelLevelPercent = computed(() => {
   return Math.min((balance / ELIGIBILITY_THRESHOLD) * 100, 100);
 });
 
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "sidebarTankLevel", value: () => `${Math.round(fuelLevelPercent.value)}%` },
-  { labelKey: "gasBalance", value: () => gasBalance.value },
-  { labelKey: "sidebarRemainingQuota", value: () => remainingQuota.value.toFixed(4) },
-  { labelKey: "sidebarEligible", value: () => (isEligible.value ? t("eligible") : t("notEligible")) },
-]);
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } =
+  createMiniApp({
+    name: "gas-sponsor",
+    messages,
+    template: {
+      tabs: [
+        { key: "sponsor", labelKey: "tabSponsor", icon: "🎁", default: true },
+        { key: "donate", labelKey: "tabDonate", icon: "❤️" },
+        { key: "send", labelKey: "tabSend", icon: "📤" },
+        { key: "stats", labelKey: "tabStats", icon: "📊" },
+      ],
+    },
+    sidebarItems: [
+      { labelKey: "sidebarTankLevel", value: () => `${Math.round(fuelLevelPercent.value)}%` },
+      { labelKey: "gasBalance", value: () => gasBalance.value },
+      { labelKey: "sidebarRemainingQuota", value: () => remainingQuota.value.toFixed(4) },
+      { labelKey: "sidebarEligible", value: () => (isEligible.value ? t("eligible") : t("notEligible")) },
+    ],
+  });
+
+const showStatus = setStatus;
+
+const appState = computed(() => ({
+  address: address.value,
+  gasBalance: gasBalance.value,
+  isEligible: isEligible.value,
+  isLoading: loading.value,
+}));
 
 const resetTime = computed(() => {
   if (!resetsAt.value) return "--";
@@ -213,7 +195,6 @@ const { donateAmount, sendAmount, recipientAddress, isDonating, isSending, handl
   loadUserData
 );
 
-const { handleBoundaryError } = useHandleBoundaryError("gas-sponsor");
 const resetAndReload = async () => {
   await loadUserData();
 };

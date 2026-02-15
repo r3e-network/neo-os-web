@@ -51,7 +51,14 @@
       <text class="status-text">{{ status.msg }}</text>
     </view>
 
-    <view class="submit-btn" role="button" tabindex="0" :aria-label="isSubmitting ? t('creating') : t('createBtn')" @click="submit" :class="{ disabled: isSubmitting }">
+    <view
+      class="submit-btn"
+      role="button"
+      tabindex="0"
+      :aria-label="isSubmitting ? t('creating') : t('createBtn')"
+      @click="submit"
+      :class="{ disabled: isSubmitting }"
+    >
       <text>{{ isSubmitting ? t("creating") : t("createBtn") }}</text>
     </view>
   </view>
@@ -59,14 +66,10 @@
 
 <script setup lang="ts">
 import { ref, reactive } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { requireNeoChain } from "@shared/utils/chain";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-
-import type { WalletSDK } from "@neo/types";
+import { useMemorialContract } from "@/composables/useMemorialContract";
 
 const { t } = createUseI18n(messages)();
 
@@ -78,7 +81,8 @@ const emit = defineEmits<{
   created: [data: Record<string, unknown>];
 }>();
 
-const { address, connect, invokeContract, getContractAddress, chainType } = useWallet() as WalletSDK;
+const memorial = useMemorialContract(t);
+const { isSubmitting } = memorial;
 const { status, setStatus } = useStatusMessage(5000);
 
 const form = reactive({
@@ -92,7 +96,6 @@ const form = reactive({
 });
 
 const photoPreview = ref("");
-const isSubmitting = ref(false);
 
 const uploadPhoto = async () => {
   try {
@@ -113,55 +116,28 @@ const uploadPhoto = async () => {
 };
 
 const submit = async () => {
-  if (isSubmitting.value) return;
-  if (!requireNeoChain(chainType, t)) return;
   if (!form.name.trim()) {
     setStatus(t("nameRequired"), "error");
     return;
   }
 
-  isSubmitting.value = true;
-
-  try {
-    if (!address.value) await connect();
-    if (!address.value) throw new Error(t("connectWallet"));
-
-    const contract = await getContractAddress();
-
-    await invokeContract({
-      scriptHash: contract,
-      operation: "createMemorial",
-      args: [
-        { type: "Hash160", value: address.value },
-        { type: "String", value: form.name },
-        { type: "String", value: form.photoHash },
-        { type: "String", value: form.relationship },
-        { type: "Integer", value: String(form.birthYear || 0) },
-        { type: "Integer", value: String(form.deathYear || 0) },
-        { type: "String", value: form.biography },
-        { type: "String", value: form.obituary },
-      ],
-    });
-
-    setStatus(t("createSuccess"), "success");
-    emit("created", { ...form });
-
-    // Reset form
-    Object.assign(form, {
-      name: "",
-      photoHash: "",
-      birthYear: 0,
-      deathYear: 0,
-      relationship: "",
-      biography: "",
-      obituary: "",
-    });
-    photoPreview.value = "";
-  } catch (e: unknown) {
-    setStatus(formatErrorMessage(e, t("error")), "error");
-  } finally {
-    isSubmitting.value = false;
-  }
+  await memorial.createMemorial(
+    form,
+    () => {
+      emit("created", { ...form });
+      Object.assign(form, {
+        name: "",
+        photoHash: "",
+        birthYear: 0,
+        deathYear: 0,
+        relationship: "",
+        biography: "",
+        obituary: "",
+      });
+      photoPreview.value = "";
+    },
+    setStatus
+  );
 };
 </script>
 

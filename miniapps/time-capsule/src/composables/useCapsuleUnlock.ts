@@ -1,12 +1,10 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
+import { useEvents } from "@neo/uniapp-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useAllEvents } from "@shared/composables/useAllEvents";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
-import { ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Capsule } from "../pages/index/components/CapsuleList.vue";
 
@@ -14,14 +12,23 @@ const APP_ID = "miniapp-time-capsule";
 const FISH_FEE = "0.05";
 const CONTENT_STORE_KEY = "time-capsule-content";
 
+/** Handles capsule listing, unlocking, and content retrieval. */
 export function useCapsuleUnlock() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
-  const { processPayment, isProcessing: paymentProcessing } = usePaymentFlow(APP_ID);
+  const {
+    address,
+    ensureWallet,
+    ensureContractAddress,
+    invokeDirectly,
+    invoke,
+    read,
+    isProcessing: paymentProcessing,
+    parseInvokeResult,
+  } = useContractInteraction({
+    appId: APP_ID,
+    t: (key: string) => (key === "contractUnavailable" ? t("error") : t(key)),
+  });
   const { list: listEvents } = useEvents();
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("error") : t(key),
-  );
   const { listAllEvents } = useAllEvents(listEvents, APP_ID);
 
   const isProcessing = ref(false);
@@ -67,25 +74,15 @@ export function useCapsuleUnlock() {
 
     try {
       isProcessing.value = true;
-      const contract = await ensureContractAddress();
 
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(t("connectWallet"));
-      }
+      await ensureWallet();
 
       if (!cap.revealed) {
         onStatus?.(t("revealing"), "loading");
-        await invokeContract({
-          scriptHash: contract,
-          operation: "Reveal",
-          args: [
-            { type: "Hash160", value: address.value },
-            { type: "Integer", value: cap.id },
-          ],
-        });
+        await invokeDirectly("Reveal", [
+          { type: "Hash160", value: address.value as string },
+          { type: "Integer", value: cap.id },
+        ]);
       }
 
       const content = cap.contentHash ? localContent.value[cap.contentHash] : "";
@@ -111,22 +108,10 @@ export function useCapsuleUnlock() {
       onStatus?.(t("fishing"), "loading");
       const requestStartedAt = Date.now();
 
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(t("connectWallet"));
-      }
+      await ensureWallet();
 
-      const contract = await ensureContractAddress();
-      const { receiptId, invoke: invokeWithReceipt } = await processPayment(
-        FISH_FEE,
-        `time-capsule:fish:${Date.now()}`
-      );
-
-      await invokeWithReceipt(contract, "fish", [
-        { type: "Hash160", value: address.value },
-        { type: "Integer", value: String(receiptId) },
+      await invoke(FISH_FEE, `time-capsule:fish:${Date.now()}`, "fish", [
+        { type: "Hash160", value: address.value as string },
       ]);
 
       const fishEvents = await listAllEvents("CapsuleFished");
@@ -150,15 +135,99 @@ export function useCapsuleUnlock() {
     }
   };
 
+  const toNumber = (value: unknown) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+  };
+
+  const buildCapsuleFromDetails = (
+    id: string,
+    data: Record<string, unknown>,
+    fallback?: { unlockTime?: number; isPublic?: boolean }
+  ): Capsule => {
+    const contentHash = String(data.contentHash || "");
+    const unlockTime = toNumber(data.unlockTime ?? fallback?.unlockTime ?? 0);
+    const isPublic = typeof data.isPublic === "boolean" ? data.isPublic : Boolean(data.isPublic ?? fallback?.isPublic);
+    const revealed = Boolean(data.isRevealed);
+    const title = String(data.title || "");
+    const unlockDate = unlockTime ? new Date(unlockTime * 1000).toISOString().split("T")[0] : "N/A";
+    const content = contentHash ? localContent.value[contentHash] : "";
+
+    return {
+      id,
+      title,
+      contentHash,
+      unlockDate,
+      unlockTime,
+      locked: !revealed && Date.now() < unlockTime * 1000,
+      revealed,
+      isPublic,
+      content,
+    } as Capsule;
+  };
+
+  const loadCapsules = async (): Promise<Capsule[]> => {
+    if (!address.value) return [];
+    try {
+      const contract = await ensureContractAddress();
+      const buriedEvents = await listAllEvents("CapsuleBuried");
+
+      const userCapsules = await Promise.all(
+        buriedEvents.map(async (evt) => {
+          const values = Array.isArray(evt?.state) ? evt.state.map((s: unknown) => parseInvokeResult(s)) : [];
+          const owner = values[0];
+          const id = String(values[1] || "");
+          const unlockTimeEvent = toNumber(values[2] || 0);
+          const isPublicEvent = Boolean(values[3]);
+          if (!id || !ownerMatches(owner)) return null;
+
+          try {
+            const parsed = await read("getCapsuleDetails", [{ type: "Integer", value: id }]);
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+              const data = parsed as Record<string, unknown>;
+              return buildCapsuleFromDetails(id, data, { unlockTime: unlockTimeEvent, isPublic: isPublicEvent });
+            }
+          } catch {
+            // fallback to event values
+          }
+
+          return buildCapsuleFromDetails(
+            id,
+            { contentHash: "", title: "", unlockTime: unlockTimeEvent, isPublic: isPublicEvent, isRevealed: false },
+            { unlockTime: unlockTimeEvent, isPublic: isPublicEvent }
+          );
+        })
+      );
+
+      let resolvedCapsules = userCapsules.filter(Boolean) as Capsule[];
+
+      if (resolvedCapsules.length === 0) {
+        const totalCapsules = Number((await read("totalCapsules")) || 0);
+        const discovered: Capsule[] = [];
+        for (let i = 1; i <= totalCapsules; i++) {
+          const parsed = await read("getCapsuleDetails", [{ type: "Integer", value: String(i) }]);
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
+          const data = parsed as Record<string, unknown>;
+          if (!ownerMatches(data.owner)) continue;
+          discovered.push(buildCapsuleFromDetails(String(i), data));
+        }
+        resolvedCapsules = discovered;
+      }
+
+      return resolvedCapsules.sort((a, b) => Number(b.id) - Number(a.id));
+    } catch {
+      return [];
+    }
+  };
+
   return {
     isBusy,
     ownerMatches,
     listAllEvents,
     open,
     fish,
+    loadCapsules,
     ensureContractAddress,
-    invokeRead,
-    parseInvokeResult,
     localContent,
   };
 }

@@ -6,17 +6,24 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Token } from "@/types";
 
 const TOKENS: Token[] = [
-  { symbol: "NEO", hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", balance: 0, decimals: 0 },
-  { symbol: "GAS", hash: "0xd2a4cff31913016155e38e474a2c06d08be276cf", balance: 0, decimals: 8 },
+  { symbol: "NEO", hash: BLOCKCHAIN_CONSTANTS.NEO_HASH, balance: 0, decimals: 0 },
+  { symbol: "GAS", hash: BLOCKCHAIN_CONSTANTS.GAS_HASH, balance: 0, decimals: 8 },
 ];
 
+/** Manages token swap operations, balance tracking, and price estimation. */
 export function useSwapEngine(t: Ref<(key: string) => string>) {
   const { getAddress, invokeContract, balances, chainType } = useWallet() as WalletSDK;
-  const { contractAddress: SWAP_ROUTER, ensure: ensureRouterAddress, ensureSafe: ensureRouterAddressSafe } =
-    useContractAddress((key: string) => (key === "contractUnavailable" ? t.value("swapRouterUnavailable") : t.value(key)));
+  const {
+    contractAddress: SWAP_ROUTER,
+    ensure: ensureRouterAddress,
+    ensureSafe: ensureRouterAddressSafe,
+  } = useContractAddress((key: string) =>
+    key === "contractUnavailable" ? t.value("swapRouterUnavailable") : t.value(key)
+  );
 
   const fromToken = ref<Token>({ ...TOKENS[0] });
   const toToken = ref<Token>({ ...TOKENS[1] });
@@ -74,7 +81,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     onFromAmountChange();
   }
 
-  async function fetchExchangeRate() {
+  async function loadExchangeRate() {
     if (rateLoading.value) return;
     rateLoading.value = true;
     exchangeRate.value = "";
@@ -121,7 +128,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     toToken.value = temp;
     fromAmount.value = "";
     toAmount.value = "";
-    fetchExchangeRate();
+    loadExchangeRate();
     if (swapAnimTimer) clearTimeout(swapAnimTimer);
     swapAnimTimer = setTimeout(() => {
       isSwapping.value = false;
@@ -152,7 +159,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
       else toToken.value = { ...token };
     }
     closeSelector();
-    fetchExchangeRate();
+    loadExchangeRate();
   }
 
   async function executeSwap() {
@@ -203,7 +210,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
 
   onMounted(() => {
     loadRouter();
-    fetchExchangeRate();
+    loadExchangeRate();
   });
 
   onUnmounted(() => {
@@ -228,7 +235,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     slippage,
     minReceived,
     setMaxAmount,
-    fetchExchangeRate,
+    loadExchangeRate,
     swapTokens,
     openFromSelector,
     openToSelector,

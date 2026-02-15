@@ -37,6 +37,9 @@
 </template>
 
 <script setup lang="ts">
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
 defineProps<{
   txMethod: string;
   subtotal: number;
@@ -44,8 +47,9 @@ defineProps<{
   priceDelta: number;
   maxPayout: number;
   callData: string;
-  t: (key: string, args?: Record<string, string | number>) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const formatGas = (value: number) => {
   if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;

@@ -7,61 +7,78 @@
       </NeoButton>
     </view>
 
-    <view v-if="projects.length === 0" class="empty-state">
-      <NeoCard variant="erobo" class="p-6 text-center opacity-70">
-        <text class="text-xs">{{ t("emptyProjects") }}</text>
-      </NeoCard>
-    </view>
-
-    <view v-else class="project-cards">
-      <view v-for="project in projects" :key="`project-${project.id}`" class="project-card">
-        <view class="project-card__header">
-          <view>
-            <text class="project-title">{{ project.name || `#${project.id}` }}</text>
-            <text class="project-subtitle">{{ formatAddress(project.owner) }}</text>
+    <ItemList
+      :items="projects as unknown as Record<string, unknown>[]"
+      item-key="id"
+      :empty-text="t('emptyProjects')"
+      :aria-label="t('ariaProjects')"
+    >
+      <template #empty>
+        <NeoCard variant="erobo" class="p-6 text-center opacity-70">
+          <text class="text-xs">{{ t("emptyProjects") }}</text>
+        </NeoCard>
+      </template>
+      <template #item="{ item }">
+        <view class="project-card">
+          <view class="project-card__header">
+            <view>
+              <text class="project-title">{{
+                (item as unknown as ProjectItem).name || `#${(item as unknown as ProjectItem).id}`
+              }}</text>
+              <text class="project-subtitle">{{ formatAddress((item as unknown as ProjectItem).owner) }}</text>
+            </view>
+            <text :class="['status-pill', projectStatusClass(item as unknown as ProjectItem)]">{{
+              projectStatusLabel(item as unknown as ProjectItem)
+            }}</text>
           </view>
-          <text :class="['status-pill', projectStatusClass(project)]">{{ projectStatusLabel(project) }}</text>
+
+          <text class="project-desc">{{ (item as unknown as ProjectItem).description || "--" }}</text>
+          <text v-if="(item as unknown as ProjectItem).link" class="project-link">{{
+            (item as unknown as ProjectItem).link
+          }}</text>
+
+          <view class="project-metrics">
+            <view>
+              <text class="metric-label">{{ t("totalContributed") }}</text>
+              <text class="metric-value"
+                >{{ formatAmount(assetSymbol, (item as unknown as ProjectItem).totalContributed) }}
+                {{ assetSymbol }}</text
+              >
+            </view>
+            <view>
+              <text class="metric-label">{{ t("matchedAmount") }}</text>
+              <text class="metric-value"
+                >{{ formatAmount(assetSymbol, (item as unknown as ProjectItem).matchedAmount) }} {{ assetSymbol }}</text
+              >
+            </view>
+            <view>
+              <text class="metric-label">{{ t("donors") }}</text>
+              <text class="metric-value">{{ (item as unknown as ProjectItem).contributorCount.toString() }}</text>
+            </view>
+          </view>
+
+          <view class="project-actions">
+            <NeoButton size="sm" variant="secondary" @click="emitContribute(item as unknown as ProjectItem)">
+              {{ t("contributeNow") }}
+            </NeoButton>
+            <NeoButton
+              size="sm"
+              variant="primary"
+              :loading="claimingProjectId === (item as unknown as ProjectItem).id"
+              :disabled="!canClaimProject(item as unknown as ProjectItem)"
+              @click="emitClaim(item as unknown as ProjectItem)"
+            >
+              {{ claimingProjectId === (item as unknown as ProjectItem).id ? t("claimingProject") : t("claimProject") }}
+            </NeoButton>
+          </view>
         </view>
-
-        <text class="project-desc">{{ project.description || "--" }}</text>
-        <text v-if="project.link" class="project-link">{{ project.link }}</text>
-
-        <view class="project-metrics">
-          <view>
-            <text class="metric-label">{{ t("totalContributed") }}</text>
-            <text class="metric-value">{{ formatAmount(assetSymbol, project.totalContributed) }} {{ assetSymbol }}</text>
-          </view>
-          <view>
-            <text class="metric-label">{{ t("matchedAmount") }}</text>
-            <text class="metric-value">{{ formatAmount(assetSymbol, project.matchedAmount) }} {{ assetSymbol }}</text>
-          </view>
-          <view>
-            <text class="metric-label">{{ t("donors") }}</text>
-            <text class="metric-value">{{ project.contributorCount.toString() }}</text>
-          </view>
-        </view>
-
-        <view class="project-actions">
-          <NeoButton size="sm" variant="secondary" @click="emitContribute(project)">
-            {{ t("contributeNow") }}
-          </NeoButton>
-          <NeoButton
-            size="sm"
-            variant="primary"
-            :loading="claimingProjectId === project.id"
-            :disabled="!canClaimProject(project)"
-            @click="emitClaim(project)"
-          >
-            {{ claimingProjectId === project.id ? t("claimingProject") : t("claimProject") }}
-          </NeoButton>
-        </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard, NeoButton, ItemList } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import type { RoundItem } from "./RoundList.vue";
@@ -106,6 +123,8 @@ const emitClaim = (project: ProjectItem) => emit("claim", project);
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .project-list {
   display: flex;
   flex-direction: column;
@@ -177,9 +196,9 @@ const emitClaim = (project: ProjectItem) => emit("claim", project);
 }
 
 .metric-label {
+  @include stat-label;
   font-size: 10px;
   color: var(--qf-muted);
-  text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 

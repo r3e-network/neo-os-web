@@ -1,142 +1,134 @@
 <template>
-  <view class="create-campaign-form">
-    <view class="form-header">
-      <text class="form-title">{{ t("createCampaign") }}</text>
+  <FormCard
+    :title="t('createCampaign')"
+    :submit-label="isCreating ? t('loading') : t('createCampaign')"
+    :submit-loading="isCreating"
+    :submit-disabled="isCreating || !isFormValid()"
+    @submit="submitForm"
+  >
+    <!-- Campaign Name -->
+    <view class="form-field">
+      <text class="field-label">{{ t("campaignName") }} *</text>
+      <input v-model="formData.title" class="field-input" :placeholder="t('campaignNamePlaceholder')" maxlength="100" />
     </view>
 
-    <view class="form-fields">
-      <!-- Campaign Name -->
-      <view class="form-field">
-        <text class="field-label">{{ t("campaignName") }} *</text>
-        <input
-          v-model="formData.title"
-          class="field-input"
-          :placeholder="t('campaignNamePlaceholder')"
-          maxlength="100"
-        />
-      </view>
+    <!-- Description -->
+    <view class="form-field">
+      <text class="field-label">{{ t("description") }}</text>
+      <textarea
+        v-model="formData.description"
+        class="field-textarea"
+        :placeholder="t('storyPlaceholder')"
+        maxlength="500"
+      />
+    </view>
 
-      <!-- Description -->
-      <view class="form-field">
-        <text class="field-label">{{ t("description") }}</text>
-        <textarea
-          v-model="formData.description"
-          class="field-textarea"
-          :placeholder="t('storyPlaceholder')"
-          maxlength="500"
-        />
-      </view>
-
-      <!-- Category -->
-      <view class="form-field">
-        <text class="field-label">{{ t("selectCategory") }} *</text>
-        <view class="category-grid">
-          <view
-            v-for="cat in categoryOptions"
-            :key="cat.id"
-            class="category-option"
-            :class="{ active: formData.category === cat.id }"
-            role="button"
-            tabindex="0"
-            :aria-pressed="formData.category === cat.id"
-            @click="formData.category = cat.id"
-            @keydown.enter="formData.category = cat.id"
-            @keydown.space.prevent="formData.category = cat.id"
-          >
-            <text>{{ cat.label }}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Target Goal -->
-      <view class="form-field">
-        <text class="field-label">{{ t("targetGoal") }} *</text>
-        <input
-          v-model.number="formData.targetAmount"
-          type="number"
-          class="field-input"
-          :placeholder="t('targetPlaceholder')"
-          min="10"
-          step="1"
-        />
-      </view>
-
-      <!-- Duration -->
-      <view class="form-field">
-        <text class="field-label">{{ t("duration") }} *</text>
-        <view class="duration-input">
-          <input
-            v-model.number="formData.duration"
-            type="number"
-            class="field-input"
-            min="1"
-            max="365"
-            :aria-label="t('duration')"
-          />
-          <text class="duration-suffix">{{ t("durationDays") }}</text>
-        </view>
-      </view>
-
-      <!-- Beneficiary Address -->
-      <view class="form-field">
-        <text class="field-label">{{ t("beneficiaryAddress") }} *</text>
-        <input v-model="formData.beneficiary" class="field-input" :placeholder="t('beneficiaryPlaceholder')" />
-      </view>
-
-      <!-- Multi-sig Addresses -->
-      <view class="form-field">
-        <text class="field-label">{{ t("multisigAddresses") }}</text>
-        <text class="field-hint">{{ t("multisigInfo") }}</text>
-        <view v-for="(addr, index) in formData.multisigAddresses" :key="index" class="multisig-row">
-          <input
-            v-model="formData.multisigAddresses[index]"
-            class="field-input"
-            :placeholder="t('neoAddressPlaceholder')"
-          />
-          <view
-            class="remove-button"
-            role="button"
-            tabindex="0"
-            :aria-label="`Remove address ${index + 1}`"
-            @click="removeMultisigAddress(index)"
-            @keydown.enter="removeMultisigAddress(index)"
-            @keydown.space.prevent="removeMultisigAddress(index)"
-          >
-            <text aria-hidden="true">×</text>
-          </view>
-        </view>
+    <!-- Category -->
+    <view class="form-field">
+      <text class="field-label">{{ t("selectCategory") }} *</text>
+      <view class="category-grid">
         <view
-          class="add-button"
+          v-for="cat in categoryOptions"
+          :key="cat.id"
+          class="category-option"
+          :class="{ active: formData.category === cat.id }"
           role="button"
           tabindex="0"
-          :aria-label="t('addAddress')"
-          @click="addMultisigAddress"
-          @keydown.enter="addMultisigAddress"
-          @keydown.space.prevent="addMultisigAddress"
+          :aria-pressed="formData.category === cat.id"
+          @click="formData.category = cat.id"
+          @keydown.enter="formData.category = cat.id"
+          @keydown.space.prevent="formData.category = cat.id"
         >
-          <text>+ {{ t("addAddress") }}</text>
+          <text>{{ cat.label }}</text>
         </view>
       </view>
+    </view>
 
-      <!-- Submit -->
-      <view class="form-actions">
-        <button class="submit-button" :disabled="isCreating || !isFormValid()" @click="submitForm">
-          <text>{{ isCreating ? t("loading") : t("createCampaign") }}</text>
-        </button>
+    <!-- Target Goal -->
+    <view class="form-field">
+      <text class="field-label">{{ t("targetGoal") }} *</text>
+      <input
+        v-model.number="formData.targetAmount"
+        type="number"
+        class="field-input"
+        :placeholder="t('targetPlaceholder')"
+        min="10"
+        step="1"
+      />
+    </view>
+
+    <!-- Duration -->
+    <view class="form-field">
+      <text class="field-label">{{ t("duration") }} *</text>
+      <view class="duration-input">
+        <input
+          v-model.number="formData.duration"
+          type="number"
+          class="field-input"
+          min="1"
+          max="365"
+          :aria-label="t('duration')"
+        />
+        <text class="duration-suffix">{{ t("durationDays") }}</text>
       </view>
     </view>
-  </view>
+
+    <!-- Beneficiary Address -->
+    <view class="form-field">
+      <text class="field-label">{{ t("beneficiaryAddress") }} *</text>
+      <input v-model="formData.beneficiary" class="field-input" :placeholder="t('beneficiaryPlaceholder')" />
+    </view>
+
+    <!-- Multi-sig Addresses -->
+    <view class="form-field">
+      <text class="field-label">{{ t("multisigAddresses") }}</text>
+      <text class="field-hint">{{ t("multisigInfo") }}</text>
+      <view v-for="(addr, index) in formData.multisigAddresses" :key="index" class="multisig-row">
+        <input
+          v-model="formData.multisigAddresses[index]"
+          class="field-input"
+          :placeholder="t('neoAddressPlaceholder')"
+        />
+        <view
+          class="remove-button"
+          role="button"
+          tabindex="0"
+          :aria-label="`Remove address ${index + 1}`"
+          @click="removeMultisigAddress(index)"
+          @keydown.enter="removeMultisigAddress(index)"
+          @keydown.space.prevent="removeMultisigAddress(index)"
+        >
+          <text aria-hidden="true">×</text>
+        </view>
+      </view>
+      <view
+        class="add-button"
+        role="button"
+        tabindex="0"
+        :aria-label="t('addAddress')"
+        @click="addMultisigAddress"
+        @keydown.enter="addMultisigAddress"
+        @keydown.space.prevent="addMultisigAddress"
+      >
+        <text>+ {{ t("addAddress") }}</text>
+      </view>
+    </view>
+  </FormCard>
 </template>
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
+import { FormCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 interface Props {
   isCreating: boolean;
-  t: (key: string) => string;
 }
 
 const props = defineProps<Props>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   submit: [
@@ -165,13 +157,13 @@ const formData = reactive({
 });
 
 const categoryOptions = computed(() => [
-  { id: "disaster", label: props.t("categoryDisaster") },
-  { id: "education", label: props.t("categoryEducation") },
-  { id: "health", label: props.t("categoryHealth") },
-  { id: "environment", label: props.t("categoryEnvironment") },
-  { id: "poverty", label: props.t("categoryPoverty") },
-  { id: "animals", label: props.t("categoryAnimals") },
-  { id: "other", label: props.t("categoryOther") },
+  { id: "disaster", label: t("categoryDisaster") },
+  { id: "education", label: t("categoryEducation") },
+  { id: "health", label: t("categoryHealth") },
+  { id: "environment", label: t("categoryEnvironment") },
+  { id: "poverty", label: t("categoryPoverty") },
+  { id: "animals", label: t("categoryAnimals") },
+  { id: "other", label: t("categoryOther") },
 ]);
 
 const addMultisigAddress = () => {

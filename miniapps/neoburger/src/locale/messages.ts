@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   // Branding
   title: { en: "NeoBurger", zh: "NeoBurger" },
   subtitle: { en: "Liquid Staking for NEO", zh: "NEO 流动性质押" },
@@ -101,7 +103,6 @@ export const messages = {
   // Airdrop
   airdropTitle: { en: "NoBug Airdrop", zh: "NoBug 空投" },
   airdropConnectTip: { en: "Please connect your wallet before claiming the NoBug.", zh: "在领取 NoBug 之前请连接钱包。" },
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   nobugAlt: { en: "NoBug logo", zh: "NoBug 标志" },
   nobugWhatIsTitle: { en: "What is NoBug?", zh: "什么是 NoBug？" },
   nobugWhatIsDesc1: {
@@ -294,4 +295,6 @@ export const messages = {
   sidebarBneoBalance: { en: "bNEO Balance", zh: "bNEO 余额" },
   sidebarTotalStaked: { en: "Total Staked", zh: "总质押量" },
   sidebarApr: { en: "APR", zh: "年化" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

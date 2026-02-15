@@ -1,5 +1,5 @@
 <template>
-  <view class="settings-container">
+  <FormCard :submit-label="t('common.confirm')" @submit="$emit('save')">
     <view class="form-group">
       <text class="label">{{ t("settings.network") }}</text>
       <picker
@@ -38,18 +38,9 @@
 
     <view class="form-group">
       <text class="label">{{ t("settings.contract_address") }}</text>
-      <input
-        class="input-field"
-        v-model="form.contractAddress"
-        placeholder="0x..."
-        placeholder-class="placeholder"
-      />
+      <input class="input-field" v-model="form.contractAddress" placeholder="0x..." placeholder-class="placeholder" />
     </view>
-
-    <view class="settings-actions">
-      <button class="save-btn" @click="$emit('save')">{{ t("common.confirm") }}</button>
-    </view>
-  </view>
+  </FormCard>
 </template>
 
 <script setup lang="ts">
@@ -65,6 +56,8 @@ export interface ChainOption {
   name: string;
   shortName?: string;
 }
+
+import { FormCard } from "@shared/components";
 
 defineProps<{
   form: SettingsFormData;
@@ -82,10 +75,6 @@ defineEmits<{
 
 <style scoped lang="scss">
 @use "@shared/styles/tokens.scss" as *;
-
-.settings-container {
-  padding: 20px;
-}
 
 .form-group {
   display: flex;
@@ -115,26 +104,5 @@ defineEmits<{
   padding: 12px;
   background: var(--piggy-input-bg);
   font-size: 14px;
-}
-
-.settings-actions {
-  margin-top: 24px;
-}
-
-.save-btn {
-  width: 100%;
-  background: linear-gradient(90deg, var(--piggy-accent-start), var(--piggy-accent-end));
-  color: var(--piggy-accent-text);
-  border: none;
-  border-radius: 10px;
-  padding: 12px;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-@media (max-width: 767px) {
-  .settings-container {
-    padding: 12px;
-  }
 }
 </style>

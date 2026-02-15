@@ -1,22 +1,26 @@
 import { ref, computed, watch } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { formatNumber, parseGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useEvents } from "@neo/uniapp-sdk";
+import { formatNum, parseGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
+import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import type { StatItem } from "@shared/components/NeoStats.vue";
+import type { StatsDisplayItem } from "@shared/components";
 
 const APP_ID = "miniapp-gov-merc";
 
 export function useGovMercPool(t: (key: string) => string) {
-  const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
+  const {
+    address,
+    ensureWallet,
+    read,
+    invoke,
+    invokeDirectly,
+    ensureContractAddress,
+    isProcessing: isLoading,
+  } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
-  const { ensure: ensureContractAddress } = useContractAddress(t);
   const { listAllEvents } = useAllEvents(listEvents, APP_ID);
   const { status, setStatus } = useStatusMessage();
 
@@ -30,32 +34,27 @@ export function useGovMercPool(t: (key: string) => string) {
   const dataLoading = ref(false);
 
   const isBusy = computed(() => isLoading.value || dataLoading.value);
-  const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
   const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
   const ensureConnectedAddress = async () => {
-    if (!address.value) await connect();
-    if (!address.value) throw new Error(t("error"));
-    return address.value;
+    await ensureWallet();
+    return address.value as string;
   };
 
-  const poolStats = computed<StatItem[]>(() => [
+  const poolStats = computed<StatsDisplayItem[]>(() => [
     { label: t("totalPool"), value: `${formatNum(totalPool.value, 0)} NEO`, variant: "success" },
     { label: t("currentEpoch"), value: currentEpoch.value, variant: "default" },
     { label: t("yourDeposits"), value: `${formatNum(userDeposits.value, 0)} NEO`, variant: "accent" },
   ]);
 
-  const fetchPoolData = async () => {
-    const contract = await ensureContractAddress();
-    const [poolRes, epochRes] = await Promise.all([
-      invokeRead({ scriptHash: contract, operation: "TotalPool" }),
-      invokeRead({ scriptHash: contract, operation: "GetCurrentEpochId" }),
-    ]);
-    totalPool.value = Number(parseInvokeResult(poolRes) || 0);
-    currentEpoch.value = Number(parseInvokeResult(epochRes) || 0);
+  const loadPoolData = async () => {
+    await ensureContractAddress();
+    const [poolResult, epochResult] = await Promise.all([read("TotalPool"), read("GetCurrentEpochId")]);
+    totalPool.value = Number(poolResult || 0);
+    currentEpoch.value = Number(epochResult || 0);
   };
 
-  const fetchUserDeposits = async () => {
+  const loadUserDeposits = async () => {
     if (!address.value) return;
     const deposits = await listAllEvents("MercDeposit");
     const total = deposits.reduce((sum, evt) => {
@@ -67,7 +66,7 @@ export function useGovMercPool(t: (key: string) => string) {
     userDeposits.value = total;
   };
 
-  const fetchBids = async () => {
+  const loadBids = async () => {
     const bidEvents = await listAllEvents("BidPlaced");
     const epoch = currentEpoch.value;
     const map = new Map<string, number>();
@@ -84,12 +83,12 @@ export function useGovMercPool(t: (key: string) => string) {
       .sort((a, b) => b.amount - a.amount);
   };
 
-  const fetchData = async () => {
+  const loadData = async () => {
     try {
       dataLoading.value = true;
-      await fetchPoolData();
-      await fetchUserDeposits();
-      await fetchBids();
+      await loadPoolData();
+      await loadUserDeposits();
+      await loadBids();
     } catch {
     } finally {
       dataLoading.value = false;
@@ -105,18 +104,13 @@ export function useGovMercPool(t: (key: string) => string) {
     }
     try {
       const walletAddress = await ensureConnectedAddress();
-      const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "DepositNeo",
-        args: [
-          { type: "Hash160", value: walletAddress },
-          { type: "Integer", value: amount },
-        ],
-      });
+      await invokeDirectly("DepositNeo", [
+        { type: "Hash160", value: walletAddress },
+        { type: "Integer", value: amount },
+      ]);
       setStatus(t("depositSuccess"), "success");
       depositAmount.value = "";
-      await fetchData();
+      await loadData();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     }
@@ -131,18 +125,13 @@ export function useGovMercPool(t: (key: string) => string) {
     }
     try {
       const walletAddress = await ensureConnectedAddress();
-      const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "WithdrawNeo",
-        args: [
-          { type: "Hash160", value: walletAddress },
-          { type: "Integer", value: amount },
-        ],
-      });
+      await invokeDirectly("WithdrawNeo", [
+        { type: "Hash160", value: walletAddress },
+        { type: "Integer", value: amount },
+      ]);
       setStatus(t("withdrawSuccess"), "success");
       withdrawAmount.value = "";
-      await fetchData();
+      await loadData();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     }
@@ -156,28 +145,20 @@ export function useGovMercPool(t: (key: string) => string) {
       return;
     }
     try {
-      const walletAddress = await ensureConnectedAddress();
-      const contract = await ensureContractAddress();
-      const { receiptId, invoke } = await processPayment(bidAmount.value, `bid:${currentEpoch.value}`);
-      if (!receiptId) throw new Error(t("receiptMissing"));
-      await invoke(
-        "placeBid",
-        [
-          { type: "Hash160", value: walletAddress },
-          { type: "Integer", value: toFixed8(bidAmount.value) },
-          { type: "Integer", value: receiptId },
-        ],
-        contract
-      );
+      await ensureConnectedAddress();
+      await invoke(bidAmount.value, `bid:${currentEpoch.value}`, "placeBid", [
+        { type: "Hash160", value: address.value as string },
+        { type: "Integer", value: toFixed8(bidAmount.value) },
+      ]);
       setStatus(t("bidSuccess"), "success");
       bidAmount.value = "";
-      await fetchData();
+      await loadData();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     }
   };
 
-  watch(address, () => fetchData(), { immediate: true });
+  watch(address, () => loadData(), { immediate: true });
 
   return {
     address,
@@ -196,6 +177,6 @@ export function useGovMercPool(t: (key: string) => string) {
     depositNeo,
     withdrawNeo,
     placeBid,
-    fetchData,
+    loadData,
   };
 }

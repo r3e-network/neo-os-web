@@ -1,27 +1,41 @@
 <template>
   <NeoCard class="signers-card">
     <text class="card-title">{{ t("signersTitle") }}</text>
-    <view class="signer-list">
-      <view v-for="signer in signers" :key="signer.publicKey" class="signer-row">
+    <ItemList
+      :items="signers as unknown as Record<string, unknown>[]"
+      item-key="publicKey"
+      :aria-label="t('ariaSigners')"
+    >
+      <template #item="{ item }">
         <view class="signer-info">
-          <text class="signer-key">{{ shorten(signer.publicKey) }}</text>
-          <text class="signer-address">{{ shorten(signer.address) }}</text>
-          <text v-if="hasSigned(signer.publicKey)" class="badge signed">{{ t("badgeSigned") }}</text>
+          <text class="signer-key">{{ shorten((item as unknown as SignerEntry).publicKey) }}</text>
+          <text class="signer-address">{{ shorten((item as unknown as SignerEntry).address) }}</text>
+          <text v-if="hasSigned((item as unknown as SignerEntry).publicKey)" class="badge signed">{{
+            t("badgeSigned")
+          }}</text>
           <text v-else class="badge pending">{{ t("badgePending") }}</text>
         </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+interface SignerEntry {
+  publicKey: string;
+  address: string;
+}
 
 defineProps<{
-  t: (key: string) => string;
-  signers: { publicKey: string; address: string }[];
+  signers: SignerEntry[];
   hasSigned: (publicKey: string) => boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const shorten = (str: string) => (str ? str.slice(0, 6) + "..." + str.slice(-4) : "");
 </script>

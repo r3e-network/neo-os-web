@@ -43,7 +43,14 @@
           </view>
 
           <view class="position-actions">
-            <view v-if="hasWinningPosition(pos)" class="claim-button" role="button" tabindex="0" :aria-label="t('claimWinnings')" @click="$emit('claim', pos.marketId)">
+            <view
+              v-if="hasWinningPosition(pos)"
+              class="claim-button"
+              role="button"
+              tabindex="0"
+              :aria-label="t('claimWinnings')"
+              @click="$emit('claim', pos.marketId)"
+            >
               <text>{{ t("claimWinnings") }}</text>
             </view>
           </view>
@@ -75,7 +82,14 @@
             </view>
           </view>
 
-          <view v-if="order.status === 'open'" class="order-cancel" role="button" tabindex="0" :aria-label="t('cancelOrder')" @click="$emit('cancelOrder', order.id)">
+          <view
+            v-if="order.status === 'open'"
+            class="order-cancel"
+            role="button"
+            tabindex="0"
+            :aria-label="t('cancelOrder')"
+            @click="$emit('cancelOrder', order.id)"
+          >
             <text>{{ t("cancelOrder") }}</text>
           </view>
         </view>
@@ -87,16 +101,19 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { MarketPosition, MarketOrder } from "@/types";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 interface Props {
   positions: MarketPosition[];
   orders: MarketOrder[];
   totalValue: number;
   totalPnL: number;
-  t: (key: string) => string;
 }
 
 const props = defineProps<Props>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   claim: [marketId: number];

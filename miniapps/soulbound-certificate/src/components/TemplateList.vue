@@ -9,34 +9,39 @@
 
     <view v-if="!hasAddress" class="empty-state">
       <NeoCard variant="erobo" class="p-6 text-center">
-        <text class="text-sm block mb-3">{{ t("walletNotConnected") }}</text>
+        <text class="mb-3 block text-sm">{{ t("walletNotConnected") }}</text>
         <NeoButton size="sm" variant="primary" @click="$emit('connect')">
           {{ t("connectWallet") }}
         </NeoButton>
       </NeoCard>
     </view>
 
-    <view v-else-if="templates.length === 0" class="empty-state">
-      <NeoCard variant="erobo" class="p-6 text-center opacity-70">
-        <text class="text-xs">{{ t("emptyTemplates") }}</text>
-      </NeoCard>
-    </view>
-
-    <view v-else class="template-cards">
-      <TemplateCard
-        v-for="template in templates"
-        :key="`template-${template.id}`"
-        :template="template"
-        :toggling-id="togglingId"
-        @issue="$emit('issue', $event)"
-        @toggle="$emit('toggle', $event)"
-      />
-    </view>
+    <ItemList
+      v-else
+      :items="templates as unknown as Record<string, unknown>[]"
+      item-key="id"
+      :empty-text="t('emptyTemplates')"
+      :aria-label="t('ariaTemplates')"
+    >
+      <template #empty>
+        <NeoCard variant="erobo" class="p-6 text-center opacity-70">
+          <text class="text-xs">{{ t("emptyTemplates") }}</text>
+        </NeoCard>
+      </template>
+      <template #item="{ item }">
+        <TemplateCard
+          :template="item as unknown as TemplateItem"
+          :toggling-id="togglingId"
+          @issue="$emit('issue', $event)"
+          @toggle="$emit('toggle', $event)"
+        />
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard, NeoButton, ItemList } from "@shared/components";
 import TemplateCard from "./TemplateCard.vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";

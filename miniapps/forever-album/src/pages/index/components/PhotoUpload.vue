@@ -1,5 +1,5 @@
 <template>
-  <NeoModal :visible="visible" :title="t('uploadPhoto')" closeable @close="$emit('close')">
+  <ActionModal :visible="visible" :title="t('uploadPhoto')" @close="$emit('close')">
     <view class="upload-body">
       <view class="upload-grid">
         <view v-for="item in images" :key="item.id" class="upload-item">
@@ -8,7 +8,14 @@
             >×</view
           >
         </view>
-        <view v-if="images.length < maxPhotos" class="upload-item upload-placeholder" role="button" tabindex="0" :aria-label="t('selectMore')" @click="$emit('choose')">
+        <view
+          v-if="images.length < maxPhotos"
+          class="upload-item upload-placeholder"
+          role="button"
+          tabindex="0"
+          :aria-label="t('selectMore')"
+          @click="$emit('choose')"
+        >
           <text class="upload-plus">+</text>
           <text class="upload-tip">{{ t("selectMore") }}</text>
         </view>
@@ -32,7 +39,7 @@
       </view>
     </view>
 
-    <template #footer>
+    <template #actions>
       <NeoButton variant="ghost" size="sm" @click="$emit('close')">
         {{ t("cancel") }}
       </NeoButton>
@@ -46,16 +53,17 @@
         {{ uploading ? t("uploading") : t("confirm") }}
       </NeoButton>
     </template>
-  </NeoModal>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { NeoModal, NeoButton, NeoInput } from "@shared/components";
+import { ActionModal, NeoButton, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { UploadItem } from "@/types";
 
 const props = defineProps<{
-  t: (key: string) => string;
   visible: boolean;
   images: UploadItem[];
   maxPhotos: number;
@@ -65,6 +73,8 @@ const props = defineProps<{
   password: string;
   uploading: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -88,6 +98,7 @@ const formatBytes = (bytes: number) => {
 </script>
 
 <style scoped lang="scss">
+@use "@shared/styles/mixins.scss" as *;
 .upload-body {
   display: flex;
   flex-direction: column;

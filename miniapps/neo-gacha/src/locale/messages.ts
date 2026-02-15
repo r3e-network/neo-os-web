@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     title: { en: "Neo Gacha", zh: "Neo 扭蛋机" },
     docSubtitle: { en: "On-chain blind boxes with escrowed prizes", zh: "奖品托管的链上盲盒" },
     docDescription: {
@@ -126,4 +128,6 @@ export const messages = {
     none: { en: "None", zh: "无" },
     yes: { en: "Yes", zh: "是" },
     no: { en: "No", zh: "否" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -15,7 +15,7 @@
       </view>
     </view>
 
-    <view class="grid-container">
+    <view class="grid-container" role="grid" :aria-label="t('remainingBoxes')">
       <TurtleGrid :gridTurtles="gridTurtles" :matchedPair="matchedPair" />
     </view>
 
@@ -47,9 +47,13 @@
 
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { formatGas } from "@shared/utils/format";
 import TurtleGrid from "./TurtleGrid.vue";
 import type { Turtle } from "../composables/useTurtleGame";
+
+const { t } = createUseI18n(messages)();
 
 interface Props {
   remainingBoxes: number;
@@ -59,7 +63,6 @@ interface Props {
   matchedPair: number[];
   gamePhase: "idle" | "playing" | "settling" | "complete";
   loading: boolean;
-  t: Function;
 }
 
 defineProps<Props>();
@@ -71,6 +74,8 @@ defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .game-board {
   width: 100%;
 }

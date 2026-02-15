@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Flash Loan", zh: "闪电贷" },
   instructionMode: { en: "INSTRUCTIONAL MODE", zh: "教学模式" },
@@ -43,7 +45,7 @@ title: { en: "Flash Loan", zh: "闪电贷" },
   main: { en: "Status", zh: "状态" },
   stats: { en: "Activity", zh: "活动" },
   docs: { en: "Learn", zh: "学习" },
-  
+
   // Create Loan
   tabLookup: { en: "Lookup", zh: "查询" },
   tabCreate: { en: "Request Loan", zh: "请求贷款" },
@@ -52,9 +54,9 @@ title: { en: "Flash Loan", zh: "闪电贷" },
   amountPlaceholder: { en: "Enter amount in GAS", zh: "输入 GAS 金额" },
   callbackContractPlaceholder: { en: "Enter callback contract address", zh: "输入回调合约地址" },
   callbackMethodPlaceholder: { en: "Enter callback method name", zh: "输入回调方法名" },
-  flashloanInfo: { 
+  flashloanInfo: {
     en: "Flash loans must be repaid within a single transaction. The callback contract will receive the loan and must repay the principal + fee atomically.",
-    zh: "闪电贷必须在单笔交易中偿还。回调合约将收到贷款，并必须原子化偿还本金+手续费。" 
+    zh: "闪电贷必须在单笔交易中偿还。回调合约将收到贷款，并必须原子化偿还本金+手续费。"
   },
   requestLoan: { en: "Request Loan", zh: "请求贷款" },
   requesting: { en: "Requesting...", zh: "请求中..." },
@@ -136,4 +138,6 @@ title: { en: "Flash Loan", zh: "闪电贷" },
     sidebarTotalLoans: { en: "Total Loans", zh: "贷款总数" },
     sidebarTotalVolume: { en: "Total Volume", zh: "总交易量" },
     flashloanErrorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

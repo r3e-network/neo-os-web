@@ -1,6 +1,8 @@
-export const messages = {
-    // App translations
-title: { en: "Compound Capsule", zh: "复利胶囊" },
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  // App translations
+  title: { en: "Compound Capsule", zh: "复利胶囊" },
   vaultStats: { en: "Vault Overview", zh: "金库概览" },
   totalLocked: { en: "Total Locked", zh: "总锁定量" },
   totalCapsules: { en: "Total Capsules", zh: "胶囊总数" },
@@ -70,9 +72,12 @@ title: { en: "Compound Capsule", zh: "复利胶囊" },
     en: "Accrued GAS is released on unlock.",
     zh: "解锁时释放累计 GAS。",
   },
+  ariaCapsules: { en: "Capsules", zh: "胶囊" },
   feature3Name: { en: "Yield Tracking", zh: "收益追踪" },
   feature3Desc: {
     en: "Track accrued GAS and remaining lock time on-chain.",
     zh: "链上追踪累计 GAS 与剩余锁定时间。",
   },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "TrustAnchor", zh: "TrustAnchor" },
   subtitle: { en: "Reputation-Based Voting Delegation", zh: "基于声誉的投票委托" },
   description: {
@@ -61,15 +63,11 @@ export const messages = {
   warningTitle: { en: "Wrong Network", zh: "网络错误" },
   warningMessage: { en: "TrustAnchor requires Neo N3 network.", zh: "TrustAnchor 需要 Neo N3 网络。" },
   switchButton: { en: "Switch to Neo", zh: "切换到 Neo" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
 
   error: { en: "Operation failed", zh: "操作失败" },
   errorInvalidStakeAmount: { en: "Invalid stake amount", zh: "无效的质押数量" },
   errorInvalidUnstakeAmount: { en: "Invalid unstake amount", zh: "无效的解除质押数量" },
   errorInsufficientStaked: { en: "Insufficient staked balance", zh: "质押余额不足" },
-  success: { en: "Success", zh: "成功" },
 
   tabOverview: { en: "Overview", zh: "概览" },
   tabAgents: { en: "Candidates", zh: "候选人" },
@@ -80,28 +78,32 @@ export const messages = {
   delegatorsLabel: { en: "Total Stakers", zh: "总质押人数" },
   votePowerLabel: { en: "Total Vote Power", zh: "总投票权" },
 
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   disconnected: { en: "Disconnected", zh: "已断开" },
 
-  loading: { en: "Loading...", zh: "加载中..." },
   refresh: { en: "Refresh", zh: "刷新" },
 
-  docs: { en: "Docs", zh: "文档" },
   docsSubtitle: { en: "Reputation-based staking and governance on Neo N3", zh: "基于声誉的 Neo N3 质押与治理" },
   feature1Name: { en: "Zero-Fee Staking", zh: "零手续费质押" },
-  feature1Desc: { en: "100% of GAS rewards go directly to stakers with no platform fees.", zh: "100% 的 GAS 奖励直接归质押者所有，无平台手续费。" },
+  feature1Desc: {
+    en: "100% of GAS rewards go directly to stakers with no platform fees.",
+    zh: "100% 的 GAS 奖励直接归质押者所有，无平台手续费。",
+  },
   feature2Name: { en: "Reputation Voting", zh: "声誉投票" },
-  feature2Desc: { en: "Vote for candidates based on contribution and track record, not profit.", zh: "根据贡献和记录投票，而非利润。" },
+  feature2Desc: {
+    en: "Vote for candidates based on contribution and track record, not profit.",
+    zh: "根据贡献和记录投票，而非利润。",
+  },
   feature3Name: { en: "Network Security", zh: "网络安全" },
-  feature3Desc: { en: "Help secure Neo N3 by delegating to quality consensus candidates.", zh: "通过委托给优质共识候选人帮助保障 Neo N3 网络安全。" },
+  feature3Desc: {
+    en: "Help secure Neo N3 by delegating to quality consensus candidates.",
+    zh: "通过委托给优质共识候选人帮助保障 Neo N3 网络安全。",
+  },
 
   philosophy: { en: "Philosophy", zh: "理念" },
   philosophyText: {
     en: "TrustAnchor exists to promote quality governance. GAS rewards are a natural incentive, but our true purpose is ensuring Neo N3 is governed by active, reputable contributors.",
     zh: "TrustAnchor 的存在是为了促进优质治理。GAS 奖励是自然激励，但我们真正的目的是确保 Neo N3 由活跃、有声誉的贡献者治理。",
   },
-  overview: { en: "Overview", zh: "概览" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
 } as const;
 
-export type Messages = typeof messages;
+export const messages = mergeMessages(appMessages);

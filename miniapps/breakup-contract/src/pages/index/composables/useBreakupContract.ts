@@ -1,14 +1,14 @@
 import { ref, computed } from "vue";
+import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import { parseGas, toFixed8 } from "@shared/utils/format";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { parseStackItem } from "@shared/utils/neo";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createSidebarItems } from "@shared/utils";
+import { useEvents } from "@neo/uniapp-sdk";
 import type { ContractStatus, RelationshipContractView } from "@/types";
 
 const APP_ID = "miniapp-breakupcontract";
@@ -16,10 +16,17 @@ const APP_ID = "miniapp-breakupcontract";
 const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
 
 export function useBreakupContract(t: (key: string) => string) {
-  const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
+  const { chainType } = useWallet() as WalletSDK;
+  const {
+    address,
+    ensureWallet,
+    read,
+    invoke,
+    invokeDirectly,
+    ensureContractAddress,
+    isProcessing: isLoading,
+  } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
   const { listAllEvents } = useAllEvents(listEvents, APP_ID);
   const { status, setStatus, clearStatus } = useStatusMessage();
 
@@ -42,7 +49,7 @@ export function useBreakupContract(t: (key: string) => string) {
 
   const parseContract = (
     id: number,
-    data: Record<string, unknown> | unknown[] | null,
+    data: Record<string, unknown> | unknown[] | null
   ): RelationshipContractView | null => {
     if (!data || typeof data !== "object") return null;
     const details = Array.isArray(data)
@@ -86,8 +93,7 @@ export function useBreakupContract(t: (key: string) => string) {
     const elapsed = startTimeMs > 0 ? Math.max(0, Math.min(durationMs, now - startTimeMs)) : 0;
     const computedProgress = durationMs > 0 ? Math.round((elapsed / durationMs) * 100) : 0;
     const progressPercent = Number((details as Record<string, unknown>).progressPercent ?? 0);
-    const progress =
-      progressPercent > 0 ? Math.min(100, Math.max(0, Math.floor(progressPercent))) : computedProgress;
+    const progress = progressPercent > 0 ? Math.min(100, Math.max(0, Math.floor(progressPercent))) : computedProgress;
     const remainingSeconds = Number((details as Record<string, unknown>).remainingTime ?? 0);
     const daysLeft =
       remainingSeconds > 0
@@ -120,7 +126,7 @@ export function useBreakupContract(t: (key: string) => string) {
 
   const loadContracts = async () => {
     try {
-      const contract = await ensureContractAddress();
+      await ensureContractAddress();
       const createdEvents = await listAllEvents("ContractCreated");
       const ids = new Set<number>();
       createdEvents.forEach((evt) => {
@@ -132,13 +138,9 @@ export function useBreakupContract(t: (key: string) => string) {
 
       const contractViews: RelationshipContractView[] = [];
       for (const id of Array.from(ids).sort((a, b) => b - a)) {
-        const res = await invokeRead({
-          scriptHash: contract,
-          operation: "GetContractDetails",
-          args: [{ type: "Integer", value: id }],
-        });
-        const parsed = parseContract(id, parseInvokeResult(res));
-        if (parsed) contractViews.push(parsed);
+        const parsed = await read("GetContractDetails", [{ type: "Integer", value: id }]);
+        const view = parseContract(id, parsed as Record<string, unknown> | unknown[] | null);
+        if (view) contractViews.push(view);
       }
       contracts.value = contractViews;
     } catch (e: unknown) {
@@ -182,30 +184,16 @@ export function useBreakupContract(t: (key: string) => string) {
       return;
     }
     try {
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(t("error"));
-      }
-      await ensureContractAddress();
-      const { receiptId, invoke } = await processPayment(stakeAmount.value, `contract:${partnerValue.slice(0, 10)}`);
-      if (!receiptId) {
-        throw new Error(t("receiptMissing"));
-      }
-      await invoke(
-        "createContract",
-        [
-          { type: "Hash160", value: address.value },
-          { type: "Hash160", value: partnerValue },
-          { type: "Integer", value: toFixed8(stakeAmount.value) },
-          { type: "Integer", value: durationDays },
-          { type: "String", value: titleValue },
-          { type: "String", value: termsValue },
-          { type: "Integer", value: receiptId },
-        ],
-        contractAddress.value as string,
-      );
+      await ensureWallet();
+
+      await invoke(stakeAmount.value, `contract:${partnerValue.slice(0, 10)}`, "createContract", [
+        { type: "Hash160", value: address.value as string },
+        { type: "Hash160", value: partnerValue },
+        { type: "Integer", value: toFixed8(stakeAmount.value) },
+        { type: "Integer", value: durationDays },
+        { type: "String", value: titleValue },
+        { type: "String", value: termsValue },
+      ]);
       setStatus(t("contractCreated"), "success");
       partnerAddress.value = "";
       stakeAmount.value = "";
@@ -221,20 +209,10 @@ export function useBreakupContract(t: (key: string) => string) {
   const signContract = async (contract: RelationshipContractView) => {
     if (isLoading.value || !address.value) return;
     try {
-      await ensureContractAddress();
-      const { receiptId, invoke } = await processPayment(contract.stake.toFixed(8), `contract:sign:${contract.id}`);
-      if (!receiptId) {
-        throw new Error(t("receiptMissing"));
-      }
-      await invoke(
-        "signContract",
-        [
-          { type: "Integer", value: contract.id },
-          { type: "Hash160", value: address.value },
-          { type: "Integer", value: receiptId },
-        ],
-        contractAddress.value as string,
-      );
+      await invoke(contract.stake.toFixed(8), `contract:sign:${contract.id}`, "signContract", [
+        { type: "Integer", value: contract.id },
+        { type: "Hash160", value: address.value },
+      ]);
       setStatus(t("contractSigned"), "success");
       await loadContracts();
     } catch (e: unknown) {
@@ -248,15 +226,10 @@ export function useBreakupContract(t: (key: string) => string) {
       return;
     }
     try {
-      await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contractAddress.value as string,
-        operation: "TriggerBreakup",
-        args: [
-          { type: "Integer", value: contract.id },
-          { type: "Hash160", value: address.value },
-        ],
-      });
+      await invokeDirectly("TriggerBreakup", [
+        { type: "Integer", value: contract.id },
+        { type: "Hash160", value: address.value },
+      ]);
       setStatus(t("contractBroken"), "error");
       await loadContracts();
     } catch (e: unknown) {

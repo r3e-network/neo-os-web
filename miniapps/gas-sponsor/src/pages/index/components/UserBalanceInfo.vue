@@ -24,6 +24,8 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { formatAddress } from "@shared/utils/format";
 
 const props = defineProps<{
@@ -31,10 +33,11 @@ const props = defineProps<{
   userAddress: string;
   gasBalance: string;
   isEligible: boolean;
-  t: (key: string) => string;
 }>();
 
-const shortenAddress = (addr: string) => (addr ? formatAddress(addr) : props.t("notConnected"));
+const { t } = createUseI18n(messages)();
+
+const shortenAddress = (addr: string) => (addr ? formatAddress(addr) : t("notConnected"));
 const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
 </script>
 

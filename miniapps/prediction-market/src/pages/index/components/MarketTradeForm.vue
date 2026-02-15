@@ -1,8 +1,12 @@
 <template>
-  <view class="trade-panel">
-    <text class="panel-title">{{ t("operationPanelTitle") }}</text>
-    <text class="panel-subtitle">{{ t("operationPanelHint") }}</text>
-
+  <FormCard
+    :title="t('operationPanelTitle')"
+    :description="t('operationPanelHint')"
+    :submit-label="isTrading ? t('loading') : t('signAndSubmit')"
+    :submit-loading="isTrading"
+    :submit-disabled="isTrading || !canSubmitTrade"
+    @submit="submitTrade"
+  >
     <view class="panel-badges">
       <view class="panel-badge">
         <text>{{ t("txNetwork") }}: Neo N3</text>
@@ -65,18 +69,17 @@
       :price-delta="priceDelta"
       :max-payout="maxPayout"
       :call-data="callDataPreview"
-      :t="t"
     />
 
-    <button class="submit-button" :disabled="isTrading || !canSubmitTrade" @click="submitTrade">
-      <text>{{ isTrading ? t("loading") : t("signAndSubmit") }}</text>
-    </button>
-    <text class="panel-footnote">{{ t("txFootnote") }}</text>
-  </view>
+    <template #actions>
+      <text class="panel-footnote">{{ t("txFootnote") }}</text>
+    </template>
+  </FormCard>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
+import { FormCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import type { PredictionMarket } from "@/composables/usePredictionMarkets";
@@ -88,7 +91,6 @@ import TradePreviewCard from "./TradePreviewCard.vue";
 interface Props {
   market: PredictionMarket;
   isTrading: boolean;
-  t?: (key: string, args?: Record<string, string | number>) => string;
 }
 
 const props = defineProps<Props>();
@@ -96,11 +98,7 @@ const emit = defineEmits<{
   (e: "trade", payload: { outcome: "yes" | "no"; orderType: "buy" | "sell"; price: number; shares: number }): void;
 }>();
 
-const { t: i18nT } = createUseI18n(messages)();
-const t = (key: string, args?: Record<string, string | number>) => {
-  if (props.t) return props.t(key, args);
-  return i18nT(key as never, args);
-};
+const { t } = createUseI18n(messages)();
 
 const formatPercent = (price: number) => `${(price * 100).toFixed(1)}%`;
 

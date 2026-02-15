@@ -11,6 +11,7 @@ import {
   getPrivateKeyFromWIF,
 } from "@/services/neo";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export interface ConversionResult {
   address: string;
@@ -28,6 +29,7 @@ const EMPTY_RESULT: ConversionResult = {
   opcodes: [],
 };
 
+/** Converts between Neo key formats (WIF, private key, public key) and disassembles scripts. */
 export function useConverter(t: (key: string) => string) {
   const { status: copyStatus, setStatus: setCopyStatus } = useStatusMessage(3000);
 
@@ -102,8 +104,8 @@ export function useConverter(t: (key: string) => string) {
       statusMsg.value = "unknownFormat";
       statusType.value = "error";
       result.value = { ...EMPTY_RESULT };
-    } catch (_e: unknown) {
-      statusMsg.value = "invalidFormat";
+    } catch (e: unknown) {
+      statusMsg.value = formatErrorMessage(e, t("invalidFormat"));
       statusType.value = "error";
     }
   }

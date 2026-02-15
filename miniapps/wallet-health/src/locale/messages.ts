@@ -1,16 +1,10 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Wallet Health", zh: "钱包健康" },
   tabHealth: { en: "Health", zh: "健康" },
   tabChecklist: { en: "Checklist", zh: "清单" },
-  docs: { en: "Docs", zh: "文档" },
 
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
-
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
   refresh: { en: "Refresh", zh: "刷新" },
 
@@ -70,7 +64,7 @@ export const messages = {
   feature2Desc: { en: "Checklist-based score highlights risk.", zh: "通过清单评分提示风险。" },
   feature3Name: { en: "Actionable Tips", zh: "可执行建议" },
   feature3Desc: { en: "Next-step recommendations for better security.", zh: "提供下一步安全建议。" },
-  overview: { en: "Overview", zh: "概览" },
   healthSummary: { en: "Health Summary", zh: "健康概览" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

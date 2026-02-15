@@ -26,7 +26,6 @@
       :is-loading="isLoading"
       :validation-error="validationError"
       :is-connected="isConnected"
-      :t="t"
       @lookup="$emit('lookup')"
       @request-loan="$emit('requestLoan', $event)"
     />

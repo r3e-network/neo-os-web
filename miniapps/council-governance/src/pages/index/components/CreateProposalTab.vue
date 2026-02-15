@@ -1,6 +1,11 @@
 <template>
   <view class="tab-content">
-    <NeoCard v-if="status" :variant="status.type === 'error' ? 'danger' : 'erobo-neo'" class="status-card">
+    <NeoCard
+      v-if="status"
+      :variant="status.type === 'error' ? 'danger' : 'erobo-neo'"
+      class="status-card"
+      :role="status.type === 'error' ? 'alert' : undefined"
+    >
       <text class="status-text">{{ status.msg }}</text>
     </NeoCard>
 

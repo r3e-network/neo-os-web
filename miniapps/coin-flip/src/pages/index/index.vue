@@ -1,65 +1,52 @@
 <template>
-  <view class="theme-coin-flip">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :fireworks-active="showWinOverlay"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('gameErrorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetGame">
-<!-- Game content - LEFT panel -->
-      <template #content>
-        
-          <!-- Wallet Connection Warning -->
-          <view v-if="!address" class="wallet-warning">
-            <NeoCard variant="warning" class="text-center">
-              <text class="font-bold">{{ t("connectWalletToPlay") }}</text>
-              <NeoButton variant="primary" size="sm" class="mt-2" @click="connectWallet">
-                {{ t("connectWallet") }}
-              </NeoButton>
-            </NeoCard>
-          </view>
+  <MiniAppPage
+    name="coin-flip"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :fireworks-active="showWinOverlay"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetGame"
+  >
+    <!-- Game content - LEFT panel -->
+    <template #content>
+      <!-- Wallet Connection Warning -->
+      <view v-if="!address" class="wallet-warning">
+        <NeoCard variant="warning" class="text-center">
+          <text class="font-bold">{{ t("connectWalletToPlay") }}</text>
+          <NeoButton variant="primary" size="sm" class="mt-2" @click="connectWallet">
+            {{ t("connectWallet") }}
+          </NeoButton>
+        </NeoCard>
+      </view>
 
-          <!-- Coin Arena -->
-          <CoinArena
-            :display-outcome="displayOutcome"
-            :is-flipping="isFlipping"
-            :result="result"
-            :t="t as (key: string) => string"
-          />
+      <!-- Coin Arena -->
+      <CoinArena :display-outcome="displayOutcome" :is-flipping="isFlipping" :result="result" />
 
-          <!-- Result Modal -->
-          <ResultOverlay
-            :visible="showWinOverlay"
-            :win-amount="winAmount"
-            :t="t as (key: string) => string"
-            @close="showWinOverlay = false"
-          />
-        
-      </template>
+      <!-- Result Modal -->
+      <ResultOverlay :visible="showWinOverlay" :win-amount="winAmount" @close="showWinOverlay = false" />
+    </template>
 
-      <!-- RIGHT panel: Bet Controls -->
-      <template #operation>
-        <BetControls
-          v-model:choice="choice"
-          v-model:betAmount="betAmount"
-          :is-flipping="isFlipping"
-          :can-bet="canBet"
-          :validation-error="validationError"
-          :t="t as (key: string) => string"
-          @flip="handleFlip"
-        />
-      </template>
+    <!-- RIGHT panel: Bet Controls -->
+    <template #operation>
+      <BetControls
+        v-model:choice="choice"
+        v-model:betAmount="betAmount"
+        :is-flipping="isFlipping"
+        :can-bet="canBet"
+        :validation-error="validationError"
+        @flip="handleFlip"
+      />
+    </template>
 
-      <!-- Stats tab -->
-      <template #tab-stats>
-        <MiniAppTabStats variant="erobo" class="mb-6" :stats="gameStats" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <!-- Stats tab -->
+    <template #tab-stats>
+      <StatsTab :grid-items="gameStats" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
@@ -67,18 +54,31 @@ import "../../static/coin-flip.css";
 import { computed } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, MiniAppTabStats, NeoCard, NeoButton, type StatItem } from "@shared/components";
-import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage, NeoCard, NeoButton } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import CoinArena from "./components/CoinArena.vue";
-import BetControls from "./components/BetControls.vue";
 import ResultOverlay from "./components/ResultOverlay.vue";
 import { useCoinFlipGame } from "./composables/useCoinFlipGame";
 
-const { t } = createUseI18n(messages)();
 const wallet = useWallet() as WalletSDK;
 const { address } = wallet;
+
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage } = createMiniApp({
+  name: "coin-flip",
+  messages,
+  template: {
+    tabs: [{ key: "game", labelKey: "game", icon: "\uD83C\uDFAE", default: true }],
+    fireworks: true,
+  },
+  sidebarItems: [
+    { labelKey: "totalGames", value: () => totalGames.value },
+    { labelKey: "wins", value: () => wins.value },
+    { labelKey: "losses", value: () => losses.value },
+    { labelKey: "totalWon", value: () => `${formatNum(totalWon.value)} GAS` },
+  ],
+  fallbackMessageKey: "gameErrorFallback",
+});
 
 const {
   betAmount,
@@ -104,24 +104,11 @@ const {
   handleFlip,
 } = useCoinFlipGame(wallet, t);
 
-const templateConfig = createPrimaryStatsTemplateConfig(
-  { key: "game", labelKey: "game", icon: "\uD83C\uDFAE", default: true },
-  { fireworks: true },
-);
-
-
-const gameStats = computed<StatItem[]>(() => [
+const gameStats = computed<StatsDisplayItem[]>(() => [
   { label: t("totalGames"), value: wins.value + losses.value },
   { label: t("wins"), value: wins.value, variant: "success" },
   { label: t("losses"), value: losses.value, variant: "danger" },
   { label: t("totalWon"), value: `${formatNum(totalWon.value)} GAS`, variant: "accent" },
-]);
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "totalGames", value: () => totalGames.value },
-  { labelKey: "wins", value: () => wins.value },
-  { labelKey: "losses", value: () => losses.value },
-  { labelKey: "totalWon", value: () => `${formatNum(totalWon.value)} GAS` },
 ]);
 
 const appState = computed(() => ({

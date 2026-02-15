@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Dev Tipping", zh: "开发者打赏" },
   subtitle: { en: "Support developers", zh: "支持开发者" },
@@ -17,25 +19,18 @@ title: { en: "Dev Tipping", zh: "开发者打赏" },
   anonymousLabel: { en: "Send Anonymously", zh: "匿名发送" },
   anonymousOn: { en: "Anonymous", zh: "匿名" },
   anonymousOff: { en: "Show Name", zh: "显示昵称" },
-  loading: { en: "Loading...", zh: "加载中..." },
   sending: { en: "Sending...", zh: "发送中..." },
   sendTipBtn: { en: "Send Tip", zh: "发送打赏" },
   selected: { en: "Selected", zh: "已选择" },
   tipSent: { en: "Tip sent successfully!", zh: "打赏发送成功！" },
   invalidAmount: { en: "Invalid amount", zh: "无效金额" },
   minTip: { en: "Minimum tip is 0.001 GAS", zh: "最低打赏为 0.001 GAS" },
-  receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
-  contractUnavailable: { en: "Contract unavailable", zh: "合约不可用" },
   connectWallet: { en: "Connect wallet first", zh: "请先连接钱包" },
-  error: { en: "Error", zh: "错误" },
   recentTips: { en: "Recent Tips", zh: "最近打赏" },
-  stats: { en: "Stats", zh: "统计" },
-  statistics: { en: "Statistics", zh: "统计数据" },
   totalDonated: { en: "Total Donated", zh: "总打赏额" },
   defaultDevName: { en: "Dev #{id}", zh: "开发者 #{id}" },
   defaultDevRole: { en: "Neo Developer", zh: "Neo 开发者" },
 
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Support developers with direct GAS tips",
     zh: "用 GAS 打赏直接支持开发者",
@@ -75,16 +70,6 @@ title: { en: "Dev Tipping", zh: "开发者打赏" },
     en: "Attach a short note or stay anonymous.",
     zh: "可附上简短留言或匿名打赏。",
   },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

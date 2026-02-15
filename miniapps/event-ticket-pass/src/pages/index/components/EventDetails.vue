@@ -5,9 +5,10 @@
         <text class="event-title">{{ event.name || `#${event.id}` }}</text>
         <text class="event-subtitle">{{ event.venue || t("venueFallback") }}</text>
       </view>
-      <text :class="['status-pill', event.active ? 'active' : 'inactive']">
-        {{ event.active ? t("statusActive") : t("statusInactive") }}
-      </text>
+      <StatusBadge
+        :status="event.active ? 'active' : 'inactive'"
+        :label="event.active ? t('statusActive') : t('statusInactive')"
+      />
     </view>
 
     <view class="event-meta">
@@ -43,14 +44,17 @@
 </template>
 
 <script setup lang="ts">
-import { NeoButton } from "@shared/components";
+import { NeoButton, StatusBadge } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { EventItem } from "@/types";
 
 const props = defineProps<{
-  t: (key: string) => string;
   event: EventItem;
   togglingId: string | null;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "issue", event: EventItem): void;
@@ -58,7 +62,7 @@ const emit = defineEmits<{
 }>();
 
 const formatSchedule = (startTime: number, endTime: number) => {
-  if (!startTime || !endTime) return props.t("dateUnknown");
+  if (!startTime || !endTime) return t("dateUnknown");
   const start = new Date(startTime * 1000);
   const end = new Date(endTime * 1000);
   return `${start.toLocaleString()} - ${end.toLocaleString()}`;
@@ -66,6 +70,8 @@ const formatSchedule = (startTime: number, endTime: number) => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .event-card {
   background: var(--ticket-card-bg);
   border: 1px solid var(--ticket-card-border);
@@ -102,10 +108,9 @@ const formatSchedule = (startTime: number, endTime: number) => {
 }
 
 .meta-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--ticket-muted);
 }
 
@@ -120,9 +125,9 @@ const formatSchedule = (startTime: number, endTime: number) => {
 }
 
 .metric-label {
+  @include stat-label;
   font-size: 10px;
   color: var(--ticket-muted);
-  text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
@@ -136,21 +141,5 @@ const formatSchedule = (startTime: number, endTime: number) => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.status-pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(245, 158, 11, 0.2);
-  color: var(--ticket-accent);
-}
-
-.status-pill.inactive {
-  background: rgba(148, 163, 184, 0.2);
-  color: var(--ticket-muted);
 }
 </style>

@@ -80,6 +80,8 @@
 
 <script setup lang="ts">
 import { NeoInput, NeoButton, NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   partnerAddress: string;
@@ -89,8 +91,9 @@ defineProps<{
   terms: string;
   address: string | null;
   isLoading: boolean;
-  t: (key: string, ...args: unknown[]) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits([
   "update:partnerAddress",
@@ -105,6 +108,7 @@ defineEmits([
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .contract-card {
   position: relative;
@@ -220,9 +224,7 @@ defineEmits([
 }
 
 .form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  @include grid-layout(2, 16px);
   margin-bottom: 24px;
 }
 
@@ -231,11 +233,8 @@ defineEmits([
 }
 
 .form-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 0.1em;
   margin-bottom: 8px;
   display: block;
 }
@@ -245,11 +244,8 @@ defineEmits([
 }
 
 .signature-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   margin-bottom: 8px;
   display: block;
 }

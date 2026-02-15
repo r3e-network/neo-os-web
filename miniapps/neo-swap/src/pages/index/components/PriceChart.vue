@@ -12,14 +12,28 @@
       <text class="rate-label">{{ t("minReceived") }}</text>
       <text class="rate-value">{{ minReceived }} {{ toSymbol }}</text>
     </view>
-    <view class="refresh-btn" role="button" :aria-label="t('refreshRate')" tabindex="0" @click="$emit('refresh')" @keydown.enter="$emit('refresh')">
+    <view
+      class="refresh-btn"
+      role="button"
+      :aria-label="t('refreshRate')"
+      tabindex="0"
+      @click="$emit('refresh')"
+      @keydown.enter="$emit('refresh')"
+    >
       <text class="refresh-icon" aria-hidden="true">↻</text>
       {{ t("refreshRate") }}
     </view>
   </view>
   <view class="rate-card loading" v-else>
-    <text class="rate-loading-text">{{ loading ? t('loadingRate') : t('rateUnavailable') }}</text>
-    <view class="refresh-btn" role="button" :aria-label="t('refreshRate')" tabindex="0" @click="$emit('refresh')" @keydown.enter="$emit('refresh')">
+    <text class="rate-loading-text">{{ loading ? t("loadingRate") : t("rateUnavailable") }}</text>
+    <view
+      class="refresh-btn"
+      role="button"
+      :aria-label="t('refreshRate')"
+      tabindex="0"
+      @click="$emit('refresh')"
+      @keydown.enter="$emit('refresh')"
+    >
       <text class="refresh-icon" aria-hidden="true">↻</text>
       {{ t("refreshRate") }}
     </view>
@@ -27,8 +41,10 @@
 </template>
 
 <script setup lang="ts">
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+
 const props = defineProps<{
-  t: (key: string) => string;
   exchangeRate: string;
   fromSymbol: string;
   toSymbol: string;
@@ -36,6 +52,8 @@ const props = defineProps<{
   minReceived: string;
   loading: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "refresh"): void;
@@ -77,7 +95,7 @@ const emit = defineEmits<{
   font-size: 12px;
   font-weight: 600;
   color: var(--swap-text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
 
   &.slippage {
     color: var(--swap-accent);

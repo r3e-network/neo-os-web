@@ -27,21 +27,24 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { formatNumber } from "@shared/utils/format";
 
 type LoanStatus = "success" | "failed";
 
 const props = defineProps<{
   recentLoans: { id: number; amount: number; fee: number; status: LoanStatus; timestamp: string }[];
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const formatNum = (n: number, decimals = 2) => formatNumber(n, decimals);
 
 const statusText = (status: LoanStatus) => {
   const map = {
-    success: props.t("statusSuccess"),
-    failed: props.t("statusFailed"),
+    success: t("statusSuccess"),
+    failed: t("statusFailed"),
   };
   return map[status] || status;
 };
@@ -108,8 +111,12 @@ const statusText = (status: LoanStatus) => {
 }
 .td-status {
   text-transform: uppercase;
-  &.success { color: var(--flash-success); }
-  &.failed { color: var(--flash-danger); }
+  &.success {
+    color: var(--flash-success);
+  }
+  &.failed {
+    color: var(--flash-danger);
+  }
 }
 .empty-state {
   text-align: center;

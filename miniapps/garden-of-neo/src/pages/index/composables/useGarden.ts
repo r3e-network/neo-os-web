@@ -1,7 +1,7 @@
 import { ref, computed, onMounted, watch } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import { ownerMatchesAddress, parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useEvents } from "@neo/uniapp-sdk";
+import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -36,14 +36,19 @@ const MAX_PLOTS = 9;
 export function useGarden(
   t: (key: string) => string,
   contractAddress: () => string | null,
-  ensureContractAddress: () => Promise<void>,
+  ensureContractAddress: () => Promise<void>
 ) {
-  const { address, connect, invokeRead, invokeContract } = useWallet();
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+  const {
+    address,
+    ensureWallet,
+    read,
+    invoke,
+    invokeDirectly,
+    isProcessing: isLoading,
+  } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
 
-  const createEmptyPlots = (): Plot[] =>
-    Array.from({ length: MAX_PLOTS }, (_, idx) => ({ id: idx + 1, plant: null }));
+  const createEmptyPlots = (): Plot[] => Array.from({ length: MAX_PLOTS }, (_, idx) => ({ id: idx + 1, plant: null }));
 
   const plots = ref<Plot[]>(createEmptyPlots());
   const { status: localStatus, setStatus: showStatus, clearStatus: clearLocalStatus } = useStatusMessage(3000);
@@ -62,7 +67,7 @@ export function useGarden(
 
   const totalPlants = computed(() => plots.value.filter((p) => p.plant).length);
   const readyToHarvest = computed(
-    () => plots.value.filter((p) => p.plant && p.plant.isMature && !p.plant.harvested).length,
+    () => plots.value.filter((p) => p.plant && p.plant.isMature && !p.plant.harvested).length
   );
   const isBusy = computed(() => isLoading.value || dataLoading.value || isHarvesting.value);
 
@@ -71,12 +76,7 @@ export function useGarden(
   const seedByType = (seedType: number) => seeds.value.find((seed) => seed.id === seedType);
 
   const buildPlant = async (plantId: number, seedType: number): Promise<Plant> => {
-    const detailsRes = await invokeRead({
-      scriptHash: contractAddress()!,
-      operation: "getPlantDetails",
-      args: [{ type: "Integer", value: plantId }],
-    });
-    const details = parseInvokeResult(detailsRes);
+    const details = await read("getPlantDetails", [{ type: "Integer", value: plantId }], contractAddress()!);
     const data =
       details && typeof details === "object" && !Array.isArray(details) ? (details as Record<string, unknown>) : {};
     const actualSeedType = Number(data.seedType ?? seedType);
@@ -100,7 +100,7 @@ export function useGarden(
     null;
 
   function setStatsEmitter(
-    fn: (stats: { totalPlants: number; readyToHarvest: number; totalHarvested: number }) => void,
+    fn: (stats: { totalPlants: number; readyToHarvest: number; totalHarvested: number }) => void
   ) {
     emitStats = fn;
   }
@@ -119,8 +119,8 @@ export function useGarden(
     const harvestEvents = await listEvents({ app_id: APP_ID, event_name: "PlantHarvested", limit: 100 });
 
     const harvestedIds = new Set<number>();
-    harvestEvents.events.forEach((evt: Record<string, unknown>) => {
-      const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+    harvestEvents.events.forEach((evt) => {
+      const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
       if (!ownerMatches(values[0])) return;
       const plantId = Number(values[1] || 0);
       if (plantId > 0) harvestedIds.add(plantId);
@@ -134,8 +134,8 @@ export function useGarden(
     }
 
     const userPlants = seedEvents.events
-      .map((evt: Record<string, unknown>) => {
-        const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+      .map((evt) => {
+        const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
         return { owner: values[0], plantId: Number(values[1] || 0), seedType: Number(values[2] || 0) };
       })
       .filter((entry) => entry.plantId > 0 && ownerMatches(entry.owner))
@@ -181,20 +181,21 @@ export function useGarden(
     }
     if (isBusy.value) return;
     try {
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("connectWallet"));
+      await ensureWallet();
       await ensureContractAddress();
 
       showStatus(t("plantingSeed"), "loading");
-      const { receiptId, invoke } = await processPayment(seed.price, `plant:${seed.id}`);
-      if (!receiptId) throw new Error(t("receiptMissing"));
-
-      await invoke(contractAddress()!, "plant", [
-        { type: "Hash160", value: address.value },
-        { type: "Integer", value: seed.id },
-        { type: "String", value: "" },
-        { type: "Integer", value: receiptId },
-      ]);
+      await invoke(
+        seed.price,
+        `plant:${seed.id}`,
+        "plant",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Integer", value: seed.id },
+          { type: "String", value: "" },
+        ],
+        contractAddress()!
+      );
       showStatus(t("plantSuccess"), "success");
       await refreshGarden();
     } catch (e: unknown) {
@@ -205,19 +206,18 @@ export function useGarden(
   const harvestPlant = async (plant: Plant, skipRefresh = false) => {
     if (isHarvesting.value) return;
     try {
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("connectWallet"));
+      await ensureWallet();
       await ensureContractAddress();
 
       isHarvesting.value = true;
-      await invokeContract({
-        scriptHash: contractAddress()!,
-        operation: "harvest",
-        args: [
-          { type: "Hash160", value: address.value },
+      await invokeDirectly(
+        "harvest",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Integer", value: plant.id },
         ],
-      });
+        contractAddress()!
+      );
       showStatus(t("harvestSuccess"), "success");
       if (!skipRefresh) await refreshGarden();
     } catch (e: unknown) {

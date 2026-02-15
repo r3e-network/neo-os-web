@@ -1,7 +1,11 @@
 <template>
-  <NeoCard variant="danger" class="destruction-chamber-card" :style="{ borderColor: isDestroying ? 'var(--grave-danger)' : '' }">
+  <NeoCard
+    variant="danger"
+    class="destruction-chamber-card"
+    :style="{ borderColor: isDestroying ? 'var(--grave-danger)' : '' }"
+  >
     <view class="hazard-stripes"></view>
-    
+
     <view class="chamber-header-glass">
       <view class="icon-pulse">
         <text class="chamber-icon-glass">🔥</text>
@@ -45,12 +49,12 @@
 
     <!-- Destruction Button with Fire Effect -->
     <view class="destroy-btn-container">
-      <NeoButton 
-        variant="primary" 
-        size="lg" 
-        block 
-        @click="$emit('initiate')" 
-        :loading="isDestroying" 
+      <NeoButton
+        variant="primary"
+        size="lg"
+        block
+        @click="$emit('initiate')"
+        :loading="isDestroying"
         :class="['destroy-btn-glass', { 'is-destroying': isDestroying }]"
       >
         <view class="btn-fire-effect" v-if="isDestroying"></view>
@@ -58,13 +62,15 @@
         <text class="btn-text">{{ isDestroying ? t("destroying") : t("destroyForever") }}</text>
       </NeoButton>
     </view>
-    
+
     <view class="hazard-stripes bottom"></view>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
 import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   assetHash: string;
@@ -72,8 +78,9 @@ defineProps<{
   memoryTypeOptions: { value: number; label: string }[];
   isDestroying: boolean;
   showWarningShake: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
 </script>
@@ -81,6 +88,7 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .destruction-chamber-card {
   position: relative;
@@ -99,7 +107,7 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
   );
   margin: -16px -16px 16px -16px;
   opacity: 0.7;
-  
+
   &.bottom {
     margin: 16px -16px -16px -16px;
   }
@@ -127,12 +135,10 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
 }
 
 .memory-label {
+  @include stat-label;
   display: block;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
@@ -172,7 +178,7 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
   border: 1px solid var(--grave-danger-border, rgba(239, 68, 68, 0.3));
   margin-bottom: 24px;
   backdrop-filter: blur(4px);
-  
+
   &.shake {
     animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
     border-color: var(--grave-danger);
@@ -180,7 +186,9 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
   }
 }
 
-.warning-icon { font-size: 24px; }
+.warning-icon {
+  font-size: 24px;
+}
 
 .warning-title-glass {
   font-weight: 800;
@@ -208,7 +216,7 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
     box-shadow: 0 0 30px var(--grave-danger-glow, rgba(239, 68, 68, 0.4));
     transform: scale(1.02);
   }
-  
+
   &.is-destroying {
     background: var(--grave-bg);
     border-color: var(--grave-danger);
@@ -217,13 +225,19 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
 
 .btn-fire-effect {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: linear-gradient(0deg, var(--grave-danger), transparent);
   opacity: 0.5;
   animation: fire-flicker 0.1s infinite;
 }
 
-.btn-icon { margin-right: 8px; font-size: 16px; }
+.btn-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
 
 .btn-text {
   position: relative;
@@ -234,21 +248,52 @@ defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
 }
 
 @keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
 
 @keyframes pulse-red {
-  0% { transform: scale(1); filter: drop-shadow(0 0 0 var(--grave-danger-glow, rgba(239, 68, 68, 0))); }
-  50% { transform: scale(1.1); filter: drop-shadow(0 0 10px var(--grave-danger-glow, rgba(239, 68, 68, 0.5))); }
-  100% { transform: scale(1); filter: drop-shadow(0 0 0 var(--grave-danger-glow, rgba(239, 68, 68, 0))); }
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 var(--grave-danger-glow, rgba(239, 68, 68, 0)));
+  }
+  50% {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 10px var(--grave-danger-glow, rgba(239, 68, 68, 0.5)));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 var(--grave-danger-glow, rgba(239, 68, 68, 0)));
+  }
 }
 
 @keyframes fire-flicker {
-  0% { opacity: 0.4; height: 100%; }
-  50% { opacity: 0.6; height: 90%; }
-  100% { opacity: 0.4; height: 100%; }
+  0% {
+    opacity: 0.4;
+    height: 100%;
+  }
+  50% {
+    opacity: 0.6;
+    height: 90%;
+  }
+  100% {
+    opacity: 0.4;
+    height: 100%;
+  }
 }
 </style>

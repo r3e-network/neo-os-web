@@ -21,17 +21,30 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { GradientCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
-interface Props {
-  t: Function;
-}
-
-const props = defineProps<Props>();
+const { t } = createUseI18n(messages)();
 
 const reviewCards = computed(() => [
-  { user: "@neo-player", score: "\u2605\u2605\u2605\u2605\u2605", comment: "Game flow is crystal clear. Connect, open, settle \u2014 done.", tag: "Fast settlement" },
-  { user: "@gas-hunter", score: "\u2605\u2605\u2605\u2605\u2606", comment: "Operation panel is easy to follow, no confusion on transaction steps.", tag: "Great UX" },
-  { user: "@turtle-collector", score: "\u2605\u2605\u2605\u2605\u2605", comment: "Excellent mobile layout and clean desktop split-view for wallet actions.", tag: "Polished UI" },
+  {
+    user: "@neo-player",
+    score: "\u2605\u2605\u2605\u2605\u2605",
+    comment: "Game flow is crystal clear. Connect, open, settle \u2014 done.",
+    tag: "Fast settlement",
+  },
+  {
+    user: "@gas-hunter",
+    score: "\u2605\u2605\u2605\u2605\u2606",
+    comment: "Operation panel is easy to follow, no confusion on transaction steps.",
+    tag: "Great UX",
+  },
+  {
+    user: "@turtle-collector",
+    score: "\u2605\u2605\u2605\u2605\u2605",
+    comment: "Excellent mobile layout and clean desktop split-view for wallet actions.",
+    tag: "Polished UI",
+  },
 ]);
 </script>
 

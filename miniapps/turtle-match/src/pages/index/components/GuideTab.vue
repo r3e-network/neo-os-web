@@ -25,15 +25,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { GradientCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
-interface Props {
-  t: Function;
-}
+const { t } = createUseI18n(messages)();
 
-const props = defineProps<Props>();
-
-const coreLogicPoints = computed(() => [props.t("docFeature1Desc"), props.t("docFeature2Desc"), props.t("docFeature3Desc")]);
-const operationChecklist = computed(() => [props.t("docStep1"), props.t("docStep2"), props.t("docStep3"), props.t("docStep4")]);
+const coreLogicPoints = computed(() => [t("docFeature1Desc"), t("docFeature2Desc"), t("docFeature3Desc")]);
+const operationChecklist = computed(() => [t("docStep1"), t("docStep2"), t("docStep3"), t("docStep4")]);
 </script>
 
 <style lang="scss" scoped>

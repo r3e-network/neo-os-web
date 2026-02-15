@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Garden of Neo", zh: "Neo花园" },
   subtitle: { en: "Grow blockchain plants and harvest rewards", zh: "种植区块链植物并收获奖励" },
@@ -61,4 +63,6 @@ title: { en: "Garden of Neo", zh: "Neo花园" },
   },
     sidebarHarvested: { en: "Harvested", zh: "已收获" },
     gardenActions: { en: "Garden Status", zh: "花园状态" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

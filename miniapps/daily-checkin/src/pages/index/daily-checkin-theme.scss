@@ -1,8 +1,10 @@
-:global(.theme-daily-checkin) {
+@use "@shared/styles/mixins.scss" as *;
+
+@include theme-dark("daily-checkin") {
   --sunrise-bg: #1b140f;
   --sunrise-text: #fcd9b5;
   --sunrise-blue: #38bdf8;
-  --sunrise-font: 'Fredoka', 'Quicksand', sans-serif;
+  --sunrise-font: "Fredoka", "Quicksand", sans-serif;
   --sunrise-gradient-start: #2a1b13;
   --sunrise-gradient-end: #120b08;
   --sunrise-ray: rgba(255, 194, 100, 0.08);
@@ -26,15 +28,14 @@
   --sunrise-button-secondary-border: #0ea5e9;
   --sunrise-ready: #ffde59;
   --sunrise-success: #00e599;
-  --sunrise-reward: #00E599;
+  --sunrise-reward: #00e599;
 }
 
-:global(.theme-light .theme-daily-checkin),
-:global([data-theme="light"] .theme-daily-checkin) {
+@include theme-light("daily-checkin") {
   --sunrise-bg: #fffbf0;
   --sunrise-text: #78350f;
   --sunrise-blue: #0ea5e9;
-  --sunrise-font: 'Fredoka', 'Quicksand', sans-serif;
+  --sunrise-font: "Fredoka", "Quicksand", sans-serif;
   --sunrise-gradient-start: #fff7ed;
   --sunrise-gradient-end: #ffedd5;
   --sunrise-ray: rgba(255, 215, 0, 0.05);

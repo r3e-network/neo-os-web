@@ -10,7 +10,22 @@ export interface ChecklistItem {
   auto: boolean;
 }
 
-export function useHealthScore(gasOk: { value: boolean }) {
+export interface UseHealthScoreReturn {
+  checklistItems: ReturnType<typeof computed<ChecklistItem[]>>;
+  completedChecklistCount: ReturnType<typeof computed<number>>;
+  totalChecklistCount: ReturnType<typeof computed<number>>;
+  safetyScore: ReturnType<typeof computed<number>>;
+  riskLabel: ReturnType<typeof computed<string>>;
+  riskClass: ReturnType<typeof computed<string>>;
+  riskIcon: ReturnType<typeof computed<string>>;
+  recommendations: ReturnType<typeof computed<string[]>>;
+  loadChecklist: () => void;
+  saveChecklist: () => void;
+  toggleChecklist: (id: string) => void;
+}
+
+/** Computes wallet health score from a security checklist with persistent state. */
+export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn {
   const { t } = createUseI18n(messages)();
 
   const checklistState = reactive<Record<string, boolean>>({});

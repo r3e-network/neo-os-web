@@ -142,6 +142,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
   name: string;
@@ -154,8 +156,9 @@ const props = defineProps<{
   intervalDays: string;
   notes: string;
   isLoading: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const hasNeo = computed(() => {
   const value = Number.parseFloat(props.neoValue);
@@ -168,22 +171,23 @@ const hasGas = computed(() => {
 });
 
 defineEmits([
-  "update:name", 
-  "update:beneficiary", 
-  "update:neoValue", 
+  "update:name",
+  "update:beneficiary",
+  "update:neoValue",
   "update:gasValue",
   "update:monthlyNeo",
   "update:monthlyGas",
   "update:releaseMode",
-  "update:intervalDays", 
-  "update:notes", 
-  "create"
+  "update:intervalDays",
+  "update:notes",
+  "create",
 ]);
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .form-section {
   margin-bottom: 20px;
@@ -202,11 +206,8 @@ defineEmits([
 }
 
 .label-text {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
+  @include stat-label;
   letter-spacing: 0.12em;
-  color: var(--text-secondary);
 }
 
 .info-banner {
@@ -244,7 +245,7 @@ defineEmits([
 .dual-inputs {
   display: flex;
   gap: 12px;
-  
+
   :deep(.neo-input) {
     flex: 1;
   }

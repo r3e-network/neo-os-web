@@ -1,75 +1,59 @@
 <template>
-  <view class="theme-million-piece">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :fireworks-active="status?.type === 'success'"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <MapGrid
-            :tiles="tiles"
-            :selected-x="selectedX"
-            :selected-y="selectedY"
-            :zoom-level="zoomLevel"
-            :get-tile-color="getTileColor"
-            :t="t"
-            @select-tile="selectTile"
-            @zoom-in="zoomIn"
-            @zoom-out="zoomOut"
-          />
-        
-      </template>
+  <MiniAppPage
+    name="million-piece-map"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :fireworks-active="status?.type === 'success'"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="loadTiles"
+  >
+    <template #content>
+      <MapGrid
+        :tiles="tiles"
+        :selected-x="selectedX"
+        :selected-y="selectedY"
+        :zoom-level="zoomLevel"
+        :get-tile-color="getTileColor"
+        @select-tile="selectTile"
+        @zoom-in="zoomIn"
+        @zoom-out="zoomOut"
+      />
+    </template>
 
-      <template #operation>
-        <PurchasePanel
-          :selected-tile="selectedTile"
-          :selected-x="selectedX"
-          :selected-y="selectedY"
-          :is-owned="tiles[selectedTile]?.owned || false"
-          :tile-price="TILE_PRICE"
-          :is-purchasing="isPurchasing"
-          :t="t"
-          @purchase="purchaseTile"
-        />
-        <MiniAppOperationStats variant="erobo-neo" :stats="mapStats" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #operation>
+      <PurchasePanel
+        :selected-tile="selectedTile"
+        :selected-x="selectedX"
+        :selected-y="selectedY"
+        :is-owned="tiles[selectedTile]?.owned || false"
+        :tile-price="TILE_PRICE"
+        :is-purchasing="isPurchasing"
+        @purchase="purchaseTile"
+      />
+      <NeoCard variant="erobo-neo">
+        <StatsDisplay :items="mapStats" layout="rows" />
+      </NeoCard>
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { computed, watch } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, MiniAppOperationStats } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useMapTiles } from "@/composables/useMapTiles";
 import { useMapInteractions } from "@/composables/useMapInteractions";
 import MapGrid from "./components/MapGrid.vue";
-import PurchasePanel from "./components/PurchasePanel.vue";
 
-const { t } = createUseI18n(messages)();
 const { address } = useWallet() as WalletSDK;
-
-const templateConfig = createTemplateConfig({
-  tabs: [{ key: "main", labelKey: "map", icon: "🗺️", default: true }],
-  fireworks: true,
-});
-const appState = computed(() => ({
-  ownedTiles: ownedTiles.value,
-  coverage: coverage.value,
-  totalSpent: totalSpent.value,
-}));
 
 const {
   tiles,
@@ -94,12 +78,26 @@ const { isPurchasing, zoomLevel, status, zoomIn, zoomOut, purchaseTile } = useMa
   loadTiles
 );
 
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "tilesOwned", value: () => ownedTiles.value },
-  { labelKey: "mapControl", value: () => `${coverage.value}%` },
-  { labelKey: "gasSpent", value: () => `${formatNum(totalSpent.value)} GAS` },
-  { labelKey: "sidebarTilePrice", value: () => `${TILE_PRICE} GAS` },
-]);
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "million-piece-map",
+  messages,
+  template: {
+    tabs: [{ key: "main", labelKey: "map", icon: "🗺️", default: true }],
+    fireworks: true,
+  },
+  sidebarItems: [
+    { labelKey: "tilesOwned", value: () => ownedTiles.value },
+    { labelKey: "mapControl", value: () => `${coverage.value}%` },
+    { labelKey: "gasSpent", value: () => `${formatNum(totalSpent.value)} GAS` },
+    { labelKey: "sidebarTilePrice", value: () => `${TILE_PRICE} GAS` },
+  ],
+});
+
+const appState = computed(() => ({
+  ownedTiles: ownedTiles.value,
+  coverage: coverage.value,
+  totalSpent: totalSpent.value,
+}));
 
 const mapStats = computed(() => [
   { label: t("tilesOwned"), value: ownedTiles.value },
@@ -114,11 +112,6 @@ watch(
   },
   { immediate: true }
 );
-
-const { handleBoundaryError } = useHandleBoundaryError("million-piece-map");
-const resetAndReload = async () => {
-  await loadTiles();
-};
 </script>
 
 <style lang="scss" scoped>

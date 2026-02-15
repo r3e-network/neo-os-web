@@ -1,31 +1,32 @@
 <template>
-  <view v-if="show" class="modal-overlay" role="dialog" aria-modal="true" :aria-label="t('selectToken')" @click="$emit('close')">
-    <view class="modal-content scale-in" @click.stop>
-      <view class="modal-header">
-        <text class="modal-title">{{ t("selectToken") }}</text>
-        <AppIcon name="x" :size="24" class="close-btn" role="button" :aria-label="t('selectToken')" tabindex="0" @click="$emit('close')" @keydown.enter="$emit('close')" />
-      </view>
-      <scroll-view scroll-y class="token-list" role="listbox" :aria-label="t('selectToken')">
-        <view v-for="token in tokens" :key="token.symbol" class="token-option" role="option" :aria-selected="token.symbol === currentSymbol" :aria-label="token.symbol" tabindex="0" @click="$emit('select', token)" @keydown.enter="$emit('select', token)">
-          <AppIcon :name="token.symbol.toLowerCase()" :size="32" />
-          <view class="token-info">
-            <text class="token-name">{{ token.symbol }}</text>
-            <text class="token-balance">{{ formatAmount(token.balance) }}</text>
-          </view>
-          <AppIcon
-            v-if="token.symbol === currentSymbol"
-            name="check"
-            :size="20"
-            class="check-mark"
-          />
+  <ActionModal :visible="show" :title="t('selectToken')" :closeable="true" @close="$emit('close')">
+    <scroll-view scroll-y class="token-list" role="listbox" :aria-label="t('selectToken')">
+      <view
+        v-for="token in tokens"
+        :key="token.symbol"
+        class="token-option"
+        role="option"
+        :aria-selected="token.symbol === currentSymbol"
+        :aria-label="token.symbol"
+        tabindex="0"
+        @click="$emit('select', token)"
+        @keydown.enter="$emit('select', token)"
+      >
+        <AppIcon :name="token.symbol.toLowerCase()" :size="32" />
+        <view class="token-info">
+          <text class="token-name">{{ token.symbol }}</text>
+          <text class="token-balance">{{ formatAmount(token.balance) }}</text>
         </view>
-      </scroll-view>
-    </view>
-  </view>
+        <AppIcon v-if="token.symbol === currentSymbol" name="check" :size="20" class="check-mark" />
+      </view>
+    </scroll-view>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
-import { AppIcon } from "@shared/components";
+import { ActionModal, AppIcon } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 type Token = {
   symbol: string;
@@ -36,8 +37,9 @@ defineProps<{
   show: boolean;
   tokens: Token[];
   currentSymbol: string;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["close", "select"]);
 
@@ -50,53 +52,8 @@ function formatAmount(amount: number): string {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--swap-modal-overlay);
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.modal-content {
-  background: var(--swap-modal-bg);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--swap-modal-border);
-  width: 90%;
-  max-width: 320px;
-  box-shadow: 0 20px 50px var(--swap-shadow-press, rgba(0, 0, 0, 0.5));
-  border-radius: 24px;
-  overflow: hidden;
-}
-
-.modal-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--swap-modal-header-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-title {
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 14px;
-  color: var(--swap-modal-text);
-  letter-spacing: 0.05em;
-}
-
-.close-btn {
-  cursor: pointer;
-  opacity: 0.6;
-  &:hover { opacity: 1; }
-}
-
 .token-list {
   max-height: 400px;
-  padding: 12px;
 }
 
 .token-option {
@@ -107,7 +64,7 @@ function formatAmount(amount: number): string {
   border-radius: 12px;
   cursor: pointer;
   transition: background 0.2s;
-  
+
   &:hover {
     background: var(--bg-card, rgba(255, 255, 255, 0.05));
   }
@@ -134,14 +91,5 @@ function formatAmount(amount: number): string {
 
 .check-mark {
   color: var(--swap-accent);
-}
-
-.scale-in {
-  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
 }
 </style>

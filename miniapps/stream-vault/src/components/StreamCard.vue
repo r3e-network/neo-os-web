@@ -72,6 +72,8 @@ const statusLabel = (statusValue: StreamStatus) => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .vault-card {
   background: var(--stream-card-bg);
   border: 1px solid var(--stream-card-border);
@@ -130,8 +132,8 @@ const statusLabel = (statusValue: StreamStatus) => {
 }
 
 .metric-label {
+  @include stat-label;
   font-size: 10px;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--stream-muted);
 }

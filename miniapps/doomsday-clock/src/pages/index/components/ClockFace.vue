@@ -7,7 +7,7 @@
       </view>
     </view>
 
-    <view class="clock-display-glass">
+    <view class="clock-display-glass" aria-live="polite" role="timer" :aria-label="t('timeUntilEvent')">
       <text :class="['clock-time-glass', dangerLevel, { pulse: shouldPulse }]">{{ countdown }}</text>
     </view>
 
@@ -48,6 +48,7 @@ defineProps<{
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .doomsday-clock-card {
   position: relative;
@@ -216,11 +217,8 @@ defineProps<{
   border-radius: 8px;
 }
 .event-title-glass {
+  @include stat-label;
   font-size: 10px;
-  font-weight: $font-weight-bold;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-secondary);
   display: block;
   margin-bottom: 4px;
 }

@@ -2,8 +2,10 @@
   <view
     class="card"
     role="button"
+    tabindex="0"
     :aria-label="`${bank.name} - ${bank.purpose}`"
     @click="$emit('select', bank.id)"
+    @keydown.enter="$emit('select', bank.id)"
     :style="{ borderColor: bank.themeColor, boxShadow: `0 0 10px ${bank.themeColor}40` }"
   >
     <view class="card-header">
@@ -16,9 +18,7 @@
     <text class="purpose">{{ bank.purpose }}</text>
 
     <view class="progress-section">
-      <text class="label">
-        {{ t("create.target_label") }}: {{ bank.targetAmount }} {{ bank.targetToken.symbol }}
-      </text>
+      <text class="label"> {{ t("create.target_label") }}: {{ bank.targetAmount }} {{ bank.targetToken.symbol }} </text>
       <view class="progress-bar-bg">
         <view class="progress-bar-fill unknown"></view>
       </view>
@@ -46,6 +46,7 @@ defineEmits<{
 
 <style scoped lang="scss">
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .card {
   background: var(--piggy-card-bg);

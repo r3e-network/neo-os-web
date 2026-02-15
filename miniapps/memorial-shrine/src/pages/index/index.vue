@@ -1,103 +1,120 @@
 <template>
-  <view class="theme-memorial-shrine">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <view class="header">
-            <text class="title">{{ t("title") }}</text>
-            <text class="tagline">{{ t("tagline") }}</text>
-            <text class="subtitle">{{ t("subtitle") }}</text>
+  <MiniAppPage
+    name="memorial-shrine"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    @tab-change="activeTab = $event"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload"
+  >
+    <template #content>
+      <view class="header" aria-hidden="true">
+        <text class="title">{{ t("title") }}</text>
+        <text class="tagline">{{ t("tagline") }}</text>
+        <text class="subtitle">{{ t("subtitle") }}</text>
+      </view>
+
+      <view class="obituary-banner" v-if="recentObituaries.length">
+        <text class="banner-title">{{ t("obituaries") }}</text>
+        <scroll-view scroll-x class="banner-scroll">
+          <view
+            v-for="ob in recentObituaries"
+            :key="ob.id"
+            class="obituary-item"
+            role="button"
+            tabindex="0"
+            :aria-label="ob.name"
+            @click="openMemorial(ob.id)"
+          >
+            <text class="name">{{ ob.name }}</text>
+            <text class="text">{{ ob.text }}</text>
           </view>
+        </scroll-view>
+      </view>
 
-          <view class="obituary-banner" v-if="recentObituaries.length">
-            <text class="banner-title">{{ t("obituaries") }}</text>
-            <scroll-view scroll-x class="banner-scroll">
-              <view
-                v-for="ob in recentObituaries"
-                :key="ob.id"
-                class="obituary-item"
-                role="button"
-                tabindex="0"
-                :aria-label="ob.name"
-                @click="openMemorial(ob.id)"
-              >
-                <text class="name">{{ ob.name }}</text>
-                <text class="text">{{ ob.text }}</text>
-              </view>
-            </scroll-view>
-          </view>
+      <view class="memorials-grid">
+        <TombstoneCard
+          v-for="memorial in memorials"
+          :key="memorial.id"
+          :memorial="memorial"
+          @click="openMemorial(memorial.id)"
+        />
+      </view>
+    </template>
 
-          <view class="memorials-grid">
-            <TombstoneCard
-              v-for="memorial in memorials"
-              :key="memorial.id"
-              :memorial="memorial"
-              @click="openMemorial(memorial.id)"
-            />
-          </view>
-        
-      </template>
+    <template #operation>
+      <CreateMemorialForm @created="onMemorialCreated" />
+    </template>
 
-      <template #operation>
-        <CreateMemorialForm @created="onMemorialCreated" />
-      </template>
+    <template #tab-tributes>
+      <view class="section-header">
+        <text class="section-title">{{ t("myTributes") }}</text>
+        <text class="section-desc">{{ t("myTributesDesc") }}</text>
+      </view>
+      <view class="memorials-grid" v-if="visitedMemorials.length">
+        <TombstoneCard
+          v-for="memorial in visitedMemorials"
+          :key="memorial.id"
+          :memorial="memorial"
+          @click="openMemorial(memorial.id)"
+        />
+      </view>
+      <view v-else class="empty-state">
+        <text>{{ t("noTributes") }}</text>
+      </view>
+    </template>
+  </MiniAppPage>
 
-      <template #tab-tributes>
-        <view class="section-header">
-          <text class="section-title">{{ t("myTributes") }}</text>
-          <text class="section-desc">{{ t("myTributesDesc") }}</text>
-        </view>
-        <view class="memorials-grid" v-if="visitedMemorials.length">
-          <TombstoneCard
-            v-for="memorial in visitedMemorials"
-            :key="memorial.id"
-            :memorial="memorial"
-            @click="openMemorial(memorial.id)"
-          />
-        </view>
-        <view v-else class="empty-state">
-          <text>{{ t("noTributes") }}</text>
-        </view>
-      </template>
-    </MiniAppShell>
-
-    <!-- Memorial Detail Modal -->
-    <MemorialDetailModal
-      v-if="selectedMemorial"
-      :memorial="selectedMemorial"
-      :offerings="offerings"
-      @close="closeMemorial"
-      @tribute-paid="onTributePaid"
-      @share="shareMemorial"
-    />
-  </view>
+  <!-- Memorial Detail Modal -->
+  <MemorialDetailModal
+    v-if="selectedMemorial"
+    :memorial="selectedMemorial"
+    :offerings="offerings"
+    @close="closeMemorial"
+    @tribute-paid="onTributePaid"
+    @share="shareMemorial"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell } from "@shared/components";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import TombstoneCard from "./components/TombstoneCard.vue";
-import CreateMemorialForm from "./components/CreateMemorialForm.vue";
-import MemorialDetailModal from "./components/MemorialDetailModal.vue";
 import { useMemorialActions } from "@/composables/useMemorialActions";
 
-const { t } = createUseI18n(messages)();
-const { status } = useStatusMessage();
+const {
+  t,
+  templateConfig,
+  sidebarItems,
+  sidebarTitle,
+  fallbackMessage,
+  status,
+  setStatus,
+  clearStatus,
+  handleBoundaryError,
+} = createMiniApp({
+  name: "memorial-shrine",
+  messages,
+  template: {
+    tabs: [
+      { key: "memorials", labelKey: "memorials", icon: "🕯️", default: true },
+      { key: "tributes", labelKey: "myTributes", icon: "🙏" },
+    ],
+  },
+  sidebarItems: [
+    { labelKey: "memorials", value: () => memorials.value.length },
+    { labelKey: "myTributes", value: () => visitedMemorials.value.length },
+    { labelKey: "sidebarObituaries", value: () => recentObituaries.value.length },
+  ],
+});
+
 const {
   visitedMemorials,
   recentObituaries,
@@ -113,30 +130,15 @@ const {
   cleanupTimers,
 } = useMemorialActions();
 
-const { handleBoundaryError } = useHandleBoundaryError("memorial-shrine");
-
 const resetAndReload = async () => {
   await checkUrlForMemorial();
   await loadVisitedMemorials();
 };
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "memorials", labelKey: "memorials", icon: "🕯️", default: true },
-    { key: "tributes", labelKey: "myTributes", icon: "🙏" },
-  ],
-});
-
 const appState = computed(() => ({
   totalMemorials: memorials.value.length,
   visitedCount: visitedMemorials.value.length,
 }));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "memorials", value: () => memorials.value.length },
-  { labelKey: "myTributes", value: () => visitedMemorials.value.length },
-  { labelKey: "sidebarObituaries", value: () => recentObituaries.value.length },
-]);
 
 const activeTab = ref("memorials");
 

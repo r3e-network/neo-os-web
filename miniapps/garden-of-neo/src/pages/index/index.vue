@@ -1,74 +1,44 @@
 <template>
-  <view class="theme-garden-of-neo">
-    <MiniAppShell :config="templateConfig" :state="appState" :t="t" :sidebar-items="sidebarItems" :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <GardenTab
-            :t="t"
-            :contract-address="contractAddress"
-            :ensure-contract-address="ensureContractAddress"
-            @update:stats="updateStats"
-          />
-        
-      </template>
+  <MiniAppPage
+    name="garden-of-neo"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+  >
+    <template #content>
+      <GardenTab
+        :contract-address="contractAddress"
+        :ensure-contract-address="ensureContractAddress"
+        @update:stats="updateStats"
+      />
+    </template>
 
-      <template #tab-stats>
-        <StatsTab
-          :t="t"
-          :total-plants="stats.totalPlants"
-          :ready-to-harvest="stats.readyToHarvest"
-          :total-harvested="stats.totalHarvested"
-        />
-      </template>
+    <template #tab-stats>
+      <StatsTab :row-items="statsRowItems" />
+    </template>
 
-      <template #operation>
-        <MiniAppOperationStats variant="erobo" :title="t('gardenActions')" :stats="opStats">
-          <view class="op-hint">
-            <text class="op-hint-text">{{ t("plantFee") }}</text>
-          </view>
-        </MiniAppOperationStats>
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('gardenActions')">
+        <view class="op-hint">
+          <text class="op-hint-text">{{ t("plantFee") }}</text>
+        </view>
+        <StatsDisplay :items="opStats" layout="rows" />
+      </NeoCard>
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, MiniAppOperationStats } from "@shared/components";
+import { MiniAppPage } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import GardenTab from "./components/GardenTab.vue";
-import StatsTab from "./components/StatsTab.vue";
-
-const { t } = createUseI18n(messages)();
-
-const templateConfig = createPrimaryStatsTemplateConfig(
-  { key: "garden", labelKey: "garden", icon: "🌱", default: true },
-  { docFeatureCount: 3 },
-);
-const appState = computed(() => ({
-  totalPlants: stats.value.totalPlants,
-  readyToHarvest: stats.value.readyToHarvest,
-  totalHarvested: stats.value.totalHarvested,
-}));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "garden", value: () => stats.value.totalPlants },
-  { labelKey: "stats", value: () => stats.value.readyToHarvest },
-  { labelKey: "sidebarHarvested", value: () => stats.value.totalHarvested },
-]);
-
-const opStats = computed(() => [
-  { label: t("plants"), value: stats.value.totalPlants },
-  { label: t("ready"), value: stats.value.readyToHarvest, variant: "accent" as const },
-  { label: t("harvested"), value: stats.value.totalHarvested },
-]);
 
 // Stats State
 const stats = ref({
@@ -77,11 +47,44 @@ const stats = ref({
   totalHarvested: 0,
 });
 
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "garden-of-neo",
+  messages,
+  template: {
+    tabs: [
+      { key: "garden", labelKey: "garden", icon: "🌱", default: true },
+      { key: "stats", labelKey: "stats", icon: "📊" },
+    ],
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    { labelKey: "garden", value: () => stats.value.totalPlants },
+    { labelKey: "stats", value: () => stats.value.readyToHarvest },
+    { labelKey: "sidebarHarvested", value: () => stats.value.totalHarvested },
+  ],
+});
+
+const appState = computed(() => ({
+  totalPlants: stats.value.totalPlants,
+  readyToHarvest: stats.value.readyToHarvest,
+  totalHarvested: stats.value.totalHarvested,
+}));
+
+const opStats = computed(() => [
+  { label: t("plants"), value: stats.value.totalPlants },
+  { label: t("ready"), value: stats.value.readyToHarvest, variant: "accent" as const },
+  { label: t("harvested"), value: stats.value.totalHarvested },
+]);
+
+const statsRowItems = computed<StatsDisplayItem[]>(() => [
+  { label: t("plants"), value: stats.value.totalPlants },
+  { label: t("ready"), value: stats.value.readyToHarvest, variant: "accent" },
+  { label: t("harvested"), value: stats.value.totalHarvested, variant: "success" },
+]);
+
 const updateStats = (newStats: Record<string, unknown>) => {
   stats.value = newStats;
 };
-
-const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("garden-of-neo");
 
 // Wallet & Contract
 const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);

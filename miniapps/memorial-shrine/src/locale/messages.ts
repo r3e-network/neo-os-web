@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     title: { en: "Blockchain Memorial", zh: "区块链灵位" },
     tagline: { en: "Eternal Presence, Eternal Memory", zh: "永恒存在，永恒记忆" },
     subtitle: { en: "Inscribe memories on the blockchain forever", zh: "将逝者的记忆永久铭刻于区块链之上" },
@@ -6,7 +8,6 @@ export const messages = {
     myTributes: { en: "My Tributes", zh: "我的祭拜" },
     myTributesDesc: { en: "Click to pay tribute again", zh: "点击可快速再次祭拜" },
     create: { en: "Create", zh: "立灵位" },
-    docs: { en: "Docs", zh: "文档" },
     obituaries: { en: "Recent Obituaries", zh: "最新讣告" },
     noTributes: { en: "No tribute records yet", zh: "暂无祭拜记录" },
     docSubtitle: { en: "Eternal memorial service", zh: "永恒纪念服务" },
@@ -57,32 +58,19 @@ export const messages = {
     placeholderObituary: { en: "Obituary will be displayed...", zh: "讣告将在首页公示..." },
     uploadPhoto: { en: "Upload Photo", zh: "点击上传照片" },
     createBtn: { en: "🕯️ Create Memorial (Free)", zh: "🕯️ 创建灵位（免费）" },
-    creating: { en: "Creating...", zh: "创建中..." },
     createSuccess: { en: "Memorial created. May they rest in peace 🙏", zh: "灵位创建成功，愿逝者安息 🙏" },
     nameRequired: { en: "Please enter name", zh: "请填写逝者姓名" },
     connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
     invalidOffering: { en: "Invalid offering", zh: "无效的祭品" },
     paymentFailed: { en: "Payment failed", zh: "支付失败" },
-    error: { en: "Error", zh: "错误" },
     readingInitiationFailed: { en: "Reading initiation failed", zh: "发起解读失败" },
     computeVerificationFailed: { en: "Computation verification failed", zh: "计算验证失败" },
     computeFailed: { en: "Compute failed ({status})", zh: "计算失败（{status}）" },
     unknownError: { en: "Unknown error", zh: "未知错误" },
-    loading: { en: "Loading...", zh: "加载中..." },
-    wrongChain: { en: "Wrong Network", zh: "网络错误" },
-    wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-    switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
     // Share
     linkCopied: { en: "Link copied! Share to let others pay tribute 🙏", zh: "链接已复制！分享给亲友一同祭拜 🙏" },
     shareMemorial: { en: "Share Memorial", zh: "分享灵位" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     sidebarObituaries: { en: "Obituaries", zh: "讣告" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

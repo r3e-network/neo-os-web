@@ -1,9 +1,10 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Council Governance", zh: "议会治理" },
   active: { en: "Active", zh: "进行中" },
   create: { en: "Create", zh: "创建" },
-  history: { en: "History", zh: "历史" },
   createProposal: { en: "Create Proposal", zh: "创建提案" },
   noActiveProposals: { en: "No active proposals", zh: "暂无进行中的提案" },
   noHistory: { en: "No history", zh: "暂无历史记录" },
@@ -57,7 +58,6 @@ title: { en: "Council Governance", zh: "议会治理" },
   expired: { en: "Expired", zh: "已过期" },
   executed: { en: "Executed", zh: "已执行" },
 
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Decentralized governance for Neo Council proposals",
     zh: "Neo 理事会提案的去中心化治理",
@@ -97,20 +97,9 @@ title: { en: "Council Governance", zh: "议会治理" },
     en: "Track status from review through execution.",
     zh: "从审议到执行全程可追踪。",
   },
-  error: { en: "Error", zh: "错误" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     quickActions: { en: "Quick Actions", zh: "快捷操作" },
     totalProposals: { en: "Total Proposals", zh: "提案总数" },
     votingPower: { en: "Voting Power", zh: "投票权重" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

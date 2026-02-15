@@ -1,57 +1,51 @@
 <template>
-  <view class="theme-breakup-contract">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <ContractList :contracts="contracts" :address="address" :t="t" @sign="signContract" @break="breakContract" />
-        
-      </template>
+  <MiniAppPage
+    name="breakup-contract"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    @tab-change="activeTab = $event"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="loadContracts"
+  >
+    <template #content>
+      <ContractList :contracts="contracts" :address="address" @sign="signContract" @break="breakContract" />
+    </template>
 
-      <template #operation>
-        <!-- Create Contract Tab -->
-        <CreateContractForm
-          v-model:partnerAddress="partnerAddress"
-          v-model:stakeAmount="stakeAmount"
-          v-model:duration="duration"
-          v-model:title="contractTitle"
-          v-model:terms="contractTerms"
-          :address="address"
-          :is-loading="isLoading"
-          :t="t"
-          @create="createContract"
-        />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #operation>
+      <!-- Create Contract Tab -->
+      <CreateContractForm
+        v-model:partnerAddress="partnerAddress"
+        v-model:stakeAmount="stakeAmount"
+        v-model:duration="duration"
+        v-model:title="contractTitle"
+        v-model:terms="contractTerms"
+        :address="address"
+        :is-loading="isLoading"
+        @create="createContract"
+      />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
-import CreateContractForm from "./components/CreateContractForm.vue";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import ContractList from "./components/ContractList.vue";
 import { useBreakupContract } from "./composables/useBreakupContract";
 
-const { t } = createUseI18n(messages)();
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "create", labelKey: "tabCreate", icon: "💔", default: true },
-  ],
+const { t, templateConfig, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "breakup-contract",
+  messages,
+  template: {
+    tabs: [{ key: "create", labelKey: "tabCreate", icon: "💔", default: true }],
+  },
 });
 
 const activeTab = ref<string>("create");
@@ -73,11 +67,6 @@ const {
   signContract,
   breakContract,
 } = useBreakupContract(t);
-
-const { handleBoundaryError } = useHandleBoundaryError("breakup-contract");
-const resetAndReload = async () => {
-  await loadContracts();
-};
 
 onMounted(() => {
   loadContracts();

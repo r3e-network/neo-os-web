@@ -7,11 +7,23 @@
       </view>
 
       <view class="zoom-controls">
-        <view class="zoom-btn" role="button" tabindex="0" :aria-label="t('zoomOut') || 'Zoom out'" @click="$emit('zoomOut')">
+        <view
+          class="zoom-btn"
+          role="button"
+          tabindex="0"
+          :aria-label="t('zoomOut') || 'Zoom out'"
+          @click="$emit('zoomOut')"
+        >
           <text aria-hidden="true">-</text>
         </view>
         <text class="zoom-level">{{ zoomLevel }}x</text>
-        <view class="zoom-btn" role="button" tabindex="0" :aria-label="t('zoomIn') || 'Zoom in'" @click="$emit('zoomIn')">
+        <view
+          class="zoom-btn"
+          role="button"
+          tabindex="0"
+          :aria-label="t('zoomIn') || 'Zoom in'"
+          @click="$emit('zoomIn')"
+        >
           <text aria-hidden="true">+</text>
         </view>
       </view>
@@ -58,6 +70,8 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { Tile } from "@/composables/useMapTiles";
 
 defineProps<{
@@ -66,8 +80,9 @@ defineProps<{
   selectedY: number;
   zoomLevel: number;
   getTileColor: (tile: Tile) => string;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["selectTile", "zoomIn", "zoomOut"]);
 </script>

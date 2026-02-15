@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { NeoCard } from "@shared/components";
 
 const props = defineProps<{
   recordContent: string;

@@ -45,13 +45,16 @@
 import { ref } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { formatAddress } from "@shared/utils/format";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { Domain } from "@/types";
 
 const props = defineProps<{
-  t: (key: string) => string;
   domain: Domain | null;
   loading: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "cancel"): void;

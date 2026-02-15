@@ -1,7 +1,15 @@
 <template>
   <view class="page-container">
     <view class="nav-header">
-      <text class="back-btn" role="button" :aria-label="t('back') || 'Go back'" tabindex="0" @click="goHome" @keydown.enter="goHome">←</text>
+      <text
+        class="back-btn"
+        role="button"
+        :aria-label="t('back') || 'Go back'"
+        tabindex="0"
+        @click="goHome"
+        @keydown.enter="goHome"
+        >←</text
+      >
       <view class="nav-text">
         <text class="title">{{ t("signTitle") }}</text>
         <text class="subtitle">{{ t("appSubtitle") }}</text>
@@ -29,21 +37,11 @@
         </text>
       </NeoCard>
 
-      <TransactionDetails
-        :t="t"
-        :request="request"
-        :chain-label="chainLabel"
-        @copy="copy"
-      />
+      <TransactionDetails :request="request" :chain-label="chainLabel" @copy="copy" />
 
-      <SignersList
-        :t="t"
-        :signers="orderedSigners"
-        :has-signed="hasSigned"
-      />
+      <SignersList :signers="orderedSigners" :has-signed="hasSigned" />
 
       <SignActions
-        :t="t"
         :is-complete="isComplete"
         :has-user-signed="hasUserSigned"
         :is-processing="isProcessing"
@@ -64,7 +62,8 @@ import { NeoCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { api, type MultisigRequest } from "../../services/api";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { api } from "../../services/api";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { tx } from "@cityofzion/neon-core";
@@ -105,7 +104,7 @@ const loadRequest = async (id: string) => {
     request.value = await api.get(id);
     broadcastTxId.value = request.value?.broadcast_txid || "";
   } catch (e: unknown) {
-    error.value = t("toastLoadFailed");
+    error.value = formatErrorMessage(e, t("toastLoadFailed"));
   } finally {
     loading.value = false;
   }
@@ -206,7 +205,7 @@ const sign = async () => {
     request.value = updated;
     setStatus(t("toastSignSuccess"), "success");
   } catch (e: unknown) {
-    setStatus(t("toastSignFailed"), "error");
+    setStatus(formatErrorMessage(e, t("toastSignFailed")), "error");
   } finally {
     isProcessing.value = false;
   }
@@ -261,7 +260,7 @@ const broadcast = async () => {
 
     setStatus(t("toastBroadcastSuccess"), "success");
   } catch (e: unknown) {
-    setStatus(t("toastBroadcastFailed"), "error");
+    setStatus(formatErrorMessage(e, t("toastBroadcastFailed")), "error");
   } finally {
     isProcessing.value = false;
   }

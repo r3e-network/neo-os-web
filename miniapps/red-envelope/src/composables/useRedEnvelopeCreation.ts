@@ -1,8 +1,6 @@
 import { ref, computed } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { toFixed8 } from "@shared/utils/format";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -14,10 +12,10 @@ const MAX_PACKETS = 100;
 const MIN_PER_PACKET = 1000000n; // 0.01 GAS in fixed8
 const BEST_LUCK_BONUS_RATE = 5n; // 5%
 
+/** Manages red envelope creation with amount validation and packet splitting. */
 export function useRedEnvelopeCreation() {
   const { t } = createUseI18n(messages)();
-  const { address, connect } = useWallet() as WalletSDK;
-  const { ensure: ensureContractAddress } = useContractAddress(t);
+  const { address, ensureWallet: connect, ensureContractAddress } = useContractInteraction({ appId: APP_ID, t });
 
   const name = ref("");
   const description = ref("");

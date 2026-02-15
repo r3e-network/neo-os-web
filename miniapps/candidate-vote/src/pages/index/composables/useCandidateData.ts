@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import type { GovernanceCandidate } from "../utils";
 import { fetchCandidates } from "../utils";
 import type { UniAppGlobals } from "@shared/types/globals";

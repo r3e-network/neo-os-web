@@ -1,7 +1,14 @@
 <template>
-  <view class="opening-overlay" v-if="visible" role="dialog" aria-modal="true" :aria-label="t('openNow')">
+  <ActionModal :visible="visible" :closeable="false" size="md" @close="emit('close')">
     <view class="envelope-stage">
-      <view class="red-packet" role="button" tabindex="0" :aria-label="t('openNow')" :class="{ 'is-opening': isOpening, 'is-shaking': !isOpening }" @click="handleOpen">
+      <view
+        class="red-packet"
+        role="button"
+        tabindex="0"
+        :aria-label="t('openNow')"
+        :class="{ 'is-opening': isOpening, 'is-shaking': !isOpening }"
+        @click="handleOpen"
+      >
         <view class="packet-lid"></view>
         <view class="packet-body">
           <view class="packet-seal">
@@ -50,12 +57,12 @@
         </NeoButton>
       </view>
     </view>
-  </view>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoButton } from "@shared/components";
+import { ActionModal, NeoButton } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import type { ClaimItem } from "@/composables/useRedEnvelopeOpen";
@@ -98,20 +105,6 @@ const handleOpen = () => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 
-/* SCSS color vars removed — now using CSS custom properties from theme */
-
-.opening-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.9);
-  backdrop-filter: blur(20px);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 0.3s ease-out;
-}
-
 .envelope-stage {
   display: flex;
   flex-direction: column;
@@ -143,7 +136,6 @@ const handleOpen = () => {
     animation: openPacket 1s forwards;
   }
 
-  /* Gold border detail */
   &::after {
     content: "";
     position: absolute;
@@ -226,15 +218,6 @@ const handleOpen = () => {
   100% {
     transform: scale(0) rotateY(360deg);
     opacity: 0;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }
 </style>

@@ -1,3 +1,119 @@
-@mixin placeholder {
-  /* placeholder */
+// Card base pattern (found in 20+ components)
+@mixin card-base($radius: 12px, $padding: 16px) {
+  background: var(--bg-card, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  border-radius: $radius;
+  padding: $padding;
+}
+
+// Card with hover effect
+@mixin card-interactive($radius: 12px, $padding: 16px) {
+  @include card-base($radius, $padding);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  &:hover {
+    background: var(--bg-elevated, rgba(255, 255, 255, 0.05));
+  }
+}
+
+// Accent/reward card with colored glow
+@mixin card-accent($color, $radius: 12px, $padding: 16px) {
+  background: rgba($color, 0.1);
+  border: 1px solid rgba($color, 0.2);
+  border-radius: $radius;
+  padding: $padding;
+  box-shadow: 0 0 20px rgba($color, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+// Stat label text (found in 15+ components)
+@mixin stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  letter-spacing: 0.1em;
+}
+
+// Stat value text (found in 15+ components)
+@mixin stat-value {
+  display: block;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+// Grid layout (found in 10+ components)
+@mixin grid-layout($cols: 2, $gap: 16px) {
+  display: grid;
+  grid-template-columns: repeat($cols, 1fr);
+  gap: $gap;
+}
+
+// Section header with title + badge
+@mixin section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+// Section title text
+@mixin section-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+// Empty state container
+@mixin empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+// Truncated text with ellipsis
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Mono number display
+@mixin mono-number($size: 14px) {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+  font-size: $size;
+}
+
+// Theme base generator — wraps dark/light selectors for a miniapp theme.
+// Shared defaults are emitted BEFORE @content so theme-specific
+// declarations inside the block naturally override them.
+//
+// Usage:
+//   @include theme-dark('coin-flip') { --coin-bg: #05060d; ... }
+//   @include theme-light('coin-flip') { --coin-bg: #f8fafc; ... }
+@mixin theme-dark($name) {
+  :global(.theme-#{$name}) {
+    // -- shared dark-mode defaults (override in @content as needed) --
+    --text-muted: var(--text-secondary);
+    --shadow-color: rgba(0, 0, 0, 0.35);
+    @content;
+  }
+}
+
+@mixin theme-light($name) {
+  :global(.theme-light .theme-#{$name}),
+  :global([data-theme="light"] .theme-#{$name}) {
+    // -- shared light-mode defaults (override in @content as needed) --
+    --text-muted: var(--text-secondary);
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    @content;
+  }
 }

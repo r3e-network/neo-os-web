@@ -2,30 +2,32 @@
   <view class="achievements-section">
     <view class="content-card">
       <text class="card-title">{{ t("achievements") }}</text>
-      <view class="achievements-list">
-        <view
-          v-for="achievement in achievements"
-          :key="achievement.id"
-          class="achievement-item"
-          :class="{ unlocked: achievement.unlocked }"
-        >
-          <view class="achievement-left">
-            <text class="achievement-icon">{{ achievement.unlocked ? '🏆' : '🔒' }}</text>
-            <view class="achievement-info">
-              <text class="achievement-name">{{ achievement.name }}</text>
-              <view class="progress-bar">
-                <view class="progress-fill" :style="{ width: achievement.percent + '%' }" />
+      <ItemList
+        :items="achievements as unknown as Record<string, unknown>[]"
+        item-key="id"
+        :aria-label="t('ariaAchievements')"
+      >
+        <template #item="{ item }">
+          <view class="achievement-item" :class="{ unlocked: (item as unknown as Achievement).unlocked }">
+            <view class="achievement-left">
+              <text class="achievement-icon">{{ (item as unknown as Achievement).unlocked ? "🏆" : "🔒" }}</text>
+              <view class="achievement-info">
+                <text class="achievement-name">{{ (item as unknown as Achievement).name }}</text>
+                <view class="progress-bar">
+                  <view class="progress-fill" :style="{ width: (item as unknown as Achievement).percent + '%' }" />
+                </view>
               </view>
             </view>
+            <text class="achievement-progress">{{ (item as unknown as Achievement).progress }}</text>
           </view>
-          <text class="achievement-progress">{{ achievement.progress }}</text>
-        </view>
-      </view>
+        </template>
+      </ItemList>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
+import { ItemList } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -45,6 +47,7 @@ const { t } = createUseI18n(messages)();
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
 .achievements-section {
   display: flex;
   flex-direction: column;
@@ -81,7 +84,7 @@ const { t } = createUseI18n(messages)();
   background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
   transition: all 0.2s;
-  
+
   &.unlocked {
     background: rgba(16, 185, 129, 0.1);
     border: 1px solid rgba(16, 185, 129, 0.2);

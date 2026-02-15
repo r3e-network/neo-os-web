@@ -1,8 +1,9 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Milestone Escrow", zh: "里程碑托管" },
   createTab: { en: "Create", zh: "创建" },
   escrowsTab: { en: "Escrows", zh: "托管" },
-  docs: { en: "Docs", zh: "文档" },
 
   escrowName: { en: "Escrow name", zh: "托管名称" },
   escrowNamePlaceholder: { en: "Website delivery escrow", zh: "项目交付托管" },
@@ -21,12 +22,8 @@ export const messages = {
   notesPlaceholder: { en: "Describe delivery criteria", zh: "说明交付标准" },
 
   createEscrow: { en: "Create Escrow", zh: "创建托管" },
-  creating: { en: "Creating...", zh: "创建中..." },
   escrowCreated: { en: "Escrow created", zh: "托管已创建" },
 
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
 
   invalidAddress: { en: "Invalid beneficiary address", zh: "受益人地址无效" },
@@ -39,7 +36,6 @@ export const messages = {
   forYou: { en: "For you", zh: "我受益的" },
   emptyEscrows: { en: "No escrows yet", zh: "暂无托管" },
   refresh: { en: "Refresh", zh: "刷新" },
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
 
   statusActive: { en: "Active", zh: "活跃" },
   statusCompleted: { en: "Completed", zh: "已完成" },
@@ -50,7 +46,6 @@ export const messages = {
 
   approve: { en: "Approve", zh: "批准" },
   claim: { en: "Claim", zh: "领取" },
-  cancel: { en: "Cancel", zh: "取消" },
   approving: { en: "Approving...", zh: "批准中..." },
   claiming: { en: "Claiming...", zh: "领取中..." },
   cancelling: { en: "Cancelling...", zh: "取消中..." },
@@ -74,11 +69,6 @@ export const messages = {
   feature3Name: { en: "Refundable Escrow", zh: "可退款托管" },
   feature3Desc: { en: "Unapproved funds can be reclaimed by the creator.", zh: "未批准资金可由创建者取回。" },
 
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -1,8 +1,7 @@
 import { ref, computed } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -16,14 +15,9 @@ export interface Vote {
 }
 
 export function useMasqueradeVoting(APP_ID: string) {
-  const { address } = useWallet() as WalletSDK;
-  const { processPayment, isLoading } = usePaymentFlow(APP_ID);
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) => {
-    if (key === "wrongChain") return "Wrong chain";
-    if (key === "contractUnavailable") return "Contract unavailable";
-    return key;
-  });
-  
+  const { t } = createUseI18n(messages)();
+  const { address, invoke, isProcessing: isLoading } = useContractInteraction({ appId: APP_ID, t });
+
   const VOTE_FEE = 0.01;
   const proposalId = ref("");
   const { status, setStatus, clearStatus } = useStatusMessage();
@@ -31,37 +25,20 @@ export function useMasqueradeVoting(APP_ID: string) {
 
   const canVote = computed(() => Boolean(proposalId.value));
 
-  const submitVote = async (
-    selectedMaskId: string | null,
-    choice: VoteChoice,
-    t: Function
-  ): Promise<boolean> => {
+  const submitVote = async (selectedMaskId: string | null, choice: VoteChoice): Promise<boolean> => {
     if (!canVote.value || !selectedMaskId) return false;
     clearStatus();
-    
+
     try {
       if (!address.value) {
         throw new Error(t("connectWallet"));
       }
-      
-      const contract = await ensureContractAddress();
-      const { receiptId, invoke } = await processPayment(
-        String(VOTE_FEE), 
-        `vote:${proposalId.value}`
-      );
-      
-      if (!receiptId) throw new Error(t("receiptMissing"));
-      
-      await invoke(
-        "submitVote",
-        [
-          { type: "Integer", value: proposalId.value },
-          { type: "Integer", value: selectedMaskId },
-          { type: "Integer", value: String(choice) },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contract,
-      );
+
+      await invoke(String(VOTE_FEE), `vote:${proposalId.value}`, "submitVote", [
+        { type: "Integer", value: proposalId.value },
+        { type: "Integer", value: selectedMaskId },
+        { type: "Integer", value: String(choice) },
+      ]);
 
       // Record local vote
       myVotes.value.push({
@@ -80,11 +57,11 @@ export function useMasqueradeVoting(APP_ID: string) {
   };
 
   const hasVotedOn = (proposalId: string): boolean => {
-    return myVotes.value.some(v => v.proposalId === proposalId);
+    return myVotes.value.some((v) => v.proposalId === proposalId);
   };
 
   const getVoteChoice = (proposalId: string): string | null => {
-    const vote = myVotes.value.find(v => v.proposalId === proposalId);
+    const vote = myVotes.value.find((v) => v.proposalId === proposalId);
     if (!vote) return null;
     const choices: Record<number, string> = { 1: "for", 2: "against", 3: "abstain" };
     return choices[vote.choice];

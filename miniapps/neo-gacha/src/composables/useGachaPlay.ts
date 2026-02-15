@@ -1,8 +1,7 @@
 import { ref } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
 import { parseStackItem } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -15,7 +14,7 @@ const APP_ID = "miniapp-neo-gacha";
 export function useGachaPlay() {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
-  const { address } = useWallet() as WalletSDK;
+  const { address } = useContractInteraction({ appId: APP_ID, t });
   const { processPayment } = usePaymentFlow(APP_ID);
 
   const isPlaying = ref(false);

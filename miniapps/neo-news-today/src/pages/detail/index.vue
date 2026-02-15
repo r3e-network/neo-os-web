@@ -1,6 +1,6 @@
 <template>
   <view class="detail-container">
-    <ResponsiveLayout :desktop-breakpoint="1024" title="Article Detail" :show-back="true">
+    <ResponsiveLayout :desktop-breakpoint="1024" :title="t('articleDetail')" :show-back="true">
       <web-view :src="url" class="webview" />
     </ResponsiveLayout>
   </view>
@@ -10,7 +10,10 @@
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import { ResponsiveLayout } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
+const { t } = createUseI18n(messages)();
 const url = ref("");
 
 onLoad((options) => {

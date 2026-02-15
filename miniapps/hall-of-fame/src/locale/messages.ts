@@ -1,11 +1,12 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Neo Hall of Fame", zh: "Neo 名人堂" },
   subtitle: { en: "Vote with GAS volume. Pay to win.", zh: "用 GAS 投票，付费即胜利。" },
   tagline: { en: "History is written by the highest bidder.", zh: "历史由出价最高者书写。" },
   boost: { en: "BOOST", zh: "助力" },
   tabLeaderboard: { en: "Leaderboard", zh: "排行榜" },
-  docs: { en: "Docs", zh: "文档" },
   catPeople: { en: "People", zh: "人物" },
   catCommunity: { en: "Communities", zh: "社区" },
   catDeveloper: { en: "Developers", zh: "开发者" },
@@ -40,17 +41,7 @@ title: { en: "Neo Hall of Fame", zh: "Neo 名人堂" },
     en: "This app requires Neo N3. Please switch networks.",
     zh: "此应用需要 Neo N3 网络，请切换网络。",
   },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     topScore: { en: "Top Score", zh: "最高分" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

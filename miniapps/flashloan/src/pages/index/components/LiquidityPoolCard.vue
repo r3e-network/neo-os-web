@@ -1,12 +1,12 @@
 <template>
   <NeoCard variant="erobo-neo" class="liquidity-card">
-    <view class="card-header" style="margin-bottom: 12px; height: 32px">
+    <view class="card-header card-header--compact">
       <view class="live-indicator">
         <view class="live-dot"></view>
         <text class="live-text">{{ t("live") }}</text>
       </view>
       <text class="card-title">{{ t("poolBalance") }}</text>
-      <view class="lightning-badge" style="width: 24px; height: 24px; font-size: 12px">⚡</view>
+      <view class="lightning-badge lightning-badge--sm">⚡</view>
     </view>
 
     <view class="liquidity-item">
@@ -23,12 +23,15 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { formatNumber } from "@shared/utils/format";
 
 defineProps<{
   poolBalance: number;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const formatNum = (n: number) => formatNumber(n, 4);
 </script>
@@ -42,6 +45,11 @@ const formatNum = (n: number) => formatNumber(n, 4);
   justify-content: space-between;
   align-items: center;
   margin-bottom: $spacing-6;
+
+  &--compact {
+    margin-bottom: 12px;
+    height: 32px;
+  }
 }
 
 .card-title {
@@ -91,6 +99,12 @@ const formatNum = (n: number) => formatNumber(n, 4);
   font-weight: bold;
   box-shadow: 0 0 15px rgba(0, 229, 153, 0.3);
   border: 1px solid rgba(0, 229, 153, 0.3);
+
+  &--sm {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
 }
 
 .liquidity-item {
@@ -136,8 +150,14 @@ const formatNum = (n: number) => formatNumber(n, 4);
 }
 
 @keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
 }
 </style>

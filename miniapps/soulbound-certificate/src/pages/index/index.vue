@@ -1,85 +1,92 @@
 <template>
-  <view class="theme-soulbound-certificate">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      @tab-change="onTabChange"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <TemplateList
-            :templates="templates"
-            :refreshing="isRefreshing"
-            :toggling-id="togglingId"
-            :has-address="!!address"
-            @refresh="refreshTemplates"
-            @connect="connectWallet"
-            @issue="openIssueModal"
-            @toggle="toggleTemplate"
-          />
-        
-      </template>
+  <MiniAppPage
+    name="soulbound-certificate"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    @tab-change="onTabChange"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload"
+  >
+    <template #content>
+      <TemplateList
+        :templates="templates"
+        :refreshing="isRefreshing"
+        :toggling-id="togglingId"
+        :has-address="!!address"
+        @refresh="refreshTemplates"
+        @connect="connectWallet"
+        @issue="openIssueModal"
+        @toggle="toggleTemplate"
+      />
+    </template>
 
-      <template #operation>
-        <CertificateForm :loading="isCreating" @create="createTemplate" />
-      </template>
+    <template #operation>
+      <CertificateForm :loading="isCreating" @create="createTemplate" />
+    </template>
 
-      <template #tab-certificates>
-        <CertificateGallery
-          :certificates="certificates"
-          :cert-qrs="certQrs"
-          :refreshing="isRefreshingCertificates"
-          :has-address="!!address"
-          @refresh="refreshCertificates"
-          @connect="connectWallet"
-          @copy-token-id="copyTokenId"
-        />
-      </template>
+    <template #tab-certificates>
+      <CertificateGallery
+        :certificates="certificates"
+        :cert-qrs="certQrs"
+        :refreshing="isRefreshingCertificates"
+        :has-address="!!address"
+        @refresh="refreshCertificates"
+        @connect="connectWallet"
+        @copy-token-id="copyTokenId"
+      />
+    </template>
 
-      <template #tab-verify>
-        <VerifyCertificate
-          :looking-up="isLookingUp"
-          :revoking="isRevoking"
-          :result="lookup"
-          @lookup="lookupCertificate"
-          @revoke="revokeCertificate"
-        />
-      </template>
-    </MiniAppShell>
+    <template #tab-verify>
+      <VerifyCertificate
+        :looking-up="isLookingUp"
+        :revoking="isRevoking"
+        :result="lookup"
+        @lookup="lookupCertificate"
+        @revoke="revokeCertificate"
+      />
+    </template>
+  </MiniAppPage>
 
-    <IssueModal
-      :visible="issueModalOpen"
-      :loading="isIssuing"
-      :template-id="issueTemplateId"
-      @close="closeIssueModal"
-      @issue="handleIssueCertificate"
-    />
-  </view>
+  <IssueModal
+    :visible="issueModalOpen"
+    :loading="isIssuing"
+    :template-id="issueTemplateId"
+    @close="closeIssueModal"
+    @issue="handleIssueCertificate"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
-import { MiniAppShell } from "@shared/components";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
 import { useCertificateActions } from "@/composables/useCertificateActions";
-import CertificateForm from "@/components/CertificateForm.vue";
 import TemplateList from "@/components/TemplateList.vue";
-import CertificateGallery from "@/components/CertificateGallery.vue";
-import VerifyCertificate from "@/components/VerifyCertificate.vue";
-import IssueModal from "@/components/IssueModal.vue";
 
-const { t } = createUseI18n(messages)();
-const { status, setStatus } = useStatusMessage();
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } =
+  createMiniApp({
+    name: "soulbound-certificate",
+    messages,
+    template: {
+      tabs: [
+        { key: "templates", labelKey: "templatesTab", icon: "\u{1F4DC}", default: true },
+        { key: "certificates", labelKey: "certificatesTab", icon: "\u{1F3C5}" },
+        { key: "verify", labelKey: "verifyTab", icon: "\u2705" },
+      ],
+      docFeatureCount: 3,
+    },
+    sidebarItems: [
+      { labelKey: "templatesTab", value: () => templates.value.length },
+      { labelKey: "certificatesTab", value: () => certificates.value.length },
+      { labelKey: "sidebarActive", value: () => templates.value.filter((tpl) => tpl.active).length },
+    ],
+  });
 
 const {
   address,
@@ -104,15 +111,6 @@ const {
   copyTokenId,
 } = useCertificateActions(setStatus);
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "templates", labelKey: "templatesTab", icon: "\u{1F4DC}", default: true },
-    { key: "certificates", labelKey: "certificatesTab", icon: "\u{1F3C5}" },
-    { key: "verify", labelKey: "verifyTab", icon: "\u2705" },
-  ],
-  docFeatureCount: 3,
-});
-
 const activeTab = ref("templates");
 const isRefreshing = ref(false);
 const isRefreshingCertificates = ref(false);
@@ -128,13 +126,6 @@ const appState = computed(() => ({
   certificatesCount: certificates.value.length,
 }));
 
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "templatesTab", value: () => templates.value.length },
-  { labelKey: "certificatesTab", value: () => certificates.value.length },
-  { labelKey: "sidebarActive", value: () => templates.value.filter((tpl) => tpl.active).length },
-]);
-
-const { handleBoundaryError } = useHandleBoundaryError("soulbound-certificate");
 const resetAndReload = async () => {
   await connect();
   if (address.value) {

@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Gov Merc", zh: "治理雇佣兵" },
   subtitle: { en: "Bid for governance influence", zh: "竞价治理影响力" },
@@ -62,4 +64,6 @@ title: { en: "Gov Merc", zh: "治理雇佣兵" },
     zh: "竞价、存入与周期状态全程透明。",
   },
     activeBids: { en: "Active Bids", zh: "活跃竞价" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -1,61 +1,67 @@
 <template>
-  <view class="theme-explorer">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <SearchPanel
-            v-model:searchQuery="searchQuery"
-            v-model:selectedNetwork="selectedNetwork"
-            :is-loading="isLoading"
-            :t="t"
-            @search="search"
-          />
+  <MiniAppPage
+    name="explorer"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="search"
+    @tab-change="activeTab = $event"
+  >
+    <template #content>
+      <SearchPanel
+        v-model:searchQuery="searchQuery"
+        v-model:selectedNetwork="selectedNetwork"
+        :is-loading="isLoading"
+        :t="t"
+        @search="search"
+      />
 
-          <view v-if="isLoading" class="loading">
-            <text>{{ t("searching") }}</text>
-          </view>
+      <view v-if="isLoading" class="loading" role="status" aria-live="polite">
+        <text>{{ t("searching") }}</text>
+      </view>
 
-          <SearchResult :result="searchResult" :t="t" @viewTx="viewTx" />
-        
-      </template>
+      <SearchResult :result="searchResult" :t="t" @viewTx="viewTx" />
+    </template>
 
-      <template #operation>
-        <NeoCard variant="erobo" :title="t('mainnet')">
-          <NetworkStats :mainnet-stats="mainnetStats" :testnet-stats="testnetStats" :t="t" />
-        </NeoCard>
-      </template>
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('mainnet')">
+        <view class="stats-grid-gap">
+          <StatsDisplay :items="mainnetStats" layout="grid" />
+          <StatsDisplay :items="testnetStats" layout="grid" />
+        </view>
+      </NeoCard>
+    </template>
 
-      <template #tab-history>
-        <RecentTransactions :transactions="recentTxs" :t="t" @viewTx="viewTx" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #tab-history>
+      <RecentTransactions :transactions="recentTxs" :t="t" @viewTx="viewTx" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, NeoCard } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
-import NetworkStats from "./components/NetworkStats.vue";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import SearchPanel from "./components/SearchPanel.vue";
 import SearchResult from "./components/SearchResult.vue";
-import RecentTransactions from "./components/RecentTransactions.vue";
 import { useExplorerData } from "@/composables/useExplorerData";
 
-const { t } = createUseI18n(messages)();
+const { t, templateConfig, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "explorer",
+  messages,
+  template: {
+    tabs: [
+      { key: "search", labelKey: "tabSearch", icon: "🔍", default: true },
+      { key: "history", labelKey: "tabHistory", icon: "🕐" },
+    ],
+  },
+});
 
 const {
   searchQuery,
@@ -73,13 +79,6 @@ const {
   watchNetwork,
 } = useExplorerData(t);
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "search", labelKey: "tabSearch", icon: "🔍", default: true },
-    { key: "history", labelKey: "tabHistory", icon: "🕐" },
-  ],
-});
-
 const activeTab = ref("search");
 const appState = computed(() => ({
   activeTab: activeTab.value,
@@ -87,11 +86,6 @@ const appState = computed(() => ({
   selectedNetwork: selectedNetwork.value,
   searchResult: searchResult.value,
 }));
-
-const { handleBoundaryError } = useHandleBoundaryError("explorer");
-const resetAndReload = async () => {
-  await search();
-};
 
 const viewTx = (hash: string) => {
   searchQuery.value = hash;
@@ -126,6 +120,12 @@ onUnmounted(() => {
   text-align: center;
   padding: 20px;
   animation: blink 1s infinite;
+}
+
+.stats-grid-gap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 @keyframes blink {

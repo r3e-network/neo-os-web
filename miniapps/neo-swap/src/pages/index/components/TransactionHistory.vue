@@ -1,9 +1,24 @@
 <template>
-  <view v-if="show" class="modal-overlay" role="dialog" aria-modal="true" :aria-label="t('selectToken')" @click="$emit('close')">
+  <view
+    v-if="show"
+    class="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    :aria-label="t('selectToken')"
+    @click="$emit('close')"
+  >
     <view class="modal-content" @click.stop>
       <view class="modal-header">
         <text class="modal-title">{{ t("selectToken") }}</text>
-        <view class="modal-close" role="button" :aria-label="t('selectToken')" tabindex="0" @click="$emit('close')" @keydown.enter="$emit('close')">×</view>
+        <view
+          class="modal-close"
+          role="button"
+          :aria-label="t('selectToken')"
+          tabindex="0"
+          @click="$emit('close')"
+          @keydown.enter="$emit('close')"
+          >×</view
+        >
       </view>
       <view class="token-list" role="listbox" :aria-label="t('selectToken')">
         <view
@@ -17,7 +32,12 @@
           @click="$emit('select', token)"
           @keydown.enter="$emit('select', token)"
         >
-          <image :src="getTokenIcon(token.symbol)" class="token-list-icon" mode="aspectFit" :alt="token.symbol || t('tokenIcon')" />
+          <image
+            :src="getTokenIcon(token.symbol)"
+            class="token-list-icon"
+            mode="aspectFit"
+            :alt="token.symbol || t('tokenIcon')"
+          />
           <view class="token-item-info">
             <text class="token-item-symbol">{{ token.symbol }}</text>
             <text class="token-item-balance">{{ formatBalance(token.balance) }}</text>
@@ -30,13 +50,16 @@
 
 <script setup lang="ts">
 import type { Token } from "@/types";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
-  t: (key: string) => string;
   show: boolean;
   tokens: Token[];
   currentSymbol: string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -151,6 +174,6 @@ function formatBalance(balance: number): string {
 .token-item-balance {
   font-size: 13px;
   color: var(--swap-modal-text-muted);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
 }
 </style>

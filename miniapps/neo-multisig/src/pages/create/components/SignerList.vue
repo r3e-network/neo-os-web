@@ -1,23 +1,28 @@
 <template>
   <view class="signer-list">
-    <view v-for="(signer, index) in signers" :key="index" class="signer-row">
-      <text class="index">{{ index + 1 }}</text>
-      <input
-        class="input"
-        :value="signer"
-        @input="$emit('update', { index, value: $event.target.value })"
-        :placeholder="t('signerPlaceholder')"
-      />
-      <text
-        v-if="signers.length > 1"
-        class="remove-btn"
-        role="button"
-        :aria-label="t('removeSigner') || 'Remove signer'"
-        tabindex="0"
-        @click="$emit('remove', index)"
-        @keydown.enter="$emit('remove', index)"
-      >×</text>
-    </view>
+    <ItemList :items="signerItems" item-key="_index">
+      <template #item="{ item, index }">
+        <view class="signer-row">
+          <text class="index">{{ index + 1 }}</text>
+          <input
+            class="input"
+            :value="item.value"
+            @input="$emit('update', { index, value: $event.target.value })"
+            :placeholder="t('signerPlaceholder')"
+          />
+          <text
+            v-if="signers.length > 1"
+            class="remove-btn"
+            role="button"
+            :aria-label="t('removeSigner') || 'Remove signer'"
+            tabindex="0"
+            @click="$emit('remove', index)"
+            @keydown.enter="$emit('remove', index)"
+            >×</text
+          >
+        </view>
+      </template>
+    </ItemList>
 
     <NeoButton variant="secondary" size="sm" @click="$emit('add')" class="add-btn">
       {{ t("addSigner") }}
@@ -26,12 +31,18 @@
 </template>
 
 <script setup lang="ts">
-import { NeoButton } from "@shared/components";
+import { computed } from "vue";
+import { ItemList } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
-defineProps<{
+const props = defineProps<{
   signers: string[];
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
+
+const signerItems = computed(() => props.signers.map((value, i) => ({ _index: String(i), value })));
 
 defineEmits(["add", "remove", "update"]);
 </script>

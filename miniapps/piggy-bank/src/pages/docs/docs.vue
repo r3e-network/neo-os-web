@@ -10,7 +10,7 @@
 
 <script setup lang="ts">
 import { createUseI18n } from "@shared/composables/useI18n";
-import messages from "@/locale/messages";
+import { messages } from "@/locale/messages";
 import NeoDoc from "@shared/components/NeoDoc.vue";
 
 import { computed } from "vue";

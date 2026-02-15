@@ -1,71 +1,53 @@
 <template>
-  <view class="theme-neo-swap">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- Swap Tab (default) - LEFT panel -->
-      <template #content>
-        
-          <SwapTab :t="t" />
-        
-      </template>
+  <MiniAppPage
+    name="neo-swap"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+  >
+    <!-- Swap Tab (default) - LEFT panel -->
+    <template #content>
+      <SwapTab />
+    </template>
 
-      <!-- RIGHT panel: Popular Pairs -->
-      <template #operation>
-        <NeoCard variant="erobo" :title="t('popularPairs')">
-          <view class="pair-list">
-            <view
-              v-for="pair in popularPairs"
-              :key="pair.id"
-              class="pair-item"
-              :class="{ active: selectedPair === pair.id }"
-              @click="selectedPair = pair.id"
-            >
-              <view class="pair-info">
-                <text class="pair-name">{{ pair.name }}</text>
-                <text class="pair-rate">{{ pair.rate }}</text>
-              </view>
+    <!-- RIGHT panel: Popular Pairs -->
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('popularPairs')">
+        <view class="pair-list">
+          <view
+            v-for="pair in popularPairs"
+            :key="pair.id"
+            class="pair-item"
+            :class="{ active: selectedPair === pair.id }"
+            @click="selectedPair = pair.id"
+          >
+            <view class="pair-info">
+              <text class="pair-name">{{ pair.name }}</text>
+              <text class="pair-rate">{{ pair.rate }}</text>
             </view>
           </view>
-        </NeoCard>
-      </template>
+        </view>
+      </NeoCard>
+    </template>
 
-      <!-- Pool Tab -->
-      <template #tab-pool>
-        <PoolTab :t="t" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <!-- Pool Tab -->
+    <template #tab-pool>
+      <PoolTab />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, NeoCard } from "@shared/components";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import SwapTab from "./components/SwapTab.vue";
-import PoolTab from "./components/PoolTab.vue";
-
-const { t } = createUseI18n(messages)();
-const { status } = useStatusMessage();
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "swap", labelKey: "tabSwap", icon: "💱", default: true },
-    { key: "pool", labelKey: "tabPool", icon: "💧" },
-  ],
-  docFeatureCount: 3,
-});
 
 const selectedPair = ref("neo-gas");
 
@@ -75,17 +57,26 @@ const popularPairs = [
   { id: "neo-flm", name: "NEO/FLM", rate: "1:125.8" },
 ];
 
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
+  name: "neo-swap",
+  messages,
+  template: {
+    tabs: [
+      { key: "swap", labelKey: "tabSwap", icon: "💱", default: true },
+      { key: "pool", labelKey: "tabPool", icon: "💧" },
+    ],
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    { labelKey: "tabSwap", value: () => selectedPair.value.toUpperCase() },
+    { labelKey: "popularPairs", value: () => popularPairs.length },
+    { labelKey: "sidebarRate", value: () => popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "-" },
+  ],
+});
+
 const appState = computed(() => ({
   selectedPair: selectedPair.value,
 }));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "tabSwap", value: () => selectedPair.value.toUpperCase() },
-  { labelKey: "popularPairs", value: () => popularPairs.length },
-  { labelKey: "sidebarRate", value: () => popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "-" },
-]);
-
-const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("neo-swap");
 </script>
 
 <style lang="scss" scoped>

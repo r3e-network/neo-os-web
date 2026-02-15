@@ -25,7 +25,9 @@
     </view>
     <view class="release-summary">
       <text class="release-label">{{ t("releasePlan") }}</text>
-      <text v-if="trust.releaseMode === 'rewards_only'" class="release-value">{{ t("releaseRewardsOnlySummary") }}</text>
+      <text v-if="trust.releaseMode === 'rewards_only'" class="release-value">{{
+        t("releaseRewardsOnlySummary")
+      }}</text>
       <text v-else-if="trust.releaseMode === 'fixed'" class="release-value">
         {{ t("releaseFixedSummary", { neo: trust.monthlyNeo, gas: trust.monthlyGas.toFixed(4) }) }}
       </text>
@@ -36,16 +38,20 @@
 
 <script setup lang="ts">
 import { AppIcon } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { Trust } from "./TrustCard.vue";
 
 defineProps<{
   trust: Trust;
-  t: (key: string, params?: Record<string, unknown>) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .asset-section {
   margin-bottom: 24px;
@@ -58,11 +64,8 @@ defineProps<{
 }
 
 .asset-label {
-  font-size: 11px;
+  @include stat-label;
   font-weight: 800;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 0.1em;
 }
 
 .dual-assets {

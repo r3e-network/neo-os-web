@@ -1,43 +1,31 @@
 <template>
-  <NeoCard variant="erobo-neo">
-    <view class="form-group">
-      <NeoInput v-model="localForm.roundId" :label="t('contributionRoundId')" disabled />
-      <NeoInput
-        v-model="localForm.projectId"
-        :label="t('contributionProjectId')"
-        :placeholder="t('selectProjectHint')"
-      />
-      <NeoInput
-        v-model="localForm.amount"
-        type="number"
-        :label="t('contributionAmount')"
-        :placeholder="t('contributionAmountPlaceholder')"
-        :suffix="assetSymbol"
-      />
-      <NeoInput
-        v-model="localForm.memo"
-        type="textarea"
-        :label="t('contributionMemo')"
-        :placeholder="t('contributionMemoPlaceholder')"
-      />
-
-      <NeoButton
-        variant="primary"
-        size="lg"
-        block
-        :loading="isLoading"
-        :disabled="isLoading"
-        @click="emitContribute"
-      >
-        {{ isLoading ? t("contributing") : t("contribute") }}
-      </NeoButton>
-    </view>
-  </NeoCard>
+  <FormCard
+    :submit-label="isLoading ? t('contributing') : t('contribute')"
+    :submit-loading="isLoading"
+    :submit-disabled="isLoading"
+    @submit="emitContribute"
+  >
+    <NeoInput v-model="localForm.roundId" :label="t('contributionRoundId')" disabled />
+    <NeoInput v-model="localForm.projectId" :label="t('contributionProjectId')" :placeholder="t('selectProjectHint')" />
+    <NeoInput
+      v-model="localForm.amount"
+      type="number"
+      :label="t('contributionAmount')"
+      :placeholder="t('contributionAmountPlaceholder')"
+      :suffix="assetSymbol"
+    />
+    <NeoInput
+      v-model="localForm.memo"
+      type="textarea"
+      :label="t('contributionMemo')"
+      :placeholder="t('contributionMemoPlaceholder')"
+    />
+  </FormCard>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, watch } from "vue";
-import { NeoInput, NeoButton, NeoCard } from "@shared/components";
+import { NeoInput, FormCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -60,16 +48,22 @@ const localForm = reactive({
   memo: "",
 });
 
-watch(() => props.roundId, (newId) => {
-  localForm.roundId = newId;
-}, { immediate: true });
+watch(
+  () => props.roundId,
+  (newId) => {
+    localForm.roundId = newId;
+  },
+  { immediate: true }
+);
 
 const emitContribute = () => {
   emit("contribute", { ...localForm });
 };
 
 defineExpose({
-  setLoading: (loading: boolean) => { isLoading.value = loading; },
+  setLoading: (loading: boolean) => {
+    isLoading.value = loading;
+  },
   reset: () => {
     localForm.amount = "";
     localForm.memo = "";
@@ -77,10 +71,4 @@ defineExpose({
 });
 </script>
 
-<style lang="scss" scoped>
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-</style>
+<style lang="scss" scoped></style>

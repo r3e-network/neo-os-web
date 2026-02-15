@@ -4,27 +4,28 @@
       <text class="section-title">{{ title }}</text>
       <text class="count-badge">{{ trusts.length }}</text>
     </view>
-    <view v-if="trusts.length === 0" class="empty-state">
-      <NeoCard variant="erobo" class="p-8 text-center opacity-60">
-        <text class="block mb-2">{{ emptyIcon }}</text>
-        <text class="text-xs">{{ emptyText }}</text>
-      </NeoCard>
-    </view>
-    <view v-for="trust in trusts" :key="trust.id">
-      <TrustCard
-        :trust="trust"
-        :t="t"
-        @heartbeat="$emit('heartbeat', trust)"
-        @claimYield="$emit('claimYield', trust)"
-        @execute="$emit('execute', trust)"
-        @claimReleased="$emit('claimReleased', trust)"
-      />
-    </view>
+    <ItemList :items="trusts" item-key="id">
+      <template #empty>
+        <NeoCard variant="erobo" class="p-8 text-center opacity-60">
+          <text class="mb-2 block">{{ emptyIcon }}</text>
+          <text class="text-xs">{{ emptyText }}</text>
+        </NeoCard>
+      </template>
+      <template #item="{ item: trust }">
+        <TrustCard
+          :trust="trust"
+          @heartbeat="$emit('heartbeat', trust)"
+          @claimYield="$emit('claimYield', trust)"
+          @execute="$emit('execute', trust)"
+          @claimReleased="$emit('claimReleased', trust)"
+        />
+      </template>
+    </ItemList>
   </view>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
 import TrustCard, { type Trust } from "./TrustCard.vue";
 
 defineProps<{
@@ -32,7 +33,6 @@ defineProps<{
   title: string;
   emptyText: string;
   emptyIcon: string;
-  t: (key: string, params?: Record<string, string | number>) => string;
 }>();
 
 defineEmits<{
@@ -44,23 +44,19 @@ defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .trust-list {
   margin-bottom: 32px;
 }
 
 .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 0 4px;
+  @include section-header;
 }
 
 .section-title {
-  font-size: 12px;
+  @include section-title;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
   color: var(--heritage-section-title);
 }
 

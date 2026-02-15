@@ -44,32 +44,28 @@ defineEmits(["claim"]);
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
-.rewards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.rewards-grid {
+  @include grid-layout(2, 16px);
+}
 
 .reward-item {
+  @include card-base(12px, 16px);
   text-align: center;
-  padding: 16px;
-  background: var(--bg-card, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  border-radius: 12px;
 }
 
 .reward-value {
-  display: block;
-  font-family: $font-mono;
+  @include stat-value;
   font-size: 24px;
-  font-weight: 700;
   color: var(--sunrise-reward);
   text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
   margin-bottom: 4px;
 }
 
 .reward-label {
+  @include stat-label;
   display: block;
-  font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
-  text-transform: uppercase;
 }
 </style>

@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Forever Album", zh: "永久相册" },
   subtitle: { en: "Your memories, forever on Neo", zh: "你的回忆，永久存于 Neo" },
   albumTab: { en: "Album", zh: "相册" },
@@ -7,7 +9,6 @@ export const messages = {
   tapToSelect: { en: "Tap to Select (Up to 5, <60KB total)", zh: "点击选择 (最多 5 张，总计 <60KB)" },
   encryptPhoto: { en: "Encrypt", zh: "加密" },
   enterPassword: { en: "Password for encryption", zh: "输入加密密码" },
-  cancel: { en: "Cancel", zh: "取消" },
   confirm: { en: "Upload", zh: "上传" },
   uploading: { en: "Uploading...", zh: "上传中..." },
   addPhoto: { en: "Add Photo", zh: "添加照片" },
@@ -22,7 +23,6 @@ export const messages = {
   missingContract: { en: "Contract address not configured.", zh: "合约地址未配置。" },
   loadFailed: { en: "Failed to load album.", zh: "加载相册失败。" },
   loading: { en: "Loading album...", zh: "正在加载相册..." },
-  error: { en: "Error", zh: "错误" },
   emptyTitle: { en: "No photos yet", zh: "暂无照片" },
   emptyDesc: { en: "Upload your first memory on-chain.", zh: "上传你的第一份链上记忆。" },
   selectMore: { en: "Select", zh: "选择" },
@@ -44,10 +44,8 @@ export const messages = {
     en: "Your album is tied to your wallet address. Connect to load and upload.",
     zh: "相册与钱包地址绑定，连接后可加载和上传。",
   },
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   wrongChain: { en: "Wrong Chain", zh: "链不匹配" },
   wrongChainMessage: { en: "Switch to the Neo N3 network to continue.", zh: "请切换到 Neo N3 网络继续。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
   docTitle: { en: "Forever Album", zh: "永久相册" },
   docSubtitle: { en: "On-chain photo vault with optional encryption", zh: "可加密的链上相册" },
   docDescription: {
@@ -70,14 +68,9 @@ export const messages = {
   networkTestnet: { en: "Neo N3 TestNet", zh: "Neo N3 测试网" },
   networkMainnet: { en: "Neo N3 MainNet", zh: "Neo N3 主网" },
   networkUnknown: { en: "Neo N3", zh: "Neo N3" },
-  copy: { en: "Copy", zh: "复制" },
-  copied: { en: "Copied", zh: "已复制" },
   copyFailed: { en: "Copy failed", zh: "复制失败" },
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
   sidebarEncrypted: { en: "Encrypted", zh: "已加密" },
   sidebarPublic: { en: "Public", zh: "公开" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

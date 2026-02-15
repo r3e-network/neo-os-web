@@ -1,4 +1,6 @@
-:global(.theme-lottery) {
+@use "@shared/styles/mixins.scss" as *;
+
+@include theme-dark("lottery") {
   --lottery-card-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   --lottery-card-border: rgba(255, 255, 255, 0.05);
   --lottery-card-shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.5);
@@ -45,8 +47,7 @@
   --scratch-cover-shadow: rgba(255, 255, 255, 0.5);
 }
 
-:global(.theme-light .theme-lottery),
-:global([data-theme="light"] .theme-lottery) {
+@include theme-light("lottery") {
   --lottery-card-shadow: 0 4px 15px rgba(15, 23, 42, 0.12);
   --lottery-card-border: rgba(15, 23, 42, 0.08);
   --lottery-card-shadow-hover: 0 10px 25px rgba(15, 23, 42, 0.18);

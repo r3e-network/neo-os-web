@@ -5,31 +5,39 @@
       <text class="section-count">{{ marketOrders.length }}</text>
     </view>
 
-    <view v-if="marketOrders.length === 0" class="empty-state">
-      <text>{{ t("noOrders") }}</text>
-    </view>
-    <view v-else class="order-list">
-      <view v-for="order in marketOrders" :key="order.id" class="order-item">
-        <view class="order-main">
-          <text class="order-type" :class="order.orderType">
-            {{ order.orderType.toUpperCase() }} · {{ order.outcome.toUpperCase() }}
-          </text>
-          <text class="order-detail">{{ order.shares.toFixed(2) }} @ {{ formatPercent(order.price) }}</text>
-        </view>
+    <ItemList
+      :items="marketOrders as unknown as Record<string, unknown>[]"
+      item-key="id"
+      :empty-text="t('noOrders')"
+      :aria-label="t('ariaOrders')"
+    >
+      <template #item="{ item }">
+        <view class="order-item">
+          <view class="order-main">
+            <text class="order-type" :class="(item as unknown as ViewOrder).orderType">
+              {{ (item as unknown as ViewOrder).orderType.toUpperCase() }} ·
+              {{ (item as unknown as ViewOrder).outcome.toUpperCase() }}
+            </text>
+            <text class="order-detail"
+              >{{ (item as unknown as ViewOrder).shares.toFixed(2) }} @
+              {{ formatPercent((item as unknown as ViewOrder).price) }}</text
+            >
+          </view>
 
-        <view
-          v-if="order.status !== 'cancelled'"
-          class="cancel-pill"
-          role="button"
-          tabindex="0"
-          @click="emit('cancel-order', order.id)"
-          @keydown.enter="emit('cancel-order', order.id)"
-          @keydown.space.prevent="emit('cancel-order', order.id)"
-        >
-          <text>{{ t("cancelOrder") }}</text>
+          <view
+            v-if="(item as unknown as ViewOrder).status !== 'cancelled'"
+            class="cancel-pill"
+            role="button"
+            tabindex="0"
+            @click="emit('cancel-order', (item as unknown as ViewOrder).id)"
+            @keydown.enter="emit('cancel-order', (item as unknown as ViewOrder).id)"
+            @keydown.space.prevent="emit('cancel-order', (item as unknown as ViewOrder).id)"
+          >
+            <text>{{ t("cancelOrder") }}</text>
+          </view>
         </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
 
     <view class="positions-section">
       <view class="section-row">
@@ -37,25 +45,34 @@
         <text class="section-count">{{ marketPositions.length }}</text>
       </view>
 
-      <view v-if="marketPositions.length === 0" class="empty-state compact">
-        <text>{{ t("noPositions") }}</text>
-      </view>
-      <view v-else class="position-list">
-        <view
-          v-for="position in marketPositions"
-          :key="`${position.marketId}-${position.outcome}`"
-          class="position-item"
-        >
-          <text class="position-outcome">{{ position.outcome.toUpperCase() }}</text>
-          <text class="position-meta">{{ position.shares.toFixed(2) }} {{ t("shares") }}</text>
-          <text class="position-meta">Avg {{ formatPercent(position.avgPrice) }}</text>
-        </view>
-      </view>
+      <ItemList
+        :items="marketPositions as unknown as Record<string, unknown>[]"
+        :empty-text="t('noPositions')"
+        :aria-label="t('ariaPositions')"
+      >
+        <template #empty>
+          <view class="empty-state compact">
+            <text>{{ t("noPositions") }}</text>
+          </view>
+        </template>
+        <template #item="{ item }">
+          <view class="position-item">
+            <text class="position-outcome">{{ (item as unknown as MarketPosition).outcome.toUpperCase() }}</text>
+            <text class="position-meta"
+              >{{ (item as unknown as MarketPosition).shares.toFixed(2) }} {{ t("shares") }}</text
+            >
+            <text class="position-meta"
+              >{{ t("avgLabel") }} {{ formatPercent((item as unknown as MarketPosition).avgPrice) }}</text
+            >
+          </view>
+        </template>
+      </ItemList>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
+import { ItemList } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import type { MarketOrder as TradingOrder, MarketPosition } from "@/composables/usePredictionTrading";
@@ -65,7 +82,6 @@ type ViewOrder = TradingOrder & { status?: string };
 interface Props {
   marketOrders: ViewOrder[];
   marketPositions: MarketPosition[];
-  t?: (key: string, args?: Record<string, string | number>) => string;
 }
 
 const props = defineProps<Props>();
@@ -73,11 +89,7 @@ const emit = defineEmits<{
   (e: "cancel-order", orderId: number): void;
 }>();
 
-const { t: i18nT } = createUseI18n(messages)();
-const t = (key: string, args?: Record<string, string | number>) => {
-  if (props.t) return props.t(key, args);
-  return i18nT(key as never, args);
-};
+const { t } = createUseI18n(messages)();
 
 const formatPercent = (price: number) => `${(price * 100).toFixed(1)}%`;
 </script>

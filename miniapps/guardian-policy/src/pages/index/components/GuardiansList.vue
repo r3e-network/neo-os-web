@@ -1,30 +1,34 @@
 <template>
   <NeoCard class="guardians-card" variant="erobo">
-    <view class="guardians-grid">
-      <view v-for="guardian in guardians" :key="guardian.id" class="guardian-item-glass">
-        <view class="guardian-avatar-wrapper">
-          <view class="guardian-avatar">{{ guardian.avatar }}</view>
-          <view class="avatar-ring" :class="{ 'active': guardian.active }"></view>
-        </view>
-        
-        <view class="guardian-details">
-          <text class="guardian-name">{{ guardian.name }}</text>
-          <text class="guardian-role">{{ guardian.role }}</text>
-        </view>
+    <ItemList :items="guardians" item-key="id">
+      <template #item="{ item: guardian }">
+        <view class="guardian-item-glass">
+          <view class="guardian-avatar-wrapper">
+            <view class="guardian-avatar">{{ guardian.avatar }}</view>
+            <view class="avatar-ring" :class="{ active: guardian.active }"></view>
+          </view>
 
-        <view class="guardian-status">
-          <view class="status-indicator" :class="{ 'active': guardian.active }">
-            <view class="status-pulse" v-if="guardian.active"></view>
-            <view class="status-dot"></view>
+          <view class="guardian-details">
+            <text class="guardian-name">{{ guardian.name }}</text>
+            <text class="guardian-role">{{ guardian.role }}</text>
+          </view>
+
+          <view class="guardian-status">
+            <view class="status-indicator" :class="{ active: guardian.active }">
+              <view class="status-pulse" v-if="guardian.active"></view>
+              <view class="status-dot"></view>
+            </view>
           </view>
         </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 export interface Guardian {
   id: string;
@@ -36,13 +40,15 @@ export interface Guardian {
 
 defineProps<{
   guardians: Guardian[];
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .guardians-grid {
   display: flex;
@@ -51,13 +57,10 @@ defineProps<{
 }
 
 .guardian-item-glass {
+  @include card-base(12px, 16px);
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -98,7 +101,7 @@ defineProps<{
   border: 1px dashed rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   transition: all 0.3s;
-  
+
   &.active {
     border-color: var(--ops-success);
     animation: spin-slow 10s linear infinite;
@@ -143,7 +146,7 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &.active .status-dot {
     background: var(--ops-success);
     box-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
@@ -168,12 +171,22 @@ defineProps<{
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); opacity: 0.5; }
-  100% { transform: scale(2); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
 </style>

@@ -89,12 +89,15 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { NeoInput, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { EnvelopeItem, ClaimItem } from "@/composables/useRedEnvelopeOpen";
 
 const props = defineProps<{
   pools: EnvelopeItem[];
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   claim: [poolId: string];

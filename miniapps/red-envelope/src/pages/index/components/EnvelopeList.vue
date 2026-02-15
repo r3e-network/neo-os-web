@@ -1,61 +1,89 @@
 <template>
   <NeoCard variant="erobo">
-    <view v-if="loadingEnvelopes" class="empty-state">{{ t("loadingEnvelopes") }}</view>
-    <view v-else-if="!envelopes.length" class="empty-state">{{ t("noEnvelopes") }}</view>
-    <view v-else class="envelope-list">
-      <view
-        v-for="env in envelopes"
-        :key="env.id"
-        class="glass-envelope"
-        :class="{ disabled: !env.canClaim }"
-        role="button"
-        :aria-label="`${env.name || env.from} - ${env.totalAmount.toFixed(2)} GAS`"
-        @click="$emit('claim', env)"
-      >
-        <view class="envelope-content">
-          <view class="envelope-icon">
-            <text class="envelope-symbol">福</text>
-          </view>
-          <view class="envelope-info">
-            <text v-if="env.name" class="envelope-name">{{ env.name }}</text>
-            <text class="envelope-from">{{ env.from }}</text>
-            <text class="envelope-detail">
-              {{ t("remaining").replace("{0}", String(env.remaining)).replace("{1}", String(env.total)) }}
-              · {{ env.totalAmount.toFixed(2) }} GAS
-            </text>
-            <view v-if="env.bestLuckAddress && env.bestLuckAmount" class="best-luck">
-              <text class="best-luck-icon">🎉</text>
-              <text class="best-luck-text"
-                >{{ t("bestLuck") }}: {{ formatAddress(env.bestLuckAddress) }} ({{
-                  (env.bestLuckAmount / 1e8).toFixed(4)
-                }}
-                GAS)</text
-              >
+    <ItemList
+      :items="envelopes as unknown as Record<string, unknown>[]"
+      item-key="id"
+      :loading="loadingEnvelopes"
+      :loading-text="t('loadingEnvelopes')"
+      :empty-text="t('noEnvelopes')"
+      :aria-label="t('ariaEnvelopes')"
+    >
+      <template #empty>
+        <view class="empty-state">{{ t("noEnvelopes") }}</view>
+      </template>
+      <template #item="{ item }">
+        <view
+          class="glass-envelope"
+          :class="{ disabled: !(item as unknown as EnvelopeItem).canClaim }"
+          role="button"
+          :aria-label="`${(item as unknown as EnvelopeItem).name || (item as unknown as EnvelopeItem).from} - ${(item as unknown as EnvelopeItem).totalAmount.toFixed(2)} GAS`"
+          @click="$emit('claim', item)"
+        >
+          <view class="envelope-content">
+            <view class="envelope-icon">
+              <text class="envelope-symbol">福</text>
             </view>
-          </view>
-          <view class="envelope-status">
-            <text
-              class="status-badge"
-              :class="{
-                'status-ready': env.canClaim,
-                'status-pending': !env.ready && !env.expired,
-                'status-expired': env.expired,
-              }"
-            >
-              {{ env.expired ? t("expired") : env.ready ? t("ready") : t("notReady") }}
-            </text>
-            <view class="share-btn" role="button" aria-label="Share" @click.stop="$emit('share', env)">
-              <text aria-hidden="true">🔗</text>
+            <view class="envelope-info">
+              <text v-if="(item as unknown as EnvelopeItem).name" class="envelope-name">{{
+                (item as unknown as EnvelopeItem).name
+              }}</text>
+              <text class="envelope-from">{{ (item as unknown as EnvelopeItem).from }}</text>
+              <text class="envelope-detail">
+                {{
+                  t("remaining")
+                    .replace("{0}", String((item as unknown as EnvelopeItem).remaining))
+                    .replace("{1}", String((item as unknown as EnvelopeItem).total))
+                }}
+                · {{ (item as unknown as EnvelopeItem).totalAmount.toFixed(2) }} GAS
+              </text>
+              <view
+                v-if="
+                  (item as unknown as EnvelopeItem).bestLuckAddress && (item as unknown as EnvelopeItem).bestLuckAmount
+                "
+                class="best-luck"
+              >
+                <text class="best-luck-icon">🎉</text>
+                <text class="best-luck-text"
+                  >{{ t("bestLuck") }}: {{ formatAddress((item as unknown as EnvelopeItem).bestLuckAddress!) }} ({{
+                    ((item as unknown as EnvelopeItem).bestLuckAmount! / 1e8).toFixed(4)
+                  }}
+                  GAS)</text
+                >
+              </view>
+            </view>
+            <view class="envelope-status">
+              <text
+                class="status-badge"
+                :class="{
+                  'status-ready': (item as unknown as EnvelopeItem).canClaim,
+                  'status-pending':
+                    !(item as unknown as EnvelopeItem).ready && !(item as unknown as EnvelopeItem).expired,
+                  'status-expired': (item as unknown as EnvelopeItem).expired,
+                }"
+              >
+                {{
+                  (item as unknown as EnvelopeItem).expired
+                    ? t("expired")
+                    : (item as unknown as EnvelopeItem).ready
+                      ? t("ready")
+                      : t("notReady")
+                }}
+              </text>
+              <view class="share-btn" role="button" :aria-label="t('ariaShare')" @click.stop="$emit('share', item)">
+                <text aria-hidden="true">🔗</text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 type EnvelopeItem = {
   id: string;
@@ -77,15 +105,11 @@ defineProps<{
   envelopes: EnvelopeItem[];
   loadingEnvelopes: boolean;
   openingId: string | null;
-  t: (key: string) => string;
 }>();
 
-defineEmits(["claim", "share"]);
+const { t } = createUseI18n(messages)();
 
-const formatAddress = (addr: string): string => {
-  if (!addr || addr.length < 12) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-};
+defineEmits(["claim", "share"]);
 </script>
 
 <style lang="scss" scoped>

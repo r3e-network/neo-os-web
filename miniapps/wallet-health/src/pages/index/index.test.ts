@@ -87,9 +87,9 @@ describe("Wallet Health Index Page", () => {
             template: '<button class="neo-button-stub"><slot /></button>',
             props: ["size", "variant", "loading"],
           },
-          NeoStats: {
-            template: '<div class="neo-stats-stub"><slot /></div>',
-            props: ["stats"],
+          StatsDisplay: {
+            template: '<div class="stats-display-stub"><slot /></div>',
+            props: ["items", "layout", "columns"],
           },
           NeoDoc: {
             template: '<div class="neo-doc-stub"><slot /></div>',
@@ -138,14 +138,14 @@ describe("Wallet Health Index Page", () => {
   });
 
   describe("Health Stats", () => {
-    it("renders NeoStats component", () => {
-      expect(wrapper.findComponent({ name: "NeoStats" }).exists()).toBe(true);
+    it("renders StatsDisplay component", () => {
+      expect(wrapper.findComponent({ name: "StatsDisplay" }).exists()).toBe(true);
     });
 
-    it("passes stats data to NeoStats", () => {
-      const statsComponent = wrapper.findComponent({ name: "NeoStats" });
-      expect(statsComponent.props("stats")).toBeDefined();
-      expect(Array.isArray(statsComponent.props("stats"))).toBe(true);
+    it("passes stats data to StatsDisplay", () => {
+      const statsComponent = wrapper.findComponent({ name: "StatsDisplay" });
+      expect(statsComponent.props("items")).toBeDefined();
+      expect(Array.isArray(statsComponent.props("items"))).toBe(true);
     });
   });
 
@@ -270,15 +270,15 @@ describe("Wallet Health Index Page", () => {
 
   describe("Wallet Connection", () => {
     it("displays connection status", () => {
-      const stats = wrapper.findComponent({ name: "NeoStats" });
-      const statsData = stats.props("stats");
+      const stats = wrapper.findComponent({ name: "StatsDisplay" });
+      const statsData = stats.props("items");
       const connectionStat = statsData.find((s: Record<string, unknown>) => s.label === "Connection");
       expect(connectionStat).toBeDefined();
     });
 
     it("displays network status", () => {
-      const stats = wrapper.findComponent({ name: "NeoStats" });
-      const statsData = stats.props("stats");
+      const stats = wrapper.findComponent({ name: "StatsDisplay" });
+      const statsData = stats.props("items");
       const networkStat = statsData.find((s: Record<string, unknown>) => s.label === "Network");
       expect(networkStat).toBeDefined();
     });

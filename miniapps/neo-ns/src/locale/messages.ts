@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   searchPlaceholder: { en: "Search for a .neo domain", zh: "搜索 .neo 域名" },
@@ -24,7 +26,6 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   tabRegister: { en: "Register", zh: "注册" },
   tabDomains: { en: "Domains", zh: "域名" },
   premium: { en: "Premium", zh: "高级" },
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Human-readable .neo domain names for Neo addresses",
     zh: "Neo 地址的人类可读 .neo 域名",
@@ -64,9 +65,6 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
     en: "Track expiry dates and renew to keep ownership.",
     zh: "跟踪到期时间并续费保持所有权。",
   },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
   invalidAddress: { en: "Invalid address", zh: "无效地址" },
   targetSet: { en: "Target address set!", zh: "目标地址已设置！" },
   transferred: { en: "Domain transferred!", zh: "域名已转让！" },
@@ -79,19 +77,10 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   currentOwner: { en: "Current Owner", zh: "当前所有者" },
   currentExpiry: { en: "Expiry Date", zh: "到期日期" },
   notSet: { en: "Not Set", zh: "未设置" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     sidebarWallet: { en: "Wallet", zh: "钱包" },
     sidebarExpiringSoon: { en: "Expiring Soon", zh: "即将到期" },
     connected: { en: "Connected", zh: "已连接" },
     disconnected: { en: "Disconnected", zh: "未连接" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-    loading: { en: "Loading...", zh: "加载中..." },
-    error: { en: "Error", zh: "错误" }
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

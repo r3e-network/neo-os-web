@@ -14,6 +14,7 @@ export interface TimerState {
   isActive: boolean;
 }
 
+/** Tracks countdown timer state and round activity for the doomsday clock. */
 export function useDoomsdayTimer() {
   const { t } = createUseI18n(messages)();
 
@@ -45,11 +46,16 @@ export function useDoomsdayTimer() {
 
   const dangerLevelText = computed(() => {
     switch (dangerLevel.value) {
-      case "low": return t("dangerLow");
-      case "medium": return t("dangerMedium");
-      case "high": return t("dangerHigh");
-      case "critical": return t("dangerCritical");
-      default: return t("dangerLow");
+      case "low":
+        return t("dangerLow");
+      case "medium":
+        return t("dangerMedium");
+      case "high":
+        return t("dangerHigh");
+      case "critical":
+        return t("dangerCritical");
+      default:
+        return t("dangerLow");
     }
   });
 

@@ -1,6 +1,6 @@
 <template>
   <view class="tab-content">
-    <MiniAppTabStats variant="erobo" :title="t('poolSubtitle')" :stats="poolStats" stats-position="bottom">
+    <NeoCard variant="erobo" :title="t('poolSubtitle')">
       <view class="pool-overview">
         <text class="pool-subtitle">{{ t("poolInfo") }}</text>
 
@@ -13,20 +13,21 @@
           {{ t("openDex") }}
         </NeoButton>
       </view>
-    </MiniAppTabStats>
+      <StatsDisplay :items="poolStats" layout="rows" />
+    </NeoCard>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import type { WalletSDK } from "@neo/types";
-import { MiniAppTabStats, NeoButton, type StatItem } from "@shared/components";
+import { NeoCard, StatsDisplay, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { useDatafeed, useWallet } from "@neo/uniapp-sdk";
 import type { UniAppGlobals } from "@shared/types/globals";
 
-defineProps<{
-  t: (key: string) => string;
-}>();
+const { t } = createUseI18n(messages)();
 
 const { getPrice } = useDatafeed();
 const { getContractAddress } = useWallet() as WalletSDK;
@@ -35,7 +36,7 @@ const neoPrice = ref<number | null>(null);
 const gasPrice = ref<number | null>(null);
 const routerAddress = ref<string>("");
 
-const poolStats = computed<StatItem[]>(() => [
+const poolStats = computed<StatsDisplayItem[]>(() => [
   { label: "NEO/USD", value: neoPrice.value ? neoPrice.value.toFixed(4) : "--" },
   { label: "GAS/USD", value: gasPrice.value ? gasPrice.value.toFixed(4) : "--" },
   { label: "NEO/GAS", value: priceRatio.value },

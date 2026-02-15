@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Article } from "@/types";
 
 const LOCAL_NEWS_MOCK = {
@@ -30,15 +31,14 @@ const LOCAL_NEWS_MOCK = {
   ],
 };
 
-const isLocalPreview =
-  typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
+const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
 
 export function useNewsData(t: (key: string) => string) {
   const loading = ref(true);
   const articles = ref<Article[]>([]);
   const errorMessage = ref("");
 
-  async function fetchArticles() {
+  async function loadArticles() {
     loading.value = true;
     errorMessage.value = "";
     try {
@@ -64,9 +64,9 @@ export function useNewsData(t: (key: string) => string) {
           url: String(article.link || article.url || ""),
         }))
         .filter((article: Article) => article.id && article.title && article.url);
-    } catch (_err: unknown) {
+    } catch (e: unknown) {
       articles.value = [];
-      errorMessage.value = t("loadFailed");
+      errorMessage.value = formatErrorMessage(e, t("loadFailed"));
     } finally {
       loading.value = false;
     }
@@ -95,7 +95,7 @@ export function useNewsData(t: (key: string) => string) {
     loading,
     articles,
     errorMessage,
-    fetchArticles,
+    loadArticles,
     formatDate,
     openArticle,
   };

@@ -19,25 +19,27 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { formatNumber } from "@shared/utils/format";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 defineProps<{
   burnAmount: string;
   estimatedReward: number;
   isLoading: boolean;
-  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["update:burnAmount", "burn"]);
 
-const formatNum = (n: number) => {
-  if (n === undefined || n === null) return "0";
-  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
-};
+const formatNum = (n: number) => formatNumber(n, 2);
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .reward-info {
   background: rgba(249, 115, 22, 0.1);
@@ -53,11 +55,7 @@ const formatNum = (n: number) => {
 }
 
 .reward-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-  letter-spacing: 0.1em;
+  @include stat-label;
 }
 
 .reward-value {

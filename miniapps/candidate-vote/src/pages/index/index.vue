@@ -1,225 +1,153 @@
 <template>
-  <view class="theme-candidate-vote">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <!-- Candidate List -->
-          <CandidateList
-            :candidates="candidates"
-            :selected-candidate="selectedCandidate"
-            :user-voted-public-key="normalizedUserVotedPublicKey"
-            :total-votes="totalNetworkVotes"
-            :is-loading="candidatesLoading"
-            @select="selectCandidate"
-            @view-details="openCandidateDetail"
-          />
-        
-      </template>
+  <MiniAppPage
+    name="candidate-vote"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload"
+  >
+    <template #content>
+      <!-- Candidate List -->
+      <CandidateList
+        :candidates="candidates"
+        :selected-candidate="selectedCandidate"
+        :user-voted-public-key="normalizedUserVotedPublicKey"
+        :total-votes="totalNetworkVotes"
+        :is-loading="candidatesLoading"
+        @select="selectCandidate"
+        @view-details="openCandidateDetail"
+      />
+    </template>
 
-      <template #operation>
-        <!-- Vote Form -->
-        <NeoCard variant="erobo-neo">
-          <view class="vote-form">
-            <NeoCard v-if="selectedCandidate" variant="erobo-neo" flat class="selected-candidate-card">
-              <text class="selected-label">{{ t("votingFor") }}</text>
-              <view class="candidate-badge">
-                <view class="logo-name-row">
-                  <image
-                    v-if="selectedCandidate.logo"
-                    class="candidate-logo-sm"
-                    :src="selectedCandidate.logo"
-                    mode="aspectFit"
-                    :alt="selectedCandidate.name || t('candidateLogo')"
-                  />
-                  <text class="candidate-name">{{ selectedCandidate.name || selectedCandidate.address }}</text>
+    <template #operation>
+      <!-- Vote Form -->
+      <NeoCard variant="erobo-neo">
+        <view class="vote-form">
+          <NeoCard v-if="selectedCandidate" variant="erobo-neo" flat class="selected-candidate-card">
+            <text class="selected-label">{{ t("votingFor") }}</text>
+            <view class="candidate-badge">
+              <view class="logo-name-row">
+                <image
+                  v-if="selectedCandidate.logo"
+                  class="candidate-logo-sm"
+                  :src="selectedCandidate.logo"
+                  mode="aspectFit"
+                  :alt="selectedCandidate.name || t('candidateLogo')"
+                />
+                <text class="candidate-name">{{ selectedCandidate.name || selectedCandidate.address }}</text>
+              </view>
+              <text v-if="selectedCandidate.description" class="candidate-desc">
+                {{ selectedCandidate.description }}
+              </text>
+              <view class="details-grid">
+                <view class="detail-item">
+                  <text class="detail-label">{{ t("publicKey") }}</text>
+                  <text class="detail-value mono">{{ selectedCandidate.publicKey }}</text>
                 </view>
-                <text v-if="selectedCandidate.description" class="candidate-desc">
-                  {{ selectedCandidate.description }}
-                </text>
-                <view class="details-grid">
-                  <view class="detail-item">
-                    <text class="detail-label">{{ t("publicKey") }}</text>
-                    <text class="detail-value mono">{{ selectedCandidate.publicKey }}</text>
-                  </view>
-                  <view class="detail-item">
-                    <text class="detail-label">{{ t("address") }}</text>
-                    <text class="detail-value mono">{{ selectedCandidate.address }}</text>
-                  </view>
+                <view class="detail-item">
+                  <text class="detail-label">{{ t("address") }}</text>
+                  <text class="detail-value mono">{{ selectedCandidate.address }}</text>
                 </view>
               </view>
-            </NeoCard>
-
-            <NeoCard v-else variant="warning" flat class="no-candidate-card">
-              <text class="warning-text text-center">{{ t("selectCandidateFirst") }}</text>
-            </NeoCard>
-
-            <NeoButton
-              variant="primary"
-              size="lg"
-              block
-              :disabled="!selectedCandidate || !address || isLoading"
-              :loading="isLoading"
-              @click="onVote"
-            >
-              {{ t("voteNow") }}
-            </NeoButton>
-
-            <view v-if="!address" class="connect-hint">
-              <text class="hint-text">{{ t("connectWallet") }}</text>
             </view>
+          </NeoCard>
+
+          <NeoCard v-else variant="warning" flat class="no-candidate-card">
+            <text class="warning-text text-center">{{ t("selectCandidateFirst") }}</text>
+          </NeoCard>
+
+          <NeoButton
+            variant="primary"
+            size="lg"
+            block
+            :disabled="!selectedCandidate || !address || isLoading"
+            :loading="isLoading"
+            @click="onVote"
+          >
+            {{ t("voteNow") }}
+          </NeoButton>
+
+          <view v-if="!address" class="connect-hint">
+            <text class="hint-text">{{ t("connectWallet") }}</text>
           </view>
-        </NeoCard>
-      </template>
+        </view>
+      </NeoCard>
+    </template>
 
-      <template #tab-info>
-        <InfoTab :address="address" />
-      </template>
-    </MiniAppShell>
+    <template #tab-info>
+      <InfoTab :address="address" />
+    </template>
+  </MiniAppPage>
 
-    <!-- Candidate Detail Modal -->
-    <CandidateDetailModal
-      v-if="showDetailModal"
-      :candidate="detailCandidate"
-      :rank="detailRank"
-      :total-votes="totalNetworkVotes"
-      :is-user-voted="
-        detailCandidate ? normalizePublicKey(detailCandidate.publicKey) === normalizedUserVotedPublicKey : false
-      "
-      :can-vote="!!address && !isLoading"
-      :governance-portal-url="governancePortalUrl"
-      @close="closeCandidateDetail"
-      @vote="handleVoteFromModal"
-    />
-  </view>
+  <!-- Candidate Detail Modal -->
+  <CandidateDetailModal
+    v-if="showDetailModal"
+    :candidate="detailCandidate"
+    :rank="detailRank"
+    :total-votes="totalNetworkVotes"
+    :is-user-voted="
+      detailCandidate ? normalizePublicKey(detailCandidate.publicKey) === normalizedUserVotedPublicKey : false
+    "
+    :can-vote="!!address && !isLoading"
+    :governance-portal-url="governancePortalUrl"
+    @close="closeCandidateDetail"
+    @vote="handleVoteFromModal"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import type { GovernanceCandidate } from "./utils";
-import { createUseI18n } from "@shared/composables/useI18n";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, NeoCard, NeoButton } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
 import CandidateList from "./components/CandidateList.vue";
-import CandidateDetailModal from "./components/CandidateDetailModal.vue";
-import InfoTab from "./components/InfoTab.vue";
-import { useCandidateData } from "./composables/useCandidateData";
-import { useVoting } from "./composables/useVoting";
+import { useCandidateVotePage } from "./composables/useCandidateVotePage";
 
-const { t } = createUseI18n(messages)();
-const wallet = useWallet() as WalletSDK;
-const { address, chainId, appChainId } = wallet;
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "vote", labelKey: "vote", icon: "\uD83D\uDCCB", default: true },
-    { key: "info", labelKey: "info", icon: "\uD83D\uDCCA" },
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "candidate-vote",
+  messages,
+  template: {
+    tabs: [
+      { key: "vote", labelKey: "vote", icon: "\uD83D\uDCCB", default: true },
+      { key: "info", labelKey: "info", icon: "\uD83D\uDCCA" },
+    ],
+  },
+  sidebarItems: [
+    { labelKey: "candidates", value: () => candidates.value.length },
+    { labelKey: "totalVotes", value: () => formatVotes(totalNetworkVotes.value) },
+    { labelKey: "blockHeight", value: () => blockHeight.value || "\u2014" },
+    { labelKey: "yourVote", value: () => (normalizedUserVotedPublicKey.value ? t("active") : t("none")) },
   ],
 });
 
-const preferredChainId = computed(() => appChainId.value || chainId.value || "neo-n3-testnet");
-
-const governancePortalUrl = computed(() =>
-  preferredChainId.value === "neo-n3-testnet" ? "https://governance.neo.org/testnet#/" : "https://governance.neo.org/#/"
-);
-
-// Composables
 const {
+  address,
   candidates,
   totalNetworkVotes,
   blockHeight,
   candidatesLoading,
   formatVotes,
   normalizePublicKey,
-  loadCandidates: loadCandidatesRaw,
-} = useCandidateData(() => preferredChainId.value);
-
-// Selection state
-const selectedCandidate = ref<GovernanceCandidate | null>(null);
-
-const loadCandidates = async (force = false) => {
-  const result = await loadCandidatesRaw(force, selectedCandidate.value);
-  if (result?.updatedSelection !== undefined) {
-    selectedCandidate.value = result.updatedSelection;
-  }
-};
-
-const { isLoading, status, normalizedUserVotedPublicKey, loadUserVote, handleVote } = useVoting(
-  wallet,
-  t,
-  normalizePublicKey,
-  loadCandidates
-);
-
-// Modal state
-const showDetailModal = ref(false);
-const detailCandidate = ref<GovernanceCandidate | null>(null);
-const detailRank = ref(1);
-
-const appState = computed(() => ({
-  candidateCount: candidates.value.length,
-  totalNetworkVotes: totalNetworkVotes.value,
-}));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "candidates", value: () => candidates.value.length },
-  { labelKey: "totalVotes", value: () => formatVotes(totalNetworkVotes.value) },
-  { labelKey: "blockHeight", value: () => blockHeight.value || "\u2014" },
-  { labelKey: "yourVote", value: () => (normalizedUserVotedPublicKey.value ? t("active") : t("none")) },
-]);
-
-const selectCandidate = (candidate: GovernanceCandidate) => {
-  selectedCandidate.value = candidate;
-};
-
-const openCandidateDetail = (candidate: GovernanceCandidate, rank: number) => {
-  detailCandidate.value = candidate;
-  detailRank.value = rank;
-  showDetailModal.value = true;
-};
-
-const closeCandidateDetail = () => {
-  showDetailModal.value = false;
-  detailCandidate.value = null;
-};
-
-const onVote = () => handleVote(selectedCandidate.value);
-
-const handleVoteFromModal = async (candidate: GovernanceCandidate) => {
-  selectedCandidate.value = candidate;
-  closeCandidateDetail();
-  await handleVote(selectedCandidate.value);
-};
-
-const { handleBoundaryError } = useHandleBoundaryError("candidate-vote");
-
-const resetAndReload = async () => {
-  await Promise.all([loadCandidates(), loadUserVote()]);
-};
-
-onMounted(async () => {
-  await Promise.all([loadCandidates(), loadUserVote()]);
-});
-
-watch(address, () => {
-  loadUserVote();
-});
-watch(preferredChainId, () => {
-  loadCandidates();
-  loadUserVote();
-});
+  isLoading,
+  status,
+  normalizedUserVotedPublicKey,
+  selectedCandidate,
+  showDetailModal,
+  detailCandidate,
+  detailRank,
+  governancePortalUrl,
+  appState,
+  selectCandidate,
+  openCandidateDetail,
+  closeCandidateDetail,
+  onVote,
+  handleVoteFromModal,
+  resetAndReload,
+} = useCandidateVotePage(t);
 </script>
 
 <style lang="scss" scoped>

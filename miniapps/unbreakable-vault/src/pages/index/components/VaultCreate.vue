@@ -17,7 +17,7 @@
         <NeoInput v-model="localDescription" :placeholder="t('descriptionPlaceholder')" type="textarea" />
       </view>
 
-      <SecuritySettings :t="t" :difficulty="localDifficulty" @update:difficulty="localDifficulty = $event" />
+      <SecuritySettings :difficulty="localDifficulty" @update:difficulty="localDifficulty = $event" />
 
       <view class="input-group">
         <text class="input-label">{{ t("secretLabel") }}</text>
@@ -54,10 +54,11 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import SecuritySettings from "./SecuritySettings.vue";
 
 const props = defineProps<{
-  t: (key: string) => string;
   bounty: string;
   title: string;
   description: string;
@@ -68,6 +69,8 @@ const props = defineProps<{
   loading: boolean;
   minBounty: number;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "update:bounty", value: string): void;

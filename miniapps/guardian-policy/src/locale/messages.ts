@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     title: { en: "Guardian Policy", zh: "守护策略" },
     activePolicies: { en: "Active Policies", zh: "活跃保单" },
     createPolicy: { en: "Create Policy", zh: "创建保单" },
@@ -24,16 +26,10 @@ export const messages = {
         zh: "保障 {coverage} GAS · 触发 {threshold}% · 截止 {date}",
     },
     notAvailable: { en: "N/A", zh: "暂无" },
-    receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
-    contractUnavailable: { en: "Contract unavailable", zh: "合约不可用" },
-    error: { en: "Error", zh: "错误" },
-    loading: { en: "Loading...", zh: "加载中..." },
     claimed: { en: "Claimed", zh: "已理赔" },
     expired: { en: "Expired", zh: "已过期" },
     active: { en: "Active", zh: "活跃" },
     main: { en: "Main", zh: "主页" },
-    stats: { en: "Stats", zh: "统计" },
-    statistics: { en: "Statistics", zh: "统计数据" },
     totalPolicies: { en: "Total Policies", zh: "总保单数" },
     activePoliciesCount: { en: "Active Policies", zh: "活跃保单" },
     claimedPolicies: { en: "Claimed Policies", zh: "已理赔保单" },
@@ -43,11 +39,7 @@ export const messages = {
     levelMedium: { en: "Medium", zh: "中" },
     levelHigh: { en: "High", zh: "高" },
     levelCritical: { en: "Critical", zh: "严重" },
-    wrongChain: { en: "Wrong Network", zh: "网络错误" },
-    wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-    switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
 
-    docs: { en: "Docs", zh: "文档" },
     docSubtitle: {
         en: "On-chain insurance for price drops",
         zh: "面向价格下跌的链上保险",
@@ -55,10 +47,6 @@ export const messages = {
     docDescription: {
         en: "Guardian Policy lets you create coverage policies for supported assets. Choose a coverage amount and a price-drop threshold, then request claims when conditions are met.",
         zh: "Guardian Policy 允许您为支持的资产创建保障保单。设置保障金额与价格跌幅阈值，在满足条件时申请理赔。",
-    },
-    step1: {
-        en: "Connect your Neo wallet",
-        zh: "连接你的 Neo 钱包",
     },
     step2: {
         en: "Create a policy with coverage and threshold settings",
@@ -87,16 +75,9 @@ export const messages = {
         en: "Set price-drop triggers per policy.",
         zh: "每份保单可设置价格跌幅触发条件。",
     },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     sidebarPolicies: { en: "Policies", zh: "保单" },
     sidebarActive: { en: "Active", zh: "活跃" },
     sidebarClaimed: { en: "Claimed", zh: "已理赔" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

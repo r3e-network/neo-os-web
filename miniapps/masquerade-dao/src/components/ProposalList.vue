@@ -1,32 +1,35 @@
 <template>
   <NeoCard variant="erobo">
     <text class="section-title">{{ title }}</text>
-    <view v-if="items.length === 0" class="empty-state">
-      <text class="empty-text">{{ emptyText }}</text>
-    </view>
-    <view v-else class="proposal-list">
-      <view
-        v-for="item in items"
-        :key="item.id"
-        :class="['proposal-item', selectedId === item.id && 'active']"
-        @click="$emit('select', item.id)"
-      >
-        <view class="item-header">
-          <text class="item-id">#{{ item.id }}</text>
-          <text :class="['item-status', item.active ? 'active' : 'inactive']">
-            {{ item.active ? t("active") : t("inactive") }}
-          </text>
+    <ItemList :items="items" item-key="id" :empty-text="emptyText">
+      <template #empty>
+        <view class="empty-state">
+          <text class="empty-text">{{ emptyText }}</text>
         </view>
-        <text v-if="item.identityHash" class="item-hash mono">{{ item.identityHash }}</text>
-        <text v-if="item.title" class="item-title">{{ item.title }}</text>
-        <text class="item-time">{{ item.createdAt }}</text>
-      </view>
-    </view>
+      </template>
+      <template #item="{ item }">
+        <view :class="['proposal-item', selectedId === item.id && 'active']" @click="$emit('select', item.id)">
+          <view class="item-header">
+            <text class="item-id">#{{ item.id }}</text>
+            <text :class="['item-status', item.active ? 'active' : 'inactive']">
+              {{ item.active ? t("active") : t("inactive") }}
+            </text>
+          </view>
+          <text v-if="item.identityHash" class="item-hash mono">{{ item.identityHash }}</text>
+          <text v-if="item.title" class="item-title">{{ item.title }}</text>
+          <text class="item-time">{{ item.createdAt }}</text>
+        </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 interface Item {
   id: string;
@@ -41,7 +44,6 @@ interface Props {
   selectedId: string | null;
   title: string;
   emptyText: string;
-  t: Function;
 }
 
 defineProps<Props>();
@@ -52,6 +54,8 @@ defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .section-title {
   font-size: 14px;
   font-weight: 700;

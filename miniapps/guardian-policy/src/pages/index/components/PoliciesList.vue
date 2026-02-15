@@ -1,39 +1,43 @@
 <template>
   <NeoCard class="policies-card" variant="erobo">
-    <view class="policies-grid">
-      <view v-for="policy in policies" :key="policy.id" class="policy-item-glass" :class="[policy.level, { disabled: !policy.active }]">
-        <view class="level-stripe" :class="policy.level"></view>
+    <ItemList :items="policies" item-key="id">
+      <template #item="{ item: policy }">
+        <view class="policy-item-glass" :class="[policy.level, { disabled: !policy.active }]">
+          <view class="level-stripe" :class="policy.level"></view>
 
-        <view class="policy-content">
-          <view class="policy-header">
-            <text class="policy-name">{{ policy.name }}</text>
-            <view class="level-badge" :class="policy.level">{{ getLevelText(policy.level) }}</view>
-            <view class="status-badge" :class="{ active: policy.active, claimed: policy.claimed }">
-              {{ policy.claimed ? t("claimed") : policy.active ? t("active") : t("expired") }}
+          <view class="policy-content">
+            <view class="policy-header">
+              <text class="policy-name">{{ policy.name }}</text>
+              <view class="level-badge" :class="policy.level">{{ getLevelText(policy.level) }}</view>
+              <view class="status-badge" :class="{ active: policy.active, claimed: policy.claimed }">
+                {{ policy.claimed ? t("claimed") : policy.active ? t("active") : t("expired") }}
+              </view>
             </view>
+            <text class="policy-desc">{{ policy.description }}</text>
           </view>
-          <text class="policy-desc">{{ policy.description }}</text>
-        </view>
 
-        <view class="policy-action">
-          <NeoButton
-            v-if="policy.active && !policy.claimed"
-            variant="primary"
-            size="sm"
-            class="claim-btn"
-            @click="$emit('claim', policy.id)"
-          >
-            {{ t("requestClaim") }}
-          </NeoButton>
-          <text v-else class="policy-status">{{ policy.claimed ? t("claimed") : t("expired") }}</text>
+          <view class="policy-action">
+            <NeoButton
+              v-if="policy.active && !policy.claimed"
+              variant="primary"
+              size="sm"
+              class="claim-btn"
+              @click="$emit('claim', policy.id)"
+            >
+              {{ t("requestClaim") }}
+            </NeoButton>
+            <text v-else class="policy-status">{{ policy.claimed ? t("claimed") : t("expired") }}</text>
+          </view>
         </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard, NeoButton, ItemList } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 const LEVELS = ["low", "medium", "high", "critical"] as const;
 export type Level = (typeof LEVELS)[number];
@@ -48,19 +52,20 @@ export interface Policy {
   coverageValue?: number;
 }
 
-const props = defineProps<{
+defineProps<{
   policies: Policy[];
-  t: (key: string) => string;
 }>();
 
 defineEmits(["claim"]);
 
+const { t } = createUseI18n(messages)();
+
 const getLevelText = (level: string) => {
   const levelMap: Record<string, string> = {
-    low: props.t("levelLow"),
-    medium: props.t("levelMedium"),
-    high: props.t("levelHigh"),
-    critical: props.t("levelCritical"),
+    low: t("levelLow"),
+    medium: t("levelMedium"),
+    high: t("levelHigh"),
+    critical: t("levelCritical"),
   };
   return levelMap[level] || level;
 };
@@ -88,28 +93,44 @@ const getLevelText = (level: string) => {
   padding-left: 20px; /* Space for stripe */
   gap: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.06);
     transform: translateX(4px);
   }
-  
+
   &.disabled {
     opacity: 0.6;
     background: rgba(0, 0, 0, 0.2);
-    .level-stripe { background: rgba(255, 255, 255, 0.2); box-shadow: none; }
+    .level-stripe {
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: none;
+    }
   }
 }
 
 .level-stripe {
   position: absolute;
-  left: 0; top: 0; bottom: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 4px;
-  
-  &.low { background: var(--ops-muted); }
-  &.medium { background: var(--ops-success); box-shadow: 0 0 10px rgba(0, 229, 153, 0.3); }
-  &.high { background: var(--ops-warning); box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
-  &.critical { background: var(--ops-danger); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+
+  &.low {
+    background: var(--ops-muted);
+  }
+  &.medium {
+    background: var(--ops-success);
+    box-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
+  }
+  &.high {
+    background: var(--ops-warning);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+  }
+  &.critical {
+    background: var(--ops-danger);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  }
 }
 
 .policy-content {
@@ -138,11 +159,23 @@ const getLevelText = (level: string) => {
   padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: 0.05em;
-  
-  &.low { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
-  &.medium { background: rgba(0, 229, 153, 0.1); color: var(--ops-success); }
-  &.high { background: rgba(245, 158, 11, 0.1); color: var(--ops-warning); }
-  &.critical { background: rgba(239, 68, 68, 0.1); color: var(--ops-danger); }
+
+  &.low {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+  }
+  &.medium {
+    background: rgba(0, 229, 153, 0.1);
+    color: var(--ops-success);
+  }
+  &.high {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--ops-warning);
+  }
+  &.critical {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--ops-danger);
+  }
 }
 
 .policy-desc {

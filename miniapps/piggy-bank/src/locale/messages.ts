@@ -1,4 +1,6 @@
-export default {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   "app.title": { en: "ZK Piggy Bank", zh: "零知识存钱罐" },
   "app.subtitle": { en: "Save with Privacy", zh: "隐私储蓄" },
   "app.create": { en: "New Piggy Bank", zh: "新建存钱罐" },
@@ -107,4 +109,6 @@ export default {
   sidebarTotalBanks: { en: "Total Banks", zh: "总存钱罐" },
   sidebarLocked: { en: "Locked", zh: "锁定中" },
   sidebarUnlocked: { en: "Unlocked", zh: "已解锁" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

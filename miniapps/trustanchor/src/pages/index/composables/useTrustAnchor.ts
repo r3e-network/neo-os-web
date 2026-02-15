@@ -1,7 +1,7 @@
 import { ref, computed } from "vue";
 import type { WalletSDK } from "@neo/types";
 import { useWallet } from "@neo/uniapp-sdk";
-import { handleAsync } from "@shared/utils/errorHandling";
+import { handleAsync, formatErrorMessage } from "@shared/utils/errorHandling";
 
 export interface AgentInfo {
   address: string;
@@ -66,7 +66,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Loading delegation info", onError: (e: Error) => setError(e.message) }
+      { context: "Loading delegation info", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) }
     );
 
     if (result.success && result.data) {
@@ -99,7 +99,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Calculating voting power", onError: (e: Error) => setError(e.message) }
+      { context: "Calculating voting power", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) }
     );
 
     if (result.success && result.data) {
@@ -117,7 +117,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Loading agents", onError: (e: Error) => setError(e.message) }
+      { context: "Loading agents", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) }
     );
 
     if (result.success && result.data) {
@@ -194,7 +194,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
           activeAgentCount: Number(asRecord(activeAgents).data ?? 0),
         };
       },
-      { context: "Loading stats", onError: (e: Error) => setError(e.message) }
+      { context: "Loading stats", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) }
     );
 
     if (result.success && result.data) {
@@ -226,7 +226,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Registering as agent", onError: (e: Error) => setError(e.message) }
+      { context: "Registering as agent", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) }
     );
 
     if (result.success) {
@@ -245,7 +245,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Unregistering as agent", onError: (e: Error) => setError(e.message) }
+      { context: "Unregistering as agent", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) }
     );
 
     if (result.success) {
@@ -264,7 +264,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Delegating votes", onError: (e: Error) => setError(e.message) }
+      { context: "Delegating votes", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) }
     );
 
     if (result.success) {
@@ -284,7 +284,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
         });
         return res;
       },
-      { context: "Revoking delegation", onError: (e: Error) => setError(e.message) }
+      { context: "Revoking delegation", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) }
     );
 
     if (result.success) {

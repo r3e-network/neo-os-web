@@ -1,54 +1,66 @@
 <template>
   <NeoCard variant="erobo-neo" class="candidate-list-card">
-    <view v-if="isLoading" class="loading-state">
-      <text class="loading-text">{{ t("loadingCandidates") }}</text>
-    </view>
-
-    <view v-else-if="candidates.length === 0" class="empty-state">
-      <text class="empty-icon">🗳️</text>
-      <text class="empty-text">{{ t("noCandidates") }}</text>
-    </view>
-
-    <view v-else class="candidate-list">
-      <view
-        v-for="(candidate, index) in sortedCandidates"
-        :key="candidate.publicKey"
-        class="candidate-item"
-        :class="{
-          selected: selectedCandidate?.publicKey === candidate.publicKey,
-          'user-voted': isUserVotedCandidate(candidate),
-        }"
-        @click="selectCandidate(candidate)"
-      >
-        <view class="rank-badge" :class="getRankClass(index)">
-          <text class="rank-number">#{{ index + 1 }}</text>
+    <ItemList
+      :items="sortedCandidates as unknown as Record<string, unknown>[]"
+      item-key="publicKey"
+      :loading="isLoading"
+      :loading-text="t('loadingCandidates')"
+      :empty-text="t('noCandidates')"
+      :aria-label="t('ariaCandidates')"
+    >
+      <template #empty>
+        <view class="empty-state">
+          <text class="empty-icon">🗳️</text>
+          <text class="empty-text">{{ t("noCandidates") }}</text>
         </view>
+      </template>
+      <template #item="{ item, index }">
+        <view
+          class="candidate-item"
+          :class="{
+            selected: selectedCandidate?.publicKey === (item as unknown as GovernanceCandidate).publicKey,
+            'user-voted': isUserVotedCandidate(item as unknown as GovernanceCandidate),
+          }"
+          @click="selectCandidate(item as unknown as GovernanceCandidate)"
+        >
+          <view class="rank-badge" :class="getRankClass(index)">
+            <text class="rank-number">#{{ index + 1 }}</text>
+          </view>
 
-        <view class="candidate-info">
-          <view class="name-row">
-            <text class="candidate-name">{{ candidate.name || truncateAddress(candidate.address) }}</text>
-            <view v-if="isUserVotedCandidate(candidate)" class="your-vote-badge">
-              <text class="your-vote-text">{{ t("yourVote") }}</text>
+          <view class="candidate-info">
+            <view class="name-row">
+              <text class="candidate-name">{{
+                (item as unknown as GovernanceCandidate).name ||
+                truncateAddress((item as unknown as GovernanceCandidate).address)
+              }}</text>
+              <view v-if="isUserVotedCandidate(item as unknown as GovernanceCandidate)" class="your-vote-badge">
+                <text class="your-vote-text">{{ t("yourVote") }}</text>
+              </view>
+            </view>
+            <text class="candidate-address">{{
+              truncateAddress((item as unknown as GovernanceCandidate).publicKey)
+            }}</text>
+          </view>
+
+          <view class="candidate-votes">
+            <text class="votes-value">{{ formatVotes((item as unknown as GovernanceCandidate).votes) }}</text>
+            <text class="votes-label">{{ t("votes") }}</text>
+          </view>
+
+          <view class="action-buttons">
+            <view
+              v-if="selectedCandidate?.publicKey === (item as unknown as GovernanceCandidate).publicKey"
+              class="selected-indicator"
+            >
+              <text class="check-icon">✓</text>
+            </view>
+            <view class="info-btn" @click.stop="viewDetails(item as unknown as GovernanceCandidate, index)">
+              <text class="info-icon">ℹ</text>
             </view>
           </view>
-          <text class="candidate-address">{{ truncateAddress(candidate.publicKey) }}</text>
         </view>
-
-        <view class="candidate-votes">
-          <text class="votes-value">{{ formatVotes(candidate.votes) }}</text>
-          <text class="votes-label">{{ t("votes") }}</text>
-        </view>
-
-        <view class="action-buttons">
-          <view v-if="selectedCandidate?.publicKey === candidate.publicKey" class="selected-indicator">
-            <text class="check-icon">✓</text>
-          </view>
-          <view class="info-btn" @click.stop="viewDetails(candidate, index)">
-            <text class="info-icon">ℹ</text>
-          </view>
-        </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
 
     <view v-if="totalVotes" class="total-votes-footer">
       <text class="total-label">{{ t("totalNetworkVotes") }}:</text>
@@ -59,7 +71,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoCard } from "@shared/components";
+import { NeoCard, ItemList } from "@shared/components";
 import type { GovernanceCandidate } from "../utils";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -80,13 +92,12 @@ const emit = defineEmits<{
 }>();
 
 const sortedCandidates = computed(() => {
-  return [...props.candidates]
-    .sort((a, b) => {
-      const votesA = safeBigInt(a.votes);
-      const votesB = safeBigInt(b.votes);
-      if (votesA === votesB) return 0;
-      return votesB > votesA ? 1 : -1;
-    });
+  return [...props.candidates].sort((a, b) => {
+    const votesA = safeBigInt(a.votes);
+    const votesB = safeBigInt(b.votes);
+    if (votesA === votesB) return 0;
+    return votesB > votesA ? 1 : -1;
+  });
 });
 
 const selectCandidate = (candidate: GovernanceCandidate) => {
@@ -145,6 +156,7 @@ const getRankClass = (index: number) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .candidate-list-card {
   margin-bottom: 24px;
@@ -164,10 +176,9 @@ const getRankClass = (index: number) => {
 
 .loading-text,
 .empty-text {
-  font-weight: 700;
+  @include stat-label;
   opacity: 0.6;
   font-size: 14px;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-secondary, rgba(255, 255, 255, 0.5));
 }
@@ -281,14 +292,12 @@ const getRankClass = (index: number) => {
 }
 
 .candidate-name {
+  @include text-truncate;
   display: block;
   font-weight: 700;
   font-size: 14px;
   color: var(--text-primary);
   margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .candidate-address {
@@ -375,9 +384,8 @@ const getRankClass = (index: number) => {
 }
 
 .total-label {
-  font-size: 11px;
+  @include stat-label;
   font-weight: 600;
-  text-transform: uppercase;
   color: var(--text-secondary, rgba(255, 255, 255, 0.5));
   letter-spacing: 0.05em;
 }

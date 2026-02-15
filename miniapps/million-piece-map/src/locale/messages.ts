@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Million Piece Map", zh: "百万像素地图" },
   subtitle: { en: "Pixel territory conquest", zh: "像素领土征服" },
@@ -27,13 +29,8 @@ title: { en: "Million Piece Map", zh: "百万像素地图" },
   tileAlreadyOwned: { en: "Territory already claimed!", zh: "领土已被占领！" },
   tilePurchased: { en: "Territory claimed successfully!", zh: "领土占领成功！" },
   connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
-  contractUnavailable: { en: "Contract unavailable", zh: "合约不可用" },
-  receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
   claimPending: { en: "Claim pending", zh: "占领确认中" },
-  error: { en: "Error", zh: "错误" },
   map: { en: "Map", zh: "地图" },
-  stats: { en: "Stats", zh: "统计" },
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Claim and own pixels on a blockchain-powered territory map",
     zh: "在区块链驱动的领土地图上占领和拥有像素",
@@ -66,16 +63,7 @@ title: { en: "Million Piece Map", zh: "百万像素地图" },
     en: "This app requires Neo N3. Please switch networks.",
     zh: "此应用需要 Neo N3 网络，请切换网络。",
   },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  loading: { en: "Loading...", zh: "加载中..." },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     sidebarTilePrice: { en: "Tile Price", zh: "地块价格" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -24,3 +24,5 @@ export { useAppInit } from "./useAppInit";
 export { useHandleBoundaryError } from "./useHandleBoundaryError";
 export { useTicker } from "./useTicker";
 export type { UseTickerOptions } from "./useTicker";
+export { useContractInteraction } from "./useContractInteraction";
+export type { ContractInteractionOptions } from "./useContractInteraction";

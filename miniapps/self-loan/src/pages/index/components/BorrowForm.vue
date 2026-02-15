@@ -36,8 +36,8 @@
         <view class="ltv-fill-glass" :class="getLTVColorClass()" :style="{ width: calculatedLTV + '%' }">
           <view class="ltv-glimmer"></view>
         </view>
-        <view class="ltv-marker" style="left: 50%"></view>
-        <view class="ltv-marker" style="left: 66.7%"></view>
+        <view class="ltv-marker ltv-marker--half"></view>
+        <view class="ltv-marker ltv-marker--two-thirds"></view>
       </view>
       <view class="ltv-labels">
         <text class="ltv-min">0%</text>
@@ -277,6 +277,13 @@ const getLTVColorClass = () => {
   width: 1px;
   background: rgba(255, 255, 255, 0.2);
   z-index: 1;
+
+  &--half {
+    left: 50%;
+  }
+  &--two-thirds {
+    left: 66.7%;
+  }
 }
 
 .ltv-labels {

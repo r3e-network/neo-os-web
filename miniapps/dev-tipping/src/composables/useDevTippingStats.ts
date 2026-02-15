@@ -1,9 +1,10 @@
 import { ref } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { useContractAddress } from "@shared/composables/useContractAddress";
-import { parseGas, formatNumber } from "@shared/utils/format";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { useEvents } from "@neo/uniapp-sdk";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+import { parseGas, formatNum } from "@shared/utils/format";
+import { parseStackItem } from "@shared/utils/neo";
 
 export interface Developer {
   id: number;
@@ -24,34 +25,24 @@ export interface RecentTip {
 }
 
 export function useDevTippingStats() {
-  const { invokeRead } = useWallet() as WalletSDK;
+  const { t } = createUseI18n(messages)();
+  const { read, ensureContractAddress } = useContractInteraction({ appId: "miniapp-dev-tipping", t });
   const { list: listEvents } = useEvents();
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? "Contract unavailable" : key,
-  );
 
   const developers = ref<Developer[]>([]);
   const recentTips = ref<RecentTip[]>([]);
   const totalDonated = ref(0);
   const isLoading = ref(false);
 
-  const formatNum = (n: number) => formatNumber(n, 2);
-
   const toNumber = (value: unknown) => {
     const num = Number(value ?? 0);
     return Number.isFinite(num) ? num : 0;
   };
 
-  const loadDevelopers = async (t: Function) => {
+  const loadDevelopers = async () => {
     isLoading.value = true;
     try {
-      const contract = await ensureContractAddress();
-      const totalRes = await invokeRead({
-        scriptHash: contract,
-        operation: "totalDevelopers",
-        args: [],
-      });
-      const total = toNumber(parseInvokeResult(totalRes));
+      const total = toNumber(await read("totalDevelopers"));
 
       if (!total) {
         developers.value = [];
@@ -62,12 +53,7 @@ export function useDevTippingStats() {
       const ids = Array.from({ length: total }, (_, i) => i + 1);
       const devs = await Promise.all(
         ids.map(async (id) => {
-          const detailsRes = await invokeRead({
-            scriptHash: contract,
-            operation: "getDeveloperDetails",
-            args: [{ type: "Integer", value: id }],
-          });
-          const parsed = parseInvokeResult(detailsRes);
+          const parsed = await read("getDeveloperDetails", [{ type: "Integer", value: id }]);
           const details =
             parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
           const name = String(details.name || "").trim();
@@ -92,12 +78,7 @@ export function useDevTippingStats() {
         })
       );
 
-      const donatedRes = await invokeRead({
-        scriptHash: contract,
-        operation: "totalDonated",
-        args: [],
-      });
-      totalDonated.value = parseGas(parseInvokeResult(donatedRes));
+      totalDonated.value = parseGas(await read("totalDonated"));
 
       const validDevs = devs.filter((d): d is Developer => d !== null);
       validDevs.sort((a, b) => b.totalTips - a.totalTips);
@@ -112,7 +93,7 @@ export function useDevTippingStats() {
     }
   };
 
-  const loadRecentTips = async (APP_ID: string, t: Function) => {
+  const loadRecentTips = async (APP_ID: string) => {
     try {
       const res = await listEvents({ app_id: APP_ID, event_name: "TipSent", limit: 20 });
       const devMap = new Map(developers.value.map((dev) => [dev.id, dev.name]));

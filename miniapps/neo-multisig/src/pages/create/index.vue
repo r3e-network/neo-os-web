@@ -1,7 +1,15 @@
 <template>
   <view class="page-container">
     <view class="nav-header">
-      <text class="back-btn" role="button" :aria-label="t('buttonBack') || 'Go back'" tabindex="0" @click="goBack" @keydown.enter="goBack">←</text>
+      <text
+        class="back-btn"
+        role="button"
+        :aria-label="t('buttonBack') || 'Go back'"
+        tabindex="0"
+        @click="goBack"
+        @keydown.enter="goBack"
+        >←</text
+      >
       <view class="nav-text">
         <text class="title">{{ t("createTitle") }}</text>
         <text class="subtitle">{{ t("appSubtitle") }}</text>
@@ -16,7 +24,6 @@
         :signers="form.signers"
         :is-valid="isValidSigners"
         :next-label="t('buttonNext')"
-        :t="t"
         @add-signer="addSigner"
         @remove-signer="removeSigner"
         @update-signer="updateSigner"
@@ -83,8 +90,26 @@
         <view class="form-group">
           <text class="label">{{ t("assetLabel") }}</text>
           <view class="asset-toggle" role="radiogroup" :aria-label="t('assetLabel')">
-            <text :class="{ active: form.asset === 'GAS' }" role="radio" :aria-checked="form.asset === 'GAS'" :aria-label="t('assetGas')" tabindex="0" @click="form.asset = 'GAS'" @keydown.enter="form.asset = 'GAS'">{{ t("assetGas") }}</text>
-            <text :class="{ active: form.asset === 'NEO' }" role="radio" :aria-checked="form.asset === 'NEO'" :aria-label="t('assetNeo')" tabindex="0" @click="form.asset = 'NEO'" @keydown.enter="form.asset = 'NEO'">{{ t("assetNeo") }}</text>
+            <text
+              :class="{ active: form.asset === 'GAS' }"
+              role="radio"
+              :aria-checked="form.asset === 'GAS'"
+              :aria-label="t('assetGas')"
+              tabindex="0"
+              @click="form.asset = 'GAS'"
+              @keydown.enter="form.asset = 'GAS'"
+              >{{ t("assetGas") }}</text
+            >
+            <text
+              :class="{ active: form.asset === 'NEO' }"
+              role="radio"
+              :aria-checked="form.asset === 'NEO'"
+              :aria-label="t('assetNeo')"
+              tabindex="0"
+              @click="form.asset = 'NEO'"
+              @keydown.enter="form.asset = 'NEO'"
+              >{{ t("assetNeo") }}</text
+            >
           </view>
         </view>
 

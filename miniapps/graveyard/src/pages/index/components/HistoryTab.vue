@@ -22,12 +22,12 @@
           <view class="history-icon-container">
             <text class="history-icon">{{ getDestructionIcon(index) }}</text>
           </view>
-          
+
           <view class="history-info">
             <text class="history-hash">{{ item.hash.slice(0, 10) }}...{{ item.hash.slice(-6) }}</text>
             <text class="history-time">{{ item.time }}</text>
           </view>
-          
+
           <view :class="['history-badge', { forgotten: item.forgotten }]">
             <text class="badge-text">{{ item.forgotten ? t("forgotten") : t("destroyed") }}</text>
           </view>
@@ -49,13 +49,16 @@
 
 <script setup lang="ts">
 import { NeoButton, NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { HistoryItem } from "@/types";
 
 defineProps<{
   history: HistoryItem[];
   forgettingId: string | null;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["forget"]);
 
@@ -68,6 +71,7 @@ const getDestructionIcon = (index: number) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .tab-content {
   padding: $spacing-4;
@@ -80,19 +84,14 @@ const getDestructionIcon = (index: number) => {
 }
 
 .history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include section-header;
   margin-bottom: $spacing-2;
   padding: 0 $spacing-1;
 }
 
 .history-label {
+  @include stat-label;
   font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 0.1em;
 }
 
 .history-count {
@@ -189,7 +188,7 @@ const getDestructionIcon = (index: number) => {
 }
 
 .empty-state {
-  text-align: center;
+  @include empty-state;
   padding: 40px 20px;
   background: var(--grave-panel-soft);
   border-radius: 12px;
@@ -212,7 +211,13 @@ const getDestructionIcon = (index: number) => {
 }
 
 @keyframes slide-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

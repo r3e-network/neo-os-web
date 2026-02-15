@@ -21,15 +21,18 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoCard, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
   pendingRewardsValue: number;
   hasClaimed: boolean;
   isLoading: boolean;
-  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["claim"]);
+
+const { t } = createUseI18n(messages)();
 
 const formatToken = (value: number, decimals = 4) => {
   if (!Number.isFinite(value)) return "0";
@@ -43,6 +46,7 @@ const formattedPendingRewards = computed(() => `${formatToken(props.pendingRewar
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .rewards-row {
   display: flex;
@@ -57,11 +61,7 @@ const formattedPendingRewards = computed(() => `${formatToken(props.pendingRewar
 }
 
 .reward-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
-  letter-spacing: 0.1em;
+  @include stat-label;
   margin-bottom: 4px;
 }
 

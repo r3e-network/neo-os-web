@@ -10,7 +10,6 @@
     <!-- Main Swap Card -->
     <view class="swap-card">
       <SwapForm
-        :t="t"
         :token="fromToken"
         v-model="fromAmount"
         :label="t('from')"
@@ -22,13 +21,19 @@
 
       <!-- Swap Direction Button -->
       <view class="swap-direction">
-        <view :class="['swap-btn', { rotating: isSwapping }]" role="button" :aria-label="t('tabSwap')" tabindex="0" @click="swapTokens" @keydown.enter="swapTokens">
+        <view
+          :class="['swap-btn', { rotating: isSwapping }]"
+          role="button"
+          :aria-label="t('tabSwap')"
+          tabindex="0"
+          @click="swapTokens"
+          @keydown.enter="swapTokens"
+        >
           <text class="swap-icon" aria-hidden="true">&#x2193;&#x2191;</text>
         </view>
       </view>
 
       <SwapForm
-        :t="t"
         :token="toToken"
         v-model="toAmount"
         :label="t('to')"
@@ -40,18 +45,25 @@
 
     <!-- Rate Info Card -->
     <PriceChart
-      :t="t"
       :exchange-rate="exchangeRate"
       :from-symbol="fromToken.symbol"
       :to-symbol="toToken.symbol"
       :slippage="slippage"
       :min-received="minReceived"
       :loading="rateLoading"
-      @refresh="fetchExchangeRate"
+      @refresh="loadExchangeRate"
     />
 
     <!-- Swap Action Button -->
-    <view :class="['action-btn', { disabled: !canSwap || loading, loading: loading }]" role="button" :aria-label="swapButtonText" :aria-disabled="!canSwap || loading" tabindex="0" @click="executeSwap" @keydown.enter="executeSwap">
+    <view
+      :class="['action-btn', { disabled: !canSwap || loading, loading: loading }]"
+      role="button"
+      :aria-label="swapButtonText"
+      :aria-disabled="!canSwap || loading"
+      tabindex="0"
+      @click="executeSwap"
+      @keydown.enter="executeSwap"
+    >
       <view v-if="loading" class="btn-loader" aria-hidden="true"></view>
       <text class="btn-text">{{ swapButtonText }}</text>
     </view>
@@ -63,7 +75,6 @@
 
     <!-- Token Selector Modal -->
     <TransactionHistory
-      :t="t"
       :show="showSelector"
       :tokens="availableTokens"
       :current-symbol="selectorTarget === 'from' ? fromToken.symbol : toToken.symbol"
@@ -75,16 +86,16 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import SwapForm from "./SwapForm.vue";
 import PriceChart from "./PriceChart.vue";
 import TransactionHistory from "./TransactionHistory.vue";
 import { useSwapEngine } from "@/composables/useSwapEngine";
 
-const props = defineProps<{
-  t: (key: string) => string;
-}>();
+const { t } = createUseI18n(messages)();
 
-const tRef = computed(() => props.t);
+const tRef = computed(() => t);
 
 const {
   fromToken,
@@ -104,7 +115,7 @@ const {
   slippage,
   minReceived,
   setMaxAmount,
-  fetchExchangeRate,
+  loadExchangeRate,
   swapTokens,
   openFromSelector,
   openToSelector,

@@ -4,16 +4,22 @@
       <view class="price-body">
         <text class="price-val">${{ prices.neo.usd.toFixed(2) }}</text>
         <view :class="['change-badge', prices.neo.usd_24h_change >= 0 ? 'up' : 'down']">
-          <text>{{ prices.neo.usd_24h_change >= 0 ? '▲' : '▼' }} {{ Math.abs(prices.neo.usd_24h_change).toFixed(2) }}%</text>
+          <text
+            >{{ prices.neo.usd_24h_change >= 0 ? "▲" : "▼" }}
+            {{ Math.abs(prices.neo.usd_24h_change).toFixed(2) }}%</text
+          >
         </view>
       </view>
     </NeoCard>
-    
+
     <NeoCard title="GAS" class="price-card" variant="erobo-bitcoin">
       <view class="price-body">
         <text class="price-val">${{ prices.gas.usd.toFixed(2) }}</text>
         <view :class="['change-badge', prices.gas.usd_24h_change >= 0 ? 'up' : 'down']">
-          <text>{{ prices.gas.usd_24h_change >= 0 ? '▲' : '▼' }} {{ Math.abs(prices.gas.usd_24h_change).toFixed(2) }}%</text>
+          <text
+            >{{ prices.gas.usd_24h_change >= 0 ? "▲" : "▼" }}
+            {{ Math.abs(prices.gas.usd_24h_change).toFixed(2) }}%</text
+          >
         </view>
       </view>
     </NeoCard>
@@ -41,11 +47,10 @@ defineProps<{
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .price-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  @include grid-layout(2, 16px);
   margin-bottom: 24px;
 }
 
@@ -82,14 +87,14 @@ defineProps<{
   gap: 4px;
   backdrop-filter: blur(4px);
   letter-spacing: 0.05em;
-  
+
   &.up {
     background: rgba(0, 229, 153, 0.1);
     color: var(--treasury-positive);
     border: 1px solid rgba(0, 229, 153, 0.2);
     box-shadow: 0 0 10px rgba(0, 229, 153, 0.1);
   }
-  
+
   &.down {
     background: rgba(239, 68, 68, 0.1);
     color: var(--treasury-negative);

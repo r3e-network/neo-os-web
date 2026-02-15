@@ -1,12 +1,26 @@
 import { ref } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { parseInvokeResult } from "@shared/utils/neo";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
-const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
+const APP_ID = "miniapp-redenvelope";
 
-export function useNeoEligibility() {
-  const { address, invokeRead } = useWallet() as WalletSDK;
+export interface UseNeoEligibilityReturn {
+  isEligible: ReturnType<typeof ref<boolean>>;
+  neoBalance: ReturnType<typeof ref<number>>;
+  holdingDays: ReturnType<typeof ref<number>>;
+  reason: ReturnType<typeof ref<string>>;
+  checking: ReturnType<typeof ref<boolean>>;
+  checkEligibility: (contractHash: string, envelopeId: string) => Promise<boolean>;
+  checkNeoBalance: () => Promise<number>;
+}
+
+export function useNeoEligibility(): UseNeoEligibilityReturn {
+  const { address, read } = useContractInteraction({
+    appId: APP_ID,
+    t: (key: string) => key,
+  });
 
   const isEligible = ref(false);
   const neoBalance = ref(0);
@@ -27,16 +41,15 @@ export function useNeoEligibility() {
 
     checking.value = true;
     try {
-      const res = await invokeRead({
-        scriptHash: contractHash,
-        operation: "checkEligibility",
-        args: [
+      const data = (await read(
+        "checkEligibility",
+        [
           { type: "Integer", value: envelopeId },
           { type: "Hash160", value: address.value },
         ],
-      });
+        contractHash
+      )) as Record<string, unknown> | null;
 
-      const data = parseInvokeResult(res) as Record<string, unknown> | null;
       if (!data) {
         isEligible.value = false;
         reason.value = "failed to check";
@@ -51,7 +64,7 @@ export function useNeoEligibility() {
       return isEligible.value;
     } catch (e: unknown) {
       isEligible.value = false;
-      reason.value = "check failed";
+      reason.value = formatErrorMessage(e, "check failed");
       return false;
     } finally {
       checking.value = false;
@@ -64,12 +77,7 @@ export function useNeoEligibility() {
   const checkNeoBalance = async () => {
     if (!address.value) return 0;
     try {
-      const res = await invokeRead({
-        scriptHash: NEO_HASH,
-        operation: "balanceOf",
-        args: [{ type: "Hash160", value: address.value }],
-      });
-      const balance = Number(parseInvokeResult(res) ?? 0);
+      const balance = Number((await read("balanceOf", [{ type: "Hash160", value: address.value }], NEO_HASH)) ?? 0);
       neoBalance.value = balance;
       return balance;
     } catch (e: unknown) {

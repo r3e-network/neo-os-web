@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Graveyard", zh: "数字墓地" },
   subtitle: { en: "Encrypted memory burial on-chain", zh: "加密记忆的链上埋葬" },
@@ -19,7 +21,6 @@ title: { en: "Graveyard", zh: "数字墓地" },
   enterAssetHash: { en: "Please enter content hash", zh: "请输入内容哈希" },
   memoryBuried: { en: "Memory has been buried on-chain", zh: "记忆已在链上埋葬" },
   destroy: { en: "Bury", zh: "埋葬" },
-  history: { en: "History", zh: "历史" },
   records: { en: "records", zh: "条记录" },
   destroyed: { en: "BURIED", zh: "已埋葬" },
   forgotten: { en: "FORGOTTEN", zh: "已遗忘" },
@@ -32,14 +33,8 @@ title: { en: "Graveyard", zh: "数字墓地" },
   forgetConfirmText: { en: "This will erase the hash and destroy keys. Continue?", zh: "这会清除哈希并销毁密钥，是否继续？" },
   forgetAction: { en: "Forget", zh: "遗忘" },
   forgetSuccess: { en: "Memory forgotten successfully", zh: "记忆已成功遗忘" },
-  cancel: { en: "Cancel", zh: "取消" },
   connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
-  contractUnavailable: { en: "Contract unavailable", zh: "合约不可用" },
-  receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
   buryPending: { en: "Burial confirmation pending", zh: "埋葬确认中" },
-  error: { en: "Error", zh: "错误" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: { en: "On-chain burial and right-to-forget flow", zh: "链上埋葬与遗忘流程" },
   docDescription: {
     en: "Graveyard anchors encrypted content hashes on-chain and supports paid forgetting. Bury a memory with a small fee, then optionally forget it with an additional fee and TEE key destruction.",
@@ -61,17 +56,7 @@ title: { en: "Graveyard", zh: "数字墓地" },
   memoryTypeWish: { en: "Wish", zh: "愿望" },
   memoryTypeConfession: { en: "Confession", zh: "告白" },
   memoryTypeOther: { en: "Other", zh: "其他" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
     totalDestroyed: { en: "Total Buried", zh: "总埋葬数" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

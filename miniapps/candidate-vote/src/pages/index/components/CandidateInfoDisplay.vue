@@ -11,12 +11,7 @@
     </view>
 
     <view v-if="candidate.logo" class="logo-wrap">
-      <image
-        class="candidate-logo"
-        :src="candidate.logo"
-        mode="widthFix"
-        :alt="candidate.name || t('candidateLogo')"
-      />
+      <image class="candidate-logo" :src="candidate.logo" mode="widthFix" :alt="candidate.name || t('candidateLogo')" />
     </view>
 
     <!-- Candidate Name -->
@@ -52,22 +47,64 @@
     <view v-if="hasLinks" class="info-section">
       <text class="info-label">{{ t("links") }}</text>
       <view class="link-grid">
-        <text v-if="candidate.website" class="link-item" role="link" tabindex="0" :aria-label="t('website')" @click="$emit('open-external', candidate.website)">
+        <text
+          v-if="candidate.website"
+          class="link-item"
+          role="link"
+          tabindex="0"
+          :aria-label="t('website')"
+          @click="$emit('open-external', candidate.website)"
+        >
           {{ t("website") }}
         </text>
-        <text v-if="candidate.twitter" class="link-item" role="link" tabindex="0" :aria-label="t('twitter')" @click="$emit('open-external', candidate.twitter)">
+        <text
+          v-if="candidate.twitter"
+          class="link-item"
+          role="link"
+          tabindex="0"
+          :aria-label="t('twitter')"
+          @click="$emit('open-external', candidate.twitter)"
+        >
           {{ t("twitter") }}
         </text>
-        <text v-if="candidate.github" class="link-item" role="link" tabindex="0" :aria-label="t('github')" @click="$emit('open-external', candidate.github)">
+        <text
+          v-if="candidate.github"
+          class="link-item"
+          role="link"
+          tabindex="0"
+          :aria-label="t('github')"
+          @click="$emit('open-external', candidate.github)"
+        >
           {{ t("github") }}
         </text>
-        <text v-if="candidate.telegram" class="link-item" role="link" tabindex="0" :aria-label="t('telegram')" @click="$emit('open-external', candidate.telegram)">
+        <text
+          v-if="candidate.telegram"
+          class="link-item"
+          role="link"
+          tabindex="0"
+          :aria-label="t('telegram')"
+          @click="$emit('open-external', candidate.telegram)"
+        >
           {{ t("telegram") }}
         </text>
-        <text v-if="candidate.discord" class="link-item" role="link" tabindex="0" :aria-label="t('discord')" @click="$emit('open-external', candidate.discord)">
+        <text
+          v-if="candidate.discord"
+          class="link-item"
+          role="link"
+          tabindex="0"
+          :aria-label="t('discord')"
+          @click="$emit('open-external', candidate.discord)"
+        >
           {{ t("discord") }}
         </text>
-        <text v-if="candidate.email" class="link-item" role="link" tabindex="0" :aria-label="t('email')" @click="$emit('open-external', `mailto:${candidate.email}`)">
+        <text
+          v-if="candidate.email"
+          class="link-item"
+          role="link"
+          tabindex="0"
+          :aria-label="t('email')"
+          @click="$emit('open-external', `mailto:${candidate.email}`)"
+        >
           {{ t("email") }}
         </text>
       </view>
@@ -170,6 +207,7 @@ const getRankClass = (rank: number) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .logo-wrap {
   display: flex;
@@ -255,11 +293,9 @@ const getRankClass = (rank: number) => {
 }
 
 .info-label {
+  @include stat-label;
   display: block;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   color: var(--text-secondary);
   margin-bottom: 6px;
 }

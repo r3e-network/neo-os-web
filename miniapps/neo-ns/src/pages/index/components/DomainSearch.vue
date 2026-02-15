@@ -45,14 +45,17 @@
 import { ref, watch } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { formatAddress } from "@shared/utils/format";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { SearchResult } from "@/types";
 
 const props = defineProps<{
-  t: (key: string) => string;
   searchQuery: string;
   searchResult: SearchResult | null;
   loading: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "update:searchQuery", value: string): void;
@@ -79,6 +82,8 @@ const onSearch = () => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .result-card {
   margin-top: 24px;
   background: var(--dir-card-bg);
@@ -165,9 +170,7 @@ const onSearch = () => {
 }
 
 .price-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
+  @include stat-label;
   display: block;
   margin-bottom: 8px;
   color: var(--dir-card-text);

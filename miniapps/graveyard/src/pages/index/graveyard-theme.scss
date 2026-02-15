@@ -1,6 +1,7 @@
+@use "@shared/styles/mixins.scss" as *;
 @import url("https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap");
 
-:global(.theme-graveyard) {
+@include theme-dark("graveyard") {
   --grave-bg: #000000;
   --grave-accent: #33ff00;
   --grave-danger: #ff003c;
@@ -20,7 +21,6 @@
   --grave-accent-soft: rgba(51, 255, 0, 0.1);
   --grave-accent-glow: rgba(51, 255, 0, 0.3);
   --grave-danger-glow: rgba(255, 0, 60, 0.5);
-  --grave-danger-soft: rgba(239, 68, 68, 0.4);
   --grave-danger-border: rgba(239, 68, 68, 0.3);
   --grave-danger-soft-weak: rgba(239, 68, 68, 0.15);
   --grave-danger-soft-strong: rgba(239, 68, 68, 0.5);
@@ -43,8 +43,7 @@
   --border-color: var(--grave-card-border);
 }
 
-:global(.theme-light .theme-graveyard),
-:global([data-theme="light"] .theme-graveyard) {
+@include theme-light("graveyard") {
   --grave-bg: #f8fafc;
   --grave-accent: #0f766e;
   --grave-danger: #b91c1c;
@@ -64,7 +63,6 @@
   --grave-accent-soft: rgba(15, 118, 110, 0.12);
   --grave-accent-glow: rgba(15, 118, 110, 0.25);
   --grave-danger-glow: rgba(185, 28, 28, 0.35);
-  --grave-danger-soft: rgba(239, 68, 68, 0.25);
   --grave-danger-border: rgba(185, 28, 28, 0.35);
   --grave-danger-soft-weak: rgba(239, 68, 68, 0.12);
   --grave-danger-soft-strong: rgba(185, 28, 28, 0.35);

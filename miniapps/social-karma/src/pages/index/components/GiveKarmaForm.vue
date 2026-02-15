@@ -1,71 +1,57 @@
 <template>
-  <view class="give-karma-section">
-    <view class="content-card">
-      <text class="card-title">{{ t("giveKarma") }}</text>
-      <text class="card-subtitle">{{ t("appreciateSomeone") }}</text>
-      
-      <view class="form-group">
-        <label>{{ t("recipientAddress") }}</label>
-        <input 
-          v-model="localAddress" 
-          class="form-input" 
-          :placeholder="t('enterAddress')"
-        />
-      </view>
-      
-      <view class="form-row">
-        <view class="form-group half">
-          <label>{{ t("amount") }}</label>
-          <input
-            v-model.number="localAmount"
-            type="number"
-            class="form-input"
-            :placeholder="t('amount')"
-            min="1"
-            max="100"
-          />
-        </view>
-        <view class="form-group half">
-          <label>&nbsp;</label>
-          <view class="amount-presets">
-            <button 
-              v-for="amt in [10, 25, 50, 100]" 
-              :key="amt"
-              class="preset-btn"
-              :class="{ active: localAmount === amt }"
-              @click="localAmount = amt"
-            >
-              {{ amt }}
-            </button>
-          </view>
-        </view>
-      </view>
-      
-      <view class="form-group">
-        <label>{{ t("reason") }} ({{ t("optional") }})</label>
-        <textarea 
-          v-model="localReason" 
-          class="form-textarea" 
-          :placeholder="t('enterReason')"
-          maxlength="200"
-        />
-      </view>
-      
-      <button 
-        class="action-button primary"
-        :disabled="isGiving || !isValid"
-        @click="emitGive"
-      >
-        <text v-if="isGiving">{{ t("sending") }}...</text>
-        <text v-else>{{ t("giveKarmaBtn") }} (0.1 GAS)</text>
-      </button>
+  <FormCard
+    :title="t('giveKarma')"
+    :description="t('appreciateSomeone')"
+    :submit-label="isGiving ? t('sending') + '...' : t('giveKarmaBtn') + ' (0.1 GAS)'"
+    :submit-loading="isGiving"
+    :submit-disabled="isGiving || !isValid"
+    @submit="emitGive"
+  >
+    <view class="form-group">
+      <label>{{ t("recipientAddress") }}</label>
+      <input v-model="form.address" class="form-input" :placeholder="t('enterAddress')" />
     </view>
-  </view>
+
+    <view class="form-row">
+      <view class="form-group half">
+        <label>{{ t("amount") }}</label>
+        <input
+          v-model.number="form.amount"
+          type="number"
+          class="form-input"
+          :placeholder="t('amount')"
+          min="1"
+          max="100"
+        />
+      </view>
+      <view class="form-group half">
+        <label>&nbsp;</label>
+        <view class="amount-presets">
+          <button
+            v-for="amt in [10, 25, 50, 100]"
+            :key="amt"
+            class="preset-btn"
+            :class="{ active: form.amount === amt }"
+            @click="form.amount = amt"
+          >
+            {{ amt }}
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <view class="form-group">
+      <label>{{ t("reason") }} ({{ t("optional") }})</label>
+      <textarea v-model="form.reason" class="form-textarea" :placeholder="t('enterReason')" maxlength="200" />
+    </view>
+  </FormCard>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { watchEffect } from "vue";
+import { FormCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useFormState } from "@shared/composables";
 import { messages } from "@/locale/messages";
 
 const props = defineProps<{
@@ -77,33 +63,40 @@ const emit = defineEmits<{
 }>();
 
 const { t } = createUseI18n(messages)();
-const localAddress = ref("");
-const localAmount = ref(10);
-const localReason = ref("");
 
-const isValid = computed(() => {
-  return localAddress.value.trim().length > 0 && localAmount.value >= 1 && localAmount.value <= 100;
+const {
+  values: form,
+  isValid,
+  validate,
+  reset,
+} = useFormState({ address: "", amount: 10, reason: "" }, (v) => {
+  const errors: Record<string, string> = {};
+  if (v.address.trim().length === 0) errors.address = "required";
+  if (v.amount < 1 || v.amount > 100) errors.amount = "invalid";
+  return Object.keys(errors).length ? errors : null;
+});
+
+// Keep validation reactive as user types
+watchEffect(() => {
+  void form.address;
+  void form.amount;
+  validate();
 });
 
 const emitGive = () => {
   if (!isValid.value) return;
   emit("give", {
-    address: localAddress.value,
-    amount: localAmount.value,
-    reason: localReason.value,
+    address: form.address,
+    amount: form.amount,
+    reason: form.reason,
   });
 };
 
-defineExpose({
-  reset: () => {
-    localAddress.value = "";
-    localAmount.value = 10;
-    localReason.value = "";
-  },
-});
+defineExpose({ reset });
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
 .give-karma-section {
   display: flex;
   flex-direction: column;
@@ -135,14 +128,14 @@ defineExpose({
 
 .form-group {
   margin-bottom: 16px;
-  
+
   label {
     font-size: 13px;
     color: var(--karma-text-secondary);
     margin-bottom: 6px;
     display: block;
   }
-  
+
   &.half {
     flex: 1;
   }
@@ -163,13 +156,13 @@ defineExpose({
   color: var(--karma-text);
   font-size: 15px;
   transition: all 0.2s;
-  
+
   &:focus {
     outline: none;
     border-color: var(--karma-primary);
     background: rgba(255, 255, 255, 0.08);
   }
-  
+
   &::placeholder {
     color: var(--karma-text-muted);
   }
@@ -196,11 +189,11 @@ defineExpose({
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.1);
   }
-  
+
   &.active {
     background: var(--karma-primary);
     border-color: var(--karma-primary);
@@ -217,17 +210,17 @@ defineExpose({
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &.primary {
     background: linear-gradient(135deg, var(--karma-primary), var(--karma-secondary));
     color: white;
-    
+
     &:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
     }
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;

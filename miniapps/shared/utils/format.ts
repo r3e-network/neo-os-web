@@ -17,10 +17,7 @@ export function formatNumber(value: number | string, decimals = 2): string {
  * Format GAS amount from raw units (1 GAS = 100000000 = 1e8)
  * Handles bigint, number, or string input
  */
-export function formatGas(
-  amount: bigint | number | string,
-  decimals = 4,
-): string {
+export function formatGas(amount: bigint | number | string, decimals = 4): string {
   const value = typeof amount === "bigint" ? amount : BigInt(amount || 0);
   const divisor = BigInt(100000000);
   const whole = value / divisor;
@@ -40,10 +37,7 @@ export function formatGas(
  * Format a Fixed8 value (8 decimal places) for display
  * Convenience wrapper for formatGas
  */
-export function formatFixed8(
-  value: bigint | number | string,
-  decimals = 4,
-): string {
+export function formatFixed8(value: bigint | number | string, decimals = 4): string {
   return formatGas(value, decimals);
 }
 
@@ -67,10 +61,7 @@ export function fromFixed8(value: bigint | number | string | unknown): number {
  * Convert human-readable value to fixed decimal integer string.
  * Uses string parsing to avoid floating point rounding.
  */
-export function toFixedDecimals(
-  value: string | number,
-  decimals: number,
-): string {
+export function toFixedDecimals(value: string | number, decimals: number): string {
   if (!Number.isFinite(decimals) || decimals < 0) return "0";
   const raw = typeof value === "number" ? String(value) : String(value);
   const trimmed = raw.trim();
@@ -179,4 +170,25 @@ export function formatCompactNumber(value: number): string {
   if (absValue >= 1_000_000) return format(value / 1_000_000, "M");
   if (absValue >= 1_000) return format(value / 1_000, "K");
   return trimTrailingZero(value.toFixed(0));
+}
+
+/**
+ * Shorthand number formatter used across miniapp UIs.
+ * Equivalent to `formatNumber(value, decimals)` — extracted because
+ * most miniapps define a local `const formatNum = (n) => formatNumber(n, 2)`.
+ */
+export function formatNum(value: number | string, decimals = 2): string {
+  return formatNumber(value, decimals);
+}
+
+/**
+ * Format a number as currency with symbol.
+ * Defaults to GAS display convention used across the platform.
+ *
+ * @example
+ * formatCurrency(1.5)        // "1.50 GAS"
+ * formatCurrency(1000, "NEO", 0) // "1,000 NEO"
+ */
+export function formatCurrency(value: number | string, symbol = "GAS", decimals = 2): string {
+  return `${formatNumber(value, decimals)} ${symbol}`;
 }

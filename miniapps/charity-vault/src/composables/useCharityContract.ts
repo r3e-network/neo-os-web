@@ -1,20 +1,22 @@
 import { ref, computed } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { parseInvokeResult } from "@shared/utils/neo";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { useContractAddress } from "@shared/composables/useContractAddress";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { waitForEventByTransaction } from "@shared/utils/transaction";
 import type { CharityCampaign, Donation } from "@/types";
 
 const APP_ID = "miniapp-charity-vault";
 
+/** Manages charity campaign creation, donations, and withdrawal operations. */
 export function useCharityContract(t: (key: string) => string) {
-  const { address, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
-  const { processPayment, waitForEvent } = usePaymentFlow(APP_ID);
-  const { contractAddress, ensureSafe: ensureContractAddress } = useContractAddress(t);
+  const {
+    address,
+    read,
+    invoke,
+    ensureSafe: ensureContractAddress,
+    contractAddress,
+    isProcessing,
+  } = useContractInteraction({ appId: APP_ID, t });
 
   // State
   const selectedCampaign = ref<CharityCampaign | null>(null);
@@ -39,9 +41,7 @@ export function useCharityContract(t: (key: string) => string) {
     return myDonations.value.reduce((sum, d) => sum + d.amount, 0);
   });
 
-  const totalRaised = computed(() =>
-    campaigns.value.reduce((sum, c) => sum + (c.raisedAmount || 0), 0)
-  );
+  const totalRaised = computed(() => campaigns.value.reduce((sum, c) => sum + (c.raisedAmount || 0), 0));
 
   // Load campaigns
   const loadCampaigns = async () => {
@@ -49,13 +49,7 @@ export function useCharityContract(t: (key: string) => string) {
 
     try {
       loadingCampaigns.value = true;
-      const result = await invokeRead({
-        scriptHash: contractAddress.value as string,
-        operation: "getCampaigns",
-        args: [],
-      });
-
-      const parsed = parseInvokeResult(result) as unknown[];
+      const parsed = (await read("getCampaigns")) as unknown[];
       if (Array.isArray(parsed)) {
         campaigns.value = parsed.map((c: Record<string, unknown>) => ({
           id: Number(c.id || 0),
@@ -86,13 +80,7 @@ export function useCharityContract(t: (key: string) => string) {
     if (!address.value || !(await ensureContractAddress())) return;
 
     try {
-      const result = await invokeRead({
-        scriptHash: contractAddress.value as string,
-        operation: "getUserDonations",
-        args: [{ type: "Hash160", value: address.value }],
-      });
-
-      const parsed = parseInvokeResult(result) as unknown[];
+      const parsed = (await read("getUserDonations", [{ type: "Hash160", value: address.value }])) as unknown[];
       if (Array.isArray(parsed)) {
         myDonations.value = parsed.map((d: Record<string, unknown>) => ({
           id: Number(d.id || 0),
@@ -111,16 +99,10 @@ export function useCharityContract(t: (key: string) => string) {
   // Load recent donations for selected campaign
   const loadRecentDonations = async (campaignId: number) => {
     try {
-      const result = await invokeRead({
-        scriptHash: contractAddress.value as string,
-        operation: "getCampaignDonations",
-        args: [
-          { type: "Integer", value: campaignId },
-          { type: "Integer", value: 10 },
-        ],
-      });
-
-      const parsed = parseInvokeResult(result) as unknown[];
+      const parsed = (await read("getCampaignDonations", [
+        { type: "Integer", value: campaignId },
+        { type: "Integer", value: 10 },
+      ])) as unknown[];
       if (Array.isArray(parsed)) {
         recentDonations.value = parsed.map((d: Record<string, unknown>) => ({
           id: Number(d.id || 0),
@@ -153,22 +135,17 @@ export function useCharityContract(t: (key: string) => string) {
     try {
       isDonating.value = true;
 
-      const { receiptId, invoke } = await processPayment(
+      const { txid, waitForEvent } = await invoke(
         data.amount.toFixed(8),
-        `donate:${selectedCampaign.value.id}:${data.message.slice(0, 50)}`
-      );
-
-      const tx = (await invoke(
+        `donate:${selectedCampaign.value.id}:${data.message.slice(0, 50)}`,
         "donate",
         [
           { type: "Integer", value: selectedCampaign.value.id },
-          { type: "Integer", value: String(receiptId) },
           { type: "String", value: data.message },
-        ],
-        contractAddress.value as string
-      )) as { txid: string };
+        ]
+      );
 
-      const donationEvent = await waitForEventByTransaction(tx, "DonationMade", waitForEvent);
+      const donationEvent = await waitForEvent(txid, "DonationMade");
       if (donationEvent) {
         await loadCampaigns();
         await loadMyDonations();
@@ -203,9 +180,9 @@ export function useCharityContract(t: (key: string) => string) {
 
       const endTime = Math.floor(Date.now() / 1000) + data.duration * 86400;
 
-      const { receiptId, invoke } = await processPayment("1", `create:${data.category}:${data.title.slice(0, 50)}`);
-
-      const tx = (await invoke(
+      const { txid, waitForEvent } = await invoke(
+        "1",
+        `create:${data.category}:${data.title.slice(0, 50)}`,
         "createCampaign",
         [
           { type: "String", value: data.title },
@@ -216,12 +193,10 @@ export function useCharityContract(t: (key: string) => string) {
           { type: "Integer", value: endTime },
           { type: "Hash160", value: data.beneficiary },
           { type: "Array", value: data.multisigAddresses },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contractAddress.value as string
-      )) as { txid: string };
+        ]
+      );
 
-      const campaignEvent = await waitForEventByTransaction(tx, "CampaignCreated", waitForEvent);
+      const campaignEvent = await waitForEvent(txid, "CampaignCreated");
       if (campaignEvent) {
         await loadCampaigns();
         return true; // signal success for tab switch

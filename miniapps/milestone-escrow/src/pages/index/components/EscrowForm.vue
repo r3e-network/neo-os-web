@@ -1,41 +1,48 @@
 <template>
-  <NeoCard variant="erobo-neo">
-    <view class="form-group">
-      <NeoInput v-model="localForm.name" :label="t('escrowName')" :placeholder="t('escrowNamePlaceholder')" />
-      <NeoInput v-model="localForm.beneficiary" :label="t('beneficiary')" :placeholder="t('beneficiaryPlaceholder')" />
+  <FormCard
+    :submit-label="isLoading ? t('creating') : t('createEscrow')"
+    :submit-loading="isLoading"
+    :submit-disabled="isLoading"
+    @submit="createEscrow"
+  >
+    <NeoInput v-model="localForm.name" :label="t('escrowName')" :placeholder="t('escrowNamePlaceholder')" />
+    <NeoInput v-model="localForm.beneficiary" :label="t('beneficiary')" :placeholder="t('beneficiaryPlaceholder')" />
 
-      <view class="input-group">
-        <text class="input-label">{{ t("assetType") }}</text>
-        <view class="asset-toggle">
-          <NeoButton size="sm" variant="primary" disabled>
-            {{ t("assetGas") }}
-          </NeoButton>
-        </view>
+    <view class="input-group">
+      <text class="input-label">{{ t("assetType") }}</text>
+      <view class="asset-toggle">
+        <NeoButton size="sm" variant="primary" disabled>
+          {{ t("assetGas") }}
+        </NeoButton>
       </view>
-
-      <MilestoneEditor :milestones="localMilestones" :asset="localForm.asset" @add="addMilestone" @remove="removeMilestone" />
-
-      <TotalDisplay :total="totalDisplay" :asset="localForm.asset" />
-
-      <NeoInput v-model="localForm.notes" type="textarea" :label="t('notes')" :placeholder="t('notesPlaceholder')" />
-
-      <NeoButton variant="primary" size="lg" block :loading="isLoading" :disabled="isLoading" @click="createEscrow">
-        {{ isLoading ? t("creating") : t("createEscrow") }}
-      </NeoButton>
     </view>
-  </NeoCard>
+
+    <MilestoneEditor
+      :milestones="localMilestones"
+      :asset="localForm.asset"
+      @add="addMilestone"
+      @remove="removeMilestone"
+    />
+
+    <TotalDisplay :total="totalDisplay" :asset="localForm.asset" />
+
+    <NeoInput v-model="localForm.notes" type="textarea" :label="t('notes')" :placeholder="t('notesPlaceholder')" />
+  </FormCard>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
-import { NeoCard, NeoButton, NeoInput } from "@shared/components";
+import { NeoButton, NeoInput, FormCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import MilestoneEditor from "./MilestoneEditor.vue";
 import TotalDisplay from "./TotalDisplay.vue";
 
 const emit = defineEmits<{
-  (e: "create", data: { name: string; beneficiary: string; asset: string; notes: string; milestones: Array<{ amount: string }> }): void;
+  (
+    e: "create",
+    data: { name: string; beneficiary: string; asset: string; notes: string; milestones: Array<{ amount: string }> }
+  ): void;
 }>();
 
 const { t } = createUseI18n(messages)();
@@ -81,7 +88,9 @@ const createEscrow = () => {
 };
 
 defineExpose({
-  setLoading: (loading: boolean) => { isLoading.value = loading; },
+  setLoading: (loading: boolean) => {
+    isLoading.value = loading;
+  },
   reset: () => {
     localForm.name = "";
     localForm.beneficiary = "";
@@ -92,12 +101,6 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
 .input-group {
   display: flex;
   flex-direction: column;

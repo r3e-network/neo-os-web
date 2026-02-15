@@ -87,7 +87,7 @@
       </view>
     </NeoCard>
 
-    <NeoModal :visible="showResult" :title="t('congratulations')" @close="$emit('close-result')">
+    <ActionModal :visible="showResult" :title="t('congratulations')" @close="$emit('close-result')">
       <view class="result-content">
         <view class="result-icon-lg">{{ resultItem?.icon || "🎁" }}</view>
         <text class="result-name">{{ resultItem?.name }}</text>
@@ -96,13 +96,13 @@
           {{ t("collect") }}
         </NeoButton>
       </view>
-    </NeoModal>
+    </ActionModal>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoCard, NeoButton, NeoModal } from "@shared/components";
+import { NeoCard, NeoButton, ActionModal } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -142,6 +142,7 @@ const formatMeta = (item: Record<string, unknown>) => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .gacha-machine-view {
   display: flex;
@@ -312,10 +313,8 @@ const formatMeta = (item: Record<string, unknown>) => {
 }
 
 .section-title {
-  font-size: 12px;
-  text-transform: uppercase;
+  @include section-title;
   color: var(--text-secondary);
-  font-weight: 700;
   margin-bottom: $spacing-3;
   display: block;
 }

@@ -18,13 +18,25 @@ export interface GameStepResult {
 }
 
 const REWARD_TABLE: Record<number, bigint> = {
-  2: BigInt(10000000),  // 0.1 GAS
-  3: BigInt(50000000),  // 0.5 GAS
+  2: BigInt(10000000), // 0.1 GAS
+  3: BigInt(50000000), // 0.5 GAS
   4: BigInt(100000000), // 1.0 GAS
   5: BigInt(250000000), // 2.5 GAS
 };
 
-export function useTurtleMatching() {
+export interface UseTurtleMatchingReturn {
+  localGame: ReturnType<typeof ref<LocalGameState | null>>;
+  matchedPairRef: ReturnType<typeof ref<number[]>>;
+  remainingBoxes: ReturnType<typeof computed<number>>;
+  currentReward: ReturnType<typeof computed<bigint>>;
+  currentMatches: ReturnType<typeof computed<number>>;
+  gridTurtles: ReturnType<typeof computed<Turtle[]>>;
+  initGame: (session: GameSession) => void;
+  processGameStep: () => Promise<GameStepResult>;
+  resetLocalGame: () => void;
+}
+
+export function useTurtleMatching(): UseTurtleMatchingReturn {
   const localGame = ref<LocalGameState | null>(null);
   const matchedPairRef = ref<number[]>([]);
 
@@ -51,7 +63,7 @@ export function useTurtleMatching() {
   const initGame = (session: GameSession) => {
     const count = Number(session.boxCount);
     const turtles: Turtle[] = [];
-    
+
     // Generate random turtles
     for (let i = 0; i < count; i++) {
       const color = Math.floor(Math.random() * 5) as TurtleColor;
@@ -79,7 +91,7 @@ export function useTurtleMatching() {
     }
 
     const game = localGame.value;
-    
+
     if (game.currentBoxIndex >= game.turtles.length) {
       game.isComplete = true;
       return { turtle: null, matches: 0, reward: BigInt(0), isComplete: true };
@@ -88,38 +100,38 @@ export function useTurtleMatching() {
     // Reveal current turtle
     const currentTurtle = game.turtles[game.currentBoxIndex];
     currentTurtle.isRevealed = true;
-    
+
     // Count matching turtles of same color
     const revealedSameColor = game.turtles.filter(
       (t, idx) => t.isRevealed && t.color === currentTurtle.color && idx <= game.currentBoxIndex
     );
-    
+
     let matches = 0;
     let reward = BigInt(0);
 
     // Check for 3+ matches
     if (revealedSameColor.length >= 3) {
-      const alreadyMatched = revealedSameColor.filter(t => t.isMatched);
-      
+      const alreadyMatched = revealedSameColor.filter((t) => t.isMatched);
+
       if (alreadyMatched.length === 0) {
         // New match found
         matches = revealedSameColor.length;
         reward = REWARD_TABLE[matches] || BigInt(0);
         game.totalReward += reward;
         game.totalMatches++;
-        
+
         // Mark as matched
-        revealedSameColor.forEach(t => {
+        revealedSameColor.forEach((t) => {
           t.isMatched = true;
         });
-        
+
         // Update matched pair for animation
-        matchedPairRef.value = revealedSameColor.map(t => t.id);
+        matchedPairRef.value = revealedSameColor.map((t) => t.id);
       }
     }
 
     game.currentBoxIndex++;
-    
+
     if (game.currentBoxIndex >= game.turtles.length) {
       game.isComplete = true;
     }

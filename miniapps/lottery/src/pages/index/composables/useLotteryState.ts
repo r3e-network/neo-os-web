@@ -1,13 +1,11 @@
 import { ref, computed } from "vue";
-import type { WalletSDK } from "@neo/types";
-import { formatNumber } from "@shared/utils/format";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
-import { requireNeoChain } from "@shared/utils/chain";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import type { WalletSDK } from "@neo/types";
+import { formatNum } from "@shared/utils/format";
+import { parseStackItem } from "@shared/utils/neo";
+import { requireNeoChain } from "@shared/utils/chain";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { extractTxid } from "@shared/utils/transaction";
 
 const APP_ID = "miniapp-lottery";
 
@@ -28,12 +26,12 @@ interface BuyResult {
 }
 
 export function useLotteryState(t: (key: string) => string) {
-  const { address, connect, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
+  const { chainType } = useWallet() as WalletSDK;
+  const { address, ensureWallet, read, invoke } = useContractInteraction({
+    appId: APP_ID,
+    t: (key: string) => (key === "contractUnavailable" ? "Contract address not found" : t(key)),
+  });
   const { list: listEvents } = useEvents();
-  const { processPayment } = usePaymentFlow(APP_ID);
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? "Contract address not found" : t(key),
-  );
 
   const isLoading = ref(false);
   const error = ref<string | null>(null);
@@ -43,8 +41,6 @@ export function useLotteryState(t: (key: string) => string) {
 
   const winners = ref<Winner[]>([]);
   const platformStats = ref<PlatformStats | null>(null);
-
-  const formatNum = (n: number | string) => formatNumber(n, 2);
 
   const totalTickets = computed(() => platformStats.value?.totalTickets ?? "0");
   const prizePool = computed(() => platformStats.value?.prizePool ?? "0");
@@ -61,15 +57,7 @@ export function useLotteryState(t: (key: string) => string) {
     if (!requireNeoChain(chainType.value, t)) return;
 
     try {
-      const contract = await ensureContractAddress({ silentChainCheck: true });
-
-      const res = await invokeRead({
-        scriptHash: contract,
-        operation: "getPlatformStats",
-        args: [],
-      });
-
-      const parsed = parseInvokeResult(res);
+      const parsed = await read("getPlatformStats");
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         const stats = parsed as Record<string, unknown>;
         platformStats.value = {
@@ -87,8 +75,8 @@ export function useLotteryState(t: (key: string) => string) {
     try {
       const res = await listEvents({ app_id: APP_ID, event_name: "RoundCompleted", limit: 10 });
       const parsed = (res.events || [])
-        .map((evt: Record<string, unknown>) => {
-          const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
+        .map((evt) => {
+          const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
           const round = Number(values[0] ?? 0);
           const address = String(values[1] ?? "");
           const prize = Number(values[2] ?? 0);
@@ -116,33 +104,23 @@ export function useLotteryState(t: (key: string) => string) {
   };
 
   const buyTicket = async (lotteryType: number): Promise<BuyResult> => {
-    if (!address.value) {
-      await connect();
-      if (!address.value) {
-        throw new Error("Wallet not connected");
-      }
-    }
+    await ensureWallet();
 
     if (!requireNeoChain(chainType.value, t)) {
       throw new Error("Wrong chain");
     }
 
-    const contract = await ensureContractAddress({ silentChainCheck: true });
-
     buyingType.value = lotteryType;
     clearError();
 
     try {
-      const { invoke, waitForEvent } = await processPayment("1", `lottery:buy:${lotteryType}`);
-
-      const result = await invoke(contract, "BuyTicketsForType", [
-        { type: "Hash160", value: address.value },
+      const { txid, waitForEvent } = await invoke("1", `lottery:buy:${lotteryType}`, "BuyTicketsForType", [
+        { type: "Hash160", value: address.value as string },
         { type: "Integer", value: lotteryType },
         { type: "Integer", value: "1" },
         { type: "Integer", value: "0" },
       ]);
 
-      const txid = extractTxid(result);
       if (!txid) {
         throw new Error("Transaction failed");
       }

@@ -1,44 +1,43 @@
 <template>
-  <MiniAppShell
+  <MiniAppPage
+    name="trustanchor"
     :config="templateConfig"
     :state="appState"
     :t="t"
     :status-message="status"
-    class="theme-trustanchor"
     :sidebar-items="sidebarItems"
-    :sidebar-title="t('overview')"
-    :fallback-message="t('errorFallback')"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
     :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="resetAndReload">
-<!-- Overview Tab (default) -->
+    :on-boundary-retry="loadAll"
+  >
+    <!-- Overview Tab (default) -->
     <template #content>
-      
-        <MiniAppTabStats variant="erobo" class="mb-6" :stats="trustStats" />
+      <StatsDisplay :items="trustStats" layout="grid" class="mb-6" />
 
-        <NeoCard variant="erobo" class="mb-4 px-1">
-          <view class="section-header mb-4">
-            <text class="section-title">{{ t("voteForReputation") }}</text>
-          </view>
-          <text class="section-desc mb-4">{{ t("voteForReputationDesc") }}</text>
+      <NeoCard variant="erobo" class="mb-4 px-1">
+        <view class="section-header mb-4">
+          <text class="section-title">{{ t("voteForReputation") }}</text>
+        </view>
+        <text class="section-desc mb-4">{{ t("voteForReputationDesc") }}</text>
 
-          <view class="section-header mb-4" style="margin-top: 16px">
-            <text class="section-title">{{ t("notForProfit") }}</text>
-          </view>
-          <text class="section-desc">{{ t("notForProfitDesc") }}</text>
-        </NeoCard>
+        <view class="section-header section-header--spaced mb-4">
+          <text class="section-title">{{ t("notForProfit") }}</text>
+        </view>
+        <text class="section-desc">{{ t("notForProfitDesc") }}</text>
+      </NeoCard>
 
-        <NeoCard variant="erobo" class="px-1">
-          <view class="section-header mb-4">
-            <text class="section-title">{{ t("claim") }}</text>
-          </view>
-          <view class="claim-section">
-            <text class="claim-amount">{{ formatNum(pendingRewards) }} GAS</text>
-            <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
-              {{ t("claim") }}
-            </NeoButton>
-          </view>
-        </NeoCard>
-      
+      <NeoCard variant="erobo" class="px-1">
+        <view class="section-header mb-4">
+          <text class="section-title">{{ t("claim") }}</text>
+        </view>
+        <view class="claim-section">
+          <text class="claim-amount">{{ formatNum(pendingRewards) }} GAS</text>
+          <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
+            {{ t("claim") }}
+          </NeoButton>
+        </view>
+      </NeoCard>
     </template>
 
     <template #operation>
@@ -84,7 +83,7 @@
     <template #tab-history>
       <HistoryTab :stats="stats" />
     </template>
-  </MiniAppShell>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
@@ -92,42 +91,35 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
 import { formatNumber } from "@shared/utils/format";
-import { MiniAppShell, MiniAppTabStats, NeoButton, NeoCard, NeoInput, type StatItem } from "@shared/components";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import AgentsTab from "./components/AgentsTab.vue";
-import HistoryTab from "./components/HistoryTab.vue";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage, StatsDisplay, NeoButton, NeoCard } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
 import { useTrustAnchor } from "./composables/useTrustAnchor";
 
-const { t } = createUseI18n(messages)();
-const { status } = useStatusMessage();
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
+  name: "trustanchor",
+  messages,
+  template: {
+    tabs: [
+      { key: "overview", labelKey: "tabOverview", icon: "layout", default: true },
+      { key: "agents", labelKey: "tabAgents", icon: "users" },
+      { key: "history", labelKey: "tabHistory", icon: "clock" },
+    ],
+    docSubtitleKey: "docsSubtitle",
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    { labelKey: "stake", value: () => `${formatNum(myStake.value)} NEO` },
+    { labelKey: "claim", value: () => `${formatNum(pendingRewards.value)} GAS` },
+    { labelKey: "totalStaked", value: () => `${formatNum(stats.value?.totalStaked ?? 0)} NEO` },
+    { labelKey: "delegatorsLabel", value: () => stats.value?.totalDelegators ?? 0 },
+  ],
+});
 const { address, connect } = useWallet() as WalletSDK;
 
-const {
-  agents,
-  stats,
-  myStake,
-  pendingRewards,
-  totalRewards,
-  setError,
-  loadAll,
-  stake,
-  unstake,
-  claimRewards,
-} = useTrustAnchor(t);
+const { agents, stats, myStake, pendingRewards, totalRewards, setError, loadAll, stake, unstake, claimRewards } =
+  useTrustAnchor(t);
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "overview", labelKey: "tabOverview", icon: "layout", default: true },
-    { key: "agents", labelKey: "tabAgents", icon: "users" },
-    { key: "history", labelKey: "tabHistory", icon: "clock" },
-  ],
-  docSubtitleKey: "docsSubtitle",
-  docFeatureCount: 3,
-});
 const stakeAmount = ref("");
 const unstakeAmount = ref("");
 const isStaking = ref(false);
@@ -142,18 +134,11 @@ const appState = computed(() => ({
 
 const formatNum = (n: number | string) => formatNumber(n, 2);
 
-const trustStats = computed<StatItem[]>(() => [
+const trustStats = computed<StatsDisplayItem[]>(() => [
   { label: t("myStake"), value: `${formatNum(myStake.value)} NEO` },
   { label: t("pendingRewards"), value: `${formatNum(pendingRewards.value)} GAS`, variant: "success" },
   { label: t("totalRewards"), value: `${formatNum(totalRewards.value)} GAS`, variant: "accent" },
   { label: t("zeroFee"), value: t("zeroFeeDesc"), variant: "erobo" },
-]);
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "stake", value: () => `${formatNum(myStake.value)} NEO` },
-  { labelKey: "claim", value: () => `${formatNum(pendingRewards.value)} GAS` },
-  { labelKey: "totalStaked", value: () => `${formatNum(stats.value?.totalStaked ?? 0)} NEO` },
-  { labelKey: "delegatorsLabel", value: () => stats.value?.totalDelegators ?? 0 },
 ]);
 
 const handleStake = async () => {
@@ -203,11 +188,6 @@ const handleClaim = async () => {
 onMounted(() => {
   loadAll();
 });
-
-const { handleBoundaryError } = useHandleBoundaryError("trustanchor");
-const resetAndReload = () => {
-  loadAll();
-};
 </script>
 
 <style lang="scss" scoped>
@@ -223,6 +203,10 @@ const resetAndReload = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  &--spaced {
+    margin-top: 16px;
+  }
 }
 
 .section-title {

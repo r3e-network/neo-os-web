@@ -79,13 +79,11 @@ const truncateHash = (hash: string) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .section-title-neo {
-  font-size: 11px;
-  font-weight: 700;
+  @include stat-label;
   color: var(--matrix-success);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   margin-bottom: 12px;
   display: block;
   text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
@@ -120,10 +118,7 @@ const truncateHash = (hash: string) => {
 }
 
 .result-row-neo {
-  padding: 12px;
-  background: var(--bg-card, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  border-radius: 12px;
+  @include card-base(12px, 12px);
   margin-bottom: 8px;
   backdrop-filter: blur(5px);
   transition: background 0.2s;
@@ -134,13 +129,10 @@ const truncateHash = (hash: string) => {
 }
 
 .label-neo {
-  font-size: 11px;
+  @include stat-label;
   font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
   margin-bottom: 4px;
   display: block;
-  letter-spacing: 0.05em;
 }
 
 .value-neo {
@@ -158,21 +150,15 @@ const truncateHash = (hash: string) => {
 }
 
 .list-title-neo {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
+  @include stat-label;
   opacity: 0.6;
   color: var(--text-primary);
   margin-bottom: 8px;
   display: block;
-  letter-spacing: 0.05em;
 }
 
 .tx-item-neo {
-  padding: 12px;
-  background: var(--bg-card, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  border-radius: 12px;
+  @include card-base(12px, 12px);
   margin-bottom: 8px;
   display: flex;
   justify-content: space-between;

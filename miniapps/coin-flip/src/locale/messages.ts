@@ -1,6 +1,8 @@
-export const messages = {
-    // App translations
-title: { en: "Coin Flip", zh: "抛硬币" },
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  // App translations
+  title: { en: "Coin Flip", zh: "抛硬币" },
   wins: { en: "Wins", zh: "胜利" },
   losses: { en: "Losses", zh: "失败" },
   won: { en: "Won", zh: "赢得" },
@@ -26,8 +28,6 @@ title: { en: "Coin Flip", zh: "抛硬币" },
   betMissing: { en: "Bet id or seed missing", zh: "下注信息缺失" },
   scriptHashMissing: { en: "Verification script unavailable", zh: "验证脚本不可用" },
   game: { en: "Play", zh: "游戏" },
-  statistics: { en: "Statistics", zh: "统计数据" },
-  totalGames: { en: "Total Games", zh: "总游戏数" },
   totalWon: { en: "Total Earnings", zh: "总收益" },
   docSubtitle: { en: "TEE-secured coin toss with on-chain escrow", zh: "TEE 安全的链上抛硬币" },
   docDescription: {
@@ -47,5 +47,7 @@ title: { en: "Coin Flip", zh: "抛硬币" },
   feature2Desc: { en: "Winnings are automatically sent via smart contract.", zh: "奖金通过智能合约自动发送。" },
   feature3Name: { en: "On-chain Outcome", zh: "链上结果" },
   feature3Desc: { en: "Each flip stores the verified result on-chain.", zh: "每次抛掷的验证结果都会上链记录。" },
-    gameErrorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+  gameErrorFallback: { en: "Something went wrong", zh: "出现错误" },
+} as const;
+
+export const messages = mergeMessages(appMessages);

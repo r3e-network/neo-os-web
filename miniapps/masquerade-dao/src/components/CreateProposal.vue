@@ -8,13 +8,25 @@
       <view class="input-group">
         <text class="input-label">{{ t("maskTypeLabel") }}</text>
         <view class="mask-type-actions">
-          <NeoButton size="sm" :variant="modelValue.maskType === 1 ? 'primary' : 'secondary'" @click="modelValue.maskType = 1">
+          <NeoButton
+            size="sm"
+            :variant="modelValue.maskType === 1 ? 'primary' : 'secondary'"
+            @click="modelValue.maskType = 1"
+          >
             {{ t("maskTypeBasic") }}
           </NeoButton>
-          <NeoButton size="sm" :variant="modelValue.maskType === 2 ? 'primary' : 'secondary'" @click="modelValue.maskType = 2">
+          <NeoButton
+            size="sm"
+            :variant="modelValue.maskType === 2 ? 'primary' : 'secondary'"
+            @click="modelValue.maskType = 2"
+          >
             {{ t("maskTypeCipher") }}
           </NeoButton>
-          <NeoButton size="sm" :variant="modelValue.maskType === 3 ? 'primary' : 'secondary'" @click="modelValue.maskType = 3">
+          <NeoButton
+            size="sm"
+            :variant="modelValue.maskType === 3 ? 'primary' : 'secondary'"
+            @click="modelValue.maskType = 3"
+          >
             {{ t("maskTypePhantom") }}
           </NeoButton>
         </view>
@@ -41,6 +53,10 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 interface FormData {
   identitySeed: string;
@@ -52,7 +68,6 @@ interface Props {
   identityHash: string;
   canCreate: boolean;
   isLoading: boolean;
-  t: Function;
 }
 
 defineProps<Props>();
@@ -63,6 +78,8 @@ defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -82,10 +99,7 @@ defineEmits<{
 }
 
 .input-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  @include stat-label;
   color: var(--mask-muted);
   margin-left: 4px;
 }
@@ -105,11 +119,9 @@ defineEmits<{
 }
 
 .hash-label {
+  @include stat-label;
   display: block;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   margin-bottom: 6px;
   color: var(--mask-purple);
 }

@@ -56,7 +56,7 @@ export interface StatConfig {
   format?: "number" | "currency" | "percent" | "duration";
   /** Emoji or icon */
   icon?: string;
-  /** NeoStats variant for styling */
+  /** StatsDisplay variant for styling */
   variant?: "default" | "accent" | "success" | "danger";
 }
 

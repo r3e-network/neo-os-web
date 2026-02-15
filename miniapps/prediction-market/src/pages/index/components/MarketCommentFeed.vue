@@ -112,16 +112,11 @@ interface Props {
   marketId: number;
   marketOrders: ViewOrder[];
   marketPositions: MarketPosition[];
-  t?: (key: string, args?: Record<string, string | number>) => string;
 }
 
 const props = defineProps<Props>();
 
-const { t: i18nT } = createUseI18n(messages)();
-const t = (key: string, args?: Record<string, string | number>) => {
-  if (props.t) return props.t(key, args);
-  return i18nT(key as never, args);
-};
+const { t } = createUseI18n(messages)();
 
 const formatPercent = (price: number) => `${(price * 100).toFixed(1)}%`;
 

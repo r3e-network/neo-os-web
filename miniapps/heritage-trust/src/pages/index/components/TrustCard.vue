@@ -21,13 +21,13 @@
     </view>
 
     <!-- Asset Allocation -->
-    <TrustAssetSection :trust="trust" :t="t" />
+    <TrustAssetSection :trust="trust" />
 
     <!-- Beneficiary Card -->
-    <TrustBeneficiaryCard :trust="trust" :t="t" />
+    <TrustBeneficiaryCard :trust="trust" />
 
     <!-- Trigger Conditions -->
-    <TrustTriggerTimeline :trust="trust" :t="t" />
+    <TrustTriggerTimeline :trust="trust" />
 
     <view class="document-actions">
       <template v-if="trust.role === 'owner'">
@@ -39,7 +39,13 @@
         </NeoButton>
       </template>
       <template v-else>
-        <NeoButton v-if="!trust.executed" variant="warning" size="sm" :disabled="!trust.canExecute" @click="$emit('execute', trust)">
+        <NeoButton
+          v-if="!trust.executed"
+          variant="warning"
+          size="sm"
+          :disabled="!trust.canExecute"
+          @click="$emit('execute', trust)"
+        >
           {{ t("executeTrust") }}
         </NeoButton>
         <NeoButton v-else variant="primary" size="sm" @click="$emit('claimReleased', trust)">
@@ -58,6 +64,8 @@
 
 <script setup lang="ts">
 import { NeoButton, NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import TrustAssetSection from "./TrustAssetSection.vue";
 import TrustBeneficiaryCard from "./TrustBeneficiaryCard.vue";
 import TrustTriggerTimeline from "./TrustTriggerTimeline.vue";
@@ -88,8 +96,9 @@ export interface Trust {
 
 defineProps<{
   trust: Trust;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["heartbeat", "claimYield", "execute", "claimReleased"]);
 </script>

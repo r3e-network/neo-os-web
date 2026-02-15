@@ -1,6 +1,8 @@
-export const messages = {
-    // App translations
-title: { en: "Self Loan", zh: "自我贷款" },
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  // App translations
+  title: { en: "Self Loan", zh: "自我贷款" },
   loanTerms: { en: "Loan Terms", zh: "贷款条款" },
   maxBorrow: { en: "Borrow limit", zh: "借款上限" },
   yourLoan: { en: "Your Loan", zh: "你的贷款" },
@@ -24,10 +26,7 @@ title: { en: "Self Loan", zh: "自我贷款" },
   enterAmount: { en: "Enter 1-{max} NEO", zh: "请输入 1-{max} NEO" },
   loanApproved: { en: "Loan created: {amount} GAS borrowed", zh: "贷款已创建：已借 {amount} GAS" },
   paymentFailed: { en: "Transaction failed", zh: "交易失败" },
-  contractUnavailable: { en: "Contract unavailable", zh: "合约不可用" },
   main: { en: "Borrow", zh: "借款" },
-  stats: { en: "Stats", zh: "统计" },
-  statistics: { en: "Statistics", zh: "统计数据" },
   totalLoans: { en: "Total Loans", zh: "总贷款数" },
   totalBorrowed: { en: "Total Borrowed", zh: "总借款额" },
   totalRepaid: { en: "Total Repaid", zh: "总还款额" },
@@ -54,7 +53,6 @@ title: { en: "Self Loan", zh: "自我贷款" },
   ltvTierBalancedDesc: { en: "30% LTV", zh: "30% LTV" },
   ltvTierAggressive: { en: "Aggressive", zh: "进取" },
   ltvTierAggressiveDesc: { en: "40% LTV", zh: "40% LTV" },
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Tiered LTV self-loans with auto-repayment",
     zh: "多档 LTV 的自我贷款与自动偿还",
@@ -99,27 +97,19 @@ title: { en: "Self Loan", zh: "自我贷款" },
     en: "This app requires Neo N3. Please switch networks.",
     zh: "此应用需要 Neo N3 网络，请切换网络。",
   },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
   insufficientNeo: { en: "Insufficient NEO balance", zh: "NEO 余额不足" },
   connectWallet: { en: "Please connect wallet", zh: "请连接钱包" },
   repayLoan: { en: "Repay Loan", zh: "还款" },
   repaying: { en: "Repaying...", zh: "还款中..." },
   repaySuccess: { en: "Loan repaid successfully", zh: "还款成功" },
   neoCollateral: { en: "NEO Collateral", zh: "NEO 抵押品" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
   sidebarHasLoan: { en: "Has Loan", zh: "有贷款" },
   sidebarYes: { en: "Yes", zh: "是" },
   sidebarNo: { en: "No", zh: "否" },
   sidebarNeoBalance: { en: "NEO Balance", zh: "NEO 余额" },
+  loanStatsTitle: { en: "Loan Stats", zh: "贷款统计" },
   selfLoanErrorFallback: { en: "Something went wrong", zh: "出现错误" },
   connectWalletToUse: { en: "Connect wallet to use Self Loan", zh: "连接钱包使用自我贷款" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -8,11 +8,24 @@ import { messages } from "@/locale/messages";
 import { parseInvokeResult } from "@shared/utils/neo";
 import type { TemplateItem, CertificateItem } from "@/types";
 
-export function useCertificates() {
+export interface UseCertificatesReturn {
+  templates: ReturnType<typeof ref<TemplateItem[]>>;
+  certificates: ReturnType<typeof ref<CertificateItem[]>>;
+  certQrs: Record<string, string>;
+  refreshTemplates: () => Promise<void>;
+  refreshCertificates: () => Promise<void>;
+  ensureContractAddress: () => Promise<string>;
+  parseBigInt: (value: unknown) => bigint;
+  parseBool: (value: unknown) => boolean;
+  encodeTokenId: (tokenId: string) => string;
+}
+
+/** Manages soulbound certificate templates, issuance, and QR code generation. */
+export function useCertificates(): UseCertificatesReturn {
   const { t } = createUseI18n(messages)();
   const { address, invokeContract, invokeRead } = useWallet() as WalletSDK;
   const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("contractMissing") : t(key),
+    key === "contractUnavailable" ? t("contractMissing") : t(key)
   );
 
   const templates = ref<TemplateItem[]>([]);

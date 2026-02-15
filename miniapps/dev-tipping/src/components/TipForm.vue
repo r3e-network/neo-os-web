@@ -29,62 +29,47 @@
             <text class="preset-unit-glass">GAS</text>
           </view>
         </view>
-        <NeoInput 
-          :modelValue="amount" 
+        <NeoInput
+          :modelValue="amount"
           @update:modelValue="$emit('update:amount', $event)"
-          type="number" 
-          :placeholder="t('customAmount')" 
-          suffix="GAS" 
+          type="number"
+          :placeholder="t('customAmount')"
+          suffix="GAS"
         />
       </view>
 
       <view class="input-section">
         <text class="input-label-glass">{{ t("optionalMessage") }}</text>
-        <NeoInput 
-          :modelValue="message" 
+        <NeoInput
+          :modelValue="message"
           @update:modelValue="$emit('update:message', $event)"
-          :placeholder="t('messagePlaceholder')" 
+          :placeholder="t('messagePlaceholder')"
         />
       </view>
-      
+
       <view class="input-section">
         <text class="input-label-glass">{{ t("tipperName") }}</text>
-        <NeoInput 
-          :modelValue="tipperName" 
+        <NeoInput
+          :modelValue="tipperName"
           @update:modelValue="$emit('update:tipperName', $event)"
-          :placeholder="t('tipperNamePlaceholder')" 
-          :disabled="anonymous" 
+          :placeholder="t('tipperNamePlaceholder')"
+          :disabled="anonymous"
         />
       </view>
-      
+
       <view class="input-section">
         <text class="input-label-glass">{{ t("anonymousLabel") }}</text>
         <view class="toggle-row">
-          <NeoButton 
-            size="sm" 
-            :variant="anonymous ? 'primary' : 'secondary'" 
-            @click="$emit('update:anonymous', true)"
-          >
+          <NeoButton size="sm" :variant="anonymous ? 'primary' : 'secondary'" @click="$emit('update:anonymous', true)">
             {{ t("anonymousOn") }}
           </NeoButton>
-          <NeoButton 
-            size="sm" 
-            :variant="anonymous ? 'secondary' : 'primary'" 
-            @click="$emit('update:anonymous', false)"
-          >
+          <NeoButton size="sm" :variant="anonymous ? 'secondary' : 'primary'" @click="$emit('update:anonymous', false)">
             {{ t("anonymousOff") }}
           </NeoButton>
         </view>
       </view>
 
-      <NeoButton 
-        variant="primary" 
-        size="lg" 
-        block 
-        :loading="isLoading" 
-        :disabled="!canSubmit"
-        @click="$emit('submit')"
-      >
+      <NeoButton variant="primary" size="lg" block :loading="isLoading" :disabled="!canSubmit" @click="$emit('submit')">
         <text v-if="!isLoading">💚 {{ t("sendTipBtn") }}</text>
         <text v-else>{{ t("sending") }}</text>
       </NeoButton>
@@ -95,7 +80,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { Developer } from "../composables/useDevTippingStats";
+
+const { t } = createUseI18n(messages)();
 
 interface Props {
   developers: Developer[];
@@ -105,18 +94,17 @@ interface Props {
   tipperName: string;
   anonymous: boolean;
   isLoading: boolean;
-  t: Function;
 }
 
 const props = defineProps<Props>();
 
 defineEmits<{
-  'update:modelValue': [value: number];
-  'update:amount': [value: string];
-  'update:message': [value: string];
-  'update:tipperName': [value: string];
-  'update:anonymous': [value: boolean];
-  'submit': [];
+  "update:modelValue": [value: number];
+  "update:amount": [value: string];
+  "update:message": [value: string];
+  "update:tipperName": [value: string];
+  "update:anonymous": [value: boolean];
+  submit: [];
 }>();
 
 const presetAmounts = [1, 2, 5, 10];
@@ -128,12 +116,11 @@ const canSubmit = computed(() => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .input-label-glass {
+  @include stat-label;
   color: var(--cafe-text);
-  font-size: 11px;
-  text-transform: uppercase;
-  font-weight: bold;
   letter-spacing: 0.05em;
   margin-bottom: 6px;
   display: block;
@@ -178,9 +165,8 @@ const canSubmit = computed(() => {
 }
 
 .dev-select-name-glass {
+  @include mono-number;
   color: var(--cafe-text-strong);
-  font-weight: bold;
-  font-family: "JetBrains Mono", monospace;
 }
 
 .dev-select-role-glass {

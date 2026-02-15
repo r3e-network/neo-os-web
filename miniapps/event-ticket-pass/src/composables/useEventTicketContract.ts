@@ -11,7 +11,7 @@ export function useEventTicketContract(
   wallet: WalletSDK,
   ensureContractAddress: () => Promise<string>,
   setStatus: (msg: string, type: "success" | "error") => void,
-  t: (key: string, params?: Record<string, unknown>) => string,
+  t: (key: string, params?: Record<string, unknown>) => string
 ) {
   const { address, connect, invokeContract, invokeRead, chainType } = wallet;
 
@@ -81,7 +81,7 @@ export function useEventTicketContract(
     };
   };
 
-  const fetchEventIds = async (creatorAddress: string) => {
+  const loadEventIds = async (creatorAddress: string) => {
     const contract = await ensureContractAddress();
     const result = await invokeRead({
       scriptHash: contract,
@@ -101,7 +101,7 @@ export function useEventTicketContract(
       .map((value) => String(value));
   };
 
-  const fetchEventDetails = async (eventId: string) => {
+  const loadEventDetails = async (eventId: string) => {
     const contract = await ensureContractAddress();
     const details = await invokeRead({
       scriptHash: contract,
@@ -117,8 +117,8 @@ export function useEventTicketContract(
     if (isRefreshing.value) return;
     try {
       isRefreshing.value = true;
-      const ids = await fetchEventIds(address.value);
-      const details = await Promise.all(ids.map(fetchEventDetails));
+      const ids = await loadEventIds(address.value);
+      const details = await Promise.all(ids.map(loadEventDetails));
       events.value = details.filter(Boolean) as EventItem[];
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
@@ -153,7 +153,7 @@ export function useEventTicketContract(
           });
           const detailParsed = parseInvokeResult(detailResult) as Record<string, unknown>;
           return parseTicket(detailParsed, tokenId);
-        }),
+        })
       );
       tickets.value = details.filter(Boolean) as TicketItem[];
       await Promise.all(
@@ -165,7 +165,7 @@ export function useEventTicketContract(
               /* QR generation is non-critical */
             }
           }
-        }),
+        })
       );
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");

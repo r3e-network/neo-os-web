@@ -6,11 +6,7 @@
 
     <NeoCard variant="erobo-neo">
       <view class="form-group">
-        <NeoInput
-          v-model="localTokenId"
-          :label="t('checkinTokenId')"
-          :placeholder="t('checkinTokenIdPlaceholder')"
-        />
+        <NeoInput v-model="localTokenId" :label="t('checkinTokenId')" :placeholder="t('checkinTokenIdPlaceholder')" />
         <view class="checkin-actions">
           <NeoButton size="sm" variant="secondary" :loading="isLookingUp" @click="$emit('lookup')">
             {{ isLookingUp ? t("lookingUp") : t("lookup") }}
@@ -45,16 +41,19 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { TicketItem } from "@/types";
 
 const props = defineProps<{
-  t: (key: string) => string;
   tokenId: string;
   lookup: TicketItem | null;
   isLookingUp: boolean;
   isCheckingIn: boolean;
   status: { msg: string; type: "success" | "error" } | null;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "update:tokenId", value: string): void;
@@ -84,6 +83,8 @@ const formatSchedule = (startTime: number, endTime: number) => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .tab-content {
   padding: 20px;
   display: flex;
@@ -139,10 +140,9 @@ const formatSchedule = (startTime: number, endTime: number) => {
 }
 
 .meta-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--ticket-muted);
 }
 

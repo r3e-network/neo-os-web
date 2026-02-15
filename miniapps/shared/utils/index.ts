@@ -13,6 +13,5 @@ export * from "./theme";
 export * from "./hash";
 export * from "./parsers";
 export * from "./createTemplateConfig";
-export * from "./templatePresets";
 export * from "./createSidebarItems";
 export * from "./createMiniAppEntry";

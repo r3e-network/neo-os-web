@@ -8,16 +8,17 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { parseInvokeResult } from "@shared/utils/neo";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { RoundItem } from "../pages/index/components/RoundList.vue";
 
-const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
+const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 
 export function useQuadraticRounds() {
   const { t } = createUseI18n(messages)();
   const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
   const { ensure: ensureAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("contractMissing") : t(key),
+    key === "contractUnavailable" ? t("contractMissing") : t(key)
   );
 
   const rounds = ref<RoundItem[]>([]);

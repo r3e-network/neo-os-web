@@ -1,6 +1,6 @@
 <template>
   <view class="health-dashboard">
-    <MiniAppTabStats variant="erobo-neo" :stats="stats" />
+    <StatsDisplay :items="stats" layout="grid" />
 
     <NeoCard variant="erobo" class="balance-card">
       <view class="section-header">
@@ -25,22 +25,26 @@
 </template>
 
 <script setup lang="ts">
-import { MiniAppTabStats, NeoCard, NeoButton } from "@shared/components";
-import type { StatItem } from "@shared/components";
+import { StatsDisplay, NeoCard, NeoButton } from "@shared/components";
+import type { StatsDisplayItem } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
-  stats: StatItem[];
+  stats: StatsDisplayItem[];
   neoDisplay: string;
   gasDisplay: string;
   isRefreshing: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["refresh"]);
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .health-dashboard {
   display: flex;
@@ -49,9 +53,7 @@ defineEmits(["refresh"]);
 }
 
 .section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @include section-header;
 }
 
 .section-title {
@@ -66,9 +68,7 @@ defineEmits(["refresh"]);
 }
 
 .balance-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  @include grid-layout(2, 12px);
 }
 
 .balance-item {

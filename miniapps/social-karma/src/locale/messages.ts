@@ -1,9 +1,10 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Social Karma", zh: "社交积分" },
   leaderboard: { en: "Leaderboard", zh: "排行榜" },
   earn: { en: "Earn Karma", zh: "赚取积分" },
   profile: { en: "Profile", zh: "个人资料" },
-  docs: { en: "Docs", zh: "文档" },
 
   yourKarma: { en: "Your Karma", zh: "您的积分" },
   yourRank: { en: "Your Rank", zh: "您的排名" },
@@ -56,7 +57,7 @@ export const messages = {
   champion: { en: "Champion", zh: "冠军" },
   legend: { en: "Legend", zh: "传奇" },
   weekStreak: { en: "Week Warrior", zh: "周战士" },
-  
+
   joinEarly: { en: "Join early", zh: "早期加入" },
   helpHint: { en: "Help 5 people", zh: "帮助5个人" },
   giveHint: { en: "Give 100 karma", zh: "赠送100积分" },
@@ -85,7 +86,7 @@ export const messages = {
   step2: { en: "Reward others for helpful contributions", zh: "奖励他人的有益贡献" },
   step3: { en: "Unlock badges and achievements", zh: "解锁徽章和成就" },
   step4: { en: "Climb the social leaderboard", zh: "攀登社交排行榜" },
-  
+
   feature1Name: { en: "Daily Rewards", zh: "每日奖励" },
   feature1Desc: { en: "Earn karma every day with streak bonuses", zh: "每日赚取积分，连续有加成" },
   feature2Name: { en: "Social Graph", zh: "社交图谱" },
@@ -95,21 +96,10 @@ export const messages = {
   feature4Name: { en: "Leaderboard", zh: "排行榜" },
   feature4Desc: { en: "Compete with top contributors", zh: "与顶级贡献者竞争" },
 
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  error: { en: "Error", zh: "错误" },
-  loading: { en: "Loading...", zh: "加载中..." },
-
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
-  docBadge: { en: "Documentation", zh: "文档" },
-  docFooter: { en: "NeoHub MiniApp Protocol v2.4.0", zh: "NeoHub MiniApp Protocol v2.4.0" },
-  overview: { en: "Overview", zh: "概览" },
   sidebarKarma: { en: "Karma", zh: "积分" },
   sidebarStreak: { en: "Streak", zh: "连续天数" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
+  ariaAchievements: { en: "Achievements", zh: "成就" },
   leaderboardError: { en: "Failed to load leaderboard", zh: "排行榜加载失败" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

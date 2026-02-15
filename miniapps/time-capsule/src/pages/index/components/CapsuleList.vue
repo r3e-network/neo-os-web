@@ -1,70 +1,75 @@
 <template>
   <NeoCard variant="erobo">
-    <view v-if="capsules.length === 0" class="empty-state">
-      <view class="empty-icon"><AppIcon name="archive" :size="64" class="text-secondary" /></view>
-      <text class="empty-text">{{ t("noCapsules") }}</text>
-    </view>
-
-    <view v-for="cap in capsules" :key="cap.id" :class="['capsule-container', cap.locked ? 'locked' : 'unlocked']">
-      <!-- Capsule Visual -->
-      <view class="capsule-visual">
-        <view class="capsule-body">
-          <view class="capsule-top"></view>
-          <view class="capsule-middle">
-            <view class="lock-indicator">
-              <AppIcon v-if="cap.locked" name="lock" :size="20" />
-              <AppIcon v-else name="unlock" :size="20" />
+    <ItemList :items="capsules" item-key="id">
+      <template #empty>
+        <view class="empty-state">
+          <view class="empty-icon"><AppIcon name="archive" :size="64" class="text-secondary" /></view>
+          <text class="empty-text">{{ t("noCapsules") }}</text>
+        </view>
+      </template>
+      <template #item="{ item: cap }">
+        <view :class="['capsule-container', cap.locked ? 'locked' : 'unlocked']">
+          <!-- Capsule Visual -->
+          <view class="capsule-visual">
+            <view class="capsule-body">
+              <view class="capsule-top"></view>
+              <view class="capsule-middle">
+                <view class="lock-indicator">
+                  <AppIcon v-if="cap.locked" name="lock" :size="20" />
+                  <AppIcon v-else name="unlock" :size="20" />
+                </view>
+              </view>
+              <view class="capsule-bottom"></view>
             </view>
           </view>
-          <view class="capsule-bottom"></view>
-        </view>
-      </view>
 
-      <!-- Capsule Info -->
-      <view class="capsule-details">
-        <text class="capsule-name">{{ cap.title ? cap.title : `Capsule #${cap.id}` }}</text>
-        <view class="capsule-tags">
-          <text class="capsule-tag">{{ cap.isPublic ? t("public") : t("private") }}</text>
-        </view>
+          <!-- Capsule Info -->
+          <view class="capsule-details">
+            <text class="capsule-name">{{ cap.title ? cap.title : `Capsule #${cap.id}` }}</text>
+            <view class="capsule-tags">
+              <text class="capsule-tag">{{ cap.isPublic ? t("public") : t("private") }}</text>
+            </view>
 
-        <!-- Countdown Timer for Locked Capsules -->
-        <view v-if="cap.locked" class="countdown-section">
-          <text class="countdown-label">{{ t("timeRemaining") }}</text>
-          <view class="countdown-display">
-            <view class="countdown-unit">
-              <text class="countdown-value">{{ getCountdown(cap.unlockTime).days }}</text>
-              <text class="countdown-unit-label">{{ t("daysShort") }}</text>
+            <!-- Countdown Timer for Locked Capsules -->
+            <view v-if="cap.locked" class="countdown-section">
+              <text class="countdown-label">{{ t("timeRemaining") }}</text>
+              <view class="countdown-display">
+                <view class="countdown-unit">
+                  <text class="countdown-value">{{ getCountdown(cap.unlockTime).days }}</text>
+                  <text class="countdown-unit-label">{{ t("daysShort") }}</text>
+                </view>
+                <text class="countdown-separator">:</text>
+                <view class="countdown-unit">
+                  <text class="countdown-value">{{ getCountdown(cap.unlockTime).hours }}</text>
+                  <text class="countdown-unit-label">{{ t("hoursShort") }}</text>
+                </view>
+                <text class="countdown-separator">:</text>
+                <view class="countdown-unit">
+                  <text class="countdown-value">{{ getCountdown(cap.unlockTime).minutes }}</text>
+                  <text class="countdown-unit-label">{{ t("minShort") }}</text>
+                </view>
+              </view>
+              <text class="unlock-date">{{ t("unlocks") }} {{ cap.unlockDate }}</text>
+              <text v-if="cap.contentHash" class="content-hash">{{ t("hashLabel") }} {{ cap.contentHash }}</text>
             </view>
-            <text class="countdown-separator">:</text>
-            <view class="countdown-unit">
-              <text class="countdown-value">{{ getCountdown(cap.unlockTime).hours }}</text>
-              <text class="countdown-unit-label">{{ t("hoursShort") }}</text>
-            </view>
-            <text class="countdown-separator">:</text>
-            <view class="countdown-unit">
-              <text class="countdown-value">{{ getCountdown(cap.unlockTime).minutes }}</text>
-              <text class="countdown-unit-label">{{ t("minShort") }}</text>
+
+            <!-- Unlocked Status -->
+            <view v-else class="unlocked-section">
+              <text class="unlocked-label">{{ cap.revealed ? t("revealed") : t("unlocked") }}</text>
+              <NeoButton variant="success" size="md" @click="$emit('open', cap)">
+                {{ cap.revealed ? t("open") : t("reveal") }}
+              </NeoButton>
+              <text v-if="cap.contentHash" class="content-hash">{{ t("hashLabel") }} {{ cap.contentHash }}</text>
             </view>
           </view>
-          <text class="unlock-date">{{ t("unlocks") }} {{ cap.unlockDate }}</text>
-          <text v-if="cap.contentHash" class="content-hash">{{ t("hashLabel") }} {{ cap.contentHash }}</text>
         </view>
-
-        <!-- Unlocked Status -->
-        <view v-else class="unlocked-section">
-          <text class="unlocked-label">{{ cap.revealed ? t("revealed") : t("unlocked") }}</text>
-          <NeoButton variant="success" size="md" @click="$emit('open', cap)">
-            {{ cap.revealed ? t("open") : t("reveal") }}
-          </NeoButton>
-          <text v-if="cap.contentHash" class="content-hash">{{ t("hashLabel") }} {{ cap.contentHash }}</text>
-        </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard, AppIcon, NeoButton } from "@shared/components";
+import { NeoCard, AppIcon, ItemList } from "@shared/components";
 
 export interface Capsule {
   id: string;
@@ -107,6 +112,7 @@ const getCountdown = (unlockTime: number) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .card {
   background: var(--bg-card, white);
@@ -255,9 +261,7 @@ const getCountdown = (unlockTime: number) => {
   text-align: center;
 }
 .countdown-value {
-  font-size: 16px;
-  font-weight: 700;
-  font-family: $font-mono;
+  @include mono-number(16px);
 }
 .countdown-unit-label {
   font-size: 8px;

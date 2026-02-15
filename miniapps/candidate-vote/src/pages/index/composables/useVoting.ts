@@ -1,4 +1,4 @@
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import type { WalletSDK } from "@neo/types";
 import type { GovernanceCandidate } from "../utils";
 import { parseInvokeResult } from "@shared/utils/neo";

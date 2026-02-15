@@ -1,8 +1,9 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Stream Vault", zh: "流式金库" },
   createTab: { en: "Create", zh: "创建" },
   vaultsTab: { en: "Vaults", zh: "金库" },
-  docs: { en: "Docs", zh: "文档" },
 
   vaultName: { en: "Vault name", zh: "金库名称" },
   vaultNamePlaceholder: { en: "Monthly payroll stream", zh: "每月工资流" },
@@ -20,14 +21,8 @@ export const messages = {
   notesPlaceholder: { en: "Add context for the recipient", zh: "补充说明" },
 
   createVault: { en: "Create Vault", zh: "创建金库" },
-  creating: { en: "Creating...", zh: "创建中..." },
   vaultCreated: { en: "Vault created", zh: "金库已创建" },
 
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
 
   invalidAddress: { en: "Invalid beneficiary address", zh: "受益人地址无效" },
@@ -40,7 +35,6 @@ export const messages = {
   beneficiaryVaults: { en: "For you", zh: "我受益的" },
   emptyVaults: { en: "No vaults yet", zh: "暂无金库" },
   refresh: { en: "Refresh", zh: "刷新" },
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   sidebarCreatedStreams: { en: "Created Streams", zh: "已创建流" },
   sidebarBeneficiaryStreams: { en: "Beneficiary Streams", zh: "受益流" },
   sidebarTotalStreams: { en: "Total Streams", zh: "总流数量" },
@@ -56,7 +50,6 @@ export const messages = {
   rateLabel: { en: "Release", zh: "释放" },
 
   claim: { en: "Claim", zh: "领取" },
-  cancel: { en: "Cancel", zh: "取消" },
   claiming: { en: "Claiming...", zh: "领取中..." },
   cancelling: { en: "Cancelling...", zh: "取消中..." },
 
@@ -68,7 +61,10 @@ export const messages = {
     en: "Stream Vault locks GAS and stores a release schedule on-chain. Claimable amounts accrue per interval, letting beneficiaries claim over time while creators can cancel and recover unvested funds.",
     zh: "流式金库锁定 GAS，并将释放计划上链。可领取金额按周期累积，受益人按期领取，创建者可取消并收回未释放的余额。",
   },
-  step1: { en: "Create a vault with beneficiary, asset, total, and interval.", zh: "填写受益人、资产、总金额与周期创建金库。" },
+  step1: {
+    en: "Create a vault with beneficiary, asset, total, and interval.",
+    zh: "填写受益人、资产、总金额与周期创建金库。",
+  },
   step2: { en: "Funds lock immediately and begin the release schedule.", zh: "资金立即锁定并开始按周期释放。" },
   step3: { en: "Beneficiary claims accumulated amounts each period.", zh: "受益人按期领取累积的可领取金额。" },
   step4: { en: "Creator can cancel and reclaim remaining balance.", zh: "创建者可取消并取回剩余余额。" },
@@ -76,13 +72,9 @@ export const messages = {
   feature1Desc: { en: "Release amount is tied to a fixed interval.", zh: "释放金额与固定周期绑定。" },
   feature2Name: { en: "Claim Tracking", zh: "领取跟踪" },
   feature2Desc: { en: "On-chain tracking of released vs remaining funds.", zh: "链上记录已释放与剩余金额。" },
+  ariaStreams: { en: "Streams", zh: "流" },
   feature3Name: { en: "Cancelable", zh: "可取消" },
   feature3Desc: { en: "Creators can reclaim unvested funds at any time.", zh: "创建者可随时取回未释放余额。" },
+} as const;
 
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
-  overview: { en: "Overview", zh: "概览" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+export const messages = mergeMessages(appMessages);

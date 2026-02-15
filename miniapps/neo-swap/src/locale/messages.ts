@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Neo Swap", zh: "Neo 兑换" },
   subtitle: { en: "Swap NEO ↔ GAS via Flamingo DEX", zh: "通过 Flamingo DEX 兑换 NEO ↔ GAS" },
@@ -16,7 +18,6 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
   rateUnavailable: { en: "Rate unavailable", zh: "汇率不可用" },
   loadingRate: { en: "Loading rate...", zh: "正在加载汇率..." },
   refreshRate: { en: "Refresh rate", zh: "刷新汇率" },
-  insufficientBalance: { en: "Insufficient balance", zh: "余额不足" },
   swapping: { en: "Swapping...", zh: "兑换中..." },
   selectToken: { en: "Select Token", zh: "选择代币" },
   swapSuccess: { en: "Swapped", zh: "兑换成功" },
@@ -34,7 +35,6 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
   yourPosition: { en: "Your Position", zh: "您的仓位" },
   poolShare: { en: "Pool Share", zh: "池份额" },
   addLiquidity: { en: "Add Liquidity", zh: "添加流动性" },
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Instant NEO/GAS swaps via Flamingo DEX",
     zh: "通过 Flamingo DEX 即时兑换 NEO/GAS",
@@ -75,18 +75,7 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
     zh: "兑换通过 Flamingo 的链上路由合约执行。",
   },
   popularPairs: { en: "Popular Pairs", zh: "热门交易对" },
-  error: { en: "Error", zh: "错误" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     sidebarRate: { en: "Rate", zh: "汇率" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     appTitle: {
         en: "Neo N3 Converter",
         zh: "Neo N3 转换工具"
@@ -18,10 +20,6 @@ export const messages = {
     tabConvert: {
         en: "Convert",
         zh: "转换"
-    },
-    docs: {
-        en: "Docs",
-        zh: "文档"
     },
     docTitle: {
         en: "Neo Convert Documentation",
@@ -90,10 +88,6 @@ export const messages = {
     btnGenerate: {
         en: "Generate",
         zh: "生成"
-    },
-    loading: {
-        en: "Loading...",
-        zh: "加载中..."
     },
     privateBadge: {
         en: "PRIVATE",
@@ -203,28 +197,17 @@ export const messages = {
         en: "Private Key (Hex)",
         zh: "私钥 (Hex)"
     },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
     docBadge: { en: "DOCUMENTATION", zh: "文档" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     docFooter: { en: "Empowering the Smart Economy", zh: "赋能智能经济" },
     genEmptySub: {
         en: "Click Generate to create a new offline wallet",
         zh: "点击生成以创建一个新的离线钱包"
     },
-    wrongChain: { en: "Wrong Network", zh: "网络错误" },
-    wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-    switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
     sidebarActiveTab: { en: "Active Tab", zh: "当前标签" },
     sidebarMode: { en: "Mode", zh: "模式" },
     sidebarMobile: { en: "Mobile", zh: "移动端" },
     sidebarDesktop: { en: "Desktop", zh: "桌面端" },
     quickTools: { en: "Quick Tools", zh: "快捷工具" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-    error: { en: "Error", zh: "错误" }
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -44,12 +44,15 @@
 </template>
 
 <script setup lang="ts">
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import type { Trust } from "./TrustCard.vue";
 
 defineProps<{
   trust: Trust;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 </script>
 
 <style lang="scss" scoped>

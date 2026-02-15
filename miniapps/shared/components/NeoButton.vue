@@ -12,7 +12,7 @@
     :aria-label="ariaLabel"
     @click="$emit('click', $event)"
   >
-    <view v-if="loading" class="neo-btn__spinner" />
+    <view v-if="loading" class="neo-btn__spinner" aria-hidden="true" />
     <slot v-else />
   </button>
 </template>

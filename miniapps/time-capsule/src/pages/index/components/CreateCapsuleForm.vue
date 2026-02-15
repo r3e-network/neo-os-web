@@ -115,17 +115,15 @@ defineEmits(["update:title", "update:content", "update:days", "update:isPublic",
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .form-section {
   margin-bottom: $spacing-6;
 }
 .form-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
+  @include stat-label;
   margin-bottom: $spacing-2;
   display: block;
-  color: var(--text-secondary);
   letter-spacing: 0.05em;
 }
 .textarea-field {

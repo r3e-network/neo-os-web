@@ -83,7 +83,9 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { RelationshipContractView } from "@/types";
 
 const getContractVariant = (status: string) => {
@@ -102,10 +104,11 @@ const getContractVariant = (status: string) => {
 const props = defineProps<{
   contract: RelationshipContractView;
   address: string | null;
-  t: (key: string, ...args: unknown[]) => string;
 }>();
 
 defineEmits(["sign", "break"]);
+
+const { t } = createUseI18n(messages)();
 
 const canSign = computed(() =>
   Boolean(props.address && props.contract.status === "pending" && props.contract.party2 === props.address)
@@ -115,6 +118,7 @@ const canSign = computed(() =>
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .contract-card {
   position: relative;
@@ -206,15 +210,13 @@ const canSign = computed(() =>
 }
 
 .contract-title {
+  @include text-truncate;
   font-size: 14px;
   font-weight: 700;
   text-align: center;
   margin-bottom: 16px;
   color: var(--text-primary);
   letter-spacing: 0.02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .avatar {
@@ -270,9 +272,7 @@ const canSign = computed(() =>
 }
 
 .info-grid-glass {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  @include grid-layout(2, 12px);
   margin-bottom: 16px;
 }
 

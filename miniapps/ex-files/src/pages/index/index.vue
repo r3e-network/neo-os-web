@@ -1,73 +1,69 @@
 <template>
-  <view class="theme-ex-files">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-        <!-- Memory Archive -->
-        <MemoryArchive :sorted-records="sortedRecords" :t="t" @view="viewRecord" />
-        
-      </template>
+  <MiniAppPage
+    name="ex-files"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    @tab-change="activeTab = $event"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="init"
+  >
+    <template #content>
+      <!-- Memory Archive -->
+      <MemoryArchive :sorted-records="sortedRecords" :t="t" @view="viewRecord" />
+    </template>
 
-      <template #operation>
-        <QueryRecordForm
-          v-model:queryInput="queryInput"
-          :query-result="queryResult"
-          :is-loading="isLoading"
-          :t="t"
-          @query="queryRecord"
-        />
-      </template>
+    <template #operation>
+      <QueryRecordForm
+        v-model:queryInput="queryInput"
+        :query-result="queryResult"
+        :is-loading="isLoading"
+        :t="t"
+        @query="queryRecord"
+      />
+    </template>
 
-      <template #tab-upload>
-        <UploadForm
-          v-model:recordContent="recordContent"
-          v-model:recordRating="recordRating"
-          v-model:recordCategory="recordCategory"
-          :is-loading="isLoading"
-          :can-create="canCreate"
-          :t="t"
-          @create="createRecord"
-        />
-      </template>
+    <template #tab-upload>
+      <UploadForm
+        v-model:recordContent="recordContent"
+        v-model:recordRating="recordRating"
+        v-model:recordCategory="recordCategory"
+        :is-loading="isLoading"
+        :can-create="canCreate"
+        :t="t"
+        @create="createRecord"
+      />
+    </template>
 
-      <template #tab-stats>
-        <MiniAppTabStats variant="erobo" :stats="statsData" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #tab-stats>
+      <StatsTab :grid-items="statsData" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, MiniAppTabStats } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig } from "@shared/utils/createTemplateConfig";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 
-import QueryRecordForm from "./components/QueryRecordForm.vue";
 import MemoryArchive from "./components/MemoryArchive.vue";
-import UploadForm from "./components/UploadForm.vue";
 import { useExFiles } from "./composables/useExFiles";
 
-const { t } = createUseI18n(messages)();
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "files", labelKey: "tabFiles", icon: "📁", default: true },
-    { key: "upload", labelKey: "tabUpload", icon: "📤" },
-    { key: "stats", labelKey: "tabStats", icon: "📊" },
-  ],
+const { t, templateConfig, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "ex-files",
+  messages,
+  template: {
+    tabs: [
+      { key: "files", labelKey: "tabFiles", icon: "📁", default: true },
+      { key: "upload", labelKey: "tabUpload", icon: "📤" },
+      { key: "stats", labelKey: "tabStats", icon: "📊" },
+    ],
+  },
 });
 
 const {
@@ -89,11 +85,6 @@ const {
   queryRecord,
   init,
 } = useExFiles(t);
-
-const { handleBoundaryError } = useHandleBoundaryError("ex-files");
-const resetAndReload = async () => {
-  await init();
-};
 
 onMounted(init);
 </script>

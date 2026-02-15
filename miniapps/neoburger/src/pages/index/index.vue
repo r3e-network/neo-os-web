@@ -1,93 +1,88 @@
 <template>
-  <view class="theme-neoburger">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :fireworks-active="!!status && status.type === 'success'"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <view class="neoburger-shell">
-            <HeroSection
-              :total-staked-display="totalStakedDisplay"
-              :total-staked-usd-text="totalStakedUsdText"
-              :apr-display="aprDisplay"
-            />
+  <MiniAppPage
+    name="neoburger"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :fireworks-active="!!status && status.type === 'success'"
+    @tab-change="activeTab = $event"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload"
+  >
+    <template #content>
+      <view class="neoburger-shell">
+        <HeroSection
+          :total-staked-display="totalStakedDisplay"
+          :total-staked-usd-text="totalStakedUsdText"
+          :apr-display="aprDisplay"
+        />
 
-            <StatsPanel @switch-to-jazz="switchToJazz" @open-link="openExternal" />
-          </view>
-        
-      </template>
+        <StatsPanel @switch-to-jazz="switchToJazz" @open-link="openExternal" />
+      </view>
+    </template>
 
-      <template #operation>
-        <StationPanel
-          ref="stationPanelRef"
-          v-model:mode="homeMode"
-          :wallet-connected="walletConnected"
-          :can-submit="swap.swapCanSubmit"
-          :loading="loading"
-          :primary-action-label="primaryActionLabel"
-          :jazz-action-label="jazzActionLabel"
-          :daily-rewards="rewards.dailyRewards"
-          :weekly-rewards="rewards.weeklyRewards"
-          :monthly-rewards="rewards.monthlyRewards"
-          :total-rewards="rewards.totalRewards"
-          :total-rewards-usd-text="rewards.totalRewardsUsdText"
-          @learn-more="activeTab = 'docs'"
-          @set-amount="swap.setSwapAmount"
-          @primary-action="handlePrimaryAction"
-          @jazz-action="handleJazzAction"
-        >
-          <template #swap-interface>
-            <SwapInterface
-              :swap-mode="swap.swapMode"
-              :neo-balance="neoBalance"
-              :b-neo-balance="bNeoBalance"
-              :swap-amount="swap.swapAmount"
-              :swap-output="swap.swapOutput"
-              :swap-usd-text="swap.swapUsdText"
-              @update:swap-amount="swap.updateSwapAmount"
-              @toggle-mode="swap.toggleSwapMode"
-            />
-          </template>
-        </StationPanel>
-      </template>
+    <template #operation>
+      <StationPanel
+        ref="stationPanelRef"
+        v-model:mode="homeMode"
+        :wallet-connected="walletConnected"
+        :can-submit="swap.swapCanSubmit"
+        :loading="loading"
+        :primary-action-label="primaryActionLabel"
+        :jazz-action-label="jazzActionLabel"
+        :daily-rewards="rewards.dailyRewards"
+        :weekly-rewards="rewards.weeklyRewards"
+        :monthly-rewards="rewards.monthlyRewards"
+        :total-rewards="rewards.totalRewards"
+        :total-rewards-usd-text="rewards.totalRewardsUsdText"
+        @learn-more="activeTab = 'docs'"
+        @set-amount="swap.setSwapAmount"
+        @primary-action="handlePrimaryAction"
+        @jazz-action="handleJazzAction"
+      >
+        <template #swap-interface>
+          <SwapInterface
+            :swap-mode="swap.swapMode"
+            :neo-balance="neoBalance"
+            :b-neo-balance="bNeoBalance"
+            :swap-amount="swap.swapAmount"
+            :swap-output="swap.swapOutput"
+            :swap-usd-text="swap.swapUsdText"
+            @update:swap-amount="swap.updateSwapAmount"
+            @toggle-mode="swap.toggleSwapMode"
+          />
+        </template>
+      </StationPanel>
+    </template>
 
-      <template #tab-airdrop>
-        <AirdropPanel :wallet-connected="walletConnected" @connect-wallet="loadBalances" />
-      </template>
+    <template #tab-airdrop>
+      <AirdropPanel :wallet-connected="walletConnected" @connect-wallet="loadBalances" />
+    </template>
 
-      <template #tab-treasury>
-        <TreasuryPanel @copy="copyToClipboard" />
-      </template>
+    <template #tab-treasury>
+      <TreasuryPanel @copy="copyToClipboard" />
+    </template>
 
-      <template #tab-dashboard>
-        <DashboardPanel :total-staked-display="totalStakedDisplay" />
-      </template>
+    <template #tab-dashboard>
+      <DashboardPanel :total-staked-display="totalStakedDisplay" />
+    </template>
 
-      <template #tab-docs>
-        <DocsPanel @open-docs="openExternal" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #tab-docs>
+      <DocsPanel @open-docs="openExternal" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { MiniAppShell } from "@shared/components";
+import { MiniAppPage } from "@shared/components";
 import type { UniAppGlobals } from "@shared/types/globals";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 
 import { useNeoburgerCore } from "@/composables/useNeoburgerCore";
 import { useNeoburgerRewards } from "@/composables/useNeoburgerRewards";
@@ -96,14 +91,7 @@ import { useNeoburgerStats } from "@/composables/useNeoburgerStats";
 
 import HeroSection from "@/components/HeroSection.vue";
 import StationPanel from "@/components/StationPanel.vue";
-import SwapInterface from "@/components/SwapInterface.vue";
 import StatsPanel from "@/components/StatsPanel.vue";
-import AirdropPanel from "@/components/AirdropPanel.vue";
-import TreasuryPanel from "@/components/TreasuryPanel.vue";
-import DashboardPanel from "@/components/DashboardPanel.vue";
-import DocsPanel from "@/components/DocsPanel.vue";
-
-const { t } = createUseI18n(messages)();
 
 const { neoBalance, bNeoBalance, walletConnected, BNEO_CONTRACT, loadBalances, handleClaimRewards } =
   useNeoburgerCore();
@@ -112,19 +100,30 @@ const activeTab = ref("home");
 const homeMode = ref<"burger" | "jazz">("burger");
 const stationPanelRef = ref<InstanceType<typeof StationPanel> | null>(null);
 
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "home", labelKey: "tabHome", icon: "🏠", default: true },
-    { key: "airdrop", labelKey: "tabAirdrop", icon: "🚀" },
-    { key: "treasury", labelKey: "tabTreasury", icon: "🏦" },
-    { key: "dashboard", labelKey: "tabDashboard", icon: "📊" },
-  ],
-  fireworks: true,
-  docFeatureCount: 3,
-});
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } =
+  createMiniApp({
+    name: "neoburger",
+    messages,
+    template: {
+      tabs: [
+        { key: "home", labelKey: "tabHome", icon: "🏠", default: true },
+        { key: "airdrop", labelKey: "tabAirdrop", icon: "🚀" },
+        { key: "treasury", labelKey: "tabTreasury", icon: "🏦" },
+        { key: "dashboard", labelKey: "tabDashboard", icon: "📊" },
+      ],
+      fireworks: true,
+      docFeatureCount: 3,
+    },
+    sidebarItems: [
+      { labelKey: "sidebarNeoBalance", value: () => neoBalance.value ?? "—" },
+      { labelKey: "sidebarBneoBalance", value: () => bNeoBalance.value ?? "—" },
+      { labelKey: "sidebarTotalStaked", value: () => totalStakedDisplay.value },
+      { labelKey: "sidebarApr", value: () => aprDisplay.value },
+    ],
+  });
 
+const showStatus = setStatus;
 const loading = ref(false);
-const { status, setStatus: showStatus } = useStatusMessage();
 
 const { apy, priceData, aprDisplay, totalStakedDisplay, totalStakedUsdText, loadApy, loadPrices } = useNeoburgerStats();
 
@@ -137,13 +136,6 @@ const appState = computed(() => ({
   neoBalance: neoBalance.value,
   bNeoBalance: bNeoBalance.value,
 }));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "sidebarNeoBalance", value: () => neoBalance.value ?? "—" },
-  { labelKey: "sidebarBneoBalance", value: () => bNeoBalance.value ?? "—" },
-  { labelKey: "sidebarTotalStaked", value: () => totalStakedDisplay.value },
-  { labelKey: "sidebarApr", value: () => aprDisplay.value },
-]);
 
 const primaryActionLabel = computed(() => (walletConnected.value ? swap.swapButtonLabel : t("connectWallet")));
 const jazzActionLabel = computed(() => (walletConnected.value ? t("claimRewards") : t("connectWallet")));
@@ -222,7 +214,6 @@ onMounted(() => {
   loadPrices();
 });
 
-const { handleBoundaryError } = useHandleBoundaryError("neoburger");
 const resetAndReload = async () => {
   await loadBalances();
   await loadApy();

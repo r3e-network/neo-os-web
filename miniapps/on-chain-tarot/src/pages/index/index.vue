@@ -1,106 +1,120 @@
 <template>
-  <view class="theme-on-chain-tarot">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- Game Tab (default) — LEFT panel -->
-      <template #content>
-        
-          <GameArea
-            v-model:question="question"
-            :drawn="drawn"
-            :has-drawn="hasDrawn"
-            :is-loading="isLoading"
-            :t="t"
-            @draw="draw"
-            @reset="reset"
-            @flip="flipCard"
-          />
+  <MiniAppPage
+    name="on-chain-tarot"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="loadReadingCount"
+  >
+    <!-- Game Tab (default) — LEFT panel -->
+    <template #content>
+      <GameArea
+        v-model:question="question"
+        :drawn="drawn"
+        :has-drawn="hasDrawn"
+        :is-loading="isLoading"
+        :t="t"
+        @draw="draw"
+        @reset="reset"
+        @flip="flipCard"
+      />
 
-          <ReadingDisplay v-if="hasDrawn && allFlipped" :reading="getReading()" />
-        
-      </template>
+      <ReadingDisplay v-if="hasDrawn && allFlipped" :reading="getReading()" role="status" aria-live="polite" />
+    </template>
 
-      <!-- RIGHT panel: Actions -->
-      <template #operation>
-        <MiniAppOperationStats :stats="tarotStats" stats-position="bottom">
-          <view class="action-buttons">
-            <NeoButton variant="primary" size="lg" block :loading="isLoading" :disabled="hasDrawn" @click="draw">
-              {{ t("drawingCards") }}
-            </NeoButton>
-            <NeoButton v-if="hasDrawn" variant="secondary" size="lg" block @click="reset">
-              {{ t("reset") }}
-            </NeoButton>
-          </view>
-        </MiniAppOperationStats>
-      </template>
+    <!-- RIGHT panel: Actions -->
+    <template #operation>
+      <NeoCard>
+        <view class="action-buttons">
+          <NeoButton variant="primary" size="lg" block :loading="isLoading" :disabled="hasDrawn" @click="draw">
+            {{ t("drawingCards") }}
+          </NeoButton>
+          <NeoButton v-if="hasDrawn" variant="secondary" size="lg" block @click="reset">
+            {{ t("reset") }}
+          </NeoButton>
+        </view>
+        <StatsDisplay :items="tarotStats" layout="rows" />
+      </NeoCard>
+    </template>
 
-      <!-- Stats Tab -->
-      <template #tab-stats>
-        <StatisticsTab :readings-count="readingsCount" :t="t" />
-      </template>
-    </MiniAppShell>
-  </view>
+    <!-- Stats Tab -->
+    <template #tab-stats>
+      <StatisticsTab :readings-count="readingsCount" :t="t" />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useWallet, useEvents } from "@neo/uniapp-sdk";
 import type { WalletSDK } from "@neo/types";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { parseStackItem } from "@shared/utils/neo";
-import { MiniAppShell, MiniAppOperationStats, NeoButton } from "@shared/components";
+import { MiniAppPage } from "@shared/components";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage, pollForEvent } from "@shared/utils/errorHandling";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createPrimaryStatsTemplateConfig, createSidebarItems, waitForListedEventByTransaction } from "@shared/utils";
+import { createMiniApp } from "@shared/utils/createMiniApp";
+import { waitForListedEventByTransaction } from "@shared/utils";
 
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
-import StatisticsTab from "./components/StatisticsTab.vue";
 import type { Card } from "./components/TarotCard.vue";
 import { TAROT_DECK } from "./components/tarot-data";
-
-const { t } = createUseI18n(messages)();
-
-const templateConfig = createPrimaryStatsTemplateConfig({ key: "game", labelKey: "game", icon: "🎴", default: true });
-const appState = computed(() => ({
-  readingsCount: readingsCount.value,
-  hasDrawn: hasDrawn.value,
-}));
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "readings", value: () => readingsCount.value },
-  { labelKey: "cardsDrawnCount", value: () => drawn.value.length },
-  { labelKey: "allRevealed", value: () => (allFlipped.value ? t("yes") : t("no")) },
-]);
 
 const APP_ID = "miniapp-onchaintarot";
 const { address, connect } = useWallet() as WalletSDK;
 const { processPayment, isLoading } = usePaymentFlow(APP_ID);
 const { list: listEvents } = useEvents();
-const { ensure: ensureContractAddress } = useContractAddress(t);
 
 // Use the imported full deck
 const tarotDeck = TAROT_DECK;
 
 const drawn = ref<Card[]>([]);
-const { status, setStatus, clearStatus } = useStatusMessage();
 const hasDrawn = computed(() => drawn.value.length === 3);
 const allFlipped = computed(() => drawn.value.every((c) => c.flipped));
 const readingsCount = ref(0);
 const question = ref("");
 
-const tarotStats = computed(() => [
+const {
+  t,
+  templateConfig,
+  sidebarItems,
+  sidebarTitle,
+  fallbackMessage,
+  status,
+  setStatus,
+  clearStatus,
+  handleBoundaryError,
+} = createMiniApp({
+  name: "on-chain-tarot",
+  messages,
+  template: {
+    tabs: [
+      { key: "game", labelKey: "game", icon: "🎴", default: true },
+      { key: "stats", labelKey: "stats", icon: "📊" },
+    ],
+  },
+  sidebarItems: [
+    { labelKey: "readings", value: () => readingsCount.value },
+    { labelKey: "cardsDrawnCount", value: () => drawn.value.length },
+    { labelKey: "allRevealed", value: () => (allFlipped.value ? t("yes") : t("no")) },
+  ],
+});
+
+const { ensure: ensureContractAddress } = useContractAddress(t);
+
+const appState = computed(() => ({
+  readingsCount: readingsCount.value,
+  hasDrawn: hasDrawn.value,
+}));
+
+const tarotStats = computed<StatsDisplayItem[]>(() => [
   { label: t("readings"), value: readingsCount.value },
   { label: t("cardsDrawnCount"), value: drawn.value.length },
 ]);
@@ -219,11 +233,6 @@ const loadReadingCount = async () => {
 onMounted(async () => {
   await loadReadingCount();
 });
-
-const { handleBoundaryError } = useHandleBoundaryError("on-chain-tarot");
-const resetAndReload = async () => {
-  await loadReadingCount();
-};
 </script>
 
 <style lang="scss" scoped>

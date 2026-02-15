@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Neo Treasury", zh: "Neo 国库" },
   docSubtitle: { en: "Community treasury management", zh: "社区国库管理" },
   docDescription: {
@@ -15,18 +17,8 @@ export const messages = {
   deposit: { en: "Deposit", zh: "存入" },
   withdraw: { en: "Withdraw", zh: "提取" },
   proposals: { en: "Proposals", zh: "提案" },
-  history: { en: "History", zh: "历史" },
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
-  success: { en: "Success", zh: "成功" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  docs: { en: "Docs", zh: "文档" },
   loadFailed: { en: "Failed to load", zh: "加载失败" },
   refreshing: { en: "Refreshing...", zh: "刷新中..." },
-  retry: { en: "Retry", zh: "重试" },
   step1: { en: "Connect your wallet", zh: "连接您的钱包" },
   step2: { en: "View treasury balance", zh: "查看国库余额" },
   step3: { en: "Create or vote on proposals", zh: "创建或投票提案" },
@@ -40,5 +32,6 @@ export const messages = {
   sidebarFounders: { en: "Founders", zh: "创始人" },
   treasuryInfo: { en: "Treasury Info", zh: "国库信息" },
   refreshData: { en: "Refresh Data", zh: "刷新数据" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

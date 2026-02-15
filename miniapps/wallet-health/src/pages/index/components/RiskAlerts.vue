@@ -4,7 +4,7 @@
       <NeoCard variant="danger">
         <view class="flex flex-col items-center gap-2 py-1">
           <text class="text-center font-bold text-red-400">{{ t("wrongChain") }}</text>
-          <text class="text-xs text-center opacity-80 text-white">{{ t("wrongChainMessage") }}</text>
+          <text class="text-center text-xs text-white opacity-80">{{ t("wrongChainMessage") }}</text>
           <NeoButton size="sm" variant="secondary" class="mt-2" @click="$emit('switchChain')">
             {{ t("switchToNeo") }}
           </NeoButton>
@@ -27,6 +27,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton, AppIcon } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 interface Status {
   msg: string;
@@ -39,8 +41,9 @@ defineProps<{
   riskLabel: string;
   riskClass: string;
   riskIcon: string;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["switchChain"]);
 </script>

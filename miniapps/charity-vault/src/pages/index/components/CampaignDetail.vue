@@ -8,7 +8,8 @@
 
     <!-- Campaign Header -->
     <view class="detail-header">
-      <view class="detail-category">{{ getCategoryLabel(campaign.category) }}</view>
+      <view class="detail-category">{{ categoryLabel }}</view>
+
       <view class="detail-title">{{ campaign.title }}</view>
       <view class="detail-organizer">{{ t("organizer") }}: {{ formatAddress(campaign.organizer) }}</view>
 
@@ -51,9 +52,14 @@
     </view>
 
     <!-- Donation Form -->
-    <view v-if="campaign.status === 'active'" class="donation-form">
-      <view class="section-title">{{ t("makeDonation") }}</view>
-
+    <FormCard
+      v-if="campaign.status === 'active'"
+      :title="t('makeDonation')"
+      :submit-label="isDonating ? t('donationPending') : t('confirmDonation')"
+      :submit-loading="isDonating"
+      :submit-disabled="isDonating || !isValidDonation()"
+      @submit="submitDonation"
+    >
       <view class="quick-amounts">
         <view
           v-for="amount in [1, 5, 10, 50]"
@@ -94,28 +100,27 @@
         <text class="summary-label">{{ t("donationAmount") }}:</text>
         <text class="summary-value">{{ donationForm.amount || 0 }} GAS</text>
       </view>
-
-      <button class="donate-button" :disabled="isDonating || !isValidDonation()" @click="submitDonation">
-        <text>{{ isDonating ? t("donationPending") : t("confirmDonation") }}</text>
-      </button>
-    </view>
+    </FormCard>
   </view>
 </template>
 
 <script setup lang="ts">
 import { reactive, computed, inject } from "vue";
+import { FormCard } from "@shared/components";
 import { formatAddress } from "@shared/utils/format";
-import { getCategoryLabel } from "@/utils/labels";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { CharityCampaign, Donation } from "@/types";
 
 interface Props {
   campaign: CharityCampaign;
   recentDonations: Donation[];
   isDonating: boolean;
-  t: (key: string) => string;
 }
 
 const props = defineProps<Props>();
+
+const { t } = createUseI18n(messages)();
 
 const address = inject("address") as { value: string };
 
@@ -123,6 +128,21 @@ const emit = defineEmits<{
   back: [];
   donate: [data: { amount: number; message: string }];
 }>();
+
+const CATEGORY_LOCALE_KEYS: Record<string, string> = {
+  disaster: "categoryDisaster",
+  education: "categoryEducation",
+  health: "categoryHealth",
+  environment: "categoryEnvironment",
+  poverty: "categoryPoverty",
+  animals: "categoryAnimals",
+  other: "categoryOther",
+};
+
+const categoryLabel = computed(() => {
+  const key = CATEGORY_LOCALE_KEYS[props.campaign.category] || "categoryOther";
+  return t(key);
+});
 
 const donationForm = reactive({
   amount: 10,

@@ -8,18 +8,9 @@
       <text class="status-text-glass">{{ localStatus.msg }}</text>
     </NeoCard>
 
-    <GardenGrid
-      :plots="plots"
-      :ready-label="t('ready')"
-      :empty-label="t('noEmptyPlots')"
-      @select="selectPlot"
-    />
+    <GardenGrid :plots="plots" :ready-label="t('ready')" :empty-label="t('noEmptyPlots')" @select="selectPlot" />
 
-    <SeedList
-      :seeds="seeds"
-      :hours-label="t('hoursToGrow')"
-      @plant="plantSeed"
-    />
+    <SeedList :seeds="seeds" :hours-label="t('hoursToGrow')" @plant="plantSeed" />
 
     <NeoCard variant="erobo-bitcoin" class="mb-4">
       <view class="action-btns-glass flex gap-3">
@@ -37,15 +28,18 @@
 
 <script setup lang="ts">
 import { NeoButton, NeoCard, Fireworks } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import GardenGrid from "./GardenGrid.vue";
 import SeedList from "./SeedList.vue";
 import { useGarden } from "../composables/useGarden";
 
 const props = defineProps<{
-  t: (key: string) => string;
   contractAddress: string | null;
   ensureContractAddress: () => Promise<void>;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "update:stats", stats: { totalPlants: number; readyToHarvest: number; totalHarvested: number }): void;
@@ -62,11 +56,7 @@ const {
   plantSeed,
   harvestAll,
   setStatsEmitter,
-} = useGarden(
-  props.t,
-  () => props.contractAddress,
-  props.ensureContractAddress,
-);
+} = useGarden(t, () => props.contractAddress, props.ensureContractAddress);
 
 setStatsEmitter((stats) => emit("update:stats", stats));
 </script>
@@ -74,6 +64,7 @@ setStatsEmitter((stats) => emit("update:stats", stats));
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .tab-container-glass {
   padding: $spacing-4;

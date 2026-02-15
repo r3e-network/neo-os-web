@@ -1,15 +1,11 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Soulbound Certificate", zh: "灵魂绑定证书" },
   templatesTab: { en: "Templates", zh: "模板" },
   certificatesTab: { en: "My Certificates", zh: "我的证书" },
   verifyTab: { en: "Verify", zh: "核验" },
-  docs: { en: "Docs", zh: "文档" },
 
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
 
   templateName: { en: "Certificate name", zh: "证书名称" },
@@ -24,14 +20,12 @@ export const messages = {
   descriptionPlaceholder: { en: "Issued to graduates of the Neo course", zh: "颁发给完成 Neo 课程的学员" },
 
   createTemplate: { en: "Create Template", zh: "创建模板" },
-  creating: { en: "Creating...", zh: "创建中..." },
   templateCreated: { en: "Template created", zh: "模板已创建" },
   templateUpdated: { en: "Template updated", zh: "模板已更新" },
 
   yourTemplates: { en: "Your Templates", zh: "我的模板" },
   refresh: { en: "Refresh", zh: "刷新" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   emptyTemplates: { en: "No templates yet", zh: "暂无模板" },
 
   statusActive: { en: "Active", zh: "启用" },
@@ -55,14 +49,12 @@ export const messages = {
   issue: { en: "Issue", zh: "签发" },
   issuing: { en: "Issuing...", zh: "签发中..." },
   issuedSuccess: { en: "Certificate issued", zh: "证书已签发" },
-  cancel: { en: "Cancel", zh: "取消" },
 
   emptyCertificates: { en: "No certificates yet", zh: "暂无证书" },
   certificateRevoked: { en: "Revoked", zh: "已撤销" },
   certificateValid: { en: "Valid", zh: "有效" },
   tokenId: { en: "Token ID", zh: "Token ID" },
   copyTokenId: { en: "Copy Token ID", zh: "复制 Token ID" },
-  copied: { en: "Copied", zh: "已复制" },
 
   verifyTokenId: { en: "Token ID", zh: "Token ID" },
   verifyTokenIdPlaceholder: { en: "Enter token ID", zh: "输入 Token ID" },
@@ -93,7 +85,9 @@ export const messages = {
   feature2Desc: { en: "Templates define issuer data and supply limits.", zh: "模板定义发行方信息与发放上限。" },
   feature3Name: { en: "Revocation + Verify", zh: "撤销与核验" },
   feature3Desc: { en: "Issuers can revoke and verifiers can check status.", zh: "发行方可撤销，核验方可查询状态。" },
-  overview: { en: "Overview", zh: "概览" },
+  ariaTemplates: { en: "Templates", zh: "模板" },
+  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   sidebarActive: { en: "Active", zh: "启用" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

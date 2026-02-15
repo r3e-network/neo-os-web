@@ -3,9 +3,9 @@
     <view class="content-card">
       <text class="card-title">{{ t("yourBadges") }}</text>
       <view class="badges-grid">
-        <view 
-          v-for="badge in badges" 
-          :key="badge.id" 
+        <view
+          v-for="badge in badges"
+          :key="badge.id"
           class="badge-item"
           :class="{ unlocked: badge.unlocked, locked: !badge.unlocked }"
         >
@@ -41,6 +41,7 @@ const { t } = createUseI18n(messages)();
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
 .badges-section {
   display: flex;
   flex-direction: column;
@@ -64,9 +65,7 @@ const { t } = createUseI18n(messages)();
 }
 
 .badges-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  @include grid-layout(4, 12px);
 }
 
 .badge-item {
@@ -75,12 +74,12 @@ const { t } = createUseI18n(messages)();
   background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
   transition: all 0.2s;
-  
+
   &.unlocked {
     background: rgba(245, 158, 11, 0.1);
     border: 1px solid rgba(245, 158, 11, 0.3);
   }
-  
+
   &.locked {
     opacity: 0.5;
     filter: grayscale(0.5);

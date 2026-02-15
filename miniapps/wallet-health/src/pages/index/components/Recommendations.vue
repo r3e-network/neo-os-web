@@ -15,15 +15,19 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   recommendations: string[];
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 </script>
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .recommendation-card {
   display: flex;

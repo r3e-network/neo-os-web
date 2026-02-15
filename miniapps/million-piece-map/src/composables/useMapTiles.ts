@@ -1,9 +1,7 @@
 import { ref, computed } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { useContractAddress } from "@shared/composables/useContractAddress";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
-import { formatNumber } from "@shared/utils/format";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
+import { formatNum } from "@shared/utils/format";
 
 const APP_ID = "miniapp-millionpiecemap";
 const GRID_SIZE = 64;
@@ -31,10 +29,8 @@ export type Tile = {
 };
 
 export function useMapTiles() {
-  const { address, invokeRead } = useWallet() as WalletSDK;
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? "Contract unavailable" : key
-  );
+  const t = (key: string) => (key === "contractUnavailable" ? "Contract unavailable" : key);
+  const { address, read, ensureContractAddress } = useContractInteraction({ appId: APP_ID, t });
 
   const tiles = ref<Tile[]>(
     Array.from({ length: GRID_SIZE }, (_, i) => ({
@@ -54,8 +50,6 @@ export function useMapTiles() {
   const ownedTiles = computed(() => tiles.value.filter((tile) => tile.isYours).length);
   const totalSpent = computed(() => ownedTiles.value * TILE_PRICE);
   const coverage = computed(() => Math.round((ownedTiles.value / GRID_SIZE) * 100));
-  const formatNum = (n: number) => formatNumber(n, 2);
-
   const getOwnerColorIndex = (owner: string) => {
     if (!owner) return 0;
     let hash = 0;
@@ -102,20 +96,16 @@ export function useMapTiles() {
   };
 
   const loadTiles = async () => {
-    const contract = await ensureContractAddress();
+    await ensureContractAddress();
     const userHash = address.value ? normalizeScriptHash(addressToScriptHash(address.value)) : "";
 
     const updates = await Promise.all(
       tiles.value.map(async (tile) => {
-        const res = await invokeRead({
-          scriptHash: contract,
-          operation: "GetPiece",
-          args: [
-            { type: "Integer", value: String(tile.x) },
-            { type: "Integer", value: String(tile.y) },
-          ],
-        });
-        const parsed = parsePiece(parseInvokeResult(res));
+        const res = await read("GetPiece", [
+          { type: "Integer", value: String(tile.x) },
+          { type: "Integer", value: String(tile.y) },
+        ]);
+        const parsed = parsePiece(res);
         const ownerHash = normalizeScriptHash(parsed?.owner || "");
         const owned = Boolean(ownerHash);
         const isYours = Boolean(userHash && ownerHash && ownerHash === userHash);

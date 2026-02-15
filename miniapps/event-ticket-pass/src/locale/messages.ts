@@ -1,15 +1,11 @@
-export const messages = {
-  error: { en: "Error", zh: "错误" },
-  loading: { en: "Loading...", zh: "加载中..." },
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Event Ticket Pass", zh: "活动门票通行证" },
   createTab: { en: "Create", zh: "创建" },
   ticketsTab: { en: "My Tickets", zh: "我的门票" },
   checkinTab: { en: "Check-in", zh: "核验" },
-  docs: { en: "Docs", zh: "文档" },
 
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
 
   eventName: { en: "Event name", zh: "活动名称" },
@@ -26,13 +22,11 @@ export const messages = {
   notesPlaceholder: { en: "VIP access, badges, or extra info", zh: "VIP 权益、徽章或其他说明" },
 
   createEvent: { en: "Create Event", zh: "创建活动" },
-  creating: { en: "Creating...", zh: "创建中..." },
   eventCreated: { en: "Event created", zh: "活动已创建" },
 
   yourEvents: { en: "Your Events", zh: "我的活动" },
   refresh: { en: "Refresh", zh: "刷新" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
-  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   emptyEvents: { en: "No events yet", zh: "暂无活动" },
   venueFallback: { en: "Venue TBD", zh: "场地待定" },
 
@@ -52,7 +46,6 @@ export const messages = {
   seatFallback: { en: "General", zh: "普通票" },
   ticketTokenId: { en: "Token ID", zh: "Token ID" },
   copyTokenId: { en: "Copy Token ID", zh: "复制 Token ID" },
-  copied: { en: "Copied", zh: "已复制" },
 
   checkinTokenId: { en: "Ticket Token ID", zh: "门票 Token ID" },
   checkinTokenIdPlaceholder: { en: "Enter token ID from QR", zh: "输入二维码中的 Token ID" },
@@ -70,7 +63,6 @@ export const messages = {
   issueSeatPlaceholder: { en: "A-12", zh: "A-12" },
   issueMemo: { en: "Memo (optional)", zh: "备注（可选）" },
   issueMemoPlaceholder: { en: "Backstage pass", zh: "后台通行证" },
-  cancel: { en: "Cancel", zh: "取消" },
   issue: { en: "Issue", zh: "签发" },
   issuing: { en: "Issuing...", zh: "签发中..." },
   ticketIssued: { en: "Ticket issued", zh: "门票已签发" },
@@ -101,5 +93,6 @@ export const messages = {
   sidebarEvents: { en: "Events", zh: "活动" },
   sidebarTickets: { en: "Tickets", zh: "门票" },
   sidebarActive: { en: "Active", zh: "进行中" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

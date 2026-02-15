@@ -1,12 +1,7 @@
 <template>
   <view class="create-section">
     <text class="section-title">{{ t("createProof") }}</text>
-    <textarea
-      v-model="content"
-      class="content-input"
-      :placeholder="t('contentPlaceholder')"
-      maxlength="1000"
-    />
+    <textarea v-model="content" class="content-input" :placeholder="t('contentPlaceholder')" maxlength="1000" />
     <button class="create-button" :disabled="isCreating || !content.trim()" @click="$emit('create')">
       <text>{{ isCreating ? t("loading") : t("createProof") }}</text>
     </button>
@@ -14,10 +9,14 @@
 </template>
 
 <script setup lang="ts">
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+
 defineProps<{
-  t: (key: string) => string;
   isCreating: boolean;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   create: [];
@@ -28,6 +27,7 @@ const content = defineModel<string>("content", { required: true });
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 @import "../timestamp-proof-theme.scss";
 
 .create-section {

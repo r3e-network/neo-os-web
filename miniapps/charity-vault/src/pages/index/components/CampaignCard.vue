@@ -1,10 +1,11 @@
 <template>
   <view class="campaign-card" role="button" tabindex="0" :aria-label="campaign.title" @click="$emit('click')">
     <view class="card-header">
-      <view class="campaign-category">{{ getCategoryLabel(campaign.category) }}</view>
-      <view class="campaign-status" :class="`status-${campaign.status}`">
-        {{ getStatusLabel(campaign.status) }}
-      </view>
+      <view class="campaign-category">{{ categoryLabel }}</view>
+      <StatusBadge
+        :status="campaign.status === 'active' ? 'active' : campaign.status === 'completed' ? 'success' : 'inactive'"
+        :label="getStatusLabel(campaign.status)"
+      />
     </view>
 
     <view class="campaign-title">{{ campaign.title }}</view>
@@ -36,19 +37,37 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { formatAddress } from "@shared/utils/format";
-import { getCategoryLabel } from "@/utils/labels";
+import { StatusBadge } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import type { CharityCampaign } from "@/types";
 
 interface Props {
   campaign: CharityCampaign;
-  t: (key: string) => string;
 }
 
 const props = defineProps<Props>();
 
+const { t } = createUseI18n(messages)();
+
 defineEmits<{
   click: [];
 }>();
+
+const CATEGORY_LOCALE_KEYS: Record<string, string> = {
+  disaster: "categoryDisaster",
+  education: "categoryEducation",
+  health: "categoryHealth",
+  environment: "categoryEnvironment",
+  poverty: "categoryPoverty",
+  animals: "categoryAnimals",
+  other: "categoryOther",
+};
+
+const categoryLabel = computed(() => {
+  const key = CATEGORY_LOCALE_KEYS[props.campaign.category] || "categoryOther";
+  return t(key);
+});
 
 const progressPercent = computed(() => {
   const percent = (props.campaign.raisedAmount / props.campaign.targetAmount) * 100;
@@ -113,23 +132,6 @@ const getTimeRemaining = (endTime: number): string => {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-}
-
-.campaign-status {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-
-  &.status-active {
-    background: var(--charity-success-bg);
-    color: var(--charity-success);
-  }
-
-  &.status-completed {
-    background: var(--charity-info-bg);
-    color: var(--charity-info);
-  }
 }
 
 .campaign-title {

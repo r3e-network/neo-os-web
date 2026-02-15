@@ -1,6 +1,8 @@
-export const messages = {
-    // App translations
-title: { en: "Time Capsule", zh: "时间胶囊" },
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  // App translations
+  title: { en: "Time Capsule", zh: "时间胶囊" },
   subtitle: { en: "Lock content until future date", zh: "锁定内容直到未来日期" },
   yourCapsules: { en: "Your Capsules", zh: "你的胶囊" },
   noCapsules: { en: "No capsules yet. Create your first one!", zh: "还没有胶囊。创建你的第一个吧！" },
@@ -27,7 +29,6 @@ title: { en: "Time Capsule", zh: "时间胶囊" },
   categorySecret: { en: "Secret", zh: "秘密" },
   unlockIn: { en: "Lock Duration", zh: "锁定时长" },
   daysPlaceholder: { en: "30", zh: "30" },
-  days: { en: "days", zh: "天" },
   daysShort: { en: "D", zh: "天" },
   hoursShort: { en: "H", zh: "时" },
   minShort: { en: "M", zh: "分" },
@@ -38,7 +39,6 @@ title: { en: "Time Capsule", zh: "时间胶囊" },
   privateHint: { en: "Only you can reveal after unlock", zh: "仅您可在解锁后揭示" },
   publicHint: { en: "Anyone can reveal after unlock", zh: "解锁后任何人可揭示" },
   createCapsuleButton: { en: "Create Capsule (0.2 GAS)", zh: "创建胶囊 (0.2 GAS)" },
-  creating: { en: "Creating...", zh: "创建中..." },
   creatingCapsule: { en: "Sealing capsule...", zh: "封存胶囊中..." },
   capsuleCreated: { en: "Capsule sealed on-chain!", zh: "胶囊已封存上链！" },
   capsuleRevealed: { en: "Capsule revealed", zh: "胶囊已揭示" },
@@ -111,4 +111,6 @@ title: { en: "Time Capsule", zh: "时间胶囊" },
   sidebarTotalCapsules: { en: "Total Capsules", zh: "总胶囊数" },
   sidebarLocked: { en: "Locked", zh: "已锁定" },
   sidebarRevealed: { en: "Revealed", zh: "已揭示" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

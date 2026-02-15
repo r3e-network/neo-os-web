@@ -1,5 +1,5 @@
 <template>
-  <NeoModal :visible="visible" :title="t('wpTitle')" variant="warning" :closeable="true" @close="$emit('close')">
+  <ActionModal :visible="visible" :title="t('wpTitle')" variant="warning" :closeable="true" @close="$emit('close')">
     <view class="wallet-prompt" role="alert" aria-live="polite">
       <text class="wallet-prompt__desc">
         {{ message || t("wpDescription") }}
@@ -11,17 +11,17 @@
       </NeoButton>
     </view>
 
-    <template #footer>
+    <template #actions>
       <NeoButton variant="ghost" size="sm" @click="$emit('close')">
         {{ t("wpCancel") }}
       </NeoButton>
     </template>
-  </NeoModal>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
-import NeoModal from "./NeoModal.vue";
+import ActionModal from "./ActionModal.vue";
 import NeoButton from "./NeoButton.vue";
 import AppIcon from "./AppIcon.vue";
 import { useI18n } from "@shared/composables/useI18n";

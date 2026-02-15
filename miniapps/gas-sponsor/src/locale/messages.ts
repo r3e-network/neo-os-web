@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   subtitle: { en: "Get free GAS for transactions", zh: "获取免费 GAS 进行交易" },
@@ -16,8 +18,6 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   maxRequest: { en: "Max request", zh: "最大请求" },
   remaining: { en: "Remaining", zh: "剩余" },
   requestSuccess: { en: "GAS sponsored successfully!", zh: "GAS 赞助成功！" },
-  error: { en: "Error", zh: "错误" },
-  loading: { en: "Loading...", zh: "加载中..." },
   loadFailed: { en: "Failed to load data", zh: "加载数据失败" },
   invalidAmount: { en: "Invalid amount", zh: "金额无效" },
   requestingSponsorship: { en: "Requesting sponsored gas...", zh: "正在请求赞助..." },
@@ -46,7 +46,6 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   step3: { en: "Use sponsored gas to pay transaction fees", zh: "使用赞助的 gas 支付交易费用" },
   step4: { en: "Once you have enough GAS, help others!", zh: "当您有足够的 GAS 后，帮助其他人！" },
   todayUsage: { en: "Today's Usage", zh: "今日使用" },
-  statistics: { en: "Statistics", zh: "统计数据" },
   usedToday: { en: "Used Today", zh: "今日已用" },
   available: { en: "Available", zh: "可用" },
   dailyLimit: { en: "Daily Limit", zh: "每日限额" },
@@ -55,7 +54,6 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   balanceCheck: { en: "Balance < 0.1 GAS", zh: "余额 < 0.1 GAS" },
   quotaCheck: { en: "Quota Available", zh: "配额可用" },
   walletCheck: { en: "Wallet Connected", zh: "钱包已连接" },
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: {
     en: "Free GAS for new users to start transacting",
     zh: "为新用户提供免费 GAS 开始交易",
@@ -79,9 +77,6 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
     en: "Claims require low balance and an available daily quota.",
     zh: "领取需满足低余额与每日配额条件。",
   },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
   // Donate tab
   tabDonate: { en: "Donate", zh: "捐赠" },
   donateTitle: { en: "Donate to Gas Pool", zh: "捐赠到 Gas 池" },
@@ -105,16 +100,9 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   sendBtn: { en: "Send GAS", zh: "发送 GAS" },
   sendSuccess: { en: "GAS sent successfully!", zh: "GAS 发送成功！" },
   invalidAddress: { en: "Invalid address", zh: "无效地址" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     sidebarTankLevel: { en: "Tank Level", zh: "油箱水平" },
     sidebarRemainingQuota: { en: "Remaining Quota", zh: "剩余配额" },
     sidebarEligible: { en: "Eligible", zh: "资格" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

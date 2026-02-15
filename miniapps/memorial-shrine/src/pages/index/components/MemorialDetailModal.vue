@@ -1,13 +1,13 @@
 <template>
-  <view class="modal-overlay" aria-hidden="true" @click.self="$emit('close')">
-    <view class="modal-content" role="dialog" aria-modal="true" :aria-label="memorial.name">
-      <view class="header-actions">
-        <view class="action-btn share" role="button" tabindex="0" :aria-label="t('share')" @click="$emit('share')"><text aria-hidden="true">🔗</text></view>
-        <view class="action-btn close" role="button" tabindex="0" :aria-label="t('close')" @click="$emit('close')"><text aria-hidden="true">×</text></view>
-      </view>
-
+  <ActionModal :visible="true" :title="memorial.name" :closeable="true" size="lg" @close="$emit('close')">
+    <view class="memorial-detail">
       <!-- Tombstone Header -->
       <view class="tombstone-header">
+        <view class="header-actions">
+          <view class="action-btn share" role="button" tabindex="0" :aria-label="t('share')" @click="$emit('share')">
+            <text aria-hidden="true">&#x1F517;</text>
+          </view>
+        </view>
         <view class="photo-frame">
           <image
             v-if="memorial.photoHash"
@@ -15,7 +15,7 @@
             mode="aspectFill"
             :alt="memorial.name || t('memorialPhoto')"
           />
-          <text v-else class="default-icon">🕯️</text>
+          <text v-else class="default-icon">&#x1F56F;&#xFE0F;</text>
         </view>
         <text class="name">{{ memorial.name }}</text>
         <text class="lifespan">{{ memorial.birthYear }} - {{ memorial.deathYear }}</text>
@@ -24,41 +24,41 @@
 
       <!-- Biography -->
       <view class="section">
-        <text class="section-title">📜 {{ t("biography") }}</text>
+        <text class="section-title">&#x1F4DC; {{ t("biography") }}</text>
         <text class="biography">{{ memorial.biography || t("noBio") }}</text>
       </view>
 
       <!-- Offerings Received -->
       <view class="section">
-        <text class="section-title">🙏 {{ t("offeringsReceived") }}</text>
+        <text class="section-title">&#x1F64F; {{ t("offeringsReceived") }}</text>
         <view class="offering-counts">
           <view class="count-item">
-            <text class="icon">🕯️</text>
+            <text class="icon">&#x1F56F;&#xFE0F;</text>
             <text class="label">{{ t("incense") }}</text>
             <text class="count">{{ memorial.offerings.incense }}</text>
           </view>
           <view class="count-item">
-            <text class="icon">🕯</text>
+            <text class="icon">&#x1F56F;</text>
             <text class="label">{{ t("candle") }}</text>
             <text class="count">{{ memorial.offerings.candle }}</text>
           </view>
           <view class="count-item">
-            <text class="icon">🌸</text>
+            <text class="icon">&#x1F338;</text>
             <text class="label">{{ t("flower") }}</text>
             <text class="count">{{ memorial.offerings.flower }}</text>
           </view>
           <view class="count-item">
-            <text class="icon">🍇</text>
+            <text class="icon">&#x1F347;</text>
             <text class="label">{{ t("fruit") }}</text>
             <text class="count">{{ memorial.offerings.fruit }}</text>
           </view>
           <view class="count-item">
-            <text class="icon">🍶</text>
+            <text class="icon">&#x1F376;</text>
             <text class="label">{{ t("wine") }}</text>
             <text class="count">{{ memorial.offerings.wine }}</text>
           </view>
           <view class="count-item">
-            <text class="icon">🍱</text>
+            <text class="icon">&#x1F371;</text>
             <text class="label">{{ t("feast") }}</text>
             <text class="count">{{ memorial.offerings.feast }}</text>
           </view>
@@ -67,7 +67,7 @@
 
       <!-- Pay Tribute -->
       <view class="section">
-        <text class="section-title">🕯️ {{ t("payTribute") }}</text>
+        <text class="section-title">&#x1F56F;&#xFE0F; {{ t("payTribute") }}</text>
         <view class="offerings-grid">
           <view
             v-for="offering in offerings"
@@ -94,23 +94,28 @@
           <text class="status-text">{{ status.msg }}</text>
         </view>
 
-        <view class="tribute-btn" role="button" tabindex="0" :aria-label="isPaying ? t('paying') : t('payTributeBtn')" @click="payTribute" :class="{ disabled: isPaying }">
+        <view
+          class="tribute-btn"
+          role="button"
+          tabindex="0"
+          :aria-label="isPaying ? t('paying') : t('payTributeBtn')"
+          :class="{ disabled: isPaying }"
+          @click="payTribute"
+        >
           <text>{{ isPaying ? t("paying") : t("payTributeBtn") }}</text>
         </view>
       </view>
     </view>
-  </view>
+  </ActionModal>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
+import { ActionModal } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { requireNeoChain } from "@shared/utils/chain";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { useMemorialContract } from "@/composables/useMemorialContract";
 import type { Memorial } from "@/types";
 
 interface Offering {
@@ -133,77 +138,35 @@ const emit = defineEmits<{
   share: [];
 }>();
 
-import type { WalletSDK } from "@neo/types";
-
-const APP_ID = "miniapp-memorial-shrine";
-const { address, connect, invokeContract, getContractAddress, chainType } = useWallet() as WalletSDK;
-const { processPayment } = usePaymentFlow(APP_ID);
+const memorial = useMemorialContract(t);
+const { isPaying } = memorial;
 const { status, setStatus } = useStatusMessage(5000);
 
 const selectedOffering = ref(1);
 const message = ref("");
-const isPaying = ref(false);
 
 const payTribute = async () => {
-  if (isPaying.value) return;
-  if (!requireNeoChain(chainType, t)) return;
-  isPaying.value = true;
+  const offering = props.offerings.find((o) => o.type === selectedOffering.value);
+  if (!offering) return;
 
-  try {
-    const offering = props.offerings.find((o) => o.type === selectedOffering.value);
-    if (!offering) throw new Error(t("invalidOffering"));
+  await memorial.payTribute(props.memorial.id, selectedOffering.value, offering.cost, message.value, setStatus);
 
-    if (!address.value) await connect();
-    if (!address.value) throw new Error(t("connectWallet"));
-
-    const contract = await getContractAddress();
-
-    const { receiptId, invoke: invokeWithReceipt } = await processPayment(
-      String(offering.cost),
-      `tribute:${props.memorial.id}:${offering.type}`
-    );
-
-    await invokeWithReceipt(contract, "PayTribute", [
-      { type: "Hash160", value: address.value },
-      { type: "Integer", value: String(props.memorial.id) },
-      { type: "Integer", value: String(selectedOffering.value) },
-      { type: "String", value: message.value },
-      { type: "Integer", value: String(receiptId) },
-    ]);
-
-    setStatus(t("tributeSuccess"), "success");
+  if (status.value?.type === "success") {
     message.value = "";
     emit("tribute-paid", props.memorial.id, selectedOffering.value);
-  } catch (e: unknown) {
-    setStatus(formatErrorMessage(e, t("error")), "error");
-  } finally {
-    isPaying.value = false;
   }
 };
 </script>
 
 <style lang="scss" scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--shrine-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+.memorial-detail {
+  margin: -20px;
 }
 
-.modal-content {
-  width: 90%;
-  max-width: 400px;
-  max-height: 85vh;
-  background: var(--shrine-dark);
-  border-radius: 16px;
-  border: 1px solid var(--shrine-banner-border);
-  overflow-y: auto;
+.tombstone-header {
+  text-align: center;
+  padding: 24px 16px;
+  background: linear-gradient(180deg, var(--shrine-medium), var(--shrine-dark));
   position: relative;
 }
 
@@ -232,17 +195,6 @@ const payTribute = async () => {
   &:hover {
     background: var(--shrine-panel-soft);
   }
-
-  &.close {
-    font-size: 22px;
-  }
-}
-
-.tombstone-header {
-  text-align: center;
-  padding: 24px 16px;
-  background: linear-gradient(180deg, var(--shrine-medium), var(--shrine-dark));
-  border-radius: 16px 16px 0 0;
 }
 
 .photo-frame {

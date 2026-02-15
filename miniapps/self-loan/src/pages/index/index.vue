@@ -1,226 +1,191 @@
 <template>
-  <view class="theme-self-loan">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="core.status.value"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('selfLoanErrorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- Main Tab (default) — LEFT panel -->
-      <template #content>
-        
-          <view v-if="!core.address.value" class="wallet-prompt mb-4">
-            <NeoCard variant="warning" class="text-center">
-              <text class="mb-2 block font-bold">{{ t("connectWalletToUse") }}</text>
-              <NeoButton variant="primary" size="sm" @click="connectWallet">
-                {{ t("connectWallet") }}
-              </NeoButton>
-            </NeoCard>
+  <MiniAppPage
+    name="self-loan"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="core.status.value"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload"
+  >
+    <!-- Main Tab (default) — LEFT panel -->
+    <template #content>
+      <view v-if="!core.address.value" class="wallet-prompt mb-4">
+        <NeoCard variant="warning" class="text-center">
+          <text class="mb-2 block font-bold">{{ t("connectWalletToUse") }}</text>
+          <NeoButton variant="primary" size="sm" @click="connectWallet">
+            {{ t("connectWallet") }}
+          </NeoButton>
+        </NeoCard>
+      </view>
+
+      <CollateralStatus
+        :loan="core.loan.value"
+        :available-collateral="core.neoBalance.value"
+        :collateral-utilization="core.collateralUtilization.value"
+        :t="t"
+      />
+
+      <PositionSummary
+        :loan="core.loan.value"
+        :terms="core.positionTerms.value"
+        :health-factor="core.healthFactor.value"
+        :current-l-t-v="core.currentLTV.value"
+        :t="t"
+      />
+    </template>
+
+    <!-- Main Tab — RIGHT panel -->
+    <template #operation>
+      <BorrowForm
+        v-model="core.collateralAmount.value"
+        v-model:selectedTier="core.selectedTier.value"
+        :terms="core.borrowTerms.value"
+        :ltv-options="core.ltvOptions.value"
+        :platform-fee-bps="core.platformFeeBps.value"
+        :is-loading="core.isLoading.value"
+        :is-connected="!!core.address.value"
+        :validation-error="validationError"
+        :t="t"
+        @takeLoan="handleTakeLoan"
+      />
+    </template>
+
+    <!-- Stats Tab -->
+    <template #tab-stats>
+      <StatsTab :row-items="statsRowItems" :rows-title="t('loanStatsTitle')">
+        <view class="stats-card">
+          <text class="stats-title">{{ t("loanHistory") }}</text>
+          <view v-for="(item, idx) in history.loanHistory.value" :key="idx" class="history-item">
+            <text>{{ item.icon }} {{ item.label }}: {{ fmt(item.amount as number) }} GAS - {{ item.timestamp }}</text>
           </view>
-
-          <CollateralStatus
-            :loan="core.loan.value"
-            :available-collateral="core.neoBalance.value"
-            :collateral-utilization="core.collateralUtilization.value"
-            :t="t"
-          />
-
-          <PositionSummary
-            :loan="core.loan.value"
-            :terms="core.positionTerms.value"
-            :health-factor="core.healthFactor.value"
-            :current-l-t-v="core.currentLTV.value"
-            :t="t"
-          />
-        
-      </template>
-
-      <!-- Main Tab — RIGHT panel -->
-      <template #operation>
-        <BorrowForm
-          v-model="core.collateralAmount.value"
-          v-model:selectedTier="core.selectedTier.value"
-          :terms="core.borrowTerms.value"
-          :ltv-options="core.ltvOptions.value"
-          :platform-fee-bps="core.platformFeeBps.value"
-          :is-loading="core.isLoading.value"
-          :is-connected="!!core.address.value"
-          :validation-error="validationError"
-          :t="t"
-          @takeLoan="handleTakeLoan"
-        />
-      </template>
-
-      <!-- Stats Tab -->
-      <template #tab-stats>
-        <StatsTab :stats="history.stats.value" :loan-history="history.loanHistory.value" :t="t" />
-      </template>
-    </MiniAppShell>
-  </view>
+          <text v-if="history.loanHistory.value.length === 0" class="empty-text">{{ t("noHistory") }}</text>
+        </view>
+      </StatsTab>
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { toFixedDecimals } from "@shared/utils/format";
-import { createUseI18n } from "@shared/composables/useI18n";
+import { formatNumber } from "@shared/utils/format";
 import { messages } from "@/locale/messages";
-import { MiniAppShell, NeoCard, NeoButton } from "@shared/components";
+import { MiniAppPage, NeoCard, NeoButton } from "@shared/components";
 import PositionSummary from "./components/PositionSummary.vue";
 import CollateralStatus from "./components/CollateralStatus.vue";
-import BorrowForm from "./components/BorrowForm.vue";
-import StatsTab from "./components/StatsTab.vue";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { createPrimaryStatsTemplateConfig, createSidebarItems } from "@shared/utils";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useSelfLoanCore } from "@/composables/useSelfLoanCore";
 import { useSelfLoanHistory } from "@/composables/useSelfLoanHistory";
 
-const { t } = createUseI18n(messages)();
 const { handleError, canRetry, clearError } = useErrorHandler();
 const core = useSelfLoanCore();
 const history = useSelfLoanHistory();
 
-const templateConfig = createPrimaryStatsTemplateConfig(
-  { key: "main", labelKey: "main", icon: "💰", default: true },
-  { docFeatureCount: 3 },
-);
-
+const {
+  t,
+  templateConfig,
+  sidebarItems,
+  sidebarTitle,
+  fallbackMessage,
+  status,
+  setStatus,
+  clearStatus,
+  handleBoundaryError,
+} = createMiniApp({
+  name: "self-loan",
+  messages,
+  template: {
+    tabs: [
+      { key: "main", labelKey: "main", icon: "💰", default: true },
+      { key: "stats", labelKey: "stats", icon: "📊" },
+    ],
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    { labelKey: "sidebarHasLoan", value: () => (core.loan.value ? t("sidebarYes") : t("sidebarNo")) },
+    { labelKey: "sidebarNeoBalance", value: () => core.neoBalance.value ?? "—" },
+    { labelKey: "healthFactor", value: () => core.healthFactor.value ?? "—" },
+    { labelKey: "currentLTV", value: () => (core.currentLTV.value != null ? `${core.currentLTV.value}%` : "—") },
+  ],
+  fallbackMessageKey: "selfLoanErrorFallback",
+  statusTimeoutMs: 5000,
+});
 
 const appState = computed(() => ({
   hasLoan: !!core.loan.value,
   isConnected: !!core.address.value,
 }));
 
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "sidebarHasLoan", value: () => (core.loan.value ? t("sidebarYes") : t("sidebarNo")) },
-  { labelKey: "sidebarNeoBalance", value: () => core.neoBalance.value ?? "—" },
-  { labelKey: "healthFactor", value: () => core.healthFactor.value ?? "—" },
-  { labelKey: "currentLTV", value: () => (core.currentLTV.value != null ? `${core.currentLTV.value}%` : "—") },
-]);
+const fmt = (n: number, d = 2) => formatNumber(n, d);
 
-const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
-const errorMessage = computed(() => errorStatus.value?.msg ?? null);
+const statsRowItems = computed<StatsDisplayItem[]>(() => {
+  const s = history.stats.value as Record<string, number>;
+  return [
+    { label: t("totalLoans"), value: s.totalLoans ?? 0 },
+    { label: t("totalBorrowed"), value: `${fmt(s.totalBorrowed ?? 0)} GAS` },
+    { label: t("totalRepaid"), value: `${fmt(s.totalRepaid ?? 0)} GAS` },
+    { label: t("avgLoanSize"), value: `${s.totalLoans > 0 ? fmt(s.totalBorrowed / s.totalLoans) : 0} GAS` },
+  ];
+});
+
 const canRetryError = ref(false);
 const validationError = ref<string | null>(null);
-const lastOperation = ref<string | null>(null);
-
 const connectWallet = async () => {
   try {
     await core.connect();
   } catch (e: unknown) {
     handleError(e, { operation: "connectWallet" });
-    setErrorStatus(formatErrorMessage(e, t("error")), "error");
+    setStatus(formatErrorMessage(e, t("error")), "error");
   }
-};
-
-const handleBoundaryError = (error: Error) => {
-  handleError(error, { operation: "selfLoanBoundaryError" });
-  setErrorStatus(t("selfLoanErrorFallback"), "error");
 };
 
 const resetAndReload = async () => {
   clearError();
-  clearErrorStatus();
+  clearStatus();
   canRetryError.value = false;
-  await fetchData();
-};
-
-const retryLastOperation = () => {
-  if (lastOperation.value === "takeLoan") {
-    handleTakeLoan();
-  }
+  await loadData();
 };
 
 const handleTakeLoan = async (): Promise<void> => {
-  if (core.isLoading.value) return;
-
   const validation = core.validateCollateral(core.collateralAmount.value, core.neoBalance.value);
   if (validation) {
     validationError.value = validation;
-    core.setStatus(validation, "error");
-    return;
-  }
-  validationError.value = null;
-
-  const collateral = Number(toFixedDecimals(core.collateralAmount.value, 0));
-  const ltvPercent = core.selectedLtvPercent.value;
-  const feeBps = core.platformFeeBps.value;
-  const grossBorrow = (collateral * ltvPercent) / 100;
-  const feeAmount = (grossBorrow * feeBps) / 10000;
-  const netBorrow = Math.max(grossBorrow - feeAmount, 0);
-
-  if (!core.address.value) {
-    try {
-      await core.connect();
-    } catch (e: unknown) {
-      handleError(e, { operation: "connectBeforeTakeLoan" });
-      core.setStatus(formatErrorMessage(e, t("error")), "error");
-      return;
-    }
+  } else {
+    validationError.value = null;
   }
 
-  if (!core.address.value) {
-    core.setStatus(t("connectWallet"), "error");
-    return;
-  }
-
-  core.isLoading.value = true;
-  lastOperation.value = "takeLoan";
-
-  try {
-    const selfLoanAddress = await core.ensureContractAddress();
-
-    await core.invokeContract({
-      scriptHash: selfLoanAddress,
-      operation: "CreateLoan",
-      args: [
-        { type: "Hash160", value: core.address.value },
-        { type: "Integer", value: collateral },
-        { type: "Integer", value: core.selectedTier.value },
-      ],
-    });
-
-    core.setStatus(t("loanApproved").replace("{amount}", core.fmt(netBorrow, 2)), "success");
-    core.collateralAmount.value = "";
-    await fetchData();
-  } catch (e: unknown) {
-    handleError(e, { operation: "takeLoan", metadata: { collateral, tier: core.selectedTier.value } });
-    const userMsg = formatErrorMessage(e, t("error"));
-    const retryable = canRetry(e);
-    core.setStatus(userMsg, "error");
+  await core.takeLoan(loadData, (e, retryable) => {
     if (retryable) {
-      setErrorStatus(userMsg, "error");
+      setStatus(formatErrorMessage(e, t("error")), "error");
       canRetryError.value = true;
     }
-  } finally {
-    core.isLoading.value = false;
-  }
+  });
 };
 
-const fetchData = async () => {
+const loadData = async () => {
   try {
     if (!core.address.value) {
       await core.connect();
     }
     if (!core.address.value) return;
 
-    await core.fetchBalance();
+    await core.loadBalance();
     await core.loadPlatformStats();
     await history.loadHistory();
   } catch (e: unknown) {
-    handleError(e, { operation: "fetchData" });
-    setErrorStatus(formatErrorMessage(e, t("error")), "error");
+    handleError(e, { operation: "loadData" });
+    setStatus(formatErrorMessage(e, t("error")), "error");
     canRetryError.value = canRetry(e);
   }
 };
 
 onMounted(() => {
-  fetchData();
+  loadData();
 });
 </script>
 
@@ -236,5 +201,40 @@ onMounted(() => {
 
 .wallet-prompt {
   margin-bottom: 16px;
+}
+
+.stats-card {
+  background: var(--bg-card);
+  border: $border-width-md solid var(--border-color);
+  box-shadow: $shadow-md;
+  padding: $spacing-4;
+  margin-bottom: $spacing-3;
+}
+
+.stats-title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: var(--neo-green);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: $spacing-3;
+}
+
+.history-item {
+  padding: $spacing-2 0;
+  border-bottom: $border-width-sm dashed var(--border-color);
+  font-size: $font-size-sm;
+  color: var(--text-primary);
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.empty-text {
+  font-style: italic;
+  color: var(--text-muted);
+  text-align: center;
+  display: block;
+  padding: $spacing-4;
 }
 </style>

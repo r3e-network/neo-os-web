@@ -1,10 +1,15 @@
 <template>
-  <view class="market-card" role="button" tabindex="0" :aria-label="market.question" @click="$emit('click')">
+  <view
+    class="market-card"
+    role="button"
+    tabindex="0"
+    :aria-label="market.question"
+    @click="$emit('click')"
+    @keydown.enter="$emit('click')"
+  >
     <view class="market-header">
       <view class="market-category">{{ getCategoryLabel(market.category) }}</view>
-      <view class="market-status" :class="`status-${market.status}`">
-        {{ getStatusLabel(market.status) }}
-      </view>
+      <StatusBadge :status="getStatusBadgeStatus(market.status)" :label="getStatusLabel(market.status)" />
     </view>
 
     <view class="market-question">{{ market.question }}</view>
@@ -34,13 +39,17 @@
 
 <script setup lang="ts">
 import type { PredictionMarket } from "@/types";
+import { StatusBadge } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 interface Props {
   market: PredictionMarket;
-  t: (key: string) => string;
 }
 
 defineProps<Props>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits<{
   click: [];
@@ -65,6 +74,16 @@ const getCategoryLabel = (category: string): string => {
     other: "Other",
   };
   return labels[category] || "Other";
+};
+
+const getStatusBadgeStatus = (status: string): "success" | "warning" | "inactive" | "error" => {
+  const map: Record<string, "success" | "warning" | "inactive" | "error"> = {
+    open: "success",
+    closed: "warning",
+    resolved: "inactive",
+    cancelled: "error",
+  };
+  return map[status] || "inactive";
 };
 
 const getStatusLabel = (status: string): string => {
@@ -129,33 +148,6 @@ const getTimeRemaining = (endTime: number): string => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-.market-status {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-
-  &.status-open {
-    background: var(--predict-success-bg);
-    color: var(--predict-success);
-  }
-
-  &.status-closed {
-    background: var(--predict-warning-bg);
-    color: var(--predict-warning);
-  }
-
-  &.status-resolved {
-    background: var(--predict-card-bg);
-    color: var(--predict-text-secondary);
-  }
-
-  &.status-cancelled {
-    background: var(--predict-danger-bg);
-    color: var(--predict-danger);
-  }
 }
 
 .market-question {

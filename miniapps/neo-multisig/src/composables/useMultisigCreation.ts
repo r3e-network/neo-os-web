@@ -4,6 +4,7 @@ import type { WalletSDK } from "@neo/types";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { api } from "@/services/api";
 import {
   buildTransferTransaction,
@@ -111,7 +112,7 @@ export function useMultisigCreation() {
     } catch (e: unknown) {
       const message =
         e instanceof Error && e.message.includes("duplicate") ? t("toastDuplicateSigners") : t("toastInvalidSigners");
-      setStatus(message, "error");
+      setStatus(formatErrorMessage(e, message), "error");
     }
   };
 
@@ -148,7 +149,7 @@ export function useMultisigCreation() {
       };
       step.value = 4;
     } catch (e: unknown) {
-      setStatus(t("toastPrepareFailed"), "error");
+      setStatus(formatErrorMessage(e, t("toastPrepareFailed")), "error");
     } finally {
       isPreparing.value = false;
     }
@@ -178,7 +179,7 @@ export function useMultisigCreation() {
 
       onSuccess?.(result.id);
     } catch (e: unknown) {
-      setStatus(t("toastCreateFailed"), "error");
+      setStatus(formatErrorMessage(e, t("toastCreateFailed")), "error");
     } finally {
       isSubmitting.value = false;
     }

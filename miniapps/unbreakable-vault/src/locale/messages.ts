@@ -1,9 +1,10 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
   create: { en: "Create", zh: "创建" },
   break: { en: "Break", zh: "破解" },
-  docs: { en: "Docs", zh: "文档" },
   bountyLabel: { en: "Bounty", zh: "悬赏金" },
   bountyPlaceholder: { en: "Minimum 1", zh: "至少 1" },
   minBountyNote: { en: "Minimum bounty: 1 GAS", zh: "最低悬赏：1 GAS" },
@@ -22,7 +23,6 @@ title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
   secretMismatch: { en: "Secrets do not match", zh: "两次密钥不一致" },
   hashPreview: { en: "On-chain Hash", zh: "链上哈希" },
   createVault: { en: "Create Vault", zh: "创建保险库" },
-  creating: { en: "Creating...", zh: "创建中..." },
   secretNote: {
     en: "Secret is hashed locally; only the hash is stored on-chain. Keep it safe to claim your bounty.",
     zh: "密钥在本地哈希，链上仅保存哈希。请妥善保管以领取悬赏。",
@@ -53,8 +53,6 @@ title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
   vaultCreateFailed: { en: "Create failed", zh: "创建失败" },
   vaultAttemptFailed: { en: "Attempt failed", zh: "破解失败" },
   loadFailed: { en: "Failed to load vault", zh: "加载保险库失败" },
-  receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
-  contractUnavailable: { en: "Contract unavailable", zh: "合约不可用" },
   myVaults: { en: "My Vaults", zh: "我的保险库" },
 
   docSubtitle: {
@@ -75,21 +73,8 @@ title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
   feature2Desc: { en: "Every failed attempt adds to the prize pool.", zh: "每次失败尝试都会增加奖池。" },
   feature3Name: { en: "Difficulty Tiers", zh: "难度分级" },
   feature3Desc: { en: "Attempt fees scale with difficulty.", zh: "尝试费用随难度提升。" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  loading: { en: "Loading...", zh: "加载中..." },
-  error: { en: "Error", zh: "错误" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
   sidebarDifficulty: { en: "Difficulty", zh: "难度" },
   sidebarAttemptFee: { en: "Attempt Fee", zh: "尝试费用" },
-  overview: { en: "Overview", zh: "概览" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

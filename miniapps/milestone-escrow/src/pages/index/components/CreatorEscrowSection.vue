@@ -15,7 +15,10 @@
           <text class="escrow-title">{{ escrow.title || `#${escrow.id}` }}</text>
           <text class="escrow-subtitle">{{ formatAddressFunc(escrow.beneficiary) }}</text>
         </view>
-        <text :class="['status-pill', escrow.status]">{{ statusLabelFunc(escrow.status) }}</text>
+        <StatusBadge
+          :status="escrow.status === 'completed' ? 'success' : escrow.status === 'cancelled' ? 'error' : 'active'"
+          :label="statusLabelFunc(escrow.status)"
+        />
       </view>
       <view class="escrow-metrics">
         <view>
@@ -59,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard, NeoButton, StatusBadge } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import MilestoneProgress from "./MilestoneProgress.vue";
@@ -134,27 +137,6 @@ const onCancel = (escrow: EscrowItem) => emit("cancel", escrow);
   font-size: 11px;
   color: var(--escrow-muted);
   margin-top: 2px;
-}
-
-.status-pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(245, 158, 11, 0.2);
-  color: var(--escrow-accent);
-}
-
-.status-pill.completed {
-  background: rgba(34, 197, 94, 0.2);
-  color: var(--escrow-completed);
-}
-
-.status-pill.cancelled {
-  background: rgba(248, 113, 113, 0.2);
-  color: var(--escrow-cancelled);
 }
 
 .escrow-metrics {

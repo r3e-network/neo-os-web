@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { NeoCard, NeoInput } from "@shared/components";
 import TarotCard, { type Card } from "./TarotCard.vue";
 
 defineProps<{

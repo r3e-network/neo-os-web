@@ -131,7 +131,7 @@ export function useGrantProposals() {
     return statusMap[normalizeState(state)] || state;
   }
 
-  async function fetchGrants() {
+  async function loadGrants() {
     loading.value = true;
     fetchError.value = false;
     try {
@@ -197,7 +197,7 @@ export function useGrantProposals() {
     isDesktop,
     windowWidth,
     chainType,
-    fetchGrants,
+    loadGrants,
     formatCount,
     formatDate,
     getStatusLabel,

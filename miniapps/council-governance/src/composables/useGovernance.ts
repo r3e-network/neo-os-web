@@ -61,10 +61,7 @@ export const resolveStatus = (proposal: Proposal) => {
   return proposal.status;
 };
 
-export function useGovernance(
-  showStatus: (msg: string, type: string) => void,
-  currentChainId: { value: string },
-) {
+export function useGovernance(showStatus: (msg: string, type: string) => void, currentChainId: { value: string }) {
   const { t } = createUseI18n(messages)();
   const { address, invokeContract, invokeRead } = useWallet() as WalletSDK;
   const { contractAddress, ensure: ensureAddress } = useContractAddress(t);
@@ -100,7 +97,7 @@ export function useGovernance(
       return true;
     } catch (e: unknown) {
       if (showMessage) {
-        const message = e instanceof Error ? e.message : "";
+        const message = formatErrorMessage(e, t("contractUnavailable"));
         showStatus(message === t("wrongChain") ? t("wrongChain") : t("contractUnavailable"), "error");
       }
       return false;
@@ -124,9 +121,18 @@ export function useGovernance(
     const proposal = activeProposals.value.find((p) => p.id === proposalId);
     if (!proposal || resolveStatus(proposal) !== STATUS_ACTIVE) return;
     const voter = address.value;
-    if (!voter) { showStatus(t("connectWallet"), "error"); return; }
-    if (!isCandidate.value) { showStatus(t("notCandidate"), "error"); return; }
-    if (hasVotedMap.value[proposalId]) { showStatus(t("alreadyVoted"), "error"); return; }
+    if (!voter) {
+      showStatus(t("connectWallet"), "error");
+      return;
+    }
+    if (!isCandidate.value) {
+      showStatus(t("notCandidate"), "error");
+      return;
+    }
+    if (hasVotedMap.value[proposalId]) {
+      showStatus(t("alreadyVoted"), "error");
+      return;
+    }
     const hasHash = await ensureContractAddress();
     if (!hasHash) return;
 
@@ -162,20 +168,33 @@ export function useGovernance(
   }) => {
     const title = proposalData.title.trim();
     const description = proposalData.description.trim();
-    if (!title || !description) { showStatus(t("fillAllFields"), "error"); return false; }
+    if (!title || !description) {
+      showStatus(t("fillAllFields"), "error");
+      return false;
+    }
 
     let policyValueNumber: number | null = null;
     if (proposalData.type === 1) {
       const rawPolicyValue = String(proposalData.policyValue).trim();
       if (!proposalData.policyMethod || !rawPolicyValue) {
-        showStatus(t("policyFieldsRequired"), "error"); return false;
+        showStatus(t("policyFieldsRequired"), "error");
+        return false;
       }
       const parsed = Number(rawPolicyValue);
-      if (!Number.isFinite(parsed)) { showStatus(t("invalidPolicyValue"), "error"); return false; }
+      if (!Number.isFinite(parsed)) {
+        showStatus(t("invalidPolicyValue"), "error");
+        return false;
+      }
       policyValueNumber = parsed;
     }
-    if (!address.value) { showStatus(t("connectWallet"), "error"); return false; }
-    if (!isCandidate.value) { showStatus(t("notCandidate"), "error"); return false; }
+    if (!address.value) {
+      showStatus(t("connectWallet"), "error");
+      return false;
+    }
+    if (!isCandidate.value) {
+      showStatus(t("notCandidate"), "error");
+      return false;
+    }
     const hasHash = await ensureContractAddress();
     if (!hasHash) return false;
 
@@ -205,7 +224,10 @@ export function useGovernance(
   };
 
   const executeProposal = async (proposalId: number) => {
-    if (!address.value) { showStatus(t("connectWallet"), "error"); return; }
+    if (!address.value) {
+      showStatus(t("connectWallet"), "error");
+      return;
+    }
     const hasHash = await ensureContractAddress();
     if (!hasHash) return;
 
@@ -230,7 +252,9 @@ export function useGovernance(
     try {
       const cached = uni.getStorageSync(CACHE_KEY);
       if (cached) proposals.value = JSON.parse(cached);
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
 
     try {
       loadingProposals.value = true;
@@ -239,7 +263,7 @@ export function useGovernance(
         Array.from({ length: count }, (_, i) => i + 1).map(async (id) => {
           const data = await readMethod("getProposal", [{ type: "Integer", value: id }]);
           return data ? parseProposal(data) : null;
-        }),
+        })
       );
       proposals.value = (results.filter(Boolean) as Proposal[]).sort((a, b) => b.id - a.id);
       uni.setStorageSync(CACHE_KEY, JSON.stringify(proposals.value));
@@ -299,7 +323,7 @@ export function useGovernance(
           ],
         });
         updates[id] = Boolean(parseInvokeResult(res));
-      }),
+      })
     );
     hasVotedMap.value = updates;
   };

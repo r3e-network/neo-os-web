@@ -47,10 +47,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useLotteryTypes, LotteryType, type LotteryTypeInfo } from '../../shared/composables/useLotteryTypes'
-import { useScratchCard, type ScratchTicket } from '../../shared/composables/useScratchCard'
-import AppLayout from '@shared/components/AppLayout.vue'
+import { onMounted } from "vue";
+import { useLotteryTypes, LotteryType } from '../../shared/composables/useLotteryTypes'
+import { useScratchCard } from "../../shared/composables/useScratchCard";
 import { useI18n } from '../../composables/useI18n'
 
 const { t } = useI18n()

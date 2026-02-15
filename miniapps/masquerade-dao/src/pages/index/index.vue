@@ -1,77 +1,81 @@
 <template>
-  <view class="theme-masquerade">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="combinedStatus"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-      <template #content>
-        
-          <ProposalList
-            :items="masks"
-            :selectedId="selectedMaskId"
-            :title="t('yourMasks')"
-            :emptyText="t('noMasks')"
-            :t="t"
-            @select="selectedMaskId = $event"
-          />
-        
-      </template>
+  <MiniAppPage
+    name="masquerade-dao"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="combinedStatus"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="resetAndReload"
+  >
+    <template #content>
+      <ProposalList
+        :items="masks"
+        :selectedId="selectedMaskId"
+        :title="t('yourMasks')"
+        :emptyText="t('noMasks')"
+        @select="selectedMaskId = $event"
+      />
+    </template>
 
-      <template #operation>
-        <CreateProposal
-          v-model="createForm"
-          :identityHash="identityHash"
-          :canCreate="canCreateMask"
-          :isLoading="isCreating"
-          :t="t"
-          @create="handleCreateMask"
-        />
-      </template>
+    <template #operation>
+      <CreateProposal
+        v-model="createForm"
+        :identityHash="identityHash"
+        :canCreate="canCreateMask"
+        :isLoading="isCreating"
+        @create="handleCreateMask"
+      />
+    </template>
 
-      <template #tab-vote>
-        <VoteForm
-          v-model="voteForm"
-          :masks="masks"
-          :selectedMaskId="selectedMaskId"
-          :canVote="canVote && !!selectedMaskId"
-          :t="t"
-          @update:selectedMaskId="selectedMaskId = $event"
-          @vote="handleVote"
-        />
+    <template #tab-vote>
+      <VoteForm
+        v-model="voteForm"
+        :masks="masks"
+        :selectedMaskId="selectedMaskId"
+        :canVote="canVote && !!selectedMaskId"
+        @update:selectedMaskId="selectedMaskId = $event"
+        @vote="handleVote"
+      />
 
-        <ProposalList
-          :items="proposals"
-          :selectedId="voteForm.proposalId"
-          :title="t('activeProposals')"
-          :emptyText="t('noActiveProposals')"
-          :t="t"
-          @select="voteForm.proposalId = $event"
-        />
-      </template>
-    </MiniAppShell>
-  </view>
+      <ProposalList
+        :items="proposals"
+        :selectedId="voteForm.proposalId"
+        :title="t('activeProposals')"
+        :emptyText="t('noActiveProposals')"
+        @select="voteForm.proposalId = $event"
+      />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, watch } from "vue";
-import { MiniAppShell } from "@shared/components";
-import { createUseI18n } from "@shared/composables/useI18n";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
 import { useMasqueradeProposals } from "@/composables/useMasqueradeProposals";
-import { useMasqueradeVoting, type VoteChoice } from "@/composables/useMasqueradeVoting";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
-import CreateProposal from "@/components/CreateProposal.vue";
+import { useMasqueradeVoting } from "@/composables/useMasqueradeVoting";
 import ProposalList from "@/components/ProposalList.vue";
-import VoteForm from "@/components/VoteForm.vue";
 
-const { t } = createUseI18n(messages)();
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "masquerade-dao",
+  messages,
+  template: {
+    tabs: [
+      { key: "identity", labelKey: "identity", icon: "👤", default: true },
+      { key: "vote", labelKey: "vote", icon: "🗳️" },
+    ],
+  },
+  sidebarItems: [
+    { labelKey: "yourMasks", value: () => masks.value.length },
+    { labelKey: "activeProposals", value: () => proposals.value.length },
+    { labelKey: "identity", value: () => (identityHash.value ? identityHash.value.slice(0, 8) + "..." : "--") },
+  ],
+});
 const APP_ID = "miniapp-masqueradedao";
 
 const {
@@ -91,24 +95,10 @@ const {
 
 const { proposalId, status: voteStatus, isLoading: isVoting, canVote, submitVote } = useMasqueradeVoting(APP_ID);
 
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "identity", labelKey: "identity", icon: "👤", default: true },
-    { key: "vote", labelKey: "vote", icon: "🗳️" },
-  ],
-});
-
 const appState = computed(() => ({
   totalMasks: masks.value.length,
   totalProposals: proposals.value.length,
 }));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "yourMasks", value: () => masks.value.length },
-  { labelKey: "activeProposals", value: () => proposals.value.length },
-  { labelKey: "identity", value: () => (identityHash.value ? identityHash.value.slice(0, 8) + "..." : "--") },
-]);
 
 const combinedStatus = computed(() => maskStatus.value || voteStatus.value || null);
 
@@ -127,20 +117,18 @@ const voteForm = computed({
   },
 });
 
-const { handleBoundaryError } = useHandleBoundaryError("masquerade-dao");
-
 const resetAndReload = async () => {
-  loadMasks(t);
-  loadProposals(t);
+  loadMasks();
+  loadProposals();
 };
 
 const handleCreateMask = async () => {
-  await createMask(t);
+  await createMask();
 };
 
 const handleVote = async (choice: number) => {
   if (!selectedMaskId.value) return;
-  await submitVote(selectedMaskId.value, choice as VoteChoice, t);
+  await submitVote(selectedMaskId.value, choice as VoteChoice);
 };
 
 watch(identitySeed, async (value) => {
@@ -153,8 +141,8 @@ watch(identitySeed, async (value) => {
 });
 
 onMounted(() => {
-  loadMasks(t);
-  loadProposals(t);
+  loadMasks();
+  loadProposals();
 });
 </script>
 

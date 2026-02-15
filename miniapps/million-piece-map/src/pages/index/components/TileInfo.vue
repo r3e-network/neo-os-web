@@ -19,6 +19,8 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   selectedTile: number;
@@ -26,8 +28,9 @@ defineProps<{
   selectedY: number;
   isOwned: boolean;
   tilePrice: number;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 </script>
 
 <style lang="scss" scoped>

@@ -10,8 +10,8 @@
         <view class="card-glow" />
         <view class="card-inner">
           <view class="symbol-ring">
-             <view v-if="side === 'heads'" class="neo-symbol">N</view>
-             <view v-else class="gas-symbol">G</view>
+            <view v-if="side === 'heads'" class="neo-symbol">N</view>
+            <view v-else class="gas-symbol">G</view>
           </view>
           <text class="choice-name">{{ t(side) }}</text>
         </view>
@@ -20,10 +20,10 @@
 
     <view class="wager-panel">
       <view class="panel-header">
-        <text class="label">{{ t('wager') }}</text>
+        <text class="label">{{ t("wager") }}</text>
         <view class="balance-pill">
-           <text class="val">0.1 - 100</text>
-           <text class="unit">GAS</text>
+          <text class="val">0.1 - 100</text>
+          <text class="unit">GAS</text>
         </view>
       </view>
 
@@ -51,8 +51,8 @@
             class="premium-flip-btn"
           >
             <view class="btn-content">
-              <text v-if="!isFlipping">{{ t('flipCoin') }}</text>
-              <text v-else>{{ t('flipping') }}</text>
+              <text v-if="!isFlipping">{{ t("flipCoin") }}</text>
+              <text v-else>{{ t("flipping") }}</text>
             </view>
           </NeoButton>
           <view class="btn-shadow" />
@@ -64,19 +64,24 @@
 
 <script setup lang="ts">
 import { NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 defineProps<{
   choice: "heads" | "tails";
   betAmount: string;
   isFlipping: boolean;
   canBet: boolean;
-  t: (key: string) => string;
 }>();
 
 defineEmits(["update:choice", "update:betAmount", "flip"]);
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/mixins.scss" as *;
+
 .premium-controls {
   display: flex;
   flex-direction: column;
@@ -85,9 +90,7 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
 }
 
 .choice-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  @include grid-layout(2, 20px);
 }
 
 .choice-card {
@@ -129,8 +132,15 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
     border-color: var(--coin-success);
     box-shadow: 0 10px 30px rgba(0, 229, 153, 0.2);
     transform: scale(1.05);
-    .symbol-ring { border-color: var(--coin-success); color: var(--coin-success); box-shadow: 0 0 15px rgba(0, 229, 153, 0.3); }
-    .choice-name { color: var(--coin-success); text-shadow: 0 0 10px rgba(0, 229, 153, 0.5); }
+    .symbol-ring {
+      border-color: var(--coin-success);
+      color: var(--coin-success);
+      box-shadow: 0 0 15px rgba(0, 229, 153, 0.3);
+    }
+    .choice-name {
+      color: var(--coin-success);
+      text-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
+    }
   }
 
   &.tails.tails {
@@ -138,13 +148,23 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
     border-color: var(--coin-blue);
     box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
     transform: scale(1.05);
-    .symbol-ring { border-color: var(--coin-blue); color: var(--coin-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-    .choice-name { color: var(--coin-blue); text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+    .symbol-ring {
+      border-color: var(--coin-blue);
+      color: var(--coin-blue);
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+    }
+    .choice-name {
+      color: var(--coin-blue);
+      text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
   }
 
   &.inactive {
     opacity: 0.6;
-    &:hover { opacity: 1; transform: translateY(-4px); }
+    &:hover {
+      opacity: 1;
+      transform: translateY(-4px);
+    }
   }
 }
 
@@ -169,7 +189,13 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
   align-items: center;
   margin-bottom: 20px;
 
-  .label { font-size: 12px; font-weight: 700; color: var(--coin-label); text-transform: uppercase; letter-spacing: 1px; }
+  .label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--coin-label);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
 }
 
 .balance-pill {
@@ -180,13 +206,14 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
   font-weight: 700;
   color: var(--coin-success);
   border: 1px solid rgba(0, 229, 153, 0.2);
-  .unit { opacity: 0.7; margin-left: 4px; }
+  .unit {
+    opacity: 0.7;
+    margin-left: 4px;
+  }
 }
 
 .wager-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  @include grid-layout(4, 12px);
   margin-bottom: 32px;
 }
 
@@ -197,21 +224,34 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
   border-radius: 16px;
   text-align: center;
   transition: all 0.3s ease;
-  
-  .amount-val { display: block; font-size: 18px; font-weight: 800; color: var(--coin-text-primary); }
-  .amount-unit { font-size: 9px; opacity: 0.6; color: var(--coin-text-secondary); text-transform: uppercase; }
+
+  .amount-val {
+    display: block;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--coin-text-primary);
+  }
+  .amount-unit {
+    font-size: 9px;
+    opacity: 0.6;
+    color: var(--coin-text-secondary);
+    text-transform: uppercase;
+  }
 
   &.selected {
     background: var(--coin-success);
     border-color: var(--coin-success);
     box-shadow: 0 0 20px rgba(0, 229, 153, 0.4);
-    .amount-val, .amount-unit { color: var(--coin-black); }
+    .amount-val,
+    .amount-unit {
+      color: var(--coin-black);
+    }
   }
 }
 
 .flip-button-wrapper {
   position: relative;
-  
+
   .premium-flip-btn {
     height: 64px;
     font-size: 18px;
@@ -224,7 +264,7 @@ defineEmits(["update:choice", "update:betAmount", "flip"]);
     border: none;
     z-index: 2;
   }
-  
+
   .btn-shadow {
     position: absolute;
     bottom: -6px;

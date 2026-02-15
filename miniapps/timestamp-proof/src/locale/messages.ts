@@ -1,8 +1,9 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   title: { en: "Timestamp Proof", zh: "时间戳证明" },
   proofs: { en: "Proofs", zh: "证明" },
   verify: { en: "Verify", zh: "验证" },
-  docs: { en: "Docs", zh: "文档" },
 
   createProof: { en: "Create Proof", zh: "创建证明" },
   enterContent: { en: "Enter content to timestamp", zh: "输入要时间戳的内容" },
@@ -40,22 +41,11 @@ export const messages = {
   feature3Name: { en: "Universal Hashing", zh: "通用哈希" },
   feature3Desc: { en: "Works with any text, document, or data hash", zh: "适用于任何文本、文档或数据哈希" },
 
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-  error: { en: "Error", zh: "错误" },
-  loading: { en: "Loading...", zh: "加载中..." },
-
-  wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-  wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-  wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-  wpCancel: { en: "Cancel", zh: "取消" },
-  docBadge: { en: "Documentation", zh: "文档" },
-  docFooter: { en: "NeoHub MiniApp Protocol v2.4.0", zh: "NeoHub MiniApp Protocol v2.4.0" },
   proofStats: { en: "Proof Stats", zh: "证明统计" },
   totalProofs: { en: "Total Proofs", zh: "总证明数" },
   yourProofs: { en: "Your Proofs", zh: "你的证明" },
+  ariaProofs: { en: "Proofs", zh: "证明" },
   latestId: { en: "Latest ID", zh: "最新编号" },
-  overview: { en: "Overview", zh: "概览" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

@@ -1,127 +1,124 @@
 <template>
-  <view class="theme-red-envelope">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      :fireworks-active="!!luckyMessage"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- Create Tab (default) - LEFT panel -->
-      <template #content>
-        
-          <LuckyOverlay :lucky-message="luckyMessage" :t="t" @close="luckyMessage = null" />
-          <OpeningModal
-            :visible="showOpeningModal"
-            :envelope="openingEnvelope"
-            :is-connected="!!address"
-            :is-opening="!!openingId"
-            :eligibility="address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null"
-            @connect="handleConnect"
-            @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
-            @close="showOpeningModal = false"
-          />
-        
-      </template>
-      <template #operation>
-        <CreateForm
-          :is-loading="isLoading"
-          :t="t"
-          v-model:name="name"
-          v-model:description="description"
-          v-model:amount="amount"
-          v-model:count="count"
-          v-model:expiryHours="expiryHours"
-          v-model:minNeoRequired="minNeoRequired"
-          v-model:minHoldDays="minHoldDays"
-          v-model:envelopeType="envelopeType"
-          @create="create"
-        />
-      </template>
+  <MiniAppPage
+    name="red-envelope"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :fireworks-active="!!luckyMessage"
+    @tab-change="activeTab = $event"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="loadEnvelopes"
+  >
+    <!-- Create Tab (default) - LEFT panel -->
+    <template #content>
+      <LuckyOverlay :lucky-message="luckyMessage" @close="luckyMessage = null" />
+      <OpeningModal
+        :visible="showOpeningModal"
+        :envelope="openingEnvelope"
+        :is-connected="!!address"
+        :is-opening="!!openingId"
+        :eligibility="address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null"
+        @connect="handleConnect"
+        @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
+        @close="showOpeningModal = false"
+      />
+    </template>
+    <template #operation>
+      <CreateForm
+        :is-loading="isLoading"
+        v-model:name="name"
+        v-model:description="description"
+        v-model:amount="amount"
+        v-model:count="count"
+        v-model:expiryHours="expiryHours"
+        v-model:minNeoRequired="minNeoRequired"
+        v-model:minHoldDays="minHoldDays"
+        v-model:envelopeType="envelopeType"
+        @create="create"
+      />
+    </template>
 
-      <!-- Claim Tab -->
-      <template #tab-claim>
-        <ClaimPool :pools="pools" :t="t" @claim="handleClaimFromPool" />
-      </template>
+    <!-- Claim Tab -->
+    <template #tab-claim>
+      <ClaimPool :pools="pools" @claim="handleClaimFromPool" />
+    </template>
 
-      <!-- My Envelopes Tab -->
-      <template #tab-myEnvelopes>
-        <LuckyOverlay :lucky-message="luckyMessage" :t="t" @close="luckyMessage = null" />
-        <OpeningModal
-          :visible="showOpeningModal"
-          :envelope="openingEnvelope"
-          :claim="openingClaim"
-          :is-connected="!!address"
-          :is-opening="!!openingId"
-          :eligibility="
-            openingClaim ? null : address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null
-          "
-          @connect="handleConnect"
-          @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
-          @open-claim="handleOpenClaim"
-          @close="showOpeningModal = false"
-        />
-        <TransferModal
-          :visible="showTransferModal"
-          :envelope="transferringEnvelope"
-          @transfer="handleTransfer"
-          @close="showTransferModal = false"
-        />
+    <!-- My Envelopes Tab -->
+    <template #tab-myEnvelopes>
+      <LuckyOverlay :lucky-message="luckyMessage" @close="luckyMessage = null" />
+      <OpeningModal
+        :visible="showOpeningModal"
+        :envelope="openingEnvelope"
+        :claim="openingClaim"
+        :is-connected="!!address"
+        :is-opening="!!openingId"
+        :eligibility="
+          openingClaim ? null : address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null
+        "
+        @connect="handleConnect"
+        @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
+        @open-claim="handleOpenClaim"
+        @close="showOpeningModal = false"
+      />
+      <TransferModal
+        :visible="showTransferModal"
+        :envelope="transferringEnvelope"
+        @transfer="handleTransfer"
+        @close="showTransferModal = false"
+      />
 
-        <MyEnvelopes
-          :envelopes="envelopes"
-          :claims="claims"
-          :current-address="address || ''"
-          :t="t"
-          @open="openFromList"
-          @transfer="startTransfer"
-          @reclaim="reclaimEnvelope"
-          @open-claim="openClaimFromList"
-          @transfer-claim="startTransferClaim"
-          @reclaim-pool="handleReclaimPool"
-        />
-      </template>
-    </MiniAppShell>
-  </view>
+      <MyEnvelopes
+        :envelopes="envelopes"
+        :claims="claims"
+        :current-address="address || ''"
+        @open="openFromList"
+        @transfer="startTransfer"
+        @reclaim="reclaimEnvelope"
+        @open-claim="openClaimFromList"
+        @transfer-claim="startTransferClaim"
+        @reclaim-pool="handleReclaimPool"
+      />
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useRedEnvelopeCreation } from "@/composables/useRedEnvelopeCreation";
 import { useRedEnvelopeOpen } from "@/composables/useRedEnvelopeOpen";
 import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
 import { useNeoEligibility } from "@/composables/useNeoEligibility";
 import { useEnvelopeActions } from "./composables/useEnvelopeActions";
-import { MiniAppShell } from "@shared/components";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 
 import LuckyOverlay from "./components/LuckyOverlay.vue";
 import OpeningModal from "./components/OpeningModal.vue";
-import CreateForm from "./components/CreateForm.vue";
-import MyEnvelopes from "./components/MyEnvelopes.vue";
-import TransferModal from "./components/TransferModal.vue";
-import ClaimPool from "./components/ClaimPool.vue";
 
-const { t } = createUseI18n(messages)();
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "red-envelope",
+  messages,
+  template: {
+    tabs: [
+      { key: "create", labelKey: "createTab", icon: "\uD83E\uDDE7", default: true },
+      { key: "claim", labelKey: "claimTabLabel", icon: "\uD83C\uDFAF" },
+      { key: "myEnvelopes", labelKey: "myEnvelopes", icon: "\uD83C\uDF81" },
+    ],
+    fireworks: true,
+  },
+  sidebarItems: [
+    { labelKey: "sidebarEnvelopes", value: () => envelopes.value.length },
+    { labelKey: "sidebarClaims", value: () => claims.value.length },
+    { labelKey: "sidebarPools", value: () => pools.value.length },
+  ],
+});
 
 const activeTab = ref<string>("create");
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "create", labelKey: "createTab", icon: "🧧", default: true },
-    { key: "claim", labelKey: "claimTabLabel", icon: "🎯" },
-    { key: "myEnvelopes", labelKey: "myEnvelopes", icon: "🎁" },
-  ],
-  fireworks: true,
-});
 
 // Use composables
 const {
@@ -145,7 +142,7 @@ const {
   loadingEnvelopes,
   contractAddress,
   ensureContractAddress: ensureOpenContract,
-  fetchEnvelopeDetails,
+  loadEnvelopeDetails,
   loadEnvelopes,
   claims,
   pools,
@@ -197,7 +194,7 @@ const {
   ensureCreationContract,
   ensureOpenContract,
   loadEnvelopes,
-  fetchEnvelopeDetails,
+  loadEnvelopeDetails,
   claimFromPool,
   openClaim,
   transferClaim,
@@ -220,17 +217,6 @@ const appState = computed(() => ({
   hasLucky: !!luckyMessage.value,
 }));
 
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "sidebarEnvelopes", value: () => envelopes.value.length },
-  { labelKey: "sidebarClaims", value: () => claims.value.length },
-  { labelKey: "sidebarPools", value: () => pools.value.length },
-]);
-
-const { handleBoundaryError } = useHandleBoundaryError("red-envelope");
-const resetAndReload = async () => {
-  await loadEnvelopes();
-};
-
 onMounted(async () => {
   await loadEnvelopes();
 
@@ -244,7 +230,7 @@ onMounted(async () => {
         activeTab.value = "myEnvelopes";
       } else {
         const contract = await ensureOpenContract();
-        const env = await fetchEnvelopeDetails(contract, id);
+        const env = await loadEnvelopeDetails(contract, id);
         if (env) {
           openingEnvelope.value = env;
           showOpeningModal.value = true;

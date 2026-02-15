@@ -5,7 +5,6 @@
 
     <SignerList
       :signers="signers"
-      :t="t"
       @add="$emit('addSigner')"
       @remove="$emit('removeSigner', $event)"
       @update="$emit('updateSigner', $event)"
@@ -21,6 +20,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 import SignerList from "./SignerList.vue";
 
 defineProps<{
@@ -29,8 +30,9 @@ defineProps<{
   signers: string[];
   isValid: boolean;
   nextLabel: string;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["addSigner", "removeSigner", "updateSigner", "next"]);
 </script>

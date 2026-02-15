@@ -5,9 +5,10 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { messages } from "@/locale/messages";
-import { formatNumber, formatAddress, formatGas } from "@shared/utils/format";
+import { formatNumber, formatAddress, formatGas, toFixed8 } from "@shared/utils/format";
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 const APP_ID = "miniapp-flashloan";
 
@@ -38,7 +39,7 @@ export function useFlashloanCore() {
   const { address, connect, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
   const { contractAddress, ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("error") : t(key),
+    key === "contractUnavailable" ? t("error") : t(key)
   );
   const { listAllEvents } = useAllEvents(listEvents, APP_ID, {
     onError: (error: unknown, eventName: string) => {
@@ -70,12 +71,6 @@ export function useFlashloanCore() {
     const ts = toNumber(value);
     if (!ts) return t("notAvailable");
     return new Date(ts * 1000).toLocaleString();
-  };
-
-  const toFixed8 = (value: string | number): string => {
-    const num = Number(value);
-    if (Number.isNaN(num) || num <= 0) return "0";
-    return Math.floor(num * 100000000).toString();
   };
 
   const toGas = (value: unknown): number => {
@@ -133,18 +128,18 @@ export function useFlashloanCore() {
     return null;
   };
 
-  const fetchPoolBalance = async () => {
+  const loadPoolBalance = async () => {
     try {
       const contract = await ensureContractAddress();
       const res = await invokeRead({ scriptHash: contract, operation: "getPoolBalance" });
       poolBalance.value = toGas(parseInvokeResult(res));
     } catch (e: unknown) {
-      handleError(e, { operation: "fetchPoolBalance" });
+      handleError(e, { operation: "loadPoolBalance" });
       poolBalance.value = 0;
     }
   };
 
-  const fetchLoanStats = async () => {
+  const loadLoanStats = async () => {
     try {
       const executedEvents = await listAllEvents("LoanExecuted");
       const loans: ExecutedLoan[] = executedEvents
@@ -184,17 +179,133 @@ export function useFlashloanCore() {
         })
         .slice(0, 10);
     } catch (e: unknown) {
-      handleError(e, { operation: "fetchLoanStats" });
+      handleError(e, { operation: "loadLoanStats" });
       stats.value = { totalLoans: 0, totalVolume: 0, totalFees: 0 };
       recentLoans.value = [];
     }
   };
 
-  const fetchData = async () => {
+  const loadData = async () => {
     try {
-      await Promise.all([fetchPoolBalance(), fetchLoanStats()]);
+      await Promise.all([loadPoolBalance(), loadLoanStats()]);
     } catch (e: unknown) {
-      handleError(e, { operation: "fetchData" });
+      handleError(e, { operation: "loadData" });
+    }
+  };
+
+  const lookupLoan = async (
+    loanIdValue: string,
+    setStatus: (msg: string, type: string) => void,
+    setErrorStatus: (msg: string, type: string) => void
+  ) => {
+    const validation = validateLoanId(loanIdValue);
+    if (validation) {
+      validationError.value = validation;
+      setStatus(validation, "error");
+      return;
+    }
+    validationError.value = null;
+
+    const loanId = Number(loanIdValue);
+    lastOperation.value = "lookup";
+
+    try {
+      isLoading.value = true;
+      const contract = await ensureContractAddress();
+
+      try {
+        const res = await invokeRead({
+          scriptHash: contract,
+          operation: "getLoan",
+          args: [{ type: "Integer", value: String(loanId) }],
+        });
+
+        const parsed = parseInvokeResult(res);
+        const details = buildLoanDetails(parsed, loanId);
+        if (!details) {
+          loanDetails.value = null;
+          setStatus(t("loanNotFound"), "error");
+          return;
+        }
+
+        loanDetails.value = details;
+        setStatus(t("loanStatusLoaded"), "success");
+      } catch (e: unknown) {
+        handleError(e, { operation: "lookupLoan", metadata: { loanId } });
+        throw e;
+      }
+    } catch (e: unknown) {
+      const userMsg = formatErrorMessage(e, t("error"));
+      const retryable = canRetry(e);
+      setStatus(userMsg, "error");
+      if (retryable) {
+        setErrorStatus(userMsg, "error");
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const requestLoan = async (
+    data: { amount: string; callbackContract: string; callbackMethod: string },
+    setStatus: (msg: string, type: string) => void,
+    clearStatusFn: () => void,
+    setErrorStatus: (msg: string, type: string) => void
+  ) => {
+    if (!address.value) {
+      try {
+        await connect();
+      } catch (e: unknown) {
+        handleError(e, { operation: "connectBeforeRequestLoan" });
+        setStatus(formatErrorMessage(e, t("error")), "error");
+        return;
+      }
+    }
+
+    if (!address.value) {
+      setStatus(t("connectWallet"), "error");
+      return;
+    }
+
+    const validation = validateLoanRequest(data);
+    if (validation) {
+      validationError.value = validation;
+      setStatus(validation, "error");
+      return;
+    }
+    validationError.value = null;
+
+    isLoading.value = true;
+    clearStatusFn();
+    lastOperation.value = "requestLoan";
+
+    try {
+      const contract = await ensureContractAddress();
+      const amountInt = toFixed8(data.amount);
+
+      await invokeContract({
+        scriptHash: contract,
+        operation: "RequestLoan",
+        args: [
+          { type: "Hash160", value: address.value },
+          { type: "Integer", value: amountInt },
+          { type: "Hash160", value: data.callbackContract },
+          { type: "String", value: data.callbackMethod },
+        ],
+      });
+
+      setStatus(t("loanRequested"), "success");
+      await loadData();
+    } catch (e: unknown) {
+      handleError(e, { operation: "requestLoan", metadata: { amount: data.amount } });
+      const userMsg = formatErrorMessage(e, t("error"));
+      const retryable = canRetry(e);
+      setStatus(userMsg, "error");
+      if (retryable) {
+        setErrorStatus(userMsg, "error");
+      }
+    } finally {
+      isLoading.value = false;
     }
   };
 
@@ -221,13 +332,13 @@ export function useFlashloanCore() {
     buildLoanDetails,
     validateLoanId,
     validateLoanRequest,
-    fetchPoolBalance,
-    fetchLoanStats,
-    fetchData,
+    loadPoolBalance,
+    loadLoanStats,
+    loadData,
     handleError,
     getUserMessage,
     canRetry,
-    invokeRead,
-    invokeContract,
+    lookupLoan,
+    requestLoan,
   };
 }

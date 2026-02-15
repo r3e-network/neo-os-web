@@ -20,6 +20,8 @@
       v-if="showStatus && statusMessage"
       :variant="statusMessage.type === 'error' ? 'danger' : 'erobo-neo'"
       class="template-status mb-4"
+      :role="statusMessage.type === 'error' ? 'alert' : 'status'"
+      :aria-live="statusMessage.type === 'error' ? 'assertive' : 'polite'"
     >
       <text class="text-center font-bold">{{ statusMessage.msg }}</text>
     </NeoCard>
@@ -31,6 +33,7 @@
       role="tabpanel"
       :id="`tabpanel-${defaultTabKey}`"
       :aria-labelledby="`tab-${defaultTabKey}`"
+      aria-roledescription="main content"
     >
       <component :is="contentSlotComponent">
         <slot name="content" />
@@ -52,7 +55,7 @@
         <!-- Auto-generated stats tab -->
         <template v-if="tab.key === 'stats' && hasStats && !hasSlot(`tab-stats`)">
           <NeoCard variant="erobo">
-            <NeoStats :stats="computedStats" />
+            <StatsDisplay :items="computedStats" layout="grid" />
           </NeoCard>
         </template>
 
@@ -72,14 +75,14 @@
     </template>
 
     <!-- Fireworks -->
-    <Fireworks v-if="showFireworks" :active="fireworksActive" :duration="3000" />
+    <Fireworks v-if="showFireworks" :active="fireworksActive" :duration="3000" aria-hidden="true" />
   </ResponsiveLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, useSlots } from "vue";
 import type { MiniAppTemplateConfig, StatConfig } from "@shared/types/template-config";
-import { ResponsiveLayout, NeoCard, NeoStats, NeoDoc, ChainWarning, SidebarPanel } from "@shared/components";
+import { ResponsiveLayout, NeoCard, StatsDisplay, NeoDoc, ChainWarning, SidebarPanel } from "@shared/components";
 import Fireworks from "@shared/components/Fireworks.vue";
 import type { NavTab } from "@shared/components/NavBar.vue";
 import { useChainValidation } from "@shared/composables/useChainValidation";

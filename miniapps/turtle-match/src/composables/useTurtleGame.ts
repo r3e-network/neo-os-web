@@ -1,9 +1,5 @@
 import { ref, computed } from "vue";
-import { useWallet } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
-import { parseInvokeResult } from "@shared/utils/neo";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export enum TurtleColor {
@@ -33,13 +29,13 @@ export interface GameStats {
 }
 
 export function useTurtleGame(APP_ID: string, t?: (key: string) => string) {
-  const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
-  const { processPayment } = usePaymentFlow(APP_ID);
-
   const msg = (key: string, fallback: string) => (t ? t(key) : fallback);
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? msg("contractUnavailable", "Contract not available") : msg(key, key),
-  );
+
+  const { address, ensureWallet, read, invoke, invokeDirectly } = useContractInteraction({
+    appId: APP_ID,
+    t: (key: string) =>
+      key === "contractUnavailable" ? msg("contractUnavailable", "Contract not available") : msg(key, key),
+  });
 
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -51,25 +47,14 @@ export function useTurtleGame(APP_ID: string, t?: (key: string) => string) {
   const isConnected = computed(() => !!address.value);
   const hasActiveSession = computed(() => !!session.value);
 
-  const getContract = async () =>
-    ensureContractAddress({
-      silentChainCheck: true,
-      contractUnavailableMessage: msg("contractUnavailable", "Contract not available"),
-    });
-
   const loadStats = async () => {
     try {
-      const contract = await getContract();
+      const [totalSessions, totalPaid] = await Promise.all([read("totalSessions", []), read("totalPaid", [])]);
 
-      const [sessionsRes, paidRes] = await Promise.all([
-        invokeRead({ scriptHash: contract, operation: "totalSessions", args: [] }),
-        invokeRead({ scriptHash: contract, operation: "totalPaid", args: [] }),
-      ]);
-
-      const totalSessions = Number(parseInvokeResult(sessionsRes) || 0);
-      const totalPaid = BigInt(parseInvokeResult(paidRes) || 0);
-
-      stats.value = { totalSessions, totalPaid };
+      stats.value = {
+        totalSessions: Number(totalSessions || 0),
+        totalPaid: BigInt((totalPaid as string | number) || 0),
+      };
     } catch (_e: unknown) {
       // Stats load failure is non-critical
     }
@@ -80,29 +65,13 @@ export function useTurtleGame(APP_ID: string, t?: (key: string) => string) {
     error.value = null;
 
     try {
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(msg("connectWallet", "Wallet not connected"));
-      }
-
-      const contract = await getContract();
+      await ensureWallet();
 
       const cost = (boxCount * 0.1).toFixed(1);
-      const { receiptId, invoke } = await processPayment(cost, `turtle:${boxCount}`);
-
-      if (!receiptId) throw new Error(msg("receiptMissing", "Payment failed"));
-
-      const result = await invoke(
-        "StartGame",
-        [
-          { type: "Hash160", value: address.value },
-          { type: "Integer", value: String(boxCount) },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contract
-      );
+      const result = await invoke(cost, `turtle:${boxCount}`, "StartGame", [
+        { type: "Hash160", value: address.value as string },
+        { type: "Integer", value: String(boxCount) },
+      ]);
 
       const sessionId = result?.txid || String(Date.now());
       session.value = {
@@ -127,16 +96,10 @@ export function useTurtleGame(APP_ID: string, t?: (key: string) => string) {
     try {
       if (!session.value || !address.value) return false;
 
-      const contract = await getContract();
-
-      await invokeContract({
-        scriptHash: contract,
-        operation: "SettleGame",
-        args: [
-          { type: "Hash160", value: address.value },
-          { type: "Integer", value: session.value.id },
-        ],
-      });
+      await invokeDirectly("SettleGame", [
+        { type: "Hash160", value: address.value },
+        { type: "Integer", value: session.value.id },
+      ]);
 
       session.value = null;
       await loadStats();
@@ -158,7 +121,6 @@ export function useTurtleGame(APP_ID: string, t?: (key: string) => string) {
     hasActiveSession,
     isAutoPlaying,
     gamePhase,
-    connect,
     loadStats,
     startGame,
     settleGame,

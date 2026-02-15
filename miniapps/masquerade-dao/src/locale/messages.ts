@@ -1,8 +1,9 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     title: { en: "Masquerade DAO", zh: "假面DAO" },
     identity: { en: "Identity", zh: "身份" },
     vote: { en: "Vote", zh: "投票" },
-    docs: { en: "Docs", zh: "文档" },
     identitySeed: { en: "Identity Seed", zh: "身份种子" },
     identityPlaceholder: { en: "Enter a secret seed", zh: "输入身份种子" },
     hashPreview: { en: "Identity Hash", zh: "身份哈希" },
@@ -27,10 +28,6 @@ export const messages = {
     voteCast: { en: "Vote submitted", zh: "投票已提交" },
     selectMaskFirst: { en: "Select a mask first", zh: "请先选择面具" },
     connectWallet: { en: "Connect wallet", zh: "请连接钱包" },
-    receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
-    contractUnavailable: { en: "Contract unavailable", zh: "合约不可用" },
-    error: { en: "Error", zh: "错误" },
-    loading: { en: "Loading...", zh: "加载中..." },
     docSubtitle: {
         en: "Anonymous governance voting with cryptographic identity masks",
         zh: "使用加密身份面具的匿名治理投票",
@@ -54,16 +51,8 @@ export const messages = {
         en: "This app requires Neo N3. Please switch networks.",
         zh: "此应用需要 Neo N3 网络，请切换网络。",
     },
-    switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
     activeProposals: { en: "Active Proposals", zh: "活跃提案" },
     noActiveProposals: { en: "No active proposals", zh: "暂无活跃提案" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

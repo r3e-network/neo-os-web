@@ -11,7 +11,6 @@
       v-model:interval-days="newTrust.intervalDays"
       v-model:notes="newTrust.notes"
       :is-loading="isLoading"
-      :t="t"
       @create="$emit('create')"
     />
   </view>
@@ -23,7 +22,6 @@ import CreateTrustForm from "./CreateTrustForm.vue";
 
 const props = defineProps<{
   isLoading: boolean;
-  t: (key: string, params?: Record<string, string | number>) => string;
 }>();
 
 const emit = defineEmits<{
@@ -63,7 +61,11 @@ watch([() => newTrust.releaseMode, () => newTrust.neoValue, () => newTrust.gasVa
   }
 });
 
-watch(newTrust, (val) => {
-  emit("update", val);
-}, { deep: true });
+watch(
+  newTrust,
+  (val) => {
+    emit("update", val);
+  },
+  { deep: true }
+);
 </script>

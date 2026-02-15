@@ -1,11 +1,10 @@
 import { ref } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
+import { useEvents } from "@neo/uniapp-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { fromFixed8, formatHash } from "@shared/utils/format";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { parseStackItem } from "@shared/utils/neo";
 import { pollForEvent } from "@shared/utils/errorHandling";
 import { extractTxid } from "@shared/utils/transaction";
 
@@ -49,11 +48,12 @@ type ContractArg = {
   value: string | number | boolean;
 };
 
+/** Handles red envelope opening, claim listing, and eligibility checks. */
 export function useRedEnvelopeOpen() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
+  const { address, ensureWallet, ensureContractAddress, contractAddress, read, invokeDirectly } =
+    useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
 
   const envelopes = ref<EnvelopeItem[]>([]);
   const claims = ref<ClaimItem[]>([]);
@@ -74,18 +74,15 @@ export function useRedEnvelopeOpen() {
     return "spreading";
   };
 
-  const fetchEnvelopeDetails = async (
+  const loadEnvelopeDetails = async (
     contract: string,
     envelopeId: string,
     eventData?: Record<string, unknown>
   ): Promise<EnvelopeItem | null> => {
     try {
-      const res = await invokeRead({
-        scriptHash: contract,
-        operation: "getEnvelopeStateForFrontend",
-        args: [{ type: "Integer", value: envelopeId }],
-      });
-      const parsed = parseEnvelopeData(parseInvokeResult(res));
+      const parsed = parseEnvelopeData(
+        await read("getEnvelopeStateForFrontend", [{ type: "Integer", value: envelopeId }], contract)
+      );
       if (!parsed) return null;
 
       const packetCount = Number(parsed.packetCount ?? eventData?.packetCount ?? 0);
@@ -161,7 +158,7 @@ export function useRedEnvelopeOpen() {
           if (!envelopeId || seen.has(envelopeId)) return null;
           seen.add(envelopeId);
 
-          return fetchEnvelopeDetails(contractAddress.value!, envelopeId, {
+          return loadEnvelopeDetails(contractAddress.value!, envelopeId, {
             creator: String(values[1] ?? ""),
             totalAmount: Number(values[2] ?? 0),
             packetCount: Number(values[3] ?? 0),
@@ -211,25 +208,19 @@ export function useRedEnvelopeOpen() {
     };
   };
 
-  const fetchClaimState = async (claimId: string): Promise<ClaimItem | null> => {
+  const loadClaimState = async (claimId: string): Promise<ClaimItem | null> => {
     try {
-      const contract = await ensureContractAddress();
-      const res = await invokeRead({
-        scriptHash: contract,
-        operation: "getClaimState",
-        args: [{ type: "Integer", value: claimId }],
-      });
-      return parseClaimData(parseInvokeResult(res));
+      return parseClaimData(await read("getClaimState", [{ type: "Integer", value: claimId }]));
     } catch (e: unknown) {
       /* non-critical: claim state fetch */
       return null;
     }
   };
 
-  const fetchPoolState = async (poolId: string): Promise<EnvelopeItem | null> => {
+  const loadPoolState = async (poolId: string): Promise<EnvelopeItem | null> => {
     try {
       const contract = await ensureContractAddress();
-      return fetchEnvelopeDetails(contract, poolId);
+      return loadEnvelopeDetails(contract, poolId);
     } catch (e: unknown) {
       /* non-critical: pool state fetch */
       return null;
@@ -238,19 +229,13 @@ export function useRedEnvelopeOpen() {
 
   const invokeEnvelopeAction = async (
     operation: string,
-    buildArgs: (userAddress: string) => ContractArg[],
+    buildArgs: (userAddress: string) => ContractArg[]
   ): Promise<{ txid: string }> => {
-    const contract = await ensureContractAddress();
     const userAddress = address.value;
     if (!userAddress) throw new Error(t("connectWallet"));
 
-    const tx = await invokeContract({
-      scriptHash: contract,
-      operation,
-      args: buildArgs(userAddress),
-    });
-
-    return { txid: extractTxid(tx) };
+    const result = await invokeDirectly(operation, buildArgs(userAddress));
+    return { txid: result.txid };
   };
 
   const claimFromPool = async (poolId: string): Promise<{ txid: string }> => {
@@ -287,13 +272,13 @@ export function useRedEnvelopeOpen() {
     loadingEnvelopes,
     contractAddress,
     ensureContractAddress,
-    fetchEnvelopeDetails,
+    loadEnvelopeDetails,
     loadEnvelopes,
     parseEnvelopeData,
     address,
-    connect,
-    invokeContract,
-    invokeRead,
+    ensureWallet,
+    invokeDirectly,
+    read,
     listEvents,
     APP_ID,
     t,
@@ -308,7 +293,7 @@ export function useRedEnvelopeOpen() {
     openClaim,
     transferClaim,
     reclaimPool,
-    fetchPoolState,
-    fetchClaimState,
+    loadPoolState,
+    loadClaimState,
   };
 }

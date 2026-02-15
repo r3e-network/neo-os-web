@@ -1,10 +1,10 @@
 import { ref } from "vue";
-import { useWallet, useEvents } from "@neo/uniapp-sdk";
-import type { WalletSDK } from "@neo/types";
+import { useEvents } from "@neo/uniapp-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { toFixed8, fromFixed8 } from "@shared/utils/format";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { parseStackItem } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { waitForListedEventByTransaction } from "@shared/utils/transaction";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -38,36 +38,36 @@ interface EventRecord {
 }
 
 interface EnvelopeActionsDeps {
-  status: ReturnType<typeof import("vue")["ref"]>;
+  status: ReturnType<(typeof import("vue"))["ref"]>;
   setStatus: (msg: string, type?: string) => void;
   clearStatus: () => void;
-  isLoading: ReturnType<typeof import("vue")["ref"]>;
-  defaultBlessing: ReturnType<typeof import("vue")["computed"]>;
+  isLoading: ReturnType<(typeof import("vue"))["ref"]>;
+  defaultBlessing: ReturnType<(typeof import("vue"))["computed"]>;
   ensureCreationContract: () => Promise<string>;
   ensureOpenContract: () => Promise<string>;
   loadEnvelopes: () => Promise<void>;
-  fetchEnvelopeDetails: (contract: string, id: string) => Promise<EnvelopeItem | null>;
+  loadEnvelopeDetails: (contract: string, id: string) => Promise<EnvelopeItem | null>;
   claimFromPool: (poolId: string) => Promise<{ txid: string }>;
   openClaim: (claimId: string) => Promise<{ txid: string }>;
   transferClaim: (claimId: string, to: string) => Promise<{ txid: string }>;
   reclaimPool: (poolId: string) => Promise<{ txid: string }>;
   checkEligibility: (contract: string, envelopeId: string) => Promise<boolean>;
-  isEligible: ReturnType<typeof import("vue")["ref"]>;
-  eligibilityReason: ReturnType<typeof import("vue")["ref"]>;
+  isEligible: ReturnType<(typeof import("vue"))["ref"]>;
+  eligibilityReason: ReturnType<(typeof import("vue"))["ref"]>;
   // Form refs
-  name: ReturnType<typeof import("vue")["ref"]>;
-  description: ReturnType<typeof import("vue")["ref"]>;
-  amount: ReturnType<typeof import("vue")["ref"]>;
-  count: ReturnType<typeof import("vue")["ref"]>;
-  expiryHours: ReturnType<typeof import("vue")["ref"]>;
-  minNeoRequired: ReturnType<typeof import("vue")["ref"]>;
-  minHoldDays: ReturnType<typeof import("vue")["ref"]>;
-  envelopeType: ReturnType<typeof import("vue")["ref"]>;
+  name: ReturnType<(typeof import("vue"))["ref"]>;
+  description: ReturnType<(typeof import("vue"))["ref"]>;
+  amount: ReturnType<(typeof import("vue"))["ref"]>;
+  count: ReturnType<(typeof import("vue"))["ref"]>;
+  expiryHours: ReturnType<(typeof import("vue"))["ref"]>;
+  minNeoRequired: ReturnType<(typeof import("vue"))["ref"]>;
+  minHoldDays: ReturnType<(typeof import("vue"))["ref"]>;
+  envelopeType: ReturnType<(typeof import("vue"))["ref"]>;
 }
 
 export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead } = useWallet() as WalletSDK;
+  const { address, ensureWallet, invokeDirectly, read } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
 
   const luckyMessage = ref<{ amount: number; from: string } | null>(null);
@@ -80,7 +80,7 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
 
   const handleConnect = async () => {
     try {
-      await connect();
+      await ensureWallet();
     } catch (_e: unknown) {
       // Wallet connection failure handled silently
     }
@@ -90,7 +90,7 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
     tx: unknown,
     eventName: string,
     limit: number,
-    pendingMessage: string,
+    pendingMessage: string
   ): Promise<EventRecord | null> => {
     return waitForListedEventByTransaction<EventRecord>(tx, {
       listEvents: async () => {
@@ -107,12 +107,8 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
     try {
       deps.isLoading.value = true;
       deps.clearStatus();
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(t("connectWallet"));
-      }
+
+      await ensureWallet();
 
       const contract = await deps.ensureCreationContract();
 
@@ -131,11 +127,10 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
       const holdSeconds = Math.round((Number(deps.minHoldDays.value) || 2) * 86400);
       const envelopeTypeValue = deps.envelopeType.value === "lucky" ? "1" : "0";
 
-      const tx = await invokeContract({
-        scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: address.value },
+      const tx = await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Hash160", value: contract },
           { type: "Integer", value: toFixed8(deps.amount.value) },
           {
@@ -150,9 +145,10 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
             ],
           },
         ],
-      });
+        BLOCKCHAIN_CONSTANTS.GAS_HASH
+      );
 
-      const createdEvt = await waitForEnvelopeEvent(tx, "EnvelopeCreated", 40, t("envelopePending"));
+      const createdEvt = await waitForEnvelopeEvent(tx.tx, "EnvelopeCreated", 40, t("envelopePending"));
 
       if (!createdEvt) {
         throw new Error(t("envelopePending"));
@@ -174,9 +170,10 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
   const openEnvelope = async (env: EnvelopeItem) => {
     if (openingId.value) return;
 
-    if (!address.value) {
-      await connect();
-      if (!address.value) return;
+    try {
+      await ensureWallet();
+    } catch {
+      return;
     }
 
     try {
@@ -187,15 +184,15 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
       if (!env.active) throw new Error(t("envelopeNotReady"));
       if (env.depleted) throw new Error(t("envelopeEmpty"));
 
-      const hasOpenedRes = await invokeRead({
-        scriptHash: contract,
-        operation: "HasOpened",
-        args: [
+      const hasOpened = await read(
+        "HasOpened",
+        [
           { type: "Integer", value: env.id },
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: address.value as string },
         ],
-      });
-      if (Boolean(parseInvokeResult(hasOpenedRes))) {
+        contract
+      );
+      if (Boolean(hasOpened)) {
         throw new Error(t("alreadyOpened"));
       }
 
@@ -207,16 +204,16 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
       }
 
       openingId.value = env.id;
-      const tx = await invokeContract({
-        scriptHash: contract,
-        operation: "OpenEnvelope",
-        args: [
+      const result = await invokeDirectly(
+        "OpenEnvelope",
+        [
           { type: "Integer", value: env.id },
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: address.value as string },
         ],
-      });
+        contract
+      );
 
-      const openedEvt = await waitForEnvelopeEvent(tx, "EnvelopeOpened", 25, t("openPending"));
+      const openedEvt = await waitForEnvelopeEvent(result.tx, "EnvelopeOpened", 25, t("openPending"));
 
       if (!openedEvt) {
         throw new Error(t("openPending"));
@@ -262,16 +259,16 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
       if (env.poolId) {
         await deps.transferClaim(env.id, recipient);
       } else {
-        await invokeContract({
-          scriptHash: contract,
-          operation: "transferEnvelope",
-          args: [
+        await invokeDirectly(
+          "transferEnvelope",
+          [
             { type: "Integer", value: env.id },
             { type: "Hash160", value: address.value },
             { type: "Hash160", value: recipient },
             { type: "Any", value: null },
           ],
-        });
+          contract
+        );
       }
 
       showTransferModal.value = false;
@@ -289,14 +286,14 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
       deps.clearStatus();
       const contract = await deps.ensureOpenContract();
 
-      await invokeContract({
-        scriptHash: contract,
-        operation: "ReclaimEnvelope",
-        args: [
+      await invokeDirectly(
+        "ReclaimEnvelope",
+        [
           { type: "Integer", value: env.id },
           { type: "Hash160", value: address.value },
         ],
-      });
+        contract
+      );
 
       deps.setStatus(t("reclaimSuccess"), "success");
       await deps.loadEnvelopes();
@@ -306,9 +303,10 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
   };
 
   const handleClaimFromPool = async (poolId: string) => {
-    if (!address.value) {
-      await connect();
-      if (!address.value) return;
+    try {
+      await ensureWallet();
+    } catch {
+      return;
     }
     try {
       deps.clearStatus();

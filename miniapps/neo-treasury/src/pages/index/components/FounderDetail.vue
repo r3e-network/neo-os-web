@@ -118,6 +118,7 @@ function toggleWallet(idx: number) {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .mb-6 {
   margin-bottom: 24px;
@@ -171,13 +172,10 @@ function toggleWallet(idx: number) {
 }
 
 .hero-tokens {
+  @include card-base(16px, 16px);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--bg-card, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  border-radius: 16px;
-  padding: 16px;
   backdrop-filter: blur(10px);
 }
 
@@ -189,12 +187,9 @@ function toggleWallet(idx: number) {
 }
 
 .token-label {
-  font-size: 11px;
+  @include stat-label;
   font-weight: 600;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
-  text-transform: uppercase;
   margin-bottom: 4px;
-  letter-spacing: 0.1em;
 }
 
 .token-val {
@@ -220,11 +215,7 @@ function toggleWallet(idx: number) {
 }
 
 .section-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
-  letter-spacing: 0.1em;
+  @include stat-label;
   display: block;
 }
 
@@ -330,9 +321,8 @@ function toggleWallet(idx: number) {
 }
 
 .d-label {
+  @include stat-label;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
   color: var(--text-muted, rgba(255, 255, 255, 0.4));
   margin-bottom: 8px;
   display: block;
@@ -354,16 +344,11 @@ function toggleWallet(idx: number) {
 }
 
 .breakdown-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  @include grid-layout(2, 12px);
 }
 
 .break-item {
-  background: var(--bg-card, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  border-radius: 12px;
-  padding: 16px;
+  @include card-base(12px, 16px);
   display: flex;
   flex-direction: column;
   align-items: center;

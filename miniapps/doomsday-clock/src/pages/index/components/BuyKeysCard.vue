@@ -35,6 +35,7 @@ defineEmits(["update:keyCount", "buy"]);
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .card-title-glass {
   font-size: 14px;
@@ -64,9 +65,7 @@ defineEmits(["update:keyCount", "buy"]);
   color: var(--text-primary);
 }
 .cost-value-glass {
-  font-size: 18px;
-  font-weight: $font-weight-bold;
-  font-family: $font-mono;
+  @include mono-number(18px);
   color: var(--doom-success);
 }
 

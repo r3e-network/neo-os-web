@@ -2,37 +2,41 @@
   <view class="founders-section">
     <text class="section-title">{{ t("founders") }}</text>
 
-    <view v-for="cat in categories" :key="cat.name" class="founder-item" role="button" tabindex="0" :aria-label="cat.name" @click="$emit('select', cat.name)">
-      <view class="founder-main">
-        <view class="founder-icon">
-          <AppIcon name="user" :size="32" />
-        </view>
-        <view class="founder-info">
-          <text class="founder-name">{{ cat.name }}</text>
-          <text class="founder-wallets">{{ cat.wallets.length }} {{ t("wallets") }}</text>
-        </view>
-        <view class="founder-total">
-          <text class="total-usd">${{ formatNum(cat.totalUsd) }}</text>
-          <AppIcon name="chevron-right" :size="20" class="arrow" />
-        </view>
-      </view>
+    <ItemList :items="categories" item-key="name">
+      <template #item="{ item: cat }">
+        <view class="founder-item" role="button" tabindex="0" :aria-label="cat.name" @click="$emit('select', cat.name)">
+          <view class="founder-main">
+            <view class="founder-icon">
+              <AppIcon name="user" :size="32" />
+            </view>
+            <view class="founder-info">
+              <text class="founder-name">{{ cat.name }}</text>
+              <text class="founder-wallets">{{ cat.wallets.length }} {{ t("wallets") }}</text>
+            </view>
+            <view class="founder-total">
+              <text class="total-usd">${{ formatNum(cat.totalUsd) }}</text>
+              <AppIcon name="chevron-right" :size="20" class="arrow" />
+            </view>
+          </view>
 
-      <view class="founder-breakdown">
-        <view class="breakdown-item">
-          <text class="b-label">NEO</text>
-          <text class="b-val">{{ formatNum(cat.totalNeo) }}</text>
+          <view class="founder-breakdown">
+            <view class="breakdown-item">
+              <text class="b-label">NEO</text>
+              <text class="b-val">{{ formatNum(cat.totalNeo) }}</text>
+            </view>
+            <view class="breakdown-item">
+              <text class="b-label">GAS</text>
+              <text class="b-val">{{ formatNum(cat.totalGas, 2) }}</text>
+            </view>
+          </view>
         </view>
-        <view class="breakdown-item">
-          <text class="b-label">GAS</text>
-          <text class="b-val">{{ formatNum(cat.totalGas, 2) }}</text>
-        </view>
-      </view>
-    </view>
+      </template>
+    </ItemList>
   </view>
 </template>
 
 <script setup lang="ts">
-import { AppIcon } from "@shared/components";
+import { AppIcon, ItemList } from "@shared/components";
 import type { CategoryBalance } from "@/utils/treasury";
 
 defineProps<{
@@ -53,13 +57,10 @@ const formatNum = (n: number, decimals = 0): string => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .section-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.5));
-  letter-spacing: 0.1em;
+  @include stat-label;
   margin-bottom: 16px;
   display: block;
 }

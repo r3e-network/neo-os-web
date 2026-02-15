@@ -92,6 +92,7 @@ const healthGradientClass = computed(() => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .health-section {
   margin-bottom: $spacing-6;
@@ -184,9 +185,15 @@ const healthGradientClass = computed(() => {
   opacity: 0.2;
   z-index: 0;
 
-  &.health-safe { background: var(--checkbook-success); }
-  &.health-warning { background: var(--checkbook-warning); }
-  &.health-danger { background: var(--checkbook-danger); }
+  &.health-safe {
+    background: var(--checkbook-success);
+  }
+  &.health-warning {
+    background: var(--checkbook-warning);
+  }
+  &.health-danger {
+    background: var(--checkbook-danger);
+  }
 }
 
 .health-legend {
@@ -226,34 +233,29 @@ const healthGradientClass = computed(() => {
 }
 
 .metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  @include grid-layout(2, 12px);
 }
 
 .metric-card-glass {
+  @include card-base(12px, 16px);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 .metric-label {
+  @include stat-label;
   font-size: 10px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  font-weight: 700;
   letter-spacing: 0.05em;
 }
 
 .metric-value {
-  font-size: 18px;
+  @include mono-number(18px);
   font-weight: 800;
   line-height: 1.2;
-  font-family: $font-mono;
 
   &.borrowed {
     color: var(--checkbook-warning);

@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     // App translations
 title: { en: "Breakup Contract", zh: "分手合约" },
   subtitle: { en: "Relationship stakes on-chain", zh: "链上关系赌注" },
@@ -24,8 +26,6 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   partnerRequired: { en: "Partner address is required", zh: "需要填写伴侣地址" },
   partnerInvalid: { en: "Invalid partner address", zh: "伴侣地址无效" },
 
-  loading: { en: "Loading...", zh: "加载中..." },
-  creating: { en: "Creating...", zh: "创建中..." },
   createBtn: { en: "Sign & Create Contract", zh: "签署并创建合约" },
   tabCreate: { en: "Create", zh: "创建" },
   tabContracts: { en: "Contracts", zh: "合约" },
@@ -52,12 +52,9 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   titleRequired: { en: "Contract title is required", zh: "请填写合约标题" },
   titleTooLong: { en: "Title must be 100 characters or less", zh: "标题最多100字符" },
   termsTooLong: { en: "Terms must be 2000 characters or less", zh: "条款最多2000字符" },
-  error: { en: "Error", zh: "错误" },
-  receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
   contractUnavailable: { en: "Contract not configured", zh: "合约未配置" },
   loadFailed: { en: "Failed to load contracts", zh: "加载合约失败" },
 
-  docs: { en: "Docs", zh: "文档" },
   docSubtitle: { en: "Stake-backed relationship agreements", zh: "带质押的关系合约" },
   docDescription: {
     en: "Breakup Contract lets two parties lock GAS into a timed agreement with clear terms. Both parties sign on-chain, the stake is held by the contract, and early termination triggers forfeits according to the rules.",
@@ -73,16 +70,6 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   feature2Desc: { en: "Immutable relationship records.", zh: "不可变的关系记录。" },
   feature3Name: { en: "Dual Signature", zh: "双签确认" },
   feature3Desc: { en: "Both parties must sign before activation.", zh: "双方签署后合约才会生效。" },
-  wrongChain: { en: "Wrong Network", zh: "网络错误" },
-  wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-  switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
-    errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

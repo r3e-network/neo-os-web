@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   // App translations
   title: { en: "Red Envelope", zh: "红包" },
   subtitle: { en: "Lucky red packets", zh: "幸运红包" },
@@ -10,7 +12,6 @@ export const messages = {
   totalGasPlaceholder: { en: "Total GAS", zh: "总 GAS" },
   packetsPlaceholder: { en: "Number of packets", zh: "红包数量" },
   expiryPlaceholder: { en: "Expiry (hours)", zh: "过期时长 (小时)" },
-  creating: { en: "Creating...", zh: "创建中..." },
   sendRedEnvelope: { en: "Send Red Envelope", zh: "发送红包" },
   availableEnvelopes: { en: "Available Envelopes", zh: "可用红包" },
   from: { en: "From {0}", zh: "来自 {0}" },
@@ -33,7 +34,6 @@ export const messages = {
   ready: { en: "Ready", zh: "可领取" },
   notReady: { en: "Preparing", zh: "准备中" },
   expired: { en: "Expired", zh: "已过期" },
-  confirm: { en: "Confirm", zh: "确认" },
   loadingEnvelopes: { en: "Loading envelopes...", zh: "加载红包中..." },
   noEnvelopes: { en: "No envelopes available yet", zh: "暂无可领取红包" },
   bestLuck: { en: "Best Luck", zh: "手气最佳" },
@@ -145,5 +145,9 @@ export const messages = {
   poolProgress: { en: "Pool Progress", zh: "奖池进度" },
   sidebarEnvelopes: { en: "Envelopes", zh: "红包" },
   sidebarClaims: { en: "Claims", zh: "领取" },
+  ariaEnvelopes: { en: "Envelopes", zh: "红包" },
+  ariaShare: { en: "Share", zh: "分享" },
   sidebarPools: { en: "Pools", zh: "奖池" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

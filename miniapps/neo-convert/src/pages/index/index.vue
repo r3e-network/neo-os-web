@@ -1,103 +1,96 @@
 <template>
-  <view class="theme-neo-convert">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="status"
-      @tab-change="activeTab = $event"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- LEFT panel: Account Generator -->
-      <template #content>
-        
-          <view class="hero">
-            <ScrollReveal animation="fade-down" :duration="800">
-              <text class="hero-icon">🛠️</text>
-              <text class="hero-title">{{ t("heroTitle") }}</text>
-              <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
-            </ScrollReveal>
-          </view>
-
-          <ScrollReveal animation="fade-up" :delay="200" key="gen">
-            <AccountGenerator />
-          </ScrollReveal>
-        
-      </template>
-
-      <template #tab-convert>
-        <view class="hero">
-          <ScrollReveal animation="fade-down" :duration="800">
-            <text class="hero-icon">🛠️</text>
-            <text class="hero-title">{{ t("heroTitle") }}</text>
-            <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
-          </ScrollReveal>
-        </view>
-
-        <ScrollReveal animation="fade-up" :delay="200" key="conv">
-          <ConverterTool />
+  <MiniAppPage
+    name="neo-convert"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    @tab-change="activeTab = $event"
+  >
+    <!-- LEFT panel: Account Generator -->
+    <template #content>
+      <view class="hero">
+        <ScrollReveal animation="fade-down" :duration="800">
+          <text class="hero-icon">🛠️</text>
+          <text class="hero-title">{{ t("heroTitle") }}</text>
+          <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
         </ScrollReveal>
-      </template>
+      </view>
 
-      <template #operation>
-        <NeoCard variant="erobo" :title="t('quickTools')">
-          <view class="op-tools">
-            <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'generate'">
-              {{ t("tabGenerate") }}
-            </NeoButton>
-            <NeoButton size="sm" variant="secondary" class="op-btn" @click="activeTab = 'convert'">
-              {{ t("tabConvert") }}
-            </NeoButton>
-          </view>
-          <view class="op-hint">
-            <text class="op-hint-text">{{ t("heroSubtitle") }}</text>
-          </view>
-        </NeoCard>
-      </template>
-    </MiniAppShell>
-  </view>
+      <ScrollReveal animation="fade-up" :delay="200" key="gen">
+        <AccountGenerator />
+      </ScrollReveal>
+    </template>
+
+    <template #tab-convert>
+      <view class="hero">
+        <ScrollReveal animation="fade-down" :duration="800">
+          <text class="hero-icon">🛠️</text>
+          <text class="hero-title">{{ t("heroTitle") }}</text>
+          <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
+        </ScrollReveal>
+      </view>
+
+      <ScrollReveal animation="fade-up" :delay="200" key="conv">
+        <ConverterTool />
+      </ScrollReveal>
+    </template>
+
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('quickTools')">
+        <view class="op-tools">
+          <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'generate'">
+            {{ t("tabGenerate") }}
+          </NeoButton>
+          <NeoButton size="sm" variant="secondary" class="op-btn" @click="activeTab = 'convert'">
+            {{ t("tabConvert") }}
+          </NeoButton>
+        </view>
+        <view class="op-hint">
+          <text class="op-hint-text">{{ t("heroSubtitle") }}</text>
+        </view>
+      </NeoCard>
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useResponsive } from "@shared/composables/useResponsive";
-import { MiniAppShell, NeoCard, NeoButton, ScrollReveal } from "@shared/components";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
+import { MiniAppPage, ScrollReveal } from "@shared/components";
 import AccountGenerator from "./components/AccountGenerator.vue";
-import ConverterTool from "./components/ConverterTool.vue";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
 import { messages } from "@/locale/messages";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 
 const { isMobile } = useResponsive();
-
-const { t } = createUseI18n(messages)();
-const { status } = useStatusMessage();
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "generate", labelKey: "tabGenerate", icon: "👛", default: true },
-    { key: "convert", labelKey: "tabConvert", icon: "🔄" },
-  ],
-  docTitleKey: "docTitle",
-  docFeatureCount: 4,
-  docStepPrefix: "docStep",
-  docFeaturePrefix: "docFeature",
-});
 const activeTab = ref("generate");
+
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
+  name: "neo-convert",
+  messages,
+  template: {
+    tabs: [
+      { key: "generate", labelKey: "tabGenerate", icon: "👛", default: true },
+      { key: "convert", labelKey: "tabConvert", icon: "🔄" },
+    ],
+    docTitleKey: "docTitle",
+    docFeatureCount: 4,
+    docStepPrefix: "docStep",
+    docFeaturePrefix: "docFeature",
+  },
+  sidebarItems: [
+    { labelKey: "sidebarActiveTab", value: () => activeTab.value },
+    { labelKey: "sidebarMode", value: () => (isMobile.value ? t("sidebarMobile") : t("sidebarDesktop")) },
+  ],
+});
+
 const appState = computed(() => ({
   activeTab: activeTab.value,
 }));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "sidebarActiveTab", value: () => activeTab.value },
-  { labelKey: "sidebarMode", value: () => (isMobile.value ? t("sidebarMobile") : t("sidebarDesktop")) },
-]);
-
-const { handleBoundaryError, resetAndReload } = useHandleBoundaryError("neo-convert");
 </script>
 
 <style lang="scss" scoped>

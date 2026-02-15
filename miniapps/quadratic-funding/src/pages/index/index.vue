@@ -1,300 +1,213 @@
 <template>
-  <view class="theme-quadratic-funding">
-    <MiniAppShell
-      :config="templateConfig"
-      :state="appState"
-      :t="t"
-      :status-message="roundsStatus"
-      @tab-change="onTabChange"
-      :sidebar-items="sidebarItems"
-      :sidebar-title="t('overview')"
-      :fallback-message="t('errorFallback')"
-      :on-boundary-error="handleBoundaryError"
-      :on-boundary-retry="resetAndReload">
-<!-- Rounds Tab (default) -->
-      <template #content>
-        
-          <RoundForm ref="roundFormRef" @create="handleCreateRound" />
+  <MiniAppPage
+    name="quadratic-funding"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="roundsStatus"
+    @tab-change="onTabChange"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="refreshRounds"
+  >
+    <!-- Rounds Tab (default) -->
+    <template #content>
+      <RoundForm ref="roundFormRef" @create="handleCreateRound" />
 
-          <RoundList
-            :rounds="rounds"
-            :selected-round-id="selectedRoundId"
-            :is-refreshing="isRefreshingRounds"
-            :round-status-label="roundStatusLabel"
-            :format-amount="formatAmount"
-            :format-schedule="formatSchedule"
-            :format-address="formatAddress"
-            @refresh="refreshRounds"
-            @select="selectRound"
-          />
+      <RoundList
+        :rounds="rounds"
+        :selected-round-id="selectedRoundId"
+        :is-refreshing="isRefreshingRounds"
+        :round-status-label="roundStatusLabel"
+        :format-amount="formatAmount"
+        :format-schedule="formatSchedule"
+        :format-address="formatAddress"
+        @refresh="refreshRounds"
+        @select="selectRound"
+      />
 
-          <RoundAdminPanel
-            v-if="selectedRound"
-            :round="selectedRound"
-            :can-manage="canManageSelectedRound"
-            :can-finalize="canFinalizeSelectedRound"
-            :can-claim-unused="canClaimUnused"
-            :is-adding-matching="isAddingMatching"
-            :is-finalizing="isFinalizing"
-            :is-claiming-unused="isClaimingUnused"
-            @add-matching="handleAddMatching"
-            @finalize="handleFinalize"
-            @claim-unused="handleClaimUnused"
-          />
-        
+      <RoundAdminPanel
+        v-if="selectedRound"
+        :round="selectedRound"
+        :can-manage="canManageSelectedRound"
+        :can-finalize="canFinalizeSelectedRound"
+        :can-claim-unused="canClaimUnused"
+        :is-adding-matching="isAddingMatching"
+        :is-finalizing="isFinalizing"
+        :is-claiming-unused="isClaimingUnused"
+        @add-matching="handleAddMatching"
+        @finalize="handleFinalize"
+        @claim-unused="handleClaimUnused"
+      />
+    </template>
+
+    <!-- Projects Tab -->
+    <template #tab-projects>
+      <NeoCard
+        v-if="projectsStatus"
+        :variant="projectsStatus.type === 'error' ? 'danger' : 'success'"
+        class="mb-4 text-center"
+      >
+        <text class="font-bold">{{ projectsStatus.msg }}</text>
+      </NeoCard>
+
+      <view v-if="!selectedRound" class="empty-state">
+        <NeoCard variant="erobo" class="p-6 text-center">
+          <text class="text-sm">{{ t("noSelectedRound") }}</text>
+        </NeoCard>
+      </view>
+
+      <template v-else>
+        <ProjectForm ref="projectFormRef" @register="handleRegisterProject" />
+
+        <ProjectList
+          :projects="projects"
+          :asset-symbol="selectedRound.assetSymbol"
+          :is-refreshing="isRefreshingProjects"
+          :claiming-project-id="claimingProjectId"
+          :can-claim-project="canClaimProject"
+          :format-address="formatAddress"
+          :format-amount="formatAmount"
+          :project-status-label="projectStatusLabel"
+          :project-status-class="projectStatusClass"
+          @refresh="refreshProjects"
+          @contribute="goToContribute"
+          @claim="handleClaimProject"
+        />
       </template>
+    </template>
 
-      <!-- Projects Tab -->
-      <template #tab-projects>
-        <NeoCard
-          v-if="projectsStatus"
-          :variant="projectsStatus.type === 'error' ? 'danger' : 'success'"
-          class="mb-4 text-center"
-        >
-          <text class="font-bold">{{ projectsStatus.msg }}</text>
+    <!-- Contribute Tab -->
+    <template #tab-contribute>
+      <NeoCard
+        v-if="contributionStatus"
+        :variant="contributionStatus.type === 'error' ? 'danger' : 'success'"
+        class="mb-4 text-center"
+      >
+        <text class="font-bold">{{ contributionStatus.msg }}</text>
+      </NeoCard>
+
+      <view v-if="!selectedRound" class="empty-state">
+        <NeoCard variant="erobo" class="p-6 text-center">
+          <text class="text-sm">{{ t("noSelectedRound") }}</text>
+        </NeoCard>
+      </view>
+
+      <template v-else>
+        <NeoCard variant="erobo" class="project-quicklist">
+          <text class="section-title">{{ t("tabProjects") }}</text>
+          <view v-if="projects.length === 0" class="empty-state">
+            <text class="text-xs opacity-70">{{ t("emptyProjects") }}</text>
+          </view>
+          <view v-else class="chip-row">
+            <NeoButton
+              v-for="project in projects"
+              :key="`chip-${project.id}`"
+              size="sm"
+              :variant="contributeForm.projectId === project.id ? 'primary' : 'secondary'"
+              @click="selectProject(project)"
+            >
+              {{ project.name || `#${project.id}` }}
+            </NeoButton>
+          </view>
         </NeoCard>
 
-        <view v-if="!selectedRound" class="empty-state">
-          <NeoCard variant="erobo" class="p-6 text-center">
-            <text class="text-sm">{{ t("noSelectedRound") }}</text>
-          </NeoCard>
-        </view>
-
-        <template v-else>
-          <ProjectForm ref="projectFormRef" @register="handleRegisterProject" />
-
-          <ProjectList
-            :projects="projects"
-            :asset-symbol="selectedRound.assetSymbol"
-            :is-refreshing="isRefreshingProjects"
-            :claiming-project-id="claimingProjectId"
-            :can-claim-project="canClaimProject"
-            :format-address="formatAddress"
-            :format-amount="formatAmount"
-            :project-status-label="projectStatusLabel"
-            :project-status-class="projectStatusClass"
-            @refresh="refreshProjects"
-            @contribute="goToContribute"
-            @claim="handleClaimProject"
-          />
-        </template>
+        <ContributionForm
+          ref="contributeFormRef"
+          :round-id="selectedRoundId"
+          :asset-symbol="selectedRound.assetSymbol"
+          @contribute="handleContribute"
+        />
       </template>
+    </template>
 
-      <!-- Contribute Tab -->
-      <template #tab-contribute>
-        <NeoCard
-          v-if="contributionStatus"
-          :variant="contributionStatus.type === 'error' ? 'danger' : 'success'"
-          class="mb-4 text-center"
-        >
-          <text class="font-bold">{{ contributionStatus.msg }}</text>
-        </NeoCard>
-
-        <view v-if="!selectedRound" class="empty-state">
-          <NeoCard variant="erobo" class="p-6 text-center">
-            <text class="text-sm">{{ t("noSelectedRound") }}</text>
-          </NeoCard>
-        </view>
-
-        <template v-else>
-          <NeoCard variant="erobo" class="project-quicklist">
-            <text class="section-title">{{ t("tabProjects") }}</text>
-            <view v-if="projects.length === 0" class="empty-state">
-              <text class="text-xs opacity-70">{{ t("emptyProjects") }}</text>
-            </view>
-            <view v-else class="chip-row">
-              <NeoButton
-                v-for="project in projects"
-                :key="`chip-${project.id}`"
-                size="sm"
-                :variant="contributeForm.projectId === project.id ? 'primary' : 'secondary'"
-                @click="selectProject(project)"
-              >
-                {{ project.name || `#${project.id}` }}
-              </NeoButton>
-            </view>
-          </NeoCard>
-
-          <ContributionForm
-            ref="contributeFormRef"
-            :round-id="selectedRoundId"
-            :asset-symbol="selectedRound.assetSymbol"
-            @contribute="handleContribute"
-          />
-        </template>
-      </template>
-
-      <template #operation>
-        <MiniAppOperationStats variant="erobo" :title="t('quickContribute')" :stats="opStats">
-          <NeoButton size="sm" variant="primary" class="op-btn" @click="onTabChange('contribute')">
-            {{ t("tabContribute") }}
-          </NeoButton>
-        </MiniAppOperationStats>
-      </template>
-    </MiniAppShell>
-  </view>
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('quickContribute')">
+        <NeoButton size="sm" variant="primary" class="op-btn" @click="onTabChange('contribute')">
+          {{ t("tabContribute") }}
+        </NeoButton>
+        <StatsDisplay :items="opStats" layout="rows" />
+      </NeoCard>
+    </template>
+  </MiniAppPage>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
-import { createUseI18n } from "@shared/composables/useI18n";
+import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
-import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
-import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
-import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
-import { MiniAppShell, MiniAppOperationStats, NeoCard, NeoButton } from "@shared/components";
-import { formatAddress } from "@shared/utils/format";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
-import { createTemplateConfig, createSidebarItems } from "@shared/utils";
+import { MiniAppPage } from "@shared/components";
 import RoundForm from "./components/RoundForm.vue";
 import RoundList from "./components/RoundList.vue";
 import RoundAdminPanel from "./components/RoundAdminPanel.vue";
-import ProjectForm from "./components/ProjectForm.vue";
-import ProjectList from "./components/ProjectList.vue";
-import ContributionForm from "./components/ContributionForm.vue";
+import { useQuadraticFundingPage } from "./composables/useQuadraticFundingPage";
 
-const { t } = createUseI18n(messages)();
-const activeTab = ref("rounds");
-
-const templateConfig = createTemplateConfig({
-  tabs: [
-    { key: "rounds", labelKey: "tabRounds", icon: "🎯", default: true },
-    { key: "projects", labelKey: "tabProjects", icon: "📁" },
-    { key: "contribute", labelKey: "tabContribute", icon: "❤️" },
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
+  name: "quadratic-funding",
+  messages,
+  template: {
+    tabs: [
+      { key: "rounds", labelKey: "tabRounds", icon: "🎯", default: true },
+      { key: "projects", labelKey: "tabProjects", icon: "📁" },
+      { key: "contribute", labelKey: "tabContribute", icon: "❤️" },
+    ],
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    { labelKey: "tabRounds", value: () => rounds.value.length },
+    { labelKey: "tabProjects", value: () => projects.value.length },
+    { labelKey: "sidebarSelectedRound", value: () => selectedRoundId.value ?? "—" },
+    {
+      labelKey: "sidebarMatchingPool",
+      value: () => (selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—"),
+    },
   ],
-  docFeatureCount: 3,
 });
-
-const appState = computed(() => ({
-  roundCount: rounds.value.length,
-  selectedRoundId: selectedRoundId.value,
-}));
-
-const sidebarItems = createSidebarItems(t, [
-  { labelKey: "tabRounds", value: () => rounds.value.length },
-  { labelKey: "tabProjects", value: () => projects.value.length },
-  { labelKey: "sidebarSelectedRound", value: () => selectedRoundId.value ?? "—" },
-  {
-    labelKey: "sidebarMatchingPool",
-    value: () => (selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—"),
-  },
-]);
-
-const opStats = computed(() => [
-  { label: t("tabRounds"), value: rounds.value.length },
-  { label: t("tabProjects"), value: projects.value.length },
-  { label: t("sidebarSelectedRound"), value: selectedRoundId.value ?? "—" },
-  {
-    label: t("sidebarMatchingPool"),
-    value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—",
-  },
-]);
 
 const {
   rounds,
   selectedRoundId,
   selectedRound,
   isRefreshingRounds,
-  isCreatingRound,
   isAddingMatching,
   isFinalizing,
   isClaimingUnused,
   canManageSelectedRound,
   canFinalizeSelectedRound,
   canClaimUnused,
-  status: roundsStatus,
+  roundsStatus,
   refreshRounds,
   selectRound,
-  createRound,
-  addMatching,
-  finalizeRound,
-  claimUnused,
   roundStatusLabel,
   formatSchedule,
   formatAmount,
-  setStatus,
-  ensureContractAddress,
-} = useQuadraticRounds();
-
-const {
+  formatAddress,
   projects,
   isRefreshingProjects,
-  isRegisteringProject,
   claimingProjectId,
-  refreshProjects,
-  registerProject,
   canClaimProject,
-  claimProject,
   projectStatusLabel,
   projectStatusClass,
-} = useQuadraticProjects(selectedRound, ensureContractAddress, setStatus);
-
-const { isContributing, contributeForm, selectProject, contribute, goToContribute } = useQuadraticContributions(
-  selectedRound,
-  ensureContractAddress,
-  setStatus,
-  refreshProjects,
-  refreshRounds
-);
-
-const projectsStatus = ref<{ msg: string; type: "success" | "error" } | null>(null);
-const contributionStatus = ref<{ msg: string; type: "success" | "error" } | null>(null);
-
-watch(roundsStatus, (val) => {
-  if (activeTab.value === "rounds") roundsStatus.value = val;
-});
-
-const roundFormRef = ref<InstanceType<typeof RoundForm> | null>(null);
-const projectFormRef = ref<InstanceType<typeof ProjectForm> | null>(null);
-const contributeFormRef = ref<InstanceType<typeof ContributionForm> | null>(null);
-
-const handleCreateRound = async (data: Parameters<typeof createRound>[0]) => {
-  roundFormRef.value?.setLoading(true);
-  await createRound(data);
-  roundFormRef.value?.setLoading(false);
-  if (roundsStatus.value?.type === "success") roundFormRef.value?.reset();
-};
-
-const handleRegisterProject = async (data: Parameters<typeof registerProject>[0]) => {
-  projectFormRef.value?.setLoading(true);
-  await registerProject(data);
-  projectFormRef.value?.setLoading(false);
-  if (!roundsStatus.value || roundsStatus.value.type === "success") projectFormRef.value?.reset();
-};
-
-const handleContribute = async (data: Parameters<typeof contribute>[0]) => {
-  contributeFormRef.value?.setLoading(true);
-  await contribute(data);
-  contributeFormRef.value?.setLoading(false);
-  if (!roundsStatus.value || roundsStatus.value.type === "success") contributeFormRef.value?.reset();
-};
-
-const handleAddMatching = async (amount: string) => await addMatching(amount);
-const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) =>
-  await finalizeRound(projectIdsRaw, matchedRaw);
-const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => await claimProject(project);
-const handleClaimUnused = async () => await claimUnused();
-
-const { handleBoundaryError } = useHandleBoundaryError("quadratic-funding");
-const resetAndReload = async () => {
-  await refreshRounds();
-};
-
-const onTabChange = async (tabId: string) => {
-  activeTab.value = tabId;
-  if (tabId === "rounds") await refreshRounds();
-  if (tabId === "projects" || tabId === "contribute") await refreshProjects();
-};
-
-onMounted(async () => {
-  await refreshRounds();
-});
-
-watch(selectedRoundId, async (roundId) => {
-  if (!roundId) return;
-  contributeForm.roundId = roundId;
-  await refreshProjects();
-});
+  contributeForm,
+  selectProject,
+  activeTab,
+  appState,
+  opStats,
+  projectsStatus,
+  contributionStatus,
+  roundFormRef,
+  projectFormRef,
+  contributeFormRef,
+  handleCreateRound,
+  handleRegisterProject,
+  handleContribute,
+  handleAddMatching,
+  handleFinalize,
+  handleClaimProject,
+  handleClaimUnused,
+  onTabChange,
+} = useQuadraticFundingPage(t);
 </script>
 
 <style lang="scss" scoped>

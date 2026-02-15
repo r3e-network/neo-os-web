@@ -36,9 +36,7 @@
       />
     </view>
 
-    <view class="rate-info">
-        1 NEO ≈ 8.5 GAS
-    </view>
+    <view class="rate-info"> 1 NEO ≈ 8.5 GAS </view>
 
     <NeoButton variant="primary" block @click="$emit('addLiquidity')" :loading="loading">
       {{ t("addLiquidity") }}
@@ -48,13 +46,16 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoInput, NeoButton, AppIcon } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   amountA: string;
   amountB: string;
   loading: boolean;
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["update:amountA", "update:amountB", "calculateA", "calculateB", "addLiquidity"]);
 </script>
@@ -139,9 +140,11 @@ defineEmits(["update:amountA", "update:amountB", "calculateA", "calculateB", "ad
     color: var(--text-primary) !important;
     height: 32px;
     padding: 0 !important;
-    text-align: right !important; 
+    text-align: right !important;
   }
 }
 
-.mb-4 { margin-bottom: 16px; }
+.mb-4 {
+  margin-bottom: 16px;
+}
 </style>

@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
     title: { en: "Turtle Match", zh: "乌龟对对碰" },
     totalSessions: { en: "Total Sessions", zh: "总场次" },
     totalRewards: { en: "Total Rewards", zh: "总奖励" },
@@ -28,7 +30,6 @@ export const messages = {
     docFeature2Desc: { en: "Turtle colors are derived from a seeded hash for transparent outcomes.", zh: "乌龟颜色由种子哈希推导，结果透明可验证。" },
     docFeature3Name: { en: "Instant settlement", zh: "即时结算" },
     docFeature3Desc: { en: "Complete the session and claim rewards in a single settlement.", zh: "完成会话后一次结算即可领取奖励。" },
-    connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
     buyBlindbox: { en: "Buy Boxes", zh: "购买盲盒" },
     pricePerBox: { en: "GAS / box", zh: "GAS / 个" },
     totalPrice: { en: "Total", zh: "总价" },
@@ -43,8 +44,6 @@ export const messages = {
     blindbox: { en: "Blindbox", zh: "盲盒" },
     connectWalletFirst: { en: "Please connect your wallet first.", zh: "请先连接钱包" },
     invalidBoxCount: { en: "Blindbox count must be between 3 and 20.", zh: "盲盒数量必须在3-20之间" },
-    contractUnavailable: { en: "Contract unavailable", zh: "合约不可用" },
-    receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
     noActiveSession: { en: "No active game session.", zh: "没有活跃的游戏会话" },
     alreadySettled: { en: "Game already settled.", zh: "游戏已结算" },
     scriptHashMissing: { en: "Verification script unavailable", zh: "验证脚本不可用" },
@@ -53,12 +52,6 @@ export const messages = {
     connectFailed: { en: "Unable to connect wallet.", zh: "无法连接钱包" },
     sdkUnavailable: { en: "SDK not available", zh: "SDK 不可用" },
     sdkInitTimeout: { en: "SDK initialization timeout", zh: "SDK 初始化超时" },
-    error: { en: "Error", zh: "错误" },
-    wrongChain: { en: "Wrong Network", zh: "网络错误" },
-    wrongChainMessage: { en: "This app requires Neo N3 network.", zh: "此应用需 Neo N3 网络。" },
-    switchToNeo: { en: "Switch to Neo N3", zh: "切换到 Neo N3" },
-    loading: { en: "Loading...", zh: "加载中..." },
-    docs: { en: "Docs", zh: "文档" },
     tabPlay: { en: "Play", zh: "游戏" },
     tabGuide: { en: "Guide", zh: "引导" },
     tabCommunity: { en: "Reviews", zh: "评价" },
@@ -67,15 +60,7 @@ export const messages = {
     operationPanelTitle: { en: "Transaction Operation Block", zh: "交易操作面板" },
     communityReviews: { en: "Community Reviews", zh: "社区评价" },
     communityHint: { en: "Real user feedback focused on interaction clarity and transaction flow.", zh: "真实用户反馈，重点关注交互清晰度和交易流程。" },
-    // Shared component keys
-    wpTitle: { en: "Wallet Required", zh: "需要钱包" },
-    wpDescription: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
-    wpConnect: { en: "Connect Wallet", zh: "连接钱包" },
-    wpCancel: { en: "Cancel", zh: "取消" },
-    docWhatItIs: { en: "What is it?", zh: "这是什么？" },
-    docHowToUse: { en: "How to use", zh: "如何使用" },
-    docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
   phase: { en: "Phase", zh: "阶段" },
-  overview: { en: "Overview", zh: "概览" },
-  errorFallback: { en: "Something went wrong", zh: "出现错误" },
-};
+} as const;
+
+export const messages = mergeMessages(appMessages);

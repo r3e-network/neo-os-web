@@ -1,52 +1,63 @@
 <template>
   <NeoCard variant="erobo" class="capsules-card">
-    <view v-for="(capsule, idx) in capsules" :key="idx" class="capsule-item-glass">
-      <view class="capsule-header">
-        <view class="capsule-icon">💊</view>
-        <view class="capsule-info">
-          <text class="capsule-amount">{{ fmt(capsule.amount, 0) }} NEO</text>
-          <text class="capsule-period">{{ capsule.unlockDate }}</text>
-        </view>
-        <view class="capsule-actions">
-          <view class="capsule-status">
-            <view class="status-badge" :class="capsule.status === 'Ready' ? 'ready' : 'locked'">
-              <text class="status-badge-text">{{ capsule.status === "Ready" ? t("ready") : t("locked") }}</text>
-            </view>
+    <ItemList
+      :items="capsules as unknown as Record<string, unknown>[]"
+      :empty-text="t('noCapsules')"
+      :aria-label="t('ariaCapsules')"
+    >
+      <template #item="{ item }">
+        <view class="capsule-header">
+          <view class="capsule-icon">💊</view>
+          <view class="capsule-info">
+            <text class="capsule-amount">{{ fmt((item as unknown as Capsule).amount, 0) }} NEO</text>
+            <text class="capsule-period">{{ (item as unknown as Capsule).unlockDate }}</text>
           </view>
-          <NeoButton
-            v-if="capsule.status === 'Ready'"
-            size="sm"
-            variant="primary"
-            :loading="isLoading"
-            @click="$emit('unlock', capsule.id)"
-          >
-            {{ t("unlock") }}
-          </NeoButton>
+          <view class="capsule-actions">
+            <view class="capsule-status">
+              <StatusBadge
+                :status="(item as unknown as Capsule).status === 'Ready' ? 'ready' : 'inactive'"
+                :label="(item as unknown as Capsule).status === 'Ready' ? t('ready') : t('locked')"
+              />
+            </view>
+            <NeoButton
+              v-if="(item as unknown as Capsule).status === 'Ready'"
+              size="sm"
+              variant="primary"
+              :loading="isLoading"
+              @click="$emit('unlock', (item as unknown as Capsule).id)"
+            >
+              {{ t("unlock") }}
+            </NeoButton>
+          </view>
         </view>
-      </view>
-      <view class="capsule-progress">
-        <view class="progress-bar-glass">
-          <view class="progress-fill-glass" :style="{ width: capsule.status === 'Ready' ? '100%' : '0%' }"></view>
+        <view class="capsule-progress">
+          <view class="progress-bar-glass">
+            <view
+              class="progress-fill-glass"
+              :style="{ width: (item as unknown as Capsule).status === 'Ready' ? '100%' : '0%' }"
+            ></view>
+          </view>
+          <text class="progress-text">{{
+            (item as unknown as Capsule).status === "Ready" ? t("ready") : t("locked")
+          }}</text>
         </view>
-        <text class="progress-text">{{ capsule.status === "Ready" ? t("ready") : t("locked") }}</text>
-      </view>
-      <view class="capsule-footer">
-        <view class="countdown">
-          <text class="countdown-label">{{ t("maturesIn") }}</text>
-          <text class="countdown-value">{{ capsule.remaining }}</text>
+        <view class="capsule-footer">
+          <view class="countdown">
+            <text class="countdown-label">{{ t("maturesIn") }}</text>
+            <text class="countdown-value">{{ (item as unknown as Capsule).remaining }}</text>
+          </view>
+          <view class="rewards">
+            <text class="rewards-label">{{ t("rewards") }}</text>
+            <text class="rewards-value">+{{ fmt((item as unknown as Capsule).compound, 4) }} GAS</text>
+          </view>
         </view>
-        <view class="rewards">
-          <text class="rewards-label">{{ t("rewards") }}</text>
-          <text class="rewards-value">+{{ fmt(capsule.compound, 4) }} GAS</text>
-        </view>
-      </view>
-    </view>
-    <text v-if="capsules.length === 0" class="empty-text">{{ t("noCapsules") }}</text>
+      </template>
+    </ItemList>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard, NeoButton, ItemList, StatusBadge } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { formatNumber } from "@shared/utils/format";

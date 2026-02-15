@@ -33,11 +33,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { GradientCard, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 interface Props {
   boxCount: number;
   loading: boolean;
-  t: Function;
 }
 
 const props = defineProps<Props>();

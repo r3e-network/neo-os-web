@@ -44,7 +44,7 @@
         </view>
       </view>
 
-      <view style="margin-top: 16px">
+      <view class="submit-action">
         <NeoButton
           variant="primary"
           size="lg"
@@ -65,6 +65,8 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoInput, NeoButton, AppIcon } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 defineProps<{
   isEligible: boolean;
@@ -73,8 +75,9 @@ defineProps<{
   maxRequestAmount: string;
   isRequesting: boolean;
   quickAmounts: number[];
-  t: (key: string) => string;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 defineEmits(["update:requestAmount", "request"]);
 
@@ -138,9 +141,9 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
   box-shadow: var(--gas-pump-screen-shadow);
   position: relative;
   overflow: hidden;
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -163,7 +166,7 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
 .pump-amount {
   font-size: 56px;
   font-weight: 800;
-  font-family: monospace, ui-monospace, SFMono-Regular; 
+  font-family: monospace, ui-monospace, SFMono-Regular;
   color: var(--gas-pump-amount);
   display: block;
   line-height: 1;
@@ -218,7 +221,7 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
     border-color: var(--gas-quick-btn-hover-border);
     transform: translateY(-2px);
     box-shadow: var(--gas-quick-btn-hover-shadow);
-    
+
     text {
       color: var(--gas-quick-btn-hover-text);
     }
@@ -243,5 +246,9 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
   gap: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.submit-action {
+  margin-top: 16px;
 }
 </style>

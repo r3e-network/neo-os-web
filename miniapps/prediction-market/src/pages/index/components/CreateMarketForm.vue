@@ -1,104 +1,101 @@
 <template>
-  <view class="create-market-form">
-    <view class="form-header">
-      <text class="form-title">{{ t("createMarket") }}</text>
-      <text class="form-subtitle">{{ t("createMarket") }}</text>
+  <FormCard
+    :title="t('createMarket')"
+    :description="t('createMarket')"
+    :submit-label="isCreating ? t('loading') : t('createMarket')"
+    :submit-loading="isCreating"
+    :submit-disabled="isCreating || !isFormValid()"
+    @submit="submitForm"
+  >
+    <!-- Question -->
+    <view class="form-field">
+      <text class="field-label">{{ t("question") }} *</text>
+      <textarea
+        v-model="formData.question"
+        class="field-input field-textarea"
+        :placeholder="t('questionPlaceholder')"
+        maxlength="200"
+      />
+      <text class="field-hint">{{ formData.question.length }}/200</text>
     </view>
 
-    <view class="form-fields">
-      <!-- Question -->
-      <view class="form-field">
-        <text class="field-label">{{ t("question") }} *</text>
-        <textarea
-          v-model="formData.question"
-          class="field-input field-textarea"
-          :placeholder="t('questionPlaceholder')"
-          maxlength="200"
-        />
-        <text class="field-hint">{{ formData.question.length }}/200</text>
-      </view>
+    <!-- Description -->
+    <view class="form-field">
+      <text class="field-label">{{ t("description") }}</text>
+      <textarea
+        v-model="formData.description"
+        class="field-input field-textarea"
+        :placeholder="t('descriptionPlaceholder')"
+        maxlength="1000"
+      />
+      <text class="field-hint">{{ formData.description.length }}/1000</text>
+    </view>
 
-      <!-- Description -->
-      <view class="form-field">
-        <text class="field-label">{{ t("description") }}</text>
-        <textarea
-          v-model="formData.description"
-          class="field-input field-textarea"
-          :placeholder="t('descriptionPlaceholder')"
-          maxlength="1000"
-        />
-        <text class="field-hint">{{ formData.description.length }}/1000</text>
-      </view>
-
-      <!-- Category -->
-      <view class="form-field">
-        <text class="field-label">{{ t("category") }} *</text>
-        <view class="category-grid">
-          <view
-            v-for="cat in categoryOptions"
-            :key="cat.id"
-            class="category-option"
-            :class="{ active: formData.category === cat.id }"
-            role="button"
-            tabindex="0"
-            :aria-pressed="formData.category === cat.id"
-            @click="formData.category = cat.id"
-            @keydown.enter="formData.category = cat.id"
-            @keydown.space.prevent="formData.category = cat.id"
-          >
-            <text>{{ cat.label }}</text>
-          </view>
+    <!-- Category -->
+    <view class="form-field">
+      <text class="field-label">{{ t("category") }} *</text>
+      <view class="category-grid">
+        <view
+          v-for="cat in categoryOptions"
+          :key="cat.id"
+          class="category-option"
+          :class="{ active: formData.category === cat.id }"
+          role="button"
+          tabindex="0"
+          :aria-pressed="formData.category === cat.id"
+          @click="formData.category = cat.id"
+          @keydown.enter="formData.category = cat.id"
+          @keydown.space.prevent="formData.category = cat.id"
+        >
+          <text>{{ cat.label }}</text>
         </view>
-      </view>
-
-      <!-- End Date -->
-      <view class="form-field">
-        <text class="field-label">{{ t("endDate") }} *</text>
-        <view class="date-input-container">
-          <input v-model="formData.endDateStr" type="datetime-local" class="field-input" :aria-label="t('endDate')" />
-        </view>
-      </view>
-
-      <!-- Oracle -->
-      <view class="form-field">
-        <text class="field-label">{{ t("oracle") }} *</text>
-        <input v-model="formData.oracle" class="field-input" :placeholder="t('selectOracle')" />
-        <text class="field-hint">{{ t("resolutionSource") }}</text>
-      </view>
-
-      <!-- Initial Liquidity -->
-      <view class="form-field">
-        <text class="field-label">{{ t("initialLiquidity") }} *</text>
-        <input
-          v-model.number="formData.initialLiquidity"
-          type="number"
-          class="field-input"
-          placeholder="10"
-          min="10"
-          step="1"
-        />
-        <text class="field-hint">{{ t("liquidityInfo") }}</text>
-      </view>
-
-      <!-- Submit Button -->
-      <view class="form-actions">
-        <button class="submit-button" :disabled="isCreating || !isFormValid()" @click="submitForm">
-          <text>{{ isCreating ? t("loading") : t("createMarket") }}</text>
-        </button>
       </view>
     </view>
-  </view>
+
+    <!-- End Date -->
+    <view class="form-field">
+      <text class="field-label">{{ t("endDate") }} *</text>
+      <view class="date-input-container">
+        <input v-model="formData.endDateStr" type="datetime-local" class="field-input" :aria-label="t('endDate')" />
+      </view>
+    </view>
+
+    <!-- Oracle -->
+    <view class="form-field">
+      <text class="field-label">{{ t("oracle") }} *</text>
+      <input v-model="formData.oracle" class="field-input" :placeholder="t('selectOracle')" />
+      <text class="field-hint">{{ t("resolutionSource") }}</text>
+    </view>
+
+    <!-- Initial Liquidity -->
+    <view class="form-field">
+      <text class="field-label">{{ t("initialLiquidity") }} *</text>
+      <input
+        v-model.number="formData.initialLiquidity"
+        type="number"
+        class="field-input"
+        placeholder="10"
+        min="10"
+        step="1"
+      />
+      <text class="field-hint">{{ t("liquidityInfo") }}</text>
+    </view>
+  </FormCard>
 </template>
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
+import { FormCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 interface Props {
   isCreating: boolean;
-  t: (key: string) => string;
 }
 
 const props = defineProps<Props>();
+
+const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   submit: [
@@ -123,12 +120,12 @@ const formData = reactive({
 });
 
 const categoryOptions = computed(() => [
-  { id: "crypto", label: props.t("categoryCrypto") },
-  { id: "sports", label: props.t("categorySports") },
-  { id: "politics", label: props.t("categoryPolitics") },
-  { id: "economics", label: props.t("categoryEconomics") },
-  { id: "entertainment", label: props.t("categoryEntertainment") },
-  { id: "other", label: props.t("categoryOther") },
+  { id: "crypto", label: t("categoryCrypto") },
+  { id: "sports", label: t("categorySports") },
+  { id: "politics", label: t("categoryPolitics") },
+  { id: "economics", label: t("categoryEconomics") },
+  { id: "entertainment", label: t("categoryEntertainment") },
+  { id: "other", label: t("categoryOther") },
 ]);
 
 const isFormValid = (): boolean => {
@@ -162,6 +159,7 @@ const submitForm = () => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 @import "../prediction-market-theme.scss";
 
 .create-market-form {
@@ -230,9 +228,7 @@ const submitForm = () => {
 }
 
 .category-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  @include grid-layout(2, 8px);
 }
 
 .category-option {

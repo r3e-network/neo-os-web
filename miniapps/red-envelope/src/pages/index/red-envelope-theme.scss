@@ -1,11 +1,13 @@
-:global(.theme-red-envelope) {
+@use "@shared/styles/mixins.scss" as *;
+
+@include theme-dark("red-envelope") {
   --red-envelope-base: #922b21;
   --red-envelope-accent: #c0392b;
   --red-envelope-glow: #e74c3c;
   --red-envelope-gold: #f1c40f;
   --red-envelope-gold-light: #f9e79f;
   --red-envelope-gold-dark: #d4ac0d;
-  --red-envelope-gold-warm: #FCD34D;
+  --red-envelope-gold-warm: #fcd34d;
   --red-envelope-error: #e74c3c;
   --red-envelope-success: #2ecc71;
   --red-envelope-pattern-opacity: 0.05;
@@ -21,8 +23,7 @@
   --bg-primary: var(--red-envelope-base);
 }
 
-:global(.theme-light .theme-red-envelope),
-:global([data-theme="light"] .theme-red-envelope) {
+@include theme-light("red-envelope") {
   --red-envelope-base: #fff5f0;
   --red-envelope-accent: #e2554a;
   --red-envelope-glow: #f08a7f;
