@@ -41,11 +41,7 @@
     </template>
 
     <template #operation>
-      <NeoCard variant="erobo" class="mb-4 px-1">
-        <view class="section-header mb-4">
-          <text class="section-title">{{ t("stake") }}</text>
-        </view>
-
+      <NeoCard variant="erobo" :title="t('stake')" class="mb-4 px-1">
         <view v-if="address" class="stake-form">
           <view class="input-group mb-4">
             <view class="input-row">

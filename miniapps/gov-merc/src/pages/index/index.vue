@@ -31,7 +31,7 @@
     </template>
 
     <template #operation>
-      <NeoCard variant="erobo" class="mb-6">
+      <NeoCard variant="erobo" :title="t('placeBid')" class="mb-6">
         <view class="form-group-neo">
           <NeoInput v-model="bidAmount" type="number" placeholder="0" suffix="GAS" :label="t('bidAmount')" />
           <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="placeBid">

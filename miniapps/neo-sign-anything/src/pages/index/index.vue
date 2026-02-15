@@ -48,7 +48,7 @@
     </template>
 
     <template #operation>
-      <NeoCard variant="erobo">
+      <NeoCard variant="erobo" :title="t('signTitle')">
         <view class="input-group">
           <NeoInput
             type="textarea"

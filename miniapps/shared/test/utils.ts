@@ -162,6 +162,37 @@ export function mockI18n(
   };
 }
 
+/**
+ * Mock governance SDK for testing
+ *
+ * @example
+ * ```ts
+ * const governance = mockGovernance();
+ * ```
+ */
+export function mockGovernance(
+  options: {
+    proposals?: Array<Record<string, unknown>>;
+  } = {}
+) {
+  const { proposals = [] } = options;
+
+  const mockVote = vi.fn().mockResolvedValue({
+    txid: "0x" + Math.random().toString(16).slice(2).padStart(64, "0"),
+  });
+  const mockGetProposals = vi.fn().mockResolvedValue(proposals);
+
+  return {
+    vote: mockVote,
+    getProposals: mockGetProposals,
+
+    __mocks: {
+      vote: mockVote,
+      getProposals: mockGetProposals,
+    },
+  };
+}
+
 // ============================================================
 // COMPONENT RENDERING
 // ============================================================

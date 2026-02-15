@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ref, nextTick } from "vue";
+import { ref, computed, nextTick } from "vue";
 import { mount } from "@vue/test-utils";
 
 // ============================================================
@@ -381,7 +381,7 @@ describe("Integration: Full Game Flow", () => {
 // ============================================================
 
 describe("Performance", () => {
-  it("should handle rapid state updates efficiently", () => {
+  it("should handle rapid state updates efficiently", async () => {
     const count = ref(0);
     const updates = 100;
 

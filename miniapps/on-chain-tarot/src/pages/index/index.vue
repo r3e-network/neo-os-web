@@ -29,7 +29,7 @@
 
     <!-- RIGHT panel: Actions -->
     <template #operation>
-      <NeoCard>
+      <NeoCard variant="erobo" :title="t('drawYourCards')">
         <view class="action-buttons">
           <NeoButton variant="primary" size="lg" block :loading="isLoading" :disabled="hasDrawn" @click="draw">
             {{ t("drawingCards") }}
