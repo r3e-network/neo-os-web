@@ -91,22 +91,6 @@ const props = defineProps<{
 }>();
 
 defineEmits(["open"]);
-
-const getCountdown = (unlockTime: number) => {
-  const now = props.currentTime;
-  const target = unlockTime * 1000;
-  const diff = Math.max(0, target - now);
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-  return {
-    days: String(days).padStart(2, "0"),
-    hours: String(hours).padStart(2, "0"),
-    minutes: String(minutes).padStart(2, "0"),
-  };
-};
 </script>
 
 <style lang="scss" scoped>

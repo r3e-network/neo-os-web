@@ -145,14 +145,6 @@ const appState = computed(() => ({
   gasBalance: gasDisplay.value,
   safetyScore: safetyScore.value,
 }));
-
-const opStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("statConnection"), value: address.value ? t("statusConnected") : t("statusDisconnected") },
-  { label: t("statNeo"), value: neoDisplay.value },
-  { label: t("statGas"), value: gasDisplay.value },
-  { label: t("statScore"), value: `${safetyScore.value}%` },
-]);
-
 const healthStats = computed(() => [
   {
     label: t("statConnection"),

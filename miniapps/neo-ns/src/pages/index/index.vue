@@ -39,8 +39,6 @@ import { useNeoNS } from "@/composables/useNeoNS";
 import DomainManagement from "./components/DomainManagement.vue";
 import ManageDomain from "./components/ManageDomain.vue";
 import type { Domain } from "@/types";
-
-const APP_ID = "miniapp-neo-ns";
 const NNS_CONTRACT = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
 
 const managingDomain = ref<Domain | null>(null);

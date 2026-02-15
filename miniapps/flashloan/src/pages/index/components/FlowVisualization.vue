@@ -63,6 +63,7 @@ const { t } = createUseI18n(messages)();
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .flow-title {
   font-size: 14px;
@@ -133,11 +134,8 @@ const { t } = createUseI18n(messages)();
 }
 
 .step-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
+  @include stat-label;
   color: var(--text-secondary);
-  letter-spacing: 0.1em;
 
   &.highlight {
     color: var(--flash-success);
@@ -184,10 +182,7 @@ const { t } = createUseI18n(messages)();
 }
 
 .flow-note-glass {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 12px;
+  @include card-base(12px, 12px);
   display: flex;
   align-items: center;
   gap: 10px;

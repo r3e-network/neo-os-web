@@ -141,16 +141,6 @@ const appState = computed(() => ({
 }));
 
 const activeTab = ref("memorials");
-
-const offerings = [
-  { type: 1, nameKey: "incense", icon: "🕯️", cost: 0.01 },
-  { type: 2, nameKey: "candle", icon: "🕯", cost: 0.02 },
-  { type: 3, nameKey: "flower", icon: "🌸", cost: 0.03 },
-  { type: 4, nameKey: "fruit", icon: "🍇", cost: 0.05 },
-  { type: 5, nameKey: "wine", icon: "🍶", cost: 0.1 },
-  { type: 6, nameKey: "feast", icon: "🍱", cost: 0.5 },
-];
-
 const onMemorialCreated = async (data: Record<string, unknown>) => {
   await handleMemorialCreated(data);
   activeTab.value = "memorials";

@@ -118,8 +118,6 @@ const emit = defineEmits<{
 const { t } = createUseI18n(messages)();
 
 const emitRefresh = () => emit("refresh");
-const emitContribute = (project: ProjectItem) => emit("contribute", project);
-const emitClaim = (project: ProjectItem) => emit("claim", project);
 </script>
 
 <style lang="scss" scoped>

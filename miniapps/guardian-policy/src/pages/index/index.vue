@@ -86,19 +86,6 @@ const appState = computed(() => ({
   activePolicies: gp.stats.value.activePolicies,
   claimedPolicies: gp.stats.value.claimedPolicies,
 }));
-
-const guardianStats = computed<StatsDisplayItem[]>(() => {
-  const stats = gp.stats.value ?? { totalPolicies: 0, activePolicies: 0, claimedPolicies: 0, totalCoverage: 0 };
-  return [
-    { label: t("totalPolicies"), value: stats.totalPolicies },
-    { label: t("activePoliciesCount"), value: stats.activePolicies },
-    { label: t("claimedPolicies"), value: stats.claimedPolicies },
-    { label: t("totalCoverage"), value: `${stats.totalCoverage} GAS`, variant: "accent" },
-  ];
-});
-
-const onFetchPrice = () => gp.fetchPrice(getPrice);
-
 watch(
   address,
   () => {

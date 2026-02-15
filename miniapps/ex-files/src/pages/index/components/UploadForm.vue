@@ -50,7 +50,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import { NeoCard } from "@shared/components";
 
 const props = defineProps<{
@@ -63,14 +62,6 @@ const props = defineProps<{
 }>();
 
 defineEmits(["update:recordContent", "update:recordRating", "update:recordCategory", "create"]);
-
-const categories = computed(() => [
-  { label: props.t("catGeneral"), value: 0 },
-  { label: props.t("catPhoto"), value: 1 },
-  { label: props.t("catLetter"), value: 2 },
-  { label: props.t("catVideo"), value: 3 },
-  { label: props.t("catAudio"), value: 4 },
-]);
 </script>
 
 <style lang="scss" scoped>

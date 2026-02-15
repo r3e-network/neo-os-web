@@ -26,6 +26,7 @@ const { t } = createUseI18n(messages)();
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .beneficiary-card {
   background: rgba(0, 0, 0, 0.15);
@@ -43,10 +44,9 @@ const { t } = createUseI18n(messages)();
 }
 
 .beneficiary-label {
-  font-size: 10px;
+  @include stat-label;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 10px;
   color: var(--text-secondary);
 }
 

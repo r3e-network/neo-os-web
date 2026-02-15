@@ -103,14 +103,6 @@ const {
   retryOperation,
   handleFlip,
 } = useCoinFlipGame(wallet, t);
-
-const gameStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("totalGames"), value: wins.value + losses.value },
-  { label: t("wins"), value: wins.value, variant: "success" },
-  { label: t("losses"), value: losses.value, variant: "danger" },
-  { label: t("totalWon"), value: `${formatNum(totalWon.value)} GAS`, variant: "accent" },
-]);
-
 const appState = computed(() => ({
   totalGames: wins.value + losses.value,
   wins: wins.value,

@@ -186,10 +186,7 @@ defineEmits([
 }
 
 .clause-box-glass {
-  background: rgba(255, 255, 255, 0.03);
-  padding: 16px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  @include card-base(4px, 16px);
   margin-bottom: 24px;
   position: relative;
 }

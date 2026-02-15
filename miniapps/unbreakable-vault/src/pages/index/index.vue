@@ -95,8 +95,6 @@ import { useVaultCreator } from "@/composables/useVaultCreator";
 import VaultList from "./components/VaultList.vue";
 
 const APP_ID = "miniapp-unbreakablevault";
-const MIN_BOUNTY = 1;
-
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
   name: "unbreakable-vault",
   messages,

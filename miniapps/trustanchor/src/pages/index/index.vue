@@ -119,11 +119,6 @@ const { address, connect } = useWallet() as WalletSDK;
 
 const { agents, stats, myStake, pendingRewards, totalRewards, setError, loadAll, stake, unstake, claimRewards } =
   useTrustAnchor(t);
-
-const stakeAmount = ref("");
-const unstakeAmount = ref("");
-const isStaking = ref(false);
-const isUnstaking = ref(false);
 const isClaiming = ref(false);
 
 const appState = computed(() => ({
@@ -140,41 +135,6 @@ const trustStats = computed<StatsDisplayItem[]>(() => [
   { label: t("totalRewards"), value: `${formatNum(totalRewards.value)} GAS`, variant: "accent" },
   { label: t("zeroFee"), value: t("zeroFeeDesc"), variant: "erobo" },
 ]);
-
-const handleStake = async () => {
-  const amount = parseFloat(stakeAmount.value);
-  if (isNaN(amount) || amount <= 0) {
-    setError(t("errorInvalidStakeAmount"));
-    return;
-  }
-  isStaking.value = true;
-  try {
-    const result = await stake(amount);
-    if (result.success) stakeAmount.value = "";
-  } finally {
-    isStaking.value = false;
-  }
-};
-
-const handleUnstake = async () => {
-  const amount = parseFloat(unstakeAmount.value);
-  if (isNaN(amount) || amount <= 0) {
-    setError(t("errorInvalidUnstakeAmount"));
-    return;
-  }
-  if (amount > myStake.value) {
-    setError(t("errorInsufficientStaked"));
-    return;
-  }
-  isUnstaking.value = true;
-  try {
-    const result = await unstake(amount);
-    if (result.success) unstakeAmount.value = "";
-  } finally {
-    isUnstaking.value = false;
-  }
-};
-
 const handleClaim = async () => {
   if (pendingRewards.value <= 0) return;
   isClaiming.value = true;

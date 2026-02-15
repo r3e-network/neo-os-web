@@ -98,13 +98,6 @@ const appState = computed(() => ({
   coverage: coverage.value,
   totalSpent: totalSpent.value,
 }));
-
-const mapStats = computed(() => [
-  { label: t("tilesOwned"), value: ownedTiles.value },
-  { label: t("mapControl"), value: `${coverage.value}%` },
-  { label: t("gasSpent"), value: `${formatNum(totalSpent.value)} GAS` },
-]);
-
 watch(
   address,
   async () => {

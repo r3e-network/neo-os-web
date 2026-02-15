@@ -68,7 +68,6 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, HeroSection } from "@shared/components";
-import { formatNumber } from "@shared/utils/format";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useGraveyardActions } from "@/composables/useGraveyardActions";
 
@@ -91,9 +90,6 @@ const {
   forgetMemory,
   cleanupTimers,
 } = useGraveyardActions();
-
-const formatNum = (n: number) => formatNumber(n, 2);
-
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
   name: "graveyard",
   messages,

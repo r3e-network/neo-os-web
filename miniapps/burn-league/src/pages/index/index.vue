@@ -44,7 +44,6 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { formatNumber } from "@shared/utils/format";
 import { messages } from "@/locale/messages";
 import { MiniAppPage } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
@@ -53,8 +52,6 @@ import { useBurnLeague } from "@/composables/useBurnLeague";
 import HeroSection from "./components/HeroSection.vue";
 
 const burnAmount = ref("1");
-const MIN_BURN = 1;
-
 const {
   t,
   templateConfig,
@@ -90,33 +87,6 @@ const appState = computed(() => ({
   rank: rank.value,
   burnCount: burnCount.value,
 }));
-
-const estimatedReward = computed(() => {
-  if (!totalBurned.value) return 0;
-  return (userBurned.value / totalBurned.value) * rewardPool.value;
-});
-
-const fmt = (n: number) => formatNumber(n, 2);
-
-const getRankIcon = (r: number): string => {
-  if (r <= 3) return "\uD83D\uDC51";
-  if (r <= 10) return "\u2B50";
-  return "\uD83D\uDCCA";
-};
-
-const statsGridItems = computed<StatsDisplayItem[]>(() => [
-  { label: t("youBurned"), value: fmt(userBurned.value), icon: "\uD83D\uDD25", variant: "danger" },
-  { label: t("rank"), value: `#${rank.value}`, icon: getRankIcon(rank.value), variant: "erobo-neo" },
-]);
-
-const statsRowItems = computed<StatsDisplayItem[]>(() => [
-  { label: t("totalGames"), value: burnCount.value },
-  { label: t("youBurned"), value: `${fmt(userBurned.value)} GAS` },
-  { label: t("totalBurned"), value: `${fmt(totalBurned.value)} GAS` },
-  { label: t("rank"), value: `#${rank.value}` },
-  { label: t("estimatedRewards"), value: `${fmt(estimatedReward.value)} ${t("points")}` },
-]);
-
 const burnTokens = async () => {
   await league.burnTokens(burnAmount.value, setStatus, () => {
     burnAmount.value = "1";

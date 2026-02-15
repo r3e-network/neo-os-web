@@ -112,27 +112,6 @@ const appState = computed(() => ({
   totalPot: game.totalPot.value,
   isRoundActive: game.isRoundActive.value,
 }));
-
-const formatNum = (n: number) => {
-  if (n === undefined || n === null) return "0.00";
-  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
-};
-
-const gameStatsGrid = computed<StatsDisplayItem[]>(() => [
-  { label: t("totalPot"), value: formatNum(game.totalPot) },
-  { label: t("yourKeys"), value: game.userKeys },
-  { label: t("round"), value: `#${game.roundId}` },
-]);
-
-const gameStatsRows = computed<StatsDisplayItem[]>(() => [
-  { label: t("lastBuyer"), value: game.lastBuyerLabel },
-  {
-    label: t("roundStatus"),
-    value: game.isRoundActive ? t("activeRound") : t("inactiveRound"),
-    variant: game.isRoundActive ? "success" : undefined,
-  },
-]);
-
 const timerTicker = useTicker(() => timer.updateNow(), 1000);
 
 onMounted(async () => {

@@ -69,19 +69,6 @@ const appState = computed(() => ({
   readyToHarvest: stats.value.readyToHarvest,
   totalHarvested: stats.value.totalHarvested,
 }));
-
-const opStats = computed(() => [
-  { label: t("plants"), value: stats.value.totalPlants },
-  { label: t("ready"), value: stats.value.readyToHarvest, variant: "accent" as const },
-  { label: t("harvested"), value: stats.value.totalHarvested },
-]);
-
-const statsRowItems = computed<StatsDisplayItem[]>(() => [
-  { label: t("plants"), value: stats.value.totalPlants },
-  { label: t("ready"), value: stats.value.readyToHarvest, variant: "accent" },
-  { label: t("harvested"), value: stats.value.totalHarvested, variant: "success" },
-]);
-
 const updateStats = (newStats: Record<string, unknown>) => {
   stats.value = newStats;
 };

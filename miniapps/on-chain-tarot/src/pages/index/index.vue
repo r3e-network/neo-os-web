@@ -113,12 +113,6 @@ const appState = computed(() => ({
   readingsCount: readingsCount.value,
   hasDrawn: hasDrawn.value,
 }));
-
-const tarotStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("readings"), value: readingsCount.value },
-  { label: t("cardsDrawnCount"), value: drawn.value.length },
-]);
-
 const waitForEventByTx = async (tx: unknown, eventName: string) => {
   return waitForListedEventByTransaction(tx, {
     listEvents: async () => {

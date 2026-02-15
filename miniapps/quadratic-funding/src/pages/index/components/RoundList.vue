@@ -137,7 +137,6 @@ const emit = defineEmits<{
 const { t } = createUseI18n(messages)();
 
 const emitRefresh = () => emit("refresh");
-const emitSelect = (round: RoundItem) => emit("select", round);
 </script>
 
 <style lang="scss" scoped>

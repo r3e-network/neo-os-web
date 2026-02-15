@@ -113,7 +113,6 @@ const {
 
 const activeTab = ref("templates");
 const isRefreshing = ref(false);
-const isRefreshingCertificates = ref(false);
 const issueModalOpen = ref(false);
 const issueTemplateId = ref("");
 
@@ -138,22 +137,6 @@ const openIssueModal = (template: { id: string }) => {
   issueTemplateId.value = template.id;
   issueModalOpen.value = true;
 };
-
-const closeIssueModal = () => {
-  issueModalOpen.value = false;
-};
-
-const handleIssueCertificate = async (data: {
-  templateId: string;
-  recipient: string;
-  recipientName: string;
-  achievement: string;
-  memo: string;
-}) => {
-  const success = await issueCertificate(data);
-  if (success) issueModalOpen.value = false;
-};
-
 const onTabChange = async (tab: string) => {
   activeTab.value = tab;
   if (tab === "templates") await refreshTemplates();

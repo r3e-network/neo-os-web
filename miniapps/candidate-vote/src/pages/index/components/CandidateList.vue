@@ -99,57 +99,12 @@ const sortedCandidates = computed(() => {
     return votesB > votesA ? 1 : -1;
   });
 });
-
-const selectCandidate = (candidate: GovernanceCandidate) => {
-  emit("select", candidate);
-};
-
-const viewDetails = (candidate: GovernanceCandidate, index: number) => {
-  emit("view-details", candidate, index + 1);
-};
-
-const truncateAddress = (addr: string) => {
-  if (!addr || addr.length < 12) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-};
-
 const safeBigInt = (value: string | undefined) => {
   try {
     return BigInt(value || "0");
   } catch {
     return BigInt(0);
   }
-};
-
-const normalizePublicKey = (value: string | null | undefined) => String(value || "").replace(/^0x/i, "");
-
-const isUserVotedCandidate = (candidate: GovernanceCandidate) => {
-  if (!props.userVotedPublicKey) return false;
-  return normalizePublicKey(candidate.publicKey) === normalizePublicKey(props.userVotedPublicKey);
-};
-
-const formatVotes = (votes: string) => {
-  const num = safeBigInt(votes);
-  if (num >= BigInt(1e12)) {
-    return (Number(num / BigInt(1e10)) / 100).toFixed(2) + "T";
-  }
-  if (num >= BigInt(1e9)) {
-    return (Number(num / BigInt(1e7)) / 100).toFixed(2) + "B";
-  }
-  if (num >= BigInt(1e6)) {
-    return (Number(num / BigInt(1e4)) / 100).toFixed(2) + "M";
-  }
-  if (num >= BigInt(1e3)) {
-    return (Number(num / BigInt(10)) / 100).toFixed(2) + "K";
-  }
-  return votes;
-};
-
-const getRankClass = (index: number) => {
-  if (index === 0) return "rank-gold";
-  if (index === 1) return "rank-silver";
-  if (index === 2) return "rank-bronze";
-  return "";
 };
 </script>
 

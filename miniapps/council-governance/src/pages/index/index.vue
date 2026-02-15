@@ -131,12 +131,6 @@ const appState = computed(() => ({
   activeProposals: activeProposals.value.length,
   totalProposals: proposals.value.length,
 }));
-
-const opStats = computed(() => [
-  { label: t("active"), value: activeProposals.value.length },
-  { label: t("votingPower"), value: votingPower.value },
-]);
-
 const createProposal = async (proposalData: {
   type: number;
   title: string;

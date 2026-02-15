@@ -82,7 +82,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import { NeoCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
@@ -109,10 +108,6 @@ const props = defineProps<{
 defineEmits(["sign", "break"]);
 
 const { t } = createUseI18n(messages)();
-
-const canSign = computed(() =>
-  Boolean(props.address && props.contract.status === "pending" && props.contract.party2 === props.address)
-);
 </script>
 
 <style lang="scss" scoped>
@@ -277,10 +272,7 @@ const canSign = computed(() =>
 }
 
 .info-item {
-  background: rgba(255, 255, 255, 0.03);
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  @include card-base(8px, 12px);
   text-align: center;
 }
 

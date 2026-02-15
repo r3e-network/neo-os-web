@@ -56,7 +56,6 @@ import { ref, computed, onMounted, watch } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, NeoCard, NeoButton } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
-import EscrowForm from "./components/EscrowForm.vue";
 import EscrowList from "./components/EscrowList.vue";
 import { useEscrowContract } from "@/composables/useEscrowContract";
 
@@ -94,26 +93,12 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBo
     { labelKey: "statusCompleted", value: () => creatorEscrows.value.filter((e) => e.status === "completed").length },
   ],
 });
-
-const escrowFormRef = ref<InstanceType<typeof EscrowForm> | null>(null);
-
 const activeTab = ref("create");
 
 const appState = computed(() => ({
   creatorEscrows: creatorEscrows.value.length,
   beneficiaryEscrows: beneficiaryEscrows.value.length,
 }));
-
-const onCreateEscrow = async (data: {
-  name: string;
-  beneficiary: string;
-  asset: string;
-  notes: string;
-  milestones: Array<{ amount: string }>;
-}) => {
-  await handleCreateEscrow(data, escrowFormRef.value);
-};
-
 const resetAndReload = async () => {
   if (address.value) {
     await refreshEscrows();

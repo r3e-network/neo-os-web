@@ -45,7 +45,6 @@ import { messages } from "@/locale/messages";
 import { MiniAppPage } from "@shared/components";
 import { useSocialKarma } from "@/composables/useSocialKarma";
 import LeaderboardSection, { type LeaderboardEntry } from "./components/LeaderboardSection.vue";
-import GiveKarmaForm from "./components/GiveKarmaForm.vue";
 import BadgesGrid, { type Badge } from "./components/BadgesGrid.vue";
 import AchievementsList, { type Achievement } from "./components/AchievementsList.vue";
 import MobileKarmaSummary from "./components/MobileKarmaSummary.vue";
@@ -97,9 +96,6 @@ const appState = computed(() => ({
   karma: userKarma.value,
   rank: userRank.value,
 }));
-
-const giveKarmaFormRef = ref<InstanceType<typeof GiveKarmaForm> | null>(null);
-
 const isDesktop = computed(() => {
   try {
     return window.matchMedia("(min-width: 768px)").matches;
@@ -118,40 +114,6 @@ const userBadges = ref<Badge[]>([
   { id: "legend", icon: "👑", name: t("legend"), unlocked: false, hint: t("legendHint") },
   { id: "streak7", icon: "🔥", name: t("weekStreak"), unlocked: false, hint: t("streak7Hint") },
 ]);
-
-const computedAchievements = computed<Achievement[]>(() => [
-  {
-    id: "first",
-    name: t("firstKarma"),
-    progress: `${Math.min(userKarma.value, 1)}/1`,
-    percent: Math.min((userKarma.value / 1) * 100, 100),
-    unlocked: userKarma.value >= 1,
-  },
-  {
-    id: "k10",
-    name: t("karma10"),
-    progress: `${Math.min(userKarma.value, 10)}/10`,
-    percent: Math.min((userKarma.value / 10) * 100, 100),
-    unlocked: userKarma.value >= 10,
-  },
-  {
-    id: "k100",
-    name: t("karma100"),
-    progress: `${Math.min(userKarma.value, 100)}/100`,
-    percent: Math.min((userKarma.value / 100) * 100, 100),
-    unlocked: userKarma.value >= 100,
-  },
-  {
-    id: "k1000",
-    name: t("karma1000"),
-    progress: `${Math.min(userKarma.value, 1000)}/1000`,
-    percent: Math.min((userKarma.value / 1000) * 100, 100),
-    unlocked: userKarma.value >= 1000,
-  },
-  { id: "gifter", name: t("gifter"), progress: "0/1", percent: 0, unlocked: false },
-  { id: "philanthropist", name: t("philanthropist"), progress: "0/100", percent: 0, unlocked: false },
-]);
-
 const resetAndReload = async () => {
   await loadLeaderboard(setErrorStatus);
   await loadUserState();
@@ -160,13 +122,6 @@ const resetAndReload = async () => {
 const dailyCheckIn = async () => {
   await karma.dailyCheckIn(setErrorStatus);
 };
-
-const handleGiveKarma = async (data: { address: string; amount: number; reason: string }) => {
-  await karma.giveKarma(data, setErrorStatus, () => {
-    giveKarmaFormRef.value?.reset();
-  });
-};
-
 onMounted(async () => {
   await loadLeaderboard(setErrorStatus);
   await loadUserState();

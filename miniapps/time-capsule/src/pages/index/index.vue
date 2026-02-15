@@ -131,14 +131,6 @@ const loadData = async () => {
     isLoadingData.value = false;
   }
 };
-
-const handleCreate = async () => {
-  await create(() => {
-    activeTab.value = "capsules";
-    loadData();
-  });
-};
-
 const handleOpen = async (cap: Capsule) => {
   await open(cap, (msg, type) => {
     setStatus(msg, type);
@@ -147,13 +139,6 @@ const handleOpen = async (cap: Capsule) => {
     }
   });
 };
-
-const handleFish = async () => {
-  await fish((msg, type) => {
-    setStatus(msg, type);
-  });
-};
-
 const resetAndReload = async () => {
   if (address.value) loadData();
 };

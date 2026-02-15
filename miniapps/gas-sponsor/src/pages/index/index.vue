@@ -97,16 +97,8 @@ const dailyLimit = ref("0.1");
 const resetsAt = ref("");
 const loading = ref(true);
 const requestAmount = ref("0.01");
-const quickAmounts = [0.01, 0.02, 0.03, 0.04];
-
 const isEligible = computed(() => parseFloat(gasBalance.value) < ELIGIBILITY_THRESHOLD);
 const remainingQuota = computed(() => Math.max(0, parseFloat(dailyLimit.value) - parseFloat(usedQuota.value)));
-const quotaPercent = computed(() => {
-  const limit = parseFloat(dailyLimit.value);
-  if (!Number.isFinite(limit) || limit <= 0) return 0;
-  return (parseFloat(usedQuota.value) / limit) * 100;
-});
-const maxRequestAmount = computed(() => Math.min(remainingQuota.value, 0.05).toString());
 const fuelLevelPercent = computed(() => {
   const balance = parseFloat(gasBalance.value);
   return Math.min((balance / ELIGIBILITY_THRESHOLD) * 100, 100);
@@ -140,18 +132,6 @@ const appState = computed(() => ({
   isEligible: isEligible.value,
   isLoading: loading.value,
 }));
-
-const resetTime = computed(() => {
-  if (!resetsAt.value) return "--";
-  const resetDate = new Date(resetsAt.value);
-  const now = new Date();
-  const diff = resetDate.getTime() - now.getTime();
-  if (diff <= 0) return t("now");
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  return `${hours}${t("hoursShort")} ${minutes}${t("minutesShort")}`;
-});
-
 const loadUserData = async () => {
   loading.value = true;
   try {

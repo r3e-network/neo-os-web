@@ -112,11 +112,6 @@ const appState = computed(() => ({
   isLoading: isLoading.value,
   poolBalance: poolBalance.value,
 }));
-
-const opStats = computed(() => [
-  { label: t("statusLabel"), value: loanDetails.value?.status ?? "—" },
-  { label: t("amount"), value: loanDetails.value?.amount ?? "—" },
-]);
 const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
 const errorMessage = computed(() => errorStatus.value?.msg ?? null);
 const canRetryError = ref(false);
@@ -141,19 +136,6 @@ const resetAndReload = async () => {
   canRetryError.value = false;
   await loadData();
 };
-
-const retryLastOperation = () => {
-  if (lastOperation.value === "lookup") {
-    handleLookup();
-  } else if (lastOperation.value === "requestLoan" && loanDetails.value) {
-    handleRequestLoan({
-      amount: "0",
-      callbackContract: "",
-      callbackMethod: "",
-    });
-  }
-};
-
 const handleLookup = async () => {
   await lookupLoan(loanIdInput.value, setStatus, setErrorStatus);
 };

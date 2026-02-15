@@ -87,13 +87,6 @@ const appState = computed(() => ({
   activeProposals: activeProposals.value,
   displayedProposals: displayedProposals.value,
 }));
-
-const poolStatsArray = computed(() => [
-  { label: t("totalPool"), value: formatCount(totalProposals.value) },
-  { label: t("activeProjects"), value: formatCount(activeProposals.value) },
-  { label: t("yourShare"), value: formatCount(displayedProposals.value), variant: "accent" as const },
-]);
-
 function goToDetail(grant: Record<string, unknown>) {
   try {
     uni.setStorageSync("current_grant_detail", grant);

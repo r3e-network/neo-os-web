@@ -64,16 +64,6 @@ defineProps<{
 }>();
 
 defineEmits(["viewTx"]);
-
-const formatTime = (time: string) => {
-  const d = new Date(time);
-  return d.toLocaleString();
-};
-
-const truncateHash = (hash: string) => {
-  if (!hash) return "";
-  return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
-};
 </script>
 
 <style lang="scss" scoped>

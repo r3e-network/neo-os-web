@@ -13,8 +13,6 @@ import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { StreamItem, StreamStatus } from "@/types";
 
 const NEO_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.NEO_HASH);
-const GAS_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.GAS_HASH);
-
 export function useStreamVault(t: (key: string) => string) {
   const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
   const { ensure: ensureContractAddress } = useContractAddress(t);

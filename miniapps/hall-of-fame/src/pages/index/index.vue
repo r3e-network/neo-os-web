@@ -116,14 +116,6 @@ const categories = computed(() => [
   { id: "community", label: t("catCommunity") },
   { id: "developer", label: t("catDeveloper") },
 ]);
-
-const periods = computed(() => [
-  { id: "day", label: t("period24h") },
-  { id: "week", label: t("period7d") },
-  { id: "month", label: t("period30d") },
-  { id: "all", label: t("periodAll") },
-]);
-
 const buildLeaderboardUrl = () => {
   const params = new URLSearchParams();
   if (activePeriod.value !== "all") {

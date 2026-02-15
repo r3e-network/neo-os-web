@@ -74,6 +74,7 @@ const getLevelText = (level: string) => {
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
 
 .policies-grid {
   display: flex;
@@ -82,14 +83,11 @@ const getLevelText = (level: string) => {
 }
 
 .policy-item-glass {
+  @include card-base(12px, 16px);
   display: flex;
   align-items: center;
   position: relative;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
   overflow: hidden;
-  padding: 16px;
   padding-left: 20px; /* Space for stripe */
   gap: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

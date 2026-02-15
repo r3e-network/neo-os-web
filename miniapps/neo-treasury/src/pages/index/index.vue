@@ -123,22 +123,6 @@ const appState = computed(() => ({
   error: error.value,
   totalUsd: data.value?.totalUsd,
 }));
-
-const opStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("sidebarTotalUsd"), value: data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—" },
-  { label: t("sidebarTotalNeo"), value: data.value?.totalNeo?.toLocaleString() ?? "—" },
-  { label: t("sidebarTotalGas"), value: data.value?.totalGas?.toLocaleString() ?? "—" },
-  { label: t("sidebarFounders"), value: data.value?.categories?.length ?? 0 },
-]);
-
-const daCategory = computed<CategoryBalance | null>(() => {
-  return data.value?.categories.find((c: CategoryBalance) => c.name === "Da Hongfei") || null;
-});
-
-const erikCategory = computed<CategoryBalance | null>(() => {
-  return data.value?.categories.find((c: CategoryBalance) => c.name === "Erik Zhang") || null;
-});
-
 function goToFounder(name: string) {
   if (name === "Da Hongfei") activeTab.value = "da";
   else if (name === "Erik Zhang") activeTab.value = "erik";

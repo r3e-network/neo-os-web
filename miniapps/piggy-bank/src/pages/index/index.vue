@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { usePiggyStore } from "@/stores/piggy";
 import { storeToRefs } from "pinia";
 import { messages } from "@/locale/messages";
@@ -122,21 +122,6 @@ const appState = computed(() => ({
 // Settings form
 const chainOptions = computed(() => store.EVM_CHAINS);
 const currentChain = computed(() => chainOptions.value.find((chain) => chain.id === currentChainId.value));
-const selectedChain = computed(() => chainOptions.value.find((chain) => chain.id === settingsForm.value.chainId));
-const currentChainIndex = computed(() =>
-  Math.max(
-    0,
-    chainOptions.value.findIndex((chain) => chain.id === settingsForm.value.chainId)
-  )
-);
-
-const settingsForm = ref({
-  chainId: currentChainId.value,
-  alchemyApiKey: alchemyApiKey.value,
-  walletConnectProjectId: walletConnectProjectId.value,
-  contractAddress: store.getContractAddress(currentChainId.value),
-});
-
 const configIssues = computed(() => {
   const issues: string[] = [];
   if (!alchemyApiKey.value) issues.push(t("settings.issue_alchemy"));
@@ -146,27 +131,6 @@ const configIssues = computed(() => {
 
 // Actions
 const isLocked = (bank: PiggyBank) => Date.now() / 1000 < bank.unlockTime;
-
-const onChainChange = (e: { detail: { value: number } }) => {
-  const idx = Number(e.detail.value);
-  const chain = chainOptions.value[idx];
-  if (!chain) return;
-  settingsForm.value.chainId = chain.id;
-  settingsForm.value.contractAddress = store.getContractAddress(chain.id);
-};
-
-const saveSettings = async () => {
-  try {
-    store.setAlchemyApiKey(settingsForm.value.alchemyApiKey);
-    store.setWalletConnectProjectId(settingsForm.value.walletConnectProjectId);
-    store.setContractAddress(settingsForm.value.chainId, settingsForm.value.contractAddress);
-    await store.switchChain(settingsForm.value.chainId);
-    setStatus(t("settings.saved"), "success");
-  } catch (err: unknown) {
-    setStatus(formatErrorMessage(err, t("settings.error")), "error");
-  }
-};
-
 const handleConnect = async () => {
   try {
     await store.connectWallet();
@@ -174,11 +138,6 @@ const handleConnect = async () => {
     setStatus(formatErrorMessage(err, t("wallet.connect_failed")), "error");
   }
 };
-
-const goToCreate = () => {
-  uni.navigateTo({ url: "/pages/create/create" });
-};
-
 const goToDetail = (id: string) => {
   uni.navigateTo({ url: `/pages/detail/detail?id=${id}` });
 };

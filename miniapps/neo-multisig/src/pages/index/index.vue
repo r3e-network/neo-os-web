@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { MiniAppPage, StatsDisplay } from "@shared/components";
 import { messages } from "@/locale/messages";
 import { createMiniApp } from "@shared/utils/createMiniApp";
@@ -89,25 +89,12 @@ const multisigStats = computed<StatsDisplayItem[]>(() => [
   { label: t("statPending"), value: pendingCount.value },
   { label: t("statCompleted"), value: completedCount.value },
 ]);
-
-const idInput = ref("");
-
 const handleTabChange = (tabId: string) => {
   if (tabId === "docs") {
     uni.navigateTo({ url: "/pages/docs/index" });
     return;
   }
 };
-
-const navigateToCreate = () => {
-  uni.navigateTo({ url: "/pages/create/index" });
-};
-
-const loadTransaction = () => {
-  if (!idInput.value) return;
-  uni.navigateTo({ url: `/pages/sign/index?id=${idInput.value}` });
-};
-
 const openHistory = (id: string) => {
   uni.navigateTo({ url: `/pages/sign/index?id=${id}` });
 };

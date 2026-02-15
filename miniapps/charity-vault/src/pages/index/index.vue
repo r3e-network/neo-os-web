@@ -141,13 +141,6 @@ const appState = computed(() => ({
   campaignCount: campaigns.value.length,
   totalDonated: totalDonated.value,
 }));
-
-const charityStats = computed(() => [
-  { label: t("campaigns"), value: campaigns.value.length },
-  { label: t("totalRaised"), value: `${totalRaised.value.toFixed(2)} GAS` },
-  { label: t("myDonations"), value: myDonations.value.length },
-]);
-
 // Categories
 const categories = computed(() => [
   { id: "all", label: t("categoryAll") },
@@ -168,22 +161,6 @@ const selectCampaign = async (campaign: CharityCampaign) => {
 };
 
 // Create campaign wrapper
-const handleCreateCampaign = async (data: {
-  title: string;
-  description: string;
-  story: string;
-  category: string;
-  targetAmount: number;
-  duration: number;
-  beneficiary: string;
-  multisigAddresses: string[];
-}) => {
-  const success = await createCampaign(data);
-  if (success) {
-    activeTab.value = "campaigns";
-  }
-};
-
 // Initialize
 onMounted(async () => {
   await init();

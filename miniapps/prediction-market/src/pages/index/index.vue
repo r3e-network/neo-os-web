@@ -169,25 +169,12 @@ const appState = computed(() => ({
   portfolioValue: portfolioValue.value,
   totalPnL: totalPnL.value,
 }));
-
-const marketStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("markets"), value: markets.value.length },
-  { label: t("sidebarVolume"), value: `${formatCurrency(totalVolume.value)} GAS` },
-  { label: t("sidebarTraders"), value: activeTraders.value },
-]);
-
 const handleTabChange = (tab: string) => {
   activeTab.value = tab;
   if (tab !== "trading") {
     selectedMarket.value = null;
   }
 };
-
-const handleBackToMarkets = () => {
-  activeTab.value = "markets";
-  selectedMarket.value = null;
-};
-
 const selectMarket = (market: PredictionMarket) => {
   selectedMarket.value = market;
   activeTab.value = "trading";

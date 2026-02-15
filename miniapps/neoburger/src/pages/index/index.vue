@@ -85,7 +85,6 @@ import type { UniAppGlobals } from "@shared/types/globals";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 
 import { useNeoburgerCore } from "@/composables/useNeoburgerCore";
-import { useNeoburgerRewards } from "@/composables/useNeoburgerRewards";
 import { useNeoburgerSwap } from "@/composables/useNeoburgerSwap";
 import { useNeoburgerStats } from "@/composables/useNeoburgerStats";
 
@@ -126,9 +125,6 @@ const showStatus = setStatus;
 const loading = ref(false);
 
 const { apy, priceData, aprDisplay, totalStakedDisplay, totalStakedUsdText, loadApy, loadPrices } = useNeoburgerStats();
-
-const rewards = useNeoburgerRewards(bNeoBalance, apy, priceData);
-
 const swap = useNeoburgerSwap(neoBalance, bNeoBalance, BNEO_CONTRACT, priceData, showStatus, loadBalances);
 
 const appState = computed(() => ({
@@ -136,10 +132,6 @@ const appState = computed(() => ({
   neoBalance: neoBalance.value,
   bNeoBalance: bNeoBalance.value,
 }));
-
-const primaryActionLabel = computed(() => (walletConnected.value ? swap.swapButtonLabel : t("connectWallet")));
-const jazzActionLabel = computed(() => (walletConnected.value ? t("claimRewards") : t("connectWallet")));
-
 function switchToJazz() {
   homeMode.value = "jazz";
   stationPanelRef.value?.setMode("jazz");

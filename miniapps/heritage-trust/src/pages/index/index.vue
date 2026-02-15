@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
@@ -99,41 +99,6 @@ const appState = computed(() => ({
   totalTrusts: myCreatedTrusts.value.length,
   beneficiaryTrusts: myBeneficiaryTrusts.value.length,
 }));
-
-const trustStatsItems = computed<StatsDisplayItem[]>(() => [
-  { label: t("totalTrusts"), value: stats.value.totalTrusts },
-  { label: t("totalNeoValue"), value: `${stats.value.totalNeoValue} NEO` },
-  { label: t("activeTrusts"), value: stats.value.activeTrusts },
-]);
-
-const newTrust = ref({
-  name: "",
-  beneficiary: "",
-  neoValue: "10",
-  gasValue: "0",
-  monthlyNeo: "1",
-  monthlyGas: "0",
-  releaseMode: "neoRewards",
-  intervalDays: "30",
-  notes: "",
-});
-
-const handleCreate = async () => {
-  await createTrust(newTrust.value, saveTrustName, () => {
-    newTrust.value = {
-      name: "",
-      beneficiary: "",
-      neoValue: "10",
-      gasValue: "0",
-      monthlyNeo: "1",
-      monthlyGas: "0",
-      releaseMode: "neoRewards",
-      intervalDays: "30",
-      notes: "",
-    };
-  });
-};
-
 onMounted(() => {
   loadData();
 });

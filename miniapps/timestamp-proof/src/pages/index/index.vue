@@ -43,8 +43,6 @@ import { useTimestampProofContract } from "@/composables/useTimestampProof";
 import ProofList from "./components/ProofList.vue";
 
 const proofContent = ref("");
-const verifyId = ref("");
-
 const {
   t,
   templateConfig,
@@ -85,11 +83,6 @@ const createProof = async () => {
     proofContent.value = "";
   });
 };
-
-const verifyProof = async () => {
-  await proof.verifyProofById(verifyId.value);
-};
-
 onMounted(async () => {
   await loadProofs();
 });

@@ -146,12 +146,6 @@ const requireAddress = async () => {
   }
   return true;
 };
-
-const handleSelectFromDiscover = (machine: Machine) => {
-  selectMachine(machine);
-  activeTab.value = "market";
-};
-
 const handlePlay = async () => {
   if (!selectedMachine.value) return;
   await playMachine(selectedMachine.value, {
@@ -170,78 +164,6 @@ const handleBuy = async () => {
     onSuccess: loadMachines,
   });
 };
-
-const handlePublish = async (machineData: Record<string, unknown>) => {
-  await publishMachine(machineData, {
-    requireAddress,
-    setStatus,
-    onSuccess: async () => {
-      await loadMachines();
-      activeTab.value = "manage";
-      selectedMachine.value = null;
-    },
-  });
-};
-
-const handleUpdatePrice = async (machine: Machine) => {
-  await updateMachinePrice(machine, loadMachines);
-};
-
-const handleToggleActive = async (machine: Machine) => {
-  await toggleMachineActive(machine, loadMachines);
-};
-
-const handleToggleListed = async (machine: Machine) => {
-  await toggleMachineListed(machine, loadMachines);
-};
-
-const handleListForSale = async (machine: Machine) => {
-  const salePrice = machine.salePriceRaw > 0 ? String(machine.salePriceRaw / 1e8) : "";
-  if (!salePrice) return;
-  await listMachineForSale(machine, salePrice, loadMachines);
-};
-
-const handleCancelSale = async (machine: Machine) => {
-  await cancelMachineSale(machine, loadMachines);
-};
-
-const handleWithdrawRevenue = async (machine: Machine) => {
-  await withdrawMachineRevenue(machine, loadMachines);
-  setStatus(t("revenueClaimed"), "success");
-};
-
-const handleDepositItem = async ({
-  machine,
-  item,
-  index,
-  amount,
-  tokenId,
-}: {
-  machine: Machine;
-  item: Record<string, unknown>;
-  index: number;
-  amount: string;
-  tokenId: string;
-}) => {
-  await depositItem(machine, item, index, amount || "", tokenId || "", loadMachines);
-};
-
-const handleWithdrawItem = async ({
-  machine,
-  item,
-  index,
-  amount,
-  tokenId,
-}: {
-  machine: Machine;
-  item: Record<string, unknown>;
-  index: number;
-  amount: string;
-  tokenId: string;
-}) => {
-  await withdrawItem(machine, item, index, amount || "", tokenId || "", loadMachines);
-};
-
 let fireworksTimer: ReturnType<typeof setTimeout> | null = null;
 
 watch(showFireworks, (val) => {

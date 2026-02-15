@@ -76,8 +76,6 @@ const {
 
 const capsule = useCompoundCapsule(t, setStatus);
 const { address, isLoading, vault, position, stats, activeCapsules, loadData, unlockCapsule } = capsule;
-
-const MIN_LOCK_DAYS = 7;
 const selectedPeriod = ref<number>(30);
 const fmt = (n: number, d = 2) => formatNumber(n, d);
 
@@ -86,13 +84,6 @@ const appState = computed(() => ({
   totalLocked: stats.value.totalLocked,
   totalAccrued: stats.value.totalAccrued,
 }));
-
-const capsuleStats = computed(() => [
-  { label: t("totalCapsules"), value: stats.value.totalCapsules },
-  { label: t("totalLocked"), value: `${fmt(stats.value.totalLocked, 0)} NEO` },
-  { label: t("totalAccrued"), value: `${fmt(stats.value.totalAccrued, 4)} GAS` },
-]);
-
 const createCapsule = () => capsule.createCapsule(selectedPeriod.value);
 
 watch(

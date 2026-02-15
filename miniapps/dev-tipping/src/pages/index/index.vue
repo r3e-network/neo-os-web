@@ -73,11 +73,6 @@ const appState = computed(() => ({
 }));
 
 const selectedDevId = ref<number | null>(null);
-const tipAmount = ref("1");
-const tipMessage = ref("");
-const tipperName = ref("");
-const anonymous = ref(false);
-
 const refreshData = async () => {
   await loadDevelopers();
   await loadRecentTips(APP_ID);
@@ -87,29 +82,6 @@ const handleSelectDev = (dev: Developer) => {
   selectedDevId.value = dev.id;
   setStatus(`${t("selected")} ${dev.name}`, "success");
 };
-
-const handleSendTip = async () => {
-  if (!selectedDevId.value) return;
-
-  const success = await sendTip(
-    selectedDevId.value,
-    tipAmount.value,
-    tipMessage.value,
-    tipperName.value,
-    anonymous.value,
-    () => {
-      tipAmount.value = "1";
-      tipMessage.value = "";
-      tipperName.value = "";
-      anonymous.value = false;
-    }
-  );
-
-  if (success) {
-    await refreshData();
-  }
-};
-
 onMounted(() => {
   refreshData();
 });

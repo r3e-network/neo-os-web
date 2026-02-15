@@ -101,36 +101,10 @@ const appState = computed(() => ({
 }));
 
 const combinedStatus = computed(() => maskStatus.value || voteStatus.value || null);
-
-const createForm = computed({
-  get: () => ({ identitySeed: identitySeed.value, maskType: maskType.value }),
-  set: (val) => {
-    identitySeed.value = val.identitySeed;
-    maskType.value = val.maskType;
-  },
-});
-
-const voteForm = computed({
-  get: () => ({ proposalId: proposalId.value }),
-  set: (val) => {
-    proposalId.value = val.proposalId;
-  },
-});
-
 const resetAndReload = async () => {
   loadMasks();
   loadProposals();
 };
-
-const handleCreateMask = async () => {
-  await createMask();
-};
-
-const handleVote = async (choice: number) => {
-  if (!selectedMaskId.value) return;
-  await submitVote(selectedMaskId.value, choice as VoteChoice);
-};
-
 watch(identitySeed, async (value) => {
   if (value) {
     const { sha256Hex } = await import("@shared/utils/hash");

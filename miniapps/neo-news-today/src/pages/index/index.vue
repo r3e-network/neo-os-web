@@ -95,13 +95,6 @@ const appState = computed(() => ({
   articleCount: articles.value.length,
   loading: loading.value,
 }));
-
-const opStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("articles"), value: articles.value.length },
-  { label: t("latest"), value: articles.value.length > 0 ? formatDate(articles.value[0].date) : "—" },
-  { label: t("status"), value: loading.value ? t("loading") : t("ready") },
-]);
-
 onMounted(async () => {
   await loadArticles();
 });

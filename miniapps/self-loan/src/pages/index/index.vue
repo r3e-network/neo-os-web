@@ -71,7 +71,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { formatNumber } from "@shared/utils/format";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, NeoCard, NeoButton } from "@shared/components";
 import PositionSummary from "./components/PositionSummary.vue";
@@ -120,21 +119,7 @@ const appState = computed(() => ({
   hasLoan: !!core.loan.value,
   isConnected: !!core.address.value,
 }));
-
-const fmt = (n: number, d = 2) => formatNumber(n, d);
-
-const statsRowItems = computed<StatsDisplayItem[]>(() => {
-  const s = history.stats.value as Record<string, number>;
-  return [
-    { label: t("totalLoans"), value: s.totalLoans ?? 0 },
-    { label: t("totalBorrowed"), value: `${fmt(s.totalBorrowed ?? 0)} GAS` },
-    { label: t("totalRepaid"), value: `${fmt(s.totalRepaid ?? 0)} GAS` },
-    { label: t("avgLoanSize"), value: `${s.totalLoans > 0 ? fmt(s.totalBorrowed / s.totalLoans) : 0} GAS` },
-  ];
-});
-
 const canRetryError = ref(false);
-const validationError = ref<string | null>(null);
 const connectWallet = async () => {
   try {
     await core.connect();
@@ -150,23 +135,6 @@ const resetAndReload = async () => {
   canRetryError.value = false;
   await loadData();
 };
-
-const handleTakeLoan = async (): Promise<void> => {
-  const validation = core.validateCollateral(core.collateralAmount.value, core.neoBalance.value);
-  if (validation) {
-    validationError.value = validation;
-  } else {
-    validationError.value = null;
-  }
-
-  await core.takeLoan(loadData, (e, retryable) => {
-    if (retryable) {
-      setStatus(formatErrorMessage(e, t("error")), "error");
-      canRetryError.value = true;
-    }
-  });
-};
-
 const loadData = async () => {
   try {
     if (!core.address.value) {
