@@ -45,6 +45,53 @@ type GasBankRepository interface {
 	GetDepositByTxHash(ctx context.Context, txHash string) (*DepositRequest, error)
 	UpdateDepositStatus(ctx context.Context, depositID, status string, confirmations int) error
 	GetPendingDeposits(ctx context.Context, limit int) ([]DepositRequest, error)
+
+	// Atomic operations backed by database stored procedures.
+	DeductFeeAtomic(ctx context.Context, userID string, amount int64, serviceID, referenceID string) (*AtomicDeductResult, error)
+	CreditDepositAtomic(ctx context.Context, userID string, amount int64, txHash, fromAddress, referenceID string) (*AtomicCreditResult, error)
+	ReserveFundsAtomic(ctx context.Context, userID string, amount int64) (*AtomicReserveResult, error)
+	ReleaseFundsAtomic(ctx context.Context, userID string, amount int64, commit bool) (*AtomicReleaseResult, error)
+}
+
+// AtomicDeductResult holds the result of an atomic fee deduction.
+type AtomicDeductResult struct {
+	Success       bool
+	NewBalance    int64
+	TransactionID string
+	Error         string
+}
+
+// AtomicCreditResult holds the result of an atomic deposit credit.
+type AtomicCreditResult struct {
+	Success       bool
+	NewBalance    int64
+	TransactionID string
+	Error         string
+}
+
+// AtomicReserveResult holds the result of an atomic fund reservation.
+type AtomicReserveResult struct {
+	Success     bool
+	NewBalance  int64
+	NewReserved int64
+	Error       string
+}
+
+// AtomicReleaseResult holds the result of an atomic release/commit of reserved funds.
+type AtomicReleaseResult struct {
+	Success     bool
+	NewBalance  int64
+	NewReserved int64
+	Error       string
+}
+
+// ReplayRepository defines replay protection data access methods.
+type ReplayRepository interface {
+	// MarkRequestSeen atomically checks and marks a request as seen.
+	// Returns true if the request is new (not a replay), false if already seen.
+	MarkRequestSeen(ctx context.Context, serviceID, requestID string, windowSeconds int) (bool, error)
+	// CleanupSeenRequests removes expired entries. Pass empty serviceID to clean all.
+	CleanupSeenRequests(ctx context.Context, serviceID string) (int, error)
 }
 
 // =============================================================================
@@ -58,6 +105,7 @@ type BaseRepository interface {
 	UserRepository
 	ServiceRequestRepository
 	GasBankRepository
+	ReplayRepository
 }
 
 // =============================================================================

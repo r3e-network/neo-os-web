@@ -113,6 +113,19 @@ func (s *Service) markSeen(requestID string) bool {
 		return false
 	}
 
+	if db := s.DB(); db != nil {
+		windowSeconds := int(s.replayWindow.Seconds())
+		seen, err := db.MarkRequestSeen(context.Background(), ServiceID, requestID, windowSeconds)
+		if err != nil {
+			s.Logger().WithError(err).Warn("replay check failed, falling back to in-memory")
+			return s.markSeenInMemory(requestID)
+		}
+		return seen
+	}
+	return s.markSeenInMemory(requestID)
+}
+
+func (s *Service) markSeenInMemory(requestID string) bool {
 	now := time.Now()
 	s.replayMu.Lock()
 	defer s.replayMu.Unlock()
@@ -126,6 +139,15 @@ func (s *Service) markSeen(requestID string) bool {
 }
 
 func (s *Service) cleanupReplay() {
+	if db := s.DB(); db != nil {
+		if _, err := db.CleanupSeenRequests(context.Background(), ServiceID); err != nil {
+			s.Logger().WithError(err).Warn("DB replay cleanup failed, falling back to in-memory")
+		}
+	}
+	s.cleanupReplayInMemory()
+}
+
+func (s *Service) cleanupReplayInMemory() {
 	now := time.Now()
 	s.replayMu.Lock()
 	defer s.replayMu.Unlock()

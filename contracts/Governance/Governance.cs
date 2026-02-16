@@ -30,6 +30,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_STAKE = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_PROPOSAL = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_VOTE = new byte[] { 0x04 };
+        private static readonly byte[] PREFIX_QUORUM = new byte[] { 0x05 };
 
         // Maximum votes per proposal (10 billion NEO - total supply cap)
         private static readonly BigInteger MAX_VOTES_PER_PROPOSAL = 10_000_000_000_00000000;
@@ -241,9 +242,31 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(!p.Finalized, "already finalized");
             ExecutionEngine.Assert(Runtime.Time > p.EndTime, "voting not ended");
 
+            BigInteger quorum = GetQuorum();
+            BigInteger totalVotes = p.Yes + p.No;
+            ExecutionEngine.Assert(quorum == 0 || totalVotes >= quorum, "quorum not reached");
+
             p.Finalized = true;
             ProposalMap().Put(ProposalKey(proposalId), StdLib.Serialize(p));
-            OnProposalFinalized(proposalId, p.Yes, p.No, p.Yes > p.No);
+
+            bool quorumMet = quorum == 0 || totalVotes >= quorum;
+            bool passed = quorumMet && p.Yes > p.No;
+            OnProposalFinalized(proposalId, p.Yes, p.No, passed);
+        }
+
+        public static void SetQuorum(BigInteger quorum)
+        {
+            ValidateAdmin();
+            ExecutionEngine.Assert(quorum >= 0, "quorum must be >= 0");
+            Storage.Put(Storage.CurrentContext, PREFIX_QUORUM, quorum);
+        }
+
+        [Safe]
+        public static BigInteger GetQuorum()
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_QUORUM);
+            if (raw == null) return 0;
+            return (BigInteger)raw;
         }
 
         public static void SetAdmin(UInt160 newAdmin)

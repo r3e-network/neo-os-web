@@ -280,3 +280,181 @@ func (r *Repository) GetPendingDeposits(ctx context.Context, limit int) ([]Depos
 	}
 	return deposits, nil
 }
+
+// =============================================================================
+// Atomic Operations (via Supabase RPC / stored procedures)
+// =============================================================================
+
+// rpcDeductRow maps the JSON returned by gasbank_atomic_deduct.
+type rpcDeductRow struct {
+	Success       bool   `json:"success"`
+	NewBalance    int64  `json:"new_balance"`
+	TransactionID string `json:"transaction_id"`
+	ErrorMessage  string `json:"error_message"`
+}
+
+// rpcCreditRow maps the JSON returned by gasbank_atomic_credit.
+type rpcCreditRow struct {
+	Success       bool   `json:"success"`
+	NewBalance    int64  `json:"new_balance"`
+	TransactionID string `json:"transaction_id"`
+	ErrorMessage  string `json:"error_message"`
+}
+
+// rpcReserveRow maps the JSON returned by gasbank_atomic_reserve.
+type rpcReserveRow struct {
+	Success      bool   `json:"success"`
+	NewBalance   int64  `json:"new_balance"`
+	NewReserved  int64  `json:"new_reserved"`
+	ErrorMessage string `json:"error_message"`
+}
+
+// rpcReleaseRow maps the JSON returned by gasbank_atomic_release.
+type rpcReleaseRow struct {
+	Success      bool   `json:"success"`
+	NewBalance   int64  `json:"new_balance"`
+	NewReserved  int64  `json:"new_reserved"`
+	ErrorMessage string `json:"error_message"`
+}
+
+// DeductFeeAtomic calls the gasbank_atomic_deduct stored procedure.
+func (r *Repository) DeductFeeAtomic(ctx context.Context, userID string, amount int64, serviceID, referenceID string) (*AtomicDeductResult, error) {
+	if err := ValidateUserID(userID); err != nil {
+		return nil, err
+	}
+
+	params := map[string]interface{}{
+		"p_user_id":    userID,
+		"p_amount":     amount,
+		"p_service_id": serviceID,
+	}
+	if referenceID != "" {
+		params["p_reference_id"] = referenceID
+	}
+
+	data, err := r.client.request(ctx, "POST", "rpc/gasbank_atomic_deduct", params, "")
+	if err != nil {
+		return nil, fmt.Errorf("%w: rpc gasbank_atomic_deduct: %v", ErrDatabaseError, err)
+	}
+
+	var rows []rpcDeductRow
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return nil, fmt.Errorf("%w: unmarshal atomic deduct result: %v", ErrDatabaseError, err)
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("%w: atomic deduct returned no rows", ErrDatabaseError)
+	}
+
+	row := rows[0]
+	return &AtomicDeductResult{
+		Success:       row.Success,
+		NewBalance:    row.NewBalance,
+		TransactionID: row.TransactionID,
+		Error:         row.ErrorMessage,
+	}, nil
+}
+
+// CreditDepositAtomic calls the gasbank_atomic_credit stored procedure.
+func (r *Repository) CreditDepositAtomic(ctx context.Context, userID string, amount int64, txHash, fromAddress, referenceID string) (*AtomicCreditResult, error) {
+	if err := ValidateUserID(userID); err != nil {
+		return nil, err
+	}
+
+	params := map[string]interface{}{
+		"p_user_id":      userID,
+		"p_amount":       amount,
+		"p_tx_hash":      txHash,
+		"p_from_address": fromAddress,
+	}
+	if referenceID != "" {
+		params["p_reference_id"] = referenceID
+	}
+
+	data, err := r.client.request(ctx, "POST", "rpc/gasbank_atomic_credit", params, "")
+	if err != nil {
+		return nil, fmt.Errorf("%w: rpc gasbank_atomic_credit: %v", ErrDatabaseError, err)
+	}
+
+	var rows []rpcCreditRow
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return nil, fmt.Errorf("%w: unmarshal atomic credit result: %v", ErrDatabaseError, err)
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("%w: atomic credit returned no rows", ErrDatabaseError)
+	}
+
+	row := rows[0]
+	return &AtomicCreditResult{
+		Success:       row.Success,
+		NewBalance:    row.NewBalance,
+		TransactionID: row.TransactionID,
+		Error:         row.ErrorMessage,
+	}, nil
+}
+
+// ReserveFundsAtomic calls the gasbank_atomic_reserve stored procedure.
+func (r *Repository) ReserveFundsAtomic(ctx context.Context, userID string, amount int64) (*AtomicReserveResult, error) {
+	if err := ValidateUserID(userID); err != nil {
+		return nil, err
+	}
+
+	params := map[string]interface{}{
+		"p_user_id": userID,
+		"p_amount":  amount,
+	}
+
+	data, err := r.client.request(ctx, "POST", "rpc/gasbank_atomic_reserve", params, "")
+	if err != nil {
+		return nil, fmt.Errorf("%w: rpc gasbank_atomic_reserve: %v", ErrDatabaseError, err)
+	}
+
+	var rows []rpcReserveRow
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return nil, fmt.Errorf("%w: unmarshal atomic reserve result: %v", ErrDatabaseError, err)
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("%w: atomic reserve returned no rows", ErrDatabaseError)
+	}
+
+	row := rows[0]
+	return &AtomicReserveResult{
+		Success:     row.Success,
+		NewBalance:  row.NewBalance,
+		NewReserved: row.NewReserved,
+		Error:       row.ErrorMessage,
+	}, nil
+}
+
+// ReleaseFundsAtomic calls the gasbank_atomic_release stored procedure.
+func (r *Repository) ReleaseFundsAtomic(ctx context.Context, userID string, amount int64, commit bool) (*AtomicReleaseResult, error) {
+	if err := ValidateUserID(userID); err != nil {
+		return nil, err
+	}
+
+	params := map[string]interface{}{
+		"p_user_id": userID,
+		"p_amount":  amount,
+		"p_commit":  commit,
+	}
+
+	data, err := r.client.request(ctx, "POST", "rpc/gasbank_atomic_release", params, "")
+	if err != nil {
+		return nil, fmt.Errorf("%w: rpc gasbank_atomic_release: %v", ErrDatabaseError, err)
+	}
+
+	var rows []rpcReleaseRow
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return nil, fmt.Errorf("%w: unmarshal atomic release result: %v", ErrDatabaseError, err)
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("%w: atomic release returned no rows", ErrDatabaseError)
+	}
+
+	row := rows[0]
+	return &AtomicReleaseResult{
+		Success:     row.Success,
+		NewBalance:  row.NewBalance,
+		NewReserved: row.NewReserved,
+		Error:       row.ErrorMessage,
+	}, nil
+}

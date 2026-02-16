@@ -17,6 +17,7 @@ type MockRepository struct {
 	gasBankAccounts     map[string]*GasBankAccount
 	gasBankTransactions map[string]*GasBankTransaction
 	depositRequests     map[string]*DepositRequest
+	seenRequests        map[string]mockReplayEntry
 
 	// Error injection for testing error paths
 	ErrorOnNextCall error
@@ -54,6 +55,7 @@ func (m *MockRepository) Reset() {
 	m.gasBankAccounts = make(map[string]*GasBankAccount)
 	m.gasBankTransactions = make(map[string]*GasBankTransaction)
 	m.depositRequests = make(map[string]*DepositRequest)
+	m.seenRequests = make(map[string]mockReplayEntry)
 	m.ErrorOnNextCall = nil
 }
 

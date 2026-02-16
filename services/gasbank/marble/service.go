@@ -17,8 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/R3E-Network/service_layer/infrastructure/chain"
 	"github.com/R3E-Network/service_layer/infrastructure/crypto"
 	"github.com/R3E-Network/service_layer/infrastructure/database"
@@ -186,56 +184,23 @@ func (s *Service) DeductFee(ctx context.Context, req *DeductFeeRequest) (*Deduct
 		return &DeductFeeResponse{Success: false, Error: "service_id is required"}, nil
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Get current account
-	account, err := s.db.GetOrCreateGasBankAccount(ctx, req.UserID)
+	result, err := s.db.DeductFeeAtomic(ctx, req.UserID, req.Amount, req.ServiceID, req.ReferenceID)
 	if err != nil {
-		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("get account: %v", err)}, nil
+		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("atomic deduct: %v", err)}, nil
 	}
 
-	// Check available balance
-	available := account.Balance - account.Reserved
-	if available < req.Amount {
+	if !result.Success {
 		return &DeductFeeResponse{
 			Success:      false,
-			BalanceAfter: account.Balance,
-			Error:        fmt.Sprintf("insufficient balance: available %d, required %d", available, req.Amount),
+			BalanceAfter: result.NewBalance,
+			Error:        result.Error,
 		}, nil
-	}
-
-	// Deduct from balance
-	newBalance := account.Balance - req.Amount
-	if err := s.db.UpdateGasBankBalance(ctx, req.UserID, newBalance, account.Reserved); err != nil {
-		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("update balance: %v", err)}, nil
-	}
-
-	// Record transaction - if this fails, rollback the balance update
-	txID := uuid.New().String()
-	tx := &database.GasBankTransaction{
-		ID:           txID,
-		AccountID:    account.ID,
-		TxType:       string(TxTypeServiceFee),
-		Amount:       -req.Amount,
-		BalanceAfter: newBalance,
-		ReferenceID:  req.ReferenceID,
-		Status:       "completed",
-		CreatedAt:    time.Now(),
-	}
-	if err := s.db.CreateGasBankTransaction(ctx, tx); err != nil {
-		// Rollback balance update to maintain consistency
-		s.Logger().WithContext(ctx).WithError(err).Error("failed to record transaction, rolling back balance")
-		if rollbackErr := s.db.UpdateGasBankBalance(ctx, req.UserID, account.Balance, account.Reserved); rollbackErr != nil {
-			s.Logger().WithContext(ctx).WithError(rollbackErr).Error("CRITICAL: rollback failed, balance inconsistent")
-		}
-		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("record transaction: %v", err)}, nil
 	}
 
 	return &DeductFeeResponse{
 		Success:       true,
-		TransactionID: txID,
-		BalanceAfter:  newBalance,
+		TransactionID: result.TransactionID,
+		BalanceAfter:  result.NewBalance,
 	}, nil
 }
 
@@ -245,28 +210,19 @@ func (s *Service) ReserveFunds(ctx context.Context, req *ReserveFundsRequest) (*
 		return &ReserveFundsResponse{Success: false}, nil
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	account, err := s.db.GetOrCreateGasBankAccount(ctx, req.UserID)
+	result, err := s.db.ReserveFundsAtomic(ctx, req.UserID, req.Amount)
 	if err != nil {
 		return &ReserveFundsResponse{Success: false}, nil
 	}
 
-	available := account.Balance - account.Reserved
-	if available < req.Amount {
-		return &ReserveFundsResponse{Success: false, BalanceAfter: account.Balance}, nil
-	}
-
-	newReserved := account.Reserved + req.Amount
-	if err := s.db.UpdateGasBankBalance(ctx, req.UserID, account.Balance, newReserved); err != nil {
-		return &ReserveFundsResponse{Success: false}, nil
+	if !result.Success {
+		return &ReserveFundsResponse{Success: false, BalanceAfter: result.NewBalance}, nil
 	}
 
 	return &ReserveFundsResponse{
 		Success:      true,
-		Reserved:     newReserved,
-		BalanceAfter: account.Balance,
+		Reserved:     result.NewReserved,
+		BalanceAfter: result.NewBalance,
 	}, nil
 }
 
@@ -276,31 +232,18 @@ func (s *Service) ReleaseFunds(ctx context.Context, req *ReleaseFundsRequest) (*
 		return &ReleaseFundsResponse{Success: false}, nil
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	account, err := s.db.GetOrCreateGasBankAccount(ctx, req.UserID)
+	result, err := s.db.ReleaseFundsAtomic(ctx, req.UserID, req.Amount, req.Commit)
 	if err != nil {
 		return &ReleaseFundsResponse{Success: false}, nil
 	}
 
-	if account.Reserved < req.Amount {
-		return &ReleaseFundsResponse{Success: false, BalanceAfter: account.Balance}, nil
-	}
-
-	newReserved := account.Reserved - req.Amount
-	newBalance := account.Balance
-	if req.Commit {
-		newBalance = account.Balance - req.Amount
-	}
-
-	if err := s.db.UpdateGasBankBalance(ctx, req.UserID, newBalance, newReserved); err != nil {
-		return &ReleaseFundsResponse{Success: false}, nil
+	if !result.Success {
+		return &ReleaseFundsResponse{Success: false, BalanceAfter: result.NewBalance}, nil
 	}
 
 	return &ReleaseFundsResponse{
 		Success:      true,
-		BalanceAfter: newBalance,
+		BalanceAfter: result.NewBalance,
 	}, nil
 }
 
@@ -493,47 +436,20 @@ func addressFromScriptHash(hash []byte) string {
 
 // confirmDeposit marks a deposit as confirmed and credits the user's balance.
 func (s *Service) confirmDeposit(ctx context.Context, deposit *database.DepositRequest) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Credit user's balance
-	account, err := s.db.GetOrCreateGasBankAccount(ctx, deposit.UserID)
+	result, err := s.db.CreditDepositAtomic(ctx, deposit.UserID, deposit.Amount, deposit.TxHash, deposit.FromAddress, deposit.ID)
 	if err != nil {
-		s.Logger().WithContext(ctx).WithError(err).WithField("user_id", deposit.UserID).Warn("failed to get account for deposit credit")
-		return
-	}
-	if s.depositTransactionExists(ctx, account.ID, deposit.ID) {
-		if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {
-			s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
-		}
+		s.Logger().WithContext(ctx).WithError(err).WithField("user_id", deposit.UserID).Warn("failed to credit deposit atomically")
 		return
 	}
 
-	newBalance := account.Balance + deposit.Amount
-	if err := s.db.UpdateGasBankBalance(ctx, deposit.UserID, newBalance, account.Reserved); err != nil {
-		s.Logger().WithContext(ctx).WithError(err).WithField("user_id", deposit.UserID).Warn("failed to credit deposit")
+	if !result.Success {
+		s.Logger().WithContext(ctx).WithField("user_id", deposit.UserID).WithField("error", result.Error).Warn("atomic deposit credit failed")
 		return
 	}
 
-	// Record transaction
-	tx := &database.GasBankTransaction{
-		ID:           uuid.New().String(),
-		AccountID:    account.ID,
-		TxType:       string(TxTypeDeposit),
-		Amount:       deposit.Amount,
-		BalanceAfter: newBalance,
-		ReferenceID:  deposit.ID,
-		TxHash:       deposit.TxHash,
-		FromAddress:  deposit.FromAddress,
-		Status:       "completed",
-		CreatedAt:    time.Now(),
-	}
-	if err := s.db.CreateGasBankTransaction(ctx, tx); err != nil {
-		s.Logger().WithContext(ctx).WithError(err).Warn("failed to record deposit transaction, rolling back balance")
-		if rollbackErr := s.db.UpdateGasBankBalance(ctx, deposit.UserID, account.Balance, account.Reserved); rollbackErr != nil {
-			s.Logger().WithContext(ctx).WithError(rollbackErr).Error("CRITICAL: rollback failed, balance inconsistent")
-		}
-		return
+	// "already credited" is the idempotency signal from the stored procedure
+	if result.Error == "already credited" {
+		s.Logger().WithContext(ctx).WithField("deposit_id", deposit.ID).Debug("deposit already credited, updating status only")
 	}
 
 	if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {
@@ -541,29 +457,6 @@ func (s *Service) confirmDeposit(ctx context.Context, deposit *database.DepositR
 	}
 
 	s.Logger().WithContext(ctx).WithField("user_id", deposit.UserID).WithField("amount", deposit.Amount).Info("deposit confirmed and credited")
-}
-
-func (s *Service) depositTransactionExists(ctx context.Context, accountID, depositID string) bool {
-	if s.db == nil || strings.TrimSpace(accountID) == "" || strings.TrimSpace(depositID) == "" {
-		return false
-	}
-
-	txs, err := s.db.GetGasBankTransactions(ctx, accountID, 1000)
-	if err != nil {
-		s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
-			"account_id": accountID,
-			"deposit_id": depositID,
-		}).Warn("failed to query deposit transactions for idempotency")
-		return false
-	}
-
-	for _, tx := range txs {
-		if tx.ReferenceID == depositID && tx.TxType == string(TxTypeDeposit) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // cleanupExpiredDeposits marks expired pending deposits as expired.
