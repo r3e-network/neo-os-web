@@ -46,7 +46,7 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Mark request as seen only after all validations pass
-	if !s.markSeen(reqID) {
+	if !s.markSeen(r.Context(), reqID) {
 		httputil.WriteError(w, http.StatusConflict, "request_id already used")
 		return
 	}

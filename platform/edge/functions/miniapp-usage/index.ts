@@ -57,7 +57,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     supabase = supabaseServiceClient();
   } catch (err) {
-    return error(500, String(err), "SUPABASE_CONFIG_ERROR", req);
+    return error(500, "service configuration error", "SUPABASE_CONFIG_ERROR", req);
   }
 
   if (appId) {

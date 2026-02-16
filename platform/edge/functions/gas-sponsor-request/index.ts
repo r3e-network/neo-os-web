@@ -37,26 +37,39 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
-  const amount = parseFloat(body.amount ?? "0");
-  if (isNaN(amount) || amount <= 0) {
+  const amountStr = (body.amount ?? "0").trim();
+  if (!/^\d+(\.\d{1,8})?$/.test(amountStr)) {
+    return error(400, "amount must be a valid decimal string", "INVALID_AMOUNT", req);
+  }
+  // Compare as strings scaled to 8 decimal places to avoid floating-point loss
+  const parts = amountStr.split(".");
+  const intPart = parts[0] || "0";
+  const fracPart = (parts[1] || "").padEnd(8, "0").slice(0, 8);
+  const amountScaled = BigInt(intPart) * 100000000n + BigInt(fracPart);
+  if (amountScaled <= 0n) {
     return error(400, "amount must be positive", "INVALID_AMOUNT", req);
   }
-  if (amount > MAX_PER_REQUEST) {
+  const maxScaled = BigInt(Math.round(MAX_PER_REQUEST * 100000000));
+  if (amountScaled > maxScaled) {
     return error(400, `max ${MAX_PER_REQUEST} GAS per request`, "AMOUNT_EXCEEDED", req);
   }
 
   const supabase = supabaseServiceClient();
 
   // Query on-chain GAS balance first (no state mutation)
-  let gasBalance = 0;
+  let balanceScaled = 0n;
   try {
     const balanceStr = await getGasBalance(walletCheck.address);
-    gasBalance = parseFloat(balanceStr);
+    const bParts = balanceStr.split(".");
+    const bInt = bParts[0] || "0";
+    const bFrac = (bParts[1] || "").padEnd(8, "0").slice(0, 8);
+    balanceScaled = BigInt(bInt) * 100000000n + BigInt(bFrac);
   } catch (e) {
     return error(500, `failed to query balance: ${(e as Error).message}`, "RPC_ERROR", req);
   }
 
-  if (gasBalance >= ELIGIBILITY_THRESHOLD) {
+  const eligibilityScaled = BigInt(Math.round(ELIGIBILITY_THRESHOLD * 100000000));
+  if (balanceScaled >= eligibilityScaled) {
     return error(403, "not eligible - balance too high", "NOT_ELIGIBLE", req);
   }
 
@@ -65,7 +78,7 @@ export async function handler(req: Request): Promise<Response> {
   // returning the new used_amount or raising an exception on overflow.
   const { data: bumpResult, error: bumpErr } = await supabase.rpc("gas_sponsor_bump_quota", {
     p_user_id: auth.userId,
-    p_amount: amount,
+    p_amount: amountStr,
     p_daily_limit: DAILY_LIMIT,
   });
   if (bumpErr) {
@@ -81,7 +94,7 @@ export async function handler(req: Request): Promise<Response> {
   const { error: insertErr } = await supabase.from("gas_sponsor_requests").insert({
     id: requestId,
     user_id: auth.userId,
-    amount: amount,
+    amount: amountStr,
     status: "processing",
   });
 
@@ -92,7 +105,7 @@ export async function handler(req: Request): Promise<Response> {
   // Execute GAS transfer via TxProxy
   let txHash: string | null = null;
   try {
-    const txResult = await transferGas(requestId, walletCheck.address, amount.toFixed(8));
+    const txResult = await transferGas(requestId, walletCheck.address, amountStr);
     txHash = txResult.tx_hash || null;
 
     // Update request status
@@ -110,7 +123,7 @@ export async function handler(req: Request): Promise<Response> {
   return json(
     {
       request_id: requestId,
-      amount: amount.toFixed(8),
+      amount: amountStr,
       status: "completed",
       tx_hash: txHash,
     },

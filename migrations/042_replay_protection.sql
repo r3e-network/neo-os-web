@@ -20,35 +20,22 @@ CREATE OR REPLACE FUNCTION mark_request_seen(
 LANGUAGE plpgsql AS $$
 DECLARE
     v_expires TIMESTAMPTZ;
+    v_row_count INT;
 BEGIN
     v_expires := NOW() + (p_window_seconds || ' seconds')::INTERVAL;
 
-    -- Try insert, on conflict check if still valid
-    INSERT INTO seen_requests (service_id, request_id, expires_at)
-    VALUES (p_service_id, p_request_id, v_expires)
-    ON CONFLICT (service_id, request_id) DO NOTHING;
+    -- Atomic upsert: insert if not exists, or refresh if expired
+    INSERT INTO seen_requests (service_id, request_id, expires_at, created_at)
+    VALUES (p_service_id, p_request_id, v_expires, NOW())
+    ON CONFLICT (service_id, request_id) DO UPDATE
+        SET expires_at = v_expires, created_at = NOW()
+        WHERE seen_requests.expires_at <= NOW();
 
-    -- If inserted, return true (new request)
-    IF FOUND THEN
-        RETURN true;
-    END IF;
+    GET DIAGNOSTICS v_row_count = ROW_COUNT;
 
-    -- Check if existing entry is still valid
-    IF EXISTS (
-        SELECT 1 FROM seen_requests
-        WHERE service_id = p_service_id
-          AND request_id = p_request_id
-          AND expires_at > NOW()
-    ) THEN
-        RETURN false;  -- Still in replay window
-    END IF;
-
-    -- Expired entry, update it
-    UPDATE seen_requests
-    SET expires_at = v_expires, created_at = NOW()
-    WHERE service_id = p_service_id AND request_id = p_request_id;
-
-    RETURN true;
+    -- Row affected = new request (inserted) or expired entry refreshed -> true
+    -- No row affected = entry exists and not expired (duplicate) -> false
+    RETURN v_row_count > 0;
 END;
 $$;
 

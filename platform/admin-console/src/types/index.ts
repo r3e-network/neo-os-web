@@ -66,7 +66,7 @@ export interface AnalyticsData {
   usageOverTime: Array<{
     date: string;
     gas_used: number;
-    governance_used: number;
+    governance_used?: number;
   }>;
 }
 

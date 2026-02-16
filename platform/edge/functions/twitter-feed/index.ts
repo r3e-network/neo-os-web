@@ -39,7 +39,7 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     const data = await res.json();
-    const tweets: Tweet[] = (data.data || []).map((t: any) => ({
+    const tweets: Tweet[] = (data.data || []).map((t: Record<string, unknown>) => ({
       id: t.id,
       text: t.text,
       created_at: t.created_at,

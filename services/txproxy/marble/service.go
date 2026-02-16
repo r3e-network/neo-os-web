@@ -154,7 +154,7 @@ func (s *Service) registerRoutes() {
 	s.Router().Handle("/invoke", middleware.RequireServiceAuth(http.HandlerFunc(s.handleInvoke))).Methods(http.MethodPost)
 }
 
-func (s *Service) markSeen(requestID string) bool {
+func (s *Service) markSeen(ctx context.Context, requestID string) bool {
 	requestID = strings.TrimSpace(requestID)
 	if requestID == "" {
 		return false
@@ -162,7 +162,7 @@ func (s *Service) markSeen(requestID string) bool {
 
 	if db := s.DB(); db != nil {
 		windowSeconds := int(s.replayWindow.Seconds())
-		seen, err := db.MarkRequestSeen(context.Background(), ServiceID, requestID, windowSeconds)
+		seen, err := db.MarkRequestSeen(ctx, ServiceID, requestID, windowSeconds)
 		if err != nil {
 			s.Logger().WithError(err).Warn("replay check failed, falling back to in-memory")
 			return s.markSeenInMemory(requestID)
@@ -187,7 +187,9 @@ func (s *Service) markSeenInMemory(requestID string) bool {
 
 func (s *Service) cleanupReplay() {
 	if db := s.DB(); db != nil {
-		if _, err := db.CleanupSeenRequests(context.Background(), ServiceID); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if _, err := db.CleanupSeenRequests(ctx, ServiceID); err != nil {
 			s.Logger().WithError(err).Warn("DB replay cleanup failed, falling back to in-memory")
 		}
 	}

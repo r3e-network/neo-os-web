@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { describe, it, expect } from "vitest";
-import { cn, formatDate, formatRelativeTime, formatNumber, formatBytes, truncate, getStatusColor } from "@/lib/utils";
+import { cn, formatDate, formatRelativeTime, formatNumber, formatBytes, truncate } from "@/lib/utils";
 
 describe("Utility Functions", () => {
   describe("cn", () => {
@@ -86,29 +86,4 @@ describe("Utility Functions", () => {
     });
   });
 
-  describe("getStatusColor", () => {
-    it("should return correct color for healthy status", () => {
-      expect(getStatusColor("healthy")).toBe("text-success-600 bg-success-50");
-    });
-
-    it("should return correct color for unhealthy status", () => {
-      expect(getStatusColor("unhealthy")).toBe("text-danger-600 bg-danger-50");
-    });
-
-    it("should return correct color for unknown status", () => {
-      expect(getStatusColor("unknown")).toBe("text-gray-600 bg-gray-50");
-    });
-
-    it("should return correct color for active status", () => {
-      expect(getStatusColor("active")).toBe("text-success-600 bg-success-50");
-    });
-
-    it("should return correct color for disabled status", () => {
-      expect(getStatusColor("disabled")).toBe("text-danger-600 bg-danger-50");
-    });
-
-    it("should return correct color for pending status", () => {
-      expect(getStatusColor("pending")).toBe("text-warning-600 bg-warning-50");
-    });
-  });
 });

@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { ForumThread } from "@/components/features/forum/types";
+import crypto from "crypto";
 import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 
 // In-memory store (replace with Supabase in production)
 const threadsStore: Map<string, ForumThread[]> = new Map();
-let threadIdCounter = 1;
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
@@ -86,7 +86,7 @@ function createThread(appId: string, req: NextApiRequest, res: NextApiResponse) 
 
   const now = new Date().toISOString();
   const thread: ForumThread = {
-    id: `thread-${threadIdCounter++}`,
+    id: `thread-${crypto.randomUUID()}`,
     app_id: appId,
     author_id: wallet,
     author_name: `${wallet.slice(0, 6)}...${wallet.slice(-4)}`,

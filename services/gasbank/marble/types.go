@@ -67,9 +67,10 @@ type ReserveFundsRequest struct {
 
 // ReserveFundsResponse is the response for reserving funds.
 type ReserveFundsResponse struct {
-	Success      bool  `json:"success"`
-	Reserved     int64 `json:"reserved,string"`
-	BalanceAfter int64 `json:"balance_after,string"`
+	Success      bool   `json:"success"`
+	Reserved     int64  `json:"reserved,string"`
+	BalanceAfter int64  `json:"balance_after,string"`
+	Error        string `json:"error,omitempty"`
 }
 
 // ReleaseFundsRequest is the request for releasing reserved funds.
@@ -82,8 +83,9 @@ type ReleaseFundsRequest struct {
 
 // ReleaseFundsResponse is the response for releasing reserved funds.
 type ReleaseFundsResponse struct {
-	Success      bool  `json:"success"`
-	BalanceAfter int64 `json:"balance_after,string"`
+	Success      bool   `json:"success"`
+	BalanceAfter int64  `json:"balance_after,string"`
+	Error        string `json:"error,omitempty"`
 }
 
 // DepositInfo represents deposit information for API responses.

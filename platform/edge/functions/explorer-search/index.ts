@@ -81,28 +81,34 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
 
   if (!tx) return { type: "transaction", found: false };
 
-  const { data: traces } = await supabase
-    .from("indexer_opcode_traces")
-    .select("*")
-    .eq("tx_hash", hash)
-    .order("step_index");
-
-  const { data: calls } = await supabase
-    .from("indexer_contract_calls")
-    .select("*")
-    .eq("tx_hash", hash)
-    .order("call_index");
-
-  const { data: syscalls } = await supabase
-    .from("indexer_syscalls")
-    .select("*")
-    .eq("tx_hash", hash)
-    .order("call_index");
+  const [traces, calls, syscalls] = await Promise.all([
+    supabase
+      .from("indexer_opcode_traces")
+      .select("*")
+      .eq("tx_hash", hash)
+      .order("step_index")
+      .then(({ data }) => data || [])
+      .catch(() => []),
+    supabase
+      .from("indexer_contract_calls")
+      .select("*")
+      .eq("tx_hash", hash)
+      .order("call_index")
+      .then(({ data }) => data || [])
+      .catch(() => []),
+    supabase
+      .from("indexer_syscalls")
+      .select("*")
+      .eq("tx_hash", hash)
+      .order("call_index")
+      .then(({ data }) => data || [])
+      .catch(() => []),
+  ]);
 
   return {
     type: "transaction",
     found: true,
-    data: { ...tx, opcode_traces: traces || [], contract_calls: calls || [], syscalls: syscalls || [] },
+    data: { ...tx, opcode_traces: traces, contract_calls: calls, syscalls: syscalls },
   };
 }
 

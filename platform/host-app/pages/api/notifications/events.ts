@@ -2,8 +2,11 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getEvents, markAsRead, getUnreadCount } from "@/lib/notifications/supabase-service";
 import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
+import { standardLimit } from "@/lib/rate-limit";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
+
   const { wallet } = req.query;
 
   if (!wallet || typeof wallet !== "string") {

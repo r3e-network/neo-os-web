@@ -1,7 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireScope } from "../_shared/scopes.ts";
-import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
+import { requireAuth, supabaseClient, supabaseServiceClient } from "../_shared/supabase.ts";
 import {
   checkSpamLimit,
   isDeveloperOfApp,
@@ -51,6 +51,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const supabase = supabaseClient();
+  const supabaseService = supabaseServiceClient();
   const userId = auth.userId;
 
   // Verify proof of interaction (user must have used the app)
@@ -84,7 +85,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   // Insert comment
-  const { data: comment, error: insertErr } = await supabase
+  const { data: comment, error: insertErr } = await supabaseService
     .from("social_comments")
     .insert({
       app_id,
@@ -101,7 +102,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   // Log spam action for rate limiting
-  await logSpamAction(supabase, userId, "comment", app_id);
+  await logSpamAction(supabaseService, userId, "comment", app_id);
 
   return json(comment, { status: 201 }, req);
 }

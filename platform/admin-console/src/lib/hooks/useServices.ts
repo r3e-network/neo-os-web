@@ -14,7 +14,7 @@ async function fetchServicesHealth(): Promise<ServiceHealth[]> {
   // Call Next.js API route that checks internal services
   const response = await fetch("/api/services/health", { headers: getAdminAuthHeaders(), signal: AbortSignal.timeout(15000) });
   if (!response.ok) {
-    throw new Error("Failed to fetch services health");
+    throw new Error(`Failed to fetch services health: ${response.status}`);
   }
   return response.json();
 }
@@ -43,7 +43,7 @@ export function useServiceHealth(serviceName: string) {
         signal: AbortSignal.timeout(15000),
       });
       if (!response.ok) {
-        throw new Error(`Failed to fetch ${serviceName} health`);
+        throw new Error(`Failed to fetch ${serviceName} health: ${response.status}`);
       }
       return response.json();
     },

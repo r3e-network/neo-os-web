@@ -1,5 +1,6 @@
 import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { standardLimit } from "@/lib/rate-limit";
 
 const NEO_RPC_TESTNET = process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443";
 const NEO_RPC_MAINNET = process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443";
@@ -16,6 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
+
+  if (standardLimit(req, res)) return;
 
   const network = (req.query.network as string) || "testnet";
   const rpcUrl = network === "mainnet" ? NEO_RPC_MAINNET : NEO_RPC_TESTNET;

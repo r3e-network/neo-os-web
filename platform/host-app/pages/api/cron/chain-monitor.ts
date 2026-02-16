@@ -1,18 +1,21 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { timingSafeEqual } from "crypto";
 import { checkChainStatus, sendChainAlerts } from "@/lib/chain/monitor";
 import { apiError } from "@/lib/api-response";
-
-// Cron secret for authentication
-const CRON_SECRET = process.env.CRON_SECRET;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET" && req.method !== "POST") {
     return apiError.methodNotAllowed(res);
   }
 
-  // Verify cron secret
-  const authHeader = req.headers.authorization;
-  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+  // Verify cron secret (timing-safe to prevent oracle attacks)
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return apiError.unauthorized(res, "Unauthorized");
+  }
+  const authHeader = String(req.headers.authorization || "");
+  const expected = `Bearer ${cronSecret}`;
+  if (authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
     return apiError.unauthorized(res, "Unauthorized");
   }
 

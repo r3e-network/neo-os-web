@@ -90,7 +90,7 @@ BEGIN
     -- Idempotency check: skip if deposit already credited
     SELECT COUNT(*) INTO v_existing_count
     FROM gasbank_transactions
-    WHERE account_id = v_account_id AND reference_id = p_reference_id AND tx_type = 'deposit';
+    WHERE account_id = v_account_id AND reference_id = p_reference_id AND tx_type = 'deposit' AND amount = p_amount;
 
     IF v_existing_count > 0 THEN
         RETURN QUERY SELECT true, v_balance, NULL::UUID, 'already credited'::TEXT;

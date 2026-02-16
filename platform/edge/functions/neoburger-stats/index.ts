@@ -55,7 +55,8 @@ export async function handler(req: Request): Promise<Response> {
 }
 
 function formatNumber(num: string): string {
-  const n = parseInt(num);
+  const n = parseInt(num, 10);
+  if (Number.isNaN(n)) return "0";
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
   if (n >= 1000) return (n / 1000).toFixed(1) + "K";
   return num;

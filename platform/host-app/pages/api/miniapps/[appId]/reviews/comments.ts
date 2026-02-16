@@ -1,13 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { SocialComment } from "@/components/types";
+import crypto from "crypto";
 import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 
 // In-memory store for demo (replace with Supabase in production)
 const commentsStore: Map<string, SocialComment[]> = new Map();
 const votesStore: Map<string, Map<string, "upvote" | "downvote">> = new Map();
-
-let commentIdCounter = 1;
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
@@ -81,7 +80,7 @@ function createComment(appId: string, req: NextApiRequest, res: NextApiResponse)
 
   const now = new Date().toISOString();
   const comment: SocialComment = {
-    id: `comment-${commentIdCounter++}`,
+    id: `comment-${crypto.randomUUID()}`,
     app_id: appId,
     author_user_id: wallet,
     parent_id: parent_id || null,

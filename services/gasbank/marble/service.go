@@ -206,8 +206,11 @@ func (s *Service) DeductFee(ctx context.Context, req *DeductFeeRequest) (*Deduct
 
 // ReserveFunds reserves funds for a pending operation.
 func (s *Service) ReserveFunds(ctx context.Context, req *ReserveFundsRequest) (*ReserveFundsResponse, error) {
-	if req.UserID == "" || req.Amount <= 0 {
-		return &ReserveFundsResponse{Success: false}, nil
+	if req.UserID == "" {
+		return &ReserveFundsResponse{Success: false, Error: "user_id is required"}, nil
+	}
+	if req.Amount <= 0 {
+		return &ReserveFundsResponse{Success: false, Error: "amount must be positive"}, nil
 	}
 
 	result, err := s.db.ReserveFundsAtomic(ctx, req.UserID, req.Amount)
@@ -228,8 +231,11 @@ func (s *Service) ReserveFunds(ctx context.Context, req *ReserveFundsRequest) (*
 
 // ReleaseFunds releases or commits reserved funds.
 func (s *Service) ReleaseFunds(ctx context.Context, req *ReleaseFundsRequest) (*ReleaseFundsResponse, error) {
-	if req.UserID == "" || req.Amount <= 0 {
-		return &ReleaseFundsResponse{Success: false}, nil
+	if req.UserID == "" {
+		return &ReleaseFundsResponse{Success: false, Error: "user_id is required"}, nil
+	}
+	if req.Amount <= 0 {
+		return &ReleaseFundsResponse{Success: false, Error: "amount must be positive"}, nil
 	}
 
 	result, err := s.db.ReleaseFundsAtomic(ctx, req.UserID, req.Amount, req.Commit)
@@ -267,7 +273,9 @@ func (s *Service) processDepositVerification(ctx context.Context) {
 	now := time.Now()
 	for _, deposit := range deposits {
 		if !deposit.ExpiresAt.IsZero() && now.After(deposit.ExpiresAt) {
-			_ = s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusExpired), deposit.Confirmations)
+			if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusExpired), deposit.Confirmations); err != nil {
+				s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
+			}
 			continue
 		}
 
@@ -279,10 +287,12 @@ func (s *Service) processDepositVerification(ctx context.Context) {
 		confirmed, confirmations, err := s.verifyTransaction(ctx, deposit.TxHash, deposit.FromAddress, deposit.Amount)
 		if err != nil {
 			if errors.Is(err, errDepositMismatch) {
-				_ = s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusFailed), confirmations)
+				if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusFailed), confirmations); err != nil {
+					s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
+				}
 				continue
 			}
-			s.Logger().WithContext(ctx).WithError(err).WithField("tx_hash", deposit.TxHash).Debug("failed to verify transaction")
+			s.Logger().WithContext(ctx).WithError(err).WithField("tx_hash", deposit.TxHash).Warn("failed to verify transaction")
 			continue
 		}
 
@@ -290,7 +300,9 @@ func (s *Service) processDepositVerification(ctx context.Context) {
 			s.confirmDeposit(ctx, &deposit)
 		} else if confirmations > 0 {
 			// Update confirmation count
-			_ = s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirming), confirmations)
+			if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirming), confirmations); err != nil {
+				s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
+			}
 		}
 	}
 }
@@ -476,6 +488,8 @@ func (s *Service) cleanupExpiredDeposits(ctx context.Context) {
 		if deposit.ExpiresAt.IsZero() || now.Before(deposit.ExpiresAt) {
 			continue
 		}
-		_ = s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusExpired), deposit.Confirmations)
+		if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusExpired), deposit.Confirmations); err != nil {
+			s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
+		}
 	}
 }

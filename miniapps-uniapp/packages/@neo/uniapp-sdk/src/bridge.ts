@@ -59,7 +59,7 @@ export function getSDKSync(): MiniAppSDK | null {
  * Call a bridge method on the host SDK via postMessage.
  * Returns the result payload or throws on timeout/error.
  */
-export function callBridge(method: string, params: Record<string, unknown> = ): Promise<Record<string, unknown>> {
+export function callBridge(method: string, params: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     const id = `bridge_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const expectedOrigin = window.location.ancestorOrigins?.[0] || "";

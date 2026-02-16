@@ -14,7 +14,7 @@ import type { AnalyticsData, MiniAppUsage } from "@/types";
 async function fetchAnalytics(): Promise<AnalyticsData> {
   const response = await fetch("/api/analytics", { headers: getAdminAuthHeaders(), signal: AbortSignal.timeout(15000) });
   if (!response.ok) {
-    throw new Error("Failed to fetch analytics");
+    throw new Error(`Failed to fetch analytics: ${response.status}`);
   }
   return response.json();
 }

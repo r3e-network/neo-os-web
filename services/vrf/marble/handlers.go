@@ -35,7 +35,7 @@ func (s *Service) handleRandom(w http.ResponseWriter, r *http.Request) {
 	if requestID == "" {
 		requestID = uuid.New().String()
 	}
-	if !s.markSeen(requestID) {
+	if !s.markSeen(r.Context(), requestID) {
 		httputil.WriteError(w, http.StatusConflict, "request_id already used")
 		return
 	}

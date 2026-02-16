@@ -63,11 +63,16 @@ export async function handler(req: Request): Promise<Response> {
   const voteCounts = await getCommentVoteCounts(supabase, commentIds);
 
   // Get reply counts
-  const { data: replyCounts } = await supabase
-    .from("social_comments")
-    .select("parent_id")
-    .in("parent_id", commentIds)
-    .is("deleted_at", null);
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const validIds = commentIds.filter((id: string) => uuidRegex.test(id));
+
+  const { data: replyCounts } = validIds.length > 0
+    ? await supabase
+        .from("social_comments")
+        .select("parent_id")
+        .in("parent_id", validIds)
+        .is("deleted_at", null)
+    : { data: [] };
 
   const replyCountMap = new Map<string, number>();
   for (const r of replyCounts || []) {

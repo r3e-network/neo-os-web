@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { apiError } from "@/lib/api-response";
+import { standardLimit } from "@/lib/rate-limit";
 
 export interface SearchResult {
   app_id: string;
@@ -23,6 +24,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
+
+  if (standardLimit(req, res)) return;
 
   const { q, category, limit = "20" } = req.query;
   const query = (typeof q === "string" ? q : "").toLowerCase().trim();

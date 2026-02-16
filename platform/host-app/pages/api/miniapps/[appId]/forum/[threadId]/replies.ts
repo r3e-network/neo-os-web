@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { ForumReply } from "@/components/features/forum/types";
+import crypto from "crypto";
 import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 
 // In-memory store
 const repliesStore: Map<string, ForumReply[]> = new Map();
-let replyIdCounter = 1;
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (process.env.NODE_ENV === "production" && !process.env.ALLOW_INMEMORY_STORE) {
@@ -54,7 +54,7 @@ function createReply(threadId: string, req: NextApiRequest, res: NextApiResponse
   }
 
   const reply: ForumReply = {
-    id: `reply-${replyIdCounter++}`,
+    id: `reply-${crypto.randomUUID()}`,
     thread_id: threadId,
     author_id: wallet,
     author_name: `${wallet.slice(0, 6)}...${wallet.slice(-4)}`,

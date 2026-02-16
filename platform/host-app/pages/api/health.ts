@@ -1,10 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
+import { standardLimit } from "@/lib/rate-limit";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET" && req.method !== "HEAD") {
     return apiError.methodNotAllowed(res);
   }
+
+  if (standardLimit(req, res)) return;
 
   if (req.method === "HEAD") {
     res.status(200).end();

@@ -22,6 +22,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.badRequest(res, "Invalid vote data");
   }
 
+  if (!/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+    return apiError.badRequest(res, "Invalid wallet address");
+  }
+
   const voteKey = `${appId}:${commentId}`;
   if (!votesStore.has(voteKey)) {
     votesStore.set(voteKey, new Map());
