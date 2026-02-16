@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/lib/constants";
 import { logger } from "@/lib/logger";
+import { usageByAppRowSchema } from "@/lib/schemas";
 
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
@@ -24,7 +26,8 @@ export async function GET(req: Request) {
     }
 
     const usageByApp = await usageByAppResponse.json();
-    return NextResponse.json(usageByApp);
+    const validated = z.array(usageByAppRowSchema).catch([]).parse(usageByApp);
+    return NextResponse.json(validated);
   } catch (error) {
     logger.error("Usage by app error:", error);
     return NextResponse.json({ error: "Failed to fetch usage by app" }, { status: 500 });

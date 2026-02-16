@@ -3,9 +3,11 @@
 // =============================================================================
 
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/lib/constants";
 import { logger } from "@/lib/logger";
+import { usageRowSchema, usageByAppRowSchema, usageOverTimeRowSchema } from "@/lib/schemas";
 
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
@@ -76,16 +78,16 @@ export async function GET(req: Request) {
     const totalTransactions = parseCount(txResponse);
 
     const usageRaw = await usageResponse.json();
-    const usageData: Array<{ gas_used?: number }> = Array.isArray(usageRaw) ? usageRaw : [];
+    const usageData = z.array(usageRowSchema).catch([]).parse(usageRaw);
     const gasUsageToday = usageData.reduce((sum: number, item) => sum + (item.gas_used || 0), 0);
 
-    let usageByApp = [];
+    let usageByApp: z.infer<typeof usageByAppRowSchema>[] = [];
     if (usageByAppResponse.ok) {
-      usageByApp = await usageByAppResponse.json();
+      usageByApp = z.array(usageByAppRowSchema).catch([]).parse(await usageByAppResponse.json());
     }
 
-    const usageOverTimeRaw: Array<{ usage_date: string; gas_used: number }> = usageOverTimeResponse.ok
-      ? await usageOverTimeResponse.json()
+    const usageOverTimeRaw = usageOverTimeResponse.ok
+      ? z.array(usageOverTimeRowSchema).catch([]).parse(await usageOverTimeResponse.json())
       : [];
 
     // Aggregate usage by date

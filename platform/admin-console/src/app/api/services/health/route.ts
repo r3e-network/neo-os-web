@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { PLATFORM_SERVICES, HEALTH_CHECK_TIMEOUT_MS } from "@/lib/constants";
+import { healthResponseSchema } from "@/lib/schemas";
 import type { ServiceHealth } from "@/types";
 
 async function checkServiceHealth(name: string, url: string): Promise<ServiceHealth> {
@@ -27,14 +28,15 @@ async function checkServiceHealth(name: string, url: string): Promise<ServiceHea
     }
 
     const data = await response.json();
+    const parsed = healthResponseSchema.catch({}).parse(data);
 
     return {
       name,
       status: "healthy",
       url,
       lastCheck,
-      version: data.version,
-      uptime: data.uptime,
+      version: parsed.version,
+      uptime: parsed.uptime,
     };
   } catch (error) {
     return {
