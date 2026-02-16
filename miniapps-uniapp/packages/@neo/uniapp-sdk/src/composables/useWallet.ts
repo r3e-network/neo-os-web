@@ -60,8 +60,8 @@ export function useWallet() {
         credentials: "include",
       });
       if (!res.ok) {
-        let msg = `Failed to get balance (${res.status})`;
-        try { const err = await res.json(); msg = err.error?.message || msg; } catch {}
+        let msg = "Wallet operation failed";
+        try { const err = await res.json(); console.warn("wallet balance error:", err.error?.message); } catch {}
         throw new Error(msg);
       }
       const data = await res.json();
@@ -86,8 +86,8 @@ export function useWallet() {
         credentials: "include",
       });
       if (!res.ok) {
-        let msg = `Failed to get transactions (${res.status})`;
-        try { const err = await res.json(); msg = err.error?.message || msg; } catch {}
+        let msg = "Wallet operation failed";
+        try { const err = await res.json(); console.warn("wallet transactions error:", err.error?.message); } catch {}
         throw new Error(msg);
       }
       const data = await res.json();

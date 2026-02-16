@@ -21,13 +21,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.configError(res, "EDGE_BASE_URL not configured");
   }
 
-  const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req), signal: AbortSignal.timeout(15000) });
-  let payload: unknown = null;
   try {
-    payload = await upstream.json();
+    const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req), signal: AbortSignal.timeout(15000) });
+    let payload: unknown;
+    try {
+      payload = await upstream.json();
+    } catch {
+      return apiError.internal(res, "Failed to parse upstream response");
+    }
+    res.status(upstream.status).json(payload);
   } catch {
-    return apiError.gatewayError(res, "invalid upstream response");
+    return apiError.internal(res, "Failed to fetch news");
   }
-
-  res.status(upstream.status).json(payload);
 }

@@ -126,6 +126,10 @@ func New(cfg Config) (*Service, error) {
 		DB:      cfg.DB,
 	})
 
+	if allowlist != nil && len(allowlist.Contracts) == 0 {
+		base.Logger().WithFields(nil).Warn("txproxy allowlist is empty; all invoke requests will be rejected")
+	}
+
 	s := &Service{
 		BaseService:    base,
 		allowlist:      allowlist,
@@ -190,7 +194,8 @@ func (s *Service) cleanupReplay() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if _, err := db.CleanupSeenRequests(ctx, ServiceID); err != nil {
-			s.Logger().WithError(err).Warn("DB replay cleanup failed, falling back to in-memory")
+			s.Logger().WithError(err).Warn("failed to cleanup seen requests in DB")
+			return
 		}
 	}
 	s.cleanupReplayInMemory()

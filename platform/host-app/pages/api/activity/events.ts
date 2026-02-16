@@ -31,10 +31,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       signal: AbortSignal.timeout(15000),
     });
 
-    const data = await upstream.json();
+    let data: unknown;
+    try {
+      data = await upstream.json();
+    } catch {
+      return apiError.internal(res, "Failed to parse upstream response");
+    }
     res.status(upstream.status).json(data);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Failed to fetch events";
-    apiError.internal(res, msg);
+    apiError.internal(res, "Failed to fetch events");
   }
 }

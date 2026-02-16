@@ -239,8 +239,8 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         });
         try {
           pendingInvocations.set(res.request_id, res.invocation);
-        } catch {
-          // ignore
+        } catch (e) {
+          console.warn("failed to cache invocation", e);
         }
         return res;
       },
@@ -263,8 +263,8 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         });
         try {
           pendingInvocations.set(res.request_id, res.invocation);
-        } catch {
-          // ignore
+        } catch (e) {
+          console.warn("failed to cache invocation", e);
         }
         return res;
       },

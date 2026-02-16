@@ -112,7 +112,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
   const lastId = events.length > 0 ? String((events[events.length - 1] as Record<string, unknown>)?.id ?? "") : null;
 
   return {
-    events: events.map((row: any) => ({
+    events: events.map((row: Record<string, unknown>) => ({
       id: String(row.id ?? ""),
       tx_hash: String(row.tx_hash ?? ""),
       block_index: Number(row.block_index ?? 0),
@@ -165,7 +165,7 @@ export async function queryTransactions(
   const lastId = transactions.length > 0 ? String((transactions[transactions.length - 1] as Record<string, unknown>)?.id ?? "") : null;
 
   return {
-    transactions: transactions.map((row: any) => ({
+    transactions: transactions.map((row: Record<string, unknown>) => ({
       id: String(row.id ?? ""),
       tx_hash: row.tx_hash ? String(row.tx_hash) : null,
       request_id: String(row.request_id ?? ""),

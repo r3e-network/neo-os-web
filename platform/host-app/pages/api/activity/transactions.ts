@@ -15,9 +15,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const params = new URLSearchParams();
   const { app_id, limit, after_id } = req.query;
 
-  if (app_id) params.set("app_id", String(app_id));
-  if (limit) params.set("limit", String(limit));
-  if (after_id) params.set("after_id", String(after_id));
+  if (app_id) {
+    const appIdStr = String(app_id);
+    if (!/^[a-zA-Z0-9_-]+$/.test(appIdStr)) {
+      return apiError.badRequest(res, "Invalid app_id");
+    }
+    params.set("app_id", appIdStr);
+  }
+  if (limit) {
+    const parsed = parseInt(String(limit), 10);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
+      return apiError.badRequest(res, "limit must be a positive integer <= 100");
+    }
+    params.set("limit", String(parsed));
+  }
+  if (after_id) {
+    const afterIdStr = String(after_id);
+    if (!/^[a-zA-Z0-9]+$/.test(afterIdStr)) {
+      return apiError.badRequest(res, "Invalid after_id");
+    }
+    params.set("after_id", afterIdStr);
+  }
 
   try {
     const url = `${base}/transactions-list?${params}`;

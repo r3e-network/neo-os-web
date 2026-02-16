@@ -459,13 +459,13 @@ func (s *Service) confirmDeposit(ctx context.Context, deposit *database.DepositR
 		return
 	}
 
-	// "already credited" is the idempotency signal from the stored procedure
 	if result.Error == "already credited" {
 		s.Logger().WithContext(ctx).WithField("deposit_id", deposit.ID).Debug("deposit already credited, updating status only")
 	}
 
 	if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {
-		s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
+		s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Error("failed to update deposit status to confirmed")
+		return
 	}
 
 	s.Logger().WithContext(ctx).WithField("user_id", deposit.UserID).WithField("amount", deposit.Amount).Info("deposit confirmed and credited")

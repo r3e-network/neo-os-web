@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { timingSafeEqual } from "crypto";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
-import { rpcCall } from "../../../lib/miniapp-stats";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 

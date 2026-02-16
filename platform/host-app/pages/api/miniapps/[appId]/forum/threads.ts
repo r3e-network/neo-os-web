@@ -36,8 +36,8 @@ export default withCsrfProtection(handler);
 
 function getThreads(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const category = req.query.category as string | undefined;
-  const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
-  const offset = parseInt(req.query.offset as string) || 0;
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 20, 50));
+  const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
 
   let threads = threadsStore.get(appId) || [];
 

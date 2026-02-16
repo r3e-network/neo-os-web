@@ -14,11 +14,12 @@ import { formatDate, truncate } from "@/lib/utils";
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const { data: allUsers, isLoading: allUsersLoading } = useUsers();
-  const { data: searchResults, isLoading: searchLoading } = useSearchUsers(searchTerm);
+  const { data: allUsers, isLoading: allUsersLoading, error: allUsersError } = useUsers();
+  const { data: searchResults, isLoading: searchLoading, error: searchError } = useSearchUsers(searchTerm);
 
   const users = searchTerm ? searchResults : allUsers;
   const isLoading = searchTerm ? searchLoading : allUsersLoading;
+  const error = searchTerm ? searchError : allUsersError;
 
   return (
     <div className="space-y-6">
@@ -43,6 +44,8 @@ export default function UsersPage() {
 
           {isLoading ? (
             <Spinner />
+          ) : error ? (
+            <div className="text-center text-red-500">Failed to load users</div>
           ) : (
             <Table>
               <TableHeader>

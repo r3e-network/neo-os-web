@@ -39,11 +39,9 @@ function extractFnFromJsonBody(rawBody: Buffer | undefined, contentType: string)
     if (!parsed || typeof parsed !== "object") return null;
     const fn = String(parsed.fn ?? parsed.function ?? parsed.name ?? "").trim();
     if (!fn) return null;
-    if (!Array.isArray(parsed)) {
-      delete parsed.fn;
-      delete parsed.function;
-      delete parsed.name;
-    }
+    delete parsed.fn;
+    delete parsed.function;
+    delete parsed.name;
     const nextBody = JSON.stringify(parsed);
     return { fn, body: new Uint8Array(Buffer.from(nextBody)) };
   } catch {

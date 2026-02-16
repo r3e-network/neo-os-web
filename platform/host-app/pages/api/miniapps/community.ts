@@ -16,6 +16,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const status = (req.query.status as string) || "active";
+  const allowedStatuses = ["active", "pending", "rejected"];
+  if (!allowedStatuses.includes(status)) {
+    return apiError.badRequest(res, "Invalid status value");
+  }
   const category = req.query.category as string;
 
   try {

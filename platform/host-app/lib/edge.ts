@@ -54,21 +54,30 @@ export function buildEdgeUrl(fn: string, query: NextApiRequest["query"]): URL | 
   return url;
 }
 
+function sanitizeHeaderValue(value: string): string {
+  return value.replace(/[\r\n]/g, "");
+}
+
+function joinHeaderValues(value: string | string[]): string {
+  const raw = Array.isArray(value) ? value.join(",") : value;
+  return sanitizeHeaderValue(raw);
+}
+
 export function forwardAuthHeaders(req: NextApiRequest): Headers {
   const headers = new Headers();
   const auth = req.headers.authorization;
-  if (auth) headers.set("Authorization", Array.isArray(auth) ? auth.join(",") : auth);
+  if (auth) headers.set("Authorization", joinHeaderValues(auth));
   const apiKey = req.headers["x-api-key"];
-  if (apiKey) headers.set("X-API-Key", Array.isArray(apiKey) ? apiKey.join(",") : apiKey);
+  if (apiKey) headers.set("X-API-Key", joinHeaderValues(apiKey));
   return headers;
 }
 
 export function forwardEdgeRpcHeaders(req: NextApiRequest): Headers {
   const headers = forwardAuthHeaders(req);
   const contentType = req.headers["content-type"];
-  if (contentType) headers.set("Content-Type", Array.isArray(contentType) ? contentType.join(",") : contentType);
+  if (contentType) headers.set("Content-Type", joinHeaderValues(contentType));
   const accept = req.headers["accept"];
-  if (accept) headers.set("Accept", Array.isArray(accept) ? accept.join(",") : accept);
+  if (accept) headers.set("Accept", joinHeaderValues(accept));
   return headers;
 }
 

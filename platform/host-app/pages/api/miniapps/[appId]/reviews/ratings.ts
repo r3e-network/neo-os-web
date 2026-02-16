@@ -77,7 +77,7 @@ function submitRating(appId: string, req: NextApiRequest, res: NextApiResponse) 
     ratingsStore.set(appId, new Map());
   }
 
-  ratingsStore.get(appId)!.set(wallet, { value, review: review?.slice(0, 1000) });
+  ratingsStore.get(appId)!.set(wallet, { value, review: (review || "").slice(0, 1000) || undefined });
 
   return res.status(201).json({ success: true });
 }

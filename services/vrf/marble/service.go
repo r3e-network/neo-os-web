@@ -143,7 +143,8 @@ func (s *Service) cleanupReplay() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if _, err := db.CleanupSeenRequests(ctx, ServiceID); err != nil {
-			s.Logger().WithError(err).Warn("DB replay cleanup failed, falling back to in-memory")
+			s.Logger().WithError(err).Warn("failed to cleanup seen requests in DB")
+			return
 		}
 	}
 	s.cleanupReplayInMemory()
