@@ -209,7 +209,7 @@ func (m *MockRepository) DeductFeeAtomic(ctx context.Context, userID string, amo
 	for _, account := range m.gasBankAccounts {
 		if account.UserID == userID {
 			if account.Balance < amount {
-				return &AtomicDeductResult{Success: false, Error: "insufficient balance"}, nil
+				return &AtomicDeductResult{Success: false, NewBalance: account.Balance, Error: "insufficient balance"}, nil
 			}
 			account.Balance -= amount
 			account.UpdatedAt = time.Now()
@@ -245,7 +245,7 @@ func (m *MockRepository) ReserveFundsAtomic(ctx context.Context, userID string, 
 		if account.UserID == userID {
 			available := account.Balance - account.Reserved
 			if available < amount {
-				return &AtomicReserveResult{Success: false, Error: "insufficient available balance"}, nil
+				return &AtomicReserveResult{Success: false, NewBalance: account.Balance, NewReserved: account.Reserved, Error: "insufficient available balance"}, nil
 			}
 			account.Reserved += amount
 			account.UpdatedAt = time.Now()
@@ -264,7 +264,7 @@ func (m *MockRepository) ReleaseFundsAtomic(ctx context.Context, userID string, 
 	for _, account := range m.gasBankAccounts {
 		if account.UserID == userID {
 			if account.Reserved < amount {
-				return &AtomicReleaseResult{Success: false, Error: "insufficient reserved"}, nil
+				return &AtomicReleaseResult{Success: false, NewBalance: account.Balance, NewReserved: account.Reserved, Error: "insufficient reserved"}, nil
 			}
 			account.Reserved -= amount
 			if commit {
