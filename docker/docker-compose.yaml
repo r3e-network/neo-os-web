@@ -23,11 +23,11 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:2001/health"]
+      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:4433/api/v2/status"]
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 15s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   # =============================================================================
