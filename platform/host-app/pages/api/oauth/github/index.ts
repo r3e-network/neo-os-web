@@ -1,11 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "demo-client-id";
-const REDIRECT_URI = process.env.NEXTAUTH_URL
-  ? `${process.env.NEXTAUTH_URL}/api/oauth/github/callback`
-  : "http://localhost:3000/api/oauth/github/callback";
+import { apiError } from "@/lib/api-response";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
+  const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
+
+  if (!GITHUB_CLIENT_ID || !NEXTAUTH_URL) {
+    return apiError.internal(res, "OAuth not configured");
+  }
+
+  const REDIRECT_URI = `${NEXTAUTH_URL}/api/oauth/github/callback`;
   const state = generateState();
   res.setHeader("Set-Cookie", `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
 
