@@ -92,7 +92,7 @@ async function searchTransaction(url: string, key: string, hash: string) {
   return {
     type: "transaction",
     found: true,
-    data: { ...tx[0], opcode_traces: traces || [], contract_calls: calls || [], syscalls: syscalls || [] },
+    data: { ...(tx[0] as Record<string, unknown>), opcode_traces: traces || [], contract_calls: calls || [], syscalls: syscalls || [] },
   };
 }
 
