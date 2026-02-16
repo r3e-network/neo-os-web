@@ -11,7 +11,7 @@ describe("/api/miniapps/search", () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(405);
-    expect(JSON.parse(res._getData())).toEqual({ error: "Method not allowed" });
+    expect(JSON.parse(res._getData())).toEqual({ error: { code: "METHOD_NOT_ALLOWED", message: "method not allowed" } });
   });
 
   it("returns empty results for empty query", async () => {

@@ -160,7 +160,7 @@ export async function handler(req: Request): Promise<Response> {
     if (err) return error(404, "app not found", "NOT_FOUND", req);
     const metaMap = await loadMiniAppMeta([appId]);
     const merged = mergeStatsWithMeta(data as MiniAppStatsRow, metaMap[appId]);
-    return json(merged, req);
+    return json(merged, {}, req);
   }
 
   // All apps stats
@@ -179,7 +179,9 @@ export async function handler(req: Request): Promise<Response> {
     const status = String((row as Record<string, unknown>).status ?? "").toLowerCase();
     return status === "" || status === "active";
   });
-  return json({ stats: filtered }, req);
+  return json({ stats: filtered }, {}, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

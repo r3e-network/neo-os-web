@@ -1,14 +1,28 @@
+import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
+import { standardLimit } from "@/lib/rate-limit";
 
 // Explorer Search API - proxies to Edge Function or queries indexer directly
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
+  if (standardLimit(req, res)) return;
 
   const { q } = req.query;
   if (!q || typeof q !== "string") {
-    return res.status(400).json({ error: "Query parameter 'q' required" });
+    return apiError.badRequest(res, "Query parameter 'q' required");
+  }
+
+  // Validate and sanitize search input
+  const query = q.trim().slice(0, 128);
+  if (!query) {
+    return apiError.badRequest(res, "Query parameter 'q' required");
+  }
+  // Only allow hex hashes (0x...) and Neo N3 addresses (N...)
+  if (!/^(0x[0-9a-fA-F]+|N[A-Za-z0-9]+)$/.test(query)) {
+    return apiError.badRequest(res, "Invalid search query format");
   }
 
   try {
@@ -17,30 +31,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const indexerKey = process.env.INDEXER_SUPABASE_SERVICE_KEY;
 
     if (!indexerUrl || !indexerKey) {
-      return res.status(500).json({ error: "Indexer not configured" });
+      return apiError.internal(res, "Indexer not configured");
     }
 
-    const searchType = detectSearchType(q);
+    const searchType = detectSearchType(query);
     let result;
 
     switch (searchType) {
       case "transaction":
-        result = await searchTransaction(indexerUrl, indexerKey, q);
+        result = await searchTransaction(indexerUrl, indexerKey, query);
         break;
       case "address":
-        result = await searchAddress(indexerUrl, indexerKey, q);
+        result = await searchAddress(indexerUrl, indexerKey, query);
         break;
       case "contract":
-        result = await searchContract(indexerUrl, indexerKey, q);
+        result = await searchContract(indexerUrl, indexerKey, query);
         break;
       default:
-        result = await searchAll(indexerUrl, indexerKey, q);
+        result = await searchAll(indexerUrl, indexerKey, query);
     }
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error("Explorer search error:", error);
-    return res.status(500).json({ error: "Search failed" });
+    logger.error("Explorer search error:", error);
+    return apiError.internal(res, "Search failed");
   }
 }
 
@@ -51,24 +65,28 @@ function detectSearchType(query: string): string {
   return "unknown";
 }
 
-async function supabaseQuery(url: string, key: string, table: string, params: string) {
+async function supabaseQuery(url: string, key: string, table: string, params: string): Promise<unknown[]> {
   const response = await fetch(`${url}/rest/v1/${table}?${params}`, {
     headers: {
       apikey: key,
       Authorization: `Bearer ${key}`,
     },
+    signal: AbortSignal.timeout(10000),
   });
-  return response.json();
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
 }
 
 async function searchTransaction(url: string, key: string, hash: string) {
-  const tx = await supabaseQuery(url, key, "indexer_transactions", `hash=eq.${hash}&limit=1`);
+  const safeHash = encodeURIComponent(hash);
+  const tx = await supabaseQuery(url, key, "indexer_transactions", `hash=eq.${safeHash}&limit=1`);
   if (!tx || tx.length === 0) return { type: "transaction", found: false };
 
   const [traces, calls, syscalls] = await Promise.all([
-    supabaseQuery(url, key, "indexer_opcode_traces", `tx_hash=eq.${hash}&order=step_index`),
-    supabaseQuery(url, key, "indexer_contract_calls", `tx_hash=eq.${hash}&order=call_index`),
-    supabaseQuery(url, key, "indexer_syscalls", `tx_hash=eq.${hash}&order=call_index`),
+    supabaseQuery(url, key, "indexer_opcode_traces", `tx_hash=eq.${safeHash}&order=step_index`),
+    supabaseQuery(url, key, "indexer_contract_calls", `tx_hash=eq.${safeHash}&order=call_index`),
+    supabaseQuery(url, key, "indexer_syscalls", `tx_hash=eq.${safeHash}&order=call_index`),
   ]);
 
   return {
@@ -79,22 +97,24 @@ async function searchTransaction(url: string, key: string, hash: string) {
 }
 
 async function searchAddress(url: string, key: string, address: string) {
+  const safeAddress = encodeURIComponent(address);
   const txs = await supabaseQuery(
     url,
     key,
     "indexer_address_txs",
-    `address=eq.${address}&order=block_time.desc&limit=50`,
+    `address=eq.${safeAddress}&order=block_time.desc&limit=50`,
   );
   const count = txs?.length || 0;
   return { type: "address", found: count > 0, address, tx_count: count, transactions: txs || [] };
 }
 
 async function searchContract(url: string, key: string, contractHash: string) {
+  const safeHash = encodeURIComponent(contractHash);
   const calls = await supabaseQuery(
     url,
     key,
     "indexer_contract_calls",
-    `contract_hash=eq.${contractHash}&order=id.desc&limit=50`,
+    `contract_hash=eq.${safeHash}&order=id.desc&limit=50`,
   );
   const count = calls?.length || 0;
   return { type: "contract", found: count > 0, contract_hash: contractHash, call_count: count, calls: calls || [] };

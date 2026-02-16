@@ -4,86 +4,86 @@
 
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://supabase.localhost";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
   try {
-    // Fetch total users
-    const usersResponse = await fetch(`${SUPABASE_URL}/rest/v1/users?select=count`, {
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        Prefer: "count=exact",
-      },
-    });
-
-    const usersCount = parseInt(usersResponse.headers.get("content-range")?.split("/")[1] || "0");
-
-    // Fetch total miniapps
-    const miniappsResponse = await fetch(`${SUPABASE_URL}/rest/v1/miniapps?select=count`, {
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        Prefer: "count=exact",
-      },
-    });
-
-    const miniappsCount = parseInt(miniappsResponse.headers.get("content-range")?.split("/")[1] || "0");
-
-    // Fetch today's gas usage
+    const fetchTimeout = 10000;
     const today = new Date().toISOString().split("T")[0];
-    const usageResponse = await fetch(`${SUPABASE_URL}/rest/v1/miniapp_usage?usage_date=eq.${today}&select=gas_used`, {
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      },
-    });
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-    const usageData: Array<{ gas_used?: number }> = await usageResponse.json();
+    const countHeaders = {
+      apikey: SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      Prefer: "count=exact",
+    };
+    const defaultHeaders = {
+      apikey: SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+    };
+
+    // Parallelize all independent Supabase requests
+    const [usersResponse, miniappsResponse, usageResponse, usageByAppResponse, txResponse, usageOverTimeResponse] =
+      await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/users?select=count`, {
+          headers: countHeaders,
+          signal: AbortSignal.timeout(fetchTimeout),
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/miniapps?select=count`, {
+          headers: countHeaders,
+          signal: AbortSignal.timeout(fetchTimeout),
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/miniapp_usage?usage_date=eq.${today}&select=gas_used`, {
+          headers: defaultHeaders,
+          signal: AbortSignal.timeout(fetchTimeout),
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/rpc/get_usage_by_app`, {
+          method: "POST",
+          headers: {
+            ...defaultHeaders,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+          signal: AbortSignal.timeout(fetchTimeout),
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/chain_txs?select=count`, {
+          headers: countHeaders,
+          signal: AbortSignal.timeout(fetchTimeout),
+        }),
+        fetch(
+          `${SUPABASE_URL}/rest/v1/miniapp_usage?usage_date=gte.${sevenDaysAgo}&select=usage_date,gas_used&order=usage_date.asc`,
+          {
+            headers: defaultHeaders,
+            signal: AbortSignal.timeout(fetchTimeout),
+          },
+        ),
+      ]);
+
+    // Parse count from content-range header
+    const parseCount = (response: Response) => {
+      const range = response.headers.get("content-range");
+      return range && range.includes("/")
+        ? Number.parseInt(range.split("/")[1] ?? "0", 10) || 0
+        : 0;
+    };
+
+    const usersCount = parseCount(usersResponse);
+    const miniappsCount = parseCount(miniappsResponse);
+    const totalTransactions = parseCount(txResponse);
+
+    const usageRaw = await usageResponse.json();
+    const usageData: Array<{ gas_used?: number }> = Array.isArray(usageRaw) ? usageRaw : [];
     const gasUsageToday = usageData.reduce((sum: number, item) => sum + (item.gas_used || 0), 0);
-
-    // Fetch usage by app (aggregated)
-    const usageByAppResponse = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_usage_by_app`, {
-      method: "POST",
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-    });
 
     let usageByApp = [];
     if (usageByAppResponse.ok) {
       usageByApp = await usageByAppResponse.json();
     }
 
-    // Fetch total transactions from chain_txs table
-    const txResponse = await fetch(`${SUPABASE_URL}/rest/v1/chain_txs?select=count`, {
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        Prefer: "count=exact",
-      },
-    });
-    const totalTransactions = parseInt(txResponse.headers.get("content-range")?.split("/")[1] || "0");
-
-    // Fetch usage over time (last 7 days)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    const usageOverTimeResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/miniapp_usage?usage_date=gte.${sevenDaysAgo}&select=usage_date,gas_used&order=usage_date.asc`,
-      {
-        headers: {
-          apikey: SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-      },
-    );
     const usageOverTimeRaw: Array<{ usage_date: string; gas_used: number }> = usageOverTimeResponse.ok
       ? await usageOverTimeResponse.json()
       : [];
@@ -105,7 +105,7 @@ export async function GET(req: Request) {
       usageOverTime,
     });
   } catch (error) {
-    console.error("Analytics error:", error);
+    logger.error("Analytics error:", error);
     return NextResponse.json({ error: "Failed to fetch analytics" }, { status: 500 });
   }
 }

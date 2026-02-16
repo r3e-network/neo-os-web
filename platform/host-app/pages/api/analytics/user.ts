@@ -1,3 +1,4 @@
+import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export interface UserAnalytics {
@@ -29,12 +30,12 @@ interface AppUsage {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
 
   const { wallet } = req.query;
   if (!wallet || typeof wallet !== "string") {
-    return res.status(400).json({ error: "Wallet address required" });
+    return apiError.badRequest(res, "Wallet address required");
   }
 
   const analytics = generateUserAnalytics(wallet);

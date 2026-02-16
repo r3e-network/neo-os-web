@@ -22,7 +22,7 @@
  * - Legacy integrations (will be removed in future versions)
  */
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { mustGetEnv } from "../_shared/env.ts";
+import { getEnv, mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
@@ -48,7 +48,7 @@ type Manifest = {
   tee_scripts?: Record<string, ScriptInfo>;
 };
 
-const SCRIPTS_BASE_URL = Deno.env.get("MINIAPP_SCRIPTS_BASE_URL") || "https://cdn.miniapps.neo.org";
+const SCRIPTS_BASE_URL = getEnv("MINIAPP_SCRIPTS_BASE_URL") || "https://cdn.miniapps.neo.org";
 
 async function loadAppScript(
   appId: string,
@@ -137,4 +137,8 @@ export async function handler(req: Request): Promise<Response> {
 
   if (result instanceof Response) return result;
   return json(result, {}, req);
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
 }

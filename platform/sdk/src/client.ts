@@ -133,9 +133,7 @@ async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<un
   const rawArgs = Array.isArray(invocation.params) ? invocation.params : [];
   const args = resolveInvocationParams(rawArgs, address);
 
-  // NeoLine SDKs vary slightly in accepted shapes; try a small set of candidates.
-  // SECURITY: Use CalledByEntry scope by default (most restrictive).
-  // Only fall back to Global scope if explicitly required by the contract.
+  // Try strict CalledByEntry signer payloads with/without 0x script hash prefix.
   const candidates = [
     { scriptHash, operation, args, signers: [{ account: address, scopes: "CalledByEntry" }] },
     {
@@ -144,10 +142,6 @@ async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<un
       args,
       signers: [{ account: address, scopes: "CalledByEntry" }],
     },
-    { scriptHash, operation, args, signers: [{ account: address, scopes: 1 }] },
-    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args, signers: [{ account: address, scopes: 1 }] },
-    { scriptHash, operation, args },
-    { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args },
   ];
 
   let lastErr: unknown = null;
@@ -159,7 +153,11 @@ async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<un
     }
   }
 
-  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "invoke failed"));
+  const tried = candidates
+    .map((c, i) => `#${i + 1}{scriptHash=${c.scriptHash},scopes=${String(c.signers?.[0]?.scopes ?? "none")}}`)
+    .join("; ");
+  const lastMessage = lastErr instanceof Error ? lastErr.message : String(lastErr ?? "invoke failed");
+  throw new Error(`NeoLine invoke failed after ${candidates.length} candidate(s): ${tried}. Last error: ${lastMessage}`);
 }
 
 async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: RequestInit): Promise<T> {
@@ -177,10 +175,14 @@ async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Request
     if (apiKey) headers.set("X-API-Key", apiKey);
   }
 
-  const resp = await fetch(url, { ...init, headers });
+  const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
   const text = await resp.text();
   if (!resp.ok) throw new Error(text || `request failed (${resp.status})`);
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`invalid JSON response from ${path}`);
+  }
 }
 
 async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: RequestInit): Promise<T> {
@@ -196,10 +198,14 @@ async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Req
   }
   headers.set("X-API-Key", apiKey);
 
-  const resp = await fetch(url, { ...init, headers });
+  const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
   const text = await resp.text();
   if (!resp.ok) throw new Error(text || `request failed (${resp.status})`);
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`invalid JSON response from ${path}`);
+  }
 }
 
 export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {

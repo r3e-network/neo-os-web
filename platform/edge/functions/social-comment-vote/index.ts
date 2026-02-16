@@ -1,6 +1,8 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { error, json } from "../_shared/response.ts";
-import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
+import { requireScope } from "../_shared/scopes.ts";
+import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
 import { checkSpamLimit, logSpamAction } from "../_shared/community.ts";
 
 interface VoteRequest {
@@ -17,12 +19,16 @@ export async function handler(req: Request): Promise<Response> {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const scopeCheck = requireScope(req, auth, "social");
+  if (scopeCheck) return scopeCheck;
+  const rl = await requireRateLimit(req, "social-comment-vote", auth);
+  if (rl) return rl;
 
   let body: VoteRequest;
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "INVALID_JSON", req);
+    return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
   const { comment_id, vote_type } = body;
@@ -34,8 +40,8 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "vote_type must be upvote or downvote", "INVALID_VOTE_TYPE", req);
   }
 
-  const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const supabase = supabaseServiceClient();
+  const userId = auth.userId;
 
   // Check spam limit for voting
   const spamCheck = await checkSpamLimit(supabase, userId, "vote", undefined, req);
@@ -74,4 +80,6 @@ export async function handler(req: Request): Promise<Response> {
   return json({ success: true, upvotes, downvotes }, {}, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

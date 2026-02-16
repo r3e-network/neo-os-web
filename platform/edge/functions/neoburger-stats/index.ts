@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { json } from "../_shared/response.ts";
 import { getNeoRpcUrl } from "../_shared/k8s-config.ts";
 
@@ -8,6 +9,9 @@ const BNEO_CONTRACT = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
+
+  const rl = await requireRateLimit(req, "neoburger-stats");
+  if (rl) return rl;
 
   const rpcUrl = getNeoRpcUrl();
 

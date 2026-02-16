@@ -12,7 +12,7 @@ function toString(value: unknown, fallback = ""): string {
 
 export function normalizeCategory(value: unknown): MiniAppCategory {
   const raw = toString(value).trim().toLowerCase();
-  if (raw === "gaming" || raw === "defi" || raw === "governance" || raw === "utility" || raw === "social") {
+  if (raw === "gaming" || raw === "defi" || raw === "governance" || raw === "utility" || raw === "social" || raw === "nft") {
     return raw;
   }
   return "utility";

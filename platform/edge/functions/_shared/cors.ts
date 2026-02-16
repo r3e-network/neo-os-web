@@ -1,3 +1,5 @@
+import { isProductionEnv } from "./env.ts";
+
 export const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, x-api-key, content-type",
@@ -21,7 +23,12 @@ export function withCors(headers: HeadersInit = {}, req?: Request): Headers {
   }
   const allowed = parseAllowedOrigins();
   if (!allowed) {
-    out.set("Access-Control-Allow-Origin", "*");
+    // In production, reject requests without configured origins instead of allowing all
+    if (isProductionEnv()) {
+      // Don't set Access-Control-Allow-Origin — effectively blocks cross-origin requests
+    } else {
+      out.set("Access-Control-Allow-Origin", "*");
+    }
   } else {
     const origin = (req?.headers.get("Origin") ?? "").trim();
     if (origin && allowed.includes(origin)) {

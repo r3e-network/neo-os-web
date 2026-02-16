@@ -145,10 +145,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { formatNumber } from "@/shared/utils/format";
 
-const APP_ID = "miniapp-explorer";
 const API_BASE = "/api/explorer";
 
 // State
@@ -156,8 +155,35 @@ const searchQuery = ref("");
 const selectedNetwork = ref<"mainnet" | "testnet">("testnet");
 const isLoading = ref(false);
 const status = ref<{ msg: string; type: string } | null>(null);
-const searchResult = ref<any>(null);
-const recentTxs = ref<any[]>([]);
+interface TxSummary {
+  hash: string;
+  blockIndex: number;
+  blockTime: string;
+  vmState: string;
+  sender: string;
+  systemFee: string;
+  networkFee: string;
+}
+
+interface SearchResult {
+  type: "transaction" | "address" | "contract" | "unknown";
+  found: boolean;
+  data?: {
+    hash?: string;
+    blockIndex?: number;
+    blockTime?: string;
+    vmState?: string;
+    sender?: string;
+    systemFee?: string;
+    networkFee?: string;
+    address?: string;
+    txCount?: number;
+    transactions?: TxSummary[];
+  };
+}
+
+const searchResult = ref<SearchResult | null>(null);
+const recentTxs = ref<TxSummary[]>([]);
 
 const stats = ref({
   mainnet: { height: 0, txCount: 0 },
@@ -185,7 +211,7 @@ const fetchStats = async () => {
       method: "GET",
     });
     if (res.statusCode === 200 && res.data) {
-      stats.value = res.data as any;
+      stats.value = res.data as typeof stats.value;
     }
   } catch (e) {
     console.error("Failed to fetch stats:", e);
@@ -200,7 +226,7 @@ const fetchRecentTxs = async () => {
       method: "GET",
     });
     if (res.statusCode === 200 && res.data) {
-      recentTxs.value = (res.data as any).transactions || [];
+      recentTxs.value = ((res.data as Record<string, unknown>)?.transactions as TxSummary[]) || [];
     }
   } catch (e) {
     console.error("Failed to fetch recent txs:", e);
@@ -212,6 +238,15 @@ const search = async () => {
   const query = searchQuery.value.trim();
   if (!query) {
     status.value = { msg: "Please enter a search query", type: "error" };
+    return;
+  }
+  // Validate search input format
+  if (query.length > 128) {
+    status.value = { msg: "Query too long", type: "error" };
+    return;
+  }
+  if (!/^(0x[0-9a-fA-F]+|N[A-Za-z0-9]+)$/.test(query)) {
+    status.value = { msg: "Invalid format. Enter a tx hash (0x...), address (N...), or contract hash (0x...)", type: "error" };
     return;
   }
 
@@ -230,8 +265,8 @@ const search = async () => {
     } else {
       status.value = { msg: "No results found", type: "error" };
     }
-  } catch (e: any) {
-    status.value = { msg: e.message || "Search failed", type: "error" };
+  } catch (e: unknown) {
+    status.value = { msg: e instanceof Error ? e.message : "Search failed", type: "error" };
   } finally {
     isLoading.value = false;
   }
@@ -244,12 +279,19 @@ const viewTx = (hash: string) => {
 };
 
 // Initialize
+let statsTimer: ReturnType<typeof setInterval> | null = null;
+
 onMounted(() => {
   fetchStats();
   fetchRecentTxs();
+  statsTimer = setInterval(fetchStats, 15000);
+});
 
-  // Refresh stats every 15 seconds
-  setInterval(fetchStats, 15000);
+onUnmounted(() => {
+  if (statsTimer) {
+    clearInterval(statsTimer);
+    statsTimer = null;
+  }
 });
 </script>
 

@@ -1,6 +1,8 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { error, json } from "../_shared/response.ts";
-import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
+import { requireScope } from "../_shared/scopes.ts";
+import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
 
 interface VerifyRequest {
   app_id: string;
@@ -15,12 +17,16 @@ export async function handler(req: Request): Promise<Response> {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const scopeCheck = requireScope(req, auth, "social");
+  if (scopeCheck) return scopeCheck;
+  const rl = await requireRateLimit(req, "social-proof-verify", auth);
+  if (rl) return rl;
 
   let body: VerifyRequest;
   try {
     body = await req.json();
   } catch {
-    return error(400, "invalid JSON body", "INVALID_JSON", req);
+    return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
   const { app_id } = body;
@@ -28,8 +34,8 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "app_id is required", "MISSING_APP_ID", req);
   }
 
-  const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const supabase = supabaseServiceClient();
+  const userId = auth.userId;
 
   // Check existing proof cache
   const { data: cached } = await supabase
@@ -117,4 +123,6 @@ export async function handler(req: Request): Promise<Response> {
   );
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

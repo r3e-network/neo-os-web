@@ -20,6 +20,32 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+// Mock i18n - return the last segment of the key as readable text
+vi.mock("../../../../../shared/i18n/react", () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        "navigation.dashboard": "Dashboard",
+        "navigation.services": "Services",
+        "navigation.miniapps": "MiniApps",
+        "navigation.users": "Users",
+        "navigation.analytics": "Analytics",
+        "navigation.contracts": "Contracts",
+        "dashboard.title": "Admin Console",
+      };
+      return map[key] ?? key;
+    },
+    locale: "en",
+    setLocale: () => {},
+  }),
+  useI18n: () => ({
+    t: (key: string) => key,
+    locale: "en",
+    setLocale: () => {},
+  }),
+  I18nProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 describe("Sidebar Component", () => {
   it("should render sidebar", () => {
     render(<Sidebar />);

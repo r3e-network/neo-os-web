@@ -5,8 +5,10 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
+import { timingSafeEqual } from "crypto";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { getContractStats, CONTRACTS } from "../../../lib/chain";
+import { apiError } from "@/lib/api-response";
 
 // All apps with deployed contracts
 const DEPLOYED_APPS = [
@@ -21,14 +23,16 @@ const DEPLOYED_APPS = [
 ];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Verify cron secret for security
-  const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: "Unauthorized" });
+  // Verify cron secret (timing-safe to prevent oracle attacks)
+  const cronSecret = String(process.env.CRON_SECRET || "");
+  const authHeader = String(req.headers.authorization || "");
+  const expected = `Bearer ${cronSecret}`;
+  if (!cronSecret || authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
+    return apiError.unauthorized(res, "Unauthorized");
   }
 
   if (!isSupabaseConfigured) {
-    return res.status(500).json({ error: "Supabase not configured" });
+    return apiError.internal(res, "Supabase not configured");
   }
 
   const results: { appId: string; success: boolean; error?: string }[] = [];

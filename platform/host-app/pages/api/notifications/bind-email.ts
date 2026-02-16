@@ -4,16 +4,20 @@ import { generateCode, storeCode } from "@/lib/notifications/verification-servic
 import { sendEmail, verificationEmail } from "@/lib/email";
 import { isValidEmail, sanitizeInput } from "@/lib/utils";
 import { withCsrfProtection } from "@/lib/csrf";
+import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
+import { strictLimit } from "@/lib/rate-limit";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
+  if (strictLimit(req, res)) return;
 
   const { wallet, email } = req.body;
 
   if (!wallet || !email) {
-    return res.status(400).json({ error: "Wallet and email required" });
+    return apiError.badRequest(res, "Wallet and email required");
   }
 
   // Sanitize inputs
@@ -22,13 +26,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   // Validate email format with strict RFC 5322 compliant regex
   if (!isValidEmail(sanitizedEmail)) {
-    return res.status(400).json({ error: "Invalid email format" });
+    return apiError.badRequest(res, "Invalid email format");
   }
 
   // Save email to Supabase (unverified)
   const success = await bindEmail(sanitizedWallet, sanitizedEmail);
   if (!success) {
-    return res.status(500).json({ error: "Failed to bind email" });
+    return apiError.internal(res, "Failed to bind email");
   }
 
   // Generate and store verification code
@@ -37,7 +41,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   // Send verification email
   const template = verificationEmail({ code, walletAddress: sanitizedWallet });
-  await sendEmail({ to: sanitizedEmail, ...template });
+  try {
+    await sendEmail({ to: sanitizedEmail, ...template });
+  } catch (err) {
+    logger.error("Failed to send verification email:", err);
+    return apiError.gatewayError(res, "Failed to send verification email");
+  }
 
   return res.status(200).json({
     success: true,

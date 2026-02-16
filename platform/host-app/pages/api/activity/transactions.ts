@@ -1,14 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "../../../lib/edge";
+import { apiError } from "@/lib/api-response";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
 
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
-    return res.status(500).json({ error: "Edge functions not configured" });
+    return apiError.internal(res, "Edge functions not configured");
   }
 
   const params = new URLSearchParams();
@@ -25,12 +26,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         "Content-Type": "application/json",
         ...(req.headers.authorization ? { Authorization: String(req.headers.authorization) } : {}),
       },
+      signal: AbortSignal.timeout(15000),
     });
 
     const data = await upstream.json();
     res.status(upstream.status).json(data);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to fetch transactions";
-    res.status(500).json({ error: msg });
+    apiError.internal(res, msg);
   }
 }

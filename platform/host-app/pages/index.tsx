@@ -3,6 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { StatsBar } from "@/components/features/stats";
@@ -70,7 +71,7 @@ export default function LandingPage() {
           setDisplayedTxCount(data.totalTransactions || 0);
         }
       } catch (err) {
-        console.error("Failed to fetch stats:", err);
+        logger.error("Failed to fetch stats:", err);
       } finally {
         setLoading(false);
       }

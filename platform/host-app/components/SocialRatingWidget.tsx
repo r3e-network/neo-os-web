@@ -10,9 +10,11 @@ interface RatingWidgetProps {
   onClearError?: () => void;
 }
 
-const StarIcon: React.FC<{ filled: boolean; onClick?: () => void }> = ({ filled, onClick }) => (
+const StarIcon: React.FC<{ filled: boolean; onClick?: () => void; label?: string }> = ({ filled, onClick, label }) => (
   <svg
     onClick={onClick}
+    role={onClick ? "button" : "img"}
+    aria-label={label}
     className={`w-6 h-6 cursor-pointer ${filled ? "text-yellow-400" : "text-gray-300"}`}
     fill="currentColor"
     viewBox="0 0 20 20"
@@ -60,6 +62,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 setLocalError(null);
                 onClearError?.();
               }}
+              aria-label="Dismiss error"
               className="text-red-500 hover:text-red-700 text-sm"
             >
               ×
@@ -74,7 +77,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
         <div>
           <div className="flex">
             {[1, 2, 3, 4, 5].map((i) => (
-              <StarIcon key={i} filled={i <= Math.round(rating.avg_rating)} />
+              <StarIcon key={i} filled={i <= Math.round(rating.avg_rating)} label={`${i} star`} />
             ))}
           </div>
           <div className="text-sm text-gray-500">{rating.total_ratings} ratings</div>
@@ -105,7 +108,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
             <div className="space-y-3">
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <StarIcon key={i} filled={i <= (hoverValue || selectedValue)} onClick={() => setSelectedValue(i)} />
+                  <StarIcon key={i} filled={i <= (hoverValue || selectedValue)} onClick={() => setSelectedValue(i)} label={`Rate ${i} star${i > 1 ? "s" : ""}`} />
                 ))}
               </div>
               <textarea

@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { SocialComment } from "@/components/types";
+import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
+import { withCsrfProtection } from "@/lib/csrf";
 
 // In-memory store for demo (replace with Supabase in production)
 const commentsStore: Map<string, SocialComment[]> = new Map();
@@ -7,11 +9,18 @@ const votesStore: Map<string, Map<string, "upvote" | "downvote">> = new Map();
 
 let commentIdCounter = 1;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
 
   if (!appId || typeof appId !== "string") {
-    return res.status(400).json({ error: "Missing appId" });
+    return apiError.badRequest(res, "Missing appId");
+  }
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(appId)) {
+    return apiError.badRequest(res, "Invalid appId format");
+  }
+
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_INMEMORY_STORE) {
+    return sendError(res, 503, "In-memory store not available in production", ErrorCodes.INTERNAL_ERROR);
   }
 
   switch (req.method) {
@@ -20,14 +29,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case "POST":
       return createComment(appId, req, res);
     default:
-      return res.status(405).json({ error: "Method not allowed" });
+      return apiError.methodNotAllowed(res);
   }
 }
 
 function getComments(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const parentId = req.query.parent_id as string | undefined;
-  const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-  const offset = parseInt(req.query.offset as string) || 0;
+  const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
+  const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
 
   const allComments = commentsStore.get(appId) || [];
 
@@ -55,12 +64,15 @@ function getComments(appId: string, req: NextApiRequest, res: NextApiResponse) {
 function createComment(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const { wallet, content, parent_id } = req.body;
 
-  if (!wallet || !content?.trim()) {
-    return res.status(400).json({ error: "Missing wallet or content" });
+  if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+    return apiError.badRequest(res, "Invalid wallet address");
+  }
+  if (!content?.trim()) {
+    return apiError.badRequest(res, "Missing content");
   }
 
-  if (content.length > 2000) {
-    return res.status(400).json({ error: "Comment too long" });
+  if (typeof content !== "string" || content.length > 2000) {
+    return apiError.badRequest(res, "Comment too long");
   }
 
   if (!commentsStore.has(appId)) {
@@ -94,3 +106,5 @@ function createComment(appId: string, req: NextApiRequest, res: NextApiResponse)
 
   return res.status(201).json({ comment });
 }
+
+export default withCsrfProtection(handler);

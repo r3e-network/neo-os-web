@@ -1,5 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
 import {
   checkSpamLimit,
@@ -25,6 +26,8 @@ export async function handler(req: Request): Promise<Response> {
   // Require authentication
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const scopeCheck = requireScope(req, auth, "social");
+  if (scopeCheck) return scopeCheck;
 
   // Parse request body
   let body: CreateCommentRequest;
@@ -103,4 +106,6 @@ export async function handler(req: Request): Promise<Response> {
   return json(comment, { status: 201 }, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

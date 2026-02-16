@@ -1,11 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getEvents, markAsRead, getUnreadCount } from "@/lib/notifications/supabase-service";
+import { apiError } from "@/lib/api-response";
+import { withCsrfProtection } from "@/lib/csrf";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { wallet } = req.query;
 
   if (!wallet || typeof wallet !== "string") {
-    return res.status(400).json({ error: "Wallet address required" });
+    return apiError.badRequest(res, "Wallet address required");
   }
 
   if (req.method === "GET") {
@@ -21,12 +23,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === "POST") {
     const { eventId } = req.body;
     if (!eventId) {
-      return res.status(400).json({ error: "Event ID required" });
+      return apiError.badRequest(res, "Event ID required");
     }
 
     const success = await markAsRead(eventId);
     return res.status(success ? 200 : 500).json({ success });
   }
 
-  return res.status(405).json({ error: "Method not allowed" });
+  return apiError.methodNotAllowed(res);
 }
+
+export default withCsrfProtection(handler);

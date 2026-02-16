@@ -11,7 +11,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const state = generateState();
 
   // Store state in cookie for CSRF protection
-  res.setHeader("Set-Cookie", `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`);
+  res.setHeader("Set-Cookie", `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
 
   const authUrl =
     `https://accounts.google.com/o/oauth2/v2/auth?` +

@@ -1,4 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import crypto from "crypto";
+import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
+import { withCsrfProtection } from "@/lib/csrf";
 
 interface ChatMessage {
   id: string;
@@ -14,11 +17,18 @@ interface ChatMessage {
 const chatRooms: Map<string, ChatMessage[]> = new Map();
 const participants: Map<string, Set<string>> = new Map();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
 
   if (!appId || typeof appId !== "string") {
-    return res.status(400).json({ error: "Missing appId" });
+    return apiError.badRequest(res, "Missing appId");
+  }
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(appId)) {
+    return apiError.badRequest(res, "Invalid appId format");
+  }
+
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_INMEMORY_STORE) {
+    return sendError(res, 503, "In-memory store not available in production", ErrorCodes.INTERNAL_ERROR);
   }
 
   if (req.method === "GET") {
@@ -29,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return postMessage(appId, req, res);
   }
 
-  return res.status(405).json({ error: "Method not allowed" });
+  return apiError.methodNotAllowed(res);
 }
 
 function getMessages(appId: string, req: NextApiRequest, res: NextApiResponse) {
@@ -46,12 +56,15 @@ function getMessages(appId: string, req: NextApiRequest, res: NextApiResponse) {
 function postMessage(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const { wallet, content } = req.body;
 
-  if (!wallet || !content) {
-    return res.status(400).json({ error: "Missing wallet or content" });
+  if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+    return apiError.badRequest(res, "Invalid wallet address");
+  }
+  if (!content || typeof content !== "string" || !content.trim()) {
+    return apiError.badRequest(res, "Missing or empty content");
   }
 
   if (content.length > 500) {
-    return res.status(400).json({ error: "Message too long" });
+    return apiError.badRequest(res, "Message too long");
   }
 
   // Initialize room if needed
@@ -67,7 +80,7 @@ function postMessage(appId: string, req: NextApiRequest, res: NextApiResponse) {
 
   // Create message
   const message: ChatMessage = {
-    id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `msg-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
     userId: wallet,
     userName: `${wallet.slice(0, 6)}...${wallet.slice(-4)}`,
     content: content.trim(),
@@ -84,3 +97,5 @@ function postMessage(appId: string, req: NextApiRequest, res: NextApiResponse) {
 
   return res.status(201).json({ message });
 }
+
+export default withCsrfProtection(handler);

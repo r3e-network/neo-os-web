@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getPreferences, upsertPreferences } from "@/lib/notifications/supabase-service";
+import { apiError } from "@/lib/api-response";
+import { withCsrfProtection } from "@/lib/csrf";
 
 const DEFAULT_PREFERENCES = {
   email: null,
@@ -10,11 +12,11 @@ const DEFAULT_PREFERENCES = {
   digestFrequency: "instant" as const,
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "GET") {
     const { wallet } = req.query;
     if (!wallet || typeof wallet !== "string") {
-      return res.status(400).json({ error: "Wallet address required" });
+      return apiError.badRequest(res, "Wallet address required");
     }
 
     const prefs = await getPreferences(wallet);
@@ -26,17 +28,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === "POST") {
     const prefs = req.body;
-    if (!prefs?.walletAddress) {
-      return res.status(400).json({ error: "Invalid preferences" });
+    if (!prefs?.walletAddress || typeof prefs.walletAddress !== "string") {
+      return apiError.badRequest(res, "Invalid wallet address");
+    }
+    if (!/^N[A-Za-z0-9]{33}$/.test(prefs.walletAddress)) {
+      return apiError.badRequest(res, "Invalid wallet address format");
+    }
+    if (prefs.email !== undefined && prefs.email !== null && typeof prefs.email !== "string") {
+      return apiError.badRequest(res, "Invalid email");
+    }
+    const validFrequencies = ["instant", "daily", "weekly"];
+    if (prefs.digestFrequency && !validFrequencies.includes(prefs.digestFrequency)) {
+      return apiError.badRequest(res, "Invalid digest frequency");
     }
 
     const success = await upsertPreferences(prefs);
     if (!success) {
-      return res.status(500).json({ error: "Failed to save preferences" });
+      return apiError.internal(res, "Failed to save preferences");
     }
 
     return res.status(200).json({ success: true });
   }
 
-  return res.status(405).json({ error: "Method not allowed" });
+  return apiError.methodNotAllowed(res);
 }
+
+export default withCsrfProtection(handler);

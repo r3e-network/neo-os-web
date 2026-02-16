@@ -2,7 +2,18 @@
   "name": "@neo/shared",
   "version": "0.1.0",
   "private": true,
+  "main": "i18n/index.ts",
+  "exports": {
+    "./i18n": "./i18n/index.ts",
+    "./i18n/react": "./i18n/react.tsx",
+    "./i18n/types": "./i18n/types.ts",
+    "./i18n/vanilla": "./i18n/vanilla.js"
+  },
   "peerDependencies": {
     "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "typescript": "^5.8.2"
   }
 }

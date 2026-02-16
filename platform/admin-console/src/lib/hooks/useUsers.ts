@@ -2,8 +2,9 @@
 // React Query Hooks - Users
 // =============================================================================
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/api-client";
+import { DEFAULT_STALE_TIME_MS, HEALTH_POLL_INTERVAL_MS } from "@/lib/constants";
 import type { User } from "@/types";
 
 /**
@@ -37,7 +38,7 @@ export function useUsers() {
   return useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
-    staleTime: 60000,
+    staleTime: DEFAULT_STALE_TIME_MS,
   });
 }
 
@@ -49,7 +50,7 @@ export function useUser(userId: string) {
     queryKey: ["users", userId],
     queryFn: () => fetchUser(userId),
     enabled: !!userId,
-    staleTime: 60000,
+    staleTime: DEFAULT_STALE_TIME_MS,
   });
 }
 
@@ -61,12 +62,13 @@ export function useSearchUsers(searchTerm: string) {
     queryKey: ["users", "search", searchTerm],
     queryFn: async () => {
       if (!searchTerm) return [];
+      const sanitized = searchTerm.replace(/[%_\\,().]/g, '\\$&');
       return supabaseClient.query<User[]>("users", {
         select: "*",
-        or: `address.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`,
+        or: `address.ilike.%${sanitized}%,email.ilike.%${sanitized}%`,
       });
     },
     enabled: searchTerm.length > 0,
-    staleTime: 30000,
+    staleTime: HEALTH_POLL_INTERVAL_MS,
   });
 }

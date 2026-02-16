@@ -1,9 +1,13 @@
+import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
+import { relaxedLimit } from "@/lib/rate-limit";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
+  if (relaxedLimit(req, res)) return;
 
   const network = (req.query.network as string) || "testnet";
   const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
@@ -13,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const indexerKey = process.env.INDEXER_SUPABASE_SERVICE_KEY;
 
     if (!indexerUrl || !indexerKey) {
-      return res.status(500).json({ error: "Indexer not configured" });
+      return apiError.internal(res, "Indexer not configured");
     }
 
     const response = await fetch(
@@ -23,6 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           apikey: indexerKey,
           Authorization: `Bearer ${indexerKey}`,
         },
+        signal: AbortSignal.timeout(10000),
       },
     );
 
@@ -35,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       count: transactions?.length || 0,
     });
   } catch (err) {
-    console.error("Recent transactions error:", err);
-    return res.status(500).json({ error: "Failed to fetch transactions" });
+    logger.error("Recent transactions error:", err);
+    return apiError.internal(res, "Failed to fetch transactions");
   }
 }

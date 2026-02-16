@@ -1,9 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "demo-client-id";
-const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "demo-secret";
+import crypto from "crypto";
+import { apiError } from "@/lib/api-response";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
+  const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
+
+  if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
+    return apiError.internal(res, "OAuth not configured");
+  }
+
   const { code, state, error } = req.query;
 
   if (error) {
@@ -11,7 +17,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const storedState = req.cookies.oauth_state;
-  if (!state || state !== storedState) {
+  const stateStr = typeof state === "string" ? state : "";
+  const stateValid = stateStr && storedState &&
+    Buffer.byteLength(stateStr) === Buffer.byteLength(storedState) &&
+    crypto.timingSafeEqual(Buffer.from(stateStr), Buffer.from(storedState));
+  if (!stateValid) {
     return sendError(res, "Invalid state parameter");
   }
 
@@ -20,6 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    const oauthTimeout = 15000;
+
     // Exchange code for token
     const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
       method: "POST",
@@ -32,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         client_secret: GITHUB_CLIENT_SECRET,
         code: String(code),
       }),
+      signal: AbortSignal.timeout(oauthTimeout),
     });
 
     const tokens = await tokenRes.json();
@@ -42,14 +55,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get user info
     const userRes = await fetch("https://api.github.com/user", {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
+      signal: AbortSignal.timeout(oauthTimeout),
     });
+    if (!userRes.ok) {
+      throw new Error("Failed to get GitHub user info");
+    }
     const user = await userRes.json();
+    if (!user || !user.id) {
+      throw new Error("Invalid GitHub API response");
+    }
 
     // Get primary email
     const emailRes = await fetch("https://api.github.com/user/emails", {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
+      signal: AbortSignal.timeout(oauthTimeout),
     });
-    const emails = await emailRes.json();
+    const emailsData = emailRes.ok ? await emailRes.json() : [];
+    const emails = Array.isArray(emailsData) ? emailsData : [];
     const primaryEmail = emails.find((e: { primary: boolean }) => e.primary)?.email;
 
     return sendSuccess(res, {
@@ -65,25 +87,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
+/** Escape JSON for safe embedding inside <script> tags (prevents XSS via </script> injection). */
+function safeJSON(obj: unknown): string {
+  return JSON.stringify(obj).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
+}
+
 function sendSuccess(res: NextApiResponse, account: object) {
-  res.setHeader("Content-Type", "text/html");
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
   res.send(`<script>
     window.opener.postMessage({
       type: "oauth-success",
       provider: "github",
-      account: ${JSON.stringify(account)}
+      account: ${safeJSON(account)}
     }, window.location.origin);
     window.close();
   </script>`);
 }
 
 function sendError(res: NextApiResponse, error: string) {
-  res.setHeader("Content-Type", "text/html");
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Content-Type-Options", "nosniff");
   res.send(`<script>
     window.opener.postMessage({
       type: "oauth-error",
       provider: "github",
-      error: ${JSON.stringify(error)}
+      error: ${safeJSON(error)}
     }, window.location.origin);
     window.close();
   </script>`);

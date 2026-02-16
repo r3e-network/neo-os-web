@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
+import { withCsrfProtection } from "../../../lib/csrf";
+import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
+import { strictLimit } from "@/lib/rate-limit";
 
 export interface SubmitMiniAppRequest {
   name: string;
@@ -18,20 +22,52 @@ export interface SubmitMiniAppRequest {
   };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
+  if (strictLimit(req, res)) return;
 
   if (!isSupabaseConfigured) {
-    return res.status(500).json({ error: "Database not configured" });
+    return apiError.internal(res, "Database not configured");
   }
 
   const body = req.body as SubmitMiniAppRequest;
 
   // Validate required fields
   if (!body.name || !body.description || !body.entry_url || !body.developer_address) {
-    return res.status(400).json({ error: "Missing required fields" });
+    return apiError.badRequest(res, "Missing required fields");
+  }
+
+  // Length limits
+  if (body.name.length > 64 || body.description.length > 2000) {
+    return apiError.badRequest(res, "Name max 64 chars, description max 2000 chars");
+  }
+
+  // URL validation
+  try {
+    const parsed = new URL(body.entry_url);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return apiError.badRequest(res, "entry_url must be http or https");
+    }
+  } catch {
+    return apiError.badRequest(res, "Invalid entry_url");
+  }
+
+  // Neo N3 address format
+  if (!/^N[A-Za-z0-9]{33}$/.test(body.developer_address)) {
+    return apiError.badRequest(res, "Invalid developer_address format");
+  }
+
+  // Contract hash format (optional)
+  if (body.contract_hash && !/^0x[0-9a-fA-F]{40}$/.test(body.contract_hash)) {
+    return apiError.badRequest(res, "Invalid contract_hash format");
+  }
+
+  // Category validation
+  const validCategories = ["gaming", "defi", "social", "nft", "governance", "utility"];
+  if (body.category && !validCategories.includes(body.category)) {
+    return apiError.badRequest(res, "Invalid category");
   }
 
   // Generate app_id from name
@@ -67,7 +103,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       submission: data,
     });
   } catch (error) {
-    console.error("Submit error:", error);
-    res.status(500).json({ error: "Failed to submit MiniApp" });
+    logger.error("Submit error:", error);
+    apiError.internal(res, "Failed to submit MiniApp");
   }
 }
+
+export default withCsrfProtection(handler);

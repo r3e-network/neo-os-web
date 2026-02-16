@@ -1,11 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import crypto from "crypto";
 
 /**
  * Generate a unique request ID for tracing
  */
 export function generateRequestId(): string {
   const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 10);
+  const random = crypto.randomBytes(4).toString("hex");
   return `req_${timestamp}_${random}`;
 }
 

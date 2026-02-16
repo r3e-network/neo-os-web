@@ -5,13 +5,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/api-client";
 import { getAdminAuthHeaders } from "@/lib/admin-client";
+import { DEFAULT_STALE_TIME_MS } from "@/lib/constants";
 import type { AnalyticsData, MiniAppUsage } from "@/types";
 
 /**
  * Fetch analytics overview data
  */
 async function fetchAnalytics(): Promise<AnalyticsData> {
-  const response = await fetch("/api/analytics", { headers: getAdminAuthHeaders() });
+  const response = await fetch("/api/analytics", { headers: getAdminAuthHeaders(), signal: AbortSignal.timeout(15000) });
   if (!response.ok) {
     throw new Error("Failed to fetch analytics");
   }
@@ -39,7 +40,7 @@ export function useAnalytics() {
   return useQuery({
     queryKey: ["analytics"],
     queryFn: fetchAnalytics,
-    staleTime: 60000,
+    staleTime: DEFAULT_STALE_TIME_MS,
   });
 }
 
@@ -50,7 +51,7 @@ export function useMiniAppUsage(days = 30) {
   return useQuery({
     queryKey: ["analytics", "usage", days],
     queryFn: () => fetchMiniAppUsage(days),
-    staleTime: 60000,
+    staleTime: DEFAULT_STALE_TIME_MS,
   });
 }
 
@@ -61,12 +62,12 @@ export function useUsageByApp() {
   return useQuery({
     queryKey: ["analytics", "by-app"],
     queryFn: async () => {
-      const response = await fetch("/api/analytics/by-app", { headers: getAdminAuthHeaders() });
+      const response = await fetch("/api/analytics/by-app", { headers: getAdminAuthHeaders(), signal: AbortSignal.timeout(15000) });
       if (!response.ok) {
         throw new Error("Failed to fetch usage by app");
       }
       return response.json();
     },
-    staleTime: 60000,
+    staleTime: DEFAULT_STALE_TIME_MS,
   });
 }

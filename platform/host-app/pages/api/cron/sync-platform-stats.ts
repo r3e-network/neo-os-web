@@ -7,7 +7,10 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
+import { timingSafeEqual } from "crypto";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
+import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 
 const PLATFORM_ADDRESS = process.env.NEO_TESTNET_ADDRESS || "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
 
@@ -23,24 +26,31 @@ interface SyncResult {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Verify cron secret
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
+  if (req.method !== "GET" && req.method !== "POST") {
+    return apiError.methodNotAllowed(res);
+  }
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: "Unauthorized" });
+  // Verify cron secret (timing-safe to prevent oracle attacks)
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return apiError.unauthorized(res, "Unauthorized");
+  }
+  const authHeader = String(req.headers.authorization || "");
+  const expected = `Bearer ${cronSecret}`;
+  if (authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
+    return apiError.unauthorized(res, "Unauthorized");
   }
 
   if (!isSupabaseConfigured) {
-    return res.status(500).json({ error: "Database not configured" });
+    return apiError.internal(res, "Database not configured");
   }
 
   try {
     const result = await syncPlatformStats();
     res.status(200).json(result);
   } catch (error) {
-    console.error("Sync error:", error);
-    res.status(500).json({ error: "Sync failed" });
+    logger.error("Sync error:", error);
+    apiError.internal(res, "Sync failed");
   }
 }
 

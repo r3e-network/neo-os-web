@@ -33,7 +33,9 @@ export function useGamification(wallet?: string): UseGamificationResult {
     setError(null);
 
     try {
-      const res = await fetch(`/api/gamification/stats?wallet=${encodeURIComponent(wallet)}`);
+      const res = await fetch(`/api/gamification/stats?wallet=${encodeURIComponent(wallet)}`, {
+        signal: AbortSignal.timeout(30000),
+      });
       if (!res.ok) {
         throw new Error("Failed to fetch stats");
       }

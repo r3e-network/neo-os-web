@@ -1,6 +1,8 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { error, json } from "../_shared/response.ts";
-import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
+import { requireScope } from "../_shared/scopes.ts";
+import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
 import { verifyProofOfInteraction, validateRatingValue, sanitizeInput } from "../_shared/community.ts";
 
 interface RatingRequest {
@@ -18,6 +20,10 @@ export async function handler(req: Request): Promise<Response> {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const scopeCheck = requireScope(req, auth, "social");
+  if (scopeCheck) return scopeCheck;
+  const rl = await requireRateLimit(req, "social-rating-submit", auth);
+  if (rl) return rl;
 
   let body: RatingRequest;
   try {
@@ -38,8 +44,8 @@ export async function handler(req: Request): Promise<Response> {
   }
   const sanitizedReview = review_text ? sanitizeInput(review_text.trim().slice(0, 1000)) : null;
 
-  const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const supabase = supabaseServiceClient();
+  const userId = auth.userId;
 
   // Verify proof of interaction
   const proof = await verifyProofOfInteraction(supabase, app_id, userId, req);
@@ -71,4 +77,6 @@ export async function handler(req: Request): Promise<Response> {
   return json(data, { status: 201 }, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

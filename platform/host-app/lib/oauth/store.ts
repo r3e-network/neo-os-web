@@ -95,7 +95,8 @@ function waitForOAuthCallback(popup: Window, provider: OAuthProvider): Promise<O
     }, 120000);
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+      const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      if (event.origin !== allowedOrigin) return;
 
       if (event.data?.type === "oauth-success" && event.data?.provider === provider) {
         cleanup();

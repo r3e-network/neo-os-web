@@ -102,7 +102,12 @@ export async function handler(req: Request): Promise<Response> {
 
   // Rotate nonce to prevent replay.
   const nextNonce = crypto.randomUUID();
-  await supabase.from("users").update({ nonce: nextNonce }).eq("id", auth.userId);
+  const { error: nonceErr } = await supabase.from("users").update({ nonce: nextNonce }).eq("id", auth.userId);
+  if (nonceErr) {
+    // Nonce rotation failed — delete the binding to prevent replay with stale nonce
+    await supabase.from("user_wallets").delete().eq("id", inserted?.id);
+    return error(500, "failed to rotate nonce", "NONCE_ROTATE_FAILED", req);
+  }
 
   return json({ wallet: inserted }, {}, req);
 }

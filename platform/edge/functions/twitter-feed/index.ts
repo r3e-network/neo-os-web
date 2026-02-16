@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { json } from "../_shared/response.ts";
 import { getEnv } from "../_shared/env.ts";
 
@@ -13,6 +14,9 @@ interface Tweet {
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
+
+  const rl = await requireRateLimit(req, "twitter-feed");
+  if (rl) return rl;
 
   const bearerToken = getEnv("TWITTER_BEARER_TOKEN");
 

@@ -1,19 +1,29 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { timingSafeEqual } from "crypto";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { rpcCall } from "../../../lib/miniapp-stats";
+import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 
 // Vercel cron or manual trigger
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Verify cron secret or allow manual trigger
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
+  if (req.method !== "GET" && req.method !== "POST") {
+    return apiError.methodNotAllowed(res);
+  }
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: "Unauthorized" });
+  // Verify cron secret (timing-safe to prevent oracle attacks)
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return apiError.unauthorized(res, "Unauthorized");
+  }
+  const authHeader = String(req.headers.authorization || "");
+  const expected = `Bearer ${cronSecret}`;
+  if (authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
+    return apiError.unauthorized(res, "Unauthorized");
   }
 
   if (!isSupabaseConfigured) {
-    return res.status(500).json({ error: "Database not configured" });
+    return apiError.internal(res, "Database not configured");
   }
 
   const network = (req.query.network as "testnet" | "mainnet") || "testnet";
@@ -47,8 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       results,
     });
   } catch (error) {
-    console.error("Cron error:", error);
-    res.status(500).json({ error: "Collection failed" });
+    logger.error("Cron error:", error);
+    apiError.internal(res, "Collection failed");
   }
 }
 

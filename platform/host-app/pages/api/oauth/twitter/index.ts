@@ -11,8 +11,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const codeChallenge = codeVerifier; // For demo; use S256 in production
 
   res.setHeader("Set-Cookie", [
-    `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
-    `code_verifier=${codeVerifier}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
+    `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
+    `code_verifier=${codeVerifier}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
   ]);
 
   const authUrl =

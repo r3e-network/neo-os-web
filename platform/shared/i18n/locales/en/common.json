@@ -109,6 +109,8 @@
     "language": "Language",
     "switch": "Switch Language",
     "en": "English",
-    "zh": "Chinese"
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean"
   }
 }

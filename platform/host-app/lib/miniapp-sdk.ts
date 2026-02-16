@@ -1,6 +1,12 @@
 import { createMiniAppSDK } from "./sdk/client.js";
 import type { MiniAppSDK, MiniAppSDKConfig } from "./sdk/types.js";
 
+declare global {
+  interface Window {
+    MiniAppSDK?: MiniAppSDK;
+  }
+}
+
 type MiniAppPermissions = {
   payments?: boolean;
   governance?: boolean;
@@ -216,7 +222,7 @@ export function installMiniAppSDK(options?: InstallOptions): MiniAppSDK | null {
   const sdk = getMiniAppSDK(options);
   if (!sdk) return null;
 
-  (window as any).MiniAppSDK = sdk;
+  window.MiniAppSDK = sdk;
   window.dispatchEvent(new Event("miniapp-sdk-ready"));
   return sdk;
 }

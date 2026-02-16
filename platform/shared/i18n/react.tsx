@@ -50,7 +50,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     setStoredLocale(newLocale);
-    document.documentElement.lang = newLocale;
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = newLocale;
+    }
   }, []);
 
   const t = useCallback(
@@ -78,12 +80,29 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
 
+// Default context returned during SSR/SSG when the provider hasn't mounted yet.
+const defaultI18n: I18nContextType = {
+  locale: defaultLocale,
+  setLocale: () => {},
+  t: (key: string, ns: TranslationNamespace = "common"): string => {
+    const keys = key.split(".");
+    let value: unknown = translations[defaultLocale][ns];
+    for (const k of keys) {
+      if (value && typeof value === "object") {
+        value = (value as Record<string, unknown>)[k];
+      } else {
+        return key;
+      }
+    }
+    return typeof value === "string" ? value : key;
+  },
+};
+
 export function useI18n() {
   const context = useContext(I18nContext);
-  if (!context) {
-    throw new Error("useI18n must be used within I18nProvider");
-  }
-  return context;
+  // During SSG prerendering the provider renders children before mounting,
+  // so the context is undefined. Return safe defaults instead of throwing.
+  return context ?? defaultI18n;
 }
 
 export function useTranslation(ns: TranslationNamespace = "common") {

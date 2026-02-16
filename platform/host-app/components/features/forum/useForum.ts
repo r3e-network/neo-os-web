@@ -18,7 +18,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
       setLoading(true);
       try {
         const url = `/api/miniapps/${appId}/forum/threads${category ? `?category=${category}` : ""}`;
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
         if (res.ok) {
           const data = await res.json();
           setThreads(data.threads);
@@ -41,6 +41,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, title, content, category }),
+          signal: AbortSignal.timeout(30000),
         });
         if (res.ok) {
           const data = await res.json();
@@ -58,7 +59,9 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
   const fetchReplies = useCallback(
     async (threadId: string): Promise<ForumReply[]> => {
       try {
-        const res = await fetch(`/api/miniapps/${appId}/forum/${threadId}/replies`);
+        const res = await fetch(`/api/miniapps/${appId}/forum/${threadId}/replies`, {
+          signal: AbortSignal.timeout(30000),
+        });
         if (res.ok) {
           const data = await res.json();
           return data.replies;
@@ -79,6 +82,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, content }),
+          signal: AbortSignal.timeout(30000),
         });
         if (res.ok) {
           const data = await res.json();

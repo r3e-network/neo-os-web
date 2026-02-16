@@ -1,10 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { apiError } from "@/lib/api-response";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET" && req.method !== "HEAD") {
-    res.setHeader("Allow", "GET, HEAD");
-    res.status(405).end();
-    return;
+    return apiError.methodNotAllowed(res);
   }
 
   if (req.method === "HEAD") {

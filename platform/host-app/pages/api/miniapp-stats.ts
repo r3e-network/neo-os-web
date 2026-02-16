@@ -10,6 +10,9 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
+import { standardLimit } from "@/lib/rate-limit";
 
 interface AppStats {
   app_id: string;
@@ -21,8 +24,9 @@ interface AppStats {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
+  if (standardLimit(req, res)) return;
 
   // Optional filter by app_id
   const appIdFilter = req.query.app_id as string | undefined;
@@ -118,7 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const filteredStats = appIdFilter ? stats.filter((s) => s.app_id === appIdFilter) : stats;
     res.status(200).json({ stats: filteredStats });
   } catch (error) {
-    console.error("MiniApp stats error:", error);
-    res.status(200).json({ stats: [] });
+    logger.error("MiniApp stats error:", error);
+    return apiError.internal(res, "Failed to fetch stats");
   }
 }

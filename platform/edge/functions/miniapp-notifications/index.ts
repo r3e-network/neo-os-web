@@ -40,7 +40,9 @@ export async function handler(req: Request): Promise<Response> {
   const { data, error: err } = await query;
   if (err) return error(500, err.message, "DB_ERROR", req);
 
-  return json({ notifications: data }, req);
+  return json({ notifications: data }, {}, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

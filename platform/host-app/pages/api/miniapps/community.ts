@@ -1,10 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
+import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
+import { relaxedLimit } from "@/lib/rate-limit";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
+  if (relaxedLimit(req, res)) return;
 
   // Return empty array when Supabase is not configured
   if (!isSupabaseConfigured) {
@@ -25,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Return empty array on query error (table might not exist)
     if (error) {
-      console.warn("Community apps query error (table may not exist):", error.message);
+      logger.warn("Community apps query error (table may not exist):", error.message);
       return res.status(200).json({ apps: [] });
     }
 
@@ -50,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ apps });
   } catch (error) {
     // Return empty array on any error
-    console.warn("Fetch community apps error:", error);
+    logger.warn("Fetch community apps error:", error);
     res.status(200).json({ apps: [] });
   }
 }

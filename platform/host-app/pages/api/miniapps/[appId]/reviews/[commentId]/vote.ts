@@ -1,23 +1,25 @@
+import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { withCsrfProtection } from "@/lib/csrf";
 
 // Shared store reference (in production, use database)
 const votesStore: Map<string, Map<string, "upvote" | "downvote">> = new Map();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId, commentId } = req.query;
 
   if (!appId || !commentId || typeof appId !== "string" || typeof commentId !== "string") {
-    return res.status(400).json({ error: "Missing appId or commentId" });
+    return apiError.badRequest(res, "Missing appId or commentId");
   }
 
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
 
   const { wallet, vote_type } = req.body;
 
-  if (!wallet || !["upvote", "downvote"].includes(vote_type)) {
-    return res.status(400).json({ error: "Invalid vote data" });
+  if (!wallet || typeof wallet !== "string" || !["upvote", "downvote"].includes(vote_type)) {
+    return apiError.badRequest(res, "Invalid vote data");
   }
 
   const voteKey = `${appId}:${commentId}`;
@@ -37,3 +39,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return res.status(200).json({ success: true });
 }
+
+export default withCsrfProtection(handler);

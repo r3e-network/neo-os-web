@@ -37,9 +37,9 @@ export interface PriceResponse {
 }
 
 export interface InvocationIntent {
-  contract: string;
+  contract_hash: string;
   method: string;
-  args: unknown[];
+  params: Array<{ type: string; value: unknown }>;
 }
 
 export interface MiniAppSDK {

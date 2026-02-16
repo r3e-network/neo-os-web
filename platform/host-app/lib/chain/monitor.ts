@@ -20,8 +20,8 @@ export interface ChainStatus {
 }
 
 const NEO_RPC = {
-  testnet: "https://testnet1.neo.coz.io:443",
-  mainnet: "https://mainnet1.neo.coz.io:443",
+  testnet: process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443",
+  mainnet: process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443",
 };
 
 /** Check chain health status */
@@ -34,6 +34,7 @@ export async function checkChainStatus(network: "testnet" | "mainnet"): Promise<
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", method: "getblockcount", params: [], id: 1 }),
+    signal: AbortSignal.timeout(10000),
   });
   const blockData = await blockRes.json();
   const blockHeight = blockData.result || 0;
@@ -43,6 +44,7 @@ export async function checkChainStatus(network: "testnet" | "mainnet"): Promise<
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", method: "getblockheader", params: [blockHeight - 1, true], id: 2 }),
+    signal: AbortSignal.timeout(10000),
   });
   const headerData = await headerRes.json();
   const lastBlockTime = headerData.result?.time || 0;

@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getLiveStatus } from "../../../../lib/miniapp-stats";
 import { CONTRACTS } from "../../../../lib/chain";
+import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
+import { standardLimit } from "@/lib/rate-limit";
 
 // Map app IDs to contract hashes
 const APP_CONTRACTS: Record<string, string> = {
@@ -26,12 +29,16 @@ const APP_CATEGORIES: Record<string, string> = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
+  if (standardLimit(req, res)) return;
 
   const { appId } = req.query;
   if (!appId || typeof appId !== "string") {
-    return res.status(400).json({ error: "appId required" });
+    return apiError.badRequest(res, "appId required");
+  }
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(appId)) {
+    return apiError.badRequest(res, "Invalid appId format");
   }
 
   // Auto-resolve contract hash from app ID
@@ -40,14 +47,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const network = (req.query.network as "testnet" | "mainnet") || "testnet";
 
   if (!contractHash) {
-    return res.status(400).json({ error: "contract hash required or unknown app" });
+    return apiError.badRequest(res, "contract hash required or unknown app");
   }
 
   try {
     const status = await getLiveStatus(appId, contractHash, category, network);
     res.status(200).json({ status });
   } catch (error) {
-    console.error("Live status error:", error);
-    res.status(500).json({ error: "Failed to fetch live status" });
+    logger.error("Live status error:", error);
+    apiError.internal(res, "Failed to fetch live status");
   }
 }

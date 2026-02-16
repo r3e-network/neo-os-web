@@ -17,7 +17,12 @@ export function LanguageSwitcher({ className = "", showLabel = true }: LanguageS
       {showLabel && <span className="text-sm text-gray-500">{t("language.language")}</span>}
       <select
         value={locale}
-        onChange={(e) => setLocale(e.target.value as Locale)}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (locales.includes(value as Locale)) {
+            setLocale(value as Locale);
+          }
+        }}
         className="px-2 py-1 text-sm border rounded bg-white dark:bg-gray-800"
       >
         {locales.map((loc) => (

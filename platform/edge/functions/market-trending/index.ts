@@ -283,4 +283,6 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
   }
 }
 
-Deno.serve((req: Request) => handler(req));
+if (import.meta.main) {
+  Deno.serve((req: Request) => handler(req));
+}

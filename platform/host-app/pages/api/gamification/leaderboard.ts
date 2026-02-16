@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { LeaderboardEntry } from "@/components/features/gamification/types";
+import { apiError } from "@/lib/api-response";
 
 // Mock leaderboard data
 const mockLeaderboard: LeaderboardEntry[] = Array.from({ length: 50 }, (_, i) => ({
@@ -12,7 +13,7 @@ const mockLeaderboard: LeaderboardEntry[] = Array.from({ length: 50 }, (_, i) =>
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
 
   const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);

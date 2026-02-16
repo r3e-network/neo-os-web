@@ -3,7 +3,7 @@
  * Provides helpers for proof-of-interaction, spam checking, and rating calculations
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { error } from "./response.ts";
 
 // -----------------------------------------------------------------------------
@@ -65,12 +65,38 @@ export async function verifyProofOfInteraction(
     };
   }
 
-  // No cached proof - user hasn't been verified yet
+  // Fallback: check tx_events for on-chain interactions with this app
+  const { data: txEvents, error: txErr } = await supabase
+    .from("tx_events")
+    .select("tx_hash, created_at")
+    .eq("app_id", appId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(10);
+
+  if (txErr || !txEvents || txEvents.length === 0) {
+    return {
+      verified: false,
+      interaction_count: 0,
+      can_rate: false,
+      can_comment: false,
+    };
+  }
+
+  // Cache the proof for future lookups
+  await supabase.from("social_proof_of_interaction").upsert({
+    app_id: appId,
+    user_id: userId,
+    tx_hash: txEvents[0].tx_hash,
+    verified_at: txEvents[0].created_at,
+  }, { onConflict: "app_id,user_id" }).then(() => {/* best-effort cache */});
+
   return {
-    verified: false,
-    interaction_count: 0,
-    can_rate: false,
-    can_comment: false,
+    verified: true,
+    interaction_count: txEvents.length,
+    first_interaction_at: txEvents[0].created_at,
+    can_rate: true,
+    can_comment: true,
   };
 }
 

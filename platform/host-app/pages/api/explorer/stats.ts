@@ -1,7 +1,10 @@
+import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
+import { relaxedLimit } from "@/lib/rate-limit";
 
-const NEO_RPC_TESTNET = "https://testnet1.neo.coz.io:443";
-const NEO_RPC_MAINNET = "https://mainnet1.neo.coz.io:443";
+const NEO_RPC_TESTNET = process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443";
+const NEO_RPC_MAINNET = process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443";
 
 interface NetworkStats {
   height: number;
@@ -16,8 +19,9 @@ interface ExplorerStats {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
+  if (relaxedLimit(req, res)) return;
 
   try {
     const [mainnetStats, testnetStats] = await Promise.all([
@@ -35,11 +39,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate");
     return res.status(200).json(stats);
   } catch (err) {
-    console.error("Explorer stats error:", err);
-    return res.status(500).json({
-      error: "Failed to fetch stats",
-      details: err instanceof Error ? err.message : "Unknown error",
-    });
+    logger.error("Explorer stats error:", err);
+    return apiError.internal(res, err instanceof Error ? `Failed to fetch stats: ${err.message}` : "Failed to fetch stats");
   }
 }
 
@@ -54,6 +55,7 @@ async function getNetworkStats(rpcUrl: string, network: string): Promise<Network
       params: [],
       id: 1,
     }),
+    signal: AbortSignal.timeout(10000),
   });
   const blockData = await blockRes.json();
   const height = blockData.result || 0;
@@ -85,6 +87,7 @@ async function getTxCountFromIndexer(network: string): Promise<number> {
         apikey: indexerKey,
         Authorization: `Bearer ${indexerKey}`,
       },
+      signal: AbortSignal.timeout(10000),
     },
   );
 

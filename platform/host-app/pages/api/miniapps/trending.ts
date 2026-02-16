@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
+import { apiError } from "@/lib/api-response";
 
 export interface TrendingApp {
   app_id: string;
@@ -20,7 +21,7 @@ const statsCache: Map<string, { users: number; txs: number; volume: number; ts: 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
 
   const { limit = "10", category } = req.query;

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import {
   BarChart,
@@ -64,7 +65,7 @@ export default function EnhancedStatsPage() {
           setEvents(eventsData.events || []);
         }
       } catch (err) {
-        console.error("Failed to fetch stats:", err);
+        logger.error("Failed to fetch stats:", err);
       } finally {
         setLoading(false);
       }

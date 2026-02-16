@@ -52,7 +52,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/chat/${appId}/messages?limit=50`);
+        const res = await fetch(`/api/chat/${appId}/messages?limit=50`, { signal: AbortSignal.timeout(30000) });
         if (res.ok) {
           const data = await res.json();
           setMessages(data.messages || []);
@@ -93,6 +93,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           wallet: walletAddress,
           content: newMessage.content,
         }),
+        signal: AbortSignal.timeout(30000),
       });
     } catch {
       // Silent fail - message already shown optimistically
@@ -170,6 +171,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                 <button
                   onClick={sendMessage}
                   disabled={!inputValue.trim()}
+                  aria-label="Send message"
                   className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
                 >
                   <Send size={16} />

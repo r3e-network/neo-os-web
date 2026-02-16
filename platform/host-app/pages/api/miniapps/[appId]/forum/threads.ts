@@ -1,15 +1,24 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { ForumThread } from "@/components/features/forum/types";
+import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
+import { withCsrfProtection } from "@/lib/csrf";
 
 // In-memory store (replace with Supabase in production)
 const threadsStore: Map<string, ForumThread[]> = new Map();
 let threadIdCounter = 1;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
 
   if (!appId || typeof appId !== "string") {
-    return res.status(400).json({ error: "Missing appId" });
+    return apiError.badRequest(res, "Missing appId");
+  }
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(appId)) {
+    return apiError.badRequest(res, "Invalid appId format");
+  }
+
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_INMEMORY_STORE) {
+    return sendError(res, 503, "In-memory store not available in production", ErrorCodes.INTERNAL_ERROR);
   }
 
   if (req.method === "GET") {
@@ -20,8 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return createThread(appId, req, res);
   }
 
-  return res.status(405).json({ error: "Method not allowed" });
+  return apiError.methodNotAllowed(res);
 }
+
+export default withCsrfProtection(handler);
 
 function getThreads(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const category = req.query.category as string | undefined;
@@ -54,9 +65,20 @@ function getThreads(appId: string, req: NextApiRequest, res: NextApiResponse) {
 function createThread(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const { wallet, title, content, category } = req.body;
 
-  if (!wallet || !title?.trim() || !content?.trim()) {
-    return res.status(400).json({ error: "Missing required fields" });
+  if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+    return apiError.badRequest(res, "Invalid wallet address");
   }
+
+  if (!title?.trim() || !content?.trim()) {
+    return apiError.badRequest(res, "Missing required fields");
+  }
+
+  if (typeof title !== "string" || typeof content !== "string") {
+    return apiError.badRequest(res, "Invalid field types");
+  }
+
+  const validCategories = ["general", "bug", "feature", "discussion", "announcement"];
+  const safeCategory = validCategories.includes(category) ? category : "general";
 
   if (!threadsStore.has(appId)) {
     threadsStore.set(appId, []);
@@ -70,7 +92,7 @@ function createThread(appId: string, req: NextApiRequest, res: NextApiResponse) 
     author_name: `${wallet.slice(0, 6)}...${wallet.slice(-4)}`,
     title: title.trim().slice(0, 200),
     content: content.trim().slice(0, 5000),
-    category: category || "general",
+    category: safeCategory,
     reply_count: 0,
     view_count: 0,
     is_pinned: false,

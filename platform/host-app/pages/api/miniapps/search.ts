@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
+import { apiError } from "@/lib/api-response";
 
 export interface SearchResult {
   app_id: string;
@@ -20,7 +21,7 @@ export interface SearchResponse {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<SearchResponse | { error: string }>) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
 
   const { q, category, limit = "20" } = req.query;

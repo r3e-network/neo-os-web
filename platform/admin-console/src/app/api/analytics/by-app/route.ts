@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://supabase.localhost";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
@@ -17,6 +16,7 @@ export async function GET(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({}),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!usageByAppResponse.ok) {
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     const usageByApp = await usageByAppResponse.json();
     return NextResponse.json(usageByApp);
   } catch (error) {
-    console.error("Usage by app error:", error);
+    logger.error("Usage by app error:", error);
     return NextResponse.json({ error: "Failed to fetch usage by app" }, { status: 500 });
   }
 }

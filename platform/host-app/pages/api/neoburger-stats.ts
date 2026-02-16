@@ -4,7 +4,7 @@ const API_BASE = process.env.EDGE_API_BASE || "http://localhost:54321/functions/
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const response = await fetch(`${API_BASE}/neoburger-stats`);
+    const response = await fetch(`${API_BASE}/neoburger-stats`, { signal: AbortSignal.timeout(10000) });
     const data = await response.json();
     res.status(200).json(data);
   } catch {

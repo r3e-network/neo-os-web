@@ -3,6 +3,7 @@
  * Calls the TxProxy service to execute on-chain transactions
  */
 import { getServiceConfig } from "./k8s-config.ts";
+import { parseDecimalToInt } from "./amount.ts";
 
 const GAS_CONTRACT_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
@@ -33,8 +34,8 @@ interface InvokeResponse {
 export async function transferGas(requestId: string, toAddress: string, amount: string): Promise<InvokeResponse> {
   const config = getServiceConfig();
 
-  // Convert decimal amount to integer (8 decimals)
-  const amountInt = Math.floor(parseFloat(amount) * 1e8).toString();
+  // Convert decimal amount to integer (8 decimals) using parseDecimalToInt to avoid floating-point precision loss
+  const amountInt = parseDecimalToInt(amount, 8).toString();
 
   const req: InvokeRequest = {
     request_id: requestId,
@@ -50,11 +51,25 @@ export async function transferGas(requestId: string, toAddress: string, amount: 
     wait: true,
   };
 
-  const res = await fetch(`${config.txProxyUrl}/invoke`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  let res: Response;
+  try {
+    res = await fetch(`${config.txProxyUrl}/invoke`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("TxProxy request timed out after 30s");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) {
     const text = await res.text();

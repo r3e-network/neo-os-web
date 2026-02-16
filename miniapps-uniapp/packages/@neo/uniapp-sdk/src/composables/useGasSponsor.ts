@@ -34,8 +34,9 @@ export function useGasSponsor() {
         credentials: "include",
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || "Check failed");
+        let msg = `Eligibility check failed (${res.status})`;
+        try { const err = await res.json(); msg = err.error?.message || msg; } catch {}
+        throw new Error(msg);
       }
       return await res.json();
     } catch (e) {
@@ -57,8 +58,9 @@ export function useGasSponsor() {
         body: JSON.stringify({ amount }),
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || "Request failed");
+        let msg = `Sponsorship request failed (${res.status})`;
+        try { const err = await res.json(); msg = err.error?.message || msg; } catch {}
+        throw new Error(msg);
       }
       return await res.json();
     } catch (e) {

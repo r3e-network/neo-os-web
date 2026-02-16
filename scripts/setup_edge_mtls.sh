@@ -73,16 +73,18 @@ if [[ ! -f "$CA_KEY" || ! -f "$CA_CERT" ]]; then
   echo "[edge-mtls] Generating edge client CA..."
   openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
     -subj "/CN=edge-client-ca" \
-    -keyout "$CA_KEY" -out "$CA_CERT" >/dev/null 2>&1
+    -keyout "$CA_KEY" -out "$CA_CERT" 2>&1 | tail -1 || { echo "Failed to generate CA" >&2; exit 1; }
+  chmod 600 "$CA_KEY"
 fi
 
 if [[ ! -f "$CLIENT_KEY" || ! -f "$CLIENT_CERT" ]]; then
   echo "[edge-mtls] Generating edge client certificate..."
   openssl req -newkey rsa:2048 -nodes \
     -subj "/CN=edge-gateway" \
-    -keyout "$CLIENT_KEY" -out "$CLIENT_CSR" >/dev/null 2>&1
+    -keyout "$CLIENT_KEY" -out "$CLIENT_CSR" 2>&1 | tail -1 || { echo "Failed to generate client cert" >&2; exit 1; }
   openssl x509 -req -in "$CLIENT_CSR" -CA "$CA_CERT" -CAkey "$CA_KEY" \
-    -CAcreateserial -days 365 -out "$CLIENT_CERT" >/dev/null 2>&1
+    -CAcreateserial -days 365 -out "$CLIENT_CERT" 2>&1 | tail -1 || { echo "Failed to sign client cert" >&2; exit 1; }
+  chmod 600 "$CLIENT_KEY"
   rm -f "$CLIENT_CSR"
 fi
 
@@ -93,7 +95,11 @@ if [[ ! -s "$MARBLE_CA" ]]; then
     kubectl -n marblerun port-forward svc/coordinator-client-api 4433:4433 >/tmp/portforward-marblerun.log 2>&1 &
     pf_pid=$!
     trap 'kill "$pf_pid" >/dev/null 2>&1 || true' EXIT
-    sleep 1
+    sleep 2
+    if ! kill -0 "$pf_pid" 2>/dev/null; then
+      echo "Port-forward failed to start. Check /tmp/portforward-marblerun.log" >&2
+      exit 1
+    fi
     marblerun certificate chain localhost:4433 --insecure --output "$MARBLE_CA" >/dev/null 2>&1 || true
     kill "$pf_pid" >/dev/null 2>&1 || true
     trap - EXIT

@@ -33,9 +33,9 @@ export const mockSDK: MiniAppSDK = {
         intent: "payments",
         constraints: { settlement: "GAS_ONLY" },
         invocation: {
-          contract: "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193",
+          contract_hash: "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193",
           method: "transfer",
-          args: [amount, memo],
+          params: [amount, memo],
         },
       };
     },
@@ -50,9 +50,9 @@ export const mockSDK: MiniAppSDK = {
         intent: "governance",
         constraints: { governance: "BNEO_ONLY" },
         invocation: {
-          contract: "0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05",
+          contract_hash: "0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05",
           method: "vote",
-          args: [proposalId, amount, support],
+          params: [proposalId, amount, support],
         },
       };
     },

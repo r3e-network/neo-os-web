@@ -22,6 +22,12 @@ services:
     devices:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   # =============================================================================
@@ -66,7 +72,8 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     restart: unless-stopped
 
   # =============================================================================
@@ -108,7 +115,8 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     restart: unless-stopped
 
   # =============================================================================
@@ -143,7 +151,8 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     restart: unless-stopped
 
   # =============================================================================
@@ -180,8 +189,10 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
-      - neoaccounts
+      coordinator:
+        condition: service_healthy
+      neoaccounts:
+        condition: service_started
     restart: unless-stopped
 
   # =============================================================================
@@ -217,7 +228,8 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     restart: unless-stopped
 
   # =============================================================================
@@ -251,7 +263,8 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     restart: unless-stopped
 
   # =============================================================================
@@ -289,7 +302,8 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     restart: unless-stopped
 
   # =============================================================================
@@ -335,7 +349,8 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     restart: unless-stopped
 
   # =============================================================================
@@ -373,7 +388,8 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     restart: unless-stopped
 
   # =============================================================================
@@ -407,7 +423,8 @@ services:
       - /dev/sgx_enclave:/dev/sgx_enclave
       - /dev/sgx_provision:/dev/sgx_provision
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

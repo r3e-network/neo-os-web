@@ -32,7 +32,7 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
-  const triggerId = String((body as any)?.id ?? "").trim();
+  const triggerId = String(body.id ?? "").trim();
   if (!triggerId) return error(400, "id required", "ID_REQUIRED", req);
 
   const neoflowURL = mustGetEnv("NEOFLOW_URL").replace(/\/$/, "");

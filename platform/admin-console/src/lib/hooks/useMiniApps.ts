@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/api-client";
 import { getAdminAuthHeaders } from "@/lib/admin-client";
+import { DEFAULT_STALE_TIME_MS } from "@/lib/constants";
 import type { MiniApp } from "@/types";
 
 /**
@@ -38,7 +39,7 @@ export function useMiniApps() {
   return useQuery({
     queryKey: ["miniapps"],
     queryFn: fetchMiniApps,
-    staleTime: 60000,
+    staleTime: DEFAULT_STALE_TIME_MS,
   });
 }
 
@@ -50,7 +51,7 @@ export function useMiniApp(appId: string) {
     queryKey: ["miniapps", appId],
     queryFn: () => fetchMiniApp(appId),
     enabled: !!appId,
-    staleTime: 60000,
+    staleTime: DEFAULT_STALE_TIME_MS,
   });
 }
 
@@ -66,6 +67,7 @@ export function useUpdateMiniAppStatus() {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
         body: JSON.stringify({ appId, status }),
+        signal: AbortSignal.timeout(15000),
       });
 
       if (!response.ok) {

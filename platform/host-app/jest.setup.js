@@ -1,5 +1,14 @@
 require("@testing-library/jest-dom");
 
+// Polyfill AbortSignal.timeout for jsdom environment
+if (typeof AbortSignal.timeout !== "function") {
+  AbortSignal.timeout = (ms) => {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(new DOMException("TimeoutError", "TimeoutError")), ms);
+    return controller.signal;
+  };
+}
+
 // Mock Next.js router
 jest.mock("next/router", () => ({
   useRouter: jest.fn(() => ({

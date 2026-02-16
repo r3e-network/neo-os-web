@@ -1,6 +1,8 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { error, json } from "../_shared/response.ts";
-import { requireAuth, supabaseClient } from "../_shared/supabase.ts";
+import { requireScope } from "../_shared/scopes.ts";
+import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
 
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
@@ -11,6 +13,10 @@ export async function handler(req: Request): Promise<Response> {
 
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+  const scopeCheck = requireScope(req, auth, "social");
+  if (scopeCheck) return scopeCheck;
+  const rl = await requireRateLimit(req, "social-comment-delete", auth);
+  if (rl) return rl;
 
   const url = new URL(req.url);
   const commentId = url.searchParams.get("id")?.trim();
@@ -19,8 +25,8 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "id is required", "MISSING_ID", req);
   }
 
-  const supabase = supabaseClient();
-  const userId = auth.user.id;
+  const supabase = supabaseServiceClient();
+  const userId = auth.userId;
 
   // Verify comment exists and belongs to user
   const { data: comment, error: fetchErr } = await supabase
@@ -51,4 +57,6 @@ export async function handler(req: Request): Promise<Response> {
   return json({ success: true }, {}, req);
 }
 
-Deno.serve(handler);
+if (import.meta.main) {
+  Deno.serve(handler);
+}

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { UserStats } from "@/components/features/gamification/types";
+import { apiError } from "@/lib/api-response";
 
 // In-memory store (replace with Supabase in production)
 const userStatsStore: Map<string, UserStats> = new Map();
@@ -8,14 +9,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { wallet } = req.query;
 
   if (!wallet || typeof wallet !== "string") {
-    return res.status(400).json({ error: "Missing wallet" });
+    return apiError.badRequest(res, "Missing wallet");
   }
 
   if (req.method === "GET") {
     return getStats(wallet, res);
   }
 
-  return res.status(405).json({ error: "Method not allowed" });
+  return apiError.methodNotAllowed(res);
 }
 
 function getStats(wallet: string, res: NextApiResponse) {

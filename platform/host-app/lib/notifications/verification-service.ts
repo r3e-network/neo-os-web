@@ -1,11 +1,12 @@
 import { supabase, isSupabaseConfigured } from "../supabase";
+import crypto from "crypto";
 
 const TABLE_NAME = "email_verifications";
 const CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 
 /** Generate 6-digit verification code */
 export function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return String(100000 + crypto.randomInt(900000));
 }
 
 /** Store verification code */
@@ -36,7 +37,13 @@ export async function verifyCode(wallet: string, code: string): Promise<boolean>
 
   if (error || !data) return false;
 
-  const isValid = data.code === code && new Date(data.expires_at) > new Date();
+  const expired = new Date(data.expires_at) <= new Date();
+  if (expired) return false;
+
+  if (!data.code || !code) return false;
+  const a = Buffer.from(String(data.code));
+  const b = Buffer.from(String(code));
+  const isValid = a.length === b.length && crypto.timingSafeEqual(a, b);
 
   if (isValid) {
     await supabase.from(TABLE_NAME).delete().eq("wallet_address", wallet);

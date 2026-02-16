@@ -13,6 +13,7 @@ import {
   WalletNotInstalledError,
   WalletConnectionError,
 } from "./base";
+import { logger } from "@/lib/logger";
 
 /** NeoLine wallet provider interface */
 interface NeoLineProvider {
@@ -139,7 +140,7 @@ export class NeoLineAdapter implements WalletAdapter {
 
       return { neo, gas };
     } catch (error) {
-      console.error("Failed to get balance:", error);
+      logger.error("Failed to get balance:", error);
       return { neo: "0", gas: "0" };
     }
   }

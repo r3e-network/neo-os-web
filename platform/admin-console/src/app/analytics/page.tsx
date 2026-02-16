@@ -10,8 +10,8 @@ import { useAnalytics, useMiniAppUsage } from "@/lib/hooks/useAnalytics";
 import { formatNumber } from "@/lib/utils";
 
 export default function AnalyticsPage() {
-  const { data: analytics, isLoading: analyticsLoading } = useAnalytics();
-  const { data: usage, isLoading: usageLoading } = useMiniAppUsage(30);
+  const { data: analytics, isLoading: analyticsLoading, isError: analyticsError } = useAnalytics();
+  const { data: usage, isLoading: usageLoading, isError: usageError } = useMiniAppUsage(30);
 
   return (
     <div className="space-y-6">
@@ -19,6 +19,12 @@ export default function AnalyticsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
         <p className="text-gray-600">Platform usage and metrics</p>
       </div>
+
+      {analyticsError && (
+        <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Failed to load analytics data. Please try again later.
+        </div>
+      )}
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -58,6 +64,12 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {usageError && (
+        <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Failed to load usage data. Please try again later.
+        </div>
+      )}
 
       {/* Usage Chart */}
       <Card>

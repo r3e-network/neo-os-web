@@ -2,9 +2,29 @@
 // Header Component Tests
 // =============================================================================
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Header } from "../Header";
+
+// Mock i18n
+vi.mock("../../../../../shared/i18n/react", () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        "dashboard.title": "Admin Dashboard",
+        "dashboard.overview": "Monitor and manage your MiniApp platform",
+      };
+      return map[key] ?? key;
+    },
+    locale: "en",
+    setLocale: () => {},
+  }),
+}));
+
+// Mock LanguageSwitcher
+vi.mock("../../../../../shared/i18n/LanguageSwitcher", () => ({
+  LanguageToggle: () => <button>EN</button>,
+}));
 
 describe("Header Component", () => {
   it("should render header", () => {

@@ -40,9 +40,9 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
 
         // Fetch events and transactions in parallel
         const [eventsRes, txRes, notifRes] = await Promise.all([
-          fetch(`/api/activity/events?${params}`),
-          fetch(`/api/activity/transactions?${params}`),
-          fetch(`/api/miniapp-notifications?${params}&limit=20`),
+          fetch(`/api/activity/events?${params}`, { signal: AbortSignal.timeout(30000) }),
+          fetch(`/api/activity/transactions?${params}`, { signal: AbortSignal.timeout(30000) }),
+          fetch(`/api/miniapp-notifications?${params}&limit=20`, { signal: AbortSignal.timeout(30000) }),
         ]);
 
         const newActivities: OnChainActivity[] = [];

@@ -44,7 +44,9 @@ export const useNotificationStore = create<NotificationStore>()(
       loadPreferences: async (walletAddress: string) => {
         set({ loading: true, error: null });
         try {
-          const res = await fetch(`/api/notifications/preferences?wallet=${walletAddress}`);
+          const res = await fetch(`/api/notifications/preferences?wallet=${walletAddress}`, {
+            signal: AbortSignal.timeout(30000),
+          });
           if (!res.ok) throw new Error("Failed to load preferences");
           const data = await res.json();
           set({ preferences: data.preferences || { ...defaultPreferences, walletAddress }, loading: false });
@@ -62,6 +64,7 @@ export const useNotificationStore = create<NotificationStore>()(
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...preferences, ...prefs }),
+            signal: AbortSignal.timeout(30000),
           });
           if (!res.ok) throw new Error("Update failed");
           set({ preferences: { ...preferences, ...prefs }, loading: false });
@@ -79,10 +82,10 @@ export const useNotificationStore = create<NotificationStore>()(
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ wallet: preferences.walletAddress, email }),
+            signal: AbortSignal.timeout(30000),
           });
           if (!res.ok) throw new Error("Bind failed");
           set({
-            preferences: { ...preferences, email, emailVerified: false },
             loading: false,
           });
         } catch (err) {
@@ -98,6 +101,7 @@ export const useNotificationStore = create<NotificationStore>()(
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ wallet: preferences.walletAddress, code }),
+            signal: AbortSignal.timeout(30000),
           });
           if (!res.ok) return false;
           set({ preferences: { ...preferences, emailVerified: true } });
@@ -111,7 +115,9 @@ export const useNotificationStore = create<NotificationStore>()(
         const { preferences } = get();
         if (!preferences) return;
         try {
-          const res = await fetch(`/api/notifications/events?wallet=${preferences.walletAddress}`);
+          const res = await fetch(`/api/notifications/events?wallet=${preferences.walletAddress}`, {
+            signal: AbortSignal.timeout(30000),
+          });
           if (!res.ok) return;
           const data = await res.json();
           set({ events: data.events || [] });

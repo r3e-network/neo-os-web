@@ -33,8 +33,8 @@ export type StackItem =
   | { type: "Any"; value: null };
 
 const RPC_ENDPOINTS = {
-  testnet: "https://testnet1.neo.coz.io:443",
-  mainnet: "https://mainnet1.neo.coz.io:443",
+  testnet: process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443",
+  mainnet: process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443",
 } as const;
 
 export type Network = keyof typeof RPC_ENDPOINTS;

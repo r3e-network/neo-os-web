@@ -29,27 +29,39 @@ interface Nep17BalancesResult {
  */
 async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
   const rpcUrl = getNeoRpcUrl();
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method,
-      params,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method,
+        params,
+      }),
+      signal: controller.signal,
+    });
 
-  if (!res.ok) {
-    throw new Error(`RPC request failed: ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`RPC request failed: ${res.status}`);
+    }
+
+    const data: RpcResponse<T> = await res.json();
+    if (data.error) {
+      throw new Error(`RPC error: ${data.error.message}`);
+    }
+
+    return data.result as T;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error(`Neo RPC call "${method}" timed out after 10s`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data: RpcResponse<T> = await res.json();
-  if (data.error) {
-    throw new Error(`RPC error: ${data.error.message}`);
-  }
-
-  return data.result as T;
 }
 
 /**

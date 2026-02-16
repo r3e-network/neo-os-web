@@ -109,7 +109,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
 
   const events = (data ?? []).slice(0, limit);
   const hasMore = (data ?? []).length > limit;
-  const lastId = events.length > 0 ? String((events[events.length - 1] as any)?.id ?? "") : null;
+  const lastId = events.length > 0 ? String((events[events.length - 1] as Record<string, unknown>)?.id ?? "") : null;
 
   return {
     events: events.map((row: any) => ({
@@ -144,8 +144,9 @@ export async function queryTransactions(
   if (params.app_id) {
     const appId = String(params.app_id).trim();
     if (!appId) return error(400, "app_id cannot be empty", "INVALID_PARAM", req);
-    // Filter by request_id pattern (assumes request_id contains app_id)
-    query = query.ilike("request_id", `%${appId}%`);
+    // Escape ILIKE wildcards to prevent pattern injection
+    const escapedAppId = appId.replace(/[%_\\]/g, "\\$&");
+    query = query.ilike("request_id", `%${escapedAppId}%`);
   }
 
   if (afterId) {
@@ -161,7 +162,7 @@ export async function queryTransactions(
 
   const transactions = (data ?? []).slice(0, limit);
   const hasMore = (data ?? []).length > limit;
-  const lastId = transactions.length > 0 ? String((transactions[transactions.length - 1] as any)?.id ?? "") : null;
+  const lastId = transactions.length > 0 ? String((transactions[transactions.length - 1] as Record<string, unknown>)?.id ?? "") : null;
 
   return {
     transactions: transactions.map((row: any) => ({

@@ -45,7 +45,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       try {
         const res = await fetch(
           `${API_BASE}/social-comments?app_id=${appId}&limit=20&offset=${offset}&parent_id=null`,
-          { headers },
+          { headers, signal: AbortSignal.timeout(30000) },
         );
         if (!res.ok) {
           setError(await handleApiError(res));
@@ -71,7 +71,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
   const fetchRating = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/social-ratings?app_id=${appId}`, { headers });
+      const res = await fetch(`${API_BASE}/social-ratings?app_id=${appId}`, { headers, signal: AbortSignal.timeout(30000) });
       if (!res.ok) {
         setError(await handleApiError(res));
         return;
@@ -92,6 +92,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
         method: "POST",
         headers,
         body: JSON.stringify({ app_id: appId }),
+        signal: AbortSignal.timeout(30000),
       });
       if (!res.ok) {
         setError(await handleApiError(res));
@@ -118,6 +119,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
           method: "POST",
           headers,
           body: JSON.stringify({ app_id: appId, content, parent_id: parentId }),
+          signal: AbortSignal.timeout(30000),
         });
         if (!res.ok) {
           setError(await handleApiError(res));
@@ -151,6 +153,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
           method: "POST",
           headers,
           body: JSON.stringify({ comment_id: commentId, vote_type: voteType }),
+          signal: AbortSignal.timeout(30000),
         });
         if (!res.ok) {
           setError(await handleApiError(res));
@@ -183,6 +186,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
           method: "POST",
           headers,
           body: JSON.stringify({ app_id: appId, rating_value: value, review_text: reviewText }),
+          signal: AbortSignal.timeout(30000),
         });
         if (!res.ok) {
           setError(await handleApiError(res));
@@ -207,6 +211,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       try {
         const res = await fetch(`${API_BASE}/social-comments?app_id=${appId}&parent_id=${parentId}&limit=50`, {
           headers,
+          signal: AbortSignal.timeout(30000),
         });
         if (!res.ok) {
           setError(await handleApiError(res));
@@ -235,6 +240,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
           method: "POST",
           headers,
           body: JSON.stringify({ comment_id: commentId }),
+          signal: AbortSignal.timeout(30000),
         });
         if (!res.ok) {
           setError(await handleApiError(res));

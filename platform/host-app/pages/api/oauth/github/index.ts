@@ -7,7 +7,7 @@ const REDIRECT_URI = process.env.NEXTAUTH_URL
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const state = generateState();
-  res.setHeader("Set-Cookie", `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`);
+  res.setHeader("Set-Cookie", `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
 
   const authUrl =
     `https://github.com/login/oauth/authorize?` +

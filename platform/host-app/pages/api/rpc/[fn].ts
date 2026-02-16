@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl, isEdgeRpcAllowed } from "../../../lib/edge";
+import { apiError } from "@/lib/api-response";
 
 const FETCH_TIMEOUT_MS = 30000; // 30 seconds
 const MAX_RETRIES = 2;
@@ -53,17 +54,17 @@ async function readRawBody(req: NextApiRequest): Promise<Buffer> {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const fn = String(req.query.fn ?? "").trim();
   if (!fn) {
-    res.status(400).json({ error: "function name required" });
+    apiError.badRequest(res, "function name required");
     return;
   }
   if (!isEdgeRpcAllowed(fn)) {
-    res.status(403).json({ error: "function not allowed" });
+    apiError.forbidden(res, "function not allowed");
     return;
   }
 
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
-    res.status(500).json({ error: "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured" });
+    apiError.internal(res, "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured");
     return;
   }
 
@@ -97,7 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.send(buf);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upstream request failed";
-    res.status(504).json({ error: message, code: "GATEWAY_TIMEOUT" });
+    apiError.gatewayTimeout(res, message);
   }
 }
 

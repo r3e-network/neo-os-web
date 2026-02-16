@@ -47,23 +47,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const supabase = supabaseServiceClient();
 
-  // Check current quota
-  const today = new Date().toISOString().split("T")[0];
-  const { data: quota } = await supabase
-    .from("gas_sponsor_quotas")
-    .select("used_amount")
-    .eq("user_id", auth.userId)
-    .eq("date", today)
-    .maybeSingle();
-
-  const usedToday = parseFloat(quota?.used_amount ?? "0");
-  const remaining = DAILY_LIMIT - usedToday;
-
-  if (amount > remaining) {
-    return error(400, "exceeds daily quota", "QUOTA_EXCEEDED", req);
-  }
-
-  // Query on-chain GAS balance
+  // Query on-chain GAS balance first (no state mutation)
   let gasBalance = 0;
   try {
     const balanceStr = await getGasBalance(walletCheck.address);
@@ -76,13 +60,20 @@ export async function handler(req: Request): Promise<Response> {
     return error(403, "not eligible - balance too high", "NOT_ELIGIBLE", req);
   }
 
-  // Bump quota
-  const { error: bumpErr } = await supabase.rpc("gas_sponsor_bump_quota", {
+  // Atomically bump quota and check limit in one RPC call.
+  // The DB function should enforce: used_amount + p_amount <= p_daily_limit,
+  // returning the new used_amount or raising an exception on overflow.
+  const { data: bumpResult, error: bumpErr } = await supabase.rpc("gas_sponsor_bump_quota", {
     p_user_id: auth.userId,
     p_amount: amount,
+    p_daily_limit: DAILY_LIMIT,
   });
   if (bumpErr) {
-    return error(500, `quota update failed: ${bumpErr.message}`, "DB_ERROR", req);
+    const msg = bumpErr.message || "";
+    if (msg.includes("quota") || msg.includes("limit") || msg.includes("exceeded")) {
+      return error(400, "exceeds daily quota", "QUOTA_EXCEEDED", req);
+    }
+    return error(500, `quota update failed: ${msg}`, "DB_ERROR", req);
   }
 
   // Create request record
@@ -101,7 +92,7 @@ export async function handler(req: Request): Promise<Response> {
   // Execute GAS transfer via TxProxy
   let txHash: string | null = null;
   try {
-    const txResult = await transferGas(requestId, walletCheck.address, body.amount);
+    const txResult = await transferGas(requestId, walletCheck.address, amount.toFixed(8));
     txHash = txResult.tx_hash || null;
 
     // Update request status

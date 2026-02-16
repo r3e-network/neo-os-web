@@ -2,11 +2,12 @@
 // API Client - Base HTTP client with error handling
 // =============================================================================
 
-import { z } from "zod";
 import type { APIError } from "@/types";
+import { env } from "@/lib/env";
+import { HEALTH_CHECK_TIMEOUT_MS } from "@/lib/constants";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_EDGE_URL || "https://edge.localhost";
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://supabase.localhost";
+const API_BASE_URL = env.NEXT_PUBLIC_EDGE_URL || "https://edge.localhost";
+const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
 
 /**
  * Base fetch wrapper with error handling
@@ -15,6 +16,7 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   try {
     const response = await fetch(url, {
       ...options,
+      signal: options?.signal ?? AbortSignal.timeout(15000),
       headers: {
         "Content-Type": "application/json",
         ...options?.headers,
@@ -58,7 +60,7 @@ export const supabaseClient = {
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : "";
     return fetchJSON<T>(`${SUPABASE_URL}/rest/v1/${table}${queryString}`, {
       headers: {
-        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+        apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       },
     });
   },
@@ -67,8 +69,8 @@ export const supabaseClient = {
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : "";
     return fetchJSON<T>(`${SUPABASE_URL}/rest/v1/${table}${queryString}`, {
       headers: {
-        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || ""}`,
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
       },
     });
   },
@@ -97,7 +99,7 @@ export async function checkServiceHealth(serviceName: string, serviceUrl: string
   try {
     const response = await fetch(`${serviceUrl}/health`, {
       method: "GET",
-      signal: AbortSignal.timeout(5000), // 5s timeout
+      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
     });
 
     if (!response.ok) {

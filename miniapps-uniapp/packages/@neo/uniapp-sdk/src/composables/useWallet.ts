@@ -60,8 +60,9 @@ export function useWallet() {
         credentials: "include",
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || "Failed to get balance");
+        let msg = `Failed to get balance (${res.status})`;
+        try { const err = await res.json(); msg = err.error?.message || msg; } catch {}
+        throw new Error(msg);
       }
       const data = await res.json();
       balances.value = data.balances;
@@ -75,16 +76,19 @@ export function useWallet() {
   };
 
   const getTransactions = async (limit = 20): Promise<WalletTransaction[]> => {
+    if (!Number.isFinite(limit)) limit = 20;
+    const safeLimit = Math.min(Math.max(Math.floor(limit), 1), 100);
     isLoading.value = true;
     error.value = null;
     try {
-      const res = await fetch(`${API_BASE}/wallet-transactions?limit=${limit}`, {
+      const res = await fetch(`${API_BASE}/wallet-transactions?limit=${safeLimit}`, {
         method: "GET",
         credentials: "include",
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || "Failed to get transactions");
+        let msg = `Failed to get transactions (${res.status})`;
+        try { const err = await res.json(); msg = err.error?.message || msg; } catch {}
+        throw new Error(msg);
       }
       const data = await res.json();
       return data.transactions;

@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from "../supabase";
 import type { NotificationPreferencesRow, NotificationEventRow } from "./db-types";
 import type { NotificationPreferences, NotificationEvent, NotificationType } from "./types";
+import { logger } from "@/lib/logger";
 
 const PREFS_TABLE = "notification_preferences";
 const EVENTS_TABLE = "notification_events";
@@ -38,8 +39,14 @@ export async function getPreferences(wallet: string): Promise<NotificationPrefer
 
   const { data, error } = await supabase.from(PREFS_TABLE).select("*").eq("wallet_address", wallet).single();
 
-  if (error || !data) return null;
-  return toAppType(data as NotificationPreferencesRow);
+  if (error) {
+    // PGRST116 = row not found, which is expected
+    if (error.code !== "PGRST116") {
+      logger.error("Failed to get notification preferences:", error.message);
+    }
+    return null;
+  }
+  return data ? toAppType(data as NotificationPreferencesRow) : null;
 }
 
 /** Upsert preferences */

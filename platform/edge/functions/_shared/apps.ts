@@ -151,7 +151,7 @@ export async function upsertMiniAppManifest(input: {
   if (loadErr) return error(500, `failed to load app registry: ${loadErr.message}`, "DB_ERROR", input.req);
 
   if (existing) {
-    if (String((existing as any)?.developer_user_id ?? "") !== input.developerUserId) {
+    if (String(existing.developer_user_id ?? "") !== input.developerUserId) {
       return error(403, "app_id already registered by another developer", "APP_OWNER_MISMATCH", input.req);
     }
     if (input.mode === "register") {

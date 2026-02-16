@@ -1,5 +1,6 @@
 export { createHostSDK, createMiniAppSDK } from "./client.js";
 export { createAdminSDK, AdminSDK } from "./admin.js";
+export { installMiniAppSDK } from "./window.js";
 
 // Core types
 export type { ContractParam, InvocationIntent, MiniAppSDK, MiniAppSDKConfig, HostSDK, MiniAppUsage, MiniAppUsageResponse } from "./types.js";

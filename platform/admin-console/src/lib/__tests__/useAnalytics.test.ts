@@ -34,7 +34,7 @@ describe("useAnalytics Hooks", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith("/api/analytics", { headers: {} });
+      expect(global.fetch).toHaveBeenCalledWith("/api/analytics", expect.objectContaining({ headers: {} }));
     });
 
     it("should handle analytics fetch error", async () => {
@@ -66,7 +66,7 @@ describe("useAnalytics Hooks", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(result.current.data).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith("/api/analytics/by-app", { headers: {} });
+      expect(global.fetch).toHaveBeenCalledWith("/api/analytics/by-app", expect.objectContaining({ headers: {} }));
     });
 
     it("should handle usage by app fetch error", async () => {

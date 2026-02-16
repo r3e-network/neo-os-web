@@ -38,6 +38,10 @@ type MiniAppSDK = {
   };
 };
 
+interface WindowWithSDK extends Window {
+  MiniAppSDK?: MiniAppSDK;
+}
+
 export type BuiltinAppProps = {
   appId?: string;
   view?: string;
@@ -68,7 +72,7 @@ function useMiniAppSDK(): MiniAppSDK | null {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const update = () => setSdk((window as any).MiniAppSDK ?? null);
+    const update = () => setSdk((window as WindowWithSDK).MiniAppSDK ?? null);
     update();
     window.addEventListener("miniapp-sdk-ready", update);
     return () => window.removeEventListener("miniapp-sdk-ready", update);
@@ -147,7 +151,7 @@ function randomIndexFromHex(hex: string | undefined, modulo: number): number {
   let value = 0;
   const limit = Math.min(bytes.length, 6);
   for (let index = 0; index < limit; index += 1) {
-    value = (value << 8) + bytes[index];
+    value = value * 256 + bytes[index];
   }
   return value % modulo;
 }
@@ -183,19 +187,22 @@ function PriceTickerPanel({ sdk }: PanelProps) {
       setPriceResult(res);
       setStatus({ tone: "success", message: "Price updated." });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String(err instanceof Error ? err.message : err) });
     } finally {
       setIsLoading(false);
     }
   }, [sdk, symbol]);
 
+  const refreshPriceRef = { current: refreshPrice };
+  refreshPriceRef.current = refreshPrice;
+
   useEffect(() => {
     if (!autoRefresh) return;
     const id = window.setInterval(() => {
-      refreshPrice();
+      refreshPriceRef.current();
     }, 5000);
     return () => window.clearInterval(id);
-  }, [autoRefresh, refreshPrice]);
+  }, [autoRefresh]);
 
   useEffect(() => {
     if (!sdk) return;
@@ -342,9 +349,12 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
       if (sdk.wallet?.invokeIntent) {
         try {
           const tx = await sdk.wallet.invokeIntent(intent.request_id);
-          setLastTx(JSON.stringify(tx, null, 2));
+          const safeTx = typeof tx === "object" && tx !== null
+            ? { txid: (tx as Record<string, unknown>).txid ?? (tx as Record<string, unknown>).hash ?? "unknown" }
+            : tx;
+          setLastTx(JSON.stringify(safeTx, null, 2));
         } catch (err) {
-          setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+          setStatus({ tone: "error", message: String(err instanceof Error ? err.message : err) });
         }
       }
 
@@ -381,7 +391,7 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
           : `Result: ${result}. Better luck next round.`,
       });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String(err instanceof Error ? err.message : err) });
     } finally {
       setIsBusy(false);
     }
@@ -507,7 +517,7 @@ function LotteryPanel({ sdk, appId }: PanelProps) {
       setOwnedTickets((prev) => prev + ticketCount);
       setStatus({ tone: "success", message: "Tickets purchased. Ready for draw." });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String(err instanceof Error ? err.message : err) });
     } finally {
       setIsBusy(false);
     }
@@ -536,7 +546,7 @@ function LotteryPanel({ sdk, appId }: PanelProps) {
       setDrawResult(message);
       setStatus({ tone: isWinner ? "success" : "error", message });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String(err instanceof Error ? err.message : err) });
     } finally {
       setIsBusy(false);
     }
@@ -635,7 +645,7 @@ function PredictionMarketPanel({ sdk, appId }: PanelProps) {
       setResult(`${summary} Outcome: ${outcome.toUpperCase()}.`);
       setStatus({ tone: won ? "success" : "error", message: summary });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String(err instanceof Error ? err.message : err) });
     } finally {
       setIsBusy(false);
     }
@@ -728,7 +738,7 @@ function FlashloanPanel({ sdk, appId }: PanelProps) {
       setResult(summary);
       setStatus({ tone: "success", message: summary });
     } catch (err) {
-      setStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setStatus({ tone: "error", message: String(err instanceof Error ? err.message : err) });
     } finally {
       setIsBusy(false);
     }
@@ -905,7 +915,7 @@ export default function BuiltinApp({ appId, view }: BuiltinAppProps) {
       setWalletAddress(address);
       setWalletStatus({ tone: "success", message: "Wallet connected." });
     } catch (err) {
-      setWalletStatus({ tone: "error", message: String((err as any)?.message ?? err) });
+      setWalletStatus({ tone: "error", message: err instanceof Error ? err.message : String(err) });
     }
   }, [sdk]);
 

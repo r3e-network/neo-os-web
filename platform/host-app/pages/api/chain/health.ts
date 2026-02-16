@@ -1,7 +1,8 @@
+import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const NEO_RPC_TESTNET = "https://testnet1.neo.coz.io:443";
-const NEO_RPC_MAINNET = "https://mainnet1.neo.coz.io:443";
+const NEO_RPC_TESTNET = process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443";
+const NEO_RPC_MAINNET = process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443";
 
 interface ChainHealth {
   network: "testnet" | "mainnet";
@@ -13,7 +14,7 @@ interface ChainHealth {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
 
   const network = (req.query.network as string) || "testnet";
@@ -23,14 +24,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const health = await checkChainHealth(rpcUrl, network as "testnet" | "mainnet");
     return res.status(200).json(health);
   } catch (err) {
-    return res.status(500).json({
-      error: "Failed to check chain health",
-      details: err instanceof Error ? err.message : "Unknown error",
-    });
+    return apiError.internal(res, err instanceof Error ? `Failed to check chain health: ${err.message}` : "Failed to check chain health");
   }
 }
 
 async function checkChainHealth(rpcUrl: string, network: "testnet" | "mainnet"): Promise<ChainHealth> {
+  const rpcTimeout = 10000;
+
   // Get block count
   const blockRes = await fetch(rpcUrl, {
     method: "POST",
@@ -41,6 +41,7 @@ async function checkChainHealth(rpcUrl: string, network: "testnet" | "mainnet"):
       params: [],
       id: 1,
     }),
+    signal: AbortSignal.timeout(rpcTimeout),
   });
   const blockData = await blockRes.json();
   const blockHeight = blockData.result || 0;
@@ -55,6 +56,7 @@ async function checkChainHealth(rpcUrl: string, network: "testnet" | "mainnet"):
       params: [blockHeight - 1, true],
       id: 2,
     }),
+    signal: AbortSignal.timeout(rpcTimeout),
   });
   const headerData = await headerRes.json();
   const lastBlockTime = headerData.result?.time || 0;

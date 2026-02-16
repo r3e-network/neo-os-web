@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl, isEdgeRpcAllowed } from "../../../lib/edge";
+import { apiError } from "@/lib/api-response";
+import { standardLimit } from "@/lib/rate-limit";
 
 /** Parsed JSON body with optional function name fields */
 interface RPCJsonBody {
@@ -9,10 +11,21 @@ interface RPCJsonBody {
   [key: string]: unknown;
 }
 
+const MAX_BODY_SIZE = 256 * 1024; // 256 KB
+
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
+  let totalSize = 0;
   await new Promise<void>((resolve, reject) => {
-    req.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+    req.on("data", (chunk) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      totalSize += buf.length;
+      if (totalSize > MAX_BODY_SIZE) {
+        reject(new Error("Request body too large"));
+        return;
+      }
+      chunks.push(buf);
+    });
     req.on("end", () => resolve());
     req.on("error", reject);
   });
@@ -39,10 +52,12 @@ function extractFnFromJsonBody(rawBody: Buffer | undefined, contentType: string)
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
+
   let fn = String(req.query.fn ?? "").trim();
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
-    res.status(500).json({ error: "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured" });
+    apiError.internal(res, "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured");
     return;
   }
 
@@ -61,11 +76,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (!fn) {
-    res.status(400).json({ error: "function name required" });
+    apiError.badRequest(res, "function name required");
     return;
   }
   if (!isEdgeRpcAllowed(fn)) {
-    res.status(403).json({ error: "function not allowed" });
+    apiError.forbidden(res, "function not allowed");
     return;
   }
 
@@ -81,20 +96,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const headers = forwardEdgeRpcHeaders(req);
 
-  const upstream = await fetch(url.toString(), {
-    method,
-    headers,
-    body,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  try {
+    const upstream = await fetch(url.toString(), {
+      method,
+      headers,
+      body,
+      signal: controller.signal,
+    });
 
-  res.status(upstream.status);
-  upstream.headers.forEach((value, key) => {
-    if (key === "transfer-encoding" || key === "connection") return;
-    res.setHeader(key, value);
-  });
+    res.status(upstream.status);
+    upstream.headers.forEach((value, key) => {
+      if (key === "transfer-encoding" || key === "connection") return;
+      res.setHeader(key, value);
+    });
 
-  const buf = Buffer.from(await upstream.arrayBuffer());
-  res.send(buf);
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.send(buf);
+  } catch (err) {
+    if (controller.signal.aborted) {
+      apiError.gatewayError(res, "upstream request timed out");
+    } else {
+      apiError.gatewayError(res, "upstream request failed");
+    }
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export const config = {

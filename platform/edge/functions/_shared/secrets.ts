@@ -1,4 +1,4 @@
-import { mustGetEnv } from "./env.ts";
+import { isProductionEnv, mustGetEnv } from "./env.ts";
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -43,8 +43,12 @@ function normalizeMasterKey(raw: string): Uint8Array {
     if (decoded.length === 32) return decoded;
   }
 
-  // Backward-compatible: allow 32-char plaintext keys for dev.
-  if (trimmed.length === 32) return textEncoder.encode(trimmed);
+  // Backward-compatible: allow 32-char plaintext keys for dev only.
+  const isProduction = isProductionEnv();
+  if (trimmed.length === 32 && !isProduction) return textEncoder.encode(trimmed);
+  if (trimmed.length === 32 && isProduction) {
+    throw new Error("SECRETS_MASTER_KEY must be 64 hex chars in production (plaintext keys not allowed)");
+  }
 
   throw new Error("SECRETS_MASTER_KEY must be 32 bytes (or 64 hex chars)");
 }

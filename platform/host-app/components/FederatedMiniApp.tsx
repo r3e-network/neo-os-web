@@ -1,4 +1,4 @@
-import React, { Component, ReactNode, useEffect, useState, useRef } from "react";
+import React, { Component, ReactNode, useEffect, useState } from "react";
 
 type Props = {
   remote?: string;
@@ -38,7 +38,7 @@ class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: E
     if (!this.state.error) return this.props.children;
 
     return (
-      <div style={errorStyle}>
+      <div style={errorStyle} role="alert">
         <div style={errorTitleStyle}>Failed to load federated MiniApp</div>
         <div style={errorTextStyle}>{this.state.error.message}</div>
       </div>
@@ -102,10 +102,10 @@ function FederatedLoader({ remote, appId, view }: Props) {
     };
   }, [remote]);
 
-  if (loading) return <p style={loadingStyle}>Loading federated MiniApp…</p>;
+  if (loading) return <p style={loadingStyle} aria-busy="true">Loading federated MiniApp…</p>;
   if (error) {
     return (
-      <div style={errorStyle}>
+      <div style={errorStyle} role="alert">
         <div style={errorTitleStyle}>Failed to load federated MiniApp</div>
         <div style={errorTextStyle}>{error}</div>
       </div>

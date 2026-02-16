@@ -1,15 +1,24 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { ForumReply } from "@/components/features/forum/types";
+import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
+import { withCsrfProtection } from "@/lib/csrf";
 
 // In-memory store
 const repliesStore: Map<string, ForumReply[]> = new Map();
 let replyIdCounter = 1;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_INMEMORY_STORE) {
+    return sendError(res, 503, "In-memory store not available in production", ErrorCodes.INTERNAL_ERROR);
+  }
+
   const { appId, threadId } = req.query;
 
   if (!appId || !threadId || typeof threadId !== "string") {
-    return res.status(400).json({ error: "Missing parameters" });
+    return apiError.badRequest(res, "Missing parameters");
+  }
+  if (typeof appId === "string" && !/^[a-z0-9][a-z0-9_-]*$/.test(appId)) {
+    return apiError.badRequest(res, "Invalid appId format");
   }
 
   if (req.method === "GET") {
@@ -20,8 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return createReply(threadId, req, res);
   }
 
-  return res.status(405).json({ error: "Method not allowed" });
+  return apiError.methodNotAllowed(res);
 }
+
+export default withCsrfProtection(handler);
 
 function getReplies(threadId: string, req: NextApiRequest, res: NextApiResponse) {
   const replies = repliesStore.get(threadId) || [];
@@ -31,8 +42,11 @@ function getReplies(threadId: string, req: NextApiRequest, res: NextApiResponse)
 function createReply(threadId: string, req: NextApiRequest, res: NextApiResponse) {
   const { wallet, content } = req.body;
 
-  if (!wallet || !content?.trim()) {
-    return res.status(400).json({ error: "Missing fields" });
+  if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+    return apiError.badRequest(res, "Invalid wallet address");
+  }
+  if (!content || typeof content !== "string" || !content.trim()) {
+    return apiError.badRequest(res, "Missing content");
   }
 
   if (!repliesStore.has(threadId)) {

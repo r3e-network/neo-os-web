@@ -1,14 +1,23 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { SocialRating } from "@/components/types";
+import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
+import { withCsrfProtection } from "@/lib/csrf";
 
 // In-memory store for demo (replace with Supabase in production)
 const ratingsStore: Map<string, Map<string, { value: number; review?: string }>> = new Map();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
 
   if (!appId || typeof appId !== "string") {
-    return res.status(400).json({ error: "Missing appId" });
+    return apiError.badRequest(res, "Missing appId");
+  }
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(appId)) {
+    return apiError.badRequest(res, "Invalid appId format");
+  }
+
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_INMEMORY_STORE) {
+    return sendError(res, 503, "In-memory store not available in production", ErrorCodes.INTERNAL_ERROR);
   }
 
   if (req.method === "GET") {
@@ -19,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return submitRating(appId, req, res);
   }
 
-  return res.status(405).json({ error: "Method not allowed" });
+  return apiError.methodNotAllowed(res);
 }
 
 function getRatings(appId: string, req: NextApiRequest, res: NextApiResponse) {
@@ -57,8 +66,11 @@ function getRatings(appId: string, req: NextApiRequest, res: NextApiResponse) {
 function submitRating(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const { wallet, value, review } = req.body;
 
-  if (!wallet || typeof value !== "number" || value < 1 || value > 5) {
-    return res.status(400).json({ error: "Invalid rating data" });
+  if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+    return apiError.badRequest(res, "Invalid wallet address");
+  }
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 5) {
+    return apiError.badRequest(res, "Invalid rating value");
   }
 
   if (!ratingsStore.has(appId)) {
@@ -69,3 +81,5 @@ function submitRating(appId: string, req: NextApiRequest, res: NextApiResponse) 
 
   return res.status(201).json({ success: true });
 }
+
+export default withCsrfProtection(handler);

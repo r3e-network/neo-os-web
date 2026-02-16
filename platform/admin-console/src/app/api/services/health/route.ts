@@ -4,33 +4,17 @@
 
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
+import { PLATFORM_SERVICES, HEALTH_CHECK_TIMEOUT_MS } from "@/lib/constants";
 import type { ServiceHealth } from "@/types";
-
-const SERVICES = [
-  { name: "neofeeds", url: "http://neofeeds.service-layer.svc.cluster.local:8080" },
-  { name: "neoaccounts", url: "http://neoaccounts.service-layer.svc.cluster.local:8085" },
-  { name: "confcompute", url: "http://confcompute.service-layer.svc.cluster.local:8081" },
-  { name: "conforacle", url: "http://conforacle.service-layer.svc.cluster.local:8082" },
-  { name: "datafeed", url: "http://datafeed.service-layer.svc.cluster.local:8083" },
-  { name: "vrf", url: "http://vrf.service-layer.svc.cluster.local:8084" },
-  { name: "automation", url: "http://automation.service-layer.svc.cluster.local:8086" },
-  { name: "gasbank", url: "http://gasbank.service-layer.svc.cluster.local:8087" },
-  { name: "edge-gateway", url: "http://edge-gateway.platform.svc.cluster.local:8787" },
-];
 
 async function checkServiceHealth(name: string, url: string): Promise<ServiceHealth> {
   const lastCheck = new Date().toISOString();
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
     const response = await fetch(`${url}/health`, {
-      signal: controller.signal,
+      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
       headers: { "Content-Type": "application/json" },
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return {
@@ -68,7 +52,12 @@ export async function GET(req: Request) {
   if (authError) return authError;
 
   try {
-    const healthChecks = await Promise.all(SERVICES.map((service) => checkServiceHealth(service.name, service.url)));
+    const results = await Promise.allSettled(PLATFORM_SERVICES.map((service) => checkServiceHealth(service.name, service.url)));
+    const healthChecks = results.map((r, i) =>
+      r.status === "fulfilled"
+        ? r.value
+        : { name: PLATFORM_SERVICES[i].name, status: "unhealthy" as const, url: PLATFORM_SERVICES[i].url, lastCheck: new Date().toISOString(), error: r.reason?.message || "Health check failed" },
+    );
 
     return NextResponse.json(healthChecks);
   } catch (error) {

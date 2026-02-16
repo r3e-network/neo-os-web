@@ -6,8 +6,8 @@
 import type { MiniAppStats, MiniAppLiveStatus, ContractEvent } from "./types";
 
 const NEO_RPC = {
-  testnet: "https://testnet1.neo.coz.io:443",
-  mainnet: "https://mainnet1.neo.coz.io:443",
+  testnet: process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443",
+  mainnet: process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443",
 };
 
 // Cache for stats (refreshed periodically)
@@ -22,6 +22,7 @@ async function rpcCall(network: "testnet" | "mainnet", method: string, params: u
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+    signal: AbortSignal.timeout(10000),
   });
   const data = await res.json();
   return data.result;

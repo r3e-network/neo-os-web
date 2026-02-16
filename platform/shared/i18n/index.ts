@@ -23,9 +23,13 @@ export const LOCALE_STORAGE_KEY = "neo-miniapp-locale";
 export function getStoredLocale(): Locale {
   if (typeof window === "undefined") return defaultLocale;
 
-  const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-  if (stored && locales.includes(stored as Locale)) {
-    return stored as Locale;
+  try {
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+    if (stored && locales.includes(stored as Locale)) {
+      return stored as Locale;
+    }
+  } catch {
+    return defaultLocale;
   }
 
   // Check browser language
@@ -42,7 +46,11 @@ export function getStoredLocale(): Locale {
  */
 export function setStoredLocale(locale: Locale): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // localStorage may be unavailable (private browsing, storage full, etc.)
+  }
 }
 
 /**

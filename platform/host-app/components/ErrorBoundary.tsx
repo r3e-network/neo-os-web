@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import { logger } from "@/lib/logger";
 
 interface Props {
   children: ReactNode;
@@ -27,17 +28,16 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log error to monitoring service in production
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    logger.error("ErrorBoundary caught an error:", error);
 
     this.setState({
       error,
       errorInfo,
     });
 
-    // In production, send to error tracking service
-    if (process.env.NODE_ENV === "production") {
-      // TODO: Send to Sentry, LogRocket, etc.
-      // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
+    // In production, send to error tracking service if configured
+    if (process.env.NODE_ENV === "production" && typeof window !== "undefined") {
+      // Integrate Sentry/LogRocket here when available
     }
   }
 

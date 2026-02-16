@@ -10,6 +10,9 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
+import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
+import { relaxedLimit } from "@/lib/rate-limit";
 
 interface PlatformStats {
   totalUsers: number;
@@ -30,8 +33,9 @@ const PLATFORM_NEP17_TRANSFERS = parseInt(process.env.PLATFORM_NEP17_TRANSFERS |
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return apiError.methodNotAllowed(res);
   }
+  if (relaxedLimit(req, res)) return;
 
   try {
     const stats: PlatformStats = {
@@ -52,11 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { count: simTxCount } = await supabase.from("simulation_txs").select("*", { count: "exact", head: true });
     const { count: serviceCount } = await supabase.from("service_requests").select("*", { count: "exact", head: true });
     const { count: eventsCount } = await supabase.from("contract_events").select("*", { count: "exact", head: true });
-
-    // Log Supabase counts for debugging (actual chain has more transactions)
-    // Supabase total: ~93k, Chain explorer: ~445k
-    const supabaseTotal = (simTxCount || 0) + (serviceCount || 0) + (eventsCount || 0);
-    console.log(`Supabase records: ${supabaseTotal}, Chain explorer: ${PLATFORM_TX_COUNT}`);
 
     // Get unique users from simulation_txs (primary source)
     const { data: simTxUsers } = await supabase
@@ -121,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json(stats);
   } catch (error) {
-    console.error("Stats API error:", error);
-    res.status(500).json({ error: "Failed to fetch stats" });
+    logger.error("Stats API error:", error);
+    apiError.internal(res, "Failed to fetch stats");
   }
 }

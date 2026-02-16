@@ -28,8 +28,12 @@ export function validateCsrfToken(req: NextApiRequest): boolean {
     return false;
   }
 
-  // Use timing-safe comparison to prevent timing attacks
-  return crypto.timingSafeEqual(Buffer.from(tokenFromHeader), Buffer.from(tokenFromCookie));
+  const a = Buffer.from(tokenFromHeader);
+  const b = Buffer.from(tokenFromCookie);
+  if (a.length !== b.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(a, b);
 }
 
 /**
@@ -52,6 +56,6 @@ export function withCsrfProtection(handler: (req: NextApiRequest, res: NextApiRe
 export function setCsrfCookie(res: NextApiResponse, token: string): void {
   res.setHeader(
     "Set-Cookie",
-    `${CSRF_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Secure=${process.env.NODE_ENV === "production"}`,
+    `${CSRF_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
   );
 }

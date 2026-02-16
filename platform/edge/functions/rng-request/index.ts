@@ -55,15 +55,16 @@ export async function handler(req: Request): Promise<Response> {
   );
   if (vrfResult instanceof Response) return vrfResult;
 
-  const responseId = String((vrfResult as any)?.request_id ?? "").trim();
+  const vrf = vrfResult as Record<string, unknown>;
+  const responseId = String(vrf?.request_id ?? "").trim();
   if (responseId && responseId !== requestId) {
     return error(502, "vrf request_id mismatch", "RNG_REQUEST_ID_MISMATCH", req);
   }
 
-  const randomnessHex = String((vrfResult as any)?.randomness ?? "").trim();
-  const signatureHex = String((vrfResult as any)?.signature ?? "").trim();
-  const publicKeyHex = String((vrfResult as any)?.public_key ?? "").trim();
-  const attestationHex = String((vrfResult as any)?.attestation_hash ?? "").trim();
+  const randomnessHex = String(vrf?.randomness ?? "").trim();
+  const signatureHex = String(vrf?.signature ?? "").trim();
+  const publicKeyHex = String(vrf?.public_key ?? "").trim();
+  const attestationHex = String(vrf?.attestation_hash ?? "").trim();
   if (!/^[0-9a-fA-F]+$/.test(randomnessHex) || randomnessHex.length < 2) {
     return error(502, "invalid randomness output", "RNG_INVALID_OUTPUT", req);
   }

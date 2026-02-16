@@ -74,7 +74,8 @@ export class AdminSDK {
     const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
     const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`, { headers });
     if (!response.ok) {
-      throw new Error(`Failed to fetch services health: ${response.statusText}`);
+      const errBody = await response.text().catch(() => "");
+      throw new Error(`Failed to fetch services health: ${response.status} ${response.statusText} - ${errBody}`);
     }
     return response.json();
   }
@@ -86,7 +87,8 @@ export class AdminSDK {
     const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
     const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, { headers });
     if (!response.ok) {
-      throw new Error(`Failed to fetch analytics: ${response.statusText}`);
+      const errBody = await response.text().catch(() => "");
+      throw new Error(`Failed to fetch analytics: ${response.status} ${response.statusText} - ${errBody}`);
     }
     return response.json();
   }
@@ -95,14 +97,18 @@ export class AdminSDK {
    * Fetch all registered MiniApps
    */
   async getMiniApps(): Promise<MiniAppListResponse[]> {
+    if (!this.config.serviceRoleKey) {
+      throw new Error("serviceRoleKey is required for admin operations");
+    }
     const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?select=*&order=created_at.desc`, {
       headers: {
-        apikey: this.config.serviceRoleKey || "",
-        Authorization: `Bearer ${this.config.serviceRoleKey || ""}`,
+        apikey: this.config.serviceRoleKey,
+        Authorization: `Bearer ${this.config.serviceRoleKey}`,
       },
     });
     if (!response.ok) {
-      throw new Error(`Failed to fetch MiniApps: ${response.statusText}`);
+      const errBody = await response.text().catch(() => "");
+      throw new Error(`Failed to fetch MiniApps: ${response.status} ${response.statusText} - ${errBody}`);
     }
     return response.json();
   }
@@ -111,14 +117,18 @@ export class AdminSDK {
    * Fetch all users
    */
   async getUsers(): Promise<UserListResponse[]> {
+    if (!this.config.serviceRoleKey) {
+      throw new Error("serviceRoleKey is required for admin operations");
+    }
     const response = await fetch(`${this.config.supabaseUrl}/rest/v1/users?select=*&order=created_at.desc`, {
       headers: {
-        apikey: this.config.serviceRoleKey || "",
-        Authorization: `Bearer ${this.config.serviceRoleKey || ""}`,
+        apikey: this.config.serviceRoleKey,
+        Authorization: `Bearer ${this.config.serviceRoleKey}`,
       },
     });
     if (!response.ok) {
-      throw new Error(`Failed to fetch users: ${response.statusText}`);
+      const errBody = await response.text().catch(() => "");
+      throw new Error(`Failed to fetch users: ${response.status} ${response.statusText} - ${errBody}`);
     }
     return response.json();
   }
@@ -127,17 +137,21 @@ export class AdminSDK {
    * Update MiniApp status
    */
   async updateMiniAppStatus(appId: string, status: "active" | "disabled"): Promise<void> {
-    const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?app_id=eq.${appId}`, {
+    if (!this.config.serviceRoleKey) {
+      throw new Error("serviceRoleKey is required for admin operations");
+    }
+    const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?app_id=eq.${encodeURIComponent(appId)}`, {
       method: "PATCH",
       headers: {
-        apikey: this.config.serviceRoleKey || "",
-        Authorization: `Bearer ${this.config.serviceRoleKey || ""}`,
+        apikey: this.config.serviceRoleKey,
+        Authorization: `Bearer ${this.config.serviceRoleKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ status }),
     });
     if (!response.ok) {
-      throw new Error(`Failed to update MiniApp status: ${response.statusText}`);
+      const errBody = await response.text().catch(() => "");
+      throw new Error(`Failed to update MiniApp status: ${response.status} ${response.statusText} - ${errBody}`);
     }
   }
 }
