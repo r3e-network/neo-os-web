@@ -78,14 +78,15 @@ export default function EnhancedStatsPage() {
   }, []);
 
   // Auto-increment transactions every 3 seconds (10-20 tx)
+  const hasTxCount = displayedTxCount > 0;
   useEffect(() => {
-    if (displayedTxCount === 0) return;
+    if (!hasTxCount) return;
     const interval = setInterval(() => {
       const increment = Math.floor(Math.random() * 11) + 10; // 10-20
       setDisplayedTxCount((prev) => prev + increment);
     }, 3000);
     return () => clearInterval(interval);
-  }, [displayedTxCount > 0]);
+  }, [hasTxCount]);
 
   // Default values when loading or no data
   const totalUsers = stats?.totalUsers || 0;
