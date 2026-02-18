@@ -68,13 +68,16 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   // Always upsert linked_neo_accounts to handle race conditions
-  await supabase.from("linked_neo_accounts").upsert({
+  const { error: linkAcctErr } = await supabase.from("linked_neo_accounts").upsert({
     neohub_account_id: accountId,
     address,
     public_key,
     is_primary: true,
     linked_at: new Date().toISOString(),
   }, { onConflict: "neohub_account_id,address" });
+  if (linkAcctErr) {
+    return error(500, "failed to link wallet", "AUTH_ERROR", req);
+  }
 
   // Create or get Supabase Auth user
   const email = `${address}@wallet.neo`;
