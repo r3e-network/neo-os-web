@@ -78,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       linkedAt: new Date().toISOString(),
     });
   } catch (err) {
-    return sendError(res, err instanceof Error ? err.message : "OAuth failed");
+    return sendError(res, "OAuth failed");
   }
 }
 
