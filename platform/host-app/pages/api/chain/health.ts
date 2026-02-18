@@ -1,5 +1,6 @@
 import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
 const NEO_RPC_TESTNET = process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443";
@@ -27,7 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const health = await checkChainHealth(rpcUrl, network as "testnet" | "mainnet");
     return res.status(200).json(health);
   } catch (err) {
-    return apiError.internal(res, err instanceof Error ? `Failed to check chain health: ${err.message}` : "Failed to check chain health");
+    logger.error("Chain health check failed:", err);
+    return apiError.internal(res, "Failed to check chain health");
   }
 }
 

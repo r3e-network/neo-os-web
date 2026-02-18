@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(stats);
   } catch (err) {
     logger.error("Explorer stats error:", err);
-    return apiError.internal(res, err instanceof Error ? `Failed to fetch stats: ${err.message}` : "Failed to fetch stats");
+    return apiError.internal(res, "Failed to fetch stats");
   }
 }
 

@@ -104,7 +104,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   } catch (error) {
     logger.error("Submit error:", error);
-    apiError.internal(res, "Failed to submit MiniApp");
+    return apiError.internal(res, "Failed to submit MiniApp");
   }
 }
 

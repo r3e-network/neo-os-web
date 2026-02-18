@@ -94,6 +94,7 @@ export async function handler(req: Request): Promise<Response> {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Service-ID": "auth-social-sync" },
         body: JSON.stringify({ user_id: accountId }),
+        signal: AbortSignal.timeout(10000),
       });
       if (poolResp.ok) {
         const { address } = await poolResp.json();
