@@ -61,7 +61,7 @@ async function loadAppScript(
 
     const manifest: Manifest = await manifestRes.json();
     const scriptInfo = manifest.tee_scripts?.[scriptName];
-    if (!scriptInfo) return null;
+    if (!scriptInfo || !scriptInfo.file || /\.\./.test(scriptInfo.file)) return null;
 
     const scriptUrl = `${SCRIPTS_BASE_URL}/apps/${appId}/${scriptInfo.file}`;
     const scriptRes = await fetch(scriptUrl, { signal: AbortSignal.timeout(10000) });
@@ -105,11 +105,11 @@ export async function handler(req: Request): Promise<Response> {
   const appId = String(body.app_id ?? "").trim();
   const scriptName = String(body.script_name ?? "").trim();
 
-  if (!appId) {
-    return error(400, "app_id required", "APP_ID_REQUIRED", req);
+  if (!appId || !/^[a-zA-Z0-9_-]+$/.test(appId)) {
+    return error(400, "app_id required (alphanumeric, dash, underscore only)", "APP_ID_REQUIRED", req);
   }
-  if (!scriptName) {
-    return error(400, "script_name required", "SCRIPT_NAME_REQUIRED", req);
+  if (!scriptName || !/^[a-zA-Z0-9_-]+$/.test(scriptName)) {
+    return error(400, "script_name required (alphanumeric, dash, underscore only)", "SCRIPT_NAME_REQUIRED", req);
   }
 
   // Load script from app manifest

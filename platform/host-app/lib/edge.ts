@@ -105,8 +105,9 @@ export function resolveInternalBaseUrl(req?: RequestLike): string {
   const host = req?.headers?.host;
   if (host) {
     const protoHeader = req?.headers?.["x-forwarded-proto"];
-    const proto = Array.isArray(protoHeader) ? protoHeader[0] : protoHeader;
-    return `${proto || "http"}://${host}`;
+    const rawProto = Array.isArray(protoHeader) ? protoHeader[0] : protoHeader;
+    const proto = rawProto === "https" ? "https" : "http";
+    return `${proto}://${host}`;
   }
 
   // In production, this should never be reached as host header is always present
