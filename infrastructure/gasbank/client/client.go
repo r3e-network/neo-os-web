@@ -7,9 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 const (
@@ -85,7 +86,7 @@ func (c *Client) DeductFee(ctx context.Context, req *DeductFeeRequest) (*DeductF
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := httputil.ReadAllStrict(resp.Body, 64<<10)
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
@@ -139,7 +140,7 @@ func (c *Client) GetAccount(ctx context.Context, userID string) (*GetAccountResp
 		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := httputil.ReadAllStrict(resp.Body, 64<<10)
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
