@@ -58,7 +58,7 @@ export async function GET(req: Request) {
           signal: AbortSignal.timeout(fetchTimeout),
         }),
         fetch(
-          `${SUPABASE_URL}/rest/v1/miniapp_usage?usage_date=gte.${sevenDaysAgo}&select=usage_date,gas_used&order=usage_date.asc`,
+          `${SUPABASE_URL}/rest/v1/miniapp_usage?usage_date=gte.${sevenDaysAgo}&select=usage_date,gas_used&order=usage_date.asc&limit=10000`,
           {
             headers: defaultHeaders,
             signal: AbortSignal.timeout(fetchTimeout),

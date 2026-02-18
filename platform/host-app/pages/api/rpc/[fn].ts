@@ -42,10 +42,21 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries: num
   throw lastError;
 }
 
+const MAX_BODY_SIZE = 256 * 1024; // 256 KB
+
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
+  let totalSize = 0;
   await new Promise<void>((resolve, reject) => {
-    req.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+    req.on("data", (chunk) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      totalSize += buf.length;
+      if (totalSize > MAX_BODY_SIZE) {
+        reject(new Error("Request body too large"));
+        return;
+      }
+      chunks.push(buf);
+    });
     req.on("end", () => resolve());
     req.on("error", reject);
   });
