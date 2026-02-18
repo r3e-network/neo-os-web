@@ -18,6 +18,9 @@ type MiniAppRow = {
   limits?: Record<string, unknown> | null;
   news_integration?: boolean | null;
   stats_display?: string[] | null;
+  logo_url?: string | null;
+  banner_url?: string | null;
+  docs_url?: string | null;
 };
 
 type MiniAppStatsRow = {
@@ -60,7 +63,7 @@ async function fetchMiniAppsFromSupabase(status: MiniAppStatus): Promise<MiniApp
   if (!supabaseURL || !authHeaders) return [];
 
   const params = new URLSearchParams({
-    select: "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,news_integration,stats_display",
+    select: "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,news_integration,stats_display,logo_url,banner_url,docs_url",
     status: `eq.${status}`,
     order: "updated_at.desc",
     limit: "500",

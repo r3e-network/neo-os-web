@@ -91,11 +91,18 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   const statsDisplay = normalizeStatsDisplay(obj.stats_display) ?? fallback?.stats_display;
   const status = normalizeStatus(obj.status, fallback?.status);
 
+  const logoUrl = toString(obj.logo_url ?? fallback?.logo_url ?? "").trim() || null;
+  const bannerUrl = toString(obj.banner_url ?? fallback?.banner_url ?? "").trim() || null;
+  const docsUrl = toString(obj.docs_url ?? fallback?.docs_url ?? "").trim() || null;
+
   return {
     app_id: appId,
     name,
     description,
     icon,
+    logo_url: logoUrl,
+    banner_url: bannerUrl,
+    docs_url: docsUrl,
     category,
     entry_url: entryUrl,
     contract_hash: contractHash || null,
