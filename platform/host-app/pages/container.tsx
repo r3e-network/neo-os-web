@@ -52,6 +52,14 @@ export default function ContainerPage({ appId, app }: ContainerPageProps) {
       permissions: appInfo.permissions,
       supportedChains: appInfo.supportedChains,
       chainContracts: appInfo.chainContracts,
+      uiConfig: appInfo.ui_config,
+      display:
+        appInfo.display ?? {
+          name: appInfo.name,
+          description: appInfo.description,
+          icon: appInfo.icon,
+          banner: appInfo.banner,
+        },
       layout,
     });
   }, [appInfo, storeChainId, layout]);

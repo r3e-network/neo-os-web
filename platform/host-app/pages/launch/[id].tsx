@@ -66,6 +66,16 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     [app, requestedChainId, storeChainId],
   );
   const contractAddress = useMemo(() => getContractForChain(app, effectiveChainId), [app, effectiveChainId]);
+  const displayConfig = useMemo(
+    () =>
+      app.display ?? {
+        name: app.name,
+        description: app.description,
+        icon: app.icon,
+        banner: app.banner,
+      },
+    [app.display, app.name, app.description, app.icon, app.banner],
+  );
   const chainType = useMemo(() => {
     if (!effectiveChainId) return undefined;
     return getChainRegistry().getChain(effectiveChainId)?.type;
@@ -105,9 +115,11 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       permissions: app.permissions,
       supportedChains: app.supportedChains,
       chainContracts: app.chainContracts,
+      uiConfig: app.ui_config,
+      display: displayConfig,
       layout,
     });
-  }, [app, effectiveChainId, contractAddress, chainType, layout]);
+  }, [app, effectiveChainId, contractAddress, chainType, layout, displayConfig]);
 
   useEffect(() => {
     if (!effectiveChainId) return;
@@ -254,6 +266,8 @@ export default function LaunchPage({ app }: LaunchPageProps) {
           permissions: app.permissions,
           supportedChains: app.supportedChains,
           chainContracts: app.chainContracts,
+          uiConfig: app.ui_config,
+          display: displayConfig,
           layout,
         });
       }
@@ -339,7 +353,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-  }, [app.app_id, app.chainContracts, app.supportedChains, app.permissions, contractAddress, iframeSrc, federated, entryUrl, effectiveChainId, chainType, layout]);
+  }, [app.app_id, app.chainContracts, app.supportedChains, app.permissions, contractAddress, iframeSrc, federated, entryUrl, effectiveChainId, chainType, layout, app.ui_config, displayConfig]);
 
   const handleBack = useCallback(() => {
     // Use browser history to go back

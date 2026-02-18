@@ -11,6 +11,7 @@ import type {
   MiniAppChainContracts,
   ChainId,
 } from "@/types/miniapp";
+import type { MiniAppDisplayConfig, MiniAppRuntimeConfig } from "@neo/shared/types/miniapp-runtime";
 
 function asObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -138,6 +139,163 @@ export function normalizeStatus(
   return fallback ?? null;
 }
 
+function normalizeDisplayConfig(
+  value: unknown,
+  fallback?: MiniAppDisplayConfig | null
+): MiniAppDisplayConfig | undefined {
+  const raw = asObject(value);
+  const normalized: MiniAppDisplayConfig = {
+    name: toString(raw.name ?? fallback?.name ?? "").trim() || undefined,
+    description: toString(raw.description ?? fallback?.description ?? "").trim() || undefined,
+    icon: toString(raw.icon ?? fallback?.icon ?? "").trim() || undefined,
+    banner: toString(raw.banner ?? fallback?.banner ?? "").trim() || undefined,
+  };
+
+  return Object.values(normalized).some(Boolean) ? normalized : undefined;
+}
+
+function normalizeRuntimeConfig(
+  value: unknown,
+  fallback?: MiniAppRuntimeConfig | null
+): MiniAppRuntimeConfig | undefined {
+  const raw = asObject(value);
+  const docsRaw = asObject(raw.docs ?? fallback?.docs);
+  const operationRaw = asObject(raw.operation ?? fallback?.operation);
+  const buttonsRaw = Array.isArray(raw.buttons) ? raw.buttons : Array.isArray(fallback?.buttons) ? fallback?.buttons : [];
+
+  const docs = docsRaw.title
+    ? {
+        title: toString(docsRaw.title).trim(),
+        subtitle: toString(docsRaw.subtitle ?? "").trim() || undefined,
+        steps: Array.isArray(docsRaw.steps)
+          ? docsRaw.steps.map((step) => toString(step).trim()).filter(Boolean)
+          : undefined,
+        features: Array.isArray(docsRaw.features)
+          ? docsRaw.features
+              .map((feature) => {
+                const item = asObject(feature);
+                const name = toString(item.name ?? "").trim();
+                const description = toString(item.description ?? item.desc ?? "").trim();
+                return name ? { name, description } : null;
+              })
+              .filter((item): item is { name: string; description: string } => Boolean(item))
+          : undefined,
+      }
+    : undefined;
+
+  const isValidFieldType = (fieldType: string): fieldType is "amount" | "address" | "select" | "toggle" | "number" | "text" =>
+    ["amount", "address", "select", "toggle", "number", "text"].includes(fieldType);
+  const isValidArgType = (argType: string): argType is "String" | "Integer" | "Boolean" | "Hash160" | "Any" =>
+    ["String", "Integer", "Boolean", "Hash160", "Any"].includes(argType);
+  const isValidSummaryFormat = (
+    format: string
+  ): format is "number" | "currency" | "percent" | "duration" => ["number", "currency", "percent", "duration"].includes(format);
+  const isValidButtonActionType = (actionType: string): actionType is "invoke" | "link" | "copy" =>
+    ["invoke", "link", "copy"].includes(actionType);
+  const isValidButtonVariant = (variant: string): variant is "primary" | "secondary" | "danger" =>
+    ["primary", "secondary", "danger"].includes(variant);
+
+  const operation = operationRaw.title
+    ? {
+        title: toString(operationRaw.title).trim(),
+        description: toString(operationRaw.description ?? "").trim() || undefined,
+        actionLabel: toString(operationRaw.actionLabel ?? "").trim() || undefined,
+        actionMethod: toString(operationRaw.actionMethod ?? "").trim() || undefined,
+        fields: Array.isArray(operationRaw.fields)
+          ? operationRaw.fields
+              .map((field) => {
+                const item = asObject(field);
+                const key = toString(item.key).trim();
+                const label = toString(item.label).trim();
+                if (!key || !label) return null;
+                const parsedFieldType = toString(item.type || "text");
+                const fieldType = isValidFieldType(parsedFieldType) ? parsedFieldType : "text";
+                const parsedArgType = toString(item.argType ?? "").trim();
+                const validationRaw = asObject(item.validation);
+                const validation = {
+                  ...(typeof validationRaw.min === "number" ? { min: validationRaw.min } : {}),
+                  ...(typeof validationRaw.max === "number" ? { max: validationRaw.max } : {}),
+                  ...(typeof validationRaw.pattern === "string" && validationRaw.pattern
+                    ? { pattern: validationRaw.pattern }
+                    : {}),
+                };
+                return {
+                  key,
+                  type: fieldType,
+                  label,
+                  placeholder: toString(item.placeholder ?? "").trim() || undefined,
+                  required: item.required === true,
+                  default: item.default as string | number | boolean | undefined,
+                  validation: Object.keys(validation).length > 0 ? validation : undefined,
+                  argType: isValidArgType(parsedArgType) ? parsedArgType : undefined,
+                  options: Array.isArray(item.options)
+                    ? item.options
+                        .map((option) => {
+                          const value = asObject(option);
+                          const optionValue = toString(value.value).trim();
+                          const optionLabel = toString(value.label).trim();
+                          if (!optionValue || !optionLabel) return null;
+                          return { value: optionValue, label: optionLabel };
+                        })
+                        .filter((option): option is { value: string; label: string } => Boolean(option))
+                    : undefined,
+                };
+              })
+              .filter((field): field is NonNullable<typeof field> => Boolean(field))
+          : [],
+        summary: Array.isArray(operationRaw.summary)
+          ? operationRaw.summary
+              .map((summary) => {
+                const item = asObject(summary);
+                const label = toString(item.label).trim();
+                const valueKey = toString(item.valueKey).trim();
+                if (!label || !valueKey) return null;
+                const parsedFormat = toString(item.format ?? "").trim();
+                return {
+                  label,
+                  valueKey,
+                  format: isValidSummaryFormat(parsedFormat) ? parsedFormat : undefined,
+                };
+              })
+              .filter((summary): summary is NonNullable<typeof summary> => Boolean(summary))
+          : undefined,
+      }
+    : undefined;
+
+  const buttons = buttonsRaw
+    .map((button) => {
+      const item = asObject(button);
+      const id = toString(item.id).trim();
+      const label = toString(item.label).trim();
+      const action = asObject(item.action);
+      const type = toString(action.type).trim();
+      if (!id || !label || !isValidButtonActionType(type)) return null;
+      const variant = toString(item.variant ?? "").trim();
+      return {
+        id,
+        label,
+        variant: isValidButtonVariant(variant) ? variant : undefined,
+        action: {
+          type,
+          method: toString(action.method ?? "").trim() || undefined,
+          href: toString(action.href ?? "").trim() || undefined,
+          copyText: toString(action.copyText ?? "").trim() || undefined,
+          openInNewTab: action.openInNewTab === true,
+          args: Array.isArray(action.args) ? action.args : undefined,
+        },
+      };
+    })
+    .filter((button): button is NonNullable<typeof button> => Boolean(button));
+
+  const runtime: MiniAppRuntimeConfig = {
+    ...(docs ? { docs } : {}),
+    ...(operation ? { operation } : {}),
+    ...(buttons.length > 0 ? { buttons } : {}),
+  };
+
+  return Object.keys(runtime).length > 0 ? runtime : undefined;
+}
+
 /**
  * Coerce raw data into a valid MiniAppInfo object
  * Returns null if required fields are missing
@@ -169,6 +327,18 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   );
   const limits = normalizeLimits(obj.limits ?? fallback?.limits, fallback?.limits);
   const status = normalizeStatus(obj.status, fallback?.status);
+  const metadata = asObject(obj.metadata ?? {});
+  const uiConfig = normalizeRuntimeConfig(obj.ui_config ?? metadata.ui_config, fallback?.ui_config);
+  const display = normalizeDisplayConfig(
+    obj.display ?? metadata.display,
+    {
+      name,
+      description,
+      icon,
+      banner: toString(obj.banner ?? obj.banner_url ?? fallback?.banner ?? "").trim() || undefined,
+    }
+  );
+  const resolvedBanner = banner || display?.banner;
 
   // Self-contained i18n fields
   const nameZh = toString(obj.name_zh ?? fallback?.name_zh ?? "").trim() || undefined;
@@ -182,7 +352,7 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     description,
     description_zh: descriptionZh,
     icon,
-    banner,
+    banner: resolvedBanner,
     category,
     entry_url: entryUrl,
     supportedChains,
@@ -190,6 +360,8 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     status: status ?? null,
     permissions,
     limits,
+    ui_config: uiConfig ?? null,
+    display: display ?? null,
   };
 }
 

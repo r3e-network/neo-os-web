@@ -106,7 +106,7 @@ export interface RegistryEntry {
   entry_url: string;
   category: string;
   version: string;
-  source_type: "external" | "internal";
+  source_type: "external" | "internal" | "registry";
   status: string;
   updated_at: string;
 }
@@ -171,4 +171,72 @@ export interface ApprovalResponse {
   submission_id: string;
   status: string;
   message: string;
+}
+
+/**
+ * Runtime-configurable UI schema for no-code miniapps.
+ */
+export interface RuntimeMiniAppConfig {
+  docs?: {
+    title: string;
+    subtitle?: string;
+    steps?: string[];
+    features?: Array<{ name: string; description: string }>;
+  };
+  operation?: {
+    title: string;
+    description?: string;
+    actionLabel?: string;
+    actionMethod?: string;
+    fields: Array<{
+      key: string;
+      type: "amount" | "address" | "select" | "toggle" | "number" | "text";
+      label: string;
+      placeholder?: string;
+      required?: boolean;
+      options?: Array<{ value: string; label: string }>;
+      default?: string | number | boolean;
+      validation?: { min?: number; max?: number; pattern?: string };
+      argType?: "String" | "Integer" | "Boolean" | "Hash160" | "Any";
+    }>;
+    summary?: Array<{
+      label: string;
+      valueKey: string;
+      format?: "number" | "currency" | "percent" | "duration";
+    }>;
+  };
+  buttons?: Array<{
+    id: string;
+    label: string;
+    variant?: "primary" | "secondary" | "danger";
+    action: {
+      type: "invoke" | "link" | "copy";
+      method?: string;
+      href?: string;
+      copyText?: string;
+      args?: Array<string | number | boolean>;
+      openInNewTab?: boolean;
+    };
+  }>;
+}
+
+/**
+ * Admin no-code miniapp create/update payload.
+ */
+export interface CatalogUpsertRequest {
+  app_id: string;
+  name: string;
+  description: string;
+  category: "gaming" | "defi" | "social" | "nft" | "governance" | "utility";
+  entry_url: string;
+  chain_id: string;
+  contract_address: string;
+  icon_url?: string;
+  banner_url?: string;
+  name_zh?: string;
+  description_zh?: string;
+  short_description?: string;
+  developer_name?: string;
+  developer_address?: string;
+  runtime_config?: RuntimeMiniAppConfig;
 }

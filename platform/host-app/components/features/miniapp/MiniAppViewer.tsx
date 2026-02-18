@@ -53,6 +53,16 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp, layout
   const resolvedLayout = useMiniAppLayout(layout);
 
   const contractAddress = useMemo(() => getContractForChain(app, effectiveChainId), [app, effectiveChainId]);
+  const displayConfig = useMemo(
+    () =>
+      app.display ?? {
+        name: app.name,
+        description: app.description,
+        icon: app.icon,
+        banner: app.banner,
+      },
+    [app.display, app.name, app.description, app.icon, app.banner],
+  );
   const chainType = useMemo(() => {
     if (!effectiveChainId) return undefined;
     return getChainRegistry().getChain(effectiveChainId)?.type;
@@ -154,6 +164,8 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp, layout
       permissions: app.permissions,
       supportedChains: app.supportedChains,
       chainContracts: app.chainContracts,
+      uiConfig: app.ui_config,
+      display: displayConfig,
       layout: resolvedLayout,
     });
 
@@ -178,7 +190,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp, layout
     }
 
     sdkRef.current = sdk;
-  }, [app.app_id, app.chainContracts, app.permissions, effectiveChainId, contractAddress, chainType, resolvedLayout, app.supportedChains]);
+  }, [app.app_id, app.chainContracts, app.permissions, effectiveChainId, contractAddress, chainType, resolvedLayout, app.supportedChains, app.ui_config, displayConfig]);
 
   useEffect(() => {
     if (federated) return;
@@ -227,6 +239,8 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp, layout
           permissions: app.permissions,
           supportedChains: app.supportedChains,
           chainContracts: app.chainContracts,
+          uiConfig: app.ui_config,
+          display: displayConfig,
           layout: resolvedLayout,
         });
       }
@@ -320,7 +334,7 @@ export function MiniAppViewer({ app, locale = "en", chainId: chainIdProp, layout
       window.removeEventListener("message", handleMessage);
       iframe.removeEventListener("load", handleLoad);
     };
-  }, [app.app_id, entryUrl, app.permissions, app.chainContracts, federated, effectiveChainId, chainType, resolvedLayout, app.supportedChains, contractAddress]);
+  }, [app.app_id, entryUrl, app.permissions, app.chainContracts, federated, effectiveChainId, chainType, resolvedLayout, app.supportedChains, contractAddress, app.ui_config, displayConfig]);
 
   return (
     <div className="w-full h-full min-h-0 min-w-0 overflow-hidden bg-black">

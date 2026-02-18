@@ -64,6 +64,7 @@ export { default as ErrorToast } from "./ErrorToast.vue";
 export { default as MiniAppTemplate } from "./MiniAppTemplate.vue";
 export { default as MiniAppShell } from "./MiniAppShell.vue";
 export { default as MiniAppPage } from "./MiniAppPage.vue";
+export { default as ConfiguredOperationPanel } from "./ConfiguredOperationPanel.vue";
 
 // ============================================================================
 // Vue Components - Shared Primitives

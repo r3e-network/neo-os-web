@@ -43,7 +43,7 @@ export async function GET(req: Request) {
 
     const result = await supabaseClient.queryWithServiceRole<
       Array<{
-        source_type: "external" | "internal";
+        source_type?: "external" | "internal" | "registry";
         app_id: string;
         name: string;
         name_zh: string | null;
@@ -51,7 +51,8 @@ export async function GET(req: Request) {
         description_zh: string | null;
         icon_url: string;
         banner_url: string;
-        entry_url: string;
+        entry_url?: string | null;
+        current_entry_url?: string | null;
         category: string;
         version: string;
         status: string;
@@ -80,10 +81,10 @@ export async function GET(req: Request) {
         description_zh: app.description_zh,
         icon: app.icon_url || "",
         banner: app.banner_url || "",
-        entry_url: app.entry_url,
+        entry_url: app.entry_url || app.current_entry_url || "",
         category: app.category || "uncategorized",
         version: app.version || "",
-        source_type: app.source_type,
+        source_type: app.source_type || "registry",
         status: app.status,
         updated_at: app.updated_at,
       })),

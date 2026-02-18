@@ -1,6 +1,8 @@
 // Shared MiniApp Types
 // Used by both host-app and mobile-wallet
 
+import type { MiniAppDisplayConfig, MiniAppRuntimeConfig } from "./miniapp-runtime";
+
 export type MiniAppCategory =
   | "gaming"
   | "defi"
@@ -56,6 +58,8 @@ export interface MiniAppInfo {
   limits?: MiniAppLimits | null;
   news_integration?: boolean | null;
   stats_display?: string[] | null;
+  ui_config?: MiniAppRuntimeConfig | null;
+  display?: MiniAppDisplayConfig | null;
 }
 
 export const CATEGORY_LABELS: Record<MiniAppCategory, string> = {

@@ -87,6 +87,8 @@ const buildInjectedJS = (configJson: string) => `
       contractAddress: null,
       supportedChains: [],
       chainContracts: {},
+      uiConfig: null,
+      display: null,
       debug: false,
     };
   }
@@ -181,6 +183,16 @@ export function MiniAppViewer({
     () => getContractForChain(app, effectiveChainId),
     [app, effectiveChainId],
   );
+  const displayConfig = useMemo(
+    () =>
+      app.display ?? {
+        name: app.name,
+        description: app.description,
+        icon: app.icon,
+        banner: app.banner,
+      },
+    [app.display, app.name, app.description, app.icon, app.banner],
+  );
   const miniappConfig = useMemo(
     () => ({
       appId: app.app_id,
@@ -189,10 +201,12 @@ export function MiniAppViewer({
       contractAddress: contractAddress ?? null,
       supportedChains: app.supportedChains || [],
       chainContracts: app.chainContracts || {},
+      uiConfig: app.ui_config ?? null,
+      display: displayConfig,
       layout: "mobile",
       debug: false,
     }),
-    [app.app_id, app.chainContracts, app.supportedChains, chainType, contractAddress, effectiveChainId],
+    [app.app_id, app.chainContracts, app.supportedChains, app.ui_config, chainType, contractAddress, effectiveChainId, displayConfig],
   );
   const serializedConfig = useMemo(() => JSON.stringify(miniappConfig), [miniappConfig]);
   const injectedJS = useMemo(() => buildInjectedJS(serializedConfig), [serializedConfig]);
@@ -208,9 +222,11 @@ export function MiniAppViewer({
         contractAddress,
         supportedChains: app.supportedChains,
         chainContracts: app.chainContracts,
+        uiConfig: app.ui_config,
+        display: displayConfig,
         layout: "mobile",
       }),
-    [app.app_id, app.chainContracts, app.supportedChains, chainType, contractAddress, effectiveChainId],
+    [app.app_id, app.chainContracts, app.supportedChains, app.ui_config, chainType, contractAddress, effectiveChainId, displayConfig],
   );
 
   // Build bridge config

@@ -3,6 +3,8 @@
  * Aligned with host-app types for full compatibility
  */
 
+import type { MiniAppDisplayConfig, MiniAppRuntimeConfig } from "@neo/shared/types/miniapp-runtime";
+
 export type MiniAppCategory = "gaming" | "defi" | "governance" | "utility" | "social" | "nft";
 
 export type ChainId = string;
@@ -70,6 +72,8 @@ export type MiniAppInfo = {
   stats_display?: string[] | null;
   features?: string[];
   created_at?: string;
+  ui_config?: MiniAppRuntimeConfig | null;
+  display?: MiniAppDisplayConfig | null;
 };
 
 export const CATEGORY_LABELS: Record<MiniAppCategory, string> = {

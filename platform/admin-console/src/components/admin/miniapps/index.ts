@@ -12,3 +12,4 @@ export * from "./internal-sync";
 export * from "./preview-controls";
 export * from "./miniapp-preview";
 export * from "./info-field";
+export * from "./catalog-builder";

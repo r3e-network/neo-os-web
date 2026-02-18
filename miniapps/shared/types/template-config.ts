@@ -62,12 +62,20 @@ export interface StatConfig {
 
 /** Documentation section config */
 export interface DocsConfig {
+  /** Direct docs title text (runtime-configurable) */
+  title?: string;
   /** i18n key for doc title */
-  titleKey: string;
+  titleKey?: string;
+  /** Direct docs subtitle text (runtime-configurable) */
+  subtitle?: string;
   /** i18n key for doc subtitle */
   subtitleKey?: string;
+  /** Direct docs step strings (runtime-configurable) */
+  steps?: string[];
   /** i18n keys for step descriptions */
   stepKeys?: string[];
+  /** Direct docs feature list (runtime-configurable) */
+  features?: Array<{ name: string; desc: string }>;
   /** i18n keys for feature name/desc pairs */
   featureKeys?: Array<{ nameKey: string; descKey: string }>;
 }
@@ -82,36 +90,67 @@ export interface OperationField {
   key: string;
   /** Input type determining the rendered control */
   type: "amount" | "address" | "select" | "toggle" | "number" | "text";
+  /** Direct label text (runtime-configurable) */
+  label?: string;
   /** i18n key for the field label */
-  labelKey: string;
+  labelKey?: string;
+  /** Direct placeholder text (runtime-configurable) */
+  placeholder?: string;
   /** i18n key for placeholder text */
   placeholderKey?: string;
   /** Options for select/toggle fields */
-  options?: Array<{ value: string; labelKey: string }>;
+  options?: Array<{ value: string; label?: string; labelKey?: string }>;
   /** Whether the field is required */
   required?: boolean;
   /** Default value */
   default?: string | number | boolean;
   /** Validation constraints */
   validation?: { min?: number; max?: number; pattern?: string };
+  /** Explicit Neo VM arg type when invoking contract actions */
+  argType?: "String" | "Integer" | "Boolean" | "Hash160" | "Any";
+}
+
+export interface OperationButtonOption {
+  id: string;
+  label: string;
+  variant?: "primary" | "secondary" | "danger";
+  action: {
+    type: "invoke" | "link" | "copy";
+    method?: string;
+    href?: string;
+    copyText?: string;
+    args?: Array<string | number | boolean>;
+    openInNewTab?: boolean;
+  };
 }
 
 /** Configuration for the sticky operation box (right panel) */
 export interface OperationBoxConfig {
+  /** Direct panel title text (runtime-configurable) */
+  title?: string;
   /** i18n key for the panel title */
-  titleKey: string;
+  titleKey?: string;
+  /** Direct panel description text (runtime-configurable) */
+  description?: string;
   /** i18n key for the panel description */
   descriptionKey?: string;
   /** Form field definitions */
   fields: OperationField[];
+  /** Direct action button text (runtime-configurable) */
+  actionLabel?: string;
   /** i18n key for the action button text */
-  actionKey: string;
+  actionKey?: string;
+  /** Default contract operation method used by generated invoke button */
+  actionMethod?: string;
   /** Summary rows shown above the action button */
   summaryKeys?: Array<{
-    labelKey: string;
+    label?: string;
+    labelKey?: string;
     valueKey: string;
     format?: StatConfig["format"];
   }>;
+  /** Optional additional runtime buttons */
+  buttons?: OperationButtonOption[];
 }
 
 /** Configuration for the metadata display panel */

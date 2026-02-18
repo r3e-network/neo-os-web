@@ -49,6 +49,16 @@ export default function FederatedMiniApp() {
           chainId,
           contractAddress,
           permissions: info?.permissions,
+          uiConfig: info?.ui_config,
+          display:
+            info?.display ?? (info
+              ? {
+                  name: info.name,
+                  description: info.description,
+                  icon: info.icon,
+                  banner: info.banner,
+                }
+              : null),
           layout,
         });
       } catch {

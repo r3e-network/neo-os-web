@@ -5,6 +5,7 @@
 
 import type { ChainId, MiniAppChainContracts } from "@/types/miniapp";
 import type { ChainType } from "@/lib/chains";
+import type { MiniAppDisplayConfig, MiniAppRuntimeConfig } from "@neo/shared/types/miniapp-runtime";
 
 export type MiniAppSDKConfig = {
   edgeBaseUrl: string;
@@ -14,6 +15,8 @@ export type MiniAppSDKConfig = {
   contractAddress?: string | null;
   supportedChains?: ChainId[];
   chainContracts?: MiniAppChainContracts;
+  uiConfig?: MiniAppRuntimeConfig | null;
+  display?: MiniAppDisplayConfig | null;
   layout?: "web" | "mobile";
   getAuthToken?: () => Promise<string | undefined>;
   getAPIKey?: () => Promise<string | undefined>;
@@ -198,6 +201,8 @@ export interface MiniAppSDK {
     contractAddress?: string | null;
     supportedChains?: ChainId[];
     chainContracts?: MiniAppChainContracts;
+    uiConfig?: MiniAppRuntimeConfig | null;
+    display?: MiniAppDisplayConfig | null;
     debug?: boolean;
   };
   invokeRead?: (params: {

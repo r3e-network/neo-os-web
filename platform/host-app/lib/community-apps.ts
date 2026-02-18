@@ -2,6 +2,7 @@ import type { MiniAppInfo } from "@/components/types";
 import type { ChainId } from "@/lib/chains/types";
 import { supabase, supabaseAdmin, isSupabaseConfigured } from "./supabase";
 import { logger } from "@/lib/logger";
+import { normalizeDisplayConfig, normalizeRuntimeConfig } from "@/lib/miniapp";
 
 export type RegistryStatusFilter = "published" | "approved" | "pending_review" | "draft" | "all" | "active" | "pending";
 
@@ -23,6 +24,9 @@ type RegistryRow = {
   developer_name?: string | null;
   developer_address?: string | null;
   created_at?: string | null;
+  metadata?: Record<string, unknown> | null;
+  ui_config?: Record<string, unknown> | null;
+  display?: Record<string, unknown> | null;
 };
 
 type VersionRow = {
@@ -83,6 +87,20 @@ function toMiniAppInfo(app: RegistryRow, version: VersionRow | null): MiniAppInf
       : app.contracts && typeof app.contracts === "object" && !Array.isArray(app.contracts)
         ? app.contracts
         : undefined;
+  const metadata =
+    app.metadata && typeof app.metadata === "object" && !Array.isArray(app.metadata)
+      ? app.metadata
+      : undefined;
+  const uiConfig = normalizeRuntimeConfig(app.ui_config ?? metadata?.ui_config);
+  const display = normalizeDisplayConfig(
+    app.display ?? metadata?.display,
+    {
+      name: app.name,
+      description: app.description || "",
+      icon: app.icon_url || "",
+      banner: app.banner_url || "",
+    }
+  );
 
   return {
     app_id: app.app_id,
@@ -100,6 +118,8 @@ function toMiniAppInfo(app: RegistryRow, version: VersionRow | null): MiniAppInf
     status: mapRegistryStatus(app.status),
     source: "community",
     permissions: (app.permissions as MiniAppInfo["permissions"]) || {},
+    ui_config: uiConfig ?? null,
+    display: display ?? null,
     developer: {
       name: app.developer_name || "Community Developer",
       address: app.developer_address || "",
@@ -123,7 +143,7 @@ export async function fetchCommunityApps(options?: {
   let registryQuery = client
     .from("miniapp_registry")
     .select(
-      "app_id,name,name_zh,description,description_zh,short_description,icon_url,banner_url,category,permissions,supported_chains,contracts,status,visibility,developer_name,developer_address,created_at",
+      "app_id,name,name_zh,description,description_zh,short_description,icon_url,banner_url,category,permissions,supported_chains,contracts,status,visibility,developer_name,developer_address,created_at,metadata,ui_config,display",
     );
 
   if (options?.appId) {

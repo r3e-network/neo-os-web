@@ -2,6 +2,7 @@
 
 
 import type { ChainId } from "@/lib/chains/types";
+import type { MiniAppDisplayConfig, MiniAppRuntimeConfig } from "@neo/shared/types/miniapp-runtime";
 
 export type MiniAppCategory = "gaming" | "defi" | "governance" | "utility" | "social" | "nft";
 
@@ -98,6 +99,10 @@ export type MiniAppInfo = {
   }[];
   /** Current version */
   currentVersion?: string;
+  /** Runtime UI config injected into MiniAppSDK */
+  ui_config?: MiniAppRuntimeConfig | null;
+  /** Optional display overrides supplied by admin catalog */
+  display?: MiniAppDisplayConfig | null;
 };
 
 export type MiniAppStats = {
