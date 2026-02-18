@@ -4,10 +4,11 @@ import { colors } from "./styles";
 
 type Props = {
   operations: OperationEntry[];
+  contractHash?: string;
   onInvoke: (method: string, params: Record<string, string>) => void;
 };
 
-export function OperationPanel({ operations, onInvoke }: Props) {
+export function OperationPanel({ operations, contractHash, onInvoke }: Props) {
   if (!operations.length) return null;
   return (
     <div style={container}>

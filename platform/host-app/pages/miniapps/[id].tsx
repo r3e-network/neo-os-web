@@ -274,7 +274,7 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
         const m = (a.manifest as Record<string, unknown>) ?? {};
         const ops = (a.operations ?? m.operations) as OperationEntry[] | undefined;
         if (!Array.isArray(ops) || !ops.length) return null;
-        return <OperationPanel operations={ops} onInvoke={(method, params) => { console.log("invoke", method, params); }} />;
+        return <OperationPanel operations={ops} contractHash={app.contract_hash ?? undefined} onInvoke={(method, params) => { console.log("invoke", app.contract_hash, method, params); }} />;
       })()}
 
       <div style={sectionStyle}>
