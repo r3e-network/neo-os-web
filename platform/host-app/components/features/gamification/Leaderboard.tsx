@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Trophy, Medal, Crown } from "lucide-react";
 import type { LeaderboardEntry } from "./types";
 import { LEVELS } from "./constants";
@@ -13,11 +13,7 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, []);
-
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     try {
       const res = await fetch("/api/gamification/leaderboard?limit=20");
       if (res.ok) {
@@ -29,7 +25,11 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
 
   if (loading) {
     return <div className="text-center py-8 text-gray-500">Loading...</div>;
@@ -52,7 +52,7 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
   );
 }
 
-function LeaderboardRow({ entry, isCurrentUser }: { entry: LeaderboardEntry; isCurrentUser: boolean }) {
+const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser }: { entry: LeaderboardEntry; isCurrentUser: boolean }) {
   const level = LEVELS.find((l) => l.level === entry.level) || LEVELS[0];
 
   const getRankIcon = () => {
@@ -82,4 +82,4 @@ function LeaderboardRow({ entry, isCurrentUser }: { entry: LeaderboardEntry; isC
       </div>
     </div>
   );
-}
+})

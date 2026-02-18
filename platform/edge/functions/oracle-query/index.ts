@@ -40,6 +40,17 @@ export async function handler(req: Request): Promise<Response> {
   const url = String(body.url ?? "").trim();
   if (!url) return error(400, "url required", "URL_REQUIRED", req);
 
+  // Validate URL protocol to prevent SSRF with non-HTTP schemes
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return error(400, "invalid url", "INVALID_URL", req);
+  }
+  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    return error(400, "url must use http or https", "INVALID_URL_SCHEME", req);
+  }
+
   const neooracleURL = mustGetEnv("NEOORACLE_URL").replace(/\/$/, "");
   const result = await postJSON(
     `${neooracleURL}/query`,

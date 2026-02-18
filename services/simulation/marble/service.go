@@ -525,7 +525,9 @@ func (s *Service) simulateApp(appID string, workerID int) {
 
 		// Release the account back to the pool (do this in background to not delay next tx)
 		go func(accountID string) {
-			_, err := s.poolClient.ReleaseAccounts(ctx, []string{accountID})
+			releaseCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			_, err := s.poolClient.ReleaseAccounts(releaseCtx, []string{accountID})
 			if err != nil {
 				logger.WithError(err).Warn("failed to release account")
 			}

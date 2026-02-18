@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { CSSProperties, FC } from "react";
 import type { OnChainActivity } from "./types";
 
@@ -106,7 +106,7 @@ export const ActivityTicker: FC<ActivityTickerProps> = ({
   );
 };
 
-const ActivityItem: FC<{ activity: OnChainActivity }> = ({ activity }) => {
+const ActivityItem: FC<{ activity: OnChainActivity }> = React.memo(({ activity }) => {
   const icon = ACTIVITY_ICONS[activity.type] || "📌";
   const statusColor = activity.status ? STATUS_COLORS[activity.status] : undefined;
 
@@ -130,7 +130,7 @@ const ActivityItem: FC<{ activity: OnChainActivity }> = ({ activity }) => {
       </div>
     </div>
   );
-};
+});
 
 // Styles
 const tickerContainerStyle: CSSProperties = {

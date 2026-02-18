@@ -109,7 +109,7 @@ export function ForumTab({ appId }: ForumTabProps) {
   );
 }
 
-function ThreadItem({ thread, onClick }: { thread: ForumThread; onClick: () => void }) {
+const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread: ForumThread; onClick: () => void }) {
   const Icon = categoryIcons[thread.category] || MessageSquare;
 
   return (
@@ -137,7 +137,7 @@ function ThreadItem({ thread, onClick }: { thread: ForumThread; onClick: () => v
       </div>
     </div>
   );
-}
+});
 
 function NewThreadForm({
   onSubmit,
@@ -165,6 +165,7 @@ function NewThreadForm({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Thread title..."
+        aria-label="Thread title"
         className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         maxLength={200}
       />
@@ -172,6 +173,7 @@ function NewThreadForm({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="What's on your mind?"
+        aria-label="Thread content"
         className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         rows={4}
         maxLength={5000}
@@ -272,6 +274,7 @@ function ThreadDetail({
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."
+            aria-label="Reply"
             className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm"
             maxLength={2000}
           />

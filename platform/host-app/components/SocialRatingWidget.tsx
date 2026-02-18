@@ -115,6 +115,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
                 placeholder="Write a review (optional)"
+                aria-label="Write a review"
                 className="w-full border rounded p-2 text-sm"
                 rows={3}
                 maxLength={1000}
