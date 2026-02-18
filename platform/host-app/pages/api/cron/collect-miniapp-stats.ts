@@ -30,10 +30,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Get all active miniapps from canonical registry
-    const { data: apps } = await supabase
+    const { data: apps, error: queryError } = await supabase
       .from("miniapps")
       .select("app_id, contract_hash")
       .eq("status", "active");
+
+    if (queryError) {
+      logger.error("Failed to fetch miniapps:", queryError);
+      return apiError.internal(res, "Failed to fetch miniapps");
+    }
 
     if (!apps?.length) {
       return res.status(200).json({ message: "No apps to process", results });
@@ -65,12 +70,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function collectAppStats(appId: string, contractHash: string, network: "testnet" | "mainnet") {
-  // Update collection timestamp; blockchain data aggregation handled by indexer service
-  await supabase.from("miniapp_stats").upsert(
-    {
-      app_id: appId,
-      last_updated: Date.now(),
-    },
+  const { error } = await supabase.from("miniapp_stats").upsert(
+    { app_id: appId, last_updated: Date.now() },
     { onConflict: "app_id" },
   );
+  if (error) throw new Error(`upsert failed: ${error.message}`);
 }

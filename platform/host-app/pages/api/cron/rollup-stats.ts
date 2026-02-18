@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const stats = await getContractStats(app.contract, "testnet");
 
-      await supabase.from("miniapp_stats").upsert(
+      const { error: upsertError } = await supabase.from("miniapp_stats").upsert(
         {
           app_id: app.appId,
           contract_hash: app.contract,
@@ -53,6 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         { onConflict: "app_id" },
       );
+      if (upsertError) throw upsertError;
 
       results.push({ appId: app.appId, success: true });
     } catch (error) {
