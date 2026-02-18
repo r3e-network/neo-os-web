@@ -223,6 +223,28 @@ func (c *Client) request(ctx context.Context, method, table string, body interfa
 	return c.doRequest(ctx, method, c.buildTableURL(validateTable(table), query), "return=representation", body)
 }
 
+// buildRPCURL constructs the full URL for an RPC endpoint with optional query string.
+func (c *Client) buildRPCURL(functionName, query string) string {
+	u := fmt.Sprintf("%s/rpc/%s", c.url, functionName)
+	if query != "" {
+		u += "?" + query
+	}
+	return u
+}
+
+// requestRPC makes an HTTP request to a Supabase RPC endpoint.
+func (c *Client) requestRPC(ctx context.Context, method, rpcPath string, body interface{}, query string) ([]byte, error) {
+	trimmed := strings.TrimPrefix(strings.TrimSpace(rpcPath), "/")
+	if !strings.HasPrefix(trimmed, "rpc/") {
+		panic(fmt.Sprintf("invalid rpc path: %q", rpcPath))
+	}
+	functionName := strings.TrimPrefix(trimmed, "rpc/")
+	if !validTableName.MatchString(functionName) {
+		panic(fmt.Sprintf("invalid rpc function name: %q", functionName))
+	}
+	return c.doRequest(ctx, method, c.buildRPCURL(functionName, query), "", body)
+}
+
 // requestUpsert makes a POST request with Prefer: resolution=merge-duplicates
 // for atomic upsert operations. The onConflict parameter specifies the
 // conflict target columns (e.g., "account_id,token_type").

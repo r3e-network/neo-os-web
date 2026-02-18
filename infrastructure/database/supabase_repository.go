@@ -29,6 +29,11 @@ func (r *Repository) Request(ctx context.Context, method, table string, body int
 	return r.client.request(ctx, method, table, body, query)
 }
 
+// RequestRPC makes an HTTP request to a Supabase RPC endpoint.
+func (r *Repository) RequestRPC(ctx context.Context, method, rpcPath string, body interface{}, query string) ([]byte, error) {
+	return r.client.requestRPC(ctx, method, rpcPath, body, query)
+}
+
 // RequestUpsert performs an atomic upsert via POST with resolution=merge-duplicates.
 // onConflict specifies the conflict target columns (e.g., "account_id,token_type").
 func (r *Repository) RequestUpsert(ctx context.Context, table string, body interface{}, onConflict, query string) ([]byte, error) {

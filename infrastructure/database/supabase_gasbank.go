@@ -18,7 +18,7 @@ func (r *Repository) GetGasBankAccount(ctx context.Context, userID string) (*Gas
 		return nil, err
 	}
 
-	data, err := r.client.request(ctx, "GET", "gasbank_accounts", nil, "user_id=eq."+userID+"&limit=1")
+	data, err := r.client.request(ctx, "GET", "gasbank_accounts", nil, "user_id=eq."+url.QueryEscape(userID)+"&limit=1")
 	if err != nil {
 		return nil, fmt.Errorf("%w: get gasbank account: %v", ErrDatabaseError, err)
 	}
@@ -124,7 +124,7 @@ func (r *Repository) UpdateGasBankBalance(ctx context.Context, userID string, ba
 		"reserved":   reserved,
 		"updated_at": time.Now(),
 	}
-	_, err := r.client.request(ctx, "PATCH", "gasbank_accounts", update, "user_id=eq."+userID)
+	_, err := r.client.request(ctx, "PATCH", "gasbank_accounts", update, "user_id=eq."+url.QueryEscape(userID))
 	if err != nil {
 		return fmt.Errorf("%w: update gasbank balance: %v", ErrDatabaseError, err)
 	}
@@ -257,7 +257,7 @@ func (r *Repository) UpdateDepositStatus(ctx context.Context, depositID, status 
 	if status == "confirmed" {
 		update["confirmed_at"] = time.Now()
 	}
-	_, err := r.client.request(ctx, "PATCH", "deposit_requests", update, "id=eq."+depositID)
+	_, err := r.client.request(ctx, "PATCH", "deposit_requests", update, "id=eq."+url.QueryEscape(depositID))
 	if err != nil {
 		return fmt.Errorf("%w: update deposit status: %v", ErrDatabaseError, err)
 	}
@@ -333,7 +333,7 @@ func (r *Repository) DeductFeeAtomic(ctx context.Context, userID string, amount 
 		params["p_reference_id"] = referenceID
 	}
 
-	data, err := r.client.request(ctx, "POST", "rpc/gasbank_atomic_deduct", params, "")
+	data, err := r.client.requestRPC(ctx, "POST", "rpc/gasbank_atomic_deduct", params, "")
 	if err != nil {
 		return nil, fmt.Errorf("%w: rpc gasbank_atomic_deduct: %v", ErrDatabaseError, err)
 	}
@@ -371,7 +371,7 @@ func (r *Repository) CreditDepositAtomic(ctx context.Context, userID string, amo
 		params["p_reference_id"] = referenceID
 	}
 
-	data, err := r.client.request(ctx, "POST", "rpc/gasbank_atomic_credit", params, "")
+	data, err := r.client.requestRPC(ctx, "POST", "rpc/gasbank_atomic_credit", params, "")
 	if err != nil {
 		return nil, fmt.Errorf("%w: rpc gasbank_atomic_credit: %v", ErrDatabaseError, err)
 	}
@@ -404,7 +404,7 @@ func (r *Repository) ReserveFundsAtomic(ctx context.Context, userID string, amou
 		"p_amount":  amount,
 	}
 
-	data, err := r.client.request(ctx, "POST", "rpc/gasbank_atomic_reserve", params, "")
+	data, err := r.client.requestRPC(ctx, "POST", "rpc/gasbank_atomic_reserve", params, "")
 	if err != nil {
 		return nil, fmt.Errorf("%w: rpc gasbank_atomic_reserve: %v", ErrDatabaseError, err)
 	}
@@ -438,7 +438,7 @@ func (r *Repository) ReleaseFundsAtomic(ctx context.Context, userID string, amou
 		"p_commit":  commit,
 	}
 
-	data, err := r.client.request(ctx, "POST", "rpc/gasbank_atomic_release", params, "")
+	data, err := r.client.requestRPC(ctx, "POST", "rpc/gasbank_atomic_release", params, "")
 	if err != nil {
 		return nil, fmt.Errorf("%w: rpc gasbank_atomic_release: %v", ErrDatabaseError, err)
 	}

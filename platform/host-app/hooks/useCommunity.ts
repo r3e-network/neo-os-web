@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import type { SocialComment, SocialRating, ProofOfInteraction, VoteType } from "../components/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1";
+const API_BASE = (process.env.NEXT_PUBLIC_SUPABASE_URL || "") + "/functions/v1";
 
 interface UseCommunityOptions {
   appId: string;
