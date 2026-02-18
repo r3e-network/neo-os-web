@@ -57,6 +57,9 @@ async function getNetworkStats(rpcUrl: string, network: string): Promise<Network
     }),
     signal: AbortSignal.timeout(10000),
   });
+  if (!blockRes.ok) {
+    throw new Error(`RPC error: ${blockRes.status}`);
+  }
   const blockData = await blockRes.json();
   const height = blockData.result || 0;
 
@@ -91,6 +94,9 @@ async function getTxCountFromIndexer(network: string): Promise<number> {
     },
   );
 
+  if (!response.ok) {
+    throw new Error(`Indexer error: ${response.status}`);
+  }
   const data = await response.json();
   return data?.[0]?.total_tx_indexed || 0;
 }

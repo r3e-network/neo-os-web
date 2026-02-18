@@ -54,6 +54,7 @@ export async function rpcCall<T>(method: string, params: unknown[], network: Net
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!response.ok) {

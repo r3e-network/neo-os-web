@@ -31,6 +31,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     );
 
+    if (!response.ok) {
+      return apiError.internal(res, "Indexer request failed");
+    }
     const transactions = await response.json();
 
     res.setHeader("Cache-Control", "s-maxage=10, stale-while-revalidate");
