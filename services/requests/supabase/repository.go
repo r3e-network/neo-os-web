@@ -145,6 +145,12 @@ func (r *Repository) UpdateMiniAppRegistry(ctx context.Context, appID string, up
 	if update.Category != "" {
 		payload["category"] = update.Category
 	}
+	if runtimeCfg := strings.TrimSpace(string(update.RuntimeConfig)); runtimeCfg != "" && runtimeCfg != "null" {
+		payload["runtime_config"] = json.RawMessage(runtimeCfg)
+	}
+	if display := strings.TrimSpace(string(update.Display)); display != "" && display != "null" {
+		payload["display"] = json.RawMessage(display)
+	}
 	if !update.UpdatedAt.IsZero() {
 		payload["updated_at"] = update.UpdatedAt
 	}

@@ -158,6 +158,8 @@ export function createMiniAppSDK(config) {
   const contractAddress = config?.contractAddress || null;
   const supportedChains = Array.isArray(config?.supportedChains) ? config.supportedChains : [];
   const chainContracts = config?.chainContracts || null;
+  const uiConfig = config?.uiConfig || null;
+  const display = config?.display || null;
   const layout = config?.layout;
 
   async function resolveAuthHeaders() {
@@ -320,6 +322,8 @@ export function createMiniAppSDK(config) {
       contractAddress,
       supportedChains,
       chainContracts,
+      uiConfig,
+      display,
       layout,
       debug: false,
     }),

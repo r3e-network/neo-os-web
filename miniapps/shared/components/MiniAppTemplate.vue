@@ -38,7 +38,9 @@
       <component :is="contentSlotComponent">
         <slot name="content" />
         <template #operation>
-          <slot name="operation" />
+          <slot name="operation">
+            <ConfiguredOperationPanel v-if="generatedOperationConfig" :operation="generatedOperationConfig" :t="t" />
+          </slot>
         </template>
       </component>
     </view>
@@ -62,8 +64,8 @@
         <!-- Auto-generated docs tab -->
         <template v-else-if="tab.key === 'docs' && hasDocs && !hasSlot(`tab-docs`)">
           <NeoDoc
-            :title="t(docsConfig.titleKey)"
-            :subtitle="docsConfig.subtitleKey ? t(docsConfig.subtitleKey) : undefined"
+            :title="computedDocTitle"
+            :subtitle="computedDocSubtitle"
             :steps="computedDocSteps"
             :features="computedDocFeatures"
           />
@@ -86,6 +88,7 @@ import { ResponsiveLayout, NeoCard, StatsDisplay, NeoDoc, ChainWarning, SidebarP
 import Fireworks from "@shared/components/Fireworks.vue";
 import type { NavTab } from "@shared/components/NavBar.vue";
 import { useChainValidation } from "@shared/composables/useChainValidation";
+import ConfiguredOperationPanel from "./ConfiguredOperationPanel.vue";
 
 import {
   GameBoardSlot,
@@ -179,6 +182,10 @@ const contentSlotMap: Record<string, unknown> = {
 const contentSlotComponent = computed(() => {
   return contentSlotMap[props.config.contentType] ?? "view";
 });
+const generatedOperationConfig = computed(() => {
+  if (props.config.contentType !== "two-column") return undefined;
+  return props.config.twoColumn?.operation;
+});
 
 // --- Stats computation ---
 const hasStats = computed(() => (props.config.stats?.length ?? 0) > 0);
@@ -208,16 +215,32 @@ const computedStats = computed(() =>
 
 // --- Docs computation ---
 const docsConfig = computed(() => props.config.features?.docs);
-const hasDocs = computed(() => !!docsConfig.value);
+const hasDocs = computed(() => Boolean(docsConfig.value?.title || docsConfig.value?.titleKey));
 
-const computedDocSteps = computed(() => (docsConfig.value?.stepKeys ?? []).map((key) => props.t(key)));
+const computedDocTitle = computed(() => {
+  if (docsConfig.value?.title) return docsConfig.value.title;
+  if (docsConfig.value?.titleKey) return props.t(docsConfig.value.titleKey);
+  return "";
+});
 
-const computedDocFeatures = computed(() =>
-  (docsConfig.value?.featureKeys ?? []).map((f) => ({
+const computedDocSubtitle = computed(() => {
+  if (docsConfig.value?.subtitle) return docsConfig.value.subtitle;
+  if (docsConfig.value?.subtitleKey) return props.t(docsConfig.value.subtitleKey);
+  return undefined;
+});
+
+const computedDocSteps = computed(() => {
+  if (docsConfig.value?.steps?.length) return docsConfig.value.steps;
+  return (docsConfig.value?.stepKeys ?? []).map((key) => props.t(key));
+});
+
+const computedDocFeatures = computed(() => {
+  if (docsConfig.value?.features?.length) return docsConfig.value.features;
+  return (docsConfig.value?.featureKeys ?? []).map((f) => ({
     name: props.t(f.nameKey),
     desc: props.t(f.descKey),
-  }))
-);
+  }));
+});
 
 // --- Feature flags ---
 const showFireworks = computed(() => props.config.features?.fireworks !== false);

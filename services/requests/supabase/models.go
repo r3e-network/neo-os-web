@@ -20,22 +20,26 @@ type MiniApp struct {
 	Icon            string          `json:"icon"`
 	Banner          string          `json:"banner"`
 	Category        string          `json:"category"`
+	RuntimeConfig   json.RawMessage `json:"runtime_config,omitempty"`
+	Display         json.RawMessage `json:"display,omitempty"`
 }
 
 // MiniAppRegistryUpdate represents a partial update from AppRegistry sync.
 type MiniAppRegistryUpdate struct {
-	ChainID         string    `json:"chain_id,omitempty"`
-	ManifestHash    string    `json:"manifest_hash,omitempty"`
-	EntryURL        string    `json:"entry_url,omitempty"`
-	DeveloperPubKey string    `json:"developer_pubkey,omitempty"`
-	Status          string    `json:"status,omitempty"`
-	ContractAddress string    `json:"contract_address,omitempty"`
-	Name            string    `json:"name,omitempty"`
-	Description     string    `json:"description,omitempty"`
-	Icon            string    `json:"icon,omitempty"`
-	Banner          string    `json:"banner,omitempty"`
-	Category        string    `json:"category,omitempty"`
-	UpdatedAt       time.Time `json:"updated_at,omitempty"`
+	ChainID         string          `json:"chain_id,omitempty"`
+	ManifestHash    string          `json:"manifest_hash,omitempty"`
+	EntryURL        string          `json:"entry_url,omitempty"`
+	DeveloperPubKey string          `json:"developer_pubkey,omitempty"`
+	Status          string          `json:"status,omitempty"`
+	ContractAddress string          `json:"contract_address,omitempty"`
+	Name            string          `json:"name,omitempty"`
+	Description     string          `json:"description,omitempty"`
+	Icon            string          `json:"icon,omitempty"`
+	Banner          string          `json:"banner,omitempty"`
+	Category        string          `json:"category,omitempty"`
+	RuntimeConfig   json.RawMessage `json:"runtime_config,omitempty"`
+	Display         json.RawMessage `json:"display,omitempty"`
+	UpdatedAt       time.Time       `json:"updated_at,omitempty"`
 }
 
 // ServiceRequest represents a service_requests row for audit tracking.

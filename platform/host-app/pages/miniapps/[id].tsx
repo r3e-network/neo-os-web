@@ -105,6 +105,19 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     chainId: walletChainId,
   };
   const contractAddress = useMemo(() => (app ? getContractForChain(app, walletChainId) : null), [app, walletChainId]);
+  const appId = app?.app_id;
+  const displayConfig = useMemo(
+    () =>
+      app
+        ? app.display ?? {
+            name: app.name,
+            description: app.description,
+            icon: app.icon,
+            banner: app.banner,
+          }
+        : null,
+    [app],
+  );
   const chainType = useMemo(() => {
     if (!walletChainId) return undefined;
     return getChainRegistry().getChain(walletChainId)?.type;
@@ -170,7 +183,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   }, [entryUrl, locale, theme, app, layout]);
 
   useEffect(() => {
-    if (!app || federated) return;
+    if (!appId || federated) return;
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
     const origin = resolveIframeOrigin(entryUrl);
@@ -183,7 +196,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
   }, [theme, entryUrl, federated]);
 
   useEffect(() => {
-    if (!app || federated) return;
+    if (!appId || federated) return;
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
     const origin = resolveIframeOrigin(entryUrl);
@@ -193,10 +206,10 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
     const responseOrigin = sandboxAttr && !sandboxAllowsSameOrigin ? "*" : origin;
     const supportedLocale = getMiniappLocale(locale);
     iframe.contentWindow.postMessage({ type: "language-change", language: supportedLocale }, responseOrigin);
-  }, [locale, entryUrl, federated, app]);
+  }, [locale, entryUrl, federated, appId]);
 
   useEffect(() => {
-    if (!app || federated) return;
+    if (!appId || federated) return;
 
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
@@ -238,7 +251,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       unsubscribe();
       window.clearTimeout(delayedSend);
     };
-  }, [entryUrl, federated, app?.app_id]);
+  }, [entryUrl, federated, appId]);
 
   // Self-contained i18n: use MiniApp's own translations based on locale
   const appName = app ? getLocalizedField(app, "name", locale) : "";
@@ -246,10 +259,10 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
 
   // Track view count on page load (with multi-chain support)
   useEffect(() => {
-    if (!app?.app_id || !walletChainId) return;
+    if (!appId || !walletChainId) return;
     const chainQuery = `?chain_id=${encodeURIComponent(walletChainId)}`;
-    fetch(`/api/miniapps/${app.app_id}/view${chainQuery}`, { method: "POST" }).catch(() => {});
-  }, [app?.app_id, walletChainId]);
+    fetch(`/api/miniapps/${appId}/view${chainQuery}`, { method: "POST" }).catch(() => {});
+  }, [appId, walletChainId]);
 
   // Initialize SDK
   useEffect(() => {
@@ -262,9 +275,11 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       permissions: app.permissions,
       supportedChains: app.supportedChains,
       chainContracts: app.chainContracts,
+      uiConfig: app.ui_config,
+      display: displayConfig,
       layout,
     });
-  }, [app, walletChainId, contractAddress, chainType, layout]);
+  }, [app, walletChainId, contractAddress, chainType, layout, displayConfig]);
 
   // Iframe bridge for SDK communication
   useEffect(() => {
@@ -292,6 +307,8 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
           permissions: app.permissions,
           supportedChains: app.supportedChains,
           chainContracts: app.chainContracts,
+          uiConfig: app.ui_config,
+          display: displayConfig,
           layout,
         });
       }
@@ -426,7 +443,7 @@ export default function MiniAppDetailPage({ app, stats: ssrStats, notifications,
       iframe.removeEventListener("load", handleLoad);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handler refs are stable, only re-bind on app/iframe change
-  }, [app?.app_id, iframeSrc, app?.permissions, federated, entryUrl, chainType]);
+  }, [app?.app_id, iframeSrc, app?.permissions, federated, entryUrl, chainType, app?.ui_config, displayConfig]);
 
   // Safety timeout: dismiss loading overlay after 10 seconds even if signals fail
   // This handles cases where CSP violations or network issues prevent normal load signals

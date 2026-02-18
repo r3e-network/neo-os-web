@@ -39,6 +39,7 @@ import { useStatusMessage, type StatusMessage } from "@shared/composables/useSta
 import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig } from "./createTemplateConfig";
 import { createSidebarItems } from "./createSidebarItems";
+import { buildRuntimeTemplateOverrides } from "./runtimeConfig";
 
 type SidebarValue = string | number | boolean | null | undefined;
 
@@ -69,14 +70,34 @@ export function createMiniApp(config: MiniAppFactoryConfig): MiniAppFactoryResul
 
   // --- Template config ---
   const { tabs, contentType, fireworks, chainWarning, stats, twoColumn, docs, ...docOptions } = config.template;
+  const runtimeOverrides = buildRuntimeTemplateOverrides();
+  const mergedOperation =
+    runtimeOverrides.operation && twoColumn?.operation
+      ? {
+          ...twoColumn.operation,
+          ...runtimeOverrides.operation,
+          fields:
+            runtimeOverrides.operation.fields && runtimeOverrides.operation.fields.length > 0
+              ? runtimeOverrides.operation.fields
+              : twoColumn.operation.fields,
+          buttons: runtimeOverrides.operation.buttons ?? twoColumn.operation.buttons,
+        }
+      : runtimeOverrides.operation ?? twoColumn?.operation;
+  const mergedTwoColumn =
+    twoColumn || mergedOperation
+      ? {
+          ...(twoColumn ?? {}),
+          ...(mergedOperation ? { operation: mergedOperation } : {}),
+        }
+      : undefined;
   const templateConfig = createTemplateConfig({
     tabs,
     contentType,
     fireworks,
     chainWarning,
     stats,
-    twoColumn,
-    docs,
+    twoColumn: mergedTwoColumn,
+    docs: runtimeOverrides.docs ?? docs,
     ...docOptions,
   });
 

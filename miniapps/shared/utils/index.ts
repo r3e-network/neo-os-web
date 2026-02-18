@@ -15,3 +15,4 @@ export * from "./parsers";
 export * from "./createTemplateConfig";
 export * from "./createSidebarItems";
 export * from "./createMiniAppEntry";
+export * from "./runtimeConfig";

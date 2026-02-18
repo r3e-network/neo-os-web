@@ -13,6 +13,8 @@
  * @property {string|null} [contractAddress]
  * @property {ChainId[]} [supportedChains]
  * @property {Record<ChainId, {address: string|null, active?: boolean, entryUrl?: string}>} [chainContracts]
+ * @property {Record<string, unknown>|null} [uiConfig]
+ * @property {Record<string, unknown>|null} [display]
  * @property {() => Promise<string|undefined>} [getAuthToken]
  * @property {() => Promise<string|undefined>} [getAPIKey]
  */

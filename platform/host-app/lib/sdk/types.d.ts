@@ -1,4 +1,5 @@
 import type { ChainId } from "../chains/types";
+import type { MiniAppDisplayConfig, MiniAppRuntimeConfig } from "@neo/shared/types/miniapp-runtime";
 
 export interface MiniAppChainContract {
   address: string | null;
@@ -19,6 +20,8 @@ export interface MiniAppSDKConfig {
   contractAddress?: string | null;
   supportedChains?: ChainId[];
   chainContracts?: MiniAppChainContracts;
+  uiConfig?: MiniAppRuntimeConfig | null;
+  display?: MiniAppDisplayConfig | null;
   getAuthToken?: () => Promise<string | undefined>;
   getAPIKey?: () => Promise<string | undefined>;
 }
@@ -33,6 +36,8 @@ export interface MiniAppSDK {
     contractAddress?: string | null;
     supportedChains?: ChainId[];
     chainContracts?: MiniAppChainContracts;
+    uiConfig?: MiniAppRuntimeConfig | null;
+    display?: MiniAppDisplayConfig | null;
     debug?: boolean;
   };
   getAddress?: () => Promise<string | null>;

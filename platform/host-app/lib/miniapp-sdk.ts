@@ -3,6 +3,7 @@ import type { MiniAppSDK, MiniAppSDKConfig, MiniAppChainContracts } from "./sdk/
 import { setChainRpcUrl } from "./chains/rpc-functions";
 import { getWalletAuthHeaders } from "./security/wallet-auth-client";
 import type { ChainId } from "./chains/types";
+import type { MiniAppDisplayConfig, MiniAppRuntimeConfig } from "@neo/shared/types/miniapp-runtime";
 
 type MiniAppPermissions = {
   payments?: boolean;
@@ -21,6 +22,8 @@ type InstallOptions = {
   contractAddress?: string | null;
   supportedChains?: ChainId[];
   chainContracts?: MiniAppChainContracts;
+  uiConfig?: MiniAppRuntimeConfig | null;
+  display?: MiniAppDisplayConfig | null;
   layout?: "web" | "mobile";
   permissions?: MiniAppPermissions;
   authToken?: string;
@@ -85,6 +88,8 @@ function buildConfig(options: InstallOptions): MiniAppSDKConfig {
     contractAddress: options.contractAddress,
     supportedChains: options.supportedChains,
     chainContracts: options.chainContracts,
+    uiConfig: options.uiConfig,
+    display: options.display,
     layout: options.layout,
     getAuthToken: resolveAuthToken(options),
     getAPIKey: resolveAPIKey(options),
@@ -105,11 +110,13 @@ function stableChainContractsKey(contracts?: MiniAppChainContracts): string {
 }
 
 function configKey(config: MiniAppSDKConfig): string {
+  const runtimeConfigKey = config.uiConfig ? JSON.stringify(config.uiConfig) : "";
+  const displayKey = config.display ? JSON.stringify(config.display) : "";
   return `${config.edgeBaseUrl}::${config.appId || ""}::${config.chainId || ""}::${config.chainType || ""}::${
     config.contractAddress || ""
   }::${(config.supportedChains || []).slice().sort().join(",")}::${stableChainContractsKey(
     config.chainContracts,
-  )}::${config.layout || ""}`;
+  )}::${runtimeConfigKey}::${displayKey}::${config.layout || ""}`;
 }
 
 function permissionsKey(permissions?: MiniAppPermissions): string {

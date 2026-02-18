@@ -16,6 +16,19 @@ export interface MiniAppChainContract {
 
 export type MiniAppChainContracts = Record<ChainId, MiniAppChainContract>;
 
+export interface MiniAppDisplayConfig {
+  name?: string;
+  description?: string;
+  icon?: string;
+  banner?: string;
+}
+
+export interface MiniAppRuntimeConfig {
+  docs?: Record<string, unknown>;
+  operation?: Record<string, unknown>;
+  buttons?: unknown[];
+}
+
 export interface PayGASResponse {
   request_id: string;
   user_id: string;

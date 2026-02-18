@@ -7,9 +7,10 @@
 
 import { useEffect, useState } from "react";
 import { SubmissionList } from "@/components/admin/miniapps/submission-list";
+import { CatalogBuilder } from "@/components/admin/miniapps/catalog-builder";
 import { Button } from "@/components/ui/Button";
 
-type Tab = "submissions" | "registry";
+type Tab = "submissions" | "registry" | "catalog";
 
 export default function DistributedMiniAppsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("submissions");
@@ -53,6 +54,20 @@ export default function DistributedMiniAppsPage() {
         >
           Registry View
         </button>
+        <button
+          id="tab-catalog"
+          role="tab"
+          aria-selected={activeTab === "catalog"}
+          aria-controls="panel-catalog"
+          onClick={() => setActiveTab("catalog")}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "catalog"
+              ? "border-b-2 border-primary-600 text-primary-600"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Catalog Builder
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -80,6 +95,12 @@ export default function DistributedMiniAppsPage() {
             </p>
           </div>
           <RegistryView />
+        </div>
+      )}
+
+      {activeTab === "catalog" && (
+        <div id="panel-catalog" role="tabpanel" aria-labelledby="tab-catalog">
+          <CatalogBuilder />
         </div>
       )}
     </div>

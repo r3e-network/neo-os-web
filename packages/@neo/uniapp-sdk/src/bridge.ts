@@ -263,6 +263,8 @@ function createPostMessageSDK(): MiniAppSDK {
         chainId: null,
         chainType: undefined,
         supportedChains: [],
+        uiConfig: null,
+        display: null,
         layout: resolveLayout(),
         debug: false,
       };
