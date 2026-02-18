@@ -35,7 +35,7 @@ export async function handler(req: Request): Promise<Response> {
     .maybeSingle();
 
   if (quotaErr) {
-    return error(500, `failed to check quota: ${quotaErr.message}`, "DB_ERROR", req);
+    return error(500, "failed to check quota", "DB_ERROR", req);
   }
 
   const usedToday = parseFloat(quota?.used_amount ?? "0");
@@ -47,7 +47,7 @@ export async function handler(req: Request): Promise<Response> {
     const balanceStr = await getGasBalance(walletCheck.address);
     gasBalance = parseFloat(balanceStr);
   } catch (e) {
-    return error(500, `failed to query balance: ${(e as Error).message}`, "RPC_ERROR", req);
+    return error(500, "failed to query balance", "RPC_ERROR", req);
   }
 
   const eligible = gasBalance < ELIGIBILITY_THRESHOLD && remaining > 0;

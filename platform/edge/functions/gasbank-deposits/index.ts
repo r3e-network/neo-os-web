@@ -30,7 +30,7 @@ export async function handler(req: Request): Promise<Response> {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (listErr) return error(500, `failed to list deposits: ${listErr.message}`, "DB_ERROR", req);
+  if (listErr) return error(500, "failed to list deposits", "DB_ERROR", req);
   return json({ deposits: data ?? [] }, {}, req);
 }
 

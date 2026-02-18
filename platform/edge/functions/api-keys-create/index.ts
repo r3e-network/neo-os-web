@@ -77,7 +77,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("id,name,prefix,scopes,description,created_at,last_used,expires_at,revoked")
     .maybeSingle();
 
-  if (insertErr) return error(500, `failed to create api key: ${insertErr.message}`, "DB_ERROR", req);
+  if (insertErr) return error(500, "failed to create api key", "DB_ERROR", req);
 
   return json(
     {

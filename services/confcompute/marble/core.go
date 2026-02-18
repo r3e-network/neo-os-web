@@ -147,7 +147,7 @@ func (s *Service) Execute(ctx context.Context, userID string, req *ExecuteReques
 	output, err := s.executeScript(execCtx, req.Script, req.EntryPoint, req.Input, secrets)
 	if err != nil {
 		response.Status = "failed"
-		response.Error = err.Error()
+		response.Error = "script execution failed"
 		response.Duration = time.Since(startTime).String()
 		return response, nil
 	}
@@ -157,7 +157,7 @@ func (s *Service) Execute(ctx context.Context, userID string, req *ExecuteReques
 		outputJSON, err := json.Marshal(output)
 		if err != nil {
 			response.Status = "failed"
-			response.Error = fmt.Sprintf("output is not JSON serializable: %v", err)
+			response.Error = "output is not JSON serializable"
 			response.Duration = time.Since(startTime).String()
 			return response, nil
 		}

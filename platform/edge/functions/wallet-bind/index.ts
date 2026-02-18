@@ -69,7 +69,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("id")
     .eq("user_id", auth.userId)
     .limit(1);
-  if (walletsErr) return error(500, `failed to load wallets: ${walletsErr.message}`, "DB_ERROR", req);
+  if (walletsErr) return error(500, "failed to load wallets", "DB_ERROR", req);
 
   const isPrimary = (existingWallets ?? []).length === 0;
 
@@ -89,7 +89,7 @@ export async function handler(req: Request): Promise<Response> {
     .maybeSingle();
   if (insertErr) {
     // Unique violation is the most common case when the wallet is already bound.
-    return error(409, `failed to bind wallet: ${insertErr.message}`, "WALLET_BIND_FAILED", req);
+    return error(409, "failed to bind wallet", "WALLET_BIND_FAILED", req);
   }
 
   // Best-effort: mirror primary wallet into users.address (simplifies “must bind wallet” checks).

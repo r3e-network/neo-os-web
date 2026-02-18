@@ -35,7 +35,7 @@ export async function handler(req: Request): Promise<Response> {
     .eq("name", name)
     .limit(1);
 
-  if (getErr) return error(500, `failed to load secret: ${getErr.message}`, "DB_ERROR", req);
+  if (getErr) return error(500, "failed to load secret", "DB_ERROR", req);
   if (!data || data.length === 0) return error(404, "secret not found", "NOT_FOUND", req);
 
   const encryptedBase64 = String(data[0]?.encrypted_value ?? "").trim();
@@ -45,7 +45,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     value = await decryptSecretValue(encryptedBase64);
   } catch (e) {
-    return error(500, `failed to decrypt secret: ${(e as Error).message}`, "DECRYPT_FAILED", req);
+    return error(500, "failed to decrypt secret", "DECRYPT_FAILED", req);
   }
 
   return json(

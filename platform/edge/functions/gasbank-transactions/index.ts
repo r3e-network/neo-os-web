@@ -28,7 +28,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("id")
     .eq("user_id", auth.userId)
     .limit(1);
-  if (accErr) return error(500, `failed to load gasbank account: ${accErr.message}`, "DB_ERROR", req);
+  if (accErr) return error(500, "failed to load gasbank account", "DB_ERROR", req);
   if (!accounts || accounts.length === 0) return json({ transactions: [] }, {}, req);
 
   const accountId = String(accounts[0]?.id ?? "").trim();
@@ -41,7 +41,7 @@ export async function handler(req: Request): Promise<Response> {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (listErr) return error(500, `failed to list transactions: ${listErr.message}`, "DB_ERROR", req);
+  if (listErr) return error(500, "failed to list transactions", "DB_ERROR", req);
   return json({ transactions: data ?? [] }, {}, req);
 }
 

@@ -66,7 +66,7 @@ export async function handler(req: Request): Promise<Response> {
     const bFrac = (bParts[1] || "").padEnd(8, "0").slice(0, 8);
     balanceScaled = BigInt(bInt) * 100000000n + BigInt(bFrac);
   } catch (e) {
-    return error(500, `failed to query balance: ${(e as Error).message}`, "RPC_ERROR", req);
+    return error(500, "failed to query balance", "RPC_ERROR", req);
   }
 
   const eligibilityScaled = BigInt(Math.round(ELIGIBILITY_THRESHOLD * 100000000));
@@ -100,7 +100,7 @@ export async function handler(req: Request): Promise<Response> {
   });
 
   if (insertErr) {
-    return error(500, `request creation failed: ${insertErr.message}`, "DB_ERROR", req);
+    return error(500, "request creation failed", "DB_ERROR", req);
   }
 
   // Execute GAS transfer via TxProxy
@@ -118,7 +118,7 @@ export async function handler(req: Request): Promise<Response> {
       .update({ status: "failed", error_message: (e as Error).message })
       .eq("id", requestId);
 
-    return error(500, `transfer failed: ${(e as Error).message}`, "TRANSFER_ERROR", req);
+    return error(500, "transfer failed", "TRANSFER_ERROR", req);
   }
 
   return json(

@@ -118,7 +118,7 @@ export async function requireRateLimit(req: Request, endpoint: string, auth?: Au
   } catch (e) {
     // In local dev, do not hard-fail on missing DB/RPC plumbing.
     if (!isProductionEnv()) return null;
-    return json({ error: { code: "RATE_LIMIT_UNAVAILABLE", message: (e as Error).message } }, { status: 503 }, req);
+    return json({ error: { code: "RATE_LIMIT_UNAVAILABLE", message: "rate limit service unavailable" } }, { status: 503 }, req);
   }
 
   const nowMs = Date.now();

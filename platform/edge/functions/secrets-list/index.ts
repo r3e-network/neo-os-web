@@ -29,7 +29,7 @@ export async function handler(req: Request): Promise<Response> {
     .eq("user_id", auth.userId)
     .order("updated_at", { ascending: false });
 
-  if (listErr) return error(500, `failed to list secrets: ${listErr.message}`, "DB_ERROR", req);
+  if (listErr) return error(500, "failed to list secrets", "DB_ERROR", req);
   return json({ secrets: data ?? [] }, {}, req);
 }
 

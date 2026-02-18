@@ -74,7 +74,7 @@ export async function requireAuth(req: Request): Promise<AuthContext | Response>
 
   const supabase = supabaseServiceClient();
   const { data, error: verifyErr } = await supabase.rpc("verify_api_key", { input_key: apiKey });
-  if (verifyErr) return error(500, `failed to verify api key: ${verifyErr.message}`, "DB_ERROR", req);
+  if (verifyErr) return error(500, "failed to verify api key", "DB_ERROR", req);
 
   const row = Array.isArray(data) ? data[0] : data;
   const valid = Boolean(row?.valid);
@@ -99,7 +99,7 @@ export async function requirePrimaryWallet(userId: string, req?: Request): Promi
     .eq("verified", true)
     .limit(1);
 
-  if (walletsErr) return error(500, `failed to validate wallet binding: ${walletsErr.message}`, "DB_ERROR", req);
+  if (walletsErr) return error(500, "failed to validate wallet binding", "DB_ERROR", req);
   if (!data || data.length === 0) return error(428, "primary wallet binding required", "WALLET_REQUIRED", req);
 
   const address = String(data[0]?.address ?? "").trim();
@@ -122,6 +122,6 @@ export async function ensureUserRow(
     .select("id,nonce,address")
     .maybeSingle();
 
-  if (upsertErr) return error(500, `failed to ensure user: ${upsertErr.message}`, "DB_ERROR", req);
+  if (upsertErr) return error(500, "failed to ensure user", "DB_ERROR", req);
   return data ?? { id: auth.userId };
 }

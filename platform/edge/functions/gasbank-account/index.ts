@@ -29,7 +29,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("id,user_id,balance,reserved,created_at,updated_at")
     .eq("user_id", auth.userId)
     .limit(1);
-  if (getErr) return error(500, `failed to load gasbank account: ${getErr.message}`, "DB_ERROR", req);
+  if (getErr) return error(500, "failed to load gasbank account", "DB_ERROR", req);
 
   if (existing && existing.length > 0) return json({ account: existing[0] }, {}, req);
 
@@ -38,7 +38,7 @@ export async function handler(req: Request): Promise<Response> {
     .insert({ user_id: auth.userId })
     .select("id,user_id,balance,reserved,created_at,updated_at")
     .maybeSingle();
-  if (createErr) return error(500, `failed to create gasbank account: ${createErr.message}`, "DB_ERROR", req);
+  if (createErr) return error(500, "failed to create gasbank account", "DB_ERROR", req);
 
   return json({ account: created }, {}, req);
 }

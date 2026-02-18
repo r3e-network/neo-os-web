@@ -62,7 +62,7 @@ export async function handler(req: Request): Promise<Response> {
       .select("id")
       .single();
     if (acctErr || !newAcct) {
-      return error(500, `create account: ${acctErr?.message}`, "AUTH_ERROR", req);
+      return error(500, "failed to create account", "AUTH_ERROR", req);
     }
     accountId = newAcct.id;
   }
@@ -88,7 +88,7 @@ export async function handler(req: Request): Promise<Response> {
       user_metadata: { address, wallet_type: "external" },
     });
     if (createErr && !createErr.message.includes("already been registered")) {
-      return error(500, `create auth user: ${createErr.message}`, "AUTH_ERROR", req);
+      return error(500, "failed to create auth user", "AUTH_ERROR", req);
     }
   }
 

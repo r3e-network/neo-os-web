@@ -52,7 +52,7 @@ export async function handler(req: Request): Promise<Response> {
     .eq("user_id", auth.userId)
     .eq("name", name)
     .limit(1);
-  if (secretErr) return error(500, `failed to load secret: ${secretErr.message}`, "DB_ERROR", req);
+  if (secretErr) return error(500, "failed to load secret", "DB_ERROR", req);
   if (!secretRows || secretRows.length === 0) return error(404, "secret not found", "NOT_FOUND", req);
 
   // Replace policies.
@@ -61,7 +61,7 @@ export async function handler(req: Request): Promise<Response> {
     .delete()
     .eq("user_id", auth.userId)
     .eq("secret_name", name);
-  if (delErr) return error(500, `failed to delete policies: ${delErr.message}`, "DB_ERROR", req);
+  if (delErr) return error(500, "failed to delete policies", "DB_ERROR", req);
 
   if (services.length > 0) {
     const rows = services.map((svc) => ({
@@ -71,7 +71,7 @@ export async function handler(req: Request): Promise<Response> {
     }));
 
     const { error: insErr } = await supabase.from("secret_policies").insert(rows);
-    if (insErr) return error(500, `failed to create policies: ${insErr.message}`, "DB_ERROR", req);
+    if (insErr) return error(500, "failed to create policies", "DB_ERROR", req);
   }
 
   return json({ status: "ok", services }, {}, req);

@@ -148,7 +148,7 @@ export async function upsertMiniAppManifest(input: {
     .eq("app_id", input.core.appId)
     .maybeSingle();
 
-  if (loadErr) return error(500, `failed to load app registry: ${loadErr.message}`, "DB_ERROR", input.req);
+  if (loadErr) return error(500, "failed to load app registry", "DB_ERROR", input.req);
 
   if (existing) {
     if (String(existing.developer_user_id ?? "") !== input.developerUserId) {
@@ -166,7 +166,7 @@ export async function upsertMiniAppManifest(input: {
     enforceMiniAppAssetPolicy(input.canonicalManifest);
     canonical = canonicalizeMiniAppManifest(input.canonicalManifest);
   } catch (e) {
-    return error(400, (e as Error).message, "MANIFEST_INVALID", input.req);
+    return error(400, "invalid manifest", "MANIFEST_INVALID", input.req);
   }
   const permissions = (canonical.permissions as Record<string, unknown> | undefined) ?? {};
   const limits = (canonical.limits as Record<string, unknown> | undefined) ?? {};
@@ -197,7 +197,7 @@ export async function upsertMiniAppManifest(input: {
     .upsert(payload, { onConflict: "app_id" });
 
   if (upsertErr) {
-    return error(500, `failed to store miniapp manifest: ${upsertErr.message}`, "DB_ERROR", input.req);
+    return error(500, "failed to store manifest", "DB_ERROR", input.req);
   }
 
   return null;
@@ -211,7 +211,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
     .eq("app_id", appId)
     .maybeSingle();
 
-  if (loadErr) return error(500, `failed to load app registry: ${loadErr.message}`, "DB_ERROR", req);
+  if (loadErr) return error(500, "failed to load app registry", "DB_ERROR", req);
 
   if (!data) {
     if (isProductionEnv()) {
@@ -232,7 +232,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
     canonical = canonicalizeMiniAppManifest(row.manifest ?? {});
   } catch (e) {
     const detail = (e as Error).message;
-    return error(500, `stored manifest invalid: ${detail}`, "APP_MANIFEST_INVALID", req);
+    return error(500, "stored manifest invalid", "APP_MANIFEST_INVALID", req);
   }
 
   const permissions = (canonical.permissions as Record<string, unknown> | undefined) ?? {};
@@ -246,7 +246,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
       governanceCap: parseNeoLimit(limitsRaw.governance_cap, "manifest.limits.governance_cap"),
     };
   } catch (e) {
-    return error(500, (e as Error).message, "APP_LIMITS_INVALID", req);
+    return error(500, "invalid app limits", "APP_LIMITS_INVALID", req);
   }
 
   const manifestHash = String(row.manifest_hash ?? "");

@@ -203,7 +203,7 @@ func DatabaseHealthCheck(name string, pingFunc func(context.Context) error) Heal
 			return &ComponentHealth{
 				Name:    name,
 				Status:  "unhealthy",
-				Message: err.Error(),
+				Message: "health check failed",
 			}
 		}
 		return &ComponentHealth{

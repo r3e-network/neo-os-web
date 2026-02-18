@@ -47,7 +47,7 @@ export async function handler(req: Request): Promise<Response> {
     .eq("user_id", auth.userId)
     .eq("name", name);
 
-  if (delErr) return error(500, `failed to delete secret: ${delErr.message}`, "DB_ERROR", req);
+  if (delErr) return error(500, "failed to delete secret", "DB_ERROR", req);
   if (!count) return error(404, "secret not found", "NOT_FOUND", req);
 
   return json({ status: "ok" }, {}, req);

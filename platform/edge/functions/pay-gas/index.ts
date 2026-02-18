@@ -62,7 +62,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     amount = parseDecimalToInt(String(body.amount_gas ?? ""), 8);
   } catch (e) {
-    return error(400, `amount_gas invalid: ${(e as Error).message}`, "AMOUNT_INVALID", req);
+    return error(400, "invalid amount_gas", "AMOUNT_INVALID", req);
   }
   if (amount <= 0n) return error(400, "amount_gas must be > 0", "AMOUNT_INVALID", req);
   if (policy?.limits.maxGasPerTx && amount > policy.limits.maxGasPerTx) {

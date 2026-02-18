@@ -102,7 +102,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       .order("tx_count", { ascending: false });
 
     if (todayErr) {
-      return error(500, `Failed to fetch today's stats: ${todayErr.message}`, "DB_ERROR", req);
+      return error(500, "failed to fetch stats", "DB_ERROR", req);
     }
 
     // If no data for today, return empty results
@@ -130,7 +130,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       .lt("date", todayDateStr);
 
     if (historicalErr) {
-      return error(500, `Failed to fetch historical stats: ${historicalErr.message}`, "DB_ERROR", req);
+      return error(500, "failed to fetch historical stats", "DB_ERROR", req);
     }
 
     // Calculate average per app
@@ -216,7 +216,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       .in("app_id", topAppIds);
 
     if (statsErr) {
-      return error(500, `Failed to fetch app stats: ${statsErr.message}`, "DB_ERROR", req);
+      return error(500, "failed to fetch app stats", "DB_ERROR", req);
     }
 
     // Build lookup maps

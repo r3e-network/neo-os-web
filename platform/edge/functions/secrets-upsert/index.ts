@@ -58,7 +58,7 @@ export async function handler(req: Request): Promise<Response> {
     .eq("user_id", auth.userId)
     .eq("name", name)
     .limit(1);
-  if (getErr) return error(500, `failed to load secret: ${getErr.message}`, "DB_ERROR", req);
+  if (getErr) return error(500, "failed to load secret", "DB_ERROR", req);
 
   const isCreate = !existing || existing.length === 0;
 
@@ -74,7 +74,7 @@ export async function handler(req: Request): Promise<Response> {
       .select("id,name,version,created_at,updated_at")
       .maybeSingle();
 
-    if (insertErr) return error(500, `failed to create secret: ${insertErr.message}`, "DB_ERROR", req);
+    if (insertErr) return error(500, "failed to create secret", "DB_ERROR", req);
 
     // Reset permissions on create (best-effort).
     await supabase.from("secret_policies").delete().eq("user_id", auth.userId).eq("secret_name", name);
@@ -93,7 +93,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("id,name,version,created_at,updated_at")
     .maybeSingle();
 
-  if (updateErr) return error(500, `failed to update secret: ${updateErr.message}`, "DB_ERROR", req);
+  if (updateErr) return error(500, "failed to update secret", "DB_ERROR", req);
 
   return json({ secret: updated, created: false }, {}, req);
 }

@@ -44,7 +44,7 @@ export async function handler(req: Request): Promise<Response> {
         .select("id")
         .single();
       if (acctErr || !newAcct) {
-        return error(500, `create account: ${acctErr?.message}`, "DB_ERROR", req);
+        return error(500, "failed to create account", "DB_ERROR", req);
       }
       accountId = newAcct.id;
     } else {
@@ -55,7 +55,7 @@ export async function handler(req: Request): Promise<Response> {
         .select("id")
         .single();
       if (acctErr || !newAcct) {
-        return error(500, `create account: ${acctErr?.message}`, "DB_ERROR", req);
+        return error(500, "failed to create account", "DB_ERROR", req);
       }
       accountId = newAcct.id;
       await supabase.from("users").upsert({ address, wallet_type: "external" }, { onConflict: "address" });
@@ -68,7 +68,7 @@ export async function handler(req: Request): Promise<Response> {
     { onConflict: "address" }
   );
   if (nonceErr) {
-    return error(500, `store nonce: ${nonceErr.message}`, "DB_ERROR", req);
+    return error(500, "failed to store nonce", "DB_ERROR", req);
   }
 
   return json({ nonce, message, account_id: accountId }, {}, req);

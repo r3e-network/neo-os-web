@@ -72,14 +72,14 @@ export async function handler(req: Request): Promise<Response> {
       .select("id")
       .single();
     if (createErr || !newAcct) {
-      return error(500, `create account failed: ${createErr?.message}`, "DB_ERROR", req);
+      return error(500, "failed to create account", "DB_ERROR", req);
     }
     accountId = newAcct.id;
 
     // Also create users row for metadata
     const { error: userErr } = await supabase.from("users").insert({ email, wallet_type: "custodial" }).select("id").maybeSingle();
     if (userErr && !userErr.message.includes("duplicate")) {
-      return error(500, `create user: ${userErr.message}`, "DB_ERROR", req);
+      return error(500, "failed to create user", "DB_ERROR", req);
     }
 
     // Allocate custodial wallet via account pool service (best-effort)
@@ -119,12 +119,12 @@ export async function handler(req: Request): Promise<Response> {
     linked_at: new Date().toISOString(),
   }, { onConflict: "provider,provider_user_id" });
   if (linkErr) {
-    return error(500, `link identity: ${linkErr.message}`, "DB_ERROR", req);
+    return error(500, "failed to link identity", "DB_ERROR", req);
   }
 
   return json({ user_id: accountId, is_new: true }, {}, req);
   } catch (e) {
-    return error(500, `unhandled: ${e instanceof Error ? e.message : String(e)}`, "INTERNAL", req);
+    return error(500, "internal error", "INTERNAL", req);
   }
 }
 

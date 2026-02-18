@@ -90,7 +90,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
     try {
       normalized = normalizeHexBytes(contractHash, 20, "contract_hash");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "invalid contract_hash";
+      const msg = "invalid contract_hash";
       return error(400, msg, "INVALID_PARAM", req);
     }
     query = query.eq("contract_hash", normalized);
@@ -105,7 +105,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
   }
 
   const { data, error: queryErr } = await query;
-  if (queryErr) return error(500, `failed to query events: ${queryErr.message}`, "DB_ERROR", req);
+  if (queryErr) return error(500, "failed to query events", "DB_ERROR", req);
 
   const events = (data ?? []).slice(0, limit);
   const hasMore = (data ?? []).length > limit;
@@ -158,7 +158,7 @@ export async function queryTransactions(
   }
 
   const { data, error: queryErr } = await query;
-  if (queryErr) return error(500, `failed to query transactions: ${queryErr.message}`, "DB_ERROR", req);
+  if (queryErr) return error(500, "failed to query transactions", "DB_ERROR", req);
 
   const transactions = (data ?? []).slice(0, limit);
   const hasMore = (data ?? []).length > limit;

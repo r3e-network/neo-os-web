@@ -47,7 +47,7 @@ export async function handler(req: Request): Promise<Response> {
     core = await parseMiniAppManifestCore(manifest);
     canonical = canonicalizeMiniAppManifest(manifest);
   } catch (e) {
-    return error(400, (e as Error).message, "BAD_INPUT", req);
+    return error(400, "invalid manifest", "BAD_INPUT", req);
   }
 
   const upsertErr = await upsertMiniAppManifest({

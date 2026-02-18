@@ -38,7 +38,7 @@ export async function handler(req: Request): Promise<Response> {
     .eq("id", id)
     .eq("user_id", auth.userId);
 
-  if (revokeErr) return error(500, `failed to revoke api key: ${revokeErr.message}`, "DB_ERROR", req);
+  if (revokeErr) return error(500, "failed to revoke api key", "DB_ERROR", req);
 
   return json({ status: "ok" }, {}, req);
 }

@@ -72,7 +72,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("*")
     .maybeSingle();
 
-  if (depErr) return error(500, `failed to create deposit request: ${depErr.message}`, "DB_ERROR", req);
+  if (depErr) return error(500, "failed to create deposit request", "DB_ERROR", req);
 
   return json({ deposit: inserted }, { status: 201 }, req);
 }

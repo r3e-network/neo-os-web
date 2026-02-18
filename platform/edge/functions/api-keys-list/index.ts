@@ -26,7 +26,7 @@ export async function handler(req: Request): Promise<Response> {
     .eq("user_id", auth.userId)
     .order("created_at", { ascending: false });
 
-  if (listErr) return error(500, `failed to list api keys: ${listErr.message}`, "DB_ERROR", req);
+  if (listErr) return error(500, "failed to list api keys", "DB_ERROR", req);
   return json({ api_keys: data ?? [] }, {}, req);
 }
 
