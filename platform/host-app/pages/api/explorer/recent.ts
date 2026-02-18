@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   if (relaxedLimit(req, res)) return;
 
-  const network = (req.query.network as string) || "testnet";
+  const network = req.query.network === "mainnet" ? "mainnet" : "testnet";
   const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
 
   try {
