@@ -69,7 +69,7 @@ export async function handler(req: Request): Promise<Response> {
       .eq("app_id", appId)
       .maybeSingle();
 
-    if (err) return error(500, err.message, "DB_ERROR", req);
+    if (err) return error(500, "failed to fetch usage", "DB_ERROR", req);
 
     const usage = normalizeUsageRow(data ?? {}, { app_id: appId, usage_date: date });
     return json({ usage }, {}, req);
@@ -83,7 +83,7 @@ export async function handler(req: Request): Promise<Response> {
     .order("gas_used", { ascending: false })
     .limit(limit);
 
-  if (err) return error(500, err.message, "DB_ERROR", req);
+  if (err) return error(500, "failed to fetch usage", "DB_ERROR", req);
 
   const usage = Array.isArray(data)
     ? data.map((row) => normalizeUsageRow(row as Record<string, unknown>, { app_id: "", usage_date: date }))

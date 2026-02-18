@@ -38,7 +38,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   const { data, error: err } = await query;
-  if (err) return error(500, err.message, "DB_ERROR", req);
+  if (err) return error(500, "failed to fetch notifications", "DB_ERROR", req);
 
   return json({ notifications: data }, {}, req);
 }

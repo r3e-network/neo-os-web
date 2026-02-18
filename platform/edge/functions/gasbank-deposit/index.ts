@@ -53,7 +53,7 @@ export async function handler(req: Request): Promise<Response> {
     .select("id")
     .maybeSingle();
   if (accErr || !account?.id) {
-    return error(500, `failed to ensure gasbank account: ${accErr?.message ?? "unknown error"}`, "DB_ERROR", req);
+    return error(500, "failed to ensure gasbank account", "DB_ERROR", req);
   }
 
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();

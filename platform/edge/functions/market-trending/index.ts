@@ -277,9 +277,8 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       {},
       req,
     );
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    return error(500, `Internal server error: ${errMsg}`, "INTERNAL_ERROR", req);
+  } catch {
+    return error(500, "internal server error", "INTERNAL_ERROR", req);
   }
 }
 

@@ -170,7 +170,7 @@ export async function handler(req: Request): Promise<Response> {
     .order("total_transactions", { ascending: false })
     .limit(50);
 
-  if (err) return error(500, err.message, "DB_ERROR", req);
+  if (err) return error(500, "failed to fetch stats", "DB_ERROR", req);
   const statsRows = (data ?? []) as MiniAppStatsRow[];
   const appIds = Array.from(new Set(statsRows.map((row) => row.app_id).filter(Boolean)));
   const metaMap = await loadMiniAppMeta(appIds);

@@ -49,7 +49,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const data = await res.json();
   if (data.error) {
-    return error(500, data.error.message, "RPC_ERROR", req);
+    return error(500, "failed to fetch balance", "RPC_ERROR", req);
   }
 
   // Parse balances

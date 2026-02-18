@@ -48,7 +48,7 @@ func (s *Service) handleRotate(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.Rotate(r.Context(), req.Force)
 	if err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+		httputil.WriteError(w, http.StatusInternalServerError, "key rotation failed")
 		return
 	}
 
@@ -69,7 +69,7 @@ func (s *Service) handleSign(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.Sign(r.Context(), &req)
 	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, err.Error())
+		httputil.WriteError(w, http.StatusBadRequest, "signing failed")
 		return
 	}
 
@@ -90,7 +90,7 @@ func (s *Service) handleSignRaw(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.SignRaw(r.Context(), &req)
 	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, err.Error())
+		httputil.WriteError(w, http.StatusBadRequest, "signing failed")
 		return
 	}
 
@@ -111,7 +111,7 @@ func (s *Service) handleDerive(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.Derive(r.Context(), &req)
 	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, err.Error())
+		httputil.WriteError(w, http.StatusBadRequest, "key derivation failed")
 		return
 	}
 
@@ -127,7 +127,7 @@ func (s *Service) handleAttestation(w http.ResponseWriter, r *http.Request) {
 
 	att, err := s.GetAttestation(r.Context())
 	if err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+		httputil.WriteError(w, http.StatusInternalServerError, "attestation failed")
 		return
 	}
 
