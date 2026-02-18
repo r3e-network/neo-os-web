@@ -56,9 +56,9 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 		errMsg := err.Error()
 		switch {
 		case contains(errMsg, "not found"), contains(errMsg, "unsupported"), contains(errMsg, "unknown feed"):
-			httputil.NotFound(w, errMsg)
+			httputil.NotFound(w, "price feed not found")
 		case contains(errMsg, "no sources"), contains(errMsg, "no prices"):
-			httputil.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": errMsg})
+			httputil.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "price data unavailable"})
 		default:
 			s.Logger().Error(r.Context(), "failed to get price", err, nil)
 			httputil.InternalError(w, "internal error")
