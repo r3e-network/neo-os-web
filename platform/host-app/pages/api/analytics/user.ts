@@ -196,6 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       appBreakdown,
     };
 
+    res.setHeader("Cache-Control", "no-store, private");
     return res.status(200).json(analytics);
   } catch (error) {
     logger.error("User analytics API failed:", error instanceof Error ? error.message : "unknown error");

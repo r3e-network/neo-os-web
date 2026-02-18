@@ -13,6 +13,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   }
   if (standardLimit(req, res)) return;
 
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   const token = generateCsrfToken();
   setCsrfCookie(res, token);
 
