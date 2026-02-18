@@ -9,7 +9,9 @@ import {
   AppDetailHeader,
   AppStatsCard,
   AppNewsList,
+  OperationPanel,
 } from "../../components";
+import type { OperationEntry } from "../../components/types";
 import { ActivityTicker } from "../../components/ActivityTicker";
 import { AppSecretsTab } from "../../components/features/secrets/AppSecretsTab";
 import { ReviewsTab } from "../../components/features/reviews";
@@ -266,6 +268,14 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
           </a>
         </div>
       )}
+
+      {(() => {
+        const a = app as Record<string, unknown>;
+        const m = (a.manifest as Record<string, unknown>) ?? {};
+        const ops = (a.operations ?? m.operations) as OperationEntry[] | undefined;
+        if (!Array.isArray(ops) || !ops.length) return null;
+        return <OperationPanel operations={ops} onInvoke={(method, params) => { console.log("invoke", method, params); }} />;
+      })()}
 
       <div style={sectionStyle}>
         <h3 style={sectionTitleStyle}>Contract Details</h3>

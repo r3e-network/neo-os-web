@@ -39,6 +39,26 @@ export type MiniAppInfo = {
   } | null;
 };
 
+export type OperationParam = {
+  name: string;
+  type: "string" | "integer" | "boolean" | "address" | "hash256" | "amount" | "select";
+  label?: string;
+  required?: boolean;
+  default_value?: string;
+  placeholder?: string;
+  options?: { label: string; value: string }[];
+};
+
+export type OperationEntry = {
+  name: string;
+  method: string;
+  description?: string;
+  gas_cost?: string;
+  button_style?: "primary" | "secondary" | "danger" | "success";
+  confirm_message?: string;
+  params?: OperationParam[];
+};
+
 export type MiniAppStats = {
   app_id: string;
   total_transactions: number;
