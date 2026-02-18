@@ -169,7 +169,9 @@ func (s *Syncer) syncBlocksForNetwork(ctx context.Context, network Network) {
 	if state != nil {
 		newState.TotalTxIndexed = state.TotalTxIndexed + totalTx
 	}
-	s.storage.UpdateSyncState(ctx, newState)
+	if err := s.storage.UpdateSyncState(ctx, newState); err != nil {
+		s.log.WithError(err).WithField("network", network).Error("update sync state")
+	}
 }
 
 func (s *Syncer) syncBlockForNetwork(ctx context.Context, network Network, client *chain.Client, blockIdx uint64) (int64, error) {
