@@ -51,6 +51,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(upstream.status).json(data);
   } catch (err) {
     console.error("Failed to fetch transactions:", err);
-    apiError.internal(res, "Failed to fetch transactions");
+    return apiError.internal(res, "Failed to fetch transactions");
   }
 }

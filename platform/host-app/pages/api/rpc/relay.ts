@@ -114,9 +114,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.send(buf);
   } catch (err) {
     if (controller.signal.aborted) {
-      apiError.gatewayError(res, "upstream request timed out");
+      return apiError.gatewayError(res, "upstream request timed out");
     } else {
-      apiError.gatewayError(res, "upstream request failed");
+      return apiError.gatewayError(res, "upstream request failed");
     }
   } finally {
     clearTimeout(timeoutId);
