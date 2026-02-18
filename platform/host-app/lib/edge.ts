@@ -55,7 +55,7 @@ export function buildEdgeUrl(fn: string, query: NextApiRequest["query"]): URL | 
 }
 
 function sanitizeHeaderValue(value: string): string {
-  return value.replace(/[\r\n]/g, "");
+  return value.replace(/[\r\n\0]/g, "");
 }
 
 function joinHeaderValues(value: string | string[]): string {
