@@ -15,11 +15,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const params = new URLSearchParams();
   const { app_id, event_name, contract_hash, limit, after_id } = req.query;
 
-  if (app_id) params.set("app_id", String(app_id));
-  if (event_name) params.set("event_name", String(event_name));
-  if (contract_hash) params.set("contract_hash", String(contract_hash));
-  if (limit) params.set("limit", String(limit));
-  if (after_id) params.set("after_id", String(after_id));
+  if (app_id) {
+    const v = String(app_id);
+    if (!/^[a-zA-Z0-9._-]+$/.test(v)) return apiError.badRequest(res, "Invalid app_id");
+    params.set("app_id", v);
+  }
+  if (event_name) {
+    const v = String(event_name);
+    if (!/^[a-zA-Z0-9._-]+$/.test(v)) return apiError.badRequest(res, "Invalid event_name");
+    params.set("event_name", v);
+  }
+  if (contract_hash) {
+    const v = String(contract_hash);
+    if (!/^0x[0-9a-fA-F]{40}$/.test(v)) return apiError.badRequest(res, "Invalid contract_hash");
+    params.set("contract_hash", v);
+  }
+  if (limit) {
+    const parsed = parseInt(String(limit), 10);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 500) return apiError.badRequest(res, "Invalid limit");
+    params.set("limit", String(parsed));
+  }
+  if (after_id) {
+    const v = String(after_id);
+    if (!/^[a-zA-Z0-9_-]+$/.test(v)) return apiError.badRequest(res, "Invalid after_id");
+    params.set("after_id", v);
+  }
 
   try {
     const url = `${base}/events-list?${params}`;
