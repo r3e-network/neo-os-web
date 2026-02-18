@@ -60,40 +60,29 @@ export default function MiniAppsPage() {
   const [statsMap, setStatsMap] = useState<StatsMap>({});
 
   useEffect(() => {
-    fetch("/api/miniapps/catalog")
-      .then((res) => res.json())
-      .then((data) => {
-        const list = Array.isArray(data?.apps) ? data.apps : [];
-        setApps(list.map((app: MiniAppInfo) => ({ ...app, cardData: getCardData(app.app_id) })));
-      })
-      .catch(() => setApps([]));
-  }, []);
+    Promise.all([
+      fetch("/api/miniapps/catalog").then((r) => r.json()).catch(() => null),
+      fetch("/api/miniapp-stats").then((r) => r.json()).catch(() => null),
+      fetch("/api/miniapps/community").then((r) => r.json()).catch(() => null),
+    ]).then(([catalogData, statsData, communityData]) => {
+      const list = Array.isArray(catalogData?.apps) ? catalogData.apps : [];
+      setApps(list.map((app: MiniAppInfo) => ({ ...app, cardData: getCardData(app.app_id) })));
 
-  useEffect(() => {
-    fetch("/api/miniapp-stats")
-      .then((res) => res.json())
-      .then((data) => {
-        const statsList = Array.isArray(data?.stats) ? data.stats : Array.isArray(data) ? data : [];
-        const map: StatsMap = {};
-        for (const s of statsList) {
-          if (s?.app_id) {
-            map[s.app_id] = {
-              users: s.total_users || s.daily_active_users || 0,
-              transactions: s.total_transactions || 0,
-              volume: s.total_gas_used ? `${Number(s.total_gas_used).toFixed(1)} GAS` : "0 GAS",
-            };
-          }
+      const statsList = Array.isArray(statsData?.stats) ? statsData.stats : Array.isArray(statsData) ? statsData : [];
+      const map: StatsMap = {};
+      for (const s of statsList) {
+        if (s?.app_id) {
+          map[s.app_id] = {
+            users: s.total_users || s.daily_active_users || 0,
+            transactions: s.total_transactions || 0,
+            volume: s.total_gas_used ? `${Number(s.total_gas_used).toFixed(1)} GAS` : "0 GAS",
+          };
         }
-        setStatsMap(map);
-      })
-      .catch(() => setStatsMap({}));
-  }, []);
+      }
+      setStatsMap(map);
 
-  useEffect(() => {
-    fetch("/api/miniapps/community")
-      .then((res) => res.json())
-      .then((data) => setCommunityApps(data.apps || []))
-      .catch(() => setCommunityApps([]));
+      setCommunityApps(communityData?.apps || []);
+    });
   }, []);
 
   const handleFilterChange = (sectionId: string, values: string[]) => {
