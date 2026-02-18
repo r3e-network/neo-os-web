@@ -1,5 +1,9 @@
 // Email templates for notification system
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 export interface VerificationEmailData {
   code: string;
   walletAddress: string;
@@ -17,10 +21,10 @@ export function verificationEmail(data: VerificationEmailData) {
         <h2 style="color: #00E599;">R3E Network</h2>
         <p>Your email verification code:</p>
         <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 8px; font-weight: bold;">
-          ${code}
+          ${escapeHtml(code)}
         </div>
         <p style="color: #666; font-size: 14px; margin-top: 20px;">
-          Wallet: ${shortWallet}<br/>
+          Wallet: ${escapeHtml(shortWallet)}<br/>
           This code expires in 10 minutes.
         </p>
       </div>
@@ -52,9 +56,9 @@ export function transactionEmail(data: TransactionEmailData) {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #00E599;">R3E Network</h2>
         <h3>${titles[type]}</h3>
-        <p><strong>App:</strong> ${appName}</p>
-        <p><strong>Amount:</strong> ${amount}</p>
-        ${txHash ? `<p style="font-size: 12px; color: #666;">Tx: ${txHash}</p>` : ""}
+        <p><strong>App:</strong> ${escapeHtml(appName)}</p>
+        <p><strong>Amount:</strong> ${escapeHtml(amount)}</p>
+        ${txHash ? `<p style="font-size: 12px; color: #666;">Tx: ${escapeHtml(txHash)}</p>` : ""}
       </div>
     `,
   };
@@ -83,7 +87,7 @@ export function chainAlertEmail(data: ChainAlertEmailData) {
         <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px;">
           <h3 style="margin: 0 0 10px 0;">${alertTitles[alertType]}</h3>
           <p><strong>Network:</strong> ${network}</p>
-          <p>${details}</p>
+          <p>${escapeHtml(details)}</p>
         </div>
       </div>
     `,

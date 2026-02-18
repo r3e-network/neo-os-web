@@ -57,7 +57,8 @@ export async function getLotteryState(
       currentRound: Number(parseInteger(roundRes.stack[0])),
       endTime: Date.now() + 3600000,
     };
-  } catch {
+  } catch (err) {
+    console.warn("getLotteryState failed:", err);
     return { prizePool: "0", ticketsSold: 0, currentRound: 0, endTime: 0 };
   }
 }
@@ -83,7 +84,8 @@ export async function getGameState(contractHash: string, network: Network = "tes
       totalBets: "0",
       roundId: Number(parseInteger(roundRes.stack[0])),
     };
-  } catch {
+  } catch (err) {
+    console.warn("getGameState failed:", err);
     return { currentMultiplier: 1.0, playerCount: 0, totalBets: "0", roundId: 0 };
   }
 }
@@ -116,8 +118,8 @@ export async function getVotingState(
         endTime: Date.now() + 86400000,
       };
     }
-  } catch {
-    // Fall through to default
+  } catch (err) {
+    console.warn("getVotingState failed:", err);
   }
   return {
     proposalId: 0,
@@ -146,8 +148,8 @@ export async function getContractStats(contractHash: string, network: Network = 
         uniqueUsers: Number(parseInteger(arr[2])),
       };
     }
-  } catch {
-    // Fall through to default
+  } catch (err) {
+    console.warn("getContractStats failed:", err);
   }
   return { totalValueLocked: "0", totalTransactions: 0, uniqueUsers: 0 };
 }
