@@ -109,14 +109,16 @@ export async function handler(req: Request): Promise<Response> {
     const txResult = await transferGas(requestId, walletCheck.address, amountStr);
     txHash = txResult.tx_hash || null;
 
-    // Update request status
-    await supabase.from("gas_sponsor_requests").update({ status: "completed", tx_hash: txHash }).eq("id", requestId);
+    // Update request status (best-effort; transfer already succeeded)
+    const { error: updErr } = await supabase.from("gas_sponsor_requests").update({ status: "completed", tx_hash: txHash }).eq("id", requestId);
+    if (updErr) console.error("gas-sponsor status update failed:", updErr.message);
   } catch (e) {
-    // Update request as failed
-    await supabase
+    // Update request as failed (best-effort)
+    const { error: failErr } = await supabase
       .from("gas_sponsor_requests")
       .update({ status: "failed", error_message: (e as Error).message })
       .eq("id", requestId);
+    if (failErr) console.error("gas-sponsor failure status update failed:", failErr.message);
 
     return error(500, "transfer failed", "TRANSFER_ERROR", req);
   }
