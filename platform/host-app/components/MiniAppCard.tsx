@@ -11,7 +11,11 @@ type Props = {
 export function MiniAppCard({ app, stats, onClick }: Props) {
   return (
     <div onClick={onClick} style={cardStyle}>
-      <div style={iconStyle}>{app.icon}</div>
+      {app.logo_url ? (
+        <img src={app.logo_url} alt={app.name} style={logoImgStyle} />
+      ) : (
+        <div style={iconStyle}>{app.icon}</div>
+      )}
       <div style={contentStyle}>
         <h3 style={titleStyle}>{app.name}</h3>
         <p style={descStyle}>{app.description}</p>
@@ -39,6 +43,14 @@ const cardStyle: React.CSSProperties = {
 
 const iconStyle: React.CSSProperties = {
   fontSize: 40,
+  marginBottom: 12,
+};
+
+const logoImgStyle: React.CSSProperties = {
+  width: 48,
+  height: 48,
+  borderRadius: 12,
+  objectFit: "cover",
   marginBottom: 12,
 };
 

@@ -9,6 +9,9 @@ export type MiniAppInfo = {
   name: string;
   description: string;
   icon: string;
+  logo_url?: string | null;
+  banner_url?: string | null;
+  docs_url?: string | null;
   category: MiniAppCategory;
   entry_url: string;
   contract_hash?: string | null;
