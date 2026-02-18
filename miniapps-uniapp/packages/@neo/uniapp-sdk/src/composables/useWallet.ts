@@ -109,7 +109,7 @@ export function useWallet() {
           address.value = addr;
           isConnected.value = true;
         })
-        .catch(() => {});
+        .catch((e) => { error.value = e as Error; });
     }
   });
 
