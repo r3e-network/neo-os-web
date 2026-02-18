@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -137,22 +138,22 @@ func (s *Storage) SaveOpcodeTraces(ctx context.Context, traces []*OpcodeTrace) e
 	if len(traces) == 0 {
 		return nil
 	}
-	query := `
-		INSERT INTO indexer_opcode_traces (
-			tx_hash, step_index, opcode, opcode_hex, gas_consumed,
-			stack_size, contract_hash, instruction_ptr
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`
-	for _, t := range traces {
-		_, err := s.db.ExecContext(ctx, query,
-			t.TxHash, t.StepIndex, t.Opcode, t.OpcodeHex, t.GasConsumed,
-			t.StackSize, t.ContractHash, t.InstructionPtr,
-		)
-		if err != nil {
-			return err
-		}
+	const cols = 8
+	valueStrings := make([]string, 0, len(traces))
+	args := make([]interface{}, 0, len(traces)*cols)
+	for i, t := range traces {
+		base := i * cols
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
+			base+1, base+2, base+3, base+4, base+5, base+6, base+7, base+8))
+		args = append(args, t.TxHash, t.StepIndex, t.Opcode, t.OpcodeHex, t.GasConsumed,
+			t.StackSize, t.ContractHash, t.InstructionPtr)
 	}
-	return nil
+	query := `INSERT INTO indexer_opcode_traces (
+		tx_hash, step_index, opcode, opcode_hex, gas_consumed,
+		stack_size, contract_hash, instruction_ptr
+	) VALUES ` + strings.Join(valueStrings, ",")
+	_, err := s.db.ExecContext(ctx, query, args...)
+	return err
 }
 
 // GetOpcodeTraces retrieves opcode traces for a transaction.
@@ -191,22 +192,22 @@ func (s *Storage) SaveContractCalls(ctx context.Context, calls []*ContractCall) 
 	if len(calls) == 0 {
 		return nil
 	}
-	query := `
-		INSERT INTO indexer_contract_calls (
-			tx_hash, call_index, contract_hash, method, args_json,
-			gas_consumed, success, parent_call_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`
-	for _, c := range calls {
-		_, err := s.db.ExecContext(ctx, query,
-			c.TxHash, c.CallIndex, c.ContractHash, c.Method, c.ArgsJSON,
-			c.GasConsumed, c.Success, c.ParentCallID,
-		)
-		if err != nil {
-			return err
-		}
+	const cols = 8
+	valueStrings := make([]string, 0, len(calls))
+	args := make([]interface{}, 0, len(calls)*cols)
+	for i, c := range calls {
+		base := i * cols
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
+			base+1, base+2, base+3, base+4, base+5, base+6, base+7, base+8))
+		args = append(args, c.TxHash, c.CallIndex, c.ContractHash, c.Method, c.ArgsJSON,
+			c.GasConsumed, c.Success, c.ParentCallID)
 	}
-	return nil
+	query := `INSERT INTO indexer_contract_calls (
+		tx_hash, call_index, contract_hash, method, args_json,
+		gas_consumed, success, parent_call_id
+	) VALUES ` + strings.Join(valueStrings, ",")
+	_, err := s.db.ExecContext(ctx, query, args...)
+	return err
 }
 
 // GetContractCalls retrieves contract calls for a transaction.
@@ -245,22 +246,22 @@ func (s *Storage) SaveSyscalls(ctx context.Context, syscalls []*Syscall) error {
 	if len(syscalls) == 0 {
 		return nil
 	}
-	query := `
-		INSERT INTO indexer_syscalls (
-			tx_hash, call_index, syscall_name, args_json,
-			result_json, gas_consumed, contract_hash
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
-	for _, sc := range syscalls {
-		_, err := s.db.ExecContext(ctx, query,
-			sc.TxHash, sc.CallIndex, sc.SyscallName, sc.ArgsJSON,
-			sc.ResultJSON, sc.GasConsumed, sc.ContractHash,
-		)
-		if err != nil {
-			return err
-		}
+	const cols = 7
+	valueStrings := make([]string, 0, len(syscalls))
+	args := make([]interface{}, 0, len(syscalls)*cols)
+	for i, sc := range syscalls {
+		base := i * cols
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d)",
+			base+1, base+2, base+3, base+4, base+5, base+6, base+7))
+		args = append(args, sc.TxHash, sc.CallIndex, sc.SyscallName, sc.ArgsJSON,
+			sc.ResultJSON, sc.GasConsumed, sc.ContractHash)
 	}
-	return nil
+	query := `INSERT INTO indexer_syscalls (
+		tx_hash, call_index, syscall_name, args_json,
+		result_json, gas_consumed, contract_hash
+	) VALUES ` + strings.Join(valueStrings, ",")
+	_, err := s.db.ExecContext(ctx, query, args...)
+	return err
 }
 
 // GetSyscalls retrieves syscalls for a transaction.
@@ -299,20 +300,20 @@ func (s *Storage) SaveAddressTxs(ctx context.Context, addrTxs []*AddressTx) erro
 	if len(addrTxs) == 0 {
 		return nil
 	}
-	query := `
-		INSERT INTO indexer_address_txs (address, tx_hash, role, network, block_time)
-		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (address, tx_hash, role) DO NOTHING
-	`
-	for _, at := range addrTxs {
-		_, err := s.db.ExecContext(ctx, query,
-			at.Address, at.TxHash, at.Role, at.Network, at.BlockTime,
-		)
-		if err != nil {
-			return err
-		}
+	const cols = 5
+	valueStrings := make([]string, 0, len(addrTxs))
+	args := make([]interface{}, 0, len(addrTxs)*cols)
+	for i, at := range addrTxs {
+		base := i * cols
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d)",
+			base+1, base+2, base+3, base+4, base+5))
+		args = append(args, at.Address, at.TxHash, at.Role, at.Network, at.BlockTime)
 	}
-	return nil
+	query := `INSERT INTO indexer_address_txs (address, tx_hash, role, network, block_time)
+	VALUES ` + strings.Join(valueStrings, ",") + `
+	ON CONFLICT (address, tx_hash, role) DO NOTHING`
+	_, err := s.db.ExecContext(ctx, query, args...)
+	return err
 }
 
 // =============================================================================
