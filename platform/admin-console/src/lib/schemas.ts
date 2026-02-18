@@ -22,11 +22,24 @@ export const contractEntrySchema = z.object({
   hash: z.string().min(1).regex(/^0x[0-9a-fA-F]{40}$/, "valid Neo N3 contract hash"),
 });
 
+export const operationParamSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["string", "integer", "boolean", "address", "hash256", "amount", "select"]),
+  label: z.string().optional(),
+  required: z.boolean().default(true),
+  default_value: z.string().optional(),
+  placeholder: z.string().optional(),
+  options: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
+});
+
 export const operationEntrySchema = z.object({
   name: z.string().min(1),
   method: z.string().min(1),
   description: z.string().optional(),
   gas_cost: z.string().optional(),
+  button_style: z.enum(["primary", "secondary", "danger", "success"]).optional(),
+  confirm_message: z.string().optional(),
+  params: z.array(operationParamSchema).default([]),
 });
 
 export const componentEntrySchema = z.object({

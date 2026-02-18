@@ -50,7 +50,8 @@ const CREATE_TABS = [
 ];
 
 interface ContractEntry { name: string; hash: string }
-interface OperationEntry { name: string; method: string; description: string; gas_cost: string }
+interface OperationParam { name: string; type: string; label: string; required: boolean; default_value: string; placeholder: string; options: string }
+interface OperationEntry { name: string; method: string; description: string; gas_cost: string; button_style: string; confirm_message: string; params: OperationParam[] }
 interface ComponentEntry { type: string; display: string; props: string }
 
 const EMPTY_FORM = {
@@ -374,7 +375,21 @@ function formToConfig(form: typeof EMPTY_FORM) {
     assets_allowed: form.assets_allowed.split(",").map(s => s.trim()).filter(Boolean),
     governance_assets_allowed: form.governance_assets_allowed.split(",").map(s => s.trim()).filter(Boolean),
     contracts: form.contracts.filter(c => c.name && c.hash),
-    operations: form.operations.filter(o => o.name && o.method),
+    operations: form.operations.filter(o => o.name && o.method).map(o => ({
+      name: o.name, method: o.method,
+      description: o.description || undefined,
+      gas_cost: o.gas_cost || undefined,
+      button_style: o.button_style || undefined,
+      confirm_message: o.confirm_message || undefined,
+      params: o.params.filter(p => p.name && p.type).map(p => ({
+        name: p.name, type: p.type,
+        label: p.label || undefined,
+        required: p.required,
+        default_value: p.default_value || undefined,
+        placeholder: p.placeholder || undefined,
+        options: p.options ? (() => { try { return JSON.parse(p.options); } catch { return undefined; } })() : undefined,
+      })),
+    })),
     components: form.components.filter(c => c.type).map(c => ({
       type: c.type, display: c.display || undefined,
       props: (() => { try { return c.props ? JSON.parse(c.props) : {}; } catch { return {}; } })(),
@@ -395,8 +410,15 @@ function appToForm(app: MiniApp): typeof EMPTY_FORM {
   const m = (app.manifest || {}) as Record<string, unknown>;
   const content = (m.content && typeof m.content === "object") ? m.content as Record<string, unknown> : {};
   const contracts = Array.isArray(m.contracts) ? m.contracts as ContractEntry[] : [];
-  const operations = Array.isArray(m.operations) ? (m.operations as Array<Record<string, string>>).map(o => ({
-    name: o.name || "", method: o.method || "", description: o.description || "", gas_cost: o.gas_cost || "",
+  const operations = Array.isArray(m.operations) ? (m.operations as Array<Record<string, unknown>>).map(o => ({
+    name: String(o.name || ""), method: String(o.method || ""), description: String(o.description || ""), gas_cost: String(o.gas_cost || ""),
+    button_style: String(o.button_style || ""), confirm_message: String(o.confirm_message || ""),
+    params: Array.isArray(o.params) ? (o.params as Array<Record<string, unknown>>).map(p => ({
+      name: String(p.name || ""), type: String(p.type || "string"), label: String(p.label || ""),
+      required: p.required !== false, default_value: String(p.default_value || ""),
+      placeholder: String(p.placeholder || ""),
+      options: Array.isArray(p.options) ? JSON.stringify(p.options) : "",
+    })) : [] as OperationParam[],
   })) : [];
   return {
     app_id: app.app_id,
@@ -461,7 +483,7 @@ function CreateFormPanel({
     setForm({ ...form, contracts: next });
   };
 
-  const addOperation = () => setForm({ ...form, operations: [...form.operations, { name: "", method: "", description: "", gas_cost: "" }] });
+  const addOperation = () => setForm({ ...form, operations: [...form.operations, { name: "", method: "", description: "", gas_cost: "", button_style: "", confirm_message: "", params: [] }] });
   const removeOperation = (i: number) => setForm({ ...form, operations: form.operations.filter((_, idx) => idx !== i) });
   const updateOperation = (i: number, field: keyof OperationEntry, val: string) => {
     const next = [...form.operations];
@@ -580,12 +602,27 @@ function CreateFormPanel({
                 <button type="button" onClick={addOperation} className="text-xs text-blue-600 hover:underline">+ Add Operation</button>
               </div>
               {form.operations.map((o, i) => (
-                <div key={i} className="flex gap-2 mb-2">
-                  <Input placeholder="Name" value={o.name} onChange={e => updateOperation(i, "name", e.target.value)} />
-                  <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} />
-                  <Input placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} />
-                  <Input placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} />
-                  <button type="button" onClick={() => removeOperation(i)} className="text-red-500 text-xs px-2 shrink-0">Remove</button>
+                <div key={i} className="rounded border border-gray-200 p-3 mb-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input placeholder="Name" value={o.name} onChange={e => updateOperation(i, "name", e.target.value)} />
+                    <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} />
+                    <Input placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} />
+                    <Input placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} />
+                    <button type="button" onClick={() => removeOperation(i)} className="text-red-500 text-xs px-2 shrink-0">Remove</button>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="w-40">
+                      <select className="w-full rounded-md border border-gray-300 p-1.5 text-xs" value={o.button_style} onChange={e => updateOperation(i, "button_style", e.target.value)}>
+                        <option value="">Button Style</option>
+                        <option value="primary">Primary</option>
+                        <option value="secondary">Secondary</option>
+                        <option value="danger">Danger</option>
+                        <option value="success">Success</option>
+                      </select>
+                    </div>
+                    <Input placeholder="Confirm message (optional)" value={o.confirm_message} onChange={e => updateOperation(i, "confirm_message", e.target.value)} />
+                  </div>
+                  <OperationParamsEditor params={o.params} onChange={params => { const next = [...form.operations]; next[i] = { ...next[i], params }; setForm({ ...form, operations: next }); }} />
                 </div>
               ))}
               {!form.operations.length && <p className="text-xs text-gray-400">No operations added</p>}
@@ -672,5 +709,41 @@ function CreateFormPanel({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+const PARAM_TYPES = ["string", "integer", "boolean", "address", "hash256", "amount", "select"];
+
+function OperationParamsEditor({ params, onChange }: { params: OperationParam[]; onChange: (p: OperationParam[]) => void }) {
+  const add = () => onChange([...params, { name: "", type: "string", label: "", required: true, default_value: "", placeholder: "", options: "" }]);
+  const remove = (i: number) => onChange(params.filter((_, idx) => idx !== i));
+  const update = (i: number, field: keyof OperationParam, val: string | boolean) => {
+    const next = [...params];
+    next[i] = { ...next[i], [field]: val };
+    onChange(next);
+  };
+
+  return (
+    <div className="pl-4 border-l-2 border-gray-100">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-gray-500">Parameters</span>
+        <button type="button" onClick={add} className="text-xs text-blue-600 hover:underline">+ Add Param</button>
+      </div>
+      {params.map((p, i) => (
+        <div key={i} className="flex gap-1.5 mb-1.5 items-center">
+          <Input placeholder="name" value={p.name} onChange={e => update(i, "name", e.target.value)} />
+          <select className="rounded-md border border-gray-300 p-1.5 text-xs w-28 shrink-0" value={p.type} onChange={e => update(i, "type", e.target.value)}>
+            {PARAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <Input placeholder="Label" value={p.label} onChange={e => update(i, "label", e.target.value)} />
+          <Input placeholder="Placeholder" value={p.placeholder} onChange={e => update(i, "placeholder", e.target.value)} />
+          <label className="flex items-center gap-1 text-xs shrink-0">
+            <input type="checkbox" checked={p.required} onChange={e => update(i, "required", e.target.checked)} className="rounded" />
+            Req
+          </label>
+          <button type="button" onClick={() => remove(i)} className="text-red-500 text-xs px-1 shrink-0">×</button>
+        </div>
+      ))}
+    </div>
   );
 }
