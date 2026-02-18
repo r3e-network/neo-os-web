@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         results.push({
           appId: app.app_id,
           success: false,
-          error: error instanceof Error ? error.message : "Unknown error",
+          error: "collection failed",
         });
       }
     }
@@ -60,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (error) {
     logger.error("Cron error:", error);
-    apiError.internal(res, "Collection failed");
+    return apiError.internal(res, "Collection failed");
   }
 }
 
