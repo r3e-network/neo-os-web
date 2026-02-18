@@ -91,8 +91,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const upstream = await fetchWithRetry(url.toString(), { method, headers, body }, MAX_RETRIES);
 
     res.status(upstream.status);
+    const blockedHeaders = new Set(["transfer-encoding", "connection", "set-cookie", "access-control-allow-origin"]);
     upstream.headers.forEach((value, key) => {
-      if (key === "transfer-encoding" || key === "connection") return;
+      if (blockedHeaders.has(key)) return;
       res.setHeader(key, value);
     });
 
