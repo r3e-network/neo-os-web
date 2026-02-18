@@ -18,6 +18,8 @@ type MiniApp struct {
 	Description     string          `json:"description"`
 	Icon            string          `json:"icon"`
 	Banner          string          `json:"banner"`
+	LogoURL         string          `json:"logo_url"`
+	DocsURL         string          `json:"docs_url"`
 	Category        string          `json:"category"`
 }
 
