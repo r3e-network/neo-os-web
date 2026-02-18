@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Get appIds from query or body
   let appIds: string[] = [];
   if (req.method === "GET" && req.query.appIds) {
-    appIds = (req.query.appIds as string).split(",");
+    appIds = (req.query.appIds as string).slice(0, 4096).split(",").map((id) => id.trim().slice(0, 128)).filter(Boolean);
   } else if (req.method === "POST" && req.body?.appIds) {
     appIds = Array.isArray(req.body.appIds) ? req.body.appIds : [];
   }

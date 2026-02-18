@@ -37,8 +37,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       if (!/^N[A-Za-z0-9]{33}$/.test(prefs.walletAddress)) {
         return apiError.badRequest(res, "Invalid wallet address format");
       }
-      if (prefs.email !== undefined && prefs.email !== null && typeof prefs.email !== "string") {
-        return apiError.badRequest(res, "Invalid email");
+      if (prefs.email !== undefined && prefs.email !== null) {
+        if (typeof prefs.email !== "string" || prefs.email.length > 255) {
+          return apiError.badRequest(res, "Invalid email");
+        }
       }
       const validFrequencies = ["instant", "daily", "weekly"];
       if (prefs.digestFrequency && !validFrequencies.includes(prefs.digestFrequency)) {
