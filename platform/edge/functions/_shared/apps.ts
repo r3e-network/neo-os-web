@@ -127,7 +127,7 @@ export async function enforceUsageCaps(input: UsageCapInput): Promise<Response |
       return null;
     }
     if (!isProductionEnv()) return null;
-    return error(503, `usage tracking unavailable: ${message}`, "USAGE_UNAVAILABLE", input.req);
+    return error(503, "usage tracking unavailable", "USAGE_UNAVAILABLE", input.req);
   }
 
   return null;

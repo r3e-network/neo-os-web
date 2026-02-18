@@ -88,7 +88,7 @@ export async function requestJSON(
 
   const text = await resp.text();
   if (!resp.ok) {
-    return error(resp.status, text || `upstream error (${resp.status})`, "UPSTREAM_ERROR", req);
+    return error(resp.status, "upstream request failed", "UPSTREAM_ERROR", req);
   }
 
   if (!text) return {};

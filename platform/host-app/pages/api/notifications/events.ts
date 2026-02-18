@@ -13,28 +13,32 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.badRequest(res, "Wallet address required");
   }
 
-  if (req.method === "GET") {
-    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
-    const unreadOnly = req.query.unreadOnly === "true";
+  try {
+    if (req.method === "GET") {
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
+      const unreadOnly = req.query.unreadOnly === "true";
 
-    const events = await getEvents(wallet, limit, unreadOnly);
-    const unreadCount = await getUnreadCount(wallet);
+      const events = await getEvents(wallet, limit, unreadOnly);
+      const unreadCount = await getUnreadCount(wallet);
 
-    return res.status(200).json({ events, unreadCount });
-  }
-
-  if (req.method === "POST") {
-    const { eventId } = req.body;
-    if (!eventId || typeof eventId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)) {
-      return apiError.badRequest(res, "Valid event ID required");
+      return res.status(200).json({ events, unreadCount });
     }
 
-    const success = await markAsRead(eventId);
-    if (!success) return apiError.internal(res, "Failed to mark as read");
-    return res.status(200).json({ success });
-  }
+    if (req.method === "POST") {
+      const { eventId } = req.body;
+      if (!eventId || typeof eventId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)) {
+        return apiError.badRequest(res, "Valid event ID required");
+      }
 
-  return apiError.methodNotAllowed(res);
+      const success = await markAsRead(eventId);
+      if (!success) return apiError.internal(res, "Failed to mark as read");
+      return res.status(200).json({ success });
+    }
+
+    return apiError.methodNotAllowed(res);
+  } catch {
+    return apiError.internal(res, "Failed to process notification events");
+  }
 }
 
 export default withCsrfProtection(handler);

@@ -15,44 +15,48 @@ const DEFAULT_PREFERENCES = {
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (standardLimit(req, res)) return;
-  if (req.method === "GET") {
-    const { wallet } = req.query;
-    if (!wallet || typeof wallet !== "string") {
-      return apiError.badRequest(res, "Wallet address required");
+  try {
+    if (req.method === "GET") {
+      const { wallet } = req.query;
+      if (!wallet || typeof wallet !== "string") {
+        return apiError.badRequest(res, "Wallet address required");
+      }
+
+      const prefs = await getPreferences(wallet);
+
+      return res.status(200).json({
+        preferences: prefs ?? { walletAddress: wallet, ...DEFAULT_PREFERENCES },
+      });
     }
 
-    const prefs = await getPreferences(wallet);
+    if (req.method === "POST") {
+      const prefs = req.body;
+      if (!prefs?.walletAddress || typeof prefs.walletAddress !== "string") {
+        return apiError.badRequest(res, "Invalid wallet address");
+      }
+      if (!/^N[A-Za-z0-9]{33}$/.test(prefs.walletAddress)) {
+        return apiError.badRequest(res, "Invalid wallet address format");
+      }
+      if (prefs.email !== undefined && prefs.email !== null && typeof prefs.email !== "string") {
+        return apiError.badRequest(res, "Invalid email");
+      }
+      const validFrequencies = ["instant", "daily", "weekly"];
+      if (prefs.digestFrequency && !validFrequencies.includes(prefs.digestFrequency)) {
+        return apiError.badRequest(res, "Invalid digest frequency");
+      }
 
-    return res.status(200).json({
-      preferences: prefs ?? { walletAddress: wallet, ...DEFAULT_PREFERENCES },
-    });
+      const success = await upsertPreferences(prefs);
+      if (!success) {
+        return apiError.internal(res, "Failed to save preferences");
+      }
+
+      return res.status(200).json({ success: true });
+    }
+
+    return apiError.methodNotAllowed(res);
+  } catch {
+    return apiError.internal(res, "Failed to process preferences");
   }
-
-  if (req.method === "POST") {
-    const prefs = req.body;
-    if (!prefs?.walletAddress || typeof prefs.walletAddress !== "string") {
-      return apiError.badRequest(res, "Invalid wallet address");
-    }
-    if (!/^N[A-Za-z0-9]{33}$/.test(prefs.walletAddress)) {
-      return apiError.badRequest(res, "Invalid wallet address format");
-    }
-    if (prefs.email !== undefined && prefs.email !== null && typeof prefs.email !== "string") {
-      return apiError.badRequest(res, "Invalid email");
-    }
-    const validFrequencies = ["instant", "daily", "weekly"];
-    if (prefs.digestFrequency && !validFrequencies.includes(prefs.digestFrequency)) {
-      return apiError.badRequest(res, "Invalid digest frequency");
-    }
-
-    const success = await upsertPreferences(prefs);
-    if (!success) {
-      return apiError.internal(res, "Failed to save preferences");
-    }
-
-    return res.status(200).json({ success: true });
-  }
-
-  return apiError.methodNotAllowed(res);
 }
 
 export default withCsrfProtection(handler);
