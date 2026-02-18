@@ -97,8 +97,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const buf = Buffer.from(await upstream.arrayBuffer());
     res.send(buf);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Upstream request failed";
-    apiError.gatewayTimeout(res, message);
+    console.error("RPC upstream error:", err);
+    apiError.gatewayTimeout(res, "Upstream request failed");
   }
 }
 
