@@ -57,8 +57,8 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           setNotifications(data.events || []);
           setUnreadCount(data.events?.filter((n: NotificationEvent) => !n.read).length || 0);
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        console.warn("Failed to fetch notifications:", err);
       } finally {
         if (active) setLoading(false);
       }
@@ -72,8 +72,8 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
       await fetch(`/api/notifications/events/${id}/read`, { method: "POST" });
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.warn("Failed to mark notification as read:", err);
     }
   };
 
@@ -83,8 +83,8 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
       await fetch(`/api/notifications/events/read-all?wallet=${walletAddress}`, { method: "POST" });
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.warn("Failed to mark all notifications as read:", err);
     }
   };
 

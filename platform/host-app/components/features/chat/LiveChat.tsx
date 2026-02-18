@@ -60,8 +60,8 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           setMessages(data.messages || []);
           setParticipantCount(data.participantCount || 0);
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        console.warn("Failed to fetch chat messages:", err);
       } finally {
         if (active) setLoading(false);
       }
