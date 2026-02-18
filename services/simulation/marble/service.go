@@ -233,6 +233,11 @@ func New(cfg Config) (*Service, error) {
 	// Auto-start if configured
 	if cfg.AutoStart || strings.ToLower(os.Getenv("SIMULATION_ENABLED")) == "true" {
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					s.Logger().Error(context.Background(), "panic in simulation auto-start", fmt.Errorf("%v", r), nil)
+				}
+			}()
 			time.Sleep(2 * time.Second) // Wait for service to fully initialize
 			if err := s.Start(context.Background()); err != nil {
 				s.Logger().WithError(err).Warn("failed to auto-start simulation")
@@ -525,6 +530,11 @@ func (s *Service) simulateApp(appID string, workerID int) {
 
 		// Release the account back to the pool (do this in background to not delay next tx)
 		go func(accountID string) {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Error(context.Background(), "panic in account release", fmt.Errorf("%v", r), nil)
+				}
+			}()
 			releaseCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			_, err := s.poolClient.ReleaseAccounts(releaseCtx, []string{accountID})
