@@ -13,8 +13,11 @@ import (
 )
 
 func main() {
-	// PostgreSQL connection string from .env
-	connStr := "host=db.dmonstzalbldzzdbbcdj.supabase.co port=5432 user=postgres password=xaNT3apRNOrRgZd5 dbname=postgres sslmode=require"
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		fmt.Fprintln(os.Stderr, "DATABASE_URL environment variable is required")
+		os.Exit(1)
+	}
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
