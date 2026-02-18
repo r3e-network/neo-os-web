@@ -31,6 +31,7 @@ export async function handler(req: Request): Promise<Response> {
   if (pipeIdx < 0) return error(400, "invalid sub format", "INVALID_INPUT", req);
   const rawProvider = sub.slice(0, pipeIdx);
   const providerUserId = sub.slice(pipeIdx + 1);
+  if (!providerUserId) return error(400, "invalid sub format", "INVALID_INPUT", req);
   const provider = rawProvider.replace(/-oauth2$/, "");
 
   const supabase = supabaseServiceClient();
