@@ -123,7 +123,7 @@ func New(cfg Config) (*Service, error) {
 	if minIntervalMS == 0 {
 		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MIN_MS"); envVal != "" {
 			if _, err := fmt.Sscanf(envVal, "%d", &minIntervalMS); err != nil {
-				fmt.Printf("neosimulation: invalid SIMULATION_TX_INTERVAL_MIN_MS %q: %v\n", envVal, err)
+				base.Logger().Warn(context.Background(), "invalid SIMULATION_TX_INTERVAL_MIN_MS: "+err.Error(), nil)
 			}
 		}
 	}
@@ -135,7 +135,7 @@ func New(cfg Config) (*Service, error) {
 	if maxIntervalMS == 0 {
 		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MAX_MS"); envVal != "" {
 			if _, err := fmt.Sscanf(envVal, "%d", &maxIntervalMS); err != nil {
-				fmt.Printf("neosimulation: invalid SIMULATION_TX_INTERVAL_MAX_MS %q: %v\n", envVal, err)
+				base.Logger().Warn(context.Background(), "invalid SIMULATION_TX_INTERVAL_MAX_MS: "+err.Error(), nil)
 			}
 		}
 	}
@@ -158,7 +158,7 @@ func New(cfg Config) (*Service, error) {
 	if workersPerApp == 0 {
 		if envVal := os.Getenv("SIMULATION_WORKERS_PER_APP"); envVal != "" {
 			if _, err := fmt.Sscanf(envVal, "%d", &workersPerApp); err != nil {
-				fmt.Printf("neosimulation: invalid SIMULATION_WORKERS_PER_APP %q: %v\n", envVal, err)
+				base.Logger().Warn(context.Background(), "invalid SIMULATION_WORKERS_PER_APP: "+err.Error(), nil)
 			}
 		}
 	}

@@ -82,7 +82,7 @@ func LoadFromEnv() (*Config, error) {
 		cfg.PostgresHost = host
 	}
 	if port := os.Getenv("INDEXER_POSTGRES_PORT"); port != "" {
-		if p, err := strconv.Atoi(port); err == nil {
+		if p, err := strconv.Atoi(port); err == nil && p > 0 && p <= 65535 {
 			cfg.PostgresPort = p
 		}
 	}
