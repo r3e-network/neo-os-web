@@ -53,8 +53,7 @@ export async function GET(req: Request) {
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      return jsonError(text || "Failed to fetch miniapps", response.status);
+      return jsonError("Failed to fetch miniapps", response.status);
     }
 
     const data = await response.json();

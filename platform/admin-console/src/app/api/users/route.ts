@@ -40,8 +40,7 @@ export async function GET(req: Request) {
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      return jsonError(text || "Failed to fetch users", response.status);
+      return jsonError("Failed to fetch users", response.status);
     }
 
     const data = await response.json();

@@ -96,6 +96,7 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.repo.CreateTrigger(r.Context(), trigger); err != nil {
+		s.Logger().Error(r.Context(), "failed to persist trigger", err, nil)
 		httputil.InternalError(w, "failed to persist trigger")
 		return
 	}
@@ -169,6 +170,7 @@ func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.repo.UpdateTrigger(r.Context(), trigger); err != nil {
+		s.Logger().Error(r.Context(), "failed to update trigger", err, nil)
 		httputil.InternalError(w, "failed to update trigger")
 		return
 	}
@@ -248,6 +250,7 @@ func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request) {
 	}
 	execs, err := s.repo.GetExecutions(r.Context(), id, limit)
 	if err != nil {
+		s.Logger().Error(r.Context(), "failed to load executions", err, nil)
 		httputil.InternalError(w, "failed to load executions")
 		return
 	}

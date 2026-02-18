@@ -65,8 +65,7 @@ export async function POST(req: Request) {
     });
 
     if (!response.ok) {
-      const text = await response.text();
-      return jsonError(text || "Failed to create MiniApp", response.status);
+      return jsonError("Failed to create MiniApp", response.status);
     }
 
     const data = await response.json();
