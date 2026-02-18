@@ -49,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await syncPlatformStats();
     res.status(200).json(result);
   } catch (error) {
-    logger.error("Sync error:", error);
+    logger.error("Sync error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Sync failed");
   }
 }

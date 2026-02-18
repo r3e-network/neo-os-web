@@ -198,7 +198,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json(analytics);
   } catch (error) {
-    logger.error("User analytics API failed:", error);
+    logger.error("User analytics API failed:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to fetch analytics");
   }
 }

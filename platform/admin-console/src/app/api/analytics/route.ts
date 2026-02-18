@@ -108,7 +108,7 @@ export async function GET(req: Request) {
       usageOverTime,
     });
   } catch (error) {
-    logger.error("Analytics error:", error);
+    logger.error("Analytics error:", error instanceof Error ? error.message : "unknown error");
     return jsonError("Failed to fetch analytics");
   }
 }

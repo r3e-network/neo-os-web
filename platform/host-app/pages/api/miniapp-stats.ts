@@ -122,7 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const filteredStats = appIdFilter ? stats.filter((s) => s.app_id === appIdFilter) : stats;
     res.status(200).json({ stats: filteredStats });
   } catch (error) {
-    logger.error("MiniApp stats error:", error);
+    logger.error("MiniApp stats error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to fetch stats");
   }
 }

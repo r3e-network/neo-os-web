@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     const validated = z.array(usageByAppRowSchema).catch([]).parse(usageByApp);
     return NextResponse.json(validated);
   } catch (error) {
-    logger.error("Usage by app error:", error);
+    logger.error("Usage by app error:", error instanceof Error ? error.message : "unknown error");
     return jsonError("Failed to fetch usage by app");
   }
 }
