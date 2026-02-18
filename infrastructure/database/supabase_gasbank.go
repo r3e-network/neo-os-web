@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -157,7 +158,7 @@ func (r *Repository) GetGasBankTransactions(ctx context.Context, accountID strin
 	}
 	limit = ValidateLimit(limit, 50, 1000)
 
-	query := fmt.Sprintf("account_id=eq.%s&order=created_at.desc&limit=%d", accountID, limit)
+	query := fmt.Sprintf("account_id=eq.%s&order=created_at.desc&limit=%d", url.QueryEscape(accountID), limit)
 	data, err := r.client.request(ctx, "GET", "gasbank_transactions", nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: get gasbank transactions: %v", ErrDatabaseError, err)
@@ -204,7 +205,7 @@ func (r *Repository) GetDepositRequests(ctx context.Context, userID string, limi
 	}
 	limit = ValidateLimit(limit, 50, 1000)
 
-	query := fmt.Sprintf("user_id=eq.%s&order=created_at.desc&limit=%d", userID, limit)
+	query := fmt.Sprintf("user_id=eq.%s&order=created_at.desc&limit=%d", url.QueryEscape(userID), limit)
 	data, err := r.client.request(ctx, "GET", "deposit_requests", nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: get deposit requests: %v", ErrDatabaseError, err)
@@ -223,7 +224,7 @@ func (r *Repository) GetDepositByTxHash(ctx context.Context, txHash string) (*De
 		return nil, err
 	}
 
-	query := fmt.Sprintf("tx_hash=eq.%s&limit=1", txHash)
+	query := fmt.Sprintf("tx_hash=eq.%s&limit=1", url.QueryEscape(txHash))
 	data, err := r.client.request(ctx, "GET", "deposit_requests", nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: get deposit by tx_hash: %v", ErrDatabaseError, err)
