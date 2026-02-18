@@ -13,16 +13,16 @@ import (
 
 // ContractInfo holds information about a deployed contract.
 type ContractInfo struct {
-	Name        string `json:"name"`
-	Hash        string `json:"hash"`
-	Version     string `json:"version,omitempty"`
-	DeployedAt  string `json:"deployed_at,omitempty"`
+	Name         string `json:"name"`
+	Hash         string `json:"hash"`
+	Version      string `json:"version,omitempty"`
+	DeployedAt   string `json:"deployed_at,omitempty"`
 	DeployTxHash string `json:"deploy_tx_hash,omitempty"`
-	UpdatedAt   string `json:"updated_at,omitempty"`
+	UpdatedAt    string `json:"updated_at,omitempty"`
 	UpdateTxHash string `json:"update_tx_hash,omitempty"`
-	Network     string `json:"network,omitempty"`
-	Deployer    string `json:"deployer,omitempty"`
-	Status      string `json:"status,omitempty"` // deployed, updated, deprecated
+	Network      string `json:"network,omitempty"`
+	Deployer     string `json:"deployer,omitempty"`
+	Status       string `json:"status,omitempty"` // deployed, updated, deprecated
 }
 
 // ContractRegistry manages deployed contract addresses and versions.

@@ -34,8 +34,8 @@ type SimulationStatus struct {
 	MiniApps      []string          `json:"mini_apps"`
 	MinIntervalMS int               `json:"min_interval_ms"`
 	MaxIntervalMS int               `json:"max_interval_ms"`
-	TxCounts      map[string]int64  `json:"tx_counts"`       // Per-app transaction counts
-	LastTxTimes   map[string]string `json:"last_tx_times"`   // Per-app last transaction time
+	TxCounts      map[string]int64  `json:"tx_counts"`     // Per-app transaction counts
+	LastTxTimes   map[string]string `json:"last_tx_times"` // Per-app last transaction time
 	StartedAt     *time.Time        `json:"started_at,omitempty"`
 	Uptime        string            `json:"uptime,omitempty"`
 }

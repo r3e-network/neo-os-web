@@ -11,14 +11,14 @@ import (
 )
 
 type Manifest struct {
-	Name    string      `json:"name"`
-	ABI     ABI         `json:"abi"`
-	Groups  []any       `json:"groups"`
-	Features map[string]any `json:"features"`
-	SupportedStandards []string `json:"supportedstandards"`
-	Permissions []any   `json:"permissions"`
-	Trusts  []any       `json:"trusts"`
-	Extra   map[string]any `json:"extra"`
+	Name               string         `json:"name"`
+	ABI                ABI            `json:"abi"`
+	Groups             []any          `json:"groups"`
+	Features           map[string]any `json:"features"`
+	SupportedStandards []string       `json:"supportedstandards"`
+	Permissions        []any          `json:"permissions"`
+	Trusts             []any          `json:"trusts"`
+	Extra              map[string]any `json:"extra"`
 }
 
 type ABI struct {
@@ -67,9 +67,9 @@ var eventParams = map[string]map[string][]string{
 		"Voted":    {"voter", "proposalId", "support", "weight"},
 	},
 	"AppRegistry": {
-		"AppRegistered":  {"appId", "owner"},
-		"AppUpdated":     {"appId", "metadata"},
-		"StatusChanged":  {"appId", "status"},
+		"AppRegistered": {"appId", "owner"},
+		"AppUpdated":    {"appId", "metadata"},
+		"StatusChanged": {"appId", "status"},
 	},
 	"AutomationAnchor": {
 		"TaskRegistered": {"taskId", "owner", "schedule"},

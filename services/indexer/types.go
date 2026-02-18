@@ -44,14 +44,14 @@ type Signer struct {
 
 // OpcodeTrace represents a single VM opcode execution step.
 type OpcodeTrace struct {
-	ID            int64   `json:"id" db:"id"`
-	TxHash        string  `json:"tx_hash" db:"tx_hash"`
-	StepIndex     int     `json:"step_index" db:"step_index"`
-	Opcode        string  `json:"opcode" db:"opcode"`
-	OpcodeHex     string  `json:"opcode_hex" db:"opcode_hex"`
-	GasConsumed   string  `json:"gas_consumed" db:"gas_consumed"`
-	StackSize     int     `json:"stack_size" db:"stack_size"`
-	ContractHash  string  `json:"contract_hash,omitempty" db:"contract_hash"`
+	ID             int64  `json:"id" db:"id"`
+	TxHash         string `json:"tx_hash" db:"tx_hash"`
+	StepIndex      int    `json:"step_index" db:"step_index"`
+	Opcode         string `json:"opcode" db:"opcode"`
+	OpcodeHex      string `json:"opcode_hex" db:"opcode_hex"`
+	GasConsumed    string `json:"gas_consumed" db:"gas_consumed"`
+	StackSize      int    `json:"stack_size" db:"stack_size"`
+	ContractHash   string `json:"contract_hash,omitempty" db:"contract_hash"`
 	InstructionPtr int    `json:"instruction_ptr" db:"instruction_ptr"`
 }
 
@@ -121,11 +121,11 @@ type Notification struct {
 
 // SyncState tracks the indexer's synchronization progress.
 type SyncState struct {
-	ID              int64     `json:"id" db:"id"`
-	Network         Network   `json:"network" db:"network"`
-	LastBlockIndex  uint64    `json:"last_block_index" db:"last_block_index"`
-	LastBlockTime   time.Time `json:"last_block_time" db:"last_block_time"`
-	TotalTxIndexed  int64     `json:"total_tx_indexed" db:"total_tx_indexed"`
-	LastSyncAt      time.Time `json:"last_sync_at" db:"last_sync_at"`
-	UpdatedAt       time.Time `json:"updated_at" db:"updated_at"`
+	ID             int64     `json:"id" db:"id"`
+	Network        Network   `json:"network" db:"network"`
+	LastBlockIndex uint64    `json:"last_block_index" db:"last_block_index"`
+	LastBlockTime  time.Time `json:"last_block_time" db:"last_block_time"`
+	TotalTxIndexed int64     `json:"total_tx_indexed" db:"total_tx_indexed"`
+	LastSyncAt     time.Time `json:"last_sync_at" db:"last_sync_at"`
+	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
 }

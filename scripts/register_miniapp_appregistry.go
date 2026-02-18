@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
-	neorequestsupabase "github.com/r3e-network/neo-miniapp-platform/services/requests/supabase"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient"
@@ -23,6 +21,8 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/util"
 	"github.com/nspcc-dev/neo-go/pkg/vm/stackitem"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	neorequestsupabase "github.com/r3e-network/neo-miniapp-platform/services/requests/supabase"
 )
 
 const (

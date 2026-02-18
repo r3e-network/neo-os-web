@@ -4,13 +4,14 @@
 // Usage: go run -tags=scripts scripts/generate_pool_accounts.go
 //
 // Environment variables:
-//   SUPABASE_URL           - Supabase project URL
-//   SUPABASE_SERVICE_KEY   - Supabase service role key
-//   POOL_ENCRYPTION_KEY    - 32-byte hex key for WIF encryption
-//   ACCOUNT_COUNT          - Number of accounts to generate (default: 1000000)
-//   BATCH_SIZE             - Accounts per database batch (default: 1000)
-//   WORKERS                - Parallel generation workers (default: 8)
-//   GENERATION_BATCH_ID    - Batch identifier (default: auto-generated)
+//
+//	SUPABASE_URL           - Supabase project URL
+//	SUPABASE_SERVICE_KEY   - Supabase service role key
+//	POOL_ENCRYPTION_KEY    - 32-byte hex key for WIF encryption
+//	ACCOUNT_COUNT          - Number of accounts to generate (default: 1000000)
+//	BATCH_SIZE             - Accounts per database batch (default: 1000)
+//	WORKERS                - Parallel generation workers (default: 8)
+//	GENERATION_BATCH_ID    - Batch identifier (default: auto-generated)
 package main
 
 import (
@@ -58,12 +59,12 @@ type GeneratedAccount struct {
 }
 
 type config struct {
-	supabaseURL    string
-	supabaseKey    string
-	encryptionKey  []byte
-	accountCount   int
-	batchSize      int
-	workers        int
+	supabaseURL     string
+	supabaseKey     string
+	encryptionKey   []byte
+	accountCount    int
+	batchSize       int
+	workers         int
 	generationBatch string
 }
 

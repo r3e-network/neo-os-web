@@ -18,9 +18,9 @@ import (
 )
 
 type Simulator struct {
-	ctx      context.Context
-	rpc      *rpcclient.Client
-	account  *wallet.Account
+	ctx       context.Context
+	rpc       *rpcclient.Client
+	account   *wallet.Account
 	contracts map[string]util.Uint160
 }
 

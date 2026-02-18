@@ -38,7 +38,7 @@ func TestIsPrivateIP(t *testing.T) {
 		{"8.8.8.8", false},
 		{"1.1.1.1", false},
 		{"93.184.216.34", false},
-		{"172.32.0.1", false},  // just outside 172.16.0.0/12
+		{"172.32.0.1", false}, // just outside 172.16.0.0/12
 		{"172.15.255.255", false},
 		{"11.0.0.1", false},
 		{"2607:f8b0:4004:800::200e", false}, // Google public IPv6

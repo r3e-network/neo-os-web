@@ -218,12 +218,12 @@ func (c *AutomationAnchorContract) SetUpdater(ctx context.Context, signer TxSign
 
 // ScheduleData mirrors the contract's ScheduleData struct.
 type ScheduleData struct {
-	TriggerType      string
-	Schedule         string
-	IntervalSeconds  *big.Int
-	LastExecution    *big.Int
-	NextExecution    *big.Int
-	Paused           bool
+	TriggerType     string
+	Schedule        string
+	IntervalSeconds *big.Int
+	LastExecution   *big.Int
+	NextExecution   *big.Int
+	Paused          bool
 }
 
 // BalanceOf returns the GAS balance for a periodic task.

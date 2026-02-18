@@ -25,9 +25,9 @@ type ContractInvoker struct {
 	poolClient PoolClientInterface
 
 	// Platform contract addresses (as strings for InvokeContract API)
-	priceFeedHash          string
-	randomnessLogHash      string
-	paymentHubHash         string
+	priceFeedHash           string
+	randomnessLogHash       string
+	paymentHubHash          string
 	serviceLayerGatewayHash string
 
 	// MiniApp contract addresses (appID -> contract hash)
@@ -595,42 +595,42 @@ func loadMiniAppContractsFromEnv() map[string]string {
 
 	// Define mapping from env var suffix to app ID
 	miniAppEnvMapping := map[string]string{
-		"LOTTERY":           "builtin-lottery",
-		"COINFLIP":          "builtin-coin-flip",
-		"DICEGAME":          "builtin-dice-game",
-		"SCRATCHCARD":       "builtin-scratch-card",
-		"PREDICTIONMARKET":  "builtin-prediction-market",
-		"FLASHLOAN":         "builtin-flashloan",
-		"PRICETICKER":       "builtin-price-ticker",
-		"GASSPIN":           "builtin-gas-spin",
-		"PRICEPREDICT":      "builtin-price-predict",
-		"SECRETVOTE":        "builtin-secret-vote",
-		"SECRETPOKER":       "builtin-secret-poker",
-		"MICROPREDICT":      "builtin-micro-predict",
-		"REDENVELOPE":       "builtin-red-envelope",
-		"GASCIRCLE":         "builtin-gas-circle",
-		"FOGCHESS":          "builtin-fog-chess",
-		"GOVBOOSTER":        "builtin-gov-booster",
-		"TURBOOPTIONS":      "builtin-turbo-options",
-		"ILGUARD":           "builtin-il-guard",
-		"GUARDIANPOLICY":    "builtin-guardian-policy",
-		"AITRADER":          "builtin-ai-trader",
-		"GRIDBOT":           "builtin-grid-bot",
-		"NFTEVOLVE":         "builtin-nft-evolve",
-		"BRIDGEGUARDIAN":    "builtin-bridge-guardian",
-		"NEOCRASH":          "builtin-neo-crash",
-		"CANDLEWARS":        "builtin-candle-wars",
-		"DUTCHAUCTION":      "builtin-dutch-auction",
-		"PARASITE":          "builtin-the-parasite",
-		"THRONEOFGAS":       "builtin-throne-of-gas",
-		"NOLOSSLOTTERY":     "builtin-no-loss-lottery",
-		"DOOMSDAYCLOCK":     "builtin-doomsday-clock",
-		"PAYTOVIEW":         "builtin-pay-to-view",
-		"SCHRODINGERNFT":    "builtin-schrodinger-nft",
-		"ALGOBATTLE":        "builtin-algo-battle",
-		"TIMECAPSULE":       "builtin-time-capsule",
-		"GARDENOFNEO":       "builtin-garden-of-neo",
-		"DEVTIPPING":        "builtin-dev-tipping",
+		"LOTTERY":          "builtin-lottery",
+		"COINFLIP":         "builtin-coin-flip",
+		"DICEGAME":         "builtin-dice-game",
+		"SCRATCHCARD":      "builtin-scratch-card",
+		"PREDICTIONMARKET": "builtin-prediction-market",
+		"FLASHLOAN":        "builtin-flashloan",
+		"PRICETICKER":      "builtin-price-ticker",
+		"GASSPIN":          "builtin-gas-spin",
+		"PRICEPREDICT":     "builtin-price-predict",
+		"SECRETVOTE":       "builtin-secret-vote",
+		"SECRETPOKER":      "builtin-secret-poker",
+		"MICROPREDICT":     "builtin-micro-predict",
+		"REDENVELOPE":      "builtin-red-envelope",
+		"GASCIRCLE":        "builtin-gas-circle",
+		"FOGCHESS":         "builtin-fog-chess",
+		"GOVBOOSTER":       "builtin-gov-booster",
+		"TURBOOPTIONS":     "builtin-turbo-options",
+		"ILGUARD":          "builtin-il-guard",
+		"GUARDIANPOLICY":   "builtin-guardian-policy",
+		"AITRADER":         "builtin-ai-trader",
+		"GRIDBOT":          "builtin-grid-bot",
+		"NFTEVOLVE":        "builtin-nft-evolve",
+		"BRIDGEGUARDIAN":   "builtin-bridge-guardian",
+		"NEOCRASH":         "builtin-neo-crash",
+		"CANDLEWARS":       "builtin-candle-wars",
+		"DUTCHAUCTION":     "builtin-dutch-auction",
+		"PARASITE":         "builtin-the-parasite",
+		"THRONEOFGAS":      "builtin-throne-of-gas",
+		"NOLOSSLOTTERY":    "builtin-no-loss-lottery",
+		"DOOMSDAYCLOCK":    "builtin-doomsday-clock",
+		"PAYTOVIEW":        "builtin-pay-to-view",
+		"SCHRODINGERNFT":   "builtin-schrodinger-nft",
+		"ALGOBATTLE":       "builtin-algo-battle",
+		"TIMECAPSULE":      "builtin-time-capsule",
+		"GARDENOFNEO":      "builtin-garden-of-neo",
+		"DEVTIPPING":       "builtin-dev-tipping",
 	}
 
 	for envSuffix, appID := range miniAppEnvMapping {

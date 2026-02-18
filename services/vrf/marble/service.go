@@ -163,7 +163,6 @@ func (s *Service) cleanupReplayInMemory() {
 	}
 }
 
-
 func (s *Service) initSigningKey() error {
 	if len(s.signingKey) >= 32 {
 		priv, pub, err := deriveSigningKey(s.signingKey)

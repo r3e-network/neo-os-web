@@ -61,9 +61,9 @@ type MiniAppSimulator struct {
 	gasCircleWins     int64
 
 	// Governance & Advanced stats
-	govBoosterVotes  int64
-	fogChessGames    int64
-	fogChessWins     int64
+	govBoosterVotes int64
+	fogChessGames   int64
+	fogChessWins    int64
 
 	// New MiniApps stats (Phase 5)
 	neoCrashBets        int64
@@ -85,18 +85,18 @@ type MiniAppSimulator struct {
 	payToViewCreates    int64
 
 	// New MiniApps stats (Phase 6 - TEE-powered)
-	schrodingerAdopts    int64
-	schrodingerObserves  int64
-	schrodingerTrades    int64
-	algoBattleUploads    int64
-	algoBattleMatches    int64
-	algoBattleWins       int64
-	timeCapsuleBuries    int64
-	timeCapsuleReveals   int64
-	timeCapsuleFishes    int64
-	gardenOfNeoPlants    int64
-	gardenOfNeoHarvests  int64
-	devTippingTips       int64
+	schrodingerAdopts   int64
+	schrodingerObserves int64
+	schrodingerTrades   int64
+	algoBattleUploads   int64
+	algoBattleMatches   int64
+	algoBattleWins      int64
+	timeCapsuleBuries   int64
+	timeCapsuleReveals  int64
+	timeCapsuleFishes   int64
+	gardenOfNeoPlants   int64
+	gardenOfNeoHarvests int64
+	devTippingTips      int64
 
 	// Phase 7 stats
 	aiSoulmateChats      int64
@@ -112,29 +112,29 @@ type MiniAppSimulator struct {
 	govMercVotes         int64
 
 	// Phase 8 stats
-	quantumSwaps         int64
-	tarotReadings        int64
-	exFilesShares        int64
-	screamSubmits        int64
-	breakupContracts     int64
-	geoSpotlightBids     int64
-	puzzleSolves         int64
-	chimeraMerges        int64
-	pianoNotes           int64
-	bountyHunts          int64
-	masqueradeVotes      int64
-	meltingDeposits      int64
-	vaultLocks           int64
-	whisperSends         int64
-	mapPieceBuys         int64
-	fogPuzzleReveals     int64
-	riddleSolves         int64
+	quantumSwaps     int64
+	tarotReadings    int64
+	exFilesShares    int64
+	screamSubmits    int64
+	breakupContracts int64
+	geoSpotlightBids int64
+	puzzleSolves     int64
+	chimeraMerges    int64
+	pianoNotes       int64
+	bountyHunts      int64
+	masqueradeVotes  int64
+	meltingDeposits  int64
+	vaultLocks       int64
+	whisperSends     int64
+	mapPieceBuys     int64
+	fogPuzzleReveals int64
+	riddleSolves     int64
 
 	// Phase 9 stats (new MiniApps)
-	canvasDraws          int64
-	candidateVotes       int64
-	neoburgerStakes      int64
-	guardianPolicySets   int64
+	canvasDraws        int64
+	candidateVotes     int64
+	neoburgerStakes    int64
+	guardianPolicySets int64
 
 	simulationErrors int64
 
@@ -200,21 +200,21 @@ func (s *MiniAppSimulator) GetStats() map[string]interface{} {
 			"fog_chess":   map[string]int64{"games": atomic.LoadInt64(&s.fogChessGames), "wins": atomic.LoadInt64(&s.fogChessWins)},
 		},
 		"phase5": map[string]interface{}{
-			"neo_crash":        map[string]int64{"bets": atomic.LoadInt64(&s.neoCrashBets), "cashouts": atomic.LoadInt64(&s.neoCrashCashouts), "payouts": atomic.LoadInt64(&s.neoCrashPayouts)},
-			"candle_wars":      map[string]int64{"bets": atomic.LoadInt64(&s.candleWarsBets), "wins": atomic.LoadInt64(&s.candleWarsWins)},
-			"dutch_auction":    map[string]int64{"bids": atomic.LoadInt64(&s.dutchAuctionBids), "sales": atomic.LoadInt64(&s.dutchAuctionSales)},
-			"parasite":         map[string]int64{"stakes": atomic.LoadInt64(&s.parasiteStakes), "attacks": atomic.LoadInt64(&s.parasiteAttacks)},
-			"throne_of_gas":    map[string]int64{"claims": atomic.LoadInt64(&s.throneOfGasClaims), "taxes": atomic.LoadInt64(&s.throneOfGasTaxes)},
-			"no_loss_lottery":  map[string]int64{"stakes": atomic.LoadInt64(&s.noLossLotteryStakes), "wins": atomic.LoadInt64(&s.noLossLotteryWins)},
-			"doomsday_clock":   map[string]int64{"keys": atomic.LoadInt64(&s.doomsdayClockKeys), "wins": atomic.LoadInt64(&s.doomsdayClockWins)},
-			"pay_to_view":      map[string]int64{"purchases": atomic.LoadInt64(&s.payToViewPurchases), "creates": atomic.LoadInt64(&s.payToViewCreates)},
+			"neo_crash":       map[string]int64{"bets": atomic.LoadInt64(&s.neoCrashBets), "cashouts": atomic.LoadInt64(&s.neoCrashCashouts), "payouts": atomic.LoadInt64(&s.neoCrashPayouts)},
+			"candle_wars":     map[string]int64{"bets": atomic.LoadInt64(&s.candleWarsBets), "wins": atomic.LoadInt64(&s.candleWarsWins)},
+			"dutch_auction":   map[string]int64{"bids": atomic.LoadInt64(&s.dutchAuctionBids), "sales": atomic.LoadInt64(&s.dutchAuctionSales)},
+			"parasite":        map[string]int64{"stakes": atomic.LoadInt64(&s.parasiteStakes), "attacks": atomic.LoadInt64(&s.parasiteAttacks)},
+			"throne_of_gas":   map[string]int64{"claims": atomic.LoadInt64(&s.throneOfGasClaims), "taxes": atomic.LoadInt64(&s.throneOfGasTaxes)},
+			"no_loss_lottery": map[string]int64{"stakes": atomic.LoadInt64(&s.noLossLotteryStakes), "wins": atomic.LoadInt64(&s.noLossLotteryWins)},
+			"doomsday_clock":  map[string]int64{"keys": atomic.LoadInt64(&s.doomsdayClockKeys), "wins": atomic.LoadInt64(&s.doomsdayClockWins)},
+			"pay_to_view":     map[string]int64{"purchases": atomic.LoadInt64(&s.payToViewPurchases), "creates": atomic.LoadInt64(&s.payToViewCreates)},
 		},
 		"phase6": map[string]interface{}{
-			"schrodinger_nft":  map[string]int64{"adopts": atomic.LoadInt64(&s.schrodingerAdopts), "observes": atomic.LoadInt64(&s.schrodingerObserves), "trades": atomic.LoadInt64(&s.schrodingerTrades)},
-			"algo_battle":      map[string]int64{"uploads": atomic.LoadInt64(&s.algoBattleUploads), "matches": atomic.LoadInt64(&s.algoBattleMatches), "wins": atomic.LoadInt64(&s.algoBattleWins)},
-			"time_capsule":     map[string]int64{"buries": atomic.LoadInt64(&s.timeCapsuleBuries), "reveals": atomic.LoadInt64(&s.timeCapsuleReveals), "fishes": atomic.LoadInt64(&s.timeCapsuleFishes)},
-			"garden_of_neo":    map[string]int64{"plants": atomic.LoadInt64(&s.gardenOfNeoPlants), "harvests": atomic.LoadInt64(&s.gardenOfNeoHarvests)},
-			"dev_tipping":      map[string]int64{"tips": atomic.LoadInt64(&s.devTippingTips)},
+			"schrodinger_nft": map[string]int64{"adopts": atomic.LoadInt64(&s.schrodingerAdopts), "observes": atomic.LoadInt64(&s.schrodingerObserves), "trades": atomic.LoadInt64(&s.schrodingerTrades)},
+			"algo_battle":     map[string]int64{"uploads": atomic.LoadInt64(&s.algoBattleUploads), "matches": atomic.LoadInt64(&s.algoBattleMatches), "wins": atomic.LoadInt64(&s.algoBattleWins)},
+			"time_capsule":    map[string]int64{"buries": atomic.LoadInt64(&s.timeCapsuleBuries), "reveals": atomic.LoadInt64(&s.timeCapsuleReveals), "fishes": atomic.LoadInt64(&s.timeCapsuleFishes)},
+			"garden_of_neo":   map[string]int64{"plants": atomic.LoadInt64(&s.gardenOfNeoPlants), "harvests": atomic.LoadInt64(&s.gardenOfNeoHarvests)},
+			"dev_tipping":     map[string]int64{"tips": atomic.LoadInt64(&s.devTippingTips)},
 		},
 		"phase7": map[string]interface{}{
 			"ai_soulmate":      map[string]int64{"chats": atomic.LoadInt64(&s.aiSoulmateChats)},

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
-	"github.com/sirupsen/logrus"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 // Syncer synchronizes transactions from Neo N3 nodes.
@@ -16,7 +16,7 @@ type Syncer struct {
 	cfg     *Config
 	storage *Storage
 	clients map[Network]*chain.Client // One client per network
-	log     *logrus.Entry
+	log     *logging.Logger
 	mu      sync.Mutex
 	running bool
 	stopCh  chan struct{}
@@ -42,7 +42,7 @@ func NewSyncer(cfg *Config, storage *Storage) (*Syncer, error) {
 		cfg:     cfg,
 		storage: storage,
 		clients: clients,
-		log:     logrus.WithField("component", "indexer-syncer"),
+		log:     logging.NewFromEnv("indexer-syncer"),
 		stopCh:  make(chan struct{}),
 	}, nil
 }
@@ -64,7 +64,7 @@ func (s *Syncer) Start(ctx context.Context) error {
 	s.running = true
 	s.mu.Unlock()
 
-	s.log.Info("starting transaction syncer")
+	s.log.Info(ctx, "starting transaction syncer", nil)
 	go s.syncLoop(ctx)
 	return nil
 }
@@ -138,18 +138,18 @@ func (s *Syncer) syncBlocksForNetwork(ctx context.Context, network Network) {
 		endBlock = chainHeight
 	}
 
-	s.log.WithFields(logrus.Fields{
+	s.log.Info(ctx, "syncing blocks", map[string]interface{}{
 		"network": network,
 		"start":   startBlock,
 		"end":     endBlock,
 		"chain":   chainHeight,
-	}).Info("syncing blocks")
+	})
 
 	var totalTx int64
 	for blockIdx := startBlock; blockIdx < endBlock; blockIdx++ {
 		count, err := s.syncBlockForNetwork(ctx, network, client, blockIdx)
 		if err != nil {
-			s.log.WithError(err).WithFields(logrus.Fields{
+			s.log.WithError(err).WithFields(map[string]interface{}{
 				"network": network,
 				"block":   blockIdx,
 			}).Error("sync block")

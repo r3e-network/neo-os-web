@@ -408,8 +408,8 @@ func (s *MiniAppSimulator) SimulatePayToView(ctx context.Context) error {
 // Business flow: Bury (encrypt) -> Fish (random pickup) -> Reveal (time unlock)
 func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 	appID := "builtin-time-capsule"
-	buryFee := int64(20000000)  // 0.2 GAS to bury
-	fishFee := int64(5000000)   // 0.05 GAS to fish
+	buryFee := int64(20000000) // 0.2 GAS to bury
+	fishFee := int64(5000000)  // 0.05 GAS to fish
 
 	// Randomly decide action: bury (40%), fish (40%), reveal (20%)
 	action := randomInt(1, 10)

@@ -464,7 +464,7 @@ func (s *MiniAppSimulator) SimulateDoomsdayClock(ctx context.Context) error {
 // Business flow: Adopt -> Observe (state collapse) -> Trade (blind box)
 func (s *MiniAppSimulator) SimulateSchrodingerNFT(ctx context.Context) error {
 	appID := "builtin-schrodinger-nft"
-	adoptFee := int64(50000000) // 0.5 GAS to adopt
+	adoptFee := int64(50000000)  // 0.5 GAS to adopt
 	observeFee := int64(5000000) // 0.05 GAS to observe
 
 	// Randomly decide action: adopt (30%), observe (50%), trade (20%)
@@ -547,8 +547,8 @@ func (s *MiniAppSimulator) SimulateSchrodingerNFT(ctx context.Context) error {
 // Business flow: Upload script -> Match -> Battle (100 rounds in TEE)
 func (s *MiniAppSimulator) SimulateAlgoBattle(ctx context.Context) error {
 	appID := "builtin-algo-battle"
-	uploadFee := int64(10000000)  // 0.1 GAS to upload
-	matchFee := int64(50000000)   // 0.5 GAS to match
+	uploadFee := int64(10000000) // 0.1 GAS to upload
+	matchFee := int64(50000000)  // 0.5 GAS to match
 
 	// Randomly decide action: upload (40%), match (60%)
 	action := randomInt(1, 10)

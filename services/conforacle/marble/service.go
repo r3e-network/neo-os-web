@@ -32,8 +32,8 @@ type Service struct {
 type Config struct {
 	Marble         *marble.Marble
 	SecretProvider secrets.Provider
-	MaxBodyBytes   int64            // optional response cap; default 2MB
-	URLAllowlist   URLAllowlist     // optional allowlist for outbound fetch
+	MaxBodyBytes   int64        // optional response cap; default 2MB
+	URLAllowlist   URLAllowlist // optional allowlist for outbound fetch
 	Timeout        time.Duration
 	Transport      http.RoundTripper // optional; defaults to httputil.NewSafeTransport() (SSRF-safe)
 }

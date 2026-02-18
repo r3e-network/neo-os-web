@@ -247,16 +247,18 @@ check_service_consistency() {
 check_error_handling() {
     echo -e "${BLUE}=== Error Handling Consistency ===${NC}"
 
-    # Check for inconsistent error handling patterns
+    # Check for explicitly discarded error variables.
+    # The previous ', _ :=' heuristic generated too many false positives
+    # for non-error secondary return values (e.g., big.Int conversions).
     local unchecked=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
         ! -path "*_test.go" \
-        -exec grep -l "_ = .*err\|, _ :=.*(" {} \; 2>/dev/null | wc -l)
+        -exec grep -l "_ = .*err" {} \; 2>/dev/null | wc -l)
 
-    if [[ $unchecked -gt 5 ]]; then
+    if [[ $unchecked -gt 0 ]]; then
         echo -e "${YELLOW}[WARNING] Found $unchecked files with potentially ignored errors${NC}"
-        echo "  Pattern: '_ = err' or ', _ := func()'"
+        echo "  Pattern: '_ = err'"
         WARNINGS=$((WARNINGS + 1))
     else
         echo -e "${GREEN}[OK] Error handling appears consistent${NC}"

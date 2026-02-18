@@ -13,27 +13,27 @@ const (
 )
 
 type (
-	TokenBalance            = neoaccountstypes.TokenBalance
-	TokenStats              = neoaccountstypes.TokenStats
-	AccountInfo             = neoaccountstypes.AccountInfo
-	RequestAccountsInput    = neoaccountstypes.RequestAccountsInput
-	RequestAccountsResponse = neoaccountstypes.RequestAccountsResponse
-	ReleaseAccountsInput    = neoaccountstypes.ReleaseAccountsInput
-	ReleaseAccountsResponse = neoaccountstypes.ReleaseAccountsResponse
-	SignTransactionInput    = neoaccountstypes.SignTransactionInput
-	SignTransactionResponse = neoaccountstypes.SignTransactionResponse
-	BatchSignInput          = neoaccountstypes.BatchSignInput
-	SignRequest             = neoaccountstypes.SignRequest
-	BatchSignResponse       = neoaccountstypes.BatchSignResponse
-	UpdateBalanceInput      = neoaccountstypes.UpdateBalanceInput
-	UpdateBalanceResponse   = neoaccountstypes.UpdateBalanceResponse
-	PoolInfoResponse        = neoaccountstypes.PoolInfoResponse
-	ListAccountsResponse    = neoaccountstypes.ListAccountsResponse
-	TransferInput           = neoaccountstypes.TransferInput
-	TransferResponse        = neoaccountstypes.TransferResponse
-	TransferWithDataInput   = neoaccountstypes.TransferWithDataInput
+	TokenBalance             = neoaccountstypes.TokenBalance
+	TokenStats               = neoaccountstypes.TokenStats
+	AccountInfo              = neoaccountstypes.AccountInfo
+	RequestAccountsInput     = neoaccountstypes.RequestAccountsInput
+	RequestAccountsResponse  = neoaccountstypes.RequestAccountsResponse
+	ReleaseAccountsInput     = neoaccountstypes.ReleaseAccountsInput
+	ReleaseAccountsResponse  = neoaccountstypes.ReleaseAccountsResponse
+	SignTransactionInput     = neoaccountstypes.SignTransactionInput
+	SignTransactionResponse  = neoaccountstypes.SignTransactionResponse
+	BatchSignInput           = neoaccountstypes.BatchSignInput
+	SignRequest              = neoaccountstypes.SignRequest
+	BatchSignResponse        = neoaccountstypes.BatchSignResponse
+	UpdateBalanceInput       = neoaccountstypes.UpdateBalanceInput
+	UpdateBalanceResponse    = neoaccountstypes.UpdateBalanceResponse
+	PoolInfoResponse         = neoaccountstypes.PoolInfoResponse
+	ListAccountsResponse     = neoaccountstypes.ListAccountsResponse
+	TransferInput            = neoaccountstypes.TransferInput
+	TransferResponse         = neoaccountstypes.TransferResponse
+	TransferWithDataInput    = neoaccountstypes.TransferWithDataInput
 	TransferWithDataResponse = neoaccountstypes.TransferWithDataResponse
-	MasterKeyAttestation    = neoaccountstypes.MasterKeyAttestation
+	MasterKeyAttestation     = neoaccountstypes.MasterKeyAttestation
 
 	// Fund account types - transfer from master wallet to pool accounts
 	FundAccountInput    = neoaccountstypes.FundAccountInput

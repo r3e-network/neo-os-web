@@ -36,8 +36,8 @@ import (
 )
 
 const (
-	TopUpAmount     = 100000000  // 1 GAS per top-up
-	MinBalance      = 10000000   // 0.1 GAS minimum before top-up
+	TopUpAmount     = 100000000 // 1 GAS per top-up
+	MinBalance      = 10000000  // 0.1 GAS minimum before top-up
 	SimInterval     = 5 * time.Second
 	MaxConcurrent   = 3
 	PoolAccountsURL = "/rest/v1/pool_accounts"
@@ -63,11 +63,11 @@ type Simulation struct {
 	encryptionKey []byte
 
 	// Stats
-	txSent      int64
-	txSuccess   int64
-	txFailed    int64
-	topUps      int64
-	startTime   time.Time
+	txSent    int64
+	txSuccess int64
+	txFailed  int64
+	topUps    int64
+	startTime time.Time
 }
 
 type MiniAppConfig struct {
@@ -176,11 +176,11 @@ func loadContracts() map[string]util.Uint160 {
 
 func getMiniApps() []MiniAppConfig {
 	return []MiniAppConfig{
-		{"builtin-lottery", "Lottery", 10000000, 10 * time.Second},        // 0.1 GAS
-		{"builtin-coin-flip", "CoinFlip", 5000000, 8 * time.Second},       // 0.05 GAS
-		{"builtin-dice-game", "DiceGame", 5000000, 8 * time.Second},       // 0.05 GAS
-		{"builtin-scratch-card", "ScratchCard", 10000000, 15 * time.Second}, // 0.1 GAS
-		{"builtin-gas-spin", "GasSpin", 5000000, 12 * time.Second},        // 0.05 GAS
+		{"builtin-lottery", "Lottery", 10000000, 10 * time.Second},            // 0.1 GAS
+		{"builtin-coin-flip", "CoinFlip", 5000000, 8 * time.Second},           // 0.05 GAS
+		{"builtin-dice-game", "DiceGame", 5000000, 8 * time.Second},           // 0.05 GAS
+		{"builtin-scratch-card", "ScratchCard", 10000000, 15 * time.Second},   // 0.1 GAS
+		{"builtin-gas-spin", "GasSpin", 5000000, 12 * time.Second},            // 0.05 GAS
 		{"builtin-price-predict", "PricePredict", 10000000, 20 * time.Second}, // 0.1 GAS
 	}
 }

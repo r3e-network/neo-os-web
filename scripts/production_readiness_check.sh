@@ -88,6 +88,8 @@ check_pattern() {
 
     # Filter out false positives:
     # - HTML placeholder attributes (placeholder="...")
+    # - Legitimate schema/property keys (placeholder:)
+    # - Property access (.placeholder)
     # - StatusTemporaryRedirect (Go HTTP status)
     # - Tailwind placeholder- classes
     # - Tailwind placeholder:text- classes
@@ -102,6 +104,8 @@ check_pattern() {
             grep -v 'placeholder="' | \
             grep -v "placeholder='" | \
             grep -v "placeholder={" | \
+            grep -v "placeholder:" | \
+            grep -v "\.placeholder" | \
             grep -v "StatusTemporaryRedirect" | \
             grep -v "placeholder-" | \
             grep -v "placeholder:text-" | \

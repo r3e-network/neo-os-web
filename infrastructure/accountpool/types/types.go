@@ -199,9 +199,9 @@ type ContractParam struct {
 type DeployContractInput struct {
 	ServiceID    string `json:"service_id"`
 	AccountID    string `json:"account_id"`
-	NEFBase64    string `json:"nef_base64"`      // Base64-encoded NEF file
-	ManifestJSON string `json:"manifest_json"`   // JSON manifest string
-	Data         any    `json:"data,omitempty"`  // Optional deployment data
+	NEFBase64    string `json:"nef_base64"`     // Base64-encoded NEF file
+	ManifestJSON string `json:"manifest_json"`  // JSON manifest string
+	Data         any    `json:"data,omitempty"` // Optional deployment data
 }
 
 // DeployContractResponse returns the deployment result.
@@ -216,10 +216,10 @@ type DeployContractResponse struct {
 type UpdateContractInput struct {
 	ServiceID    string `json:"service_id"`
 	AccountID    string `json:"account_id"`
-	ContractHash string `json:"contract_hash"`   // Existing contract hash to update
-	NEFBase64    string `json:"nef_base64"`      // Base64-encoded NEF file
-	ManifestJSON string `json:"manifest_json"`   // JSON manifest string
-	Data         any    `json:"data,omitempty"`  // Optional update data
+	ContractHash string `json:"contract_hash"`  // Existing contract hash to update
+	NEFBase64    string `json:"nef_base64"`     // Base64-encoded NEF file
+	ManifestJSON string `json:"manifest_json"`  // JSON manifest string
+	Data         any    `json:"data,omitempty"` // Optional update data
 }
 
 // UpdateContractResponse returns the update result.
@@ -235,16 +235,16 @@ type UpdateContractResponse struct {
 type InvokeContractInput struct {
 	ServiceID    string          `json:"service_id"`
 	AccountID    string          `json:"account_id"`
-	ContractHash string          `json:"contract_hash"` // Contract to invoke
-	Method       string          `json:"method"`        // Method name
-	Params       []ContractParam `json:"params"`        // Method parameters
+	ContractHash string          `json:"contract_hash"`   // Contract to invoke
+	Method       string          `json:"method"`          // Method name
+	Params       []ContractParam `json:"params"`          // Method parameters
 	Scope        string          `json:"scope,omitempty"` // Transaction scope: "CalledByEntry" (default), "Global", "CustomContracts", "CustomGroups"
 }
 
 // InvokeContractResponse returns the invocation result.
 type InvokeContractResponse struct {
 	TxHash      string `json:"tx_hash"`
-	State       string `json:"state"`       // HALT or FAULT
+	State       string `json:"state"` // HALT or FAULT
 	GasConsumed string `json:"gas_consumed"`
 	Exception   string `json:"exception,omitempty"`
 	AccountID   string `json:"account_id"`
@@ -261,7 +261,7 @@ type SimulateContractInput struct {
 
 // SimulateContractResponse returns the simulation result.
 type SimulateContractResponse struct {
-	State       string `json:"state"`       // HALT or FAULT
+	State       string `json:"state"` // HALT or FAULT
 	GasConsumed string `json:"gas_consumed"`
 	Exception   string `json:"exception,omitempty"`
 	Stack       []any  `json:"stack,omitempty"` // Return values
@@ -270,8 +270,8 @@ type SimulateContractResponse struct {
 // FundAccountInput funds a pool account from the master wallet (TEE_PRIVATE_KEY).
 // This is used to provide GAS to pool accounts for transaction fees.
 type FundAccountInput struct {
-	ToAddress string `json:"to_address"`          // Pool account address to fund
-	Amount    int64  `json:"amount"`              // Amount in smallest units (8 decimals for GAS)
+	ToAddress string `json:"to_address"`           // Pool account address to fund
+	Amount    int64  `json:"amount"`               // Amount in smallest units (8 decimals for GAS)
 	TokenHash string `json:"token_hash,omitempty"` // NEP-17 script hash (defaults to GAS)
 }
 
@@ -287,9 +287,9 @@ type FundAccountResponse struct {
 // This is used for TEE operations like PriceFeed and RandomnessLog that require
 // the caller to be a registered TEE signer in AppRegistry.
 type InvokeMasterInput struct {
-	ContractHash string          `json:"contract_hash"` // Contract to invoke
-	Method       string          `json:"method"`        // Method name
-	Params       []ContractParam `json:"params"`        // Method parameters
+	ContractHash string          `json:"contract_hash"`   // Contract to invoke
+	Method       string          `json:"method"`          // Method name
+	Params       []ContractParam `json:"params"`          // Method parameters
 	Scope        string          `json:"scope,omitempty"` // Transaction scope: "CalledByEntry" (default), "Global"
 }
 

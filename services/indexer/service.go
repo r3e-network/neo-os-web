@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 // Service is the main indexer service orchestrator.
@@ -14,7 +14,7 @@ type Service struct {
 	storage *Storage
 	syncer  *Syncer
 	tracer  *Tracer
-	log     *logrus.Entry
+	log     *logging.Logger
 	mu      sync.Mutex
 	running bool
 }
@@ -41,7 +41,7 @@ func NewService(cfg *Config) (*Service, error) {
 		storage: storage,
 		syncer:  syncer,
 		tracer:  NewTracer(storage),
-		log:     logrus.WithField("component", "indexer-service"),
+		log:     logging.NewFromEnv("indexer-service"),
 	}, nil
 }
 
@@ -54,7 +54,9 @@ func (s *Service) Start(ctx context.Context) error {
 		return fmt.Errorf("service already running")
 	}
 
-	s.log.WithField("networks", s.cfg.Networks).Info("starting indexer")
+	s.log.Info(ctx, "starting indexer", map[string]interface{}{
+		"networks": s.cfg.Networks,
+	})
 
 	if err := s.syncer.Start(ctx); err != nil {
 		return fmt.Errorf("start syncer: %w", err)
@@ -73,7 +75,7 @@ func (s *Service) Stop() error {
 		return nil
 	}
 
-	s.log.Info("stopping indexer")
+	s.log.Info(context.Background(), "stopping indexer", nil)
 	s.syncer.Stop()
 	s.storage.Close()
 	s.running = false

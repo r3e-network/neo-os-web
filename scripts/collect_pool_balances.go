@@ -4,14 +4,15 @@
 // Usage: go run -tags=scripts scripts/collect_pool_balances.go
 //
 // Environment variables:
-//   NEO_RPC_URL          - Neo N3 RPC endpoint (default: testnet1.neo.coz.io)
-//   NEO_TESTNET_WIF      - Master wallet WIF for deriving pool account keys
-//   NEOACCOUNTS_MASTER_KEY - Master key hex for HD derivation (alternative to WIF)
-//   SUPABASE_URL         - Supabase project URL
-//   SUPABASE_SERVICE_KEY - Supabase service role key
-//   COLLECT_TO_ADDRESS   - Target address (default: NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX)
-//   GAS_RESERVE          - GAS to leave in each account (default: 0.01)
-//   DRY_RUN              - Set to "true" to preview without executing
+//
+//	NEO_RPC_URL          - Neo N3 RPC endpoint (default: testnet1.neo.coz.io)
+//	NEO_TESTNET_WIF      - Master wallet WIF for deriving pool account keys
+//	NEOACCOUNTS_MASTER_KEY - Master key hex for HD derivation (alternative to WIF)
+//	SUPABASE_URL         - Supabase project URL
+//	SUPABASE_SERVICE_KEY - Supabase service role key
+//	COLLECT_TO_ADDRESS   - Target address (default: NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX)
+//	GAS_RESERVE          - GAS to leave in each account (default: 0.01)
+//	DRY_RUN              - Set to "true" to preview without executing
 package main
 
 import (
@@ -45,10 +46,10 @@ const (
 
 // PoolAccount represents a pool account from the database.
 type PoolAccount struct {
-	ID        string `json:"id"`
-	Address   string `json:"address"`
-	LockedBy  string `json:"locked_by"`
-	IsRetiring bool  `json:"is_retiring"`
+	ID         string `json:"id"`
+	Address    string `json:"address"`
+	LockedBy   string `json:"locked_by"`
+	IsRetiring bool   `json:"is_retiring"`
 }
 
 // NEP17Balance represents a token balance from getnep17balances RPC.

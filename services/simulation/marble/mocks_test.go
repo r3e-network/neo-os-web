@@ -268,10 +268,10 @@ type mockContractInvoker struct {
 	payoutToUserErr  error
 
 	// MiniApp contract support
-	miniAppContracts       map[string]string // appID -> contract hash
-	invokeMiniAppResp      string
-	invokeMiniAppErr       error
-	invokeMiniAppCalls     []invokeMiniAppCall
+	miniAppContracts   map[string]string // appID -> contract hash
+	invokeMiniAppResp  string
+	invokeMiniAppErr   error
+	invokeMiniAppCalls []invokeMiniAppCall
 
 	// Call tracking
 	updatePriceFeedCalls  []updatePriceFeedCall
@@ -332,12 +332,12 @@ func newMockContractInvoker() *mockContractInvoker {
 			"builtin-bridge-guardian":   "0x2d03f3e4ff10e14ea94081e0c21e79e79c33f9e3",
 		},
 		stats: map[string]interface{}{
-			"price_feed_updates":  int64(0),
-			"randomness_records":  int64(0),
-			"payment_hub_pays":    int64(0),
-			"callback_payouts":    int64(0),
-			"contract_errors":     int64(0),
-			"locked_accounts":     0,
+			"price_feed_updates": int64(0),
+			"randomness_records": int64(0),
+			"payment_hub_pays":   int64(0),
+			"callback_payouts":   int64(0),
+			"contract_errors":    int64(0),
+			"locked_accounts":    0,
 		},
 	}
 }
@@ -471,12 +471,12 @@ func (m *mockContractInvoker) reset() {
 	m.payoutToUserCalls = nil
 	m.invokeMiniAppCalls = nil
 	m.stats = map[string]interface{}{
-		"price_feed_updates":  int64(0),
-		"randomness_records":  int64(0),
-		"payment_hub_pays":    int64(0),
-		"callback_payouts":    int64(0),
-		"contract_errors":     int64(0),
-		"locked_accounts":     0,
+		"price_feed_updates": int64(0),
+		"randomness_records": int64(0),
+		"payment_hub_pays":   int64(0),
+		"callback_payouts":   int64(0),
+		"contract_errors":    int64(0),
+		"locked_accounts":    0,
 	}
 }
 

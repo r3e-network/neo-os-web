@@ -13,11 +13,11 @@ import (
 
 // Service provides price feed data from Chainlink on Arbitrum.
 type Service struct {
-	client    *Client
-	cache     *BatchPriceData
-	cacheTTL  time.Duration
-	mu        sync.RWMutex
-	sfGroup   singleflight.Group
+	client   *Client
+	cache    *BatchPriceData
+	cacheTTL time.Duration
+	mu       sync.RWMutex
+	sfGroup  singleflight.Group
 }
 
 // ServiceConfig holds configuration for the datafeed service.
@@ -92,12 +92,12 @@ func (s *Service) GetAllPrices(ctx context.Context) (*BatchPriceData, error) {
 
 // BatchUpdateParams holds parameters for PriceFeed.BatchUpdate.
 type BatchUpdateParams struct {
-	Symbols             []string
-	RoundIDs            []int64
-	Prices              []int64
-	Timestamps          []uint64
-	AttestationHashes   [][]byte
-	SourceSetIDs        []int64
+	Symbols              []string
+	RoundIDs             []int64
+	Prices               []int64
+	Timestamps           []uint64
+	AttestationHashes    [][]byte
+	SourceSetIDs         []int64
 	BatchAttestationHash []byte
 }
 

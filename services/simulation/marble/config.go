@@ -22,15 +22,15 @@ const (
 
 // Config holds simulation service configuration.
 type Config struct {
-	Marble           interface{} // *marble.Marble
-	DB               interface{} // database.RepositoryInterface
-	ChainClient      interface{} // *chain.Client
-	AccountPoolURL   string
-	MiniApps         []string      // List of app IDs to simulate
-	MinIntervalMS    int           // Minimum interval between transactions (milliseconds)
-	MaxIntervalMS    int           // Maximum interval between transactions (milliseconds)
-	MinAmount        int64         // Minimum transaction amount
-	MaxAmount        int64         // Maximum transaction amount
-	WorkersPerApp    int           // Number of concurrent workers per miniapp
-	AutoStart        bool          // Start simulation automatically on service start
+	Marble         interface{} // *marble.Marble
+	DB             interface{} // database.RepositoryInterface
+	ChainClient    interface{} // *chain.Client
+	AccountPoolURL string
+	MiniApps       []string // List of app IDs to simulate
+	MinIntervalMS  int      // Minimum interval between transactions (milliseconds)
+	MaxIntervalMS  int      // Maximum interval between transactions (milliseconds)
+	MinAmount      int64    // Minimum transaction amount
+	MaxAmount      int64    // Maximum transaction amount
+	WorkersPerApp  int      // Number of concurrent workers per miniapp
+	AutoStart      bool     // Start simulation automatically on service start
 }

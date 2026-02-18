@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	defaultRPC      = "https://testnet1.neo.coz.io:443"
-	defaultGasHash  = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+	defaultRPC       = "https://testnet1.neo.coz.io:443"
+	defaultGasHash   = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 	defaultRecipient = "NRhqS1Bvdi8rZb2T24uWdPtEdNHc4Pavv7"
 )
 

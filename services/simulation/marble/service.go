@@ -761,17 +761,17 @@ func (s *Service) runMiniAppWorkflow(appID string, workerID int, workflowFn func
 func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 	workflowByAppID := map[string]func(context.Context) error{
 		// Gaming MiniApps
-		"builtin-lottery":        s.miniAppSimulator.SimulateLottery,
-		"builtin-coin-flip":      s.miniAppSimulator.SimulateCoinFlip,
-		"builtin-dice-game":      s.miniAppSimulator.SimulateDiceGame,
-		"builtin-scratch-card":   s.miniAppSimulator.SimulateScratchCard,
-		"builtin-mega-millions":  s.miniAppSimulator.SimulateMegaMillions,
-		"builtin-gas-spin":       s.miniAppSimulator.SimulateGasSpin,
-		"builtin-neo-crash":      s.miniAppSimulator.SimulateNeoCrash,
-		"builtin-throne-of-gas":  s.miniAppSimulator.SimulateThroneOfGas,
-		"builtin-doomsday-clock": s.miniAppSimulator.SimulateDoomsdayClock,
+		"builtin-lottery":         s.miniAppSimulator.SimulateLottery,
+		"builtin-coin-flip":       s.miniAppSimulator.SimulateCoinFlip,
+		"builtin-dice-game":       s.miniAppSimulator.SimulateDiceGame,
+		"builtin-scratch-card":    s.miniAppSimulator.SimulateScratchCard,
+		"builtin-mega-millions":   s.miniAppSimulator.SimulateMegaMillions,
+		"builtin-gas-spin":        s.miniAppSimulator.SimulateGasSpin,
+		"builtin-neo-crash":       s.miniAppSimulator.SimulateNeoCrash,
+		"builtin-throne-of-gas":   s.miniAppSimulator.SimulateThroneOfGas,
+		"builtin-doomsday-clock":  s.miniAppSimulator.SimulateDoomsdayClock,
 		"builtin-schrodinger-nft": s.miniAppSimulator.SimulateSchrodingerNFT,
-		"builtin-algo-battle":    s.miniAppSimulator.SimulateAlgoBattle,
+		"builtin-algo-battle":     s.miniAppSimulator.SimulateAlgoBattle,
 
 		// DeFi MiniApps
 		"builtin-prediction-market": s.miniAppSimulator.SimulatePredictionMarket,

@@ -38,9 +38,9 @@ const (
 	// Pool configuration
 	MinPoolAccounts = 1000
 	MaxPoolAccounts = 50000
-	BatchCreateSize = 100  // Number of accounts to create in each batch
-	RotationRate    = 0.1  // 10% of accounts rotated per day
-	RotationMinAge  = 24   // Minimum age in hours before rotation
+	BatchCreateSize = 100 // Number of accounts to create in each batch
+	RotationRate    = 0.1 // 10% of accounts rotated per day
+	RotationMinAge  = 24  // Minimum age in hours before rotation
 
 	// Lock timeout - accounts locked longer than this can be force-released
 	LockTimeout = 24 * time.Hour

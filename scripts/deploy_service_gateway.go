@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	defaultRPC     = "https://testnet1.neo.coz.io:443"
+	defaultRPC      = "https://testnet1.neo.coz.io:443"
 	defaultBuildDir = "contracts/build"
-	contractName   = "ServiceLayerGateway"
+	contractName    = "ServiceLayerGateway"
 )
 
 func main() {

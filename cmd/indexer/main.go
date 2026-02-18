@@ -6,12 +6,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 	"github.com/r3e-network/neo-miniapp-platform/services/indexer"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	log := logrus.WithField("app", "neo-indexer")
+	log := logging.NewFromEnv("neo-indexer")
 
 	cfg, err := indexer.LoadFromEnv()
 	if err != nil {
@@ -34,6 +34,6 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 
-	log.Info("shutting down")
+	log.Info(context.Background(), "shutting down", nil)
 	svc.Stop()
 }
