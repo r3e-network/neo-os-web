@@ -5,18 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  Cell,
-} from "recharts";
+import dynamic from "next/dynamic";
+
+const PlatformCharts = dynamic(
+  () => import("@/components/features/stats/PlatformCharts").then((m) => ({ default: m.PlatformCharts })),
+  { ssr: false, loading: () => <div className="h-[350px]" /> },
+);
+const TopAppsChart = dynamic(
+  () => import("@/components/features/stats/PlatformCharts").then((m) => ({ default: m.TopAppsChart })),
+  { ssr: false, loading: () => <div className="h-[350px]" /> },
+);
 import { Users, Activity, Wallet, LayoutGrid, TrendingUp, Loader2 } from "lucide-react";
 
 interface PlatformStats {
@@ -158,51 +156,7 @@ export default function EnhancedStatsPage() {
               <CardDescription>Monthly active users climbing over the last 6 months</CardDescription>
             </CardHeader>
             <CardContent className="h-[350px] pt-10">
-              {loading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="animate-spin text-neo" size={32} />
-                </div>
-              ) : mauHistory.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mauHistory}>
-                    <defs>
-                      <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00d4aa" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#00d4aa" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                    <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis
-                      stroke="#64748b"
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(value) => `${value / 1000}k`}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#0f172a",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: "8px",
-                      }}
-                      itemStyle={{ color: "#00d4aa" }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="active"
-                      stroke="#00d4aa"
-                      fillOpacity={1}
-                      fill="url(#colorActive)"
-                      strokeWidth={3}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">
-                  No historical data available
-                </div>
-              )}
+              <PlatformCharts mauHistory={mauHistory} topApps={topApps} loading={loading} />
             </CardContent>
           </Card>
 
@@ -213,42 +167,7 @@ export default function EnhancedStatsPage() {
               <CardDescription>Top apps by active user count</CardDescription>
             </CardHeader>
             <CardContent className="h-[350px] pt-10">
-              {loading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="animate-spin text-neo" size={32} />
-                </div>
-              ) : topApps.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={topApps} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#1e293b" />
-                    <XAxis type="number" hide />
-                    <YAxis
-                      dataKey="name"
-                      type="category"
-                      stroke="#64748b"
-                      fontSize={10}
-                      width={80}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip
-                      cursor={{ fill: "rgba(255,255,255,0.05)" }}
-                      contentStyle={{
-                        backgroundColor: "#0f172a",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Bar dataKey="users" radius={[0, 4, 4, 0]}>
-                      {topApps.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">No app data available</div>
-              )}
+              <TopAppsChart topApps={topApps} loading={loading} />
             </CardContent>
           </Card>
         </div>

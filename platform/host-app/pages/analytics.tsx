@@ -6,7 +6,17 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Wallet, LayoutGrid, Clock } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
-import { ActivityChart, AppUsageChart, StatCard } from "@/components/features/analytics";
+import dynamic from "next/dynamic";
+import { StatCard } from "@/components/features/analytics";
+
+const ActivityChart = dynamic(
+  () => import("@/components/features/analytics/ActivityChart").then((m) => ({ default: m.ActivityChart })),
+  { ssr: false, loading: () => <div className="h-[220px]" /> },
+);
+const AppUsageChart = dynamic(
+  () => import("@/components/features/analytics/AppUsageChart").then((m) => ({ default: m.AppUsageChart })),
+  { ssr: false, loading: () => <div className="h-[180px]" /> },
+);
 import type { UserAnalytics } from "@/pages/api/analytics/user";
 
 export default function AnalyticsPage() {
