@@ -48,6 +48,9 @@ async function checkChainHealth(rpcUrl: string, network: "testnet" | "mainnet"):
     }),
     signal: AbortSignal.timeout(rpcTimeout),
   });
+  if (!blockRes.ok) {
+    throw new Error(`RPC error: ${blockRes.status}`);
+  }
   const blockData = await blockRes.json();
   const blockHeight = blockData.result || 0;
 
@@ -63,6 +66,9 @@ async function checkChainHealth(rpcUrl: string, network: "testnet" | "mainnet"):
     }),
     signal: AbortSignal.timeout(rpcTimeout),
   });
+  if (!headerRes.ok) {
+    throw new Error(`RPC error: ${headerRes.status}`);
+  }
   const headerData = await headerRes.json();
   const lastBlockTime = headerData.result?.time || 0;
 
