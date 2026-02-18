@@ -1,7 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireScope } from "../_shared/scopes.ts";
-import { requireAuth, supabaseClient, supabaseServiceClient } from "../_shared/supabase.ts";
+import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
 import {
   checkSpamLimit,
   isDeveloperOfApp,
@@ -50,27 +50,26 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "content is required and must be 1-2000 characters", "INVALID_CONTENT", req);
   }
 
-  const supabase = supabaseClient();
   const supabaseService = supabaseServiceClient();
   const userId = auth.userId;
 
   // Verify proof of interaction (user must have used the app)
-  const proof = await verifyProofOfInteraction(supabase, app_id, userId, req);
+  const proof = await verifyProofOfInteraction(supabaseService, app_id, userId, req);
   if (proof instanceof Response) return proof;
   if (!proof.can_comment) {
     return error(403, "you must use this app before commenting", "NO_INTERACTION", req);
   }
 
   // Check spam rate limit
-  const spamCheck = await checkSpamLimit(supabase, userId, "comment", app_id, req);
+  const spamCheck = await checkSpamLimit(supabaseService, userId, "comment", app_id, req);
   if (spamCheck instanceof Response) return spamCheck;
 
   // Check if user is developer (for developer reply flag)
-  const isDev = await isDeveloperOfApp(supabase, userId, app_id);
+  const isDev = await isDeveloperOfApp(supabaseService, userId, app_id);
 
   // Validate parent_id if provided
   if (parent_id) {
-    const { data: parent, error: parentErr } = await supabase
+    const { data: parent, error: parentErr } = await supabaseService
       .from("social_comments")
       .select("id, app_id")
       .eq("id", parent_id)

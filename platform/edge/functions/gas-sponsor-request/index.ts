@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { getEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
@@ -6,9 +7,9 @@ import { requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_sh
 import { getGasBalance } from "../_shared/neo-rpc.ts";
 import { transferGas } from "../_shared/txproxy.ts";
 
-const DAILY_LIMIT = 0.1;
-const MAX_PER_REQUEST = 0.05;
-const ELIGIBILITY_THRESHOLD = 0.1;
+const DAILY_LIMIT = parseFloat(getEnv("GAS_SPONSOR_DAILY_LIMIT") ?? "0.1");
+const MAX_PER_REQUEST = parseFloat(getEnv("GAS_SPONSOR_MAX_PER_REQUEST") ?? "0.05");
+const ELIGIBILITY_THRESHOLD = parseFloat(getEnv("GAS_SPONSOR_ELIGIBILITY_THRESHOLD") ?? "0.1");
 
 type RequestBody = {
   amount: string;

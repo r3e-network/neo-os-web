@@ -237,11 +237,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
           method: "POST",
           body: JSON.stringify({ app_id: appId, amount_gas: amount, memo }),
         });
-        try {
-          pendingInvocations.set(res.request_id, res.invocation);
-        } catch (e) {
-          console.warn("failed to cache invocation", e);
-        }
+        pendingInvocations.set(res.request_id, res.invocation);
         return res;
       },
       async payGASAndInvoke(appId: string, amount: string, memo?: string) {
@@ -261,11 +257,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
             support,
           }),
         });
-        try {
-          pendingInvocations.set(res.request_id, res.invocation);
-        } catch (e) {
-          console.warn("failed to cache invocation", e);
-        }
+        pendingInvocations.set(res.request_id, res.invocation);
         return res;
       },
       async voteAndInvoke(appId: string, proposalId: string, bneoAmount: string, support?: boolean) {
@@ -336,7 +328,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
           body: JSON.stringify({}),
         });
       },
-      async bindWallet(params): Promise<WalletBindResponse> {
+      async bindWallet(params: { address: string; publicKey: string; signature: string; message: string; nonce: string; label?: string }): Promise<WalletBindResponse> {
         return requestJSON<WalletBindResponse>(cfg, "/wallet-bind", {
           method: "POST",
           body: JSON.stringify({
@@ -351,7 +343,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
       },
     },
     apps: {
-      async register(params): Promise<AppRegisterResponse> {
+      async register(params: { manifest: Record<string, unknown> }): Promise<AppRegisterResponse> {
         return requestJSON<AppRegisterResponse>(cfg, "/app-register", {
           method: "POST",
           body: JSON.stringify({
@@ -359,7 +351,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
           }),
         });
       },
-      async updateManifest(params): Promise<AppUpdateManifestResponse> {
+      async updateManifest(params: { manifest: Record<string, unknown> }): Promise<AppUpdateManifestResponse> {
         return requestJSON<AppUpdateManifestResponse>(cfg, "/app-update-manifest", {
           method: "POST",
           body: JSON.stringify({
@@ -475,7 +467,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
       async list(): Promise<APIKeysListResponse> {
         return requestJSON<APIKeysListResponse>(cfg, "/api-keys-list", { method: "GET" });
       },
-      async create(params): Promise<APIKeyCreateResponse> {
+      async create(params: { name: string; scopes?: string[]; description?: string; expires_at?: string }): Promise<APIKeyCreateResponse> {
         return requestJSON<APIKeyCreateResponse>(cfg, "/api-keys-create", {
           method: "POST",
           body: JSON.stringify({
@@ -500,7 +492,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
       async listDeposits(): Promise<GasBankDepositsResponse> {
         return requestJSON<GasBankDepositsResponse>(cfg, "/gasbank-deposits", { method: "GET" });
       },
-      async createDeposit(params): Promise<GasBankDepositCreateResponse> {
+      async createDeposit(params: { amount: string; from_address: string; tx_hash?: string }): Promise<GasBankDepositCreateResponse> {
         return requestJSON<GasBankDepositCreateResponse>(cfg, "/gasbank-deposit", {
           method: "POST",
           body: JSON.stringify({

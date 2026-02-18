@@ -7,8 +7,6 @@ import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@
 import { getCardData } from "@/hooks/useCardData";
 import { cn, sanitizeInput } from "@/lib/utils";
 
-const categories = ["all", "gaming", "defi", "social", "nft", "governance", "utility", "data", "other"] as const;
-
 type SortOption = "trending" | "users" | "transactions" | "recent";
 type ViewMode = "grid" | "list";
 
@@ -214,7 +212,7 @@ export default function MiniAppsPage() {
                         ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                         : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
                     )}
-                    title="List view"
+                    aria-label="List view"
                   >
                     <List size={18} />
                   </button>
@@ -226,7 +224,7 @@ export default function MiniAppsPage() {
                         ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                         : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
                     )}
-                    title="Card view"
+                    aria-label="Grid view"
                   >
                     <LayoutGrid size={18} />
                   </button>

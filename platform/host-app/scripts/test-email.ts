@@ -40,9 +40,10 @@ async function testEmail() {
     });
 
     console.log("✅ Email sent successfully!");
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Failed to send email:");
-    console.error(error.response?.body || error.message);
+    const err = error as { response?: { body?: unknown }; message?: string };
+    console.error(err.response?.body || err.message);
   }
 }
 

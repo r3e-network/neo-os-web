@@ -559,7 +559,7 @@ function CreateFormPanel({
         {/* Tab: Content */}
         {tab === "content" && (
           <div className="space-y-4">
-            <textarea className="w-full rounded-md border border-gray-300 p-2 text-sm" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} />
+            <textarea className="w-full rounded-md border border-gray-300 p-2 text-sm" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} aria-label="App description" />
             <div className="grid grid-cols-3 gap-4">
               <Input label="Icon URL" placeholder="https://..." value={form.content_icon_url} onChange={e => update("content_icon_url", e.target.value)} />
               <Input label="Logo URL" placeholder="https://..." value={form.content_logo_url} onChange={e => update("content_logo_url", e.target.value)} />
@@ -569,7 +569,7 @@ function CreateFormPanel({
               <Input label="Docs URL" placeholder="https://docs.example.com" value={form.content_docs_url} onChange={e => update("content_docs_url", e.target.value)} />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <select className="w-full rounded-md border border-gray-300 p-2 text-sm" value={form.content_category} onChange={e => update("content_category", e.target.value)}>
+                <select className="w-full rounded-md border border-gray-300 p-2 text-sm" value={form.content_category} onChange={e => update("content_category", e.target.value)} aria-label="Category">
                   <option value="">Select...</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -612,7 +612,7 @@ function CreateFormPanel({
                   </div>
                   <div className="flex gap-2">
                     <div className="w-40">
-                      <select className="w-full rounded-md border border-gray-300 p-1.5 text-xs" value={o.button_style} onChange={e => updateOperation(i, "button_style", e.target.value)}>
+                      <select className="w-full rounded-md border border-gray-300 p-1.5 text-xs" value={o.button_style} onChange={e => updateOperation(i, "button_style", e.target.value)} aria-label="Button style">
                         <option value="">Button Style</option>
                         <option value="primary">Primary</option>
                         <option value="secondary">Secondary</option>
@@ -680,7 +680,7 @@ function CreateFormPanel({
           <div className="space-y-3">
             <p className="text-xs text-gray-500">Paste or upload a full MiniApp manifest JSON. This will replace the form fields.</p>
             <div className="flex gap-2 items-center">
-              <input type="file" accept=".json" onChange={onFileUpload} className="text-sm" />
+              <input type="file" accept=".json" onChange={onFileUpload} className="text-sm" aria-label="Upload JSON manifest" />
             </div>
             <textarea
               className="w-full rounded-md border border-gray-300 p-3 font-mono text-xs"
@@ -688,6 +688,7 @@ function CreateFormPanel({
               value={jsonText}
               onChange={e => setJsonText(e.target.value)}
               placeholder='{"app_id": "com.example.app", "name": "My App", ...}'
+              aria-label="MiniApp manifest JSON"
             />
             <Button onClick={onImportJson} disabled={!jsonText.trim() || loading}>
               {loading ? "Importing..." : "Import from JSON"}
@@ -732,7 +733,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
       {params.map((p, i) => (
         <div key={i} className="flex gap-1.5 mb-1.5 items-center">
           <Input placeholder="name" value={p.name} onChange={e => update(i, "name", e.target.value)} />
-          <select className="rounded-md border border-gray-300 p-1.5 text-xs w-28 shrink-0" value={p.type} onChange={e => update(i, "type", e.target.value)}>
+          <select className="rounded-md border border-gray-300 p-1.5 text-xs w-28 shrink-0" value={p.type} onChange={e => update(i, "type", e.target.value)} aria-label="Parameter type">
             {PARAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <Input placeholder="Label" value={p.label} onChange={e => update(i, "label", e.target.value)} />

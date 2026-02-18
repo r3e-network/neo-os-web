@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
+import { jsonError } from "@/lib/api-utils";
 import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/lib/constants";
 import { computeManifestHashHex } from "@/lib/manifest-hash";
 import { miniAppConfigSchema } from "@/lib/schemas";
-import { z } from "zod";
 
 export async function POST(req: Request) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
   if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
-    return NextResponse.json({ error: "Supabase service role not configured" }, { status: 500 });
+    return jsonError("Supabase service role not configured");
   }
 
   let config: z.infer<typeof miniAppConfigSchema>;
@@ -19,13 +20,13 @@ export async function POST(req: Request) {
     config = miniAppConfigSchema.parse(body);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors[0]?.message || "Invalid input" }, { status: 400 });
+      return jsonError(err.errors[0]?.message || "Invalid input", 400);
     }
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return jsonError("Invalid JSON body", 400);
   }
 
   if (!config.developer_user_id) {
-    return NextResponse.json({ error: "developer_user_id is required" }, { status: 400 });
+    return jsonError("developer_user_id is required", 400);
   }
 
   const manifest = {
@@ -65,12 +66,12 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const text = await response.text();
-      return NextResponse.json({ error: text || "Failed to create MiniApp" }, { status: response.status });
+      return jsonError(text || "Failed to create MiniApp", response.status);
     }
 
     const data = await response.json();
     return NextResponse.json({ success: true, data: Array.isArray(data) ? data[0] : data });
   } catch {
-    return NextResponse.json({ error: "Failed to connect to database" }, { status: 502 });
+    return jsonError("Failed to connect to database", 502);
   }
 }

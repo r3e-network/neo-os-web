@@ -19,7 +19,7 @@ export function StakingCard({ onStake }: StakingCardProps) {
     fetch("/api/neoburger-stats")
       .then((res) => res.json())
       .then((data) => setStats(data))
-      .catch(() => {});
+      .catch(() => { /* keep default stats on fetch failure */ });
   }, []);
 
   const userBalance = "100";

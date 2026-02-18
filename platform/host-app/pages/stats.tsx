@@ -306,7 +306,15 @@ export default function EnhancedStatsPage() {
   );
 }
 
-function StatSummaryCard({ title, value, icon: Icon, color, loading }: any) {
+interface StatSummaryCardProps {
+  title: string;
+  value: string;
+  icon: React.ComponentType<{ size?: number | string }>;
+  color: string;
+  loading: boolean;
+}
+
+function StatSummaryCard({ title, value, icon: Icon, color, loading }: StatSummaryCardProps) {
   return (
     <Card className="glass-card">
       <CardContent className="p-6">
@@ -326,7 +334,7 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading }: any) {
   );
 }
 
-function cn(...inputs: any[]) {
+function cn(...inputs: (string | boolean | undefined | null)[]) {
   return inputs.filter(Boolean).join(" ");
 }
 

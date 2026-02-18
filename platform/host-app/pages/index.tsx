@@ -24,7 +24,6 @@ import {
   Image,
   Vote,
   Wrench,
-  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -34,7 +33,7 @@ interface AppStats {
 }
 
 // Category definitions with icons
-const CATEGORY_ICONS: Record<string, any> = {
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ size?: number | string }>> = {
   all: LayoutGrid,
   gaming: Gamepad2,
   defi: Coins,
@@ -80,14 +79,15 @@ export default function LandingPage() {
   }, []);
 
   // Auto-increment transactions every 3 seconds (10-20 tx)
+  const hasTxCount = displayedTxCount > 0;
   useEffect(() => {
-    if (displayedTxCount === 0) return;
+    if (!hasTxCount) return;
     const interval = setInterval(() => {
       const increment = Math.floor(Math.random() * 11) + 10; // 10-20
       setDisplayedTxCount((prev) => prev + increment);
     }, 3000);
     return () => clearInterval(interval);
-  }, [displayedTxCount > 0]);
+  }, [hasTxCount]);
 
   // Merge BUILTIN_APPS with real stats
   const appsWithStats = useMemo(() => {
@@ -180,7 +180,7 @@ export default function LandingPage() {
                   variant="outline"
                   className="border-gray-300 dark:border-white/10 bg-white/80 dark:bg-transparent text-gray-900 dark:text-white font-bold px-8 h-14 rounded-2xl hover:bg-gray-100 dark:hover:bg-white/5"
                 >
-                  Developer SDK <Code2 className="ml-2" size={18} />
+                  Developer SDK <Code2 className="ml-2" width={18} height={18} />
                 </Button>
               </Link>
             </div>
@@ -295,6 +295,7 @@ export default function LandingPage() {
                   <div className="bg-gray-100 dark:bg-dark-900 rounded-lg p-1 flex items-center border border-gray-200 dark:border-white/5">
                     <button
                       onClick={() => setViewMode("grid")}
+                      aria-label="Grid view"
                       className={cn(
                         "p-1.5 rounded-md transition-all",
                         viewMode === "grid"
@@ -306,6 +307,7 @@ export default function LandingPage() {
                     </button>
                     <button
                       onClick={() => setViewMode("list")}
+                      aria-label="List view"
                       className={cn(
                         "p-1.5 rounded-md transition-all",
                         viewMode === "list"
@@ -387,7 +389,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-5xl">
           <div className="relative rounded-[2.5rem] bg-neo-gradient p-12 overflow-hidden shadow-2xl shadow-neo/20">
             <div className="absolute top-0 right-0 p-12 opacity-10">
-              <Code2 size={240} />
+              <Code2 width={240} height={240} />
             </div>
             <div className="relative z-10 max-w-2xl">
               <h2 className="text-4xl font-bold text-dark-950">Ready to build the future?</h2>
@@ -414,7 +416,7 @@ export default function LandingPage() {
   );
 }
 
-function FeatureItem({ icon: Icon, title, desc }: any) {
+function FeatureItem({ icon: Icon, title, desc }: { icon: React.ComponentType<{ size?: number | string }>; title: string; desc: string }) {
   return (
     <Card className="glass-card p-8 border-gray-200 dark:border-white/5 bg-white dark:bg-dark-900/20 text-left hover:bg-gray-50 dark:hover:bg-dark-900/40 transform hover:-translate-y-1 transition-all">
       <div className="w-12 h-12 rounded-xl bg-neo/10 flex items-center justify-center text-neo mb-6">
@@ -426,11 +428,11 @@ function FeatureItem({ icon: Icon, title, desc }: any) {
   );
 }
 
-function cn(...inputs: any[]) {
+function cn(...inputs: (string | boolean | undefined | null)[]) {
   return inputs.filter(Boolean).join(" ");
 }
 
-const Code2 = (props: any) => (
+const Code2 = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     {...props}
     viewBox="0 0 24 24"

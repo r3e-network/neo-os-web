@@ -95,10 +95,3 @@ export async function decryptSecretValue(ciphertextBase64: string): Promise<stri
   return textDecoder.decode(decrypted);
 }
 
-export function encodeBytesToBase64(bytes: Uint8Array): string {
-  return bytesToBase64(bytes);
-}
-
-export function decodeBase64ToBytes(b64: string): Uint8Array {
-  return base64ToBytes(b64);
-}

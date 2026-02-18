@@ -83,8 +83,9 @@ export async function getGameState(contractHash: string, network: Network = "tes
       totalBets: "0",
       roundId: Number(parseInteger(roundRes.stack[0])),
     };
-  } catch {}
-  return { currentMultiplier: 1.0, playerCount: 0, totalBets: "0", roundId: 0 };
+  } catch {
+    return { currentMultiplier: 1.0, playerCount: 0, totalBets: "0", roundId: 0 };
+  }
 }
 
 // Voting state
@@ -115,7 +116,9 @@ export async function getVotingState(
         endTime: Date.now() + 86400000,
       };
     }
-  } catch {}
+  } catch {
+    // Fall through to default
+  }
   return {
     proposalId: 0,
     title: "No Active Proposal",
@@ -143,7 +146,9 @@ export async function getContractStats(contractHash: string, network: Network = 
         uniqueUsers: Number(parseInteger(arr[2])),
       };
     }
-  } catch {}
+  } catch {
+    // Fall through to default
+  }
   return { totalValueLocked: "0", totalTransactions: 0, uniqueUsers: 0 };
 }
 

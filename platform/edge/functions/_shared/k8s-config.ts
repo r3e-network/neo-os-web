@@ -85,15 +85,3 @@ export function getSupabaseUrl(): string {
 export function getNeoRpcUrl(): string {
   return getServiceConfig().neoRpcUrl;
 }
-
-/**
- * Log current configuration (useful for debugging)
- */
-export function logConfig(): void {
-  const inCluster = isK8sCluster();
-  const config = getServiceConfig();
-
-  console.log("[k8s-config] Running in:", inCluster ? "Kubernetes cluster" : "Local development");
-  console.log("[k8s-config] Supabase URL:", config.supabaseUrl);
-  console.log("[k8s-config] Neo RPC URL:", config.neoRpcUrl);
-}

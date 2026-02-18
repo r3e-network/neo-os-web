@@ -4,6 +4,7 @@
 
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
+import { jsonError } from "@/lib/api-utils";
 import { PLATFORM_SERVICES, HEALTH_CHECK_TIMEOUT_MS } from "@/lib/constants";
 import { healthResponseSchema } from "@/lib/schemas";
 import type { ServiceHealth } from "@/types";
@@ -63,6 +64,6 @@ export async function GET(req: Request) {
 
     return NextResponse.json(healthChecks);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to check services health" }, { status: 500 });
+    return jsonError("Failed to check services health");
   }
 }

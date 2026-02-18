@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
+import { jsonError } from "@/lib/api-utils";
 import { SERVICE_ROLE_KEY, SUPABASE_URL } from "@/lib/constants";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const ALLOWED_STATUS = new Set(["active", "pending", "disabled"]);
-
-function jsonError(message: string, status = 500) {
-  return NextResponse.json({ error: message }, { status });
-}
 
 function normalizeSearchParam(value: string | null): string | null {
   const trimmed = String(value ?? "").trim();

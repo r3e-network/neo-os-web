@@ -1,4 +1,4 @@
-import { ComponentType, useCallback, useEffect, useMemo, useState } from "react";
+import { ComponentType, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "./BuiltinApp.module.css";
 
@@ -193,7 +193,7 @@ function PriceTickerPanel({ sdk }: PanelProps) {
     }
   }, [sdk, symbol]);
 
-  const refreshPriceRef = { current: refreshPrice };
+  const refreshPriceRef = useRef(refreshPrice);
   refreshPriceRef.current = refreshPrice;
 
   useEffect(() => {

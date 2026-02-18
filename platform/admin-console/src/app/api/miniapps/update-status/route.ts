@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/admin-auth";
-import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/lib/constants";
 import { z } from "zod";
+import { requireAdminAuth } from "@/lib/admin-auth";
+import { jsonError } from "@/lib/api-utils";
+import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/lib/constants";
 
 const updateStatusSchema = z.object({
   appId: z.string().min(1, "appId is required").regex(/^[a-z0-9][a-z0-9._-]*$/, "invalid appId format"),
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
   if (authError) return authError;
 
   if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
-    return NextResponse.json({ error: "Supabase service role not configured" }, { status: 500 });
+    return jsonError("Supabase service role not configured");
   }
 
   let payload: z.infer<typeof updateStatusSchema>;
@@ -22,9 +23,9 @@ export async function POST(req: Request) {
     payload = updateStatusSchema.parse(body);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors[0]?.message || "Invalid input" }, { status: 400 });
+      return jsonError(err.errors[0]?.message || "Invalid input", 400);
     }
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return jsonError("Invalid JSON body", 400);
   }
 
   const { appId, status } = payload;
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   const directPatchEnabled = String(process.env.ADMIN_STATUS_DIRECT_PATCH || "").toLowerCase() === "true";
 
   if (!/^0x[0-9a-fA-F]{40}$/.test(appRegistryHash)) {
-    return NextResponse.json({ error: "CONTRACT_APPREGISTRY_HASH is not configured" }, { status: 500 });
+    return jsonError("CONTRACT_APPREGISTRY_HASH is not configured");
   }
 
   const statusCode = status === "active" ? 1 : 2; // AppRegistry.AppStatus: Approved=1, Disabled=2
@@ -49,14 +50,14 @@ export async function POST(req: Request) {
       },
     );
     if (!existsRes.ok) {
-      return NextResponse.json({ error: "Failed to validate MiniApp status" }, { status: existsRes.status });
+      return jsonError("Failed to validate MiniApp status", existsRes.status);
     }
     const rows = await existsRes.json();
     if (!Array.isArray(rows) || rows.length === 0) {
-      return NextResponse.json({ error: "MiniApp not found" }, { status: 404 });
+      return jsonError("MiniApp not found", 404);
     }
   } catch {
-    return NextResponse.json({ error: "Failed to connect to database" }, { status: 502 });
+    return jsonError("Failed to connect to database", 502);
   }
 
   if (directPatchEnabled) {
@@ -73,10 +74,10 @@ export async function POST(req: Request) {
         signal: AbortSignal.timeout(10000),
       });
       if (!response.ok) {
-        return NextResponse.json({ error: "Failed to update MiniApp status cache" }, { status: response.status });
+        return jsonError("Failed to update MiniApp status cache", response.status);
       }
     } catch {
-      return NextResponse.json({ error: "Failed to connect to database" }, { status: 502 });
+      return jsonError("Failed to connect to database", 502);
     }
   }
 

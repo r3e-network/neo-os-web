@@ -37,7 +37,7 @@ async function handler(req: Request): Promise<Response> {
       return error(500, "Indexer not configured", "CONFIG_ERROR", req);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
     const searchType = detectSearchType(query);
     let result;

@@ -38,6 +38,19 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
+function resolveTranslation(locale: Locale, key: string, ns: TranslationNamespace): string {
+  const keys = key.split(".");
+  let value: unknown = translations[locale][ns];
+  for (const k of keys) {
+    if (value && typeof value === "object") {
+      value = (value as Record<string, unknown>)[k];
+    } else {
+      return key;
+    }
+  }
+  return typeof value === "string" ? value : key;
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   const [mounted, setMounted] = useState(false);
@@ -56,20 +69,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: string, ns: TranslationNamespace = "common"): string => {
-      const keys = key.split(".");
-      let value: unknown = translations[locale][ns];
-
-      for (const k of keys) {
-        if (value && typeof value === "object") {
-          value = (value as Record<string, unknown>)[k];
-        } else {
-          return key;
-        }
-      }
-
-      return typeof value === "string" ? value : key;
-    },
+    (key: string, ns: TranslationNamespace = "common"): string => resolveTranslation(locale, key, ns),
     [locale],
   );
 
@@ -84,18 +84,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 const defaultI18n: I18nContextType = {
   locale: defaultLocale,
   setLocale: () => {},
-  t: (key: string, ns: TranslationNamespace = "common"): string => {
-    const keys = key.split(".");
-    let value: unknown = translations[defaultLocale][ns];
-    for (const k of keys) {
-      if (value && typeof value === "object") {
-        value = (value as Record<string, unknown>)[k];
-      } else {
-        return key;
-      }
-    }
-    return typeof value === "string" ? value : key;
-  },
+  t: (key: string, ns: TranslationNamespace = "common"): string => resolveTranslation(defaultLocale, key, ns),
 };
 
 export function useI18n() {

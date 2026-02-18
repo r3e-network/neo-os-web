@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
+import { jsonError } from "@/lib/api-utils";
 import { SERVICE_ROLE_KEY, SUPABASE_URL } from "@/lib/constants";
-
-function jsonError(message: string, status = 500) {
-  return NextResponse.json({ error: message }, { status });
-}
 
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);

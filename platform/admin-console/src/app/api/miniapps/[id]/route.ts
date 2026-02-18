@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
+import { jsonError } from "@/lib/api-utils";
 import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/lib/constants";
 import { computeManifestHashHex } from "@/lib/manifest-hash";
 import { miniAppConfigSchema } from "@/lib/schemas";
-import { z } from "zod";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 
@@ -12,12 +12,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (authError) return authError;
 
   if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
-    return NextResponse.json({ error: "Supabase service role not configured" }, { status: 500 });
+    return jsonError("Supabase service role not configured");
   }
 
   const appId = String(params.id || "").trim();
   if (!APP_ID_PATTERN.test(appId)) {
-    return NextResponse.json({ error: "Invalid app_id format" }, { status: 400 });
+    return jsonError("Invalid app_id format", 400);
   }
 
   try {
@@ -32,15 +32,15 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       },
     );
     if (!response.ok) {
-      return NextResponse.json({ error: "Failed to fetch" }, { status: response.status });
+      return jsonError("Failed to fetch", response.status);
     }
     const data = await response.json();
     if (!Array.isArray(data) || data.length === 0) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return jsonError("Not found", 404);
     }
     return NextResponse.json(data[0]);
   } catch {
-    return NextResponse.json({ error: "Failed to connect to database" }, { status: 502 });
+    return jsonError("Failed to connect to database", 502);
   }
 }
 
@@ -49,25 +49,25 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (authError) return authError;
 
   if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
-    return NextResponse.json({ error: "Supabase service role not configured" }, { status: 500 });
+    return jsonError("Supabase service role not configured");
   }
 
   let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return jsonError("Invalid JSON", 400);
   }
 
   // Validate partial config
   const partial = miniAppConfigSchema.partial().safeParse(body);
   if (!partial.success) {
-    return NextResponse.json({ error: partial.error.errors[0]?.message }, { status: 400 });
+    return jsonError(partial.error.errors[0]?.message || "Invalid input", 400);
   }
 
   const appId = String(params.id || "").trim();
   if (!APP_ID_PATTERN.test(appId)) {
-    return NextResponse.json({ error: "Invalid app_id format" }, { status: 400 });
+    return jsonError("Invalid app_id format", 400);
   }
 
   try {
@@ -83,13 +83,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     );
 
     if (!getExisting.ok) {
-      return NextResponse.json({ error: "Failed to fetch existing MiniApp" }, { status: getExisting.status });
+      return jsonError("Failed to fetch existing MiniApp", getExisting.status);
     }
 
     const existingRows = await getExisting.json();
     const existing = Array.isArray(existingRows) ? existingRows[0] : null;
     if (!existing) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return jsonError("Not found", 404);
     }
 
     const d = partial.data;
@@ -150,7 +150,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 
     if (Object.keys(patch).length === 0) {
-      return NextResponse.json({ error: "No update fields provided" }, { status: 400 });
+      return jsonError("No update fields provided", 400);
     }
 
     const response = await fetch(
@@ -168,10 +168,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       },
     );
     if (!response.ok) {
-      return NextResponse.json({ error: "Failed to update" }, { status: response.status });
+      return jsonError("Failed to update", response.status);
     }
     return NextResponse.json({ success: true });
   } catch {
-    return NextResponse.json({ error: "Failed to connect to database" }, { status: 502 });
+    return jsonError("Failed to connect to database", 502);
   }
 }
