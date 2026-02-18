@@ -206,7 +206,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       .in("app_id", topAppIds);
 
     if (appsErr) {
-      console.warn("market-trending: failed to fetch app metadata", appsErr.message ?? appsErr);
+      console.warn("market-trending: failed to fetch app metadata", appsErr.message ?? "unknown error");
     }
 
     // Fetch total stats

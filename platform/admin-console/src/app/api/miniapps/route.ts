@@ -35,6 +35,7 @@ export async function GET(req: Request) {
   const params = new URLSearchParams();
   params.set("select", "*");
   params.set("order", "created_at.desc");
+  params.set("limit", "200");
 
   if (appId) params.set("app_id", `eq.${appId}`);
   if (status) params.set("status", `eq.${status}`);

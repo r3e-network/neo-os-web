@@ -23,6 +23,7 @@ export async function GET(req: Request) {
   const params = new URLSearchParams();
   params.set("select", "*");
   params.set("order", "created_at.desc");
+  params.set("limit", "200");
 
   if (userId) params.set("id", `eq.${userId}`);
   if (search) {

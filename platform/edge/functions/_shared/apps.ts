@@ -102,7 +102,7 @@ export async function enforceUsageCaps(input: UsageCapInput): Promise<Response |
     supabase = supabaseServiceClient();
   } catch (err) {
     if (!enforceCaps) {
-      console.warn("usage tracking unavailable", err);
+      console.warn("usage tracking unavailable", err instanceof Error ? err.message : "unknown error");
       return null;
     }
     return error(500, "usage tracking unavailable", "USAGE_UNAVAILABLE", input.req);

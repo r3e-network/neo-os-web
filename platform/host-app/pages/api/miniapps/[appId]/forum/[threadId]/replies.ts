@@ -74,7 +74,8 @@ async function getReplies(appId: string, threadId: string, req: NextApiRequest, 
     .select("id,thread_id,author_wallet,author_name,content,is_solution,upvotes,created_at")
     .eq("app_id", appId)
     .eq("thread_id", threadId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .limit(200);
 
   if (error) {
     logger.error("Failed to fetch forum replies:", error.message);

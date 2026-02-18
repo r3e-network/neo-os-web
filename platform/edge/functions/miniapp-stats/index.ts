@@ -116,7 +116,7 @@ async function loadMiniAppMeta(appIds: string[]): Promise<Record<string, MiniApp
   try {
     supabase = supabaseServiceClient();
   } catch (err) {
-    console.warn("miniapp-stats: service client unavailable, skipping manifest merge", err);
+    console.warn("miniapp-stats: service client unavailable, skipping manifest merge", err instanceof Error ? err.message : "unknown error");
     return {};
   }
 
@@ -128,7 +128,7 @@ async function loadMiniAppMeta(appIds: string[]): Promise<Record<string, MiniApp
     .in("app_id", appIds);
 
   if (err || !data) {
-    console.warn("miniapp-stats: failed to load miniapp metadata", err?.message ?? err);
+    console.warn("miniapp-stats: failed to load miniapp metadata", err?.message ?? "unknown error");
     return {};
   }
 
