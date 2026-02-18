@@ -76,7 +76,7 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 	if req.TriggerType == "cron" && req.Schedule != "" {
 		next, err := s.parseNextCronExecution(req.Schedule)
 		if err != nil {
-			httputil.BadRequest(w, "invalid cron schedule: "+err.Error())
+			httputil.BadRequest(w, "invalid cron schedule")
 			return
 		}
 		nextExec = next

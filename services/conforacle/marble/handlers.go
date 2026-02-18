@@ -104,7 +104,7 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 
 	req, err := http.NewRequestWithContext(r.Context(), method, input.URL, body)
 	if err != nil {
-		httputil.BadRequest(w, err.Error())
+		httputil.BadRequest(w, "invalid request")
 		return
 	}
 	req.Header = headers
