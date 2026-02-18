@@ -46,7 +46,7 @@ export function normalizePermissions(
   };
 }
 
-export function normalizeLimits(value: unknown, fallback?: MiniAppInfo["limits"]): MiniAppInfo["limits"] | undefined {
+function normalizeLimits(value: unknown, fallback?: MiniAppInfo["limits"]): MiniAppInfo["limits"] | undefined {
   const raw = asObject(value);
   const out: MiniAppInfo["limits"] = {};
   if (raw.max_gas_per_tx !== undefined) out.max_gas_per_tx = toString(raw.max_gas_per_tx);
@@ -59,7 +59,7 @@ export function normalizeLimits(value: unknown, fallback?: MiniAppInfo["limits"]
   return out;
 }
 
-export function normalizeStatsDisplay(value: unknown): string[] | undefined {
+function normalizeStatsDisplay(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const list = value.map((v) => toString(v).trim()).filter(Boolean);
   return list;
