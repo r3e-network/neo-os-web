@@ -39,7 +39,7 @@ export async function handler(req: Request): Promise<Response> {
   if (!data || data.length === 0) return error(404, "secret not found", "NOT_FOUND", req);
 
   const encryptedBase64 = String(data[0]?.encrypted_value ?? "").trim();
-  if (!encryptedBase64) return error(500, "secret stored without ciphertext", "DB_ERROR", req);
+  if (!encryptedBase64) return error(500, "secret unavailable", "DB_ERROR", req);
 
   let value: string;
   try {
