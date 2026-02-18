@@ -43,6 +43,11 @@ func (s *Service) checkAndExecuteTriggers(ctx context.Context) {
 				}
 				s.wg.Add(1)
 				go func(t *neoflowsupabase.Trigger) {
+					defer func() {
+						if r := recover(); r != nil {
+							s.Logger().WithField("panic", r).Error("trigger execution panicked")
+						}
+					}()
 					defer s.wg.Done()
 					defer s.releaseTriggerSlot()
 					execCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

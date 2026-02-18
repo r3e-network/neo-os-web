@@ -392,6 +392,11 @@ func (s *Service) spawnAnchoredTask(ctx context.Context, task *anchoredTaskState
 	}
 	s.wg.Add(1)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				s.Logger().WithField("panic", r).Error("anchored task execution panicked")
+			}
+		}()
 		defer s.wg.Done()
 		defer s.releaseAnchoredTaskSlot()
 		execCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)

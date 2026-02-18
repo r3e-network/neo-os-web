@@ -119,6 +119,11 @@ func (s *Service) fetchAndCachePrice(ctx context.Context, normalizedPair, origin
 		}
 		wg.Add(1)
 		go func(src *SourceConfig) {
+			defer func() {
+				if r := recover(); r != nil {
+					s.Logger().WithField("panic", r).Error("price fetch panicked")
+				}
+			}()
 			defer wg.Done()
 			defer s.releaseSourceSlot()
 
@@ -149,6 +154,11 @@ func (s *Service) fetchAndCachePrice(ctx context.Context, normalizedPair, origin
 		if s.acquireSourceSlot(ctx) {
 			wg.Add(1)
 			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						s.Logger().WithField("panic", r).Error("chainlink price fetch panicked")
+					}
+				}()
 				defer wg.Done()
 				defer s.releaseSourceSlot()
 

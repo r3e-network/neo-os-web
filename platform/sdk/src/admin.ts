@@ -72,7 +72,7 @@ export class AdminSDK {
    */
   async getServicesHealth(): Promise<ServiceHealthResponse[]> {
     const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
-    const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`, { headers });
+    const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`, { headers, signal: AbortSignal.timeout(30000) });
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
       throw new Error(`Failed to fetch services health: ${response.status} ${response.statusText} - ${errBody}`);
@@ -85,7 +85,7 @@ export class AdminSDK {
    */
   async getAnalytics(): Promise<AnalyticsResponse> {
     const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
-    const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, { headers });
+    const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, { headers, signal: AbortSignal.timeout(30000) });
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
       throw new Error(`Failed to fetch analytics: ${response.status} ${response.statusText} - ${errBody}`);
@@ -105,6 +105,7 @@ export class AdminSDK {
         apikey: this.config.serviceRoleKey,
         Authorization: `Bearer ${this.config.serviceRoleKey}`,
       },
+      signal: AbortSignal.timeout(30000),
     });
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
@@ -125,6 +126,7 @@ export class AdminSDK {
         apikey: this.config.serviceRoleKey,
         Authorization: `Bearer ${this.config.serviceRoleKey}`,
       },
+      signal: AbortSignal.timeout(30000),
     });
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
@@ -145,6 +147,7 @@ export class AdminSDK {
       method: "POST",
       headers,
       body: JSON.stringify({ appId, status }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
