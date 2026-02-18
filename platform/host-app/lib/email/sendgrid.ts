@@ -34,7 +34,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
     return true;
   } catch (error) {
-    logger.error("SendGrid error:", error);
+    logger.error("SendGrid error:", error instanceof Error ? error.message : "unknown error");
     return false;
   }
 }

@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate");
     return res.status(200).json(stats);
   } catch (err) {
-    logger.error("Explorer stats error:", err);
+    logger.error("Explorer stats error:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Failed to fetch stats");
   }
 }

@@ -58,7 +58,7 @@ async function handler(req: Request): Promise<Response> {
 
     return json(result, {}, req);
   } catch (err) {
-    console.error("explorer-search error:", err);
+    console.error("explorer-search error:", err instanceof Error ? err.message : "unknown error");
     return error(500, "Search failed", "INTERNAL_ERROR", req);
   }
 }

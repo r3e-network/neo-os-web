@@ -140,7 +140,7 @@ export class NeoLineAdapter implements WalletAdapter {
 
       return { neo, gas };
     } catch (error) {
-      logger.error("Failed to get balance:", error);
+      logger.error("Failed to get balance:", error instanceof Error ? error.message : "unknown error");
       return { neo: "0", gas: "0" };
     }
   }

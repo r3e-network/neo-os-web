@@ -54,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const status = await getLiveStatus(appId, contractHash, category, network);
     res.status(200).json({ status });
   } catch (error) {
-    logger.error("Live status error:", error);
+    logger.error("Live status error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to fetch live status");
   }
 }

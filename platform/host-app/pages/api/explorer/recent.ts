@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       count: transactions?.length || 0,
     });
   } catch (err) {
-    logger.error("Recent transactions error:", err);
+    logger.error("Recent transactions error:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Failed to fetch transactions");
   }
 }

@@ -64,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       results,
     });
   } catch (error) {
-    logger.error("Cron error:", error);
+    logger.error("Cron error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Collection failed");
   }
 }

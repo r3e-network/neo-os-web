@@ -120,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json(stats);
   } catch (error) {
-    logger.error("Stats API error:", error);
+    logger.error("Stats API error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to fetch stats");
   }
 }

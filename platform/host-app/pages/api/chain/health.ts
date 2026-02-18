@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const health = await checkChainHealth(rpcUrl, network as "testnet" | "mainnet");
     return res.status(200).json(health);
   } catch (err) {
-    logger.error("Chain health check failed:", err);
+    logger.error("Chain health check failed:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Failed to check chain health");
   }
 }
