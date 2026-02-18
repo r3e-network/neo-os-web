@@ -72,28 +72,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (existingVote?.vote_type === vote_type) {
+    // Toggle off — second concurrent delete is a benign no-op
     const { error } = await supabase.from("social_comment_votes").delete().eq("id", existingVote.id);
     if (error) {
       logger.error("Vote delete failed:", error.message);
       return apiError.internal(res, "Failed to submit vote");
     }
-  } else if (existingVote?.id) {
-    const { error } = await supabase
-      .from("social_comment_votes")
-      .update({ vote_type })
-      .eq("id", existingVote.id);
-    if (error) {
-      logger.error("Vote update failed:", error.message);
-      return apiError.internal(res, "Failed to submit vote");
-    }
   } else {
-    const { error } = await supabase.from("social_comment_votes").insert({
-      comment_id: commentId,
-      voter_user_id: userId,
-      vote_type,
-    });
+    // Upsert handles both insert and update atomically, eliminating TOCTOU race
+    const { error } = await supabase.from("social_comment_votes").upsert(
+      { comment_id: commentId, voter_user_id: userId, vote_type },
+      { onConflict: "comment_id,voter_user_id" },
+    );
     if (error) {
-      logger.error("Vote insert failed:", error.message);
+      logger.error("Vote upsert failed:", error.message);
       return apiError.internal(res, "Failed to submit vote");
     }
   }
