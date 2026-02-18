@@ -75,6 +75,7 @@ type ServiceAuthMiddleware struct {
 	validatedTokens map[string]*cachedToken // In-memory cache for validated tokens
 	stopCleanup     chan struct{}           // Channel to stop background cleanup
 	cleanupOnce     sync.Once               // Ensures cleanup goroutine starts only once
+	stopOnce        sync.Once               // Ensures stopCleanup channel is closed only once
 }
 
 // cachedToken stores validated token info with expiry.
@@ -332,12 +333,9 @@ func (m *ServiceAuthMiddleware) startBackgroundCleanup() {
 // StopCleanup stops the background cleanup goroutine.
 // This should be called when the middleware is no longer needed (e.g., during shutdown).
 func (m *ServiceAuthMiddleware) StopCleanup() {
-	select {
-	case <-m.stopCleanup:
-		// Already stopped
-	default:
+	m.stopOnce.Do(func() {
 		close(m.stopCleanup)
-	}
+	})
 }
 
 // InvalidateCache clears all cached tokens.
