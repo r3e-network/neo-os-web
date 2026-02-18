@@ -275,7 +275,11 @@ func (b *TxBuilder) BroadcastTx(ctx context.Context, tx *transaction.Transaction
 		return tx.Hash(), nil
 	}
 
-	return util.Uint256DecodeStringLE(response.Hash[2:]) // Remove 0x prefix
+	h := response.Hash
+	if len(h) >= 2 && (h[:2] == "0x" || h[:2] == "0X") {
+		h = h[2:]
+	}
+	return util.Uint256DecodeStringLE(h)
 }
 
 // BroadcastAndWait broadcasts a transaction and waits for its application log.

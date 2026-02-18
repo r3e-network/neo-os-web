@@ -101,7 +101,7 @@ async function requestJSON(cfg, path, init) {
         if (apiKey)
             headers.set("X-API-Key", apiKey);
     }
-    const resp = await fetch(url, { ...init, headers });
+    const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
     const text = await resp.text();
     if (!resp.ok)
         throw new Error(text || `request failed (${resp.status})`);
@@ -117,7 +117,7 @@ async function requestHostJSON(cfg, path, init) {
         throw new Error("API key required for host-only endpoint");
     }
     headers.set("X-API-Key", apiKey);
-    const resp = await fetch(url, { ...init, headers });
+    const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
     const text = await resp.text();
     if (!resp.ok)
         throw new Error(text || `request failed (${resp.status})`);

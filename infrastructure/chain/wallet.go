@@ -31,13 +31,22 @@ func NewWallet(privateKeyHex string) (*Wallet, error) {
 		return nil, fmt.Errorf("private key must be 32 bytes, got %d", len(keyBytes))
 	}
 
+	d := new(big.Int).SetBytes(keyBytes)
+	if d.Sign() == 0 {
+		return nil, fmt.Errorf("private key must be non-zero")
+	}
+
 	keyPair, err := crypto.GenerateKeyPair()
 	if err != nil {
 		return nil, err
 	}
 
+	if d.Cmp(keyPair.PrivateKey.Curve.Params().N) >= 0 {
+		return nil, fmt.Errorf("private key exceeds curve order")
+	}
+
 	// Set the private key D value
-	keyPair.PrivateKey.D = new(big.Int).SetBytes(keyBytes)
+	keyPair.PrivateKey.D = d
 	keyPair.PrivateKey.PublicKey.X, keyPair.PrivateKey.PublicKey.Y =
 		keyPair.PrivateKey.Curve.ScalarBaseMult(keyBytes)
 
