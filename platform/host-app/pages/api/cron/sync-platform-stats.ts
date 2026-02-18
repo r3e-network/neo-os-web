@@ -94,7 +94,7 @@ async function syncPlatformStats(): Promise<SyncResult> {
   }
 
   // Store sync result
-  await supabase.from("platform_stats_sync").upsert(
+  const { error: upsertErr } = await supabase.from("platform_stats_sync").upsert(
     {
       id: 1,
       address: PLATFORM_ADDRESS,
@@ -104,6 +104,9 @@ async function syncPlatformStats(): Promise<SyncResult> {
     },
     { onConflict: "id" },
   );
+  if (upsertErr) {
+    logger.warn("Failed to store sync result:", upsertErr.message);
+  }
 
   return {
     timestamp: new Date().toISOString(),
