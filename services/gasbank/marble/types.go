@@ -19,7 +19,9 @@ type TransactionType string
 
 const (
 	TxTypeDeposit    TransactionType = "deposit"
+	TxTypeWithdraw   TransactionType = "withdraw"
 	TxTypeServiceFee TransactionType = "service_fee"
+	TxTypeRefund     TransactionType = "refund"
 )
 
 // GetAccountRequest is the request for getting account info.

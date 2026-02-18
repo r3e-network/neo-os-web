@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl, isEdgeRpcAllowed } from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
+import { standardLimit } from "@/lib/rate-limit";
 
 const FETCH_TIMEOUT_MS = 30000; // 30 seconds
 const MAX_RETRIES = 2;
@@ -52,6 +53,7 @@ async function readRawBody(req: NextApiRequest): Promise<Buffer> {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
   const fn = String(req.query.fn ?? "").trim();
   if (!fn) {
     apiError.badRequest(res, "function name required");

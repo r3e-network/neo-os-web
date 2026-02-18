@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getPreferences, upsertPreferences } from "@/lib/notifications/supabase-service";
 import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
+import { standardLimit } from "@/lib/rate-limit";
 
 const DEFAULT_PREFERENCES = {
   email: null,
@@ -13,6 +14,7 @@ const DEFAULT_PREFERENCES = {
 };
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
   if (req.method === "GET") {
     const { wallet } = req.query;
     if (!wallet || typeof wallet !== "string") {
