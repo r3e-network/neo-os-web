@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,7 +49,7 @@ function formatNumber(num?: number): string {
   return num.toLocaleString();
 }
 
-export function MiniAppCard({ app }: { app: MiniAppInfo }) {
+export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo }) {
   const showSourceBadge = app.source && app.source !== "builtin";
 
   return (
@@ -99,4 +100,4 @@ export function MiniAppCard({ app }: { app: MiniAppInfo }) {
       </Card>
     </Link>
   );
-}
+});

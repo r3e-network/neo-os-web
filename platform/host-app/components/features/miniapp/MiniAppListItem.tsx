@@ -1,7 +1,8 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
-import { Download, Heart, Clock, Globe, Zap } from "lucide-react";
+import { Globe, Zap } from "lucide-react";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
 import type { MiniAppInfo } from "./MiniAppCard";
@@ -30,7 +31,7 @@ function formatTimeAgo(date?: string): string {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-export function MiniAppListItem({ app }: MiniAppListItemProps) {
+export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppListItemProps) {
   return (
     <Link
       href={`/miniapps/${app.app_id}`}
@@ -76,4 +77,4 @@ export function MiniAppListItem({ app }: MiniAppListItemProps) {
       </div>
     </Link>
   );
-}
+});
