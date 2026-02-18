@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const stats = await getBatchStats(appIds, network);
     res.status(200).json({ stats });
   } catch (error) {
-    logger.error("Batch stats error:", error);
+    logger.error("Batch stats error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to fetch stats");
   }
 }

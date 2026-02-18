@@ -53,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json(result);
   } catch (error) {
-    logger.error("Explorer search error:", error);
+    logger.error("Explorer search error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Search failed");
   }
 }
