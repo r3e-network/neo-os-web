@@ -31,7 +31,7 @@ export function AppStatsCard({ title, value, icon, trend, trendValue }: Props) {
       </div>
       <div style={valueStyle}>{value}</div>
       {trendValue && (
-        <div style={{ ...trendStyle, color: getTrendColor() }}>
+        <div style={{ ...trendStyle, color: getTrendColor() }} aria-label={`${trend === "up" ? "Increase" : trend === "down" ? "Decrease" : "No change"} ${trendValue}`}>
           {getTrendSymbol()} {trendValue}
         </div>
       )}
