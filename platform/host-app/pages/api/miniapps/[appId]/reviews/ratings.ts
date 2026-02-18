@@ -65,7 +65,7 @@ async function getRatings(appId: string, req: NextApiRequest, res: NextApiRespon
     });
   }
 
-  const { data, error } = await supabase.from("social_ratings").select("app_id,rating_value,review_text").eq("app_id", appId);
+  const { data, error } = await supabase.from("social_ratings").select("app_id,rating_value,review_text").eq("app_id", appId).limit(1000);
   if (error) {
     logger.error("Failed to fetch ratings:", error.message);
     return apiError.internal(res, "Failed to fetch ratings");

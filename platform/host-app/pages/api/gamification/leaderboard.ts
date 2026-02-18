@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from("miniapp_usage")
     .select("user_id,tx_count,governance_used,app_id")
     .order("updated_at", { ascending: false })
-    .limit(20000);
+    .limit(5000);
 
   if (usageError) {
     logger.error("miniapp_usage leaderboard fallback failed:", usageError.message);

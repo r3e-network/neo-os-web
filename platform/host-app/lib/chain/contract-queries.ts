@@ -25,6 +25,12 @@ function parseInteger(item: StackItem): bigint {
   return 0n;
 }
 
+function safeNumber(value: bigint): number {
+  if (value > BigInt(Number.MAX_SAFE_INTEGER)) return Number.MAX_SAFE_INTEGER;
+  if (value < BigInt(-Number.MAX_SAFE_INTEGER)) return -Number.MAX_SAFE_INTEGER;
+  return Number(value);
+}
+
 function parseString(item: StackItem): string {
   if (item.type === "ByteString") {
     return Buffer.from(item.value, "base64").toString("utf8");
@@ -53,8 +59,8 @@ export async function getLotteryState(
 
     return {
       prizePool: (parseInteger(poolRes.stack[0]) / 100000000n).toString(),
-      ticketsSold: Number(parseInteger(ticketsRes.stack[0])),
-      currentRound: Number(parseInteger(roundRes.stack[0])),
+      ticketsSold: safeNumber(parseInteger(ticketsRes.stack[0])),
+      currentRound: safeNumber(parseInteger(roundRes.stack[0])),
       endTime: Date.now() + 3600000,
     };
   } catch (err) {
@@ -79,10 +85,10 @@ export async function getGameState(contractHash: string, network: Network = "tes
     ]);
 
     return {
-      currentMultiplier: Number(parseInteger(multiplierRes.stack[0])) / 100,
+      currentMultiplier: safeNumber(parseInteger(multiplierRes.stack[0])) / 100,
       playerCount: 0,
       totalBets: "0",
-      roundId: Number(parseInteger(roundRes.stack[0])),
+      roundId: safeNumber(parseInteger(roundRes.stack[0])),
     };
   } catch (err) {
     console.warn("getGameState failed:", err);
@@ -144,8 +150,8 @@ export async function getContractStats(contractHash: string, network: Network = 
       const arr = res.stack[0].value as StackItem[];
       return {
         totalValueLocked: (parseInteger(arr[0]) / 100000000n).toString(),
-        totalTransactions: Number(parseInteger(arr[1])),
-        uniqueUsers: Number(parseInteger(arr[2])),
+        totalTransactions: safeNumber(parseInteger(arr[1])),
+        uniqueUsers: safeNumber(parseInteger(arr[2])),
       };
     }
   } catch (err) {

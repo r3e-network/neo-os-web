@@ -78,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       query = query.eq("category", category);
     }
 
-    const { data, error } = await query.order("submitted_at", { ascending: false });
+    const { data, error } = await query.order("submitted_at", { ascending: false }).limit(200);
     if (error) {
       logger.warn("Community submissions query failed:", error.message);
       return res.status(200).json({ apps: [] });
@@ -104,7 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ apps });
   } catch (error) {
-    logger.warn("Fetch community apps error:", error);
+    logger.warn("Fetch community apps error:", error instanceof Error ? error.message : "unknown error");
     return res.status(200).json({ apps: [] });
   }
 }

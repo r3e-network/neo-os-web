@@ -90,7 +90,7 @@ async function getMessages(appId: string, req: NextApiRequest, res: NextApiRespo
     .select("sender_wallet")
     .eq("app_id", appId)
     .order("created_at", { ascending: false })
-    .limit(5000);
+    .limit(500);
 
   const participantCount = new Set((participantRows || []).map((row) => String(row.sender_wallet || "").trim()).filter(Boolean))
     .size;
