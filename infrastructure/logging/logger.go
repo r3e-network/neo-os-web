@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -363,7 +364,10 @@ func (l *Logger) Error(ctx context.Context, message string, err error, fields ma
 }
 
 // Global logger instance (can be initialized once at startup)
-var defaultLogger *Logger
+var (
+	defaultLogger     *Logger
+	defaultLoggerOnce sync.Once
+)
 
 // InitDefault initializes the default logger
 func InitDefault(service, level, format string) {
@@ -372,10 +376,11 @@ func InitDefault(service, level, format string) {
 
 // Default returns the default logger
 func Default() *Logger {
-	if defaultLogger == nil {
-		// Fallback to a basic logger if not initialized
-		defaultLogger = New("unknown", "info", "json")
-	}
+	defaultLoggerOnce.Do(func() {
+		if defaultLogger == nil {
+			defaultLogger = New("unknown", "info", "json")
+		}
+	})
 	return defaultLogger
 }
 

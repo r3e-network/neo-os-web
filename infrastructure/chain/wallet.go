@@ -27,6 +27,9 @@ func NewWallet(privateKeyHex string) (*Wallet, error) {
 	if err != nil {
 		return nil, fmt.Errorf("decode private key: %w", err)
 	}
+	if len(keyBytes) != 32 {
+		return nil, fmt.Errorf("private key must be 32 bytes, got %d", len(keyBytes))
+	}
 
 	keyPair, err := crypto.GenerateKeyPair()
 	if err != nil {

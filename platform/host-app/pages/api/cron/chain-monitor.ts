@@ -27,7 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ success: true, results });
   } catch (err) {
-    return apiError.internal(res, `Monitor check failed: ${err instanceof Error ? err.message : "Unknown"}`);
+    console.error("Monitor check failed:", err);
+    return apiError.internal(res, "Monitor check failed");
   }
 }
 
