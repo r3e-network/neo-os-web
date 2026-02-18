@@ -56,7 +56,7 @@ async function loadAppScript(
 ): Promise<{ script: string; entryPoint: string } | null> {
   try {
     const manifestUrl = `${SCRIPTS_BASE_URL}/apps/${appId}/manifest.json`;
-    const manifestRes = await fetch(manifestUrl);
+    const manifestRes = await fetch(manifestUrl, { signal: AbortSignal.timeout(5000) });
     if (!manifestRes.ok) return null;
 
     const manifest: Manifest = await manifestRes.json();
@@ -64,7 +64,7 @@ async function loadAppScript(
     if (!scriptInfo) return null;
 
     const scriptUrl = `${SCRIPTS_BASE_URL}/apps/${appId}/${scriptInfo.file}`;
-    const scriptRes = await fetch(scriptUrl);
+    const scriptRes = await fetch(scriptUrl, { signal: AbortSignal.timeout(10000) });
     if (!scriptRes.ok) return null;
 
     return {

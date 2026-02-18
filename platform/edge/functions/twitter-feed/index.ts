@@ -32,6 +32,7 @@ export async function handler(req: Request): Promise<Response> {
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${bearerToken}` },
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!res.ok) {

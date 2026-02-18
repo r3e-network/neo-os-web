@@ -394,7 +394,9 @@ func (s *Service) spawnAnchoredTask(ctx context.Context, task *anchoredTaskState
 	go func() {
 		defer s.wg.Done()
 		defer s.releaseAnchoredTaskSlot()
-		s.executeAnchoredTask(ctx, task, executionData)
+		execCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		s.executeAnchoredTask(execCtx, task, executionData)
 	}()
 	return true
 }

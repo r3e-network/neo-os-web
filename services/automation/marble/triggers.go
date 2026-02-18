@@ -45,7 +45,9 @@ func (s *Service) checkAndExecuteTriggers(ctx context.Context) {
 				go func(t *neoflowsupabase.Trigger) {
 					defer s.wg.Done()
 					defer s.releaseTriggerSlot()
-					s.executeTrigger(ctx, t)
+					execCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+					defer cancel()
+					s.executeTrigger(execCtx, t)
 				}(trigger)
 			}
 		}
