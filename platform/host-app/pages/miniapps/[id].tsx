@@ -258,6 +258,15 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
         </div>
       )}
 
+      {app.docs_url && (
+        <div style={sectionStyle}>
+          <h3 style={sectionTitleStyle}>Documentation</h3>
+          <a href={app.docs_url} target="_blank" rel="noopener noreferrer" style={docsLinkStyle}>
+            📄 View Documentation →
+          </a>
+        </div>
+      )}
+
       <div style={sectionStyle}>
         <h3 style={sectionTitleStyle}>Contract Details</h3>
         <p style={infoTextStyle}>
@@ -275,6 +284,13 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
     </div>
   );
 }
+
+const docsLinkStyle: React.CSSProperties = {
+  color: colors.primary,
+  textDecoration: "none",
+  fontSize: 14,
+  fontWeight: 500,
+};
 
 function formatPermission(key: string): string {
   return key
