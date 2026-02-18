@@ -14,7 +14,7 @@ export function OperationPanel({ operations, contractHash, onInvoke }: Props) {
     <div style={container}>
       <h3 style={heading}>Operations</h3>
       {operations.map((op, i) => (
-        <OperationCard key={i} op={op} onInvoke={onInvoke} />
+        <OperationCard key={op.method} op={op} onInvoke={onInvoke} />
       ))}
     </div>
   );
