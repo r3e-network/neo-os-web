@@ -14,7 +14,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (req.method === "GET") {
-    const limit = parseInt(req.query.limit as string) || 50;
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
     const unreadOnly = req.query.unreadOnly === "true";
 
     const events = await getEvents(wallet, limit, unreadOnly);
@@ -25,12 +25,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   if (req.method === "POST") {
     const { eventId } = req.body;
-    if (!eventId) {
-      return apiError.badRequest(res, "Event ID required");
+    if (!eventId || typeof eventId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)) {
+      return apiError.badRequest(res, "Valid event ID required");
     }
 
     const success = await markAsRead(eventId);
-    return res.status(success ? 200 : 500).json({ success });
+    if (!success) return apiError.internal(res, "Failed to mark as read");
+    return res.status(200).json({ success });
   }
 
   return apiError.methodNotAllowed(res);

@@ -39,9 +39,16 @@ CREATE INDEX IF NOT EXISTS idx_events_created ON notification_events(created_at 
 ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notification_events ENABLE ROW LEVEL SECURITY;
 
--- Allow public read/write for now (adjust based on auth strategy)
-CREATE POLICY "Allow all on preferences" ON notification_preferences FOR ALL USING (true);
-CREATE POLICY "Allow all on events" ON notification_events FOR ALL USING (true);
+-- Service role has full access; authenticated users access own rows only
+CREATE POLICY "Service role full access on preferences" ON notification_preferences FOR ALL TO service_role USING (true);
+CREATE POLICY "Users own preferences" ON notification_preferences FOR ALL TO authenticated
+  USING (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet')
+  WITH CHECK (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet');
+
+CREATE POLICY "Service role full access on events" ON notification_events FOR ALL TO service_role USING (true);
+CREATE POLICY "Users own events" ON notification_events FOR ALL TO authenticated
+  USING (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet')
+  WITH CHECK (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet');
 
 -- 4. Email Verifications Table
 CREATE TABLE IF NOT EXISTS email_verifications (
@@ -55,4 +62,7 @@ CREATE TABLE IF NOT EXISTS email_verifications (
 CREATE INDEX IF NOT EXISTS idx_verify_wallet ON email_verifications(wallet_address);
 
 ALTER TABLE email_verifications ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all on verifications" ON email_verifications FOR ALL USING (true);
+CREATE POLICY "Service role full access on verifications" ON email_verifications FOR ALL TO service_role USING (true);
+CREATE POLICY "Users own verifications" ON email_verifications FOR ALL TO authenticated
+  USING (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet')
+  WITH CHECK (wallet_address = current_setting('request.jwt.claims', true)::json->>'wallet');
