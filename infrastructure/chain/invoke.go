@@ -115,50 +115,6 @@ func (c *Client) SendRawTransactionAndWait(ctx context.Context, txHex string, po
 	return c.WaitForApplicationLog(wctx, txHash, pollInterval)
 }
 
-// InvokeFunctionAndWait invokes a contract function and optionally waits for execution.
-// Deprecated: This method only simulates the transaction and does NOT broadcast it.
-// Use InvokeFunctionWithSignerAndWait for actual on-chain transactions.
-// If wait is true, it waits for the transaction to be included in a block and returns the application log.
-// If wait is false, it returns immediately after broadcasting with only the TxHash populated.
-// Uses DefaultTxWaitTimeout (2 minutes) and DefaultPollInterval (2 seconds).
-func (c *Client) InvokeFunctionAndWait(ctx context.Context, contractHash, method string, params []ContractParam, wait bool) (*TxResult, error) {
-	invokeResult, err := c.InvokeFunction(ctx, contractHash, method, params)
-	if err != nil {
-		return nil, fmt.Errorf("invoke %s: %w", method, err)
-	}
-
-	if invokeResult.State != "HALT" {
-		return nil, fmt.Errorf("%s failed: %s", method, invokeResult.Exception)
-	}
-
-	result := &TxResult{
-		TxHash:  invokeResult.Tx,
-		VMState: invokeResult.State,
-	}
-
-	if !wait {
-		return result, nil
-	}
-
-	// Wait for transaction execution
-	wctx, cancel := context.WithTimeout(ctx, DefaultTxWaitTimeout)
-	defer cancel()
-
-	appLog, err := c.WaitForApplicationLog(wctx, invokeResult.Tx, DefaultPollInterval)
-	if err != nil {
-		return result, fmt.Errorf("wait for %s execution: %w", method, err)
-	}
-
-	result.AppLog = appLog
-
-	// Update VMState from actual execution
-	if len(appLog.Executions) > 0 {
-		result.VMState = appLog.Executions[0].VMState
-	}
-
-	return result, nil
-}
-
 // =============================================================================
 // Proper Transaction Building and Broadcasting
 // =============================================================================
