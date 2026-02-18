@@ -87,7 +87,7 @@ export async function handler(req: Request): Promise<Response> {
     if (msg.includes("quota") || msg.includes("limit") || msg.includes("exceeded")) {
       return error(400, "exceeds daily quota", "QUOTA_EXCEEDED", req);
     }
-    return error(500, `quota update failed: ${msg}`, "DB_ERROR", req);
+    return error(500, "quota update failed", "DB_ERROR", req);
   }
 
   // Create request record
