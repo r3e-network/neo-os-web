@@ -61,6 +61,10 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.BadRequest(w, "name and trigger_type required")
 		return
 	}
+	if len(req.Schedule) > 256 || len(req.Condition) > 4096 || len(req.Action) > 4096 || len(req.Name) > 256 {
+		httputil.BadRequest(w, "field exceeds maximum length")
+		return
+	}
 
 	if s.repo == nil {
 		httputil.ServiceUnavailable(w, "repository not configured")
@@ -138,6 +142,11 @@ func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 
 	var req TriggerRequest
 	if !httputil.DecodeJSON(w, r, &req) {
+		return
+	}
+
+	if len(req.Schedule) > 256 || len(req.Condition) > 4096 || len(req.Action) > 4096 || len(req.Name) > 256 {
+		httputil.BadRequest(w, "field exceeds maximum length")
 		return
 	}
 

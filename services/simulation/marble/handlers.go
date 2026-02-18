@@ -13,6 +13,10 @@ import (
 
 // handleStart starts the simulation.
 func (s *Service) handleStart(w http.ResponseWriter, r *http.Request) {
+	if !httputil.RequireAdminRole(w, r) {
+		return
+	}
+
 	var req StartSimulationRequest
 	if !httputil.DecodeJSON(w, r, &req) {
 		return
@@ -52,6 +56,10 @@ func (s *Service) handleStart(w http.ResponseWriter, r *http.Request) {
 
 // handleStop stops the simulation.
 func (s *Service) handleStop(w http.ResponseWriter, r *http.Request) {
+	if !httputil.RequireAdminRole(w, r) {
+		return
+	}
+
 	err := s.Stop()
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusBadRequest, StopSimulationResponse{
@@ -71,6 +79,10 @@ func (s *Service) handleStop(w http.ResponseWriter, r *http.Request) {
 
 // handleStatus returns the current simulation status.
 func (s *Service) handleStatus(w http.ResponseWriter, r *http.Request) {
+	if !httputil.RequireAdminRole(w, r) {
+		return
+	}
+
 	status := s.GetStatus()
 	httputil.WriteJSON(w, http.StatusOK, status)
 }

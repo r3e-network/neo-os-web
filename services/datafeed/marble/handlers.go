@@ -15,10 +15,16 @@ import (
 // =============================================================================
 
 func (s *Service) handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	if !httputil.RequireAdminRole(w, r) {
+		return
+	}
 	httputil.WriteJSON(w, http.StatusOK, s.config)
 }
 
 func (s *Service) handleListSources(w http.ResponseWriter, r *http.Request) {
+	if !httputil.RequireAdminRole(w, r) {
+		return
+	}
 	ids := make([]string, 0, len(s.sources))
 	for id := range s.sources {
 		ids = append(ids, id)
