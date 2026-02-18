@@ -48,12 +48,14 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
   // Fetch messages
   useEffect(() => {
     if (!isOpen || !appId) return;
+    let active = true;
 
     const fetchMessages = async () => {
+      if (!active) return;
       setLoading(true);
       try {
         const res = await fetch(`/api/chat/${appId}/messages?limit=50`, { signal: AbortSignal.timeout(30000) });
-        if (res.ok) {
+        if (res.ok && active) {
           const data = await res.json();
           setMessages(data.messages || []);
           setParticipantCount(data.participantCount || 0);
@@ -61,13 +63,16 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
       } catch {
         // Silent fail
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     fetchMessages();
     const interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [isOpen, appId]);
 
   const sendMessage = async () => {

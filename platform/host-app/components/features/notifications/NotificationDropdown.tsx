@@ -47,11 +47,12 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
   // Fetch notifications
   useEffect(() => {
     if (!walletAddress) return;
+    let active = true;
     const fetchNotifications = async () => {
       setLoading(true);
       try {
         const res = await fetch(`/api/notifications/events?wallet=${walletAddress}&limit=10`);
-        if (res.ok) {
+        if (res.ok && active) {
           const data = await res.json();
           setNotifications(data.events || []);
           setUnreadCount(data.events?.filter((n: NotificationEvent) => !n.read).length || 0);
@@ -59,10 +60,11 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
       } catch {
         // Silent fail
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
     fetchNotifications();
+    return () => { active = false; };
   }, [walletAddress]);
 
   const markAsRead = async (id: string) => {
