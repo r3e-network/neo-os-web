@@ -9,6 +9,19 @@ import (
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
+func isValidEntryPoint(s string) bool {
+	for i, r := range s {
+		if r == '_' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			continue
+		}
+		if i > 0 && r >= '0' && r <= '9' {
+			continue
+		}
+		return false
+	}
+	return len(s) > 0
+}
+
 // =============================================================================
 // HTTP Handlers
 // =============================================================================
@@ -31,6 +44,9 @@ func (s *Service) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 	if req.EntryPoint == "" {
 		req.EntryPoint = "main"
+	} else if len(req.EntryPoint) > 128 || !isValidEntryPoint(req.EntryPoint) {
+		httputil.BadRequest(w, "invalid entry point")
+		return
 	}
 
 	result, err := s.Execute(r.Context(), userID, &req)

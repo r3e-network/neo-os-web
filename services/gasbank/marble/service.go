@@ -220,6 +220,7 @@ func (s *Service) ReserveFunds(ctx context.Context, req *ReserveFundsRequest) (*
 
 	result, err := s.db.ReserveFundsAtomic(ctx, req.UserID, req.Amount)
 	if err != nil {
+		s.Logger().WithContext(ctx).WithError(err).WithField("user_id", req.UserID).Error("atomic reserve failed")
 		return &ReserveFundsResponse{Success: false}, nil
 	}
 
@@ -245,6 +246,7 @@ func (s *Service) ReleaseFunds(ctx context.Context, req *ReleaseFundsRequest) (*
 
 	result, err := s.db.ReleaseFundsAtomic(ctx, req.UserID, req.Amount, req.Commit)
 	if err != nil {
+		s.Logger().WithContext(ctx).WithError(err).WithField("user_id", req.UserID).Error("atomic release failed")
 		return &ReleaseFundsResponse{Success: false}, nil
 	}
 

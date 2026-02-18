@@ -326,7 +326,7 @@ func (s *Service) executeScript(ctx context.Context, script, entryPoint string, 
 		}
 		bytes, err := crypto.GenerateRandomBytes(n)
 		if err != nil {
-			panic(vm.NewGoError(err))
+			return vm.ToValue(map[string]interface{}{"error": err.Error()})
 		}
 		return vm.ToValue(fmt.Sprintf("%x", bytes))
 	}); err != nil {
