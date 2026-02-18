@@ -39,7 +39,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-function getComments(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function getComments(appId: string, req: NextApiRequest, res: NextApiResponse) {
   if (!isServerSupabaseConfigured()) {
     return res.status(200).json({ comments: [], hasMore: false, total: 0 });
   }

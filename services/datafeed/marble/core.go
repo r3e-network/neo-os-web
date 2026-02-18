@@ -124,6 +124,7 @@ func (s *Service) fetchAndCachePrice(ctx context.Context, normalizedPair, origin
 
 			price, err := s.fetchPriceFromSource(ctx, normalizedPair, feed, src)
 			if err != nil {
+				s.Logger().WithContext(ctx).WithError(err).WithField("source", src.ID).Warn("failed to fetch price from source")
 				return
 			}
 			if price == 0 {

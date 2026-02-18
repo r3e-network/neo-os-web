@@ -25,6 +25,7 @@ func (s *Service) checkAndExecuteTriggers(ctx context.Context) {
 	}
 	triggers, err := s.repo.GetPendingTriggers(ctx)
 	if err != nil {
+		s.Logger().WithContext(ctx).WithError(err).Warn("failed to get pending triggers")
 		return
 	}
 

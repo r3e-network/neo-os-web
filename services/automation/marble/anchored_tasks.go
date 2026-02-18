@@ -217,6 +217,7 @@ func (s *Service) checkAndExecuteAnchoredCronTask(ctx context.Context, now time.
 	if nextExecution.IsZero() {
 		next, err := s.parseNextCronExecution(task.trigger.Schedule)
 		if err != nil {
+			s.Logger().WithContext(ctx).WithError(err).Warn("failed to parse cron schedule")
 			return
 		}
 		task.mu.Lock()
@@ -243,6 +244,7 @@ func (s *Service) checkAndExecuteAnchoredCronTask(ctx context.Context, now time.
 		"executed_at": now.Unix(),
 	})
 	if err != nil {
+		s.Logger().WithContext(ctx).WithError(err).Warn("failed to marshal cron execution data")
 		return
 	}
 
@@ -321,6 +323,7 @@ func (s *Service) checkAndExecuteAnchoredPriceTask(ctx context.Context, task *an
 		"source_set_id": record.SourceSetID.String(),
 	})
 	if err != nil {
+		s.Logger().WithContext(ctx).WithError(err).Warn("failed to marshal price execution data")
 		return
 	}
 
@@ -372,6 +375,7 @@ func (s *Service) checkAndExecuteAnchoredIntervalTask(ctx context.Context, now t
 		"executed_at": now.Unix(),
 	})
 	if err != nil {
+		s.Logger().WithContext(ctx).WithError(err).Warn("failed to marshal interval execution data")
 		return
 	}
 
