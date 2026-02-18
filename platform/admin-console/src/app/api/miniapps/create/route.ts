@@ -60,6 +60,7 @@ export async function POST(req: Request) {
         Prefer: "return=representation",
       },
       body: JSON.stringify(row),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {
