@@ -85,8 +85,8 @@ Deno.serve({ port }, async (req) => {
   let handler: EdgeHandler | null;
   try {
     handler = await loadHandler(name);
-  } catch (e) {
-    return error(500, `failed to load function: ${(e as Error).message}`, "LOAD_FAILED", req);
+  } catch {
+    return error(500, "failed to load function", "LOAD_FAILED", req);
   }
 
   if (!handler) return error(500, "function missing handler export", "BAD_FUNCTION", req);
