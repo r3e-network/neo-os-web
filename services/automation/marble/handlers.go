@@ -124,6 +124,7 @@ func (s *Service) handleGetTrigger(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil {
+		s.Logger().WithError(err).WithField("trigger_id", id).Warn("get trigger")
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
@@ -153,6 +154,7 @@ func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil {
+		s.Logger().WithError(err).WithField("trigger_id", id).Warn("get trigger for update")
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
@@ -189,6 +191,7 @@ func (s *Service) handleDeleteTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 	id := mux.Vars(r)["id"]
 	if err := s.repo.DeleteTrigger(r.Context(), id, userID); err != nil {
+		s.Logger().WithError(err).WithField("trigger_id", id).Warn("delete trigger")
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
@@ -206,6 +209,7 @@ func (s *Service) handleEnableTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 	id := mux.Vars(r)["id"]
 	if err := s.repo.SetTriggerEnabled(r.Context(), id, userID, true); err != nil {
+		s.Logger().WithError(err).WithField("trigger_id", id).Warn("enable trigger")
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
@@ -223,6 +227,7 @@ func (s *Service) handleDisableTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 	id := mux.Vars(r)["id"]
 	if err := s.repo.SetTriggerEnabled(r.Context(), id, userID, false); err != nil {
+		s.Logger().WithError(err).WithField("trigger_id", id).Warn("disable trigger")
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
@@ -241,6 +246,7 @@ func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	// Ensure trigger belongs to user
 	if _, err := s.repo.GetTrigger(r.Context(), id, userID); err != nil {
+		s.Logger().WithError(err).WithField("trigger_id", id).Warn("get trigger for executions")
 		httputil.NotFound(w, "trigger not found")
 		return
 	}

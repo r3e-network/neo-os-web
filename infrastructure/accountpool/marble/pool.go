@@ -330,6 +330,7 @@ func (s *Service) rotateAccounts(ctx context.Context) {
 
 	candidates, err := s.repo.ListRotationCandidatesWithBalances(ctx, minAge, retireCount*3)
 	if err != nil {
+		s.Logger().WithError(err).Warn("list rotation candidates")
 		candidates = nil // proceed to pool-size check and cleanup
 	}
 
