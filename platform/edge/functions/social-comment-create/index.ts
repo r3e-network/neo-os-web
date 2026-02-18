@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, supabaseServiceClient } from "../_shared/supabase.ts";
@@ -28,6 +29,8 @@ export async function handler(req: Request): Promise<Response> {
   if (auth instanceof Response) return auth;
   const scopeCheck = requireScope(req, auth, "social");
   if (scopeCheck) return scopeCheck;
+  const rl = await requireRateLimit(req, "social-comment-create", auth);
+  if (rl) return rl;
 
   // Parse request body
   let body: CreateCommentRequest;

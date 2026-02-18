@@ -135,6 +135,11 @@ func ServiceUnavailable(w http.ResponseWriter, message string) {
 // DecodeJSON decodes a JSON request body into the provided struct.
 // Returns false and writes an error response if decoding fails.
 func DecodeJSON(w http.ResponseWriter, r *http.Request, v interface{}) bool {
+	ct := r.Header.Get("Content-Type")
+	if ct != "" && !strings.HasPrefix(ct, "application/json") {
+		BadRequest(w, "Content-Type must be application/json")
+		return false
+	}
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
 		var maxErr *http.MaxBytesError
 		if errors.As(err, &maxErr) {
