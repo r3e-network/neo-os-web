@@ -14,7 +14,7 @@ For end-to-end flow details, see `docs/WORKFLOWS.md` and `docs/DATAFLOWS.md`.
 ## Core Constraints
 
 - **Settlement**: GAS only (PaymentHub rejects all other assets).
-- **Governance**: NEO only (Governance rejects all other assets).
+- **Governance**: bNEO only (Governance rejects all other assets).
 - **Confidentiality**: MarbleRun + EGo enclaves for sensitive services.
 - **Gateway**: Supabase Edge Functions (Auth + routing + RLS).
 - **Dev stack**: k3s + local Supabase for development.

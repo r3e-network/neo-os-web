@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 // =============================================================================
@@ -54,7 +54,8 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 		case contains(errMsg, "no sources"), contains(errMsg, "no prices"):
 			httputil.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": errMsg})
 		default:
-			httputil.InternalError(w, errMsg)
+			s.Logger().Error(r.Context(), "failed to get price", err, nil)
+			httputil.InternalError(w, "internal error")
 		}
 		return
 	}

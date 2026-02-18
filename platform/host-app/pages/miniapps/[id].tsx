@@ -332,11 +332,13 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
 
   try {
     // Parallel fetch with shorter timeout (2s) for faster page load
-    const [statsRes, notifRes] = await Promise.all([
+    const [catalogRes, statsRes, notifRes] = await Promise.all([
+      fetchWithTimeout(`${baseUrl}/api/miniapps/catalog?app_id=${encodedId}`, {}, 2000).catch(() => null),
       fetchWithTimeout(`${baseUrl}/api/miniapp-stats?app_id=${encodedId}`, {}, 2000).catch(() => null),
       fetchWithTimeout(`${baseUrl}/api/app/${encodedId}/news?limit=20`, {}, 2000).catch(() => null),
     ]);
 
+    const catalogData = catalogRes?.ok ? await catalogRes.json().catch(() => ({})) : {};
     const statsData = statsRes?.ok ? await statsRes.json().catch(() => ({})) : {};
     const notifData = notifRes?.ok ? await notifRes.json().catch(() => ({ notifications: [] })) : { notifications: [] };
 
@@ -349,7 +351,8 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
           : [];
 
     const rawStats = statsList.find((s: Record<string, unknown>) => s?.app_id === id) ?? statsList[0] ?? null;
-    const app = rawStats ? coerceMiniAppInfo(rawStats, fallback) : (fallback ?? null);
+    const catalogApp = catalogData?.app ?? null;
+    const app = coerceMiniAppInfo(catalogApp, rawStats ? coerceMiniAppInfo(rawStats, fallback) ?? fallback ?? undefined : fallback ?? undefined);
 
     if (!app) {
       return {

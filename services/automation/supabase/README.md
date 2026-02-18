@@ -74,7 +74,7 @@ type RepositoryInterface interface {
 ## Usage
 
 ```go
-import neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
+import neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 
 repo := neoflowsupabase.NewRepository(baseRepo)
 

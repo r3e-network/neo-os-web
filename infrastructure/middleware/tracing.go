@@ -4,7 +4,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 // TracingMiddleware adds trace ID to all requests

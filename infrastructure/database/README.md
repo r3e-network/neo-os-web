@@ -87,7 +87,7 @@ Service-specific database operations have been moved to each service's own `supa
 ### NeoFlow Service
 
 ```go
-import neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
+import neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 
 neoflowRepo := neoflowsupabase.NewRepository(baseRepo)
 
@@ -99,7 +99,7 @@ err := neoflowRepo.CreateExecution(ctx, &neoflowsupabase.Execution{...})
 ### NeoAccounts (AccountPool) Service
 
 ```go
-import neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
+import neoaccountssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
 
 poolRepo := neoaccountssupabase.NewRepository(baseRepo)
 
@@ -111,7 +111,7 @@ err := poolRepo.Update(ctx, account)
 ### Secrets (User Secrets + Policies)
 
 ```go
-import secretssupabase "github.com/R3E-Network/service_layer/infrastructure/secrets/supabase"
+import secretssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/secrets/supabase"
 
 	secretsRepo := secretssupabase.NewRepository(baseRepo)
 

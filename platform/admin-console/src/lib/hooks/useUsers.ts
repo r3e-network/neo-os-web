@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
-import { supabaseClient } from "@/lib/api-client";
+import { getAdminAuthHeaders } from "@/lib/admin-client";
 import { DEFAULT_STALE_TIME_MS, HEALTH_POLL_INTERVAL_MS } from "@/lib/constants";
 import type { User } from "@/types";
 
@@ -11,20 +11,28 @@ import type { User } from "@/types";
  * Fetch all users
  */
 async function fetchUsers(): Promise<User[]> {
-  return supabaseClient.query<User[]>("users", {
-    select: "*",
-    order: "created_at.desc",
+  const response = await fetch("/api/users", {
+    headers: getAdminAuthHeaders(),
+    signal: AbortSignal.timeout(15000),
   });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch users: ${response.status}`);
+  }
+  return response.json();
 }
 
 /**
  * Fetch single user by ID
  */
 async function fetchUser(userId: string): Promise<User> {
-  const result = await supabaseClient.query<User[]>("users", {
-    select: "*",
-    id: `eq.${userId}`,
+  const response = await fetch(`/api/users?id=${encodeURIComponent(userId)}`, {
+    headers: getAdminAuthHeaders(),
+    signal: AbortSignal.timeout(15000),
   });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user ${userId}: ${response.status}`);
+  }
+  const result = (await response.json()) as User[];
   if (!result || result.length === 0) {
     throw new Error(`User ${userId} not found`);
   }
@@ -35,7 +43,7 @@ async function fetchUser(userId: string): Promise<User> {
  * Hook to fetch all users
  */
 export function useUsers() {
-  return useQuery({
+  return useQuery<User[]>({
     queryKey: ["users"],
     queryFn: fetchUsers,
     staleTime: DEFAULT_STALE_TIME_MS,
@@ -46,7 +54,7 @@ export function useUsers() {
  * Hook to fetch single user
  */
 export function useUser(userId: string) {
-  return useQuery({
+  return useQuery<User>({
     queryKey: ["users", userId],
     queryFn: () => fetchUser(userId),
     enabled: !!userId,
@@ -58,15 +66,18 @@ export function useUser(userId: string) {
  * Hook to search users
  */
 export function useSearchUsers(searchTerm: string) {
-  return useQuery({
+  return useQuery<User[]>({
     queryKey: ["users", "search", searchTerm],
-    queryFn: async () => {
+    queryFn: async (): Promise<User[]> => {
       if (!searchTerm) return [];
-      const sanitized = searchTerm.replace(/[%_\\,().]/g, '\\$&');
-      return supabaseClient.query<User[]>("users", {
-        select: "*",
-        or: `address.ilike.%${sanitized}%,email.ilike.%${sanitized}%`,
+      const response = await fetch(`/api/users?search=${encodeURIComponent(searchTerm)}`, {
+        headers: getAdminAuthHeaders(),
+        signal: AbortSignal.timeout(15000),
       });
+      if (!response.ok) {
+        throw new Error(`Failed to search users: ${response.status}`);
+      }
+      return (await response.json()) as User[];
     },
     enabled: searchTerm.length > 0,
     staleTime: HEALTH_POLL_INTERVAL_MS,

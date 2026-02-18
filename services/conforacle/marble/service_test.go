@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	internalhttputil "github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/testutil"
+	internalhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/testutil"
 )
 
 func TestAllowlistBlocksURL(t *testing.T) {
@@ -53,12 +53,14 @@ func TestBodyLimitApplied(t *testing.T) {
 }
 
 // newTestOracle returns a service with minimal deps; secrets client won't be used.
+// It uses http.DefaultTransport (no SSRF dialer) so tests can reach httptest servers on localhost.
 func newTestOracle(t *testing.T, allowlist URLAllowlist) *Service {
 	t.Helper()
 	m, _ := marble.New(marble.Config{MarbleType: "neooracle"})
 	svc, err := New(Config{
 		Marble:       m,
 		URLAllowlist: allowlist,
+		Transport:    http.DefaultTransport,
 	})
 	if err != nil {
 		t.Fatalf("New() err = %v", err)

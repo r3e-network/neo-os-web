@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
 )
 
 // =============================================================================

@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!appId || typeof appId !== "string") {
     return apiError.badRequest(res, "appId is required");
   }
-  if (!/^[a-z0-9][a-z0-9_-]*$/.test(appId)) {
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(appId)) {
     return apiError.badRequest(res, "Invalid appId format");
   }
 

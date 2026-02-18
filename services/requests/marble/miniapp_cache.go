@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	neorequestsupabase "github.com/R3E-Network/service_layer/services/requests/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	neorequestsupabase "github.com/r3e-network/neo-miniapp-platform/services/requests/supabase"
 )
 
 type miniAppCacheEntry struct {

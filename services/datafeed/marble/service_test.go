@@ -11,9 +11,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/testutil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/testutil"
 )
 
 // =============================================================================

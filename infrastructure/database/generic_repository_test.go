@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/infrastructure/testutil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/testutil"
 )
 
 // =============================================================================

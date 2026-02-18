@@ -137,21 +137,24 @@ export class AdminSDK {
    * Update MiniApp status
    */
   async updateMiniAppStatus(appId: string, status: "active" | "disabled"): Promise<void> {
-    if (!this.config.serviceRoleKey) {
-      throw new Error("serviceRoleKey is required for admin operations");
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (this.config.adminApiKey) {
+      headers["X-Admin-Key"] = this.config.adminApiKey;
     }
-    const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?app_id=eq.${encodeURIComponent(appId)}`, {
-      method: "PATCH",
-      headers: {
-        apikey: this.config.serviceRoleKey,
-        Authorization: `Bearer ${this.config.serviceRoleKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status }),
+    const response = await fetch(`${this.config.adminBaseUrl}/api/miniapps/update-status`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ appId, status }),
     });
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
       throw new Error(`Failed to update MiniApp status: ${response.status} ${response.statusText} - ${errBody}`);
+    }
+
+    const payload = await response.json().catch(() => null);
+    if (payload?.requires_onchain_confirmation) {
+      const serialized = JSON.stringify(payload.invocation ?? {}, null, 2);
+      console.warn(`On-chain confirmation required for status change. Submit invocation:\n${serialized}`);
     }
   }
 }

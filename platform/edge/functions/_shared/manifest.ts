@@ -44,7 +44,7 @@ const STATS_KEY_ALIASES = new Map<string, string>([
   ["gas_consumed", "total_gas_used"],
 ]);
 
-const SUPPORTED_CATEGORIES = new Set(["gaming", "defi", "governance", "utility", "social"]);
+const SUPPORTED_CATEGORIES = new Set(["gaming", "defi", "governance", "utility", "social", "nft", "data", "other"]);
 
 function stableSort(value: unknown): unknown {
   if (value === null) return null;
@@ -323,8 +323,8 @@ export function enforceMiniAppAssetPolicy(manifest: unknown): void {
     "manifest.governance_assets_allowed",
     "upper",
   );
-  if (governanceAssetsAllowed.length !== 1 || governanceAssetsAllowed[0] !== "NEO") {
-    throw new Error("manifest.governance_assets_allowed must be exactly [\"NEO\"]");
+  if (governanceAssetsAllowed.length !== 1 || governanceAssetsAllowed[0] !== "BNEO") {
+    throw new Error("manifest.governance_assets_allowed must be exactly [\"BNEO\"]");
   }
 
   const entryUrl = String(canonical.entry_url ?? "").trim();

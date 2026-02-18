@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
+	neoaccountssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
 )
 
 // RequestAccounts locks and returns accounts for a service.
@@ -306,99 +306,111 @@ func (s *Service) ListLowBalanceAccounts(ctx context.Context, tokenType string, 
 
 // rotateAccounts retires old accounts and creates new ones.
 // Locked accounts are NEVER rotated.
+// Lock is held only for brief in-memory state checks and DB writes, not during
+// read-heavy DB queries, to avoid blocking pool operations.
 func (s *Service) rotateAccounts(ctx context.Context) {
 	if s.repo == nil {
 		return
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
-	accounts, err := s.repo.ListWithBalances(ctx)
+	// Phase 1: Read without lock - fetch data from DB
+	available, err := s.repo.ListAvailable(ctx, MaxPoolAccounts)
 	if err != nil {
 		return
 	}
+	activeCount := len(available)
 
-	// Count active (unlocked, non-retiring) accounts
-	activeCount := 0
-	for i := range accounts {
-		acc := &accounts[i]
-		if !acc.IsRetiring && acc.LockedBy == "" {
-			activeCount++
-		}
-	}
-
-	// Daily rotation: RotationRate per day, divided by 24 for hourly check
 	retireCount := int(float64(activeCount) * RotationRate / 24)
 	if retireCount < 1 {
 		retireCount = 1
 	}
 
 	minAge := time.Duration(RotationMinAge) * time.Hour
-	// Minimum balance threshold for rotation (in GAS units, 8 decimals)
 	minGasBalance := int64(100000) // 0.001 GAS
 
+	candidates, err := s.repo.ListRotationCandidatesWithBalances(ctx, minAge, retireCount*3)
+	if err != nil {
+		candidates = nil // proceed to pool-size check and cleanup
+	}
+
+	// Phase 2: Process candidates - lock only for state checks and updates
 	retired := 0
-	for i := range accounts {
-		acc := &accounts[i]
+	for i := range candidates {
 		if retired >= retireCount {
 			break
 		}
+		acc := &candidates[i]
 
-		// NEVER retire locked accounts
-		if acc.LockedBy != "" {
-			continue
-		}
+		gasBalance := acc.GetBalance(TokenTypeGAS)
+		neoBalance := acc.GetBalance(TokenTypeNEO)
 
-		// Only retire if: not already retiring, low balance for ALL tokens, and old enough
-		if !acc.IsRetiring && time.Since(acc.CreatedAt) > minAge {
-			// Check if account has low balances across all tokens
-			gasBalance := acc.GetBalance(TokenTypeGAS)
-			neoBalance := acc.GetBalance(TokenTypeNEO)
-
-			if gasBalance < minGasBalance && neoBalance == 0 {
-				dbAcc, err := s.repo.GetByID(ctx, acc.ID)
-				if err != nil {
-					continue
-				}
-				dbAcc.IsRetiring = true
-				retired++
-				if err := s.repo.Update(ctx, dbAcc); err != nil {
-					s.Logger().WithContext(ctx).WithError(err).WithField("account_id", acc.ID).Warn("failed to mark account as retiring")
-				}
+		if gasBalance < minGasBalance && neoBalance == 0 {
+			s.mu.Lock()
+			dbAcc, err := s.repo.GetByID(ctx, acc.ID)
+			if err != nil {
+				s.mu.Unlock()
+				continue
 			}
+			// Re-verify eligibility under lock
+			if dbAcc.LockedBy != "" || dbAcc.IsRetiring {
+				s.mu.Unlock()
+				continue
+			}
+			dbAcc.IsRetiring = true
+			retired++
+			if err := s.repo.Update(ctx, dbAcc); err != nil {
+				s.Logger().WithContext(ctx).WithError(err).WithField("account_id", acc.ID).Warn("failed to mark account as retiring")
+			}
+			s.mu.Unlock()
 		}
 	}
 
-	// Ensure minimum pool size
-	for activeCount < MinPoolAccounts {
+	// Phase 3: Pool size maintenance - brief lock
+	// Use total account count (not just available) to avoid unnecessary creation
+	// when many accounts are temporarily locked.
+	s.mu.Lock()
+	allAccts, listErr := s.repo.List(ctx)
+	totalCount := len(allAccts)
+	if listErr != nil {
+		totalCount = activeCount // fallback to available count on error
+	}
+	deficit := totalCount - retired
+	for deficit < MinPoolAccounts {
 		if _, err := s.createAccount(ctx); err != nil {
 			break
 		}
-		activeCount++
+		deficit++
 	}
+	s.mu.Unlock()
 
-	// Delete empty retiring accounts (only if not locked and all balances are zero)
+	// Phase 4: Delete retiring accounts (if enabled) - lock per-delete
 	if deleteRetiringAccountsEnabled() {
-		for i := range accounts {
-			acc := &accounts[i]
+		allAccounts, err := s.repo.ListWithBalances(ctx)
+		if err != nil {
+			return
+		}
+		for i := range allAccounts {
+			acc := &allAccounts[i]
 			if acc.IsRetiring && acc.IsEmpty() && acc.LockedBy == "" {
+				s.mu.Lock()
 				if err := s.repo.Delete(ctx, acc.ID); err != nil {
 					s.Logger().WithContext(ctx).WithError(err).WithField("account_id", acc.ID).Warn("failed to delete retiring account")
 				}
+				s.mu.Unlock()
 			}
 		}
 	}
 }
 
 // cleanupStaleLocks releases accounts that have been locked too long.
+// DB read is done without lock; lock is held only for each individual update.
 func (s *Service) cleanupStaleLocks(ctx context.Context) {
 	if s.repo == nil {
 		return
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
-	accounts, err := s.repo.List(ctx)
+	// Read phase: fetch locked accounts without holding the mutex
+	accounts, err := s.repo.ListLocked(ctx)
 	if err != nil {
 		return
 	}
@@ -406,15 +418,24 @@ func (s *Service) cleanupStaleLocks(ctx context.Context) {
 	now := time.Now()
 	for i := range accounts {
 		acc := &accounts[i]
-		if acc.LockedBy != "" && !acc.LockedAt.IsZero() {
-			if now.Sub(acc.LockedAt) > LockTimeout {
-				// Force release stale lock
-				acc.LockedBy = ""
-				acc.LockedAt = time.Time{}
-				if err := s.repo.Update(ctx, acc); err != nil {
-					s.Logger().WithContext(ctx).WithError(err).WithField("account_id", acc.ID).Warn("failed to release stale lock")
-				}
+		if !acc.LockedAt.IsZero() && now.Sub(acc.LockedAt) > LockTimeout {
+			s.mu.Lock()
+			// Re-fetch under lock to avoid stale-read races
+			fresh, err := s.repo.GetByID(ctx, acc.ID)
+			if err != nil {
+				s.mu.Unlock()
+				continue
 			}
+			if fresh.LockedBy == "" || fresh.LockedAt.IsZero() || now.Sub(fresh.LockedAt) <= LockTimeout {
+				s.mu.Unlock()
+				continue
+			}
+			fresh.LockedBy = ""
+			fresh.LockedAt = time.Time{}
+			if err := s.repo.Update(ctx, fresh); err != nil {
+				s.Logger().WithContext(ctx).WithError(err).WithField("account_id", acc.ID).Warn("failed to release stale lock")
+			}
+			s.mu.Unlock()
 		}
 	}
 }

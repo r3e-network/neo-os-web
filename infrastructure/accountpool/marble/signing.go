@@ -20,10 +20,33 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/util"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
 
-	"github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	intcrypto "github.com/R3E-Network/service_layer/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	intcrypto "github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
 )
+
+// deriveWalletAccount derives a wallet account from an ECDSA private key,
+// ensuring all intermediate key material is zeroed after use.
+func deriveWalletAccount(priv *ecdsa.PrivateKey) (*wallet.Account, error) {
+	dBytes := priv.D.Bytes()
+	keyBytes := make([]byte, 32)
+	copy(keyBytes[32-len(dBytes):], dBytes)
+
+	// Encode to hex in a mutable []byte buffer so we can zero it
+	hexBuf := make([]byte, 64)
+	hex.Encode(hexBuf, keyBytes)
+
+	// Zero raw key material immediately after encoding
+	intcrypto.ZeroBytes(keyBytes)
+	intcrypto.ZeroBytes(dBytes)
+
+	account, err := chain.AccountFromPrivateKey(string(hexBuf))
+
+	// Zero the hex buffer
+	intcrypto.ZeroBytes(hexBuf)
+
+	return account, err
+}
 
 // SignTransaction signs a transaction hash with an account's private key.
 // The account must be locked by the requesting service.
@@ -46,7 +69,7 @@ func (s *Service) SignTransaction(ctx context.Context, serviceID, accountID stri
 		return nil, fmt.Errorf("account not locked by service %s", serviceID)
 	}
 
-	priv, err := s.getPrivateKey(accountID)
+	priv, err := s.getPrivateKey(acc)
 	if err != nil {
 		return nil, fmt.Errorf("derive key: %w", err)
 	}
@@ -75,7 +98,7 @@ func (s *Service) BatchSign(ctx context.Context, serviceID string, requests []Si
 	for _, req := range requests {
 		sig, err := s.SignTransaction(ctx, serviceID, req.AccountID, req.TxHash)
 		if err != nil {
-			resp.Errors = append(resp.Errors, fmt.Sprintf("%s: %v", req.AccountID, err))
+			resp.Errors = append(resp.Errors, fmt.Sprintf("%s: signing failed", req.AccountID))
 			continue
 		}
 		resp.Signatures = append(resp.Signatures, *sig)
@@ -84,11 +107,19 @@ func (s *Service) BatchSign(ctx context.Context, serviceID string, requests []Si
 	return resp
 }
 
-// signHash signs a hash using ECDSA.
+// signHash signs a hash using ECDSA with BIP-62 low-s normalization.
+// Neo N3 requires low-s signatures to prevent malleability.
 func signHash(priv *ecdsa.PrivateKey, hash []byte) ([]byte, error) {
 	r, s, err := ecdsa.Sign(rand.Reader, priv, hash)
 	if err != nil {
 		return nil, err
+	}
+
+	// Enforce low-s (BIP-62): if s > N/2, replace with N - s.
+	curveN := priv.Curve.Params().N
+	halfN := new(big.Int).Rsh(new(big.Int).Set(curveN), 1)
+	if s.Cmp(halfN) > 0 {
+		s.Sub(curveN, s)
 	}
 
 	rBytes := r.Bytes()
@@ -136,6 +167,13 @@ func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress 
 	}
 
 	tokenHash = strings.TrimSpace(tokenHash)
+	if tokenHash != "" {
+		const gasHash = "d2a4cff31913016155e38e474a2c06d08be276cf"
+		normalized := strings.ToLower(strings.TrimPrefix(strings.TrimPrefix(tokenHash, "0x"), "0X"))
+		if normalized != gasHash {
+			return "", fmt.Errorf("only GAS transfers are supported, got token hash: %s", tokenHash)
+		}
+	}
 	s.mu.RLock()
 	acc, err := s.repo.GetByID(ctx, accountID)
 	if err != nil {
@@ -150,15 +188,12 @@ func (s *Service) Transfer(ctx context.Context, serviceID, accountID, toAddress 
 	s.mu.RUnlock()
 
 	// Derive pool account private key and build a neo-go wallet account.
-	priv, err := s.getPrivateKey(accountID)
+	priv, err := s.getPrivateKey(acc)
 	if err != nil {
 		return "", fmt.Errorf("derive key: %w", err)
 	}
 
-	dBytes := priv.D.Bytes()
-	keyBytes := make([]byte, 32)
-	copy(keyBytes[32-len(dBytes):], dBytes)
-	walletAccount, err := chain.AccountFromPrivateKey(hex.EncodeToString(keyBytes))
+	walletAccount, err := deriveWalletAccount(priv)
 	if err != nil {
 		return "", fmt.Errorf("create signer account: %w", err)
 	}
@@ -233,15 +268,12 @@ func (s *Service) TransferWithData(ctx context.Context, serviceID, accountID, to
 	s.mu.RUnlock()
 
 	// Derive pool account private key and build a neo-go wallet account.
-	priv, err := s.getPrivateKey(accountID)
+	priv, err := s.getPrivateKey(acc)
 	if err != nil {
 		return "", fmt.Errorf("derive key: %w", err)
 	}
 
-	dBytes := priv.D.Bytes()
-	keyBytes := make([]byte, 32)
-	copy(keyBytes[32-len(dBytes):], dBytes)
-	walletAccount, err := chain.AccountFromPrivateKey(hex.EncodeToString(keyBytes))
+	walletAccount, err := deriveWalletAccount(priv)
 	if err != nil {
 		return "", fmt.Errorf("create signer account: %w", err)
 	}
@@ -338,15 +370,12 @@ func (s *Service) DeployContract(ctx context.Context, serviceID, accountID, nefB
 	s.mu.RUnlock()
 
 	// Derive pool account private key inside TEE
-	priv, err := s.getPrivateKey(accountID)
+	priv, err := s.getPrivateKey(acc)
 	if err != nil {
 		return nil, fmt.Errorf("derive key: %w", err)
 	}
 
-	dBytes := priv.D.Bytes()
-	keyBytes := make([]byte, 32)
-	copy(keyBytes[32-len(dBytes):], dBytes)
-	signer, err := chain.AccountFromPrivateKey(hex.EncodeToString(keyBytes))
+	signer, err := deriveWalletAccount(priv)
 	if err != nil {
 		return nil, fmt.Errorf("create signer account: %w", err)
 	}
@@ -360,7 +389,7 @@ func (s *Service) DeployContract(ctx context.Context, serviceID, accountID, nefB
 	// Build deployment parameters
 	params := []chain.ContractParam{
 		chain.NewByteArrayParam(nefBytes),
-		chain.NewStringParam(manifestJSON),
+		chain.NewByteArrayParam([]byte(manifestJSON)),
 	}
 	if data != nil {
 		params = append(params, chain.NewAnyParam())
@@ -481,15 +510,12 @@ func (s *Service) UpdateContract(ctx context.Context, serviceID, accountID, cont
 	s.mu.RUnlock()
 
 	// Derive pool account private key inside TEE
-	priv, err := s.getPrivateKey(accountID)
+	priv, err := s.getPrivateKey(acc)
 	if err != nil {
 		return nil, fmt.Errorf("derive key: %w", err)
 	}
 
-	dBytes := priv.D.Bytes()
-	keyBytes := make([]byte, 32)
-	copy(keyBytes[32-len(dBytes):], dBytes)
-	signer, err := chain.AccountFromPrivateKey(hex.EncodeToString(keyBytes))
+	signer, err := deriveWalletAccount(priv)
 	if err != nil {
 		return nil, fmt.Errorf("create signer account: %w", err)
 	}
@@ -503,7 +529,7 @@ func (s *Service) UpdateContract(ctx context.Context, serviceID, accountID, cont
 	// Build update parameters - call update on the contract itself
 	params := []chain.ContractParam{
 		chain.NewByteArrayParam(nefBytes),
-		chain.NewStringParam(manifestJSON),
+		chain.NewByteArrayParam([]byte(manifestJSON)),
 	}
 	if data != nil {
 		params = append(params, chain.NewAnyParam())
@@ -601,15 +627,12 @@ func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, cont
 	s.mu.RUnlock()
 
 	// Derive pool account private key inside TEE
-	priv, err := s.getPrivateKey(accountID)
+	priv, err := s.getPrivateKey(acc)
 	if err != nil {
 		return nil, fmt.Errorf("derive key: %w", err)
 	}
 
-	dBytes := priv.D.Bytes()
-	keyBytes := make([]byte, 32)
-	copy(keyBytes[32-len(dBytes):], dBytes)
-	signer, err := chain.AccountFromPrivateKey(hex.EncodeToString(keyBytes))
+	signer, err := deriveWalletAccount(priv)
 	if err != nil {
 		return nil, fmt.Errorf("create signer account: %w", err)
 	}
@@ -745,15 +768,12 @@ func (s *Service) SimulateContract(ctx context.Context, serviceID, accountID, co
 	s.mu.RUnlock()
 
 	// Derive pool account private key inside TEE (only for getting script hash)
-	priv, err := s.getPrivateKey(accountID)
+	priv, err := s.getPrivateKey(acc)
 	if err != nil {
 		return nil, fmt.Errorf("derive key: %w", err)
 	}
 
-	dBytes := priv.D.Bytes()
-	keyBytes := make([]byte, 32)
-	copy(keyBytes[32-len(dBytes):], dBytes)
-	signer, err := chain.AccountFromPrivateKey(hex.EncodeToString(keyBytes))
+	signer, err := deriveWalletAccount(priv)
 	if err != nil {
 		return nil, fmt.Errorf("create signer account: %w", err)
 	}
@@ -799,11 +819,17 @@ func convertToChainParam(p ContractParam) chain.ContractParam {
 				return chain.NewIntegerParam(big.NewInt(i))
 			}
 		case float64:
-			return chain.NewIntegerParam(big.NewInt(int64(v)))
+			bf := new(big.Float).SetFloat64(v)
+			bi, _ := bf.Int(nil)
+			return chain.NewIntegerParam(bi)
 		case int64:
 			return chain.NewIntegerParam(big.NewInt(v))
 		case int:
 			return chain.NewIntegerParam(big.NewInt(int64(v)))
+		case json.Number:
+			if bi, ok := new(big.Int).SetString(string(v), 10); ok {
+				return chain.NewIntegerParam(bi)
+			}
 		}
 	case "string":
 		if s, ok := p.Value.(string); ok {
@@ -836,6 +862,51 @@ func convertToChainParam(p ContractParam) chain.ContractParam {
 	return chain.NewAnyParam()
 }
 
+// getMasterWallet lazily initializes and returns the cached master wallet account
+// derived from TEE_PRIVATE_KEY. The wallet is created once and reused across all
+// master-key operations (FundAccount, InvokeMaster, DeployMaster).
+// Uses double-checked locking so that transient errors (e.g. env not yet
+// populated by an init-container) can be retried on the next call.
+func (s *Service) getMasterWallet() (*wallet.Account, error) {
+	s.masterWalletMu.Lock()
+	defer s.masterWalletMu.Unlock()
+
+	if s.masterWallet != nil {
+		return s.masterWallet, nil
+	}
+
+	teePrivateKey := strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
+	if teePrivateKey == "" {
+		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY"))
+	}
+	if teePrivateKey == "" {
+		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY"))
+	}
+	if teePrivateKey == "" {
+		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
+	}
+
+	// Zeroize raw key after parsing
+	teeKeyBytes := []byte(teePrivateKey)
+	defer intcrypto.ZeroBytes(teeKeyBytes)
+
+	var acct *wallet.Account
+	var err error
+	if teePrivateKey[0] == 'K' || teePrivateKey[0] == 'L' || teePrivateKey[0] == '5' {
+		acct, err = chain.AccountFromWIF(teePrivateKey)
+	} else {
+		hexKey := strings.TrimPrefix(strings.TrimPrefix(teePrivateKey, "0x"), "0X")
+		acct, err = chain.AccountFromPrivateKey(hexKey)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+	}
+
+	// Cache on success only; errors are not cached so callers can retry.
+	s.masterWallet = acct
+	return acct, nil
+}
+
 // FundAccount transfers tokens from the master wallet (TEE_PRIVATE_KEY) to a target address.
 // This is used to fund pool accounts with GAS for transaction fees.
 // Unlike Transfer(), this uses the master wallet directly, not a pool account.
@@ -851,32 +922,9 @@ func (s *Service) FundAccount(ctx context.Context, toAddress string, amount int6
 		return nil, fmt.Errorf("amount must be positive")
 	}
 
-	// Load TEE_PRIVATE_KEY from environment - try WIF first, then hex
-	teePrivateKey := strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
-	}
-
-	// Create signer - try WIF format first, then hex
-	var walletAccount *wallet.Account
-	var err error
-
-	// Check if it looks like a WIF (starts with K, L, or 5)
-	if len(teePrivateKey) > 0 && (teePrivateKey[0] == 'K' || teePrivateKey[0] == 'L' || teePrivateKey[0] == '5') {
-		walletAccount, err = chain.AccountFromWIF(teePrivateKey)
-	} else {
-		// Remove 0x prefix if present and try hex
-		teePrivateKey = strings.TrimPrefix(strings.TrimPrefix(teePrivateKey, "0x"), "0X")
-		walletAccount, err = chain.AccountFromPrivateKey(teePrivateKey)
-	}
+	walletAccount, err := s.getMasterWallet()
 	if err != nil {
-		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+		return nil, err
 	}
 
 	fromAddress := walletAccount.Address
@@ -912,12 +960,16 @@ func (s *Service) FundAccount(ctx context.Context, toAddress string, amount int6
 		"tx_hash": txHashString,
 	}).Info("funding transaction confirmed on-chain")
 
-	// Update database balance for the target pool account
+	// Update database balance for the target pool account.
+	// The read-compute-write must be atomic to prevent concurrent FundAccount
+	// calls from losing balance updates.
 	if s.repo != nil {
 		acc, accErr := s.repo.GetByAddress(ctx, toAddress)
 		if accErr == nil && acc != nil {
 			// Get GAS script hash and decimals
 			scriptHash, decimals := supabase.GetDefaultTokenConfig(TokenTypeGAS)
+
+			s.mu.Lock()
 			// Get current balance and add the funded amount
 			currentBalance := int64(0)
 			if existingBal, balErr := s.repo.GetBalance(ctx, acc.ID, TokenTypeGAS); balErr == nil && existingBal != nil {
@@ -925,8 +977,10 @@ func (s *Service) FundAccount(ctx context.Context, toAddress string, amount int6
 			}
 			newBalance := currentBalance + amount
 			if upsertErr := s.repo.UpsertBalance(ctx, acc.ID, TokenTypeGAS, scriptHash, newBalance, decimals); upsertErr != nil {
+				s.mu.Unlock()
 				s.Logger().WithContext(ctx).WithError(upsertErr).Warn("failed to update database balance after fund transfer")
 			} else {
+				s.mu.Unlock()
 				s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
 					"account_id":  acc.ID,
 					"old_balance": currentBalance,
@@ -967,32 +1021,9 @@ func (s *Service) InvokeMaster(ctx context.Context, contractHash, method string,
 		return nil, fmt.Errorf("method required")
 	}
 
-	// Load TEE_PRIVATE_KEY from environment - try WIF first, then hex
-	teePrivateKey := strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
-	}
-
-	// Create signer - try WIF format first, then hex
-	var signer *wallet.Account
-	var err error
-
-	// Check if it looks like a WIF (starts with K, L, or 5)
-	if len(teePrivateKey) > 0 && (teePrivateKey[0] == 'K' || teePrivateKey[0] == 'L' || teePrivateKey[0] == '5') {
-		signer, err = chain.AccountFromWIF(teePrivateKey)
-	} else {
-		// Remove 0x prefix if present and try hex
-		teePrivateKey = strings.TrimPrefix(strings.TrimPrefix(teePrivateKey, "0x"), "0X")
-		signer, err = chain.AccountFromPrivateKey(teePrivateKey)
-	}
+	signer, err := s.getMasterWallet()
 	if err != nil {
-		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+		return nil, err
 	}
 
 	// Convert params to chain.ContractParam
@@ -1099,32 +1130,9 @@ func (s *Service) DeployMaster(ctx context.Context, nefBase64, manifestJSON stri
 		return nil, fmt.Errorf("manifest_json required")
 	}
 
-	// Load TEE_PRIVATE_KEY from environment - try WIF first, then hex
-	teePrivateKey := strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		teePrivateKey = strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY"))
-	}
-	if teePrivateKey == "" {
-		return nil, fmt.Errorf("TEE_PRIVATE_KEY not configured")
-	}
-
-	// Create signer - try WIF format first, then hex
-	var signer *wallet.Account
-	var err error
-
-	// Check if it looks like a WIF (starts with K, L, or 5)
-	if len(teePrivateKey) > 0 && (teePrivateKey[0] == 'K' || teePrivateKey[0] == 'L' || teePrivateKey[0] == '5') {
-		signer, err = chain.AccountFromWIF(teePrivateKey)
-	} else {
-		// Remove 0x prefix if present and try hex
-		teePrivateKey = strings.TrimPrefix(strings.TrimPrefix(teePrivateKey, "0x"), "0X")
-		signer, err = chain.AccountFromPrivateKey(teePrivateKey)
-	}
+	signer, err := s.getMasterWallet()
 	if err != nil {
-		return nil, fmt.Errorf("create signer from TEE_PRIVATE_KEY: %w", err)
+		return nil, err
 	}
 
 	// Decode NEF from base64

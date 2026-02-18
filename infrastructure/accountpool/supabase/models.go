@@ -4,7 +4,7 @@ package supabase
 import (
 	"time"
 
-	neoaccountstypes "github.com/R3E-Network/service_layer/infrastructure/accountpool/types"
+	neoaccountstypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/types"
 )
 
 // Well-known token configurations

@@ -20,7 +20,7 @@
     "GAS"
   ],
   "governance_assets_allowed": [
-    "NEO"
+    "BNEO"
   ],
   "limits": {
     "max_gas_per_tx": "5",

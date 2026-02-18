@@ -9,15 +9,16 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/tidwall/gjson"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	txproxytypes "github.com/R3E-Network/service_layer/infrastructure/txproxy/types"
-	neorequestsupabase "github.com/R3E-Network/service_layer/services/requests/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
+	neorequestsupabase "github.com/r3e-network/neo-miniapp-platform/services/requests/supabase"
 )
 
 type serviceResult struct {
@@ -999,20 +1000,21 @@ func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.Cont
 	_ = s.storeContractEvent(ctx, event, &parsed.AppID, buildNotificationState(parsed))
 
 	// Store notification in database via repository
-	err = s.repo.CreateNotification(ctx, &neorequestsupabase.Notification{
-		AppID:            parsed.AppID,
-		Title:            parsed.Title,
-		Content:          parsed.Content,
-		NotificationType: parsed.NotificationType,
-		Source:           "contract",
-		TxHash:           event.TxHash,
-		BlockNumber:      int64(event.BlockIndex),
-		Priority:         parsed.Priority,
-	})
-
-	if err != nil {
-		logger.WithError(err).Error("failed to store notification")
-		return err
+	if s.repo != nil {
+		err = s.repo.CreateNotification(ctx, &neorequestsupabase.Notification{
+			AppID:            parsed.AppID,
+			Title:            parsed.Title,
+			Content:          parsed.Content,
+			NotificationType: parsed.NotificationType,
+			Source:           "contract",
+			TxHash:           event.TxHash,
+			BlockNumber:      int64(event.BlockIndex),
+			Priority:         parsed.Priority,
+		})
+		if err != nil {
+			logger.WithError(err).Error("failed to store notification")
+			return err
+		}
 	}
 
 	logger.Info("notification stored from contract event")
@@ -1216,8 +1218,14 @@ func (s *Service) loadTeeScript(ctx context.Context, appID, scriptName string) (
 		return "", "", fmt.Errorf("script %q has no file path", scriptName)
 	}
 
+	// Sanitize script file path against directory traversal attacks.
+	cleanFile := filepath.ToSlash(filepath.Clean(scriptInfo.File))
+	if strings.HasPrefix(cleanFile, "/") || strings.HasPrefix(cleanFile, "..") || strings.Contains(cleanFile, "/../") {
+		return "", "", fmt.Errorf("script %q has invalid file path", scriptName)
+	}
+
 	// Fetch script content
-	scriptURL := fmt.Sprintf("%s/apps/%s/%s", baseURL, appID, scriptInfo.File)
+	scriptURL := fmt.Sprintf("%s/apps/%s/%s", baseURL, appID, cleanFile)
 	scriptResp, err := s.httpClient.Get(scriptURL)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to fetch script: %w", err)

@@ -3,11 +3,9 @@ package neofeeds
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
-	"math/big"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -20,14 +18,24 @@ import (
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 // =============================================================================
 // Core Logic
 // =============================================================================
+
+// maxPriceCacheEntries caps the number of cached price responses. When exceeded,
+// the oldest entries are evicted to keep memory bounded.
+const maxPriceCacheEntries = 1000
+
+// priceCacheEntry holds a cached PriceResponse and the time it was fetched.
+type priceCacheEntry struct {
+	response  *PriceResponse
+	fetchedAt time.Time
+}
 
 // GetPrice fetches and aggregates price from multiple sources.
 //
@@ -40,6 +48,49 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 		return nil, fmt.Errorf("pair required")
 	}
 
+	// Check price cache before hitting upstream sources.
+	s.priceCacheMu.RLock()
+	if entry, ok := s.priceCache[normalizedPair]; ok && time.Since(entry.fetchedAt) < s.priceCacheTTL {
+		s.priceCacheMu.RUnlock()
+		return entry.response, nil
+	}
+	s.priceCacheMu.RUnlock()
+
+	// Deduplicate concurrent upstream fetches for the same pair via singleflight.
+	// Use DoChan so each caller can respect its own context cancellation
+	// independently of the goroutine that wins the flight.
+	ch := s.priceFlight.DoChan(normalizedPair, func() (interface{}, error) {
+		// Detach from the winner's context so cancellation of one caller
+		// does not abort the shared fetch for all waiters.
+		detached := context.WithoutCancel(ctx)
+
+		// Re-check cache inside singleflight: another goroutine may have
+		// populated it between the outer check and winning the flight.
+		s.priceCacheMu.RLock()
+		if entry, ok := s.priceCache[normalizedPair]; ok && time.Since(entry.fetchedAt) < s.priceCacheTTL {
+			s.priceCacheMu.RUnlock()
+			return entry.response, nil
+		}
+		s.priceCacheMu.RUnlock()
+
+		return s.fetchAndCachePrice(detached, normalizedPair, pair)
+	})
+
+	select {
+	case result := <-ch:
+		if result.Err != nil {
+			return nil, result.Err
+		}
+		return result.Val.(*PriceResponse), nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+// fetchAndCachePrice performs the actual upstream fetch, aggregation, signing,
+// caching, and DB persistence. It is called from within singleflight.Do so
+// concurrent requests for the same pair share a single in-flight fetch.
+func (s *Service) fetchAndCachePrice(ctx context.Context, normalizedPair, originalPair string) (*PriceResponse, error) {
 	// Try to find feed config for this pair (supports legacy BTC/USD inputs).
 	feed := s.findFeedByPair(normalizedPair)
 
@@ -63,7 +114,9 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 	sourcesToUse := s.getSourcesForFeed(feed)
 
 	for _, srcConfig := range sourcesToUse {
-		s.acquireSourceSlot()
+		if !s.acquireSourceSlot(ctx) {
+			break // context cancelled, stop launching goroutines
+		}
 		wg.Add(1)
 		go func(src *SourceConfig) {
 			defer wg.Done()
@@ -71,6 +124,13 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 
 			price, err := s.fetchPriceFromSource(ctx, normalizedPair, feed, src)
 			if err != nil {
+				return
+			}
+			if price == 0 {
+				s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
+					"source": src.ID,
+					"pair":   normalizedPair,
+				}).Warn("skipping zero price from source (likely non-numeric JSON response)")
 				return
 			}
 
@@ -85,22 +145,23 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 
 	// Optional Chainlink source (if enabled by configuration).
 	if s.chainlinkClient != nil && s.chainlinkClient.HasFeed(feedID) {
-		s.acquireSourceSlot()
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer s.releaseSourceSlot()
+		if s.acquireSourceSlot(ctx) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				defer s.releaseSourceSlot()
 
-			price, _, err := s.chainlinkClient.GetPrice(ctx, feedID)
-			if err != nil || price <= 0 {
-				return
-			}
+				price, _, err := s.chainlinkClient.GetPrice(ctx, feedID)
+				if err != nil || price <= 0 {
+					return
+				}
 
-			mu.Lock()
-			prices = append(prices, price)
-			sources = append(sources, "chainlink")
-			mu.Unlock()
-		}()
+				mu.Lock()
+				prices = append(prices, price)
+				sources = append(sources, "chainlink")
+				mu.Unlock()
+			}()
+		}
 	}
 
 	wg.Wait()
@@ -110,7 +171,11 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 	}
 
 	medianPrice := s.calculateMedian(prices)
-	priceInt := int64(medianPrice * float64(pow10(decimals)))
+	rawPrice := medianPrice * float64(pow10(decimals))
+	if rawPrice > float64(math.MaxInt64) || rawPrice < float64(math.MinInt64) || math.IsNaN(rawPrice) || math.IsInf(rawPrice, 0) {
+		return nil, fmt.Errorf("price overflow for %s: %g", normalizedPair, rawPrice)
+	}
+	priceInt := int64(rawPrice)
 
 	response := &PriceResponse{
 		FeedID:    feedID,
@@ -130,6 +195,17 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 		response.PublicKey = append([]byte{}, pub...)
 	}
 
+	// Cache the successful response.
+	s.priceCacheMu.Lock()
+	if len(s.priceCache) >= maxPriceCacheEntries {
+		s.evictOldestCacheEntryLocked()
+	}
+	s.priceCache[normalizedPair] = &priceCacheEntry{
+		response:  response,
+		fetchedAt: time.Now(),
+	}
+	s.priceCacheMu.Unlock()
+
 	if s.DB() != nil {
 		if err := s.DB().CreatePriceFeed(ctx, &database.PriceFeed{
 			ID:        uuid.New().String(),
@@ -143,12 +219,30 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 		}); err != nil {
 			s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
 				"feed_id": feedID,
-				"pair":    pair,
+				"pair":    originalPair,
 			}).Warn("failed to persist price feed")
 		}
 	}
 
 	return response, nil
+}
+
+// evictOldestCacheEntryLocked removes the cache entry with the oldest fetchedAt.
+// Caller must hold s.priceCacheMu write lock.
+func (s *Service) evictOldestCacheEntryLocked() {
+	var oldestKey string
+	var oldestTime time.Time
+	first := true
+	for k, v := range s.priceCache {
+		if first || v.fetchedAt.Before(oldestTime) {
+			oldestKey = k
+			oldestTime = v.fetchedAt
+			first = false
+		}
+	}
+	if oldestKey != "" {
+		delete(s.priceCache, oldestKey)
+	}
 }
 
 // findFeedByPair finds a feed config by pair or feed ID.
@@ -302,6 +396,10 @@ func (s *Service) calculateMedian(prices []float64) float64 {
 }
 
 func (s *Service) signPrice(price *PriceResponse) (signature, publicKey []byte, err error) {
+	if s.signingPrivKey == nil {
+		return nil, nil, fmt.Errorf("signing key not initialized")
+	}
+
 	data, err := json.Marshal(map[string]interface{}{
 		"pair":      price.Pair,
 		"price":     price.Price,
@@ -312,31 +410,16 @@ func (s *Service) signPrice(price *PriceResponse) (signature, publicKey []byte, 
 		return nil, nil, fmt.Errorf("marshal signature payload: %w", err)
 	}
 
-	seed, err := crypto.DeriveKey(s.signingKey, nil, "price-signing", 32)
+	signature, err = crypto.Sign(s.signingPrivKey, data)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer crypto.ZeroBytes(seed)
-
-	curve := elliptic.P256()
-	d := new(big.Int).SetBytes(seed)
-	n := new(big.Int).Sub(curve.Params().N, big.NewInt(1))
-	d.Mod(d, n)
-	d.Add(d, big.NewInt(1))
-	priv := &ecdsa.PrivateKey{PublicKey: ecdsa.PublicKey{Curve: curve}, D: d}
-	priv.PublicKey.X, priv.PublicKey.Y = curve.ScalarBaseMult(d.Bytes())
-
-	signature, err = crypto.Sign(priv, data)
-	if err != nil {
-		return nil, nil, err
-	}
-	publicKey = crypto.PublicKeyToBytes(&priv.PublicKey)
-	return signature, publicKey, nil
+	return signature, s.signingPubKey, nil
 }
 
 func formatSourceURL(tmpl, pair string) string {
 	if strings.Contains(tmpl, "%sPAIR%s") {
-		return fmt.Sprintf(tmpl, "", pair, "")
+		return strings.ReplaceAll(tmpl, "%sPAIR%s", pair)
 	}
 	return strings.ReplaceAll(tmpl, "{pair}", pair)
 }
@@ -389,7 +472,7 @@ func formatSourceURLNew(tmpl, pair string, feed *FeedConfig, src *SourceConfig) 
 
 	// Legacy format support
 	if strings.Contains(url, "%sPAIR%s") {
-		url = fmt.Sprintf(url, "", pairValue, "")
+		url = strings.ReplaceAll(url, "%sPAIR%s", pairValue)
 	}
 
 	return url
@@ -429,11 +512,16 @@ func formatJSONPath(tmpl string, feed *FeedConfig, src *SourceConfig) string {
 	return path
 }
 
-func (s *Service) acquireSourceSlot() {
+func (s *Service) acquireSourceSlot(ctx context.Context) bool {
 	if s == nil || s.sourceSem == nil {
-		return
+		return true
 	}
-	s.sourceSem <- struct{}{}
+	select {
+	case s.sourceSem <- struct{}{}:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 func (s *Service) releaseSourceSlot() {
@@ -503,8 +591,8 @@ func isDisallowedSourceIP(ip net.IP) bool {
 	}
 
 	// Carrier-grade NAT (RFC 6598): 100.64.0.0/10
-	if ip.To4() != nil {
-		if ip[0] == 100 && ip[1] >= 64 && ip[1] <= 127 {
+	if ip4 := ip.To4(); ip4 != nil {
+		if ip4[0] == 100 && ip4[1] >= 64 && ip4[1] <= 127 {
 			return true
 		}
 	}
@@ -512,8 +600,12 @@ func isDisallowedSourceIP(ip net.IP) bool {
 	return false
 }
 
-// pow10 returns 10^n.
+// pow10 returns 10^n. For n > 18 it returns math.MaxInt64 to avoid silent overflow
+// (int64 max is ~9.2e18, i.e. just under 10^19).
 func pow10(n int) int64 {
+	if n > 18 {
+		return math.MaxInt64
+	}
 	result := int64(1)
 	for i := 0; i < n; i++ {
 		result *= 10

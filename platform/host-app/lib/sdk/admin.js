@@ -13,7 +13,8 @@ export class AdminSDK {
      * Fetch all services health status
      */
     async getServicesHealth() {
-        const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`);
+        const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
+        const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`, { headers });
         if (!response.ok) {
             throw new Error(`Failed to fetch services health: ${response.statusText}`);
         }
@@ -23,7 +24,8 @@ export class AdminSDK {
      * Fetch analytics overview
      */
     async getAnalytics() {
-        const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`);
+        const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
+        const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, { headers });
         if (!response.ok) {
             throw new Error(`Failed to fetch analytics: ${response.statusText}`);
         }
@@ -33,12 +35,8 @@ export class AdminSDK {
      * Fetch all registered MiniApps
      */
     async getMiniApps() {
-        const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?select=*&order=created_at.desc`, {
-            headers: {
-                apikey: this.config.serviceRoleKey || "",
-                Authorization: `Bearer ${this.config.serviceRoleKey || ""}`,
-            },
-        });
+        const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
+        const response = await fetch(`${this.config.adminBaseUrl}/api/miniapps`, { headers });
         if (!response.ok) {
             throw new Error(`Failed to fetch MiniApps: ${response.statusText}`);
         }
@@ -48,12 +46,8 @@ export class AdminSDK {
      * Fetch all users
      */
     async getUsers() {
-        const response = await fetch(`${this.config.supabaseUrl}/rest/v1/users?select=*&order=created_at.desc`, {
-            headers: {
-                apikey: this.config.serviceRoleKey || "",
-                Authorization: `Bearer ${this.config.serviceRoleKey || ""}`,
-            },
-        });
+        const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
+        const response = await fetch(`${this.config.adminBaseUrl}/api/users`, { headers });
         if (!response.ok) {
             throw new Error(`Failed to fetch users: ${response.statusText}`);
         }
@@ -63,17 +57,21 @@ export class AdminSDK {
      * Update MiniApp status
      */
     async updateMiniAppStatus(appId, status) {
-        const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?app_id=eq.${appId}`, {
-            method: "PATCH",
-            headers: {
-                apikey: this.config.serviceRoleKey || "",
-                Authorization: `Bearer ${this.config.serviceRoleKey || ""}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ status }),
+        const headers = { "Content-Type": "application/json" };
+        if (this.config.adminApiKey) {
+            headers["X-Admin-Key"] = this.config.adminApiKey;
+        }
+        const response = await fetch(`${this.config.adminBaseUrl}/api/miniapps/update-status`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ appId, status }),
         });
         if (!response.ok) {
             throw new Error(`Failed to update MiniApp status: ${response.statusText}`);
+        }
+        const payload = await response.json().catch(() => null);
+        if (payload?.requires_onchain_confirmation) {
+            console.warn(`On-chain confirmation required for status change. Submit invocation:\n${JSON.stringify(payload.invocation ?? {}, null, 2)}`);
         }
     }
 }

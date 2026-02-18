@@ -3,7 +3,7 @@ package chain
 import (
 	"fmt"
 
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
 )
 
 // PaymentReceivedEvent represents a PaymentHub payment event.

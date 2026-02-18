@@ -64,7 +64,7 @@ spec:
 
   # 允许的源仓库
   sourceRepos:
-    - https://github.com/yourorg/service_layer.git # 替换为实际仓库
+    - https://github.com/r3e-network/neo-miniapp-platform.git
     - "*"
 
   # 允许的资源类型

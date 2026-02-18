@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/deploy/testnet"
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/deploy/testnet"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 )
 
 var platformContracts = []string{

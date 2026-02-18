@@ -6,7 +6,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"regexp"
+	"strings"
 )
+
+// validFieldName matches safe PostgREST field names (letters, digits, underscores, dots).
+var validFieldName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_.]*$`)
+
+// validateField panics if field contains characters that could inject PostgREST operators.
+// Panic is appropriate because invalid field names are always programmer errors.
+func validateField(field string) string {
+	if !validFieldName.MatchString(field) {
+		panic(fmt.Sprintf("invalid field name: %q", field))
+	}
+	return field
+}
 
 // =============================================================================
 // Generic Repository Helpers
@@ -48,8 +62,34 @@ func GenericCreate[T any](base *Repository, ctx context.Context, table string, m
 	return nil
 }
 
+// GenericUpsert atomically inserts or updates a record using Supabase's
+// resolution=merge-duplicates. onConflict specifies the conflict columns
+// (e.g., "account_id,token_type"). Single round-trip, no race condition.
+func GenericUpsert[T any](base *Repository, ctx context.Context, table, onConflict string, model *T, onResult func([]T)) error {
+	if model == nil {
+		return fmt.Errorf("%s: model cannot be nil", table)
+	}
+	if onConflict == "" {
+		return fmt.Errorf("%s: onConflict columns cannot be empty", table)
+	}
+
+	data, err := base.RequestUpsert(ctx, table, model, onConflict, "")
+	if err != nil {
+		return fmt.Errorf("upsert %s: %w", table, err)
+	}
+
+	if onResult != nil {
+		var rows []T
+		if err := json.Unmarshal(data, &rows); err == nil {
+			onResult(rows)
+		}
+	}
+	return nil
+}
+
 // GenericUpdate updates an existing record by a key field.
 func GenericUpdate[T any](base *Repository, ctx context.Context, table, keyField, keyValue string, model *T) error {
+	validateField(keyField)
 	if model == nil {
 		return fmt.Errorf("%s: model cannot be nil", table)
 	}
@@ -68,6 +108,7 @@ func GenericUpdate[T any](base *Repository, ctx context.Context, table, keyField
 // GenericGetByField fetches a single record by a field value.
 // Returns NotFoundError if no records match.
 func GenericGetByField[T any](base *Repository, ctx context.Context, table, field, value string) (*T, error) {
+	validateField(field)
 	if value == "" {
 		return nil, fmt.Errorf("%s: %s cannot be empty", table, field)
 	}
@@ -104,6 +145,7 @@ func GenericList[T any](base *Repository, ctx context.Context, table string) ([]
 
 // GenericListByField fetches records matching a field value.
 func GenericListByField[T any](base *Repository, ctx context.Context, table, field, value string) ([]T, error) {
+	validateField(field)
 	if value == "" {
 		return nil, fmt.Errorf("%s: %s cannot be empty", table, field)
 	}
@@ -137,6 +179,7 @@ func GenericListWithQuery[T any](base *Repository, ctx context.Context, table, q
 
 // GenericDelete deletes a record by a key field.
 func GenericDelete(base *Repository, ctx context.Context, table, keyField, keyValue string) error {
+	validateField(keyField)
 	if keyValue == "" {
 		return fmt.Errorf("%s: %s cannot be empty", table, keyField)
 	}
@@ -198,36 +241,56 @@ func NewQuery() *QueryBuilder {
 
 // Eq adds an equality filter: field=eq.value
 func (q *QueryBuilder) Eq(field, value string) *QueryBuilder {
+	validateField(field)
 	q.filters = append(q.filters, fmt.Sprintf("%s=eq.%s", field, url.QueryEscape(value)))
 	return q
 }
 
 // IsNull adds a null check: field=is.null
 func (q *QueryBuilder) IsNull(field string) *QueryBuilder {
+	validateField(field)
 	q.filters = append(q.filters, fmt.Sprintf("%s=is.null", field))
+	return q
+}
+
+// IsNotNull adds a not-null check: field=not.is.null
+func (q *QueryBuilder) IsNotNull(field string) *QueryBuilder {
+	validateField(field)
+	q.filters = append(q.filters, fmt.Sprintf("%s=not.is.null", field))
+	return q
+}
+
+// Neq adds a not-equal filter: field=neq.value
+func (q *QueryBuilder) Neq(field, value string) *QueryBuilder {
+	validateField(field)
+	q.filters = append(q.filters, fmt.Sprintf("%s=neq.%s", field, url.QueryEscape(value)))
 	return q
 }
 
 // IsFalse adds a boolean false check: field=eq.false
 func (q *QueryBuilder) IsFalse(field string) *QueryBuilder {
+	validateField(field)
 	q.filters = append(q.filters, fmt.Sprintf("%s=eq.false", field))
 	return q
 }
 
 // IsTrue adds a boolean true check: field=eq.true
 func (q *QueryBuilder) IsTrue(field string) *QueryBuilder {
+	validateField(field)
 	q.filters = append(q.filters, fmt.Sprintf("%s=eq.true", field))
 	return q
 }
 
 // Lte adds a less than or equal filter: field=lte.value
 func (q *QueryBuilder) Lte(field, value string) *QueryBuilder {
+	validateField(field)
 	q.filters = append(q.filters, fmt.Sprintf("%s=lte.%s", field, url.QueryEscape(value)))
 	return q
 }
 
 // Gte adds a greater than or equal filter: field=gte.value
 func (q *QueryBuilder) Gte(field, value string) *QueryBuilder {
+	validateField(field)
 	q.filters = append(q.filters, fmt.Sprintf("%s=gte.%s", field, url.QueryEscape(value)))
 	return q
 }
@@ -235,6 +298,7 @@ func (q *QueryBuilder) Gte(field, value string) *QueryBuilder {
 // In adds an IN filter: field=in.(value1,value2,...)
 // This is useful for batch queries to avoid N+1 problems.
 func (q *QueryBuilder) In(field string, values []string) *QueryBuilder {
+	validateField(field)
 	if len(values) == 0 {
 		return q
 	}
@@ -242,30 +306,20 @@ func (q *QueryBuilder) In(field string, values []string) *QueryBuilder {
 	for i, v := range values {
 		escaped[i] = url.QueryEscape(v)
 	}
-	q.filters = append(q.filters, fmt.Sprintf("%s=in.(%s)", field, joinStrings(escaped, ",")))
+	q.filters = append(q.filters, fmt.Sprintf("%s=in.(%s)", field, strings.Join(escaped, ",")))
 	return q
-}
-
-// joinStrings joins strings with a separator (avoiding strings package import).
-func joinStrings(strs []string, sep string) string {
-	if len(strs) == 0 {
-		return ""
-	}
-	result := strs[0]
-	for i := 1; i < len(strs); i++ {
-		result += sep + strs[i]
-	}
-	return result
 }
 
 // OrderAsc adds ascending order: order=field.asc
 func (q *QueryBuilder) OrderAsc(field string) *QueryBuilder {
+	validateField(field)
 	q.order = fmt.Sprintf("order=%s.asc", field)
 	return q
 }
 
 // OrderDesc adds descending order: order=field.desc
 func (q *QueryBuilder) OrderDesc(field string) *QueryBuilder {
+	validateField(field)
 	q.order = fmt.Sprintf("order=%s.desc", field)
 	return q
 }
@@ -278,24 +332,13 @@ func (q *QueryBuilder) Limit(n int) *QueryBuilder {
 
 // Build constructs the final query string.
 func (q *QueryBuilder) Build() string {
-	result := ""
-	for i, f := range q.filters {
-		if i > 0 {
-			result += "&"
-		}
-		result += f
-	}
+	parts := make([]string, 0, len(q.filters)+2)
+	parts = append(parts, q.filters...)
 	if q.order != "" {
-		if result != "" {
-			result += "&"
-		}
-		result += q.order
+		parts = append(parts, q.order)
 	}
 	if q.limit > 0 {
-		if result != "" {
-			result += "&"
-		}
-		result += fmt.Sprintf("limit=%d", q.limit)
+		parts = append(parts, fmt.Sprintf("limit=%d", q.limit))
 	}
-	return result
+	return strings.Join(parts, "&")
 }

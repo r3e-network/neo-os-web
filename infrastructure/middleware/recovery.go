@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/R3E-Network/service_layer/infrastructure/errors"
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/errors"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 // RecoveryMiddleware recovers from panics and logs them

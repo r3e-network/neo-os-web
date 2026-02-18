@@ -116,7 +116,7 @@ export async function getCardDataAsync(appId: string): Promise<AnyCardData | und
 export function getCardData(appId: string): AnyCardData | undefined {
   const cardType = APP_CARD_TYPES[appId];
   if (!cardType) return undefined;
-  // Return empty placeholder - real data loaded via hook
+  // Return an empty shell value; live data is loaded by useCardData.
   return { type: cardType, refreshInterval: 10 } as AnyCardData;
 }
 

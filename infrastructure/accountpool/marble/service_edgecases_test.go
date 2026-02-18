@@ -15,8 +15,8 @@ import (
 
 	"github.com/edgelesssys/ego/attestation"
 
-	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	neoaccountssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 type repoWithFailures struct {

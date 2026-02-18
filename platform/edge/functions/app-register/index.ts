@@ -14,7 +14,7 @@ type AppRegisterRequest = {
 
 // Thin gateway:
 // - validates auth + wallet binding + shape
-// - enforces manifest policy (assets_allowed=["GAS"], governance_assets_allowed=["NEO"])
+// - enforces manifest policy (assets_allowed=["GAS"], governance_assets_allowed=["BNEO"])
 // - computes the manifest hash deterministically
 // - returns an invocation "intent" for the SDK/wallet to sign and submit
 export async function handler(req: Request): Promise<Response> {

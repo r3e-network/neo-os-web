@@ -4,6 +4,7 @@
 
 "use client";
 
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { useAnalytics, useMiniAppUsage } from "@/lib/hooks/useAnalytics";
@@ -12,6 +13,19 @@ import { formatNumber } from "@/lib/utils";
 export default function AnalyticsPage() {
   const { data: analytics, isLoading: analyticsLoading, isError: analyticsError } = useAnalytics();
   const { data: usage, isLoading: usageLoading, isError: usageError } = useMiniAppUsage(30);
+  const chartData = useMemo(() => {
+    const daily = new Map<string, number>();
+    for (const row of usage || []) {
+      const date = String(row.usage_date || "");
+      if (!date) continue;
+      daily.set(date, (daily.get(date) || 0) + Number(row.gas_used || 0));
+    }
+    return Array.from(daily.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-14)
+      .map(([date, gas]) => ({ date, gas }));
+  }, [usage]);
+  const maxChartValue = chartData.reduce((max, point) => Math.max(max, point.gas), 0);
 
   return (
     <div className="space-y-6">
@@ -79,10 +93,27 @@ export default function AnalyticsPage() {
         <CardContent>
           {usageLoading ? (
             <Spinner />
-          ) : (
+          ) : chartData.length === 0 ? (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-              <p className="text-gray-600">{usage?.length || 0} data points available</p>
-              <p className="mt-2 text-sm text-gray-500">Chart visualization requires recharts integration</p>
+              <p className="text-gray-600">No usage data available yet.</p>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <div className="flex h-40 items-end gap-2">
+                {chartData.map((point) => {
+                  const heightPercent = maxChartValue > 0 ? Math.max((point.gas / maxChartValue) * 100, 4) : 4;
+                  return (
+                    <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                      <div
+                        className="w-full rounded-t bg-emerald-500"
+                        style={{ height: `${heightPercent}%` }}
+                        title={`${point.date}: ${formatNumber(point.gas)}`}
+                      />
+                      <span className="w-full truncate text-center text-[10px] text-gray-500">{point.date.slice(5)}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </CardContent>

@@ -29,8 +29,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const results: { appId: string; success: boolean; error?: string }[] = [];
 
   try {
-    // Get all registered miniapps
-    const { data: apps } = await supabase.from("miniapp_registry").select("app_id, contract_hash");
+    // Get all active miniapps from canonical registry
+    const { data: apps } = await supabase
+      .from("miniapps")
+      .select("app_id, contract_hash")
+      .eq("status", "active");
 
     if (!apps?.length) {
       return res.status(200).json({ message: "No apps to process", results });

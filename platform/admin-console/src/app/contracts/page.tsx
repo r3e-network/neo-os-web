@@ -1,23 +1,29 @@
-// =============================================================================
-// Contracts Page
-// =============================================================================
-
-"use client";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
 const CONTRACTS = [
-  { name: "AppRegistry", hash: "0x...", deployed: true, network: "TestNet" },
-  { name: "PaymentHub", hash: "0x...", deployed: true, network: "TestNet" },
-  { name: "Governance", hash: "0x...", deployed: true, network: "TestNet" },
-  { name: "PriceFeed", hash: "0x...", deployed: true, network: "TestNet" },
-  { name: "RandomnessLog", hash: "0x...", deployed: true, network: "TestNet" },
-  { name: "AutomationAnchor", hash: "0x...", deployed: true, network: "TestNet" },
+  { name: "AppRegistry", env: "CONTRACT_APPREGISTRY_HASH" },
+  { name: "PaymentHub", env: "CONTRACT_PAYMENTHUB_HASH" },
+  { name: "Governance", env: "CONTRACT_GOVERNANCE_HASH" },
+  { name: "PriceFeed", env: "CONTRACT_PRICEFEED_HASH" },
+  { name: "RandomnessLog", env: "CONTRACT_RANDOMNESSLOG_HASH" },
+  { name: "AutomationAnchor", env: "CONTRACT_AUTOMATIONANCHOR_HASH" },
 ];
 
 export default function ContractsPage() {
+  const networkMagic = String(process.env.NEO_NETWORK_MAGIC || "").trim();
+  const network = networkMagic ? `Magic ${networkMagic}` : "Unknown";
+  const contracts = CONTRACTS.map((item) => {
+    const hash = String(process.env[item.env] || "").trim();
+    const deployed = /^0x[0-9a-fA-F]{40}$/.test(hash);
+    return {
+      ...item,
+      hash: deployed ? hash : "Not configured",
+      deployed,
+    };
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -34,7 +40,7 @@ export default function ContractsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {CONTRACTS.map((contract) => (
+            {contracts.map((contract) => (
               <div
                 key={contract.name}
                 className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
@@ -42,7 +48,7 @@ export default function ContractsPage() {
                 <div>
                   <div className="font-medium text-gray-900">{contract.name}</div>
                   <div className="text-sm text-gray-500">Hash: {contract.hash}</div>
-                  <div className="text-sm text-gray-500">Network: {contract.network}</div>
+                  <div className="text-sm text-gray-500">Network: {network}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant={contract.deployed ? "success" : "default"}>

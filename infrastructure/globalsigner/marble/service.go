@@ -20,14 +20,14 @@ import (
 
 	"github.com/edgelesssys/ego/enclave"
 
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/globalsigner/supabase"
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
-	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 )
 
 // =============================================================================
@@ -162,10 +162,10 @@ func New(cfg Config) (*Service, error) {
 
 	strict := runtime.StrictIdentityMode() || (cfg.Marble != nil && cfg.Marble.IsEnclave())
 	if strict && len(s.domainAllowlist) == 0 {
-		s.Logger().Warn(context.Background(), "GLOBALSIGNER_DOMAIN_ALLOWLIST not set; allowing all domains (development/testing only)", nil)
+		return nil, fmt.Errorf("GLOBALSIGNER_DOMAIN_ALLOWLIST must be set in strict/enclave mode")
 	}
 	if strict && len(s.signRawAllowlist) == 0 {
-		s.Logger().Warn(context.Background(), "GLOBALSIGNER_SIGN_RAW_ALLOWLIST not set; allowing raw signing for all services (development/testing only)", nil)
+		return nil, fmt.Errorf("GLOBALSIGNER_SIGNRAW_ALLOWLIST must be set in strict/enclave mode")
 	}
 
 	// Set up hydration to load keys on startup

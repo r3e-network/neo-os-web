@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 func createTestNeoAccountsService(t *testing.T) *neoaccounts.Service {

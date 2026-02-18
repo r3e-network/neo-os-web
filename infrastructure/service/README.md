@@ -127,7 +127,7 @@ type HealthChecker interface {
 package myservice
 
 import (
-    commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
+    commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 )
 
 type Service struct {

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	slhttputil "github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
-	txproxytypes "github.com/R3E-Network/service_layer/infrastructure/txproxy/types"
+	slhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
+	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
 )
 
 // Client is an HTTP client for interacting with TxProxy over the MarbleRun mesh.

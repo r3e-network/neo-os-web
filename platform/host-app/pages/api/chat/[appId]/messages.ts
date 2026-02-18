@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import crypto from "crypto";
-import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
+import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
+import { logger } from "@/lib/logger";
+import { standardLimit } from "@/lib/rate-limit";
+import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
+import { formatWalletDisplayName, isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
 
 interface ChatMessage {
   id: string;
@@ -13,22 +16,37 @@ interface ChatMessage {
   tipAmount?: string;
 }
 
-// In-memory store for demo (replace with Supabase in production)
-const chatRooms: Map<string, ChatMessage[]> = new Map();
-const participants: Map<string, Set<string>> = new Map();
+type ChatRow = {
+  id: string;
+  sender_wallet: string;
+  sender_name: string;
+  content: string;
+  created_at: string;
+  message_type: "text" | "system" | "tip";
+  tip_amount: string | null;
+};
+
+function toChatMessage(row: ChatRow): ChatMessage {
+  return {
+    id: row.id,
+    userId: row.sender_wallet,
+    userName: row.sender_name,
+    content: row.content,
+    timestamp: row.created_at,
+    type: row.message_type,
+    tipAmount: row.tip_amount || undefined,
+  };
+}
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
   const { appId } = req.query;
 
   if (!appId || typeof appId !== "string") {
     return apiError.badRequest(res, "Missing appId");
   }
-  if (!/^[a-z0-9][a-z0-9_-]*$/.test(appId)) {
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(appId)) {
     return apiError.badRequest(res, "Invalid appId format");
-  }
-
-  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_INMEMORY_STORE) {
-    return sendError(res, 503, "In-memory store not available in production", ErrorCodes.INTERNAL_ERROR);
   }
 
   if (req.method === "GET") {
@@ -42,21 +60,55 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   return apiError.methodNotAllowed(res);
 }
 
-function getMessages(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function getMessages(appId: string, req: NextApiRequest, res: NextApiResponse) {
+  if (!isServerSupabaseConfigured()) {
+    return res.status(200).json({ messages: [], participantCount: 0 });
+  }
+
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
-  const messages = chatRooms.get(appId) || [];
-  const participantSet = participants.get(appId) || new Set();
+  const supabase = getServerSupabaseClient();
+  if (!supabase) {
+    return res.status(200).json({ messages: [], participantCount: 0 });
+  }
+
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("id,sender_wallet,sender_name,content,created_at,message_type,tip_amount")
+    .eq("app_id", appId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    logger.error("Failed to fetch chat messages:", error.message);
+    return apiError.internal(res, "Failed to fetch chat messages");
+  }
+
+  const ordered = ((data || []) as ChatRow[]).reverse().map(toChatMessage);
+
+  const { data: participantRows } = await supabase
+    .from("chat_messages")
+    .select("sender_wallet")
+    .eq("app_id", appId)
+    .order("created_at", { ascending: false })
+    .limit(5000);
+
+  const participantCount = new Set((participantRows || []).map((row) => String(row.sender_wallet || "").trim()).filter(Boolean))
+    .size;
 
   return res.status(200).json({
-    messages: messages.slice(-limit),
-    participantCount: participantSet.size,
+    messages: ordered,
+    participantCount,
   });
 }
 
-function postMessage(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function postMessage(appId: string, req: NextApiRequest, res: NextApiResponse) {
+  if (!hasServiceRoleSupabase()) {
+    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for chat writes");
+  }
+
   const { wallet, content } = req.body;
 
-  if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+  if (!isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
   }
   if (!content || typeof content !== "string" || !content.trim()) {
@@ -67,34 +119,35 @@ function postMessage(appId: string, req: NextApiRequest, res: NextApiResponse) {
     return apiError.badRequest(res, "Message too long");
   }
 
-  // Initialize room if needed
-  if (!chatRooms.has(appId)) {
-    chatRooms.set(appId, []);
-  }
-  if (!participants.has(appId)) {
-    participants.set(appId, new Set());
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) {
+    return apiError.configError(res, "Supabase service role client unavailable");
   }
 
-  // Add participant
-  participants.get(appId)!.add(wallet);
-
-  // Create message
-  const message: ChatMessage = {
-    id: `msg-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
-    userId: wallet,
-    userName: `${wallet.slice(0, 6)}...${wallet.slice(-4)}`,
-    content: content.trim(),
-    timestamp: new Date().toISOString(),
-    type: "text",
-  };
-
-  // Add to room (keep last 200 messages)
-  const messages = chatRooms.get(appId)!;
-  messages.push(message);
-  if (messages.length > 200) {
-    messages.shift();
+  const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: true });
+  if (!userId) {
+    return apiError.internal(res, "Failed to resolve user");
   }
 
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .insert({
+      app_id: appId,
+      sender_user_id: userId,
+      sender_wallet: wallet,
+      sender_name: formatWalletDisplayName(wallet),
+      content: content.trim(),
+      message_type: "text",
+    })
+    .select("id,sender_wallet,sender_name,content,created_at,message_type,tip_amount")
+    .single();
+
+  if (error || !data) {
+    logger.error("Failed to create chat message:", error?.message || "unknown error");
+    return apiError.internal(res, "Failed to post message");
+  }
+
+  const message = toChatMessage(data as ChatRow);
   return res.status(201).json({ message });
 }
 

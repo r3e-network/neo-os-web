@@ -28,4 +28,4 @@ For local host previews in this repo, the bridge helper is exported as:
 See `miniapps/templates/react-starter/manifest.json`. It enforces:
 
 - `assets_allowed: ["GAS"]`
-- `governance_assets_allowed: ["NEO"]`
+- `governance_assets_allowed: ["BNEO"]`

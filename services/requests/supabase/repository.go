@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
 )
 
 const (

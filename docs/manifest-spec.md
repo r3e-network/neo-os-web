@@ -5,7 +5,7 @@ This repository is evolving into a **Neo N3 MiniApp Platform**. MiniApps are loa
 ## Goals
 
 - **Payments/settlement only GAS** (no other payment assets).
-- **Governance only NEO** (no bNEO support).
+- **Governance only bNEO**.
 - **No direct transaction construction in MiniApps**: all sensitive actions flow through `SDK → Edge → TEE → Chain`.
 - **Deterministic permissions**: each MiniApp declares capabilities; runtime enforces allowlists and limits.
 - **Platform analytics**: optional metadata for notifications and stats display.
@@ -121,7 +121,7 @@ High level:
 - `description` (string, optional): short summary shown in the host catalog/app detail page.
 - `icon` (string, optional): URL or emoji for the app icon.
 - `banner` (string, optional): hero image URL for featured placements.
-- `category` (string, optional): one of `gaming`, `defi`, `governance`, `utility`, `social`.
+- `category` (string, optional): one of `gaming`, `defi`, `governance`, `utility`, `social`, `nft`, `data`, `other`.
 
 ### Runtime
 
@@ -150,7 +150,7 @@ the `wallet` entry is treated as `["read-address"]`.
 ### Allowlisted Assets
 
 - `assets_allowed`: must contain only `["GAS"]`.
-- `governance_assets_allowed`: must contain only `["NEO"]`.
+- `governance_assets_allowed`: must contain only `["BNEO"]`.
 
 ### Limits
 
@@ -202,7 +202,7 @@ Aliases (normalized at registration):
 ## Validation Rules (enforced by Host/Edge)
 
 - `assets_allowed` must be exactly `["GAS"]`.
-- `governance_assets_allowed` must be exactly `["NEO"]`.
+- `governance_assets_allowed` must be exactly `["BNEO"]`.
 - `entry_url` must use `https://` in production unless it uses the `mf://` scheme.
 - `permissions` must be a strict subset of supported platform permissions.
 - `limits` must be within platform policy bounds (global caps set by governance).
@@ -212,6 +212,6 @@ Aliases (normalized at registration):
 - `callback_contract` must be a valid Hash160 (0x-prefixed or raw hex).
 - `news_integration` (if present) must be a boolean.
 - `stats_display` (if present) must be an array of supported stat keys.
-- `category` (if present) must be one of `gaming`, `defi`, `governance`, `utility`, `social`.
+- `category` (if present) must be one of `gaming`, `defi`, `governance`, `utility`, `social`, `nft`, `data`, `other`.
 - `contract_hash` must be a valid Hash160 (0x-prefixed or raw hex) and is required
   unless `news_integration=false` and no stats are requested.

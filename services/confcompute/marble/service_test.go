@@ -14,7 +14,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 func TestNew(t *testing.T) {
@@ -327,6 +327,96 @@ func TestExecuteResponseJSON(t *testing.T) {
 	json.Unmarshal(data, &decoded)
 	if decoded.JobID != resp.JobID {
 		t.Errorf("JobID = %s, want %s", decoded.JobID, resp.JobID)
+	}
+}
+
+func TestExecuteDeepRecursionBlocked(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
+	svc, _ := New(Config{Marble: m})
+
+	ctx := context.Background()
+	// Script with unbounded recursion — should be stopped by max call stack size
+	req := &ExecuteRequest{
+		Script:     "function main() { return main(); }",
+		EntryPoint: "main",
+	}
+
+	resp, err := svc.Execute(ctx, "user-123", req)
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if resp.Status != "failed" {
+		t.Fatalf("Status = %s, want failed (deep recursion should be blocked)", resp.Status)
+	}
+	// goja's StackOverflowError is raised — the exact message varies,
+	// but the script must not succeed.
+	if resp.Error == "" {
+		t.Error("expected non-empty error for stack overflow")
+	}
+}
+
+func TestConsoleLogSuppressedWhenSecretsPresent(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
+	provider := testSecretProvider{
+		expectedUserID: "user-123",
+		secrets: map[string]string{
+			"API_KEY": "super-secret-key-12345",
+		},
+	}
+	svc, _ := New(Config{Marble: m, SecretProvider: provider})
+
+	ctx := context.Background()
+	// Script that tries to exfiltrate secrets via console.log
+	req := &ExecuteRequest{
+		Script: `function main() {
+			console.log("key is " + secrets.API_KEY);
+			console.log(JSON.stringify(secrets));
+			return { ok: true };
+		}`,
+		EntryPoint: "main",
+		SecretRefs: []string{"API_KEY"},
+	}
+
+	resp, err := svc.Execute(ctx, "user-123", req)
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if resp.Status != "completed" {
+		t.Fatalf("Status = %s, want completed; error = %s", resp.Status, resp.Error)
+	}
+
+	// When secrets are injected, _logs must be entirely suppressed to prevent
+	// any exfiltration (encoding, char-by-char, etc.)
+	if _, exists := resp.Output["_logs"]; exists {
+		t.Errorf("_logs should be absent when secrets are present, got: %v", resp.Output["_logs"])
+	}
+}
+
+func TestConsoleLogRedactsEmptySecretSkipped(t *testing.T) {
+	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
+	svc, _ := New(Config{Marble: m})
+
+	ctx := context.Background()
+	// No secrets — console.log should work normally without redaction issues
+	req := &ExecuteRequest{
+		Script: `function main() {
+			console.log("hello world");
+			return { ok: true };
+		}`,
+		EntryPoint: "main",
+	}
+
+	resp, err := svc.Execute(ctx, "user-123", req)
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if resp.Status != "completed" {
+		t.Fatalf("Status = %s, want completed", resp.Status)
+	}
+
+	logs, _ := resp.Output["_logs"].([]string)
+	if len(logs) != 1 || logs[0] != "hello world" {
+		t.Errorf("unexpected logs: %v", logs)
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 	"github.com/dop251/goja"
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
 )
 
 // =============================================================================
@@ -61,13 +61,25 @@ func (s *Service) Execute(ctx context.Context, userID string, req *ExecuteReques
 		return response, nil
 	}
 
-	// Check concurrent jobs limit
-	runningJobs := s.countRunningJobs(userID)
-	if runningJobs >= MaxConcurrentJobs {
+	// Check concurrent jobs limit and increment atomically to prevent TOCTOU race.
+	if !s.runningJobs.tryIncrement(userID, MaxConcurrentJobs) {
 		response.Status = "failed"
 		response.Error = fmt.Sprintf("too many concurrent jobs (max %d)", MaxConcurrentJobs)
 		return response, nil
 	}
+	defer s.runningJobs.decrement(userID)
+
+	// Store an initial "running" snapshot so /jobs shows the job immediately.
+	// We store a separate copy to avoid a data race: the local `response` is
+	// mutated below while getJob/listJobs may read the stored entry concurrently.
+	s.storeJob(userID, &ExecuteResponse{
+		JobID:     jobID,
+		Status:    "running",
+		StartedAt: startTime,
+		Logs:      []string{},
+	})
+	// Re-store the final result on every return path.
+	defer func() { s.storeJob(userID, response) }()
 
 	execCtx := ctx
 	if _, ok := ctx.Deadline(); !ok {
@@ -175,9 +187,6 @@ func (s *Service) Execute(ctx context.Context, userID string, req *ExecuteReques
 		fmt.Sprintf("[%s] Execution completed successfully", time.Now().Format(time.RFC3339)),
 	)
 
-	// Store job for later retrieval
-	s.storeJob(userID, response)
-
 	return response, nil
 }
 
@@ -224,6 +233,9 @@ func (s *Service) executeScript(ctx context.Context, script, entryPoint string, 
 
 	// Create goja runtime
 	vm := goja.New()
+
+	// Limit recursion depth to prevent stack overflow attacks
+	vm.SetMaxCallStackSize(1024)
 
 	// Set up interrupt for timeout
 	timeout := DefaultTimeout
@@ -274,6 +286,12 @@ func (s *Service) executeScript(ctx context.Context, script, entryPoint string, 
 		if len(entry) > MaxLogEntrySize {
 			entry = entry[:MaxLogEntrySize] + "...(truncated)"
 		}
+		// Redact secret values from log output
+		for _, secretVal := range secrets {
+			if secretVal != "" && strings.Contains(entry, secretVal) {
+				entry = strings.ReplaceAll(entry, secretVal, "[REDACTED]")
+			}
+		}
 		logs = append(logs, entry)
 		return goja.Undefined()
 	}); err != nil {
@@ -300,12 +318,15 @@ func (s *Service) executeScript(ctx context.Context, script, entryPoint string, 
 		if len(call.Arguments) > 0 {
 			n = int(call.Arguments[0].ToInteger())
 		}
+		if n <= 0 {
+			n = 32
+		}
 		if n > 1024 {
 			n = 1024
 		}
 		bytes, err := crypto.GenerateRandomBytes(n)
 		if err != nil {
-			return goja.Undefined()
+			panic(vm.NewGoError(err))
 		}
 		return vm.ToValue(fmt.Sprintf("%x", bytes))
 	}); err != nil {
@@ -344,8 +365,12 @@ func (s *Service) executeScript(ctx context.Context, script, entryPoint string, 
 		}
 	}
 
-	// Add logs to output if any
-	if len(logs) > 0 {
+	// Add logs to output only when no secrets were injected.
+	// When secrets are present, suppress console logs entirely to prevent
+	// exfiltration via encoding, char-by-char logging, or other bypass techniques.
+	if len(secrets) > 0 {
+		delete(output, "_logs")
+	} else if len(logs) > 0 {
 		output["_logs"] = logs
 	}
 

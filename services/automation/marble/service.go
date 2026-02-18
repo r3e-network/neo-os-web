@@ -10,19 +10,18 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	gasbankclient "github.com/R3E-Network/service_layer/infrastructure/gasbank/client"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
-	txproxytypes "github.com/R3E-Network/service_layer/infrastructure/txproxy/types"
-	neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	gasbankclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/gasbank/client"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
+	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
+	neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 )
 
 const (
@@ -61,6 +60,10 @@ type Service struct {
 
 	triggerSem      chan struct{}
 	anchoredTaskSem chan struct{}
+
+	// wg tracks spawned trigger and anchored-task goroutines so Stop() can
+	// wait for them to finish.
+	wg sync.WaitGroup
 }
 
 // Scheduler manages trigger execution.
@@ -109,7 +112,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 
 	triggerConcurrency := cfg.TriggerConcurrency
 	if triggerConcurrency <= 0 {
-		if parsed, ok := parseEnvInt("NEOFLOW_TRIGGER_CONCURRENCY"); ok && parsed > 0 {
+		if parsed, ok := runtime.ParseEnvInt("NEOFLOW_TRIGGER_CONCURRENCY"); ok && parsed > 0 {
 			triggerConcurrency = parsed
 		} else {
 			triggerConcurrency = 10
@@ -117,7 +120,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	}
 	anchoredTaskConcurrency := cfg.AnchoredTaskConcurrency
 	if anchoredTaskConcurrency <= 0 {
-		if parsed, ok := parseEnvInt("NEOFLOW_ANCHORED_TASK_CONCURRENCY"); ok && parsed > 0 {
+		if parsed, ok := runtime.ParseEnvInt("NEOFLOW_ANCHORED_TASK_CONCURRENCY"); ok && parsed > 0 {
 			anchoredTaskConcurrency = parsed
 		} else {
 			anchoredTaskConcurrency = 10
@@ -200,16 +203,12 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	return s, nil
 }
 
-func parseEnvInt(key string) (int, bool) {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return 0, false
-	}
-	value, err := strconv.Atoi(raw)
-	if err != nil {
-		return 0, false
-	}
-	return value, true
+// Stop waits for all in-flight trigger and anchored-task goroutines, then
+// delegates to the embedded BaseService.Stop.
+func (s *Service) Stop() error {
+	err := s.BaseService.Stop()
+	s.wg.Wait()
+	return err
 }
 
 func (s *Service) runEventListener(ctx context.Context) {
@@ -219,7 +218,10 @@ func (s *Service) runEventListener(ctx context.Context) {
 
 	if err := s.eventListener.Start(ctx); err != nil {
 		s.Logger().WithContext(ctx).WithError(err).Warn("failed to start event listener")
+		return
 	}
+	// Block until parent context is cancelled (service shutdown)
+	<-ctx.Done()
 }
 
 func (s *Service) hydrateSchedulerCache(ctx context.Context) error {

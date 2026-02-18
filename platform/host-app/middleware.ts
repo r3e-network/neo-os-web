@@ -47,6 +47,10 @@ function buildCSP(nonce: string): string {
   if (supabaseUrl) connectSources.push(supabaseUrl);
   else if (isDev) connectSources.push("https:");
   connectSources.push(...federatedOrigins);
+  const auth0Issuer = (process.env.AUTH0_ISSUER_BASE_URL || "").trim();
+  if (auth0Issuer) {
+    connectSources.push(auth0Issuer);
+  }
   const connectSrc = connectSources.join(" ");
 
   const scriptSources = ["'self'", `'nonce-${nonce}'`, ...federatedOrigins];
@@ -68,7 +72,7 @@ function buildCSP(nonce: string): string {
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
+    `form-action 'self'${auth0Issuer ? ` ${auth0Issuer}` : ""}`,
   ];
 
   return csp.join("; ");

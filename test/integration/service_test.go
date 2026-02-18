@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 func TestMarbleInitialization(t *testing.T) {

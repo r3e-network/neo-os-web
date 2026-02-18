@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/datafeed"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/datafeed"
 )
 
 func TestFetchSinglePrice(t *testing.T) {

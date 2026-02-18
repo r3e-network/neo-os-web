@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
-	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 )
 
 func TestGetUserID_ProductionRequiresContext(t *testing.T) {

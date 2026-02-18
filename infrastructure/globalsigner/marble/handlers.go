@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/middleware"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
 )
 
 // =============================================================================

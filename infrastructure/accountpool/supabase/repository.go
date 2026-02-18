@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
 )
 
 const (
@@ -25,7 +25,9 @@ type RepositoryInterface interface {
 	GetByAddress(ctx context.Context, address string) (*Account, error)
 	List(ctx context.Context) ([]Account, error)
 	ListAvailable(ctx context.Context, limit int) ([]Account, error)
+	GetByLockedBy(ctx context.Context, lockedBy string) (*Account, error)
 	ListByLocker(ctx context.Context, lockerID string) ([]Account, error)
+	ListLocked(ctx context.Context) ([]Account, error)
 	TryLockAccount(ctx context.Context, accountID, serviceID string, lockedAt time.Time) (bool, error)
 	Delete(ctx context.Context, id string) error
 
@@ -35,6 +37,7 @@ type RepositoryInterface interface {
 	ListAvailableWithBalances(ctx context.Context, tokenType string, minBalance *int64, limit int) ([]AccountWithBalances, error)
 	ListByLockerWithBalances(ctx context.Context, lockerID string) ([]AccountWithBalances, error)
 	ListLowBalanceAccounts(ctx context.Context, tokenType string, maxBalance int64, limit int) ([]AccountWithBalances, error)
+	ListRotationCandidatesWithBalances(ctx context.Context, minAge time.Duration, limit int) ([]AccountWithBalances, error)
 
 	// Balance operations
 	UpsertBalance(ctx context.Context, accountID, tokenType, scriptHash string, amount int64, decimals int) error
@@ -88,6 +91,11 @@ func (r *Repository) GetByAddress(ctx context.Context, address string) (*Account
 	return database.GenericGetByField[Account](r.base, ctx, tableName, "address", address)
 }
 
+// GetByLockedBy fetches the first pool account locked by the given value.
+func (r *Repository) GetByLockedBy(ctx context.Context, lockedBy string) (*Account, error) {
+	return database.GenericGetByField[Account](r.base, ctx, tableName, "locked_by", lockedBy)
+}
+
 // List returns all pool accounts.
 func (r *Repository) List(ctx context.Context) ([]Account, error) {
 	return database.GenericList[Account](r.base, ctx, tableName)
@@ -115,6 +123,16 @@ func (r *Repository) ListByLocker(ctx context.Context, lockerID string) ([]Accou
 		return nil, fmt.Errorf("locker_id cannot be empty")
 	}
 	return database.GenericListByField[Account](r.base, ctx, tableName, "locked_by", lockerID)
+}
+
+// ListLocked returns all accounts that are currently locked (locked_by is not null/empty).
+func (r *Repository) ListLocked(ctx context.Context) ([]Account, error) {
+	query := database.NewQuery().
+		IsNotNull("locked_by").
+		Neq("locked_by", "").
+		Build()
+
+	return database.GenericListWithQuery[Account](r.base, ctx, tableName, query)
 }
 
 // TryLockAccount attempts to lock an account if it is currently unlocked and active.
@@ -284,6 +302,31 @@ func (r *Repository) ListLowBalanceAccounts(ctx context.Context, tokenType strin
 	return filtered, nil
 }
 
+// ListRotationCandidatesWithBalances returns unlocked, non-retiring accounts
+// older than minAge, with their balances. These are candidates for rotation.
+func (r *Repository) ListRotationCandidatesWithBalances(ctx context.Context, minAge time.Duration, limit int) ([]AccountWithBalances, error) {
+	if limit <= 0 || limit > 1000 {
+		limit = 100
+	}
+
+	cutoff := time.Now().Add(-minAge).Format(time.RFC3339)
+
+	query := database.NewQuery().
+		IsFalse("is_retiring").
+		IsNull("locked_by").
+		Lte("created_at", cutoff).
+		OrderAsc("created_at").
+		Limit(limit).
+		Build()
+
+	accounts, err := database.GenericListWithQuery[Account](r.base, ctx, tableName, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.hydrateAccountsWithBalances(ctx, accounts)
+}
+
 // hydrateAccountsWithBalances adds balance information to a list of accounts.
 // Uses a single batch query to fetch all balances, avoiding N+1 query problem.
 func (r *Repository) hydrateAccountsWithBalances(ctx context.Context, accounts []Account) ([]AccountWithBalances, error) {
@@ -335,43 +378,25 @@ func (r *Repository) hydrateAccountsWithBalances(ctx context.Context, accounts [
 // =============================================================================
 
 // UpsertBalance creates or updates a token balance for an account.
+// Uses atomic upsert (single round-trip) to eliminate race conditions.
 func (r *Repository) UpsertBalance(ctx context.Context, accountID, tokenType, scriptHash string, amount int64, decimals int) error {
 	if accountID == "" || tokenType == "" {
 		return fmt.Errorf("account_id and token_type are required")
 	}
 
-	// Check if balance exists
-	existing, err := r.GetBalance(ctx, accountID, tokenType)
-	if err != nil || existing == nil {
-		// Create new balance
-		bal := &AccountBalance{
-			AccountID:  accountID,
-			TokenType:  tokenType,
-			ScriptHash: scriptHash,
-			Amount:     amount,
-			Decimals:   decimals,
-			UpdatedAt:  time.Now(),
-		}
-		return database.GenericCreate(r.base, ctx, balancesTableName, bal, func(rows []AccountBalance) {
-			if len(rows) > 0 {
-				*bal = rows[0]
-			}
-		})
+	bal := &AccountBalance{
+		AccountID:  accountID,
+		TokenType:  tokenType,
+		ScriptHash: scriptHash,
+		Amount:     amount,
+		Decimals:   decimals,
+		UpdatedAt:  time.Now(),
 	}
-
-	// Update existing balance
-	existing.Amount = amount
-	existing.ScriptHash = scriptHash
-	existing.Decimals = decimals
-	existing.UpdatedAt = time.Now()
-
-	// Use composite key for update
-	query := database.NewQuery().
-		Eq("account_id", accountID).
-		Eq("token_type", tokenType).
-		Build()
-
-	return database.GenericUpdateWithQuery(r.base, ctx, balancesTableName, query, existing)
+	return database.GenericUpsert(r.base, ctx, balancesTableName, "account_id,token_type", bal, func(rows []AccountBalance) {
+		if len(rows) > 0 {
+			*bal = rows[0]
+		}
+	})
 }
 
 // GetBalance fetches a specific token balance for an account.
@@ -420,29 +445,16 @@ func (r *Repository) GetBalancesForAccounts(ctx context.Context, accountIDs []st
 	return database.GenericListWithQuery[AccountBalance](r.base, ctx, balancesTableName, query)
 }
 
-// DeleteBalances deletes all token balances for an account.
+// DeleteBalances deletes all token balances for an account in a single query.
 func (r *Repository) DeleteBalances(ctx context.Context, accountID string) error {
 	if accountID == "" {
 		return fmt.Errorf("account_id is required")
 	}
 
-	balances, err := r.GetBalances(ctx, accountID)
-	if err != nil {
-		return err
-	}
-
-	for i := range balances {
-		bal := &balances[i]
-		query := database.NewQuery().
-			Eq("account_id", bal.AccountID).
-			Eq("token_type", bal.TokenType).
-			Build()
-		if err := database.GenericDeleteWithQuery(r.base, ctx, balancesTableName, query); err != nil {
-			return fmt.Errorf("delete balance %s/%s: %w", bal.AccountID, bal.TokenType, err)
-		}
-	}
-
-	return nil
+	query := database.NewQuery().
+		Eq("account_id", accountID).
+		Build()
+	return database.GenericDeleteWithQuery(r.base, ctx, balancesTableName, query)
 }
 
 // =============================================================================

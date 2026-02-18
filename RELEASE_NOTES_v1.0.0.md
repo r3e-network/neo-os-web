@@ -95,8 +95,8 @@ This is the first stable release, so there are no breaking changes from previous
 ### Docker Compose (Development)
 
 ```bash
-git clone https://github.com/R3E-Network/service_layer.git
-cd service_layer
+git clone https://github.com/r3e-network/neo-miniapp-platform.git
+cd neo-miniapp-platform
 cp .env.example .env
 # Edit .env with your configuration
 make docker-up
@@ -235,7 +235,7 @@ This is the first stable release. Future upgrades will follow semantic versionin
 2. **Kubernetes**: Requires K8s 1.24+ for proper MarbleRun device plugin support
 3. **MarbleRun**: Coordinator restart requires manifest re-verification
 
-See [GitHub Issues](https://github.com/R3E-Network/service_layer/issues) for complete list.
+See [GitHub Issues](https://github.com/r3e-network/neo-miniapp-platform/issues) for complete list.
 
 ## Roadmap
 
@@ -279,7 +279,7 @@ Special thanks to all contributors who made this release possible:
 
 ### Community
 
-- **GitHub**: https://github.com/R3E-Network/service_layer
+- **GitHub**: https://github.com/r3e-network/neo-miniapp-platform
 - **Discord**: https://discord.gg/neo
 - **Forum**: https://forum.neo.org
 - **Twitter**: [@R3ENetwork](https://twitter.com/R3ENetwork)
@@ -305,6 +305,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Full Changelog**: https://github.com/R3E-Network/service_layer/compare/v0.9.0...v1.0.0
+**Full Changelog**: https://github.com/r3e-network/neo-miniapp-platform/compare/v0.9.0...v1.0.0
 
-**Download**: https://github.com/R3E-Network/service_layer/releases/tag/v1.0.0
+**Download**: https://github.com/r3e-network/neo-miniapp-platform/releases/tag/v1.0.0

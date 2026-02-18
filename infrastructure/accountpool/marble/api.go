@@ -4,7 +4,7 @@ package neoaccounts
 import (
 	"net/http"
 
-	"github.com/R3E-Network/service_layer/infrastructure/middleware"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
 )
 
 // =============================================================================
@@ -30,6 +30,9 @@ func (s *Service) registerRoutes() {
 
 	// Fund pool accounts from master wallet (TEE_PRIVATE_KEY)
 	router.Handle("/fund", middleware.RequireServiceAuth(http.HandlerFunc(s.handleFundAccount))).Methods("POST")
+
+	// Allocate custodial wallet for social login users
+	router.Handle("/user-wallet", middleware.RequireServiceAuth(http.HandlerFunc(s.handleAllocateUserWallet))).Methods("POST")
 
 	// Contract operations - all signing happens inside TEE
 	router.Handle("/deploy", middleware.RequireServiceAuth(http.HandlerFunc(s.handleDeployContract))).Methods("POST")

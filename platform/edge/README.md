@@ -7,7 +7,7 @@ intended architecture is a **thin gateway**:
 - Stateless request validation + rate limiting (backed by Postgres `rate_limits`).
 - Enforce platform rules:
   - **payments/settlement = GAS only**
-  - **governance = NEO only**
+  - **governance = bNEO only**
 - Forward sensitive requests to the **TEE services** over **mTLS** (attested TLS
   inside MarbleRun; **required in production**).
 
@@ -34,7 +34,7 @@ See `platform/edge/functions/`:
 - `miniapp-usage`: authenticated per-user daily usage.
 - `market-trending`: trending MiniApps based on rolling stats.
 - `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (GAS-only).
-- `vote-neo`: returns a Governance `vote` invocation (NEO-only).
+- `vote-bneo`: returns a Governance `vote` invocation (bNEO-only).
 - `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `registerApp` invocation (developer wallet-signed).
 - `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateApp` invocation (developer wallet-signed).
 - `rng-request`: runs RNG via `neovrf` (signature + attestation hash).

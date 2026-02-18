@@ -2,6 +2,7 @@ export interface AdminSDKConfig {
     adminBaseUrl: string;
     supabaseUrl: string;
     serviceRoleKey?: string;
+    adminApiKey?: string;
 }
 export interface ServiceHealthResponse {
     name: string;

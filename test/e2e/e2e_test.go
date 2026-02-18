@@ -13,15 +13,15 @@ import (
 	"testing"
 	"time"
 
-	neoaccounts "github.com/R3E-Network/service_layer/infrastructure/accountpool/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	neoflow "github.com/R3E-Network/service_layer/services/automation/marble"
-	neocompute "github.com/R3E-Network/service_layer/services/confcompute/marble"
-	neooracle "github.com/R3E-Network/service_layer/services/conforacle/marble"
-	neofeeds "github.com/R3E-Network/service_layer/services/datafeed/marble"
-	neogasbank "github.com/R3E-Network/service_layer/services/gasbank/marble"
-	txproxy "github.com/R3E-Network/service_layer/services/txproxy/marble"
+	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	neoflow "github.com/r3e-network/neo-miniapp-platform/services/automation/marble"
+	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/marble"
+	neooracle "github.com/r3e-network/neo-miniapp-platform/services/conforacle/marble"
+	neofeeds "github.com/r3e-network/neo-miniapp-platform/services/datafeed/marble"
+	neogasbank "github.com/r3e-network/neo-miniapp-platform/services/gasbank/marble"
+	txproxy "github.com/r3e-network/neo-miniapp-platform/services/txproxy/marble"
 )
 
 // =============================================================================

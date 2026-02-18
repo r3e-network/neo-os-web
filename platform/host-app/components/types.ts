@@ -1,6 +1,6 @@
 // MiniApp Platform Types
 
-export type MiniAppCategory = "gaming" | "defi" | "governance" | "utility" | "social" | "nft";
+export type MiniAppCategory = "gaming" | "defi" | "governance" | "utility" | "social" | "nft" | "data" | "other";
 
 export type MiniAppSource = "builtin" | "community" | "verified";
 

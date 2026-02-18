@@ -258,8 +258,8 @@ func (s *Service) tryPublishPrice(ctx context.Context, symbol string, newPrice i
 	}
 	state.lastRoundID = roundBig.Int64()
 	state.lastPublishedPrice = newPrice
-	state.lastPublishedAt = now
-	state.publishTimes = append(state.publishTimes, now)
+	state.lastPublishedAt = time.Now()
+	state.publishTimes = append(state.publishTimes, time.Now())
 	s.publishMu.Unlock()
 }
 

@@ -23,7 +23,7 @@ The `sanitize.go` module provides functions to remove or mask sensitive informat
 #### Usage Examples
 
 ```go
-import "github.com/R3E-Network/service_layer/infrastructure/security"
+import "github.com/r3e-network/neo-miniapp-platform/infrastructure/security"
 
 // Sanitize a string
 input := "Authorization: Bearer secret_token_12345"
@@ -92,8 +92,8 @@ The `ServiceAuthMiddleware` now includes:
 
 ```go
 import (
-    "github.com/R3E-Network/service_layer/infrastructure/middleware"
-    "github.com/R3E-Network/service_layer/infrastructure/logging"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 // Create middleware

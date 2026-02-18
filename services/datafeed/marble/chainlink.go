@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 // ChainlinkFeedConfig defines a Chainlink price feed configuration.
@@ -179,14 +179,33 @@ func (c *ChainlinkClient) GetPrice(ctx context.Context, feedID string) (priceFlo
 		return 0, 0, fmt.Errorf("invalid response length")
 	}
 
+	// updatedAt is the fourth 32-byte value (slot 3, chars 192-256)
+	if len(result) >= 256 {
+		updatedAtHex := result[192:256]
+		updatedAt := new(big.Int)
+		updatedAt.SetString(updatedAtHex, 16)
+		if time.Now().Unix()-updatedAt.Int64() > 3600 {
+			return 0, 0, fmt.Errorf("chainlink price stale for %s: updatedAt %d", feedID, updatedAt.Int64())
+		}
+	}
+
 	// answer is the second 32-byte value (position 32-64 bytes = chars 64-128)
 	answerHex := result[64:128]
+	// Left-pad to 64 hex chars (32 bytes) so two's complement check works correctly.
+	for len(answerHex) < 64 {
+		answerHex = "0" + answerHex
+	}
 	answerBytes, err := hex.DecodeString(answerHex)
 	if err != nil {
 		return 0, 0, fmt.Errorf("decode answer: %w", err)
 	}
 
 	answer := new(big.Int).SetBytes(answerBytes)
+	// int256: if high bit is set, the value is negative (two's complement).
+	if len(answerBytes) == 32 && answerBytes[0] >= 0x80 {
+		max := new(big.Int).Lsh(big.NewInt(1), 256)
+		answer.Sub(answer, max)
+	}
 
 	// Convert to float with decimals
 	decimals = feed.Decimals

@@ -1,6 +1,6 @@
 package txproxy
 
-import txproxytypes "github.com/R3E-Network/service_layer/infrastructure/txproxy/types"
+import txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
 
 type InvokeRequest = txproxytypes.InvokeRequest
 

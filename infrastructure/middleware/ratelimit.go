@@ -4,26 +4,35 @@ package middleware
 import (
 	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
 
-	"github.com/R3E-Network/service_layer/infrastructure/errors"
-	internalhttputil "github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/errors"
+	internalhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
+
+// limiterEntry wraps a rate.Limiter with access tracking for LRU eviction.
+type limiterEntry struct {
+	limiter    *rate.Limiter
+	lastAccess time.Time
+}
 
 // RateLimiter provides rate limiting functionality
 type RateLimiter struct {
-	limiters map[string]*rate.Limiter
+	limiters map[string]*limiterEntry
 	mu       sync.RWMutex
 	rate     rate.Limit
 	burst    int
 	limit    int
 	window   time.Duration
 	logger   *logging.Logger
+	stopCh   chan struct{}
+	stopOnce sync.Once
 }
 
 // LimiterCount returns the number of active limiters.
@@ -36,20 +45,23 @@ func (rl *RateLimiter) LimiterCount() int {
 	return len(rl.limiters)
 }
 
-// NewRateLimiter creates a new rate limiter
+// NewRateLimiter creates a new rate limiter with automatic background cleanup.
 func NewRateLimiter(requestsPerSecond, burst int, logger *logging.Logger) *RateLimiter {
-	return &RateLimiter{
-		limiters: make(map[string]*rate.Limiter),
+	rl := &RateLimiter{
+		limiters: make(map[string]*limiterEntry),
 		rate:     rate.Limit(requestsPerSecond),
 		burst:    burst,
 		limit:    requestsPerSecond,
 		window:   time.Second,
 		logger:   logger,
+		stopCh:   make(chan struct{}),
 	}
+	go rl.cleanupLoop()
+	return rl
 }
 
 // NewRateLimiterWithWindow creates a rate limiter configured by a fixed window
-// and request budget, e.g. 100 requests per 1 minute.
+// and request budget, e.g. 100 requests per 1 minute. Starts automatic background cleanup.
 func NewRateLimiterWithWindow(limit int, window time.Duration, burst int, logger *logging.Logger) *RateLimiter {
 	if window <= 0 {
 		window = time.Second
@@ -59,14 +71,17 @@ func NewRateLimiterWithWindow(limit int, window time.Duration, burst int, logger
 		requestsPerSecond = 0
 	}
 
-	return &RateLimiter{
-		limiters: make(map[string]*rate.Limiter),
+	rl := &RateLimiter{
+		limiters: make(map[string]*limiterEntry),
 		rate:     rate.Limit(requestsPerSecond),
 		burst:    burst,
 		limit:    limit,
 		window:   window,
 		logger:   logger,
+		stopCh:   make(chan struct{}),
 	}
+	go rl.cleanupLoop()
+	return rl
 }
 
 // getLimiter returns a rate limiter for the given key (e.g., user ID or IP)
@@ -74,13 +89,16 @@ func (rl *RateLimiter) getLimiter(key string) *rate.Limiter {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
-	limiter, exists := rl.limiters[key]
+	entry, exists := rl.limiters[key]
 	if !exists {
-		limiter = rate.NewLimiter(rl.rate, rl.burst)
-		rl.limiters[key] = limiter
+		entry = &limiterEntry{
+			limiter: rate.NewLimiter(rl.rate, rl.burst),
+		}
+		rl.limiters[key] = entry
 	}
+	entry.lastAccess = time.Now()
 
-	return limiter
+	return entry.limiter
 }
 
 // Handler returns the rate limiting middleware handler
@@ -122,16 +140,64 @@ func (rl *RateLimiter) Handler(next http.Handler) http.Handler {
 	})
 }
 
-// Cleanup removes old limiters (should be called periodically)
+// cleanupLoop runs periodic cleanup until Stop is called.
+func (rl *RateLimiter) cleanupLoop() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			rl.Cleanup()
+		case <-rl.stopCh:
+			return
+		}
+	}
+}
+
+// Stop terminates the background cleanup goroutine. Safe to call multiple times.
+func (rl *RateLimiter) Stop() {
+	rl.stopOnce.Do(func() { close(rl.stopCh) })
+}
+
+// Cleanup removes stale limiters based on last access time, with a hard cap
+// to bound memory usage under sustained attack.
 func (rl *RateLimiter) Cleanup() {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
-	// Remove limiters that haven't been used recently
-	// This is a simple implementation; in production, you might want
-	// to track last access time and remove based on that
-	if len(rl.limiters) > 10000 {
-		rl.limiters = make(map[string]*rate.Limiter)
+	now := time.Now()
+
+	// maxAge: entries idle longer than 2*window are stale (minimum 1 minute)
+	maxAge := 2 * rl.window
+	if maxAge < time.Minute {
+		maxAge = time.Minute
+	}
+
+	// Phase 1: evict entries that exceeded maxAge
+	for key, entry := range rl.limiters {
+		if now.Sub(entry.lastAccess) > maxAge {
+			delete(rl.limiters, key)
+		}
+	}
+
+	// Phase 2: hard cap – if still over 5000, drop oldest entries
+	const hardCap = 5000
+	if len(rl.limiters) > hardCap {
+		type kv struct {
+			key        string
+			lastAccess time.Time
+		}
+		entries := make([]kv, 0, len(rl.limiters))
+		for k, v := range rl.limiters {
+			entries = append(entries, kv{k, v.lastAccess})
+		}
+		sort.Slice(entries, func(i, j int) bool {
+			return entries[i].lastAccess.Before(entries[j].lastAccess)
+		})
+		toRemove := len(entries) - hardCap
+		for i := 0; i < toRemove; i++ {
+			delete(rl.limiters, entries[i].key)
+		}
 	}
 }
 

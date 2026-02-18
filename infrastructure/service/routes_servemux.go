@@ -3,7 +3,7 @@ package service
 import (
 	"net/http"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 func onlyGetOrHead(next http.HandlerFunc) http.HandlerFunc {

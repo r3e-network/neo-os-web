@@ -141,6 +141,7 @@
       ]
     },
     "neosimulation": {
+      "_security_note": "Zero SignerID - dev/test only. Do NOT include in production manifests.",
       "SignerID": "0000000000000000000000000000000000000000000000000000000000000000",
       "ProductID": 1,
       "SecurityVersion": 1,

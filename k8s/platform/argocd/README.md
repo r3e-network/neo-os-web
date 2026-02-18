@@ -68,7 +68,7 @@ kubectl apply -f rbac-config.yaml
 
 ### 修改仓库 URL
 
-在以下文件中将 `https://github.com/yourorg/service_layer.git` 替换为实际仓库:
+使用仓库 `https://github.com/r3e-network/neo-miniapp-platform.git`:
 
 - `application-services.yaml`
 
@@ -280,7 +280,7 @@ kubectl logs -n argocd deployment/argocd-application-controller
 kubectl get secret -n argocd | grep repo
 
 # 重新添加仓库
-argocd repo add https://github.com/yourorg/service_layer.git \
+argocd repo add https://github.com/r3e-network/neo-miniapp-platform.git \
   --username <user> --password <token>
 ```
 

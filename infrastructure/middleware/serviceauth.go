@@ -11,11 +11,11 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/R3E-Network/service_layer/infrastructure/errors"
-	internalhttputil "github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
-	"github.com/R3E-Network/service_layer/infrastructure/security"
-	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/errors"
+	internalhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/security"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 )
 
 // =============================================================================

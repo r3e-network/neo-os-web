@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	"github.com/R3E-Network/service_layer/test/fairy"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/test/fairy"
 )
 
 var coreContracts = []string{

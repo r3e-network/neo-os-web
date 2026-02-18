@@ -11,22 +11,26 @@ package neofeeds
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"fmt"
+	"math/big"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	gasbankclient "github.com/R3E-Network/service_layer/infrastructure/gasbank/client"
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
-	txproxytypes "github.com/R3E-Network/service_layer/infrastructure/txproxy/types"
+	"golang.org/x/sync/singleflight"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	gasbankclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/gasbank/client"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
+	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
 )
 
 const (
@@ -43,6 +47,8 @@ type Service struct {
 	*commonservice.BaseService
 	httpClient      *http.Client
 	signingKey      []byte
+	signingPrivKey  *ecdsa.PrivateKey
+	signingPubKey   []byte
 	chainlinkClient *ChainlinkClient
 	strictMode      bool
 
@@ -65,6 +71,14 @@ type Service struct {
 
 	// Service fee deduction
 	gasbank *gasbankclient.Client
+
+	// Price response cache
+	priceCache    map[string]*priceCacheEntry
+	priceCacheMu  sync.RWMutex
+	priceCacheTTL time.Duration
+
+	// Singleflight deduplicates concurrent upstream fetches for the same pair.
+	priceFlight singleflight.Group
 }
 
 // Config holds NeoFeeds service configuration.
@@ -171,6 +185,13 @@ func New(cfg Config) (*Service, error) {
 		updateInterval:  updateInterval,
 		enableChainPush: cfg.EnableChainPush,
 		gasbank:         cfg.GasBank,
+		priceCache:      make(map[string]*priceCacheEntry),
+		priceCacheTTL:   15 * time.Second,
+	}
+
+	// Allow TTL override via environment variable.
+	if ttlSec, ok := runtime.ParseEnvInt("PRICE_CACHE_TTL_SECONDS"); ok && ttlSec > 0 {
+		s.priceCacheTTL = time.Duration(ttlSec) * time.Second
 	}
 
 	s.attestationHash = computeAttestationHash(cfg.Marble)
@@ -179,9 +200,25 @@ func New(cfg Config) (*Service, error) {
 		s.priceFeed = chain.NewPriceFeedContract(s.chainClient, s.priceFeedHash)
 	}
 
-	// Load signing key
+	// Load signing key and derive cached ECDSA keypair.
 	if key, ok := cfg.Marble.Secret("NEOFEEDS_SIGNING_KEY"); ok && len(key) >= 32 {
 		s.signingKey = key
+
+		seed, err := crypto.DeriveKey(s.signingKey, nil, "price-signing", 32)
+		if err != nil {
+			return nil, fmt.Errorf("derive signing key: %w", err)
+		}
+		defer crypto.ZeroBytes(seed)
+
+		curve := elliptic.P256()
+		d := new(big.Int).SetBytes(seed)
+		n := new(big.Int).Sub(curve.Params().N, big.NewInt(1))
+		d.Mod(d, n)
+		d.Add(d, big.NewInt(1))
+		priv := &ecdsa.PrivateKey{PublicKey: ecdsa.PublicKey{Curve: curve}, D: d}
+		priv.PublicKey.X, priv.PublicKey.Y = curve.ScalarBaseMult(d.Bytes())
+		s.signingPrivKey = priv
+		s.signingPubKey = crypto.PublicKeyToBytes(&priv.PublicKey)
 	} else if strict {
 		return nil, fmt.Errorf("neofeeds: NEOFEEDS_SIGNING_KEY is required and must be at least 32 bytes")
 	} else {
@@ -209,7 +246,7 @@ func New(cfg Config) (*Service, error) {
 
 	sourceConcurrency := cfg.SourceConcurrency
 	if sourceConcurrency <= 0 {
-		if parsed, ok := parseEnvInt("NEOFEEDS_SOURCE_CONCURRENCY"); ok && parsed > 0 {
+		if parsed, ok := runtime.ParseEnvInt("NEOFEEDS_SOURCE_CONCURRENCY"); ok && parsed > 0 {
 			sourceConcurrency = parsed
 		} else {
 			sourceConcurrency = 8
@@ -263,18 +300,6 @@ func New(cfg Config) (*Service, error) {
 	s.registerRoutes()
 
 	return s, nil
-}
-
-func parseEnvInt(key string) (int, bool) {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return 0, false
-	}
-	value, err := strconv.Atoi(raw)
-	if err != nil {
-		return 0, false
-	}
-	return value, true
 }
 
 // statistics returns runtime statistics for the /info endpoint.

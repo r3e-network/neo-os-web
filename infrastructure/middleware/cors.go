@@ -57,6 +57,14 @@ func NewCORSMiddleware(cfg *CORSConfig) *CORSMiddleware {
 		}
 	}
 
+	if allowAll && cfgValue.AllowCredentials {
+		// CORS spec forbids wildcard origin with credentials.
+		// Force allowAll=false so each request is checked against the explicit list.
+		// If the only origin is "*", this effectively blocks all credentialed requests
+		// which is the safe default.
+		allowAll = false
+	}
+
 	return &CORSMiddleware{
 		cfg:      cfgValue,
 		allowAll: allowAll,

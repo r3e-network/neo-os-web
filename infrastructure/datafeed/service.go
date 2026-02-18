@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 // Service provides price feed data from Chainlink on Arbitrum.
@@ -15,6 +17,7 @@ type Service struct {
 	cache     *BatchPriceData
 	cacheTTL  time.Duration
 	mu        sync.RWMutex
+	sfGroup   singleflight.Group
 }
 
 // ServiceConfig holds configuration for the datafeed service.
@@ -58,17 +61,33 @@ func (s *Service) GetAllPrices(ctx context.Context) (*BatchPriceData, error) {
 	}
 	s.mu.RUnlock()
 
-	// Fetch fresh data
-	data, err := s.client.FetchAllPrices(ctx)
+	// Deduplicate concurrent fetches via singleflight.
+	v, err, _ := s.sfGroup.Do("all", func() (interface{}, error) {
+		// Re-check cache: another goroutine may have populated it.
+		s.mu.RLock()
+		if s.cache != nil && time.Since(s.cache.FetchedAt) < s.cacheTTL {
+			cached := s.cache
+			s.mu.RUnlock()
+			return cached, nil
+		}
+		s.mu.RUnlock()
+
+		data, err := s.client.FetchAllPrices(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		s.mu.Lock()
+		s.cache = data
+		s.mu.Unlock()
+
+		return data, nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	s.mu.Lock()
-	s.cache = data
-	s.mu.Unlock()
-
-	return data, nil
+	return v.(*BatchPriceData), nil
 }
 
 // BatchUpdateParams holds parameters for PriceFeed.BatchUpdate.
@@ -134,6 +153,10 @@ func FormatPrice(price int64, decimals int) string {
 		return fmt.Sprintf("%d", price)
 	}
 
+	if decimals > 18 {
+		decimals = 18
+	}
+
 	divisor := int64(1)
 	for i := 0; i < decimals; i++ {
 		divisor *= 10
@@ -141,9 +164,16 @@ func FormatPrice(price int64, decimals int) string {
 
 	whole := price / divisor
 	frac := price % divisor
+	if frac < 0 {
+		frac = -frac
+	}
 
-	format := fmt.Sprintf("%%d.%%0%dd", decimals)
-	return fmt.Sprintf(format, whole, frac)
+	// When price is negative but whole truncates to 0 (e.g. -0.5),
+	// we must emit the minus sign explicitly.
+	if price < 0 && whole == 0 {
+		return fmt.Sprintf("-%d.%0*d", whole, decimals, frac)
+	}
+	return fmt.Sprintf("%d.%0*d", whole, decimals, frac)
 }
 
 // GetAttestationHashHex returns the batch attestation hash as hex string.

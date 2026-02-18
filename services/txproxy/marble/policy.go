@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 )
 
 const (
@@ -23,7 +23,7 @@ func (s *Service) checkIntentPolicy(contractHash, method, intent string, params 
 
 	switch intent {
 	case intentPayments, "payment":
-		if s == nil || s.paymentHubHash == "" {
+		if s.paymentHubHash == "" {
 			return http.StatusServiceUnavailable, "payments intent requires PaymentHub hash configured"
 		}
 		if contractHash == s.paymentHubHash && methodLower == "pay" {
@@ -40,7 +40,7 @@ func (s *Service) checkIntentPolicy(contractHash, method, intent string, params 
 		}
 		return 0, ""
 	case intentGovernance:
-		if s == nil || s.governanceHash == "" {
+		if s.governanceHash == "" {
 			return http.StatusServiceUnavailable, "governance intent requires Governance hash configured"
 		}
 		if contractHash != s.governanceHash {

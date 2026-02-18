@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 func (s *Service) registerRoutes() {
@@ -47,7 +47,13 @@ func (s *Service) handleRandom(w http.ResponseWriter, r *http.Request) {
 
 	signature, err := crypto.Sign(s.privateKey, []byte(requestID))
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to sign VRF request", err, nil)
+		httputil.InternalError(w, "internal error")
+		return
+	}
+	if len(signature) == 0 {
+		s.Logger().Error(r.Context(), "crypto.Sign returned empty signature", nil, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 

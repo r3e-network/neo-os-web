@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
-	sllogging "github.com/R3E-Network/service_layer/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	sllogging "github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 type auditEvent struct {

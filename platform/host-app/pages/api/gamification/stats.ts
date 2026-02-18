@@ -1,14 +1,29 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { UserStats } from "@/components/features/gamification/types";
 import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
+import { standardLimit } from "@/lib/rate-limit";
+import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import { buildBadges, calculateLevel, calculateStreak, calculateXp } from "@/lib/gamification";
+import { isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
 
-// In-memory store (replace with Supabase in production)
-const userStatsStore: Map<string, UserStats> = new Map();
+type WalletStatsRow = {
+  wallet: string;
+  xp: number;
+  level: number;
+  badges: string[];
+  rank: number;
+  streak: number;
+  total_tx: number;
+  total_votes: number;
+  apps_used: number;
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
   const { wallet } = req.query;
 
-  if (!wallet || typeof wallet !== "string") {
+  if (!wallet || typeof wallet !== "string" || !isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Missing wallet");
   }
 
@@ -19,34 +34,111 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   return apiError.methodNotAllowed(res);
 }
 
-function getStats(wallet: string, res: NextApiResponse) {
-  let stats = userStatsStore.get(wallet);
+async function getStats(wallet: string, res: NextApiResponse) {
+  const emptyStats: UserStats = {
+    wallet,
+    xp: 0,
+    level: 1,
+    badges: [],
+    rank: 1,
+    streak: 0,
+    totalTx: 0,
+    totalVotes: 0,
+    appsUsed: 0,
+  };
 
-  if (!stats) {
-    // Create default stats for new user
-    stats = {
-      wallet,
-      xp: Math.floor(Math.random() * 1500),
-      level: 1,
-      badges: ["first_tx"],
-      rank: Math.floor(Math.random() * 1000) + 1,
-      streak: Math.floor(Math.random() * 30),
-      totalTx: Math.floor(Math.random() * 200),
-      totalVotes: Math.floor(Math.random() * 50),
-      appsUsed: Math.floor(Math.random() * 20),
-    };
-    stats.level = calculateLevel(stats.xp);
-    userStatsStore.set(wallet, stats);
+  if (!hasServiceRoleSupabase()) {
+    return res.status(200).json({ stats: emptyStats });
   }
 
-  return res.status(200).json({ stats });
-}
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) {
+    return res.status(200).json({ stats: emptyStats });
+  }
 
-function calculateLevel(xp: number): number {
-  if (xp >= 2000) return 6;
-  if (xp >= 1000) return 5;
-  if (xp >= 600) return 4;
-  if (xp >= 300) return 3;
-  if (xp >= 100) return 2;
-  return 1;
+  const { data, error } = await supabase.rpc("get_gamification_wallet_stats", { p_wallet: wallet });
+  if (!error && Array.isArray(data) && data.length > 0) {
+    const row = data[0] as WalletStatsRow;
+    const stats: UserStats = {
+      wallet: row.wallet || wallet,
+      xp: Number(row.xp || 0),
+      level: Number(row.level || 1),
+      badges: Array.isArray(row.badges) ? row.badges : [],
+      rank: Math.max(1, Number(row.rank || 1)),
+      streak: Number(row.streak || 0),
+      totalTx: Number(row.total_tx || 0),
+      totalVotes: Number(row.total_votes || 0),
+      appsUsed: Number(row.apps_used || 0),
+    };
+    return res.status(200).json({ stats });
+  }
+
+  if (error) {
+    logger.warn("get_gamification_wallet_stats RPC failed, using query fallback:", error.message);
+  }
+
+  // Fallback path for deployments that have not yet applied migration 045.
+  const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: false });
+  let totalTx = 0;
+  let totalVotes = 0;
+  let appsUsed = 0;
+  let streak = 0;
+
+  if (userId) {
+    const { data: usageRows, error: usageError } = await supabase
+      .from("miniapp_usage")
+      .select("app_id,usage_date,tx_count,governance_used")
+      .eq("user_id", userId)
+      .order("usage_date", { ascending: false })
+      .limit(5000);
+
+    if (usageError) {
+      logger.error("miniapp_usage fallback query failed:", usageError.message);
+      return res.status(200).json({ stats: emptyStats });
+    }
+
+    const uniqueApps = new Set<string>();
+    const activityDates: string[] = [];
+    for (const row of usageRows || []) {
+      totalTx += Number(row.tx_count || 0);
+      if (Number(row.governance_used || 0) > 0) {
+        totalVotes += Number(row.tx_count || 0);
+      }
+      if (row.app_id) uniqueApps.add(row.app_id);
+      if (row.usage_date) activityDates.push(String(row.usage_date));
+    }
+    appsUsed = uniqueApps.size;
+    streak = calculateStreak(activityDates);
+  } else {
+    const { data: txRows, error: txError } = await supabase
+      .from("miniapp_tx_events")
+      .select("app_id,event_date")
+      .eq("sender_address", wallet)
+      .order("event_date", { ascending: false })
+      .limit(5000);
+
+    if (txError) {
+      logger.error("miniapp_tx_events fallback query failed:", txError.message);
+      return res.status(200).json({ stats: emptyStats });
+    }
+
+    totalTx = (txRows || []).length;
+    appsUsed = new Set((txRows || []).map((row) => row.app_id).filter(Boolean)).size;
+    streak = calculateStreak((txRows || []).map((row) => String(row.event_date || "")).filter(Boolean));
+  }
+
+  const xp = calculateXp(totalTx, appsUsed, totalVotes, streak);
+  const stats: UserStats = {
+    wallet,
+    xp,
+    level: calculateLevel(xp),
+    badges: buildBadges(totalTx, appsUsed, totalVotes, streak),
+    rank: 1,
+    streak,
+    totalTx,
+    totalVotes,
+    appsUsed,
+  };
+
+  return res.status(200).json({ stats });
 }

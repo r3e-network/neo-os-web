@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	"github.com/R3E-Network/service_layer/infrastructure/secrets"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/secrets"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 )
 
 const (
@@ -32,9 +32,10 @@ type Service struct {
 type Config struct {
 	Marble         *marble.Marble
 	SecretProvider secrets.Provider
-	MaxBodyBytes   int64        // optional response cap; default 2MB
-	URLAllowlist   URLAllowlist // optional allowlist for outbound fetch
+	MaxBodyBytes   int64            // optional response cap; default 2MB
+	URLAllowlist   URLAllowlist     // optional allowlist for outbound fetch
 	Timeout        time.Duration
+	Transport      http.RoundTripper // optional; defaults to httputil.NewSafeTransport() (SSRF-safe)
 }
 
 // New creates a new NeoOracle service.
@@ -76,6 +77,12 @@ func New(cfg Config) (*Service, error) {
 			client := &http.Client{Timeout: timeout}
 			if cfg.Marble != nil {
 				client = httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), timeout, true)
+			}
+			// Layer SSRF-safe transport: resolve DNS up front and reject private IPs.
+			if cfg.Transport != nil {
+				client.Transport = cfg.Transport
+			} else {
+				client.Transport = httputil.NewSafeTransport()
 			}
 			return client
 		}(),

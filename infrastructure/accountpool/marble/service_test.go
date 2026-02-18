@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
+	neoaccountssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 )
 
 // =============================================================================
@@ -94,10 +94,32 @@ func (m *mockNeoAccountsRepo) ListAvailable(_ context.Context, limit int) ([]neo
 	return result, nil
 }
 
+func (m *mockNeoAccountsRepo) GetByLockedBy(_ context.Context, lockedBy string) (*neoaccountssupabase.Account, error) {
+	for _, acc := range m.accounts {
+		if acc.LockedBy == lockedBy {
+			return acc, nil
+		}
+	}
+	return nil, fmt.Errorf("account not found by locked_by: %s", lockedBy)
+}
+
 func (m *mockNeoAccountsRepo) ListByLocker(_ context.Context, lockerID string) ([]neoaccountssupabase.Account, error) {
 	var result []neoaccountssupabase.Account
 	for _, acc := range m.accounts {
 		if acc.LockedBy == lockerID {
+			result = append(result, *acc)
+		}
+	}
+	return result, nil
+}
+
+func (m *mockNeoAccountsRepo) ListLocked(_ context.Context) ([]neoaccountssupabase.Account, error) {
+	if m.simulateError {
+		return nil, fmt.Errorf("simulated database error")
+	}
+	var result []neoaccountssupabase.Account
+	for _, acc := range m.accounts {
+		if acc.LockedBy != "" {
 			result = append(result, *acc)
 		}
 	}
@@ -192,6 +214,28 @@ func (m *mockNeoAccountsRepo) ListByLockerWithBalances(_ context.Context, locker
 				}
 			}
 			result = append(result, *accWithBal)
+		}
+	}
+	return result, nil
+}
+
+func (m *mockNeoAccountsRepo) ListRotationCandidatesWithBalances(_ context.Context, minAge time.Duration, limit int) ([]neoaccountssupabase.AccountWithBalances, error) {
+	if m.simulateError {
+		return nil, fmt.Errorf("simulated database error")
+	}
+	var result []neoaccountssupabase.AccountWithBalances
+	for _, acc := range m.accounts {
+		if !acc.IsRetiring && acc.LockedBy == "" && time.Since(acc.CreatedAt) > minAge {
+			accWithBal := neoaccountssupabase.NewAccountWithBalances(acc)
+			if bals, ok := m.balances[acc.ID]; ok {
+				for _, bal := range bals {
+					accWithBal.AddBalance(bal)
+				}
+			}
+			result = append(result, *accWithBal)
+			if limit > 0 && len(result) >= limit {
+				break
+			}
 		}
 	}
 	return result, nil
@@ -380,7 +424,7 @@ func TestGetPrivateKeyValid(t *testing.T) {
 
 	svc, _ := New(Config{Marble: m})
 
-	priv, err := svc.getPrivateKey("test-account")
+	priv, err := svc.getPrivateKey(&neoaccountssupabase.Account{ID: "test-account"})
 	if err != nil {
 		t.Fatalf("getPrivateKey: %v", err)
 	}
@@ -408,8 +452,8 @@ func TestGetPrivateKeyDeterministic(t *testing.T) {
 
 	svc, _ := New(Config{Marble: m})
 
-	priv1, _ := svc.getPrivateKey("account-x")
-	priv2, _ := svc.getPrivateKey("account-x")
+	priv1, _ := svc.getPrivateKey(&neoaccountssupabase.Account{ID: "account-x"})
+	priv2, _ := svc.getPrivateKey(&neoaccountssupabase.Account{ID: "account-x"})
 
 	if priv1.D.Cmp(priv2.D) != 0 {
 		t.Error("same account should produce same private key")
@@ -2480,10 +2524,11 @@ func BenchmarkGetPrivateKey(b *testing.B) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("benchmark-master-key-32-bytes!!!"))
 	svc, _ := New(Config{Marble: m})
+	acc := &neoaccountssupabase.Account{ID: "benchmark-account"}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = svc.getPrivateKey("benchmark-account")
+		_, _ = svc.getPrivateKey(acc)
 	}
 }
 

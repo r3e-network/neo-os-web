@@ -3,13 +3,14 @@ package neoaccounts
 import (
 	"crypto/elliptic"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 const (
@@ -113,15 +114,7 @@ func parseHash(v []byte) ([]byte, error) {
 }
 
 func equalHash(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+	return subtle.ConstantTimeCompare(a, b) == 1
 }
 
 // MasterKeySummary exposes non-sensitive metadata for off-chain attestation

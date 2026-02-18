@@ -126,7 +126,7 @@ All on-chain *writes* are delegated to `services/txproxy` (allowlisted sign+broa
 ### Repository Interface
 
 ```go
-import neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
+import neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 
 // Create repository
 neoflowRepo := neoflowsupabase.NewRepository(baseRepo)

@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {

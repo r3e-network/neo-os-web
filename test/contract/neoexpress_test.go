@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 )
 
 const (

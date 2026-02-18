@@ -127,7 +127,7 @@ src/
 - `GET /api/services/health` - Check all services health
 - `GET /api/analytics` - Fetch analytics overview
 - `GET /api/analytics/by-app` - Fetch usage by app
-- `POST /api/miniapps/update-status` - Update MiniApp status
+- `POST /api/miniapps/update-status` - Prepare AppRegistry `setStatus` on-chain invocation (and optional cache patch)
 
 ## License
 

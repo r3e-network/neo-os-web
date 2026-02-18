@@ -563,6 +563,6 @@ Webhook URLs are configured inside a NeoFlow trigger’s `action` payload.
 For API support and questions:
 
 - **Documentation**: https://docs.service-layer.neo.org
-- **GitHub Issues**: https://github.com/R3E-Network/service_layer/issues
+- **GitHub Issues**: https://github.com/r3e-network/neo-miniapp-platform/issues
 - **Discord**: https://discord.gg/neo
 - **Email**: support@r3e-network.org

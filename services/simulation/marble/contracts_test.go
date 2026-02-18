@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	neoaccountsclient "github.com/R3E-Network/service_layer/infrastructure/accountpool/client"
+	neoaccountsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/client"
 )
 
 // =============================================================================

@@ -137,7 +137,7 @@ This document summarizes the security fixes implemented to address three critica
 === RUN   TestIsSensitiveKey
 --- PASS: TestIsSensitiveKey (0.00s)
 PASS
-ok  	github.com/R3E-Network/service_layer/infrastructure/security	0.002s
+ok  	github.com/r3e-network/neo-miniapp-platform/infrastructure/security	0.002s
 ```
 
 ### Middleware Tests
@@ -147,7 +147,7 @@ ok  	github.com/R3E-Network/service_layer/infrastructure/security	0.002s
 --- PASS: TestServiceAuthMiddleware_ValidToken (0.03s)
 ... (16 tests total)
 PASS
-ok  	github.com/R3E-Network/service_layer/infrastructure/middleware	2.264s
+ok  	github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware	2.264s
 ```
 
 All existing tests continue to pass, confirming backward compatibility.

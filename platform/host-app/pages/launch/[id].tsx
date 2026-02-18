@@ -357,16 +357,9 @@ export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (co
   const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
 
   try {
-    const res = await fetch(`${baseUrl}/api/miniapp-stats?app_id=${encodeURIComponent(id)}`);
-    const payload = await res.json();
-    const statsList = Array.isArray(payload?.stats)
-      ? payload.stats
-      : Array.isArray(payload)
-        ? payload
-        : payload
-          ? [payload]
-          : [];
-    const raw = statsList.find((item: Record<string, unknown>) => item?.app_id === id) ?? statsList[0];
+    const catalogRes = await fetch(`${baseUrl}/api/miniapps/catalog?app_id=${encodeURIComponent(id)}`);
+    const catalogPayload = await catalogRes.json().catch(() => null);
+    const raw = catalogPayload?.app || null;
     const app = coerceMiniAppInfo(raw, fallback) ?? fallback ?? null;
     if (!app) {
       return { notFound: true };

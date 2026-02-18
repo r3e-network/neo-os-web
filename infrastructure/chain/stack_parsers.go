@@ -107,7 +107,9 @@ func ParseInteger(item StackItem) (*big.Int, error) {
 			return nil, err
 		}
 		n := new(big.Int)
-		n.SetString(value, 10)
+		if _, ok := n.SetString(value, 10); !ok {
+			return nil, fmt.Errorf("invalid integer value: %q", value)
+		}
 		return n, nil
 	}
 	return nil, fmt.Errorf("unexpected type: %s", item.Type)

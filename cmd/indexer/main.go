@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/R3E-Network/service_layer/services/indexer"
+	"github.com/r3e-network/neo-miniapp-platform/services/indexer"
 	"github.com/sirupsen/logrus"
 )
 

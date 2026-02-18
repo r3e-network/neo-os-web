@@ -29,9 +29,9 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
 )
 
 const (

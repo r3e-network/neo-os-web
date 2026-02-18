@@ -7,16 +7,15 @@ import (
 	"crypto/elliptic"
 	"fmt"
 	"math/big"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 )
 
 const (
@@ -85,7 +84,7 @@ func New(cfg Config) (*Service, error) {
 
 	replayWindow := cfg.ReplayWindow
 	if replayWindow <= 0 {
-		if parsed, ok := parseEnvDuration("NEOVRF_REPLAY_WINDOW"); ok {
+		if parsed, ok := runtime.ParseEnvDuration("NEOVRF_REPLAY_WINDOW"); ok {
 			replayWindow = parsed
 		}
 	}
@@ -117,8 +116,11 @@ func (s *Service) markSeen(ctx context.Context, requestID string) bool {
 		windowSeconds := int(s.replayWindow.Seconds())
 		seen, err := db.MarkRequestSeen(ctx, ServiceID, requestID, windowSeconds)
 		if err != nil {
-			s.Logger().WithError(err).Warn("replay check failed, falling back to in-memory")
-			return s.markSeenInMemory(requestID)
+			// Conservative: reject the request when DB is unavailable.
+			// Falling back to in-memory could allow replays across restarts
+			// or multiple instances. Prefer false negatives over accepting replays.
+			s.Logger().WithError(err).Warn("replay check failed, rejecting request (conservative)")
+			return false
 		}
 		return seen
 	}
@@ -144,7 +146,6 @@ func (s *Service) cleanupReplay() {
 		defer cancel()
 		if _, err := db.CleanupSeenRequests(ctx, ServiceID); err != nil {
 			s.Logger().WithError(err).Warn("failed to cleanup seen requests in DB")
-			return
 		}
 	}
 	s.cleanupReplayInMemory()
@@ -162,17 +163,6 @@ func (s *Service) cleanupReplayInMemory() {
 	}
 }
 
-func parseEnvDuration(key string) (time.Duration, bool) {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return 0, false
-	}
-	parsed, err := time.ParseDuration(raw)
-	if err != nil {
-		return 0, false
-	}
-	return parsed, true
-}
 
 func (s *Service) initSigningKey() error {
 	if len(s.signingKey) >= 32 {

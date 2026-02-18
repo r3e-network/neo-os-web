@@ -34,6 +34,7 @@ beforeEach(() => {
   vi.stubEnv("ADMIN_CONSOLE_API_KEY", API_KEY);
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "srk");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://supabase.test");
+  vi.stubEnv("CONTRACT_APPREGISTRY_HASH", "0x1111111111111111111111111111111111111111");
   fetchSpy = vi.fn();
   vi.stubGlobal("fetch", fetchSpy);
   vi.resetModules();
@@ -221,6 +222,101 @@ describe("POST /api/miniapps/update-status", () => {
     const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/update-status/route");
     const res = await POST(postReq({ appId: "my-app", status: "active" }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ success: true });
+    const payload = await res.json();
+    expect(payload).toMatchObject({
+      success: true,
+      requires_onchain_confirmation: true,
+      target_status: "active",
+      invocation: {
+        method: "setStatus",
+      },
+    });
+  });
+});
+
+// ==========================================================================
+// 6. GET /api/miniapps
+// ==========================================================================
+
+describe("GET /api/miniapps", () => {
+  it("rejects invalid app_id filter → 400", async () => {
+    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/route");
+    const res = await GET(authedRequest("http://localhost/api/miniapps?app_id=INVALID!!!"));
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects invalid status filter → 400", async () => {
+    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/route");
+    const res = await GET(authedRequest("http://localhost/api/miniapps?status=deleted"));
+    expect(res.status).toBe(400);
+  });
+});
+
+// ==========================================================================
+// 7. PATCH /api/miniapps/[id]
+// ==========================================================================
+
+describe("PATCH /api/miniapps/[id]", () => {
+  const url = "http://localhost/api/miniapps/my-app";
+
+  function patchReq(body: unknown) {
+    return authedRequest(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("rejects invalid path app_id → 400", async () => {
+    const { PATCH } = await importRoute<{
+      PATCH: (r: Request, ctx: { params: { id: string } }) => Promise<Response>;
+    }>("@/app/api/miniapps/[id]/route");
+
+    const res = await PATCH(patchReq({ name: "ok-name" }), { params: { id: "INVALID!!!" } });
+    expect(res.status).toBe(400);
+  });
+
+  it("allows updating empty arrays/objects in patch payload", async () => {
+    fetchSpy.mockImplementation((input: string | URL | Request, init?: RequestInit) => {
+      const urlString = String(input);
+      if ((init?.method || "GET").toUpperCase() === "PATCH") {
+        return mockJsonResponse([{ app_id: "my-app" }]);
+      }
+      if (urlString.includes("/rest/v1/miniapps?app_id=eq.my-app")) {
+        return mockJsonResponse([
+          {
+            manifest: {
+              app_id: "my-app",
+              name: "App",
+              entry_url: "https://example.com",
+              permissions: { rng: true },
+              assets_allowed: ["GAS"],
+            },
+          },
+        ]);
+      }
+      return mockJsonResponse([]);
+    });
+
+    const { PATCH } = await importRoute<{
+      PATCH: (r: Request, ctx: { params: { id: string } }) => Promise<Response>;
+    }>("@/app/api/miniapps/[id]/route");
+
+    const res = await PATCH(
+      patchReq({
+        assets_allowed: [],
+        permissions: {},
+        limits: {},
+      }),
+      { params: { id: "my-app" } },
+    );
+
+    expect(res.status).toBe(200);
+    const patchCall = fetchSpy.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === "PATCH");
+    expect(patchCall).toBeTruthy();
+    const body = JSON.parse(String((patchCall?.[1] as RequestInit).body || "{}"));
+    expect(body.assets_allowed).toEqual([]);
+    expect(body.permissions).toEqual({});
+    expect(body.limits).toEqual({});
   });
 });

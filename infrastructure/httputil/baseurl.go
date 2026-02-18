@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 )
 
 // BaseURLOptions configures NormalizeBaseURL.

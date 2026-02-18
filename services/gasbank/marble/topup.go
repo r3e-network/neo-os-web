@@ -5,12 +5,16 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
-	neoaccountsclient "github.com/R3E-Network/service_layer/infrastructure/accountpool/client"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
+	neoaccountsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/client"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 )
+
+// validTxHashRe matches a 0x-prefixed 64-character hex string.
+var validTxHashRe = regexp.MustCompile(`^0x[0-9a-fA-F]{64}$`)
 
 const (
 	// TopUpThreshold is the minimum GAS balance (in 8 decimals) before top-up
@@ -147,6 +151,10 @@ func (s *Service) topUpAccount(ctx context.Context, poolClient *neoaccountsclien
 		return s.simulatedTopUp(ctx, fmt.Errorf("account pool fund returned empty tx hash"), toAddress, amount)
 	}
 
+	if !validTxHashRe.MatchString(resp.TxHash) {
+		s.Logger().WithContext(ctx).WithField("tx_hash", resp.TxHash).Warn("fund returned tx hash with unexpected format")
+	}
+
 	return resp.TxHash, nil
 }
 
@@ -169,23 +177,36 @@ func (s *Service) simulatedTopUp(ctx context.Context, cause error, toAddress str
 	return "0x0000000000000000000000000000000000000000000000000000000000000000", nil
 }
 
-// getAccountPoolClient returns a client for the account pool service.
+// getAccountPoolClient returns a lazily-initialized, reused client for the
+// account pool service. Transient errors (e.g. env not yet populated by an
+// init-container) are not cached so callers can retry on the next call.
 func (s *Service) getAccountPoolClient() (*neoaccountsclient.Client, error) {
-	// Get account pool service URL from environment or use default
+	s.poolClientMu.Lock()
+	defer s.poolClientMu.Unlock()
+
+	if s.poolClient != nil {
+		return s.poolClient, nil
+	}
+
 	poolURL := strings.TrimSpace(os.Getenv("NEOACCOUNTS_SERVICE_URL"))
 	if poolURL == "" {
 		poolURL = "https://neoaccounts:8085" // Default service mesh URL
 	}
-
-	return neoaccountsclient.New(neoaccountsclient.Config{
+	client, err := neoaccountsclient.New(neoaccountsclient.Config{
 		BaseURL:    poolURL,
 		ServiceID:  ServiceID,
 		HTTPClient: s.Marble().HTTPClient(),
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache on success only; errors are not cached so callers can retry.
+	s.poolClient = client
+	return client, nil
 }
 
 // isAutoTopUpEnabled checks if auto top-up is enabled via environment variable.
 func (s *Service) isAutoTopUpEnabled() bool {
-	enabled := strings.TrimSpace(os.Getenv("TOPUP_ENABLED"))
-	return enabled == "true" || enabled == "1"
+	return runtime.ParseEnvBoolKey("TOPUP_ENABLED")
 }

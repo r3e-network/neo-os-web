@@ -1,8 +1,8 @@
 package neoaccounts
 
 import (
-	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
-	neoaccountstypes "github.com/R3E-Network/service_layer/infrastructure/accountpool/types"
+	neoaccountssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
+	neoaccountstypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/types"
 )
 
 // Re-export token constants for convenience

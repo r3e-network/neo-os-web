@@ -15,8 +15,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 )
 
 func (s *Service) checkAndExecuteTriggers(ctx context.Context) {
@@ -40,7 +40,9 @@ func (s *Service) checkAndExecuteTriggers(ctx context.Context) {
 					s.Logger().WithContext(ctx).WithField("trigger_id", trigger.ID).Warn("trigger execution skipped due to concurrency limit")
 					continue
 				}
+				s.wg.Add(1)
 				go func(t *neoflowsupabase.Trigger) {
+					defer s.wg.Done()
 					defer s.releaseTriggerSlot()
 					s.executeTrigger(ctx, t)
 				}(trigger)
@@ -185,7 +187,7 @@ func (s *Service) dispatchAction(ctx context.Context, actionRaw json.RawMessage)
 			return fmt.Errorf("webhook status %d", resp.StatusCode)
 		}
 	default:
-		// Unknown action type; ignore
+		return fmt.Errorf("unsupported action type: %q", action.Type)
 	}
 	return nil
 }

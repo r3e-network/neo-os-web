@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (app_id) {
     const appIdStr = String(app_id);
-    if (!/^[a-zA-Z0-9_-]+$/.test(appIdStr)) {
+    if (!/^[a-zA-Z0-9._-]+$/.test(appIdStr)) {
       return apiError.badRequest(res, "Invalid app_id");
     }
     params.set("app_id", appIdStr);

@@ -125,7 +125,7 @@ Configure golangci-lint and ensure code consistency across the codebase.
 
 **Key Settings**:
 - Timeout: 5 minutes
-- Local imports prefix: `github.com/R3E-Network/service_layer`
+- Local imports prefix: `github.com/r3e-network/neo-miniapp-platform`
 - Exported functions require documentation
 - Security checks enabled (with reasonable exclusions)
 - Test files have relaxed rules

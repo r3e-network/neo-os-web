@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/middleware"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
 )
 
 func TestLoadMasterKey_SetsDerivedFields(t *testing.T) {

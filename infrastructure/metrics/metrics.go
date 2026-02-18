@@ -9,7 +9,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 )
 
 // Metrics holds all Prometheus metrics

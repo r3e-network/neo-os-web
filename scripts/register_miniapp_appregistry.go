@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	neorequestsupabase "github.com/R3E-Network/service_layer/services/requests/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	neorequestsupabase "github.com/r3e-network/neo-miniapp-platform/services/requests/supabase"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient"
@@ -682,8 +682,8 @@ func enforceAssetPolicy(canonical map[string]any) error {
 	if err != nil {
 		return err
 	}
-	if len(governanceList) != 1 || governanceList[0] != "NEO" {
-		return fmt.Errorf("manifest.governance_assets_allowed must be exactly [\"NEO\"]")
+	if len(governanceList) != 1 || governanceList[0] != "BNEO" {
+		return fmt.Errorf("manifest.governance_assets_allowed must be exactly [\"BNEO\"]")
 	}
 	return nil
 }

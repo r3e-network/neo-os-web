@@ -7,7 +7,7 @@ Goals:
 - keep the gateway **thin** (auth, limits, routing)
 - enforce platform rules:
   - **payments = GAS only**
-  - **governance = NEO only**
+  - **governance = bNEO only**
 - forward sensitive operations to **TEE services** over **mTLS** in production
 
 Required env vars:
@@ -76,7 +76,7 @@ Gas bank (delegated payments):
 On-chain invocations (wallet-signed):
 
 - `pay-gas`: returns a GAS `transfer` invocation to `PaymentHub` (**GAS only**).
-- `vote-neo`: returns a `Governance.vote` invocation (**NEO only**).
+- `vote-bneo`: returns a `Governance.vote` invocation (**bNEO only**).
 - `app-register`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.registerApp` invocation (developer wallet-signed).
 - `app-update-manifest`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.updateApp` invocation (developer wallet-signed).
 

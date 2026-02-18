@@ -17,12 +17,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
+	neoaccountsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/client"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 )
 
 const (
@@ -45,12 +46,15 @@ var errDepositMismatch = errors.New("deposit transaction does not match request"
 // Service implements the NeoGasBank service.
 type Service struct {
 	*commonservice.BaseService
-	mu sync.RWMutex
 
 	chainClient *chain.Client
 	db          database.RepositoryInterface
 
 	depositAddress string
+
+	// Lazy-initialized account pool client (reused across top-up calls)
+	poolClientMu sync.Mutex
+	poolClient   *neoaccountsclient.Client
 }
 
 // Config holds NeoGasBank service configuration.
@@ -165,7 +169,7 @@ func (s *Service) GetAccount(ctx context.Context, userID string) (*GetAccountRes
 		UserID:    account.UserID,
 		Balance:   account.Balance,
 		Reserved:  account.Reserved,
-		Available: account.Balance - account.Reserved,
+		Available: max(0, account.Balance-account.Reserved),
 		CreatedAt: account.CreatedAt,
 		UpdatedAt: account.UpdatedAt,
 	}, nil
@@ -186,7 +190,8 @@ func (s *Service) DeductFee(ctx context.Context, req *DeductFeeRequest) (*Deduct
 
 	result, err := s.db.DeductFeeAtomic(ctx, req.UserID, req.Amount, req.ServiceID, req.ReferenceID)
 	if err != nil {
-		return &DeductFeeResponse{Success: false, Error: fmt.Sprintf("atomic deduct: %v", err)}, nil
+		s.Logger().WithContext(ctx).WithError(err).WithField("user_id", req.UserID).Error("atomic deduct failed")
+		return &DeductFeeResponse{Success: false, Error: "fee deduction failed"}, nil
 	}
 
 	if !result.Success {
@@ -320,6 +325,9 @@ func (s *Service) verifyTransaction(ctx context.Context, txHash, fromAddress str
 	if s.chainClient == nil {
 		return false, 0, fmt.Errorf("chain client not configured")
 	}
+	if expectedAmount <= 0 {
+		return false, 0, fmt.Errorf("invalid expected amount: %d", expectedAmount)
+	}
 
 	// Get transaction from chain
 	appLog, err := s.chainClient.GetApplicationLog(ctx, txHash)
@@ -356,6 +364,9 @@ func (s *Service) matchGasTransfer(notifications []chain.Notification, fromAddre
 	expected := big.NewInt(expectedAmount)
 	fromAddress = strings.TrimSpace(fromAddress)
 	depositAddress := strings.TrimSpace(s.depositAddress)
+	if depositAddress == "" {
+		return false, fmt.Errorf("deposit address not configured")
+	}
 
 	for _, notif := range notifications {
 		if !strings.EqualFold(notif.Contract, GASContractHash) {
@@ -427,11 +438,11 @@ func (s *Service) getTransactionConfirmations(ctx context.Context, txHash string
 
 	block, err := s.chainClient.GetBlock(ctx, meta.BlockHash)
 	if err != nil {
-		return meta.Confirmations, nil
+		return 0, fmt.Errorf("failed to compute confirmations: %w", err)
 	}
 	currentHeight, err := s.chainClient.GetBlockCount(ctx)
 	if err != nil {
-		return meta.Confirmations, nil
+		return 0, fmt.Errorf("failed to compute confirmations: %w", err)
 	}
 	if currentHeight <= block.Index {
 		return 0, nil
@@ -455,12 +466,20 @@ func (s *Service) confirmDeposit(ctx context.Context, deposit *database.DepositR
 	}
 
 	if !result.Success {
-		s.Logger().WithContext(ctx).WithField("user_id", deposit.UserID).WithField("error", result.Error).Warn("atomic deposit credit failed")
+		if result.Error == "already credited" {
+			// Idempotent success — mark as completed to stop retries
+			if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {
+				s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update already-credited deposit status")
+			}
+			s.Logger().WithContext(ctx).WithField("deposit_id", deposit.ID).Debug("deposit already credited, marked as confirmed")
+			return
+		}
+		// Permanent failure — mark as failed to stop retries
+		if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusFailed), deposit.Confirmations); err != nil {
+			s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status to failed")
+		}
+		s.Logger().WithContext(ctx).WithField("user_id", deposit.UserID).WithField("error", result.Error).Warn("atomic deposit credit failed permanently")
 		return
-	}
-
-	if result.Error == "already credited" {
-		s.Logger().WithContext(ctx).WithField("deposit_id", deposit.ID).Debug("deposit already credited, updating status only")
 	}
 
 	if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirmed), RequiredConfirmations); err != nil {

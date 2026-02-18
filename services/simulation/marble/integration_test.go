@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

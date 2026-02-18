@@ -146,6 +146,8 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   nft: Palette,
   governance: Vote,
   utility: ClipboardList,
+  data: BarChart3,
+  other: Puzzle,
 };
 
 // Category gradient colors for logo background
@@ -156,11 +158,13 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
   governance: "from-emerald-500 to-teal-600",
   utility: "from-slate-500 to-gray-600",
   nft: "from-teal-500 to-emerald-600",
+  data: "from-cyan-500 to-sky-700",
+  other: "from-slate-500 to-zinc-700",
 };
 
 interface MiniAppLogoProps {
   appId: string;
-  category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
+  category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
   size?: "sm" | "md" | "lg";
   className?: string;
 }

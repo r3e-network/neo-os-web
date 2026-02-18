@@ -4,17 +4,19 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
 	"golang.org/x/time/rate"
 
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 func TestNewRateLimiter(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(10, 20, logger)
+	t.Cleanup(rl.Stop)
 
 	if rl == nil {
 		t.Fatal("NewRateLimiter() returned nil")
@@ -35,11 +37,16 @@ func TestNewRateLimiter(t *testing.T) {
 	if rl.limiters == nil {
 		t.Error("limiters map not initialized")
 	}
+
+	if rl.stopCh == nil {
+		t.Error("stopCh not initialized")
+	}
 }
 
 func TestRateLimiter_getLimiter(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(10, 20, logger)
+	t.Cleanup(rl.Stop)
 
 	// Get limiter for first time
 	limiter1 := rl.getLimiter("key1")
@@ -60,14 +67,15 @@ func TestRateLimiter_getLimiter(t *testing.T) {
 	}
 
 	// Check limiters map size
-	if len(rl.limiters) != 2 {
-		t.Errorf("limiters map size = %d, want 2", len(rl.limiters))
+	if rl.LimiterCount() != 2 {
+		t.Errorf("limiters map size = %d, want 2", rl.LimiterCount())
 	}
 }
 
 func TestRateLimiter_Handler_AllowsRequests(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(100, 100, logger) // High limit
+	t.Cleanup(rl.Stop)
 
 	handler := rl.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -87,6 +95,7 @@ func TestRateLimiter_Handler_AllowsRequests(t *testing.T) {
 func TestRateLimiter_Handler_BlocksExcessiveRequests(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(1, 1, logger) // Very low limit
+	t.Cleanup(rl.Stop)
 
 	handler := rl.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -116,6 +125,7 @@ func TestRateLimiter_Handler_BlocksExcessiveRequests(t *testing.T) {
 func TestRateLimiter_Handler_UsesUserID(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(1, 1, logger)
+	t.Cleanup(rl.Stop)
 
 	handler := rl.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -148,6 +158,7 @@ func TestRateLimiter_Handler_UsesUserID(t *testing.T) {
 func TestRateLimiter_Handler_DifferentIPsIndependent(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(1, 1, logger)
+	t.Cleanup(rl.Stop)
 
 	handler := rl.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -177,6 +188,7 @@ func TestRateLimiter_Handler_DifferentIPsIndependent(t *testing.T) {
 func TestRateLimiter_Handler_BurstAllowance(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(1, 3, logger) // Allow burst of 3
+	t.Cleanup(rl.Stop)
 
 	handler := rl.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -208,38 +220,43 @@ func TestRateLimiter_Handler_BurstAllowance(t *testing.T) {
 func TestRateLimiter_Cleanup(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(10, 20, logger)
+	t.Cleanup(rl.Stop)
 
-	// Add many limiters
-	for i := 0; i < 15000; i++ {
-		rl.getLimiter(string(rune(i)))
+	// Add many limiters (all freshly accessed, so time-based eviction won't help)
+	for i := 0; i < 7000; i++ {
+		rl.getLimiter("key-" + strconv.Itoa(i))
 	}
 
-	initialSize := len(rl.limiters)
-	if initialSize < 10000 {
-		t.Errorf("Initial size = %d, expected > 10000", initialSize)
+	initialSize := rl.LimiterCount()
+	if initialSize != 7000 {
+		t.Errorf("Initial size = %d, expected 7000", initialSize)
 	}
 
-	// Cleanup should reset if size > 10000
+	// Cleanup should enforce hard cap of 5000
 	rl.Cleanup()
 
 	finalSize := rl.LimiterCount()
-	if finalSize != 0 {
-		t.Errorf("Final size = %d, want 0", finalSize)
+	if finalSize > 5000 {
+		t.Errorf("Final size = %d, want <= 5000", finalSize)
+	}
+	if finalSize == 0 {
+		t.Error("Cleanup should not nuke all entries, only evict oldest")
 	}
 }
 
 func TestRateLimiter_Cleanup_NoResetIfSmall(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(10, 20, logger)
+	t.Cleanup(rl.Stop)
 
-	// Add few limiters
+	// Add few limiters (all freshly accessed)
 	for i := 0; i < 100; i++ {
-		rl.getLimiter(string(rune(i)))
+		rl.getLimiter("key-" + strconv.Itoa(i))
 	}
 
 	initialSize := rl.LimiterCount()
 
-	// Cleanup should not reset if size <= 10000
+	// Cleanup should not remove freshly accessed entries under hard cap
 	rl.Cleanup()
 
 	finalSize := rl.LimiterCount()
@@ -251,10 +268,11 @@ func TestRateLimiter_Cleanup_NoResetIfSmall(t *testing.T) {
 func TestRateLimiter_StartCleanup(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(10, 20, logger)
+	t.Cleanup(rl.Stop)
 
-	// Add many limiters
-	for i := 0; i < 15000; i++ {
-		rl.getLimiter(string(rune(i)))
+	// Add many limiters (over hard cap)
+	for i := 0; i < 7000; i++ {
+		rl.getLimiter("key-" + strconv.Itoa(i))
 	}
 
 	// Start cleanup with very short interval
@@ -264,16 +282,17 @@ func TestRateLimiter_StartCleanup(t *testing.T) {
 	// Wait for cleanup to run
 	time.Sleep(50 * time.Millisecond)
 
-	// Limiters should be cleaned up
+	// Limiters should be capped at 5000
 	finalSize := rl.LimiterCount()
-	if finalSize > 10000 {
-		t.Errorf("Final size = %d, expected cleanup to have run", finalSize)
+	if finalSize > 5000 {
+		t.Errorf("Final size = %d, expected cleanup to enforce hard cap of 5000", finalSize)
 	}
 }
 
 func TestRateLimiter_Handler_ContentType(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(1, 1, logger)
+	t.Cleanup(rl.Stop)
 
 	handler := rl.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -300,6 +319,7 @@ func TestRateLimiter_Handler_ContentType(t *testing.T) {
 func TestRateLimiter_ConcurrentAccess(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(100, 100, logger)
+	t.Cleanup(rl.Stop)
 
 	// Test concurrent access to getLimiter
 	done := make(chan bool)
@@ -326,6 +346,7 @@ func TestRateLimiter_ConcurrentAccess(t *testing.T) {
 func TestRateLimiter_Handler_PreservesContext(t *testing.T) {
 	logger := logging.New("test", "info", "json")
 	rl := NewRateLimiter(100, 100, logger)
+	t.Cleanup(rl.Stop)
 
 	var capturedTraceID string
 	handler := rl.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -343,5 +364,42 @@ func TestRateLimiter_Handler_PreservesContext(t *testing.T) {
 
 	if capturedTraceID != "trace-789" {
 		t.Errorf("Trace ID = %v, want trace-789", capturedTraceID)
+	}
+}
+
+func TestRateLimiter_Stop(t *testing.T) {
+	logger := logging.New("test", "info", "json")
+	rl := NewRateLimiter(10, 20, logger)
+
+	// Stop should not panic and should be safe to call
+	rl.Stop()
+
+	// Verify the channel is closed
+	select {
+	case <-rl.stopCh:
+		// expected – channel closed
+	default:
+		t.Error("stopCh should be closed after Stop()")
+	}
+
+	// Second call must not panic (idempotent).
+	rl.Stop()
+}
+
+func TestNewRateLimiterWithWindow_AutoCleanup(t *testing.T) {
+	logger := logging.New("test", "info", "json")
+	rl := NewRateLimiterWithWindow(100, time.Minute, 10, logger)
+	t.Cleanup(rl.Stop)
+
+	if rl.stopCh == nil {
+		t.Error("stopCh not initialized for NewRateLimiterWithWindow")
+	}
+
+	if rl.limit != 100 {
+		t.Errorf("limit = %d, want 100", rl.limit)
+	}
+
+	if rl.window != time.Minute {
+		t.Errorf("window = %v, want 1m", rl.window)
 	}
 }

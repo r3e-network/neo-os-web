@@ -120,6 +120,60 @@ func Decrypt(key, ciphertext []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
+// EncryptWithContext encrypts data using AES-256-GCM with additional authenticated data.
+// The context parameter binds the ciphertext to a specific purpose, preventing cross-context replay.
+func EncryptWithContext(key, plaintext []byte, context string) ([]byte, error) {
+	if context == "" {
+		return nil, fmt.Errorf("context must not be empty; use Encrypt/Decrypt for context-free encryption")
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, err
+	}
+
+	aad := []byte(context)
+	ciphertext := gcm.Seal(nonce, nonce, plaintext, aad)
+	return ciphertext, nil
+}
+
+// DecryptWithContext decrypts data using AES-256-GCM with additional authenticated data.
+// The context must match the one used during encryption.
+func DecryptWithContext(key, ciphertext []byte, context string) ([]byte, error) {
+	if context == "" {
+		return nil, fmt.Errorf("context must not be empty; use Encrypt/Decrypt for context-free encryption")
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	aad := []byte(context)
+	return gcm.Open(nil, nonce, ciphertext, aad)
+}
+
 // =============================================================================
 // ECDSA Signing (secp256r1 for Neo N3)
 // =============================================================================

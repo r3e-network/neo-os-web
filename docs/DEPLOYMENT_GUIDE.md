@@ -65,8 +65,8 @@ Best for: Local development, testing, small deployments
 #### 1. Clone Repository
 
 ```bash
-git clone https://github.com/R3E-Network/service_layer.git
-cd service_layer
+git clone https://github.com/r3e-network/neo-miniapp-platform.git
+cd neo-miniapp-platform
 ```
 
 #### 2. Configure Environment
@@ -671,6 +671,6 @@ kubectl rollout undo deployment/neofeeds -n service-layer
 For deployment assistance:
 
 - **Documentation**: https://docs.service-layer.neo.org
-- **GitHub Issues**: https://github.com/R3E-Network/service_layer/issues
+- **GitHub Issues**: https://github.com/r3e-network/neo-miniapp-platform/issues
 - **Discord**: https://discord.gg/neo
 - **Email**: devops@r3e-network.org

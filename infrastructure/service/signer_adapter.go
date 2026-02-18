@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	gsclient "github.com/R3E-Network/service_layer/infrastructure/globalsigner/client"
+	gsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/client"
 )
 
 // =============================================================================

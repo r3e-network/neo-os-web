@@ -182,7 +182,7 @@ func buildManifest(app BuiltinApp, pubKeyHex string) map[string]any {
 		"entry_url":                 app.EntryURL,
 		"developer_pubkey":          pubKeyHex,
 		"assets_allowed":            []string{"GAS"},
-		"governance_assets_allowed": []string{"NEO"},
+		"governance_assets_allowed": []string{"BNEO"},
 		"permissions":               perms,
 		"sandbox_flags":             []string{"no-eval", "strict-csp"},
 	}

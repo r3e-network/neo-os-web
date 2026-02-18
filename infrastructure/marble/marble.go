@@ -18,8 +18,8 @@ import (
 	"github.com/edgelesssys/ego/attestation"
 	"github.com/edgelesssys/ego/enclave"
 
-	slhttputil "github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
+	slhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 // Marble represents a MarbleRun Marble instance.

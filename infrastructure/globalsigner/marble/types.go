@@ -2,7 +2,7 @@
 package globalsigner
 
 import (
-	"github.com/R3E-Network/service_layer/infrastructure/globalsigner/types"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/types"
 )
 
 // Re-export types from the types package for backward compatibility.

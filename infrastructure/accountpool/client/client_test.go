@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/serviceauth"
-	"github.com/R3E-Network/service_layer/infrastructure/testutil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/testutil"
 )
 
 func newTestClient(t *testing.T, baseURL string) *Client {

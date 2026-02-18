@@ -13,7 +13,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/yourorg/service_layer.git # 替换为实际仓库
+    repoURL: https://github.com/r3e-network/neo-miniapp-platform.git
     targetRevision: HEAD
     path: k8s/overlays/production
     kustomize:
@@ -56,7 +56,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/yourorg/service_layer.git # 替换为实际仓库
+    repoURL: https://github.com/r3e-network/neo-miniapp-platform.git
     targetRevision: HEAD
     path: k8s/overlays/simulation
     kustomize:

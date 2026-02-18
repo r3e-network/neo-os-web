@@ -13,7 +13,7 @@ export interface MiniAppInfo {
   name: string;
   description: string;
   icon: string;
-  category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
+  category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
   source?: "builtin" | "community" | "verified";
   stats?: {
     users?: number;
@@ -30,6 +30,8 @@ const categoryColors = {
   governance: "bg-emerald-100 text-emerald-800",
   utility: "bg-gray-100 text-gray-800",
   nft: "bg-teal-100 text-teal-800",
+  data: "bg-cyan-100 text-cyan-800",
+  other: "bg-slate-100 text-slate-800",
 };
 
 const sourceColors = {

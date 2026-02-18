@@ -151,7 +151,7 @@ const manifest = {
   developer_pubkey: "0x" + "<33-byte compressed pubkey hex>",
   permissions: { payments: true, governance: false, rng: true, datafeed: true },
   assets_allowed: ["GAS"],
-  governance_assets_allowed: ["NEO"],
+  governance_assets_allowed: ["BNEO"],
   sandbox_flags: ["no-eval", "strict-csp"],
   attestation_required: true,
 };

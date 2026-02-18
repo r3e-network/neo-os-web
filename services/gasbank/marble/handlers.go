@@ -3,7 +3,7 @@ package neogasbank
 import (
 	"net/http"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 // =============================================================================
@@ -19,7 +19,8 @@ func (s *Service) handleGetAccount(w http.ResponseWriter, r *http.Request) {
 
 	account, err := s.GetAccount(r.Context(), userID)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to get gas bank account", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -44,7 +45,8 @@ func (s *Service) handleDeductFee(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.DeductFee(r.Context(), &req)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to deduct fee", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -71,7 +73,8 @@ func (s *Service) handleReserveFunds(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.ReserveFunds(r.Context(), &req)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to reserve funds", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -98,7 +101,8 @@ func (s *Service) handleReleaseFunds(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.ReleaseFunds(r.Context(), &req)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to release funds", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -119,14 +123,16 @@ func (s *Service) handleGetTransactions(w http.ResponseWriter, r *http.Request) 
 
 	account, err := s.db.GetGasBankAccount(r.Context(), userID)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to get gas bank account", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
 	limit := 50 // Default limit
 	txs, err := s.db.GetGasBankTransactions(r.Context(), account.ID, limit)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to get gas bank transactions", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -156,7 +162,8 @@ func (s *Service) handleGetDeposits(w http.ResponseWriter, r *http.Request) {
 	limit := 50 // Default limit
 	deposits, err := s.db.GetDepositRequests(r.Context(), userID, limit)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to get deposit requests", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 

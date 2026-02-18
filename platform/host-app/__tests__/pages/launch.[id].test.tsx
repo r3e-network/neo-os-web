@@ -430,7 +430,7 @@ describe("getServerSideProps", () => {
     } as any;
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
-      json: async () => ({ stats: [mockApp] }),
+      json: async () => ({ app: mockApp }),
     });
 
     const result = await getServerSideProps(context);
@@ -438,7 +438,7 @@ describe("getServerSideProps", () => {
     expect(result).toHaveProperty("props");
     expect((result as any).props.app.app_id).toBe("test-app");
     expect((result as any).props.app.name).toBe("Test App");
-    expect(global.fetch).toHaveBeenCalledWith("http://localhost:3000/api/miniapp-stats?app_id=test-app");
+    expect(global.fetch).toHaveBeenCalledWith("http://localhost:3000/api/miniapps/catalog?app_id=test-app");
   });
 
   it("should return 404 for non-existent app_id", async () => {
@@ -448,7 +448,7 @@ describe("getServerSideProps", () => {
     } as any;
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
-      json: async () => ({ stats: [] }),
+      json: async () => ({ app: null }),
     });
 
     const result = await getServerSideProps(context);
@@ -463,7 +463,7 @@ describe("getServerSideProps", () => {
     } as any;
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
-      json: async () => ({ stats: [] }),
+      json: async () => ({ app: null }),
     });
 
     const result = await getServerSideProps(context);
@@ -478,7 +478,7 @@ describe("getServerSideProps", () => {
     } as any;
 
     (global.fetch as jest.Mock).mockResolvedValueOnce({
-      json: async () => ({ stats: [] }),
+      json: async () => ({ app: null }),
     });
 
     const result = await getServerSideProps(context);

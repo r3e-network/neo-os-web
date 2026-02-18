@@ -14,8 +14,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 )
 
 // =============================================================================
@@ -1091,8 +1091,11 @@ func TestDispatchActionUnknownType(t *testing.T) {
 
 	action := json.RawMessage(`{"type":"unknown"}`)
 	err := svc.dispatchAction(context.Background(), action)
-	if err != nil {
-		t.Errorf("dispatchAction(unknown type) error = %v, want nil", err)
+	if err == nil {
+		t.Error("dispatchAction(unknown type) should return error")
+	}
+	if err != nil && err.Error() != `unsupported action type: "unknown"` {
+		t.Errorf("dispatchAction(unknown type) error = %v, want unsupported action type", err)
 	}
 }
 
@@ -1217,8 +1220,8 @@ func TestExecuteTriggerWithMock(t *testing.T) {
 	if len(execs) != 1 {
 		t.Errorf("expected 1 execution, got %d", len(execs))
 	}
-	if !execs[0].Success {
-		t.Error("execution should be successful")
+	if execs[0].Success {
+		t.Error("execution should fail for unknown action type")
 	}
 }
 

@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/middleware"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 )
 
 const (
@@ -168,8 +168,13 @@ func (s *Service) markSeen(ctx context.Context, requestID string) bool {
 		windowSeconds := int(s.replayWindow.Seconds())
 		seen, err := db.MarkRequestSeen(ctx, ServiceID, requestID, windowSeconds)
 		if err != nil {
-			s.Logger().WithError(err).Warn("replay check failed, falling back to in-memory")
-			return s.markSeenInMemory(requestID)
+			// Conservative: reject on DB error to prevent potential replays.
+			// If the DB partially wrote the "seen" marker but returned an error,
+			// allowing the request could open a replay window. We prefer a
+			// false-reject over a false-accept during transient DB failures.
+			s.Logger().WithError(err).Warn("replay check failed on DB; rejecting request as potentially seen")
+			s.markSeenInMemory(requestID) // best-effort local tracking
+			return false
 		}
 		return seen
 	}
@@ -195,7 +200,6 @@ func (s *Service) cleanupReplay() {
 		defer cancel()
 		if _, err := db.CleanupSeenRequests(ctx, ServiceID); err != nil {
 			s.Logger().WithError(err).Warn("failed to cleanup seen requests in DB")
-			return
 		}
 	}
 	s.cleanupReplayInMemory()

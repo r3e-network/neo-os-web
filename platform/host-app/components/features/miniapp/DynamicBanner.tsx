@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 interface DynamicBannerProps {
-  category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft";
+  category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
   icon: string;
   appId: string;
 }
@@ -87,6 +87,8 @@ const CATEGORY_ELEMENTS: Record<string, string[]> = {
   governance: ["🗳️", "⚖️", "🏛️", "📜", "🛡️", "✅", "📊", "🎯"],
   utility: ["⚙️", "🔧", "🛠️", "📊", "🔌", "💻", "🔗", "⚡"],
   nft: ["🎨", "🖼️", "✨", "💎", "🌈", "🖌️", "🔮", "⭐"],
+  data: ["📊", "📈", "📉", "🧠", "🔍", "🛰️", "🧮", "📡"],
+  other: ["✨", "🧩", "⚙️", "🌐", "🚀", "🔮", "🎯", "💫"],
 };
 
 // Category gradient colors (Neo Green palette - avoiding Claude orange)
@@ -97,6 +99,8 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
   governance: "from-emerald-600 via-teal-500 to-emerald-700",
   utility: "from-slate-500 via-gray-500 to-slate-700",
   nft: "from-emerald-500 via-teal-500 to-emerald-700",
+  data: "from-cyan-600 via-sky-500 to-blue-700",
+  other: "from-slate-600 via-zinc-500 to-gray-700",
 };
 
 // Unique gradient palette - 60+ distinct gradients for unique card backgrounds
@@ -193,6 +197,8 @@ const CATEGORY_GLOWS: Record<string, string> = {
   governance: "bg-emerald-400/30",
   utility: "bg-slate-400/30",
   nft: "bg-teal-400/30",
+  data: "bg-cyan-400/30",
+  other: "bg-slate-400/30",
 };
 
 // Seeded random number generator for consistent randomness per appId

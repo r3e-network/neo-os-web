@@ -197,6 +197,146 @@ func TestDecryptShortCiphertext(t *testing.T) {
 }
 
 // =============================================================================
+// AES-GCM with AAD (EncryptWithContext / DecryptWithContext) Tests
+// =============================================================================
+
+func TestEncryptDecryptWithContext(t *testing.T) {
+	key := make([]byte, 32)
+	copy(key, []byte("test-encryption-key-32-bytes!!!"))
+
+	tests := []struct {
+		name      string
+		plaintext []byte
+		context   string
+	}{
+		{"short message", []byte("Hello"), "account-wif"},
+		{"medium message", []byte("Hello, World! This is a test message."), "secret-value"},
+		{"empty message", []byte{}, "some-context"},
+		{"binary data", []byte{0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD}, "binary-ctx"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ciphertext, err := EncryptWithContext(key, tt.plaintext, tt.context)
+			if err != nil {
+				t.Fatalf("EncryptWithContext() error = %v", err)
+			}
+
+			decrypted, err := DecryptWithContext(key, ciphertext, tt.context)
+			if err != nil {
+				t.Fatalf("DecryptWithContext() error = %v", err)
+			}
+
+			if !bytes.Equal(decrypted, tt.plaintext) {
+				t.Errorf("DecryptWithContext() = %v, want %v", decrypted, tt.plaintext)
+			}
+		})
+	}
+}
+
+func TestDecryptWithContextWrongContext(t *testing.T) {
+	key := make([]byte, 32)
+	copy(key, []byte("test-encryption-key-32-bytes!!!"))
+
+	plaintext := []byte("sensitive data")
+	ciphertext, err := EncryptWithContext(key, plaintext, "account-wif")
+	if err != nil {
+		t.Fatalf("EncryptWithContext() error = %v", err)
+	}
+
+	_, err = DecryptWithContext(key, ciphertext, "secret-value")
+	if err == nil {
+		t.Error("DecryptWithContext() should fail when context does not match")
+	}
+}
+
+func TestDecryptWithContextVsPlainDecrypt(t *testing.T) {
+	key := make([]byte, 32)
+	copy(key, []byte("test-encryption-key-32-bytes!!!"))
+	plaintext := []byte("cross-context test")
+
+	// EncryptWithContext output should not be decryptable by plain Decrypt
+	ctxCiphertext, err := EncryptWithContext(key, plaintext, "some-purpose")
+	if err != nil {
+		t.Fatalf("EncryptWithContext() error = %v", err)
+	}
+	_, err = Decrypt(key, ctxCiphertext)
+	if err == nil {
+		t.Error("Decrypt() should fail on ciphertext produced by EncryptWithContext with non-empty context")
+	}
+
+	// Plain Encrypt output should not be decryptable by DecryptWithContext with non-empty context
+	plainCiphertext, err := Encrypt(key, plaintext)
+	if err != nil {
+		t.Fatalf("Encrypt() error = %v", err)
+	}
+	_, err = DecryptWithContext(key, plainCiphertext, "some-purpose")
+	if err == nil {
+		t.Error("DecryptWithContext() should fail on ciphertext produced by plain Encrypt")
+	}
+}
+
+func TestEncryptWithContextEmptyContext(t *testing.T) {
+	key := make([]byte, 32)
+	copy(key, []byte("test-encryption-key-32-bytes!!!"))
+	plaintext := []byte("empty context test")
+
+	// Empty context must be rejected — callers should use Encrypt/Decrypt instead.
+	_, err := EncryptWithContext(key, plaintext, "")
+	if err == nil {
+		t.Error("EncryptWithContext() should reject empty context")
+	}
+
+	_, err = DecryptWithContext(key, make([]byte, 32), "")
+	if err == nil {
+		t.Error("DecryptWithContext() should reject empty context")
+	}
+}
+
+func TestEncryptWithContextProducesUniqueCiphertext(t *testing.T) {
+	key := make([]byte, 32)
+	copy(key, []byte("test-encryption-key-32-bytes!!!"))
+	plaintext := []byte("Hello, World!")
+
+	c1, _ := EncryptWithContext(key, plaintext, "ctx")
+	c2, _ := EncryptWithContext(key, plaintext, "ctx")
+
+	if bytes.Equal(c1, c2) {
+		t.Error("EncryptWithContext() should produce unique ciphertext due to random nonce")
+	}
+}
+
+func TestEncryptWithContextInvalidKeySize(t *testing.T) {
+	key := []byte("short-key")
+	plaintext := []byte("Hello")
+
+	_, err := EncryptWithContext(key, plaintext, "ctx")
+	if err == nil {
+		t.Error("EncryptWithContext() should fail with invalid key size")
+	}
+}
+
+func TestDecryptWithContextInvalidKeySize(t *testing.T) {
+	key := []byte("short-key")
+	ciphertext := make([]byte, 32)
+
+	_, err := DecryptWithContext(key, ciphertext, "ctx")
+	if err == nil {
+		t.Error("DecryptWithContext() should fail with invalid key size")
+	}
+}
+
+func TestDecryptWithContextShortCiphertext(t *testing.T) {
+	key := make([]byte, 32)
+	copy(key, []byte("test-encryption-key-32-bytes!!!"))
+
+	_, err := DecryptWithContext(key, []byte{0x01, 0x02, 0x03}, "ctx")
+	if err == nil {
+		t.Error("DecryptWithContext() should fail with short ciphertext")
+	}
+}
+
+// =============================================================================
 // ECDSA Signing Tests
 // =============================================================================
 

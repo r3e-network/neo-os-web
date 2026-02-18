@@ -17,8 +17,8 @@ import (
     "syscall"
     "time"
 
-    "github.com/R3E-Network/service_layer/infrastructure/middleware"
-    "github.com/R3E-Network/service_layer/infrastructure/logging"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 func main() {
@@ -125,8 +125,8 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/R3E-Network/service_layer/infrastructure/security"
-    "github.com/R3E-Network/service_layer/infrastructure/logging"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/security"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 func handleRequest(w http.ResponseWriter, r *http.Request, logger *logging.Logger) {
@@ -205,8 +205,8 @@ import (
     "net/http"
     "time"
 
-    "github.com/R3E-Network/service_layer/infrastructure/middleware"
-    "github.com/R3E-Network/service_layer/infrastructure/logging"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 func setupMiddleware(logger *logging.Logger) http.Handler {
@@ -269,7 +269,7 @@ package main
 import (
     "regexp"
 
-    "github.com/R3E-Network/service_layer/infrastructure/security"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/security"
 )
 
 func init() {
@@ -297,7 +297,7 @@ package handlers_test
 import (
     "testing"
 
-    "github.com/R3E-Network/service_layer/infrastructure/security"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/security"
 )
 
 func TestErrorSanitization(t *testing.T) {

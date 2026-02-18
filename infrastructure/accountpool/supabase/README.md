@@ -22,7 +22,7 @@ See `repository.go` for the authoritative interface. Key categories:
 ## Usage
 
 ```go
-import accountpoolsupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
+import accountpoolsupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
 
 repo := accountpoolsupabase.NewRepository(baseRepo)
 

@@ -208,7 +208,8 @@ func (m *MockRepository) DeductFeeAtomic(ctx context.Context, userID string, amo
 	defer m.mu.Unlock()
 	for _, account := range m.gasBankAccounts {
 		if account.UserID == userID {
-			if account.Balance < amount {
+			available := account.Balance - account.Reserved
+			if available < amount {
 				return &AtomicDeductResult{Success: false, NewBalance: account.Balance, Error: "insufficient balance"}, nil
 			}
 			account.Balance -= amount

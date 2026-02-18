@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
-	neoflowsupabase "github.com/R3E-Network/service_layer/services/automation/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 )
 
 func (s *Service) handleListTriggers(w http.ResponseWriter, r *http.Request) {
@@ -16,10 +16,15 @@ func (s *Service) handleListTriggers(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if s.repo == nil {
+		httputil.ServiceUnavailable(w, "repository not configured")
+		return
+	}
 
 	triggers, err := s.repo.GetTriggers(r.Context(), userID)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to list triggers", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -54,6 +59,11 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 
 	if req.Name == "" || req.TriggerType == "" {
 		httputil.BadRequest(w, "name and trigger_type required")
+		return
+	}
+
+	if s.repo == nil {
+		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
 
@@ -102,6 +112,10 @@ func (s *Service) handleGetTrigger(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if s.repo == nil {
+		httputil.ServiceUnavailable(w, "repository not configured")
+		return
+	}
 	id := mux.Vars(r)["id"]
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil {
@@ -114,6 +128,10 @@ func (s *Service) handleGetTrigger(w http.ResponseWriter, r *http.Request) {
 func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httputil.RequireUserID(w, r)
 	if !ok {
+		return
+	}
+	if s.repo == nil {
+		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
 	id := mux.Vars(r)["id"]
@@ -154,6 +172,10 @@ func (s *Service) handleDeleteTrigger(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if s.repo == nil {
+		httputil.ServiceUnavailable(w, "repository not configured")
+		return
+	}
 	id := mux.Vars(r)["id"]
 	if err := s.repo.DeleteTrigger(r.Context(), id, userID); err != nil {
 		httputil.NotFound(w, "trigger not found")
@@ -165,6 +187,10 @@ func (s *Service) handleDeleteTrigger(w http.ResponseWriter, r *http.Request) {
 func (s *Service) handleEnableTrigger(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httputil.RequireUserID(w, r)
 	if !ok {
+		return
+	}
+	if s.repo == nil {
+		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
 	id := mux.Vars(r)["id"]
@@ -180,6 +206,10 @@ func (s *Service) handleDisableTrigger(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if s.repo == nil {
+		httputil.ServiceUnavailable(w, "repository not configured")
+		return
+	}
 	id := mux.Vars(r)["id"]
 	if err := s.repo.SetTriggerEnabled(r.Context(), id, userID, false); err != nil {
 		httputil.NotFound(w, "trigger not found")
@@ -191,6 +221,10 @@ func (s *Service) handleDisableTrigger(w http.ResponseWriter, r *http.Request) {
 func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httputil.RequireUserID(w, r)
 	if !ok {
+		return
+	}
+	if s.repo == nil {
+		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
 	id := mux.Vars(r)["id"]
@@ -215,6 +249,10 @@ func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request) {
 func (s *Service) handleResumeTrigger(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httputil.RequireUserID(w, r)
 	if !ok {
+		return
+	}
+	if s.repo == nil {
+		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
 	id := mux.Vars(r)["id"]

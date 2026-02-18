@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 // =============================================================================
@@ -35,7 +35,8 @@ func (s *Service) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.Execute(r.Context(), userID, &req)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to execute script", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 

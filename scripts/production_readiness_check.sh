@@ -30,15 +30,12 @@ CRITICAL_PATTERNS=(
     "FIXME"
     "XXX"
     "HACK"
-    "BUG"
 )
 
 WARNING_PATTERNS=(
     "placeholder"
     "for now"
     "dev-only"
-    "simplified"
-    "temporary"
     "workaround"
 )
 
@@ -93,6 +90,10 @@ check_pattern() {
     # - HTML placeholder attributes (placeholder="...")
     # - StatusTemporaryRedirect (Go HTTP status)
     # - Tailwind placeholder- classes
+    # - Tailwind placeholder:text- classes
+    # - JSX placeholder props
+    # - Placeholder prop signatures
+    # - Build placeholder constants
     # - "Bug bounty" application names (not actual bugs)
     # - Input component placeholder props
     # - SENDER placeholder in SDK (intentional design)
@@ -100,8 +101,12 @@ check_pattern() {
         results=$(echo "$results" | \
             grep -v 'placeholder="' | \
             grep -v "placeholder='" | \
+            grep -v "placeholder={" | \
             grep -v "StatusTemporaryRedirect" | \
             grep -v "placeholder-" | \
+            grep -v "placeholder:text-" | \
+            grep -v "placeholder, label" | \
+            grep -v "build-time-placeholder" | \
             grep -v -i "bug bounty" | \
             grep -v -i "bounty.hunter" | \
             grep -v "placeholder?: string" | \

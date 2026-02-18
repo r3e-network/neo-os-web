@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
 // EventListener listens for contract events on Neo N3.
@@ -26,6 +26,7 @@ type EventListener struct {
 	stopCh         chan struct{}
 	logger         *logging.Logger
 	handlerSem     chan struct{}
+	handlerWg      sync.WaitGroup
 }
 
 // EventHandler is a callback for contract events.
@@ -157,17 +158,30 @@ func (l *EventListener) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the event listener.
+// Stop stops the event listener and waits for in-flight handlers to complete.
 func (l *EventListener) Stop() {
 	l.mu.Lock()
-	defer l.mu.Unlock()
-
 	if !l.running {
+		l.mu.Unlock()
 		return
 	}
 
 	l.running = false
 	close(l.stopCh)
+	l.mu.Unlock()
+
+	// Wait for in-flight handlers with timeout
+	done := make(chan struct{})
+	go func() {
+		l.handlerWg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		// All handlers completed
+	case <-time.After(30 * time.Second):
+		l.logger.WithFields(nil).Warn("timed out waiting for event handlers to complete")
+	}
 }
 
 // poll continuously polls for new blocks and events.
@@ -345,7 +359,22 @@ func (l *EventListener) runHandler(ctx context.Context, fields map[string]interf
 		}
 	}
 
+	// Hold RLock to check l.running and call Add(1) atomically with respect
+	// to Stop(), which sets running=false under the write lock. This closes
+	// the window where Stop().Wait() could return before Add(1) executes.
+	l.mu.RLock()
+	if !l.running {
+		l.mu.RUnlock()
+		if l.handlerSem != nil {
+			<-l.handlerSem
+		}
+		return
+	}
+	l.handlerWg.Add(1)
+	l.mu.RUnlock()
+
 	go func() {
+		defer l.handlerWg.Done()
 		if l.handlerSem != nil {
 			defer func() { <-l.handlerSem }()
 		}

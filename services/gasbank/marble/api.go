@@ -3,7 +3,7 @@ package neogasbank
 import (
 	"net/http"
 
-	"github.com/R3E-Network/service_layer/infrastructure/middleware"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
 )
 
 // registerRoutes registers the service-specific HTTP routes.

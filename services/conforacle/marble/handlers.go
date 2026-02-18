@@ -3,7 +3,6 @@ package neooracle
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 // =============================================================================
@@ -49,9 +48,24 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 	if method == "" {
 		method = http.MethodGet
 	}
+	switch method {
+	case http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodHead:
+		// allowed
+	default:
+		httputil.BadRequest(w, "unsupported HTTP method")
+		return
+	}
+
+	forbiddenHeaders := map[string]bool{
+		"host": true, "content-length": true, "transfer-encoding": true,
+		"connection": true, "upgrade": true, "te": true,
+	}
 
 	headers := make(http.Header)
 	for k, v := range input.Headers {
+		if forbiddenHeaders[strings.ToLower(k)] {
+			continue
+		}
 		headers.Set(k, v)
 	}
 
@@ -63,13 +77,22 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 		}
 		secret, err := s.secretProvider.GetSecret(r.Context(), userID, input.SecretName)
 		if err != nil {
-			httputil.InternalError(w, fmt.Sprintf("failed to fetch secret: %v", err))
+			s.Logger().Error(r.Context(), "failed to fetch secret", err, nil)
+			httputil.InternalError(w, "internal error")
+			return
+		}
+		if strings.ContainsAny(secret, "\r\n") {
+			httputil.BadRequest(w, "secret contains invalid characters")
 			return
 		}
 		key := input.SecretAsKey
 		if key == "" {
 			key = "Authorization"
 			secret = "Bearer " + secret
+		}
+		if forbiddenHeaders[strings.ToLower(key)] {
+			httputil.BadRequest(w, "forbidden header name")
+			return
 		}
 		headers.Set(key, secret)
 	}
@@ -89,14 +112,16 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		httputil.InternalError(w, fmt.Sprintf("request failed: %v", err))
+		s.Logger().Error(r.Context(), "upstream request failed", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 	defer resp.Body.Close()
 
 	respBody, truncated, err := httputil.ReadAllWithLimit(resp.Body, s.maxBodyBytes)
 	if err != nil {
-		httputil.InternalError(w, fmt.Sprintf("failed to read response body: %v", err))
+		s.Logger().Error(r.Context(), "failed to read response body", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 	if truncated {

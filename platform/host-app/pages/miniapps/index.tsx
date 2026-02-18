@@ -4,11 +4,10 @@ import { useRouter } from "next/router";
 import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@/components/features/miniapp";
-import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { getCardData } from "@/hooks/useCardData";
 import { cn, sanitizeInput } from "@/lib/utils";
 
-const categories = ["all", "gaming", "defi", "social", "nft", "governance", "utility"] as const;
+const categories = ["all", "gaming", "defi", "social", "nft", "governance", "utility", "data", "other"] as const;
 
 type SortOption = "trending" | "users" | "transactions" | "recent";
 type ViewMode = "grid" | "list";
@@ -31,6 +30,8 @@ const filterSections = [
       { value: "nft", label: "NFT" },
       { value: "governance", label: "Governance" },
       { value: "utility", label: "Utility" },
+      { value: "data", label: "Data" },
+      { value: "other", label: "Other" },
     ],
   },
   {
@@ -45,11 +46,6 @@ const filterSections = [
   },
 ];
 
-const baseApps: MiniAppInfo[] = BUILTIN_APPS.map((app) => ({
-  ...app,
-  source: "builtin" as const,
-}));
-
 type StatsMap = Record<string, { users?: number; transactions?: number; volume?: string }>;
 
 export default function MiniAppsPage() {
@@ -62,11 +58,17 @@ export default function MiniAppsPage() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [filters, setFilters] = useState<Record<string, string[]>>({});
   const [communityApps, setCommunityApps] = useState<MiniAppInfo[]>([]);
-  const [apps, setApps] = useState<MiniAppInfo[]>(baseApps);
+  const [apps, setApps] = useState<MiniAppInfo[]>([]);
   const [statsMap, setStatsMap] = useState<StatsMap>({});
 
   useEffect(() => {
-    setApps(baseApps.map((app) => ({ ...app, cardData: getCardData(app.app_id) })));
+    fetch("/api/miniapps/catalog")
+      .then((res) => res.json())
+      .then((data) => {
+        const list = Array.isArray(data?.apps) ? data.apps : [];
+        setApps(list.map((app: MiniAppInfo) => ({ ...app, cardData: getCardData(app.app_id) })));
+      })
+      .catch(() => setApps([]));
   }, []);
 
   useEffect(() => {

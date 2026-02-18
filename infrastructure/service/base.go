@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/logging"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 const healthCheckTimeout = 5 * time.Second
@@ -47,6 +47,7 @@ type BaseService struct {
 
 	// Worker management
 	workers []func(context.Context)
+	wg      sync.WaitGroup
 
 	// Health tracking
 	requiredSecrets []string
@@ -112,11 +113,22 @@ func (b *BaseService) Logger() *logging.Logger {
 	return b.logger
 }
 
-// WithHydrate sets an optional hydrate hook executed during Start.
+// WithHydrate registers a hydrate hook executed during Start.
 // The hydrate function is called after the base service starts but before
 // background workers are launched. Use this for loading persistent state.
+// Multiple calls are supported: hooks run in registration order.
 func (b *BaseService) WithHydrate(fn func(context.Context) error) *BaseService {
-	b.hydrate = fn
+	if b.hydrate == nil {
+		b.hydrate = fn
+	} else {
+		prev := b.hydrate
+		b.hydrate = func(ctx context.Context) error {
+			if err := prev(ctx); err != nil {
+				return err
+			}
+			return fn(ctx)
+		}
+	}
 	return b
 }
 
@@ -242,17 +254,22 @@ func (b *BaseService) Start(ctx context.Context) error {
 
 	for _, w := range b.workers {
 		worker := w
-		go worker(ctx)
+		b.wg.Add(1)
+		go func() {
+			defer b.wg.Done()
+			worker(ctx)
+		}()
 	}
 	return nil
 }
 
-// Stop signals workers and stops the underlying marble.Service.
+// Stop signals workers, waits for them to finish, and stops the underlying marble.Service.
 // This method is idempotent - calling it multiple times is safe due to sync.Once.
 func (b *BaseService) Stop() error {
 	b.stopOnce.Do(func() {
 		close(b.stopCh)
 	})
+	b.wg.Wait()
 	return b.Service.Stop()
 }
 

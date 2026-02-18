@@ -3,7 +3,7 @@ package txproxy
 import (
 	"testing"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 )
 
 func TestCheckIntentPolicyPayments(t *testing.T) {

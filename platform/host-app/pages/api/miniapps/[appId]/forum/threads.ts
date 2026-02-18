@@ -1,24 +1,59 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { ForumThread } from "@/components/features/forum/types";
-import crypto from "crypto";
-import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
+import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
+import { logger } from "@/lib/logger";
+import { standardLimit } from "@/lib/rate-limit";
+import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
+import { formatWalletDisplayName, isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
 
-// In-memory store (replace with Supabase in production)
-const threadsStore: Map<string, ForumThread[]> = new Map();
+type ForumThreadRow = {
+  id: string;
+  app_id: string;
+  author_wallet: string;
+  author_name: string;
+  title: string;
+  content: string;
+  category: "general" | "bug" | "feature" | "help";
+  reply_count: number;
+  view_count: number;
+  is_pinned: boolean;
+  is_locked: boolean;
+  created_at: string;
+  updated_at: string;
+  last_reply_at: string | null;
+};
+
+const VALID_CATEGORIES = ["general", "bug", "feature", "help"] as const;
+
+function toThread(row: ForumThreadRow): ForumThread {
+  return {
+    id: row.id,
+    app_id: row.app_id,
+    author_id: row.author_wallet,
+    author_name: row.author_name,
+    title: row.title,
+    content: row.content,
+    category: row.category,
+    reply_count: row.reply_count,
+    view_count: row.view_count,
+    is_pinned: row.is_pinned,
+    is_locked: row.is_locked,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    last_reply_at: row.last_reply_at,
+  };
+}
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
   const { appId } = req.query;
 
   if (!appId || typeof appId !== "string") {
     return apiError.badRequest(res, "Missing appId");
   }
-  if (!/^[a-z0-9][a-z0-9_-]*$/.test(appId)) {
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(appId)) {
     return apiError.badRequest(res, "Invalid appId format");
-  }
-
-  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_INMEMORY_STORE) {
-    return sendError(res, 503, "In-memory store not available in production", ErrorCodes.INTERNAL_ERROR);
   }
 
   if (req.method === "GET") {
@@ -34,75 +69,110 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 export default withCsrfProtection(handler);
 
-function getThreads(appId: string, req: NextApiRequest, res: NextApiResponse) {
-  const category = req.query.category as string | undefined;
-  const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 20, 50));
-  const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
-
-  let threads = threadsStore.get(appId) || [];
-
-  if (category) {
-    threads = threads.filter((t) => t.category === category);
+async function getThreads(appId: string, req: NextApiRequest, res: NextApiResponse) {
+  if (!isServerSupabaseConfigured()) {
+    return res.status(200).json({ threads: [], hasMore: false, total: 0 });
   }
 
-  // Sort: pinned first, then by last activity
-  threads.sort((a, b) => {
-    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
-    const dateA = new Date(a.last_reply_at || a.created_at).getTime();
-    const dateB = new Date(b.last_reply_at || b.created_at).getTime();
-    return dateB - dateA;
-  });
+  const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
+  if (category && !VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])) {
+    return apiError.badRequest(res, "Invalid category");
+  }
 
-  const paginated = threads.slice(offset, offset + limit);
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 20, 50));
+  const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+  const supabase = getServerSupabaseClient();
+  if (!supabase) {
+    return res.status(200).json({ threads: [], hasMore: false, total: 0 });
+  }
+
+  let query = supabase
+    .from("forum_threads")
+    .select(
+      "id,app_id,author_wallet,author_name,title,content,category,reply_count,view_count,is_pinned,is_locked,created_at,updated_at,last_reply_at",
+      { count: "exact" },
+    )
+    .eq("app_id", appId);
+
+  if (category) {
+    query = query.eq("category", category);
+  }
+
+  const { data, error, count } = await query
+    .order("is_pinned", { ascending: false })
+    .order("last_reply_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    logger.error("Failed to fetch forum threads:", error.message);
+    return apiError.internal(res, "Failed to fetch threads");
+  }
+
+  const threads = ((data || []) as ForumThreadRow[]).map(toThread);
 
   return res.status(200).json({
-    threads: paginated,
-    hasMore: offset + limit < threads.length,
-    total: threads.length,
+    threads,
+    hasMore: offset + limit < (count || 0),
+    total: count || 0,
   });
 }
 
-function createThread(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function createThread(appId: string, req: NextApiRequest, res: NextApiResponse) {
+  if (!hasServiceRoleSupabase()) {
+    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for forum writes");
+  }
+
   const { wallet, title, content, category } = req.body;
 
-  if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+  if (!isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
   }
 
-  if (!title?.trim() || !content?.trim()) {
+  if (!title?.trim() || !content?.trim() || typeof title !== "string" || typeof content !== "string") {
     return apiError.badRequest(res, "Missing required fields");
   }
 
-  if (typeof title !== "string" || typeof content !== "string") {
-    return apiError.badRequest(res, "Invalid field types");
+  const safeTitle = title.trim();
+  const safeContent = content.trim();
+  if (safeTitle.length > 200 || safeContent.length > 5000) {
+    return apiError.badRequest(res, "Thread exceeds maximum length");
   }
 
-  const validCategories = ["general", "bug", "feature", "discussion", "announcement"];
-  const safeCategory = validCategories.includes(category) ? category : "general";
+  const safeCategory = typeof category === "string" && VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])
+    ? category
+    : "general";
 
-  if (!threadsStore.has(appId)) {
-    threadsStore.set(appId, []);
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) {
+    return apiError.configError(res, "Supabase service role client unavailable");
   }
 
-  const now = new Date().toISOString();
-  const thread: ForumThread = {
-    id: `thread-${crypto.randomUUID()}`,
-    app_id: appId,
-    author_id: wallet,
-    author_name: `${wallet.slice(0, 6)}...${wallet.slice(-4)}`,
-    title: title.trim().slice(0, 200),
-    content: content.trim().slice(0, 5000),
-    category: safeCategory,
-    reply_count: 0,
-    view_count: 0,
-    is_pinned: false,
-    is_locked: false,
-    created_at: now,
-    updated_at: now,
-    last_reply_at: null,
-  };
+  const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: true });
+  if (!userId) {
+    return apiError.internal(res, "Failed to resolve user");
+  }
 
-  threadsStore.get(appId)!.push(thread);
+  const { data, error } = await supabase
+    .from("forum_threads")
+    .insert({
+      app_id: appId,
+      author_user_id: userId,
+      author_wallet: wallet,
+      author_name: formatWalletDisplayName(wallet),
+      title: safeTitle,
+      content: safeContent,
+      category: safeCategory,
+    })
+    .select(
+      "id,app_id,author_wallet,author_name,title,content,category,reply_count,view_count,is_pinned,is_locked,created_at,updated_at,last_reply_at",
+    )
+    .single();
 
-  return res.status(201).json({ thread });
+  if (error || !data) {
+    logger.error("Failed to create forum thread:", error?.message || "unknown error");
+    return apiError.internal(res, "Failed to create thread");
+  }
+
+  return res.status(201).json({ thread: toThread(data as ForumThreadRow) });
 }

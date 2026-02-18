@@ -3,7 +3,6 @@
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
-import { supabaseClient } from "@/lib/api-client";
 import { getAdminAuthHeaders } from "@/lib/admin-client";
 import { DEFAULT_STALE_TIME_MS } from "@/lib/constants";
 import type { AnalyticsData, MiniAppUsage } from "@/types";
@@ -23,14 +22,14 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
  * Fetch MiniApp usage data
  */
 async function fetchMiniAppUsage(days = 30): Promise<MiniAppUsage[]> {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-
-  return supabaseClient.query<MiniAppUsage[]>("miniapp_usage", {
-    select: "*",
-    usage_date: `gte.${startDate.toISOString().split("T")[0]}`,
-    order: "usage_date.desc",
+  const response = await fetch(`/api/analytics/usage?days=${encodeURIComponent(String(days))}`, {
+    headers: getAdminAuthHeaders(),
+    signal: AbortSignal.timeout(15000),
   });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch miniapp usage: ${response.status}`);
+  }
+  return response.json();
 }
 
 /**

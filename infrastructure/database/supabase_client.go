@@ -10,12 +10,26 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 )
+
+// validTableName matches safe PostgREST table names (letters, digits, underscores).
+// Unlike field names, table names must not contain dots.
+var validTableName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// validateTable panics if table contains characters that could inject PostgREST operators.
+// Panic is appropriate because invalid table names are always programmer errors.
+func validateTable(table string) string {
+	if !validTableName.MatchString(table) {
+		panic(fmt.Sprintf("invalid table name: %q", table))
+	}
+	return table
+}
 
 // Client wraps the Supabase REST API client.
 type Client struct {
@@ -142,18 +156,9 @@ const (
 	maxSupabaseErrorBodyBytes = 32 << 10 // 32 KiB
 )
 
-// request makes an HTTP request to the Supabase REST API.
-func (c *Client) request(ctx context.Context, method, table string, body interface{}, query string) ([]byte, error) {
-	var url string
-	if c.restPrefix == "" {
-		url = fmt.Sprintf("%s/%s", c.url, table)
-	} else {
-		url = fmt.Sprintf("%s%s/%s", c.url, c.restPrefix, table)
-	}
-	if query != "" {
-		url += "?" + query
-	}
-
+// doRequest is the shared core for all Supabase REST API calls.
+// It handles URL construction, body marshaling, header setting, and response reading.
+func (c *Client) doRequest(ctx context.Context, method, reqURL, prefer string, body interface{}) ([]byte, error) {
 	var reqBody io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
@@ -163,7 +168,7 @@ func (c *Client) request(ctx context.Context, method, table string, body interfa
 		reqBody = bytes.NewReader(jsonBody)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -171,7 +176,7 @@ func (c *Client) request(ctx context.Context, method, table string, body interfa
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("apikey", c.serviceKey)
 	req.Header.Set("Authorization", "Bearer "+c.serviceKey)
-	req.Header.Set("Prefer", "return=representation")
+	req.Header.Set("Prefer", prefer)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -197,4 +202,34 @@ func (c *Client) request(ctx context.Context, method, table string, body interfa
 	}
 
 	return respBody, nil
+}
+
+// buildTableURL constructs the full URL for a table endpoint with optional query string.
+func (c *Client) buildTableURL(table, query string) string {
+	var u string
+	if c.restPrefix == "" {
+		u = fmt.Sprintf("%s/%s", c.url, table)
+	} else {
+		u = fmt.Sprintf("%s%s/%s", c.url, c.restPrefix, table)
+	}
+	if query != "" {
+		u += "?" + query
+	}
+	return u
+}
+
+// request makes an HTTP request to the Supabase REST API.
+func (c *Client) request(ctx context.Context, method, table string, body interface{}, query string) ([]byte, error) {
+	return c.doRequest(ctx, method, c.buildTableURL(validateTable(table), query), "return=representation", body)
+}
+
+// requestUpsert makes a POST request with Prefer: resolution=merge-duplicates
+// for atomic upsert operations. The onConflict parameter specifies the
+// conflict target columns (e.g., "account_id,token_type").
+func (c *Client) requestUpsert(ctx context.Context, table string, body interface{}, onConflict, query string) ([]byte, error) {
+	params := "on_conflict=" + url.QueryEscape(onConflict)
+	if query != "" {
+		params += "&" + query
+	}
+	return c.doRequest(ctx, "POST", c.buildTableURL(validateTable(table), params), "resolution=merge-duplicates,return=representation", body)
 }

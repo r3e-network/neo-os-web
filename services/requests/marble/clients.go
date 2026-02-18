@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 const defaultHTTPBodyLimit = 1 << 20 // 1 MiB

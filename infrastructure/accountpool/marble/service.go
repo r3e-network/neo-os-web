@@ -19,14 +19,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
+	"github.com/nspcc-dev/neo-go/pkg/wallet"
 
-	neoaccountssupabase "github.com/R3E-Network/service_layer/infrastructure/accountpool/supabase"
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	"github.com/R3E-Network/service_layer/infrastructure/crypto"
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
+	neoaccountssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 )
 
 const (
@@ -56,6 +57,11 @@ type Service struct {
 	masterKeyHash          []byte
 	masterKeyAttestationID string
 	encryptionKey          []byte // For decrypting stored WIFs
+
+	// Cached master wallet (TEE_PRIVATE_KEY) - initialized once on first use.
+	// Uses masterWalletMu for double-checked locking so transient errors are retriable.
+	masterWallet   *wallet.Account
+	masterWalletMu sync.Mutex
 
 	// Service-specific repository
 	repo neoaccountssupabase.RepositoryInterface
@@ -239,6 +245,7 @@ func (s *Service) createAccount(ctx context.Context) (*neoaccountssupabase.Accou
 	if err != nil {
 		return nil, err
 	}
+	defer crypto.ZeroBytes(derivedKey)
 
 	// Use neo-go's keys package which uses secp256k1 (Neo N3 curve)
 	neoPrivKey, err := keys.NewPrivateKeyFromBytes(derivedKey)
@@ -289,23 +296,73 @@ func (s *Service) deriveAccountKey(accountID string) ([]byte, error) {
 	return crypto.DeriveKey(s.masterKey, []byte(accountID), "pool-account", 32)
 }
 
+// AllocateUserWallet derives a deterministic custodial wallet for a user.
+// Uses a separate HKDF info string ("user-custodial-wallet") to ensure key
+// space isolation from pool accounts ("pool-account").
+func (s *Service) AllocateUserWallet(ctx context.Context, userID string) (string, error) {
+	if s.repo == nil {
+		return "", fmt.Errorf("repository not configured")
+	}
+	if userID == "" {
+		return "", fmt.Errorf("user_id required")
+	}
+
+	// Check if wallet already allocated
+	existing, err := s.repo.GetByLockedBy(ctx, "user:"+userID)
+	if err == nil && existing != nil {
+		return existing.Address, nil
+	}
+
+	derivedKey, err := crypto.DeriveKey(s.masterKey, []byte(userID), "user-custodial-wallet", 32)
+	if err != nil {
+		return "", fmt.Errorf("derive user wallet key: %w", err)
+	}
+	defer crypto.ZeroBytes(derivedKey)
+
+	neoPrivKey, err := keys.NewPrivateKeyFromBytes(derivedKey)
+	if err != nil {
+		return "", fmt.Errorf("create neo private key: %w", err)
+	}
+
+	address := neoPrivKey.Address()
+	accountID := uuid.New().String()
+
+	acc := &neoaccountssupabase.Account{
+		ID:         accountID,
+		Address:    address,
+		CreatedAt:  time.Now(),
+		LastUsedAt: time.Now(),
+		LockedBy:   "user:" + userID,
+		LockedAt:   time.Now(),
+	}
+	if err := s.repo.Create(ctx, acc); err != nil {
+		// If creation fails due to duplicate, try to fetch existing
+		existing, getErr := s.repo.GetByLockedBy(ctx, "user:"+userID)
+		if getErr == nil && existing != nil {
+			return existing.Address, nil
+		}
+		return "", fmt.Errorf("create user wallet account: %w", err)
+	}
+
+	return address, nil
+}
+
 // getPrivateKey returns the private key for an account.
 // Priority: 1) Stored encrypted WIF, 2) HD derivation from master key.
 // This is internal only - private keys never leave this service.
-func (s *Service) getPrivateKey(accountID string) (*ecdsa.PrivateKey, error) {
+// Callers must pass the already-fetched account to avoid redundant DB lookups.
+func (s *Service) getPrivateKey(acc *neoaccountssupabase.Account) (*ecdsa.PrivateKey, error) {
 	// Try stored encrypted WIF first (for pre-generated accounts)
-	if s.encryptionKey != nil && s.repo != nil {
-		acc, err := s.repo.GetByID(context.Background(), accountID)
-		if err == nil && acc != nil && acc.EncryptedWIF != "" {
-			return s.decryptWIFToPrivateKey(acc.EncryptedWIF)
-		}
+	if s.encryptionKey != nil && acc.EncryptedWIF != "" {
+		return s.decryptWIFToPrivateKey(acc.EncryptedWIF)
 	}
 
 	// Fall back to HD derivation (for legacy accounts)
-	derivedKey, err := s.deriveAccountKey(accountID)
+	derivedKey, err := s.deriveAccountKey(acc.ID)
 	if err != nil {
 		return nil, err
 	}
+	defer crypto.ZeroBytes(derivedKey)
 
 	neoPrivKey, err := keys.NewPrivateKeyFromBytes(derivedKey)
 	if err != nil {
@@ -313,16 +370,6 @@ func (s *Service) getPrivateKey(accountID string) (*ecdsa.PrivateKey, error) {
 	}
 
 	return &neoPrivKey.PrivateKey, nil
-}
-
-// getPrivateKeyHex derives and returns the private key hex string for an account.
-// This is used for creating neo-go wallet accounts for signing.
-func (s *Service) getPrivateKeyHex(accountID string) (string, error) {
-	derivedKey, err := s.deriveAccountKey(accountID)
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(derivedKey), nil
 }
 
 // decryptWIFToPrivateKey decrypts an encrypted WIF and returns the private key.

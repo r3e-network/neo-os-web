@@ -1,47 +1,116 @@
 import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { withCsrfProtection } from "@/lib/csrf";
+import { logger } from "@/lib/logger";
+import { standardLimit } from "@/lib/rate-limit";
+import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import { isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
 
-// Shared store reference (in production, use database)
-const votesStore: Map<string, Map<string, "upvote" | "downvote">> = new Map();
+const VALID_VOTE_TYPES = new Set(["upvote", "downvote"]);
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
   const { appId, commentId } = req.query;
 
   if (!appId || !commentId || typeof appId !== "string" || typeof commentId !== "string") {
     return apiError.badRequest(res, "Missing appId or commentId");
   }
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(appId)) {
+    return apiError.badRequest(res, "Invalid appId format");
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(commentId)) {
+    return apiError.badRequest(res, "Invalid commentId format");
+  }
 
   if (req.method !== "POST") {
     return apiError.methodNotAllowed(res);
   }
+  if (!hasServiceRoleSupabase()) {
+    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for voting");
+  }
 
   const { wallet, vote_type } = req.body;
 
-  if (!wallet || typeof wallet !== "string" || !["upvote", "downvote"].includes(vote_type)) {
+  if (!isValidWalletAddress(wallet) || typeof vote_type !== "string" || !VALID_VOTE_TYPES.has(vote_type)) {
     return apiError.badRequest(res, "Invalid vote data");
   }
 
-  if (!/^N[A-Za-z0-9]{33}$/.test(wallet)) {
-    return apiError.badRequest(res, "Invalid wallet address");
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) {
+    return apiError.configError(res, "Supabase service role client unavailable");
   }
 
-  const voteKey = `${appId}:${commentId}`;
-  if (!votesStore.has(voteKey)) {
-    votesStore.set(voteKey, new Map());
+  const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: true });
+  if (!userId) {
+    return apiError.internal(res, "Failed to resolve user");
   }
 
-  const commentVotes = votesStore.get(voteKey)!;
-  const existingVote = commentVotes.get(wallet);
+  const { data: comment, error: commentError } = await supabase
+    .from("social_comments")
+    .select("id,app_id")
+    .eq("id", commentId)
+    .is("deleted_at", null)
+    .single();
 
-  // Toggle vote if same type, otherwise update
-  if (existingVote === vote_type) {
-    commentVotes.delete(wallet);
+  if (commentError || !comment) {
+    return apiError.notFound(res, "Comment not found");
+  }
+  if (comment.app_id !== appId) {
+    return apiError.badRequest(res, "Comment belongs to different app");
+  }
+
+  const { data: existingVote, error: voteLookupError } = await supabase
+    .from("social_comment_votes")
+    .select("id,vote_type")
+    .eq("comment_id", commentId)
+    .eq("voter_user_id", userId)
+    .maybeSingle();
+
+  if (voteLookupError) {
+    logger.error("Vote lookup failed:", voteLookupError.message);
+    return apiError.internal(res, "Failed to submit vote");
+  }
+
+  if (existingVote?.vote_type === vote_type) {
+    const { error } = await supabase.from("social_comment_votes").delete().eq("id", existingVote.id);
+    if (error) {
+      logger.error("Vote delete failed:", error.message);
+      return apiError.internal(res, "Failed to submit vote");
+    }
+  } else if (existingVote?.id) {
+    const { error } = await supabase
+      .from("social_comment_votes")
+      .update({ vote_type })
+      .eq("id", existingVote.id);
+    if (error) {
+      logger.error("Vote update failed:", error.message);
+      return apiError.internal(res, "Failed to submit vote");
+    }
   } else {
-    commentVotes.set(wallet, vote_type);
+    const { error } = await supabase.from("social_comment_votes").insert({
+      comment_id: commentId,
+      voter_user_id: userId,
+      vote_type,
+    });
+    if (error) {
+      logger.error("Vote insert failed:", error.message);
+      return apiError.internal(res, "Failed to submit vote");
+    }
   }
 
-  return res.status(200).json({ success: true });
+  const { data: voteRows } = await supabase
+    .from("social_comment_votes")
+    .select("vote_type")
+    .eq("comment_id", commentId);
+
+  let upvotes = 0;
+  let downvotes = 0;
+  for (const vote of voteRows || []) {
+    if (vote.vote_type === "upvote") upvotes += 1;
+    if (vote.vote_type === "downvote") downvotes += 1;
+  }
+
+  return res.status(200).json({ success: true, upvotes, downvotes });
 }
 
 export default withCsrfProtection(handler);

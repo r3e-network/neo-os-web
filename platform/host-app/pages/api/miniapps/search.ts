@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import { apiError } from "@/lib/api-response";
 import { standardLimit } from "@/lib/rate-limit";
+import { loadMiniAppCatalog } from "@/lib/miniapp-catalog";
 
 export interface SearchResult {
   app_id: string;
@@ -35,8 +35,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(200).json({ results: [], total: 0, query: "", suggestions: getPopularSearches() });
   }
 
-  const results = searchApps(query, category as string, maxResults);
-  const suggestions = generateSuggestions(query);
+  const catalog = await loadMiniAppCatalog("active");
+  const results = searchApps(catalog, query, category as string, maxResults);
+  const suggestions = generateSuggestions(catalog, query);
 
   return res.status(200).json({
     results,
@@ -47,10 +48,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 }
 
 /** Full-text search across apps */
-function searchApps(query: string, category: string | undefined, limit: number): SearchResult[] {
+function searchApps(
+  apps: Array<{ app_id: string; name: string; description: string; category: string; icon: string }>,
+  query: string,
+  category: string | undefined,
+  limit: number,
+): SearchResult[] {
   const terms = query.split(/\s+/).filter(Boolean);
 
-  const scored = BUILTIN_APPS.map((app) => {
+  const scored = apps.map((app) => {
     let score = 0;
     const highlights: { field: string; snippet: string }[] = [];
 
@@ -100,11 +106,14 @@ function highlightTerm(text: string, term: string): string {
 }
 
 /** Generate search suggestions based on query */
-function generateSuggestions(query: string): string[] {
+function generateSuggestions(
+  apps: Array<{ name: string }>,
+  query: string,
+): string[] {
   const suggestions: string[] = [];
   const q = query.toLowerCase();
 
-  for (const app of BUILTIN_APPS) {
+  for (const app of apps) {
     if (app.name.toLowerCase().startsWith(q) && suggestions.length < 5) {
       suggestions.push(app.name);
     }

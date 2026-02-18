@@ -25,12 +25,53 @@ import (
 
 	"golang.org/x/crypto/hkdf"
 
-	"github.com/R3E-Network/service_layer/infrastructure/database"
-	"github.com/R3E-Network/service_layer/infrastructure/marble"
-	"github.com/R3E-Network/service_layer/infrastructure/runtime"
-	"github.com/R3E-Network/service_layer/infrastructure/secrets"
-	commonservice "github.com/R3E-Network/service_layer/infrastructure/service"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/secrets"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 )
+
+// runningJobCounter tracks per-user running job counts atomically.
+type runningJobCounter struct {
+	mu     sync.Mutex
+	counts map[string]int
+}
+
+func (c *runningJobCounter) increment(userID string) {
+	c.mu.Lock()
+	c.counts[userID]++
+	c.mu.Unlock()
+}
+
+func (c *runningJobCounter) decrement(userID string) {
+	c.mu.Lock()
+	if c.counts[userID] > 0 {
+		c.counts[userID]--
+	}
+	if c.counts[userID] == 0 {
+		delete(c.counts, userID)
+	}
+	c.mu.Unlock()
+}
+
+func (c *runningJobCounter) get(userID string) int {
+	c.mu.Lock()
+	n := c.counts[userID]
+	c.mu.Unlock()
+	return n
+}
+
+func (c *runningJobCounter) tryIncrement(userID string, max int) bool {
+	c.mu.Lock()
+	if c.counts[userID] >= max {
+		c.mu.Unlock()
+		return false
+	}
+	c.counts[userID]++
+	c.mu.Unlock()
+	return true
+}
 
 const (
 	ServiceID   = "neocompute"
@@ -76,6 +117,7 @@ type Service struct {
 	signingKey      []byte // Derived key for HMAC signing
 	secretProvider  secrets.Provider
 	jobs            sync.Map // map[jobID]jobEntry
+	runningJobs     runningJobCounter
 	resultTTL       time.Duration
 	cleanupInterval time.Duration
 }
@@ -130,6 +172,7 @@ func New(cfg Config) (*Service, error) {
 		resultTTL:       resultTTL,
 		cleanupInterval: cleanupInterval,
 		secretProvider:  cfg.SecretProvider,
+		runningJobs:     runningJobCounter{counts: make(map[string]int)},
 	}
 
 	key, ok := cfg.Marble.Secret("COMPUTE_MASTER_KEY")

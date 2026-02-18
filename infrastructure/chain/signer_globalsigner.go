@@ -14,7 +14,7 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/util"
 	"github.com/nspcc-dev/neo-go/pkg/vm/opcode"
 
-	gsclient "github.com/R3E-Network/service_layer/infrastructure/globalsigner/client"
+	gsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/client"
 )
 
 // GlobalSignerSigner implements TEESigner using the GlobalSigner infrastructure marble.

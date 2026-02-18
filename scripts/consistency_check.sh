@@ -308,7 +308,7 @@ check_logging_consistency() {
     local infrastructure_logging=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \
         ! -path "*/.git/*" \
-        -exec grep -l '"github.com/R3E-Network/service_layer/infrastructure/logging"' {} \; 2>/dev/null | wc -l)
+        -exec grep -l '"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"' {} \; 2>/dev/null | wc -l)
 
     local direct_logrus=$(find "$PROJECT_ROOT" -name "*.go" \
         ! -path "*/vendor/*" \

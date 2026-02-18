@@ -365,9 +365,9 @@ To integrate metrics and logging into the gateway:
 
 ```go
 import (
-    "github.com/R3E-Network/service_layer/internal/logging"
-    "github.com/R3E-Network/service_layer/internal/metrics"
-    "github.com/R3E-Network/service_layer/internal/middleware"
+    "github.com/r3e-network/neo-miniapp-platform/internal/logging"
+    "github.com/r3e-network/neo-miniapp-platform/internal/metrics"
+    "github.com/r3e-network/neo-miniapp-platform/internal/middleware"
     "github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

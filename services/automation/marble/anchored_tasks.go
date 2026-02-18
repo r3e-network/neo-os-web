@@ -13,8 +13,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/R3E-Network/service_layer/infrastructure/chain"
-	txproxytypes "github.com/R3E-Network/service_layer/infrastructure/txproxy/types"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
 )
 
 type anchoredTaskTriggerSpec struct {
@@ -246,7 +246,9 @@ func (s *Service) checkAndExecuteAnchoredCronTask(ctx context.Context, now time.
 		return
 	}
 
-	s.spawnAnchoredTask(ctx, task, executionData)
+	if !s.spawnAnchoredTask(ctx, task, executionData) {
+		return
+	}
 
 	next, err := s.parseNextCronExecution(task.trigger.Schedule)
 	if err == nil {
@@ -347,7 +349,7 @@ func (s *Service) checkAndExecuteAnchoredIntervalTask(ctx context.Context, now t
 	case "monthly":
 		intervalSeconds = 2592000 // 30 days
 	default:
-		// Unknown interval format
+		s.Logger().WithContext(ctx).WithField("schedule", schedule).WithField("task_id", anchoredTaskKey(task.task.TaskID)).Warn("unsupported interval schedule format")
 		return
 	}
 
@@ -376,18 +378,21 @@ func (s *Service) checkAndExecuteAnchoredIntervalTask(ctx context.Context, now t
 	s.spawnAnchoredTask(ctx, task, executionData)
 }
 
-func (s *Service) spawnAnchoredTask(ctx context.Context, task *anchoredTaskState, executionData []byte) {
+func (s *Service) spawnAnchoredTask(ctx context.Context, task *anchoredTaskState, executionData []byte) bool {
 	if s == nil || task == nil || task.task == nil {
-		return
+		return false
 	}
 	if !s.tryAcquireAnchoredTaskSlot() {
 		s.Logger().WithContext(ctx).WithField("task_id", anchoredTaskKey(task.task.TaskID)).Warn("anchored task skipped due to concurrency limit")
-		return
+		return false
 	}
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		defer s.releaseAnchoredTaskSlot()
 		s.executeAnchoredTask(ctx, task, executionData)
 	}()
+	return true
 }
 
 func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskState, executionData []byte) {
@@ -422,6 +427,10 @@ func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskSta
 					WithField("balance", balance.String()).
 					WithField("required_fee", fee.String()).
 					Warn("insufficient balance for periodic task execution, skipping")
+				// Update lastExecutedAt to prevent busy-loop re-checks every tick.
+				task.mu.Lock()
+				task.lastExecutedAt = time.Now()
+				task.mu.Unlock()
 				return
 			}
 

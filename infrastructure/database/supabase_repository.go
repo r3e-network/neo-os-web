@@ -29,6 +29,12 @@ func (r *Repository) Request(ctx context.Context, method, table string, body int
 	return r.client.request(ctx, method, table, body, query)
 }
 
+// RequestUpsert performs an atomic upsert via POST with resolution=merge-duplicates.
+// onConflict specifies the conflict target columns (e.g., "account_id,token_type").
+func (r *Repository) RequestUpsert(ctx context.Context, table string, body interface{}, onConflict, query string) ([]byte, error) {
+	return r.client.requestUpsert(ctx, table, body, onConflict, query)
+}
+
 // =============================================================================
 // User Operations
 // =============================================================================

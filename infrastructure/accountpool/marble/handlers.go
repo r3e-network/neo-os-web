@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/R3E-Network/service_layer/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 // =============================================================================
@@ -46,7 +46,8 @@ func (s *Service) handleListAccounts(w http.ResponseWriter, r *http.Request) {
 
 	accounts, err := s.ListAccountsByService(r.Context(), serviceID, tokenType, minBalance)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to list accounts", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -73,7 +74,8 @@ func (s *Service) handleRequestAccounts(w http.ResponseWriter, r *http.Request) 
 
 	accounts, lockID, err := s.RequestAccounts(r.Context(), input.ServiceID, input.Count, input.Purpose)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to request accounts", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -106,7 +108,8 @@ func (s *Service) handleReleaseAccounts(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to release accounts", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -135,7 +138,8 @@ func (s *Service) handleSignTransaction(w http.ResponseWriter, r *http.Request) 
 
 	resp, err := s.SignTransaction(r.Context(), input.ServiceID, input.AccountID, input.TxHash)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to sign transaction", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -191,7 +195,8 @@ func (s *Service) handleUpdateBalance(w http.ResponseWriter, r *http.Request) {
 		input.Absolute,
 	)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to update balance", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -225,7 +230,8 @@ func (s *Service) handleTransfer(w http.ResponseWriter, r *http.Request) {
 
 	txHash, err := s.Transfer(r.Context(), input.ServiceID, input.AccountID, input.ToAddress, input.Amount, input.TokenHash)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to transfer", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -259,7 +265,8 @@ func (s *Service) handleTransferWithData(w http.ResponseWriter, r *http.Request)
 
 	txHash, err := s.TransferWithData(r.Context(), input.ServiceID, input.AccountID, input.ToAddress, input.Amount, input.Data)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to transfer with data", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -293,7 +300,8 @@ func (s *Service) handleDeployContract(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.DeployContract(r.Context(), input.ServiceID, input.AccountID, input.NEFBase64, input.ManifestJSON, input.Data)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to deploy contract", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -321,7 +329,8 @@ func (s *Service) handleUpdateContract(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.UpdateContract(r.Context(), input.ServiceID, input.AccountID, input.ContractHash, input.NEFBase64, input.ManifestJSON, input.Data)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to update contract", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -354,7 +363,8 @@ func (s *Service) handleInvokeContract(w http.ResponseWriter, r *http.Request) {
 			httputil.WriteJSON(w, http.StatusOK, resp)
 			return
 		}
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to invoke contract", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -381,7 +391,8 @@ func (s *Service) handleSimulateContract(w http.ResponseWriter, r *http.Request)
 
 	resp, err := s.SimulateContract(r.Context(), input.ServiceID, input.AccountID, input.ContractHash, input.Method, input.Params)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to simulate contract", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -409,7 +420,8 @@ func (s *Service) handleInvokeMaster(w http.ResponseWriter, r *http.Request) {
 			httputil.WriteJSON(w, http.StatusOK, resp)
 			return
 		}
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to invoke master", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -431,7 +443,8 @@ func (s *Service) handleDeployMaster(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.DeployMaster(r.Context(), input.NEFBase64, input.ManifestJSON, input.Data)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to deploy master contract", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -461,10 +474,14 @@ func (s *Service) handleListLowBalanceAccounts(w http.ResponseWriter, r *http.Re
 			limit = parsed
 		}
 	}
+	if limit > 100 {
+		limit = 100
+	}
 
 	accounts, err := s.ListLowBalanceAccounts(r.Context(), tokenType, maxBalance, limit)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to list low balance accounts", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
@@ -488,11 +505,38 @@ func (s *Service) handleFundAccount(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.FundAccount(r.Context(), input.ToAddress, input.Amount, input.TokenHash)
 	if err != nil {
-		httputil.InternalError(w, err.Error())
+		s.Logger().Error(r.Context(), "failed to fund account", err, nil)
+		httputil.InternalError(w, "internal error")
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, resp)
+}
+
+// handleAllocateUserWallet allocates a deterministic custodial wallet for a user.
+func (s *Service) handleAllocateUserWallet(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		UserID string `json:"user_id"`
+	}
+	if !httputil.DecodeJSON(w, r, &input) {
+		return
+	}
+	if input.UserID == "" {
+		httputil.BadRequest(w, "user_id required")
+		return
+	}
+
+	address, err := s.AllocateUserWallet(r.Context(), input.UserID)
+	if err != nil {
+		s.Logger().Error(r.Context(), "failed to allocate user wallet", err, nil)
+		httputil.InternalError(w, "internal error")
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{
+		"address": address,
+		"user_id": input.UserID,
+	})
 }
 
 func resolveServiceID(w http.ResponseWriter, r *http.Request, requestedServiceID string) (string, bool) {

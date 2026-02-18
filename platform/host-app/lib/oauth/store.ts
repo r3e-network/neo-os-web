@@ -1,5 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { createClient } from "@supabase/supabase-js";
+
+const getSupabase = () =>
+  createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+    { global: { headers: { Authorization: `Bearer ${typeof window !== "undefined" ? sessionStorage.getItem("sb-access-token") || "" : ""}` } } },
+  );
 
 export type OAuthProvider = "google" | "twitter" | "github";
 
@@ -21,6 +29,7 @@ interface OAuthState {
 interface OAuthActions {
   linkAccount: (provider: OAuthProvider) => Promise<void>;
   unlinkAccount: (provider: OAuthProvider) => void;
+  fetchLinkedAccounts: (userId: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -78,6 +87,27 @@ export const useOAuthStore = create<OAuthStore>()(
         });
       },
 
+      fetchLinkedAccounts: async (userId: string) => {
+        try {
+          const { data, error: fetchErr } = await getSupabase()
+            .from("linked_identities")
+            .select("provider,provider_user_id,email,name,avatar,linked_at")
+            .eq("neohub_account_id", userId);
+          if (fetchErr || !data) return;
+          const accounts: OAuthAccount[] = data.map((row) => ({
+            provider: row.provider as OAuthProvider,
+            id: row.provider_user_id,
+            email: row.email ?? undefined,
+            name: row.name ?? undefined,
+            avatar: row.avatar ?? undefined,
+            linkedAt: row.linked_at,
+          }));
+          set({ accounts });
+        } catch {
+          // silently fail
+        }
+      },
+
       clearError: () => set({ error: null }),
     }),
     {
@@ -95,8 +125,8 @@ function waitForOAuthCallback(popup: Window, provider: OAuthProvider): Promise<O
     }, 120000);
 
     const handleMessage = (event: MessageEvent) => {
-      const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-      if (event.origin !== allowedOrigin) return;
+      const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL;
+      if (!allowedOrigin || event.origin !== allowedOrigin) return;
 
       if (event.data?.type === "oauth-success" && event.data?.provider === provider) {
         cleanup();

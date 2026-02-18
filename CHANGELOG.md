@@ -66,5 +66,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HKDF key derivation
 - VRF (ECVRF-P256-SHA256-TAI)
 
-[Unreleased]: https://github.com/R3E-Network/service_layer/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/R3E-Network/service_layer/releases/tag/v0.1.0
+[Unreleased]: https://github.com/r3e-network/neo-miniapp-platform/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/r3e-network/neo-miniapp-platform/releases/tag/v0.1.0
