@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json(result);
   } catch (error) {
     logger.error("Sync error:", error);
-    apiError.internal(res, "Sync failed");
+    return apiError.internal(res, "Sync failed");
   }
 }
 

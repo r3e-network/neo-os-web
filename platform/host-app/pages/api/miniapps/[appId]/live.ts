@@ -55,6 +55,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ status });
   } catch (error) {
     logger.error("Live status error:", error);
-    apiError.internal(res, "Failed to fetch live status");
+    return apiError.internal(res, "Failed to fetch live status");
   }
 }

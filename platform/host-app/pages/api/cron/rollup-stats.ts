@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       results.push({
         appId: app.appId,
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: "rollup failed",
       });
     }
   }
