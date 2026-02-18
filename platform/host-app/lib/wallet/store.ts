@@ -70,7 +70,7 @@ export const useWalletStore = create<WalletStore>()(
           const message =
             err instanceof WalletNotInstalledError
               ? `Please install ${adapter.name} wallet`
-              : `Connection failed: ${err}`;
+              : "Wallet connection failed";
 
           set({ loading: false, error: message });
         }
