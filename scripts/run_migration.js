@@ -32,7 +32,6 @@ async function runMigration() {
 
   try {
     console.log("Connecting to database...");
-    console.log(`Host: ${process.env.POSTGRES_HOST}`);
     await client.connect();
     console.log("Connected successfully!");
 
