@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (appId) {
     const app = filterCatalogByAppId(catalog, appId);
     if (!app) {
-      return res.status(404).json({ error: "MiniApp not found" });
+      return apiError.notFound(res, "MiniApp not found");
     }
     return res.status(200).json({ app });
   }

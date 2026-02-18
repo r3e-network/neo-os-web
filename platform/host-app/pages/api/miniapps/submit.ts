@@ -103,7 +103,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       submission: data,
     });
   } catch (error) {
-    logger.error("Submit error:", error);
+    logger.error("Submit error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to submit MiniApp");
   }
 }

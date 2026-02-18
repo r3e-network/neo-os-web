@@ -100,7 +100,7 @@ func (c *Client) DeductFee(ctx context.Context, req *DeductFeeRequest) (*DeductF
 		if json.Unmarshal(respBody, &errResp) == nil && errResp.Error != "" {
 			return nil, fmt.Errorf("deduct fee failed (HTTP %d): %s", resp.StatusCode, errResp.Error)
 		}
-		return nil, fmt.Errorf("deduct fee failed with status %d: %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("deduct fee failed with status %d", resp.StatusCode)
 	}
 
 	var result DeductFeeResponse

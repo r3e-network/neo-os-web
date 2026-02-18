@@ -44,7 +44,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await sendEmail({ to: sanitizedEmail, ...template });
   } catch (err) {
-    logger.error("Failed to send verification email:", err);
+    logger.error("Failed to send verification email:", err instanceof Error ? err.message : "unknown error");
     return apiError.gatewayError(res, "Failed to send verification email");
   }
 
