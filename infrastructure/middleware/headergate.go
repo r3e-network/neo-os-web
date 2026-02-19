@@ -34,6 +34,11 @@ func enqueueAudit(event *auditEvent) {
 	auditOnce.Do(func() {
 		auditQueue = make(chan *auditEvent, 256)
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// Silently absorb panic so the process stays alive.
+				}
+			}()
 			for auditEvent := range auditQueue {
 				if auditEvent == nil {
 					continue

@@ -212,6 +212,11 @@ func (rl *RateLimiter) StartCleanup(interval time.Duration) (stop func()) {
 	var once sync.Once
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// Silently absorb panic so the process stays alive.
+			}
+		}()
 		for {
 			select {
 			case <-ticker.C:

@@ -302,6 +302,11 @@ func (m *ServiceAuthMiddleware) cleanupCache() {
 func (m *ServiceAuthMiddleware) startBackgroundCleanup() {
 	m.cleanupOnce.Do(func() {
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// Silently absorb panic so the process stays alive.
+				}
+			}()
 			ticker := time.NewTicker(2 * time.Minute)
 			defer ticker.Stop()
 
