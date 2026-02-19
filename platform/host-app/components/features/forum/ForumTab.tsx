@@ -186,6 +186,7 @@ function NewThreadForm({
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
+          aria-label="Thread category"
           className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
         >
           <option value="general">General</option>
