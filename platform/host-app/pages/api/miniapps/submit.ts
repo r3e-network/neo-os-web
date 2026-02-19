@@ -43,6 +43,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (body.name.length > 64 || body.description.length > 2000) {
     return apiError.badRequest(res, "Name max 64 chars, description max 2000 chars");
   }
+  if (body.developer_name && body.developer_name.length > 128) {
+    return apiError.badRequest(res, "developer_name max 128 chars");
+  }
+  if (body.icon && body.icon.length > 64) {
+    return apiError.badRequest(res, "icon max 64 chars");
+  }
 
   // URL validation
   try {
