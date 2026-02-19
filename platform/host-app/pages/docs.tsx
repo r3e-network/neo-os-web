@@ -182,15 +182,15 @@ function GettingStartedContent() {
         </div>
       </div>
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">1. Install the SDK</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">1. Install the SDK</h3>
       <p className="text-gray-600 dark:text-gray-400 mb-4">Install the Neo MiniApp SDK using npm or yarn:</p>
       <CodeBlock code="npm install @neo-miniapp/sdk" language="bash" />
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">2. Create Your App</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">2. Create Your App</h3>
       <p className="text-gray-600 dark:text-gray-400 mb-4">Use our CLI to scaffold a new MiniApp project:</p>
       <CodeBlock code="npx create-miniapp my-first-app\ncd my-first-app\nnpm run dev" language="bash" />
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">3. Initialize the SDK</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">3. Initialize the SDK</h3>
       <p className="text-gray-600 dark:text-gray-400 mb-4">Import and initialize the SDK in your app:</p>
       <CodeBlock
         code={`import { MiniApp } from '@neo-miniapp/sdk';
@@ -206,7 +206,7 @@ console.log('Connected:', account.address);`}
         language="typescript"
       />
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">4. Make Your First Transaction</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">4. Make Your First Transaction</h3>
       <CodeBlock
         code={`// Transfer GAS
 const result = await app.wallet.transfer({
@@ -266,7 +266,7 @@ function SDKReferenceContent() {
         ))}
       </div>
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">MiniApp Class</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">MiniApp Class</h3>
       <p className="text-gray-600 dark:text-gray-400 mb-4">The main entry point for all SDK functionality:</p>
       <CodeBlock
         code={`interface MiniAppConfig {
@@ -287,7 +287,7 @@ app.tee       // Confidential computing`}
         language="typescript"
       />
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">Wallet API</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Wallet API</h3>
       <CodeBlock
         code={`// Connect wallet
 const account = await app.wallet.connect();
@@ -321,7 +321,7 @@ function SmartContractsContent() {
         Interact with Neo N3 smart contracts directly from your MiniApp.
       </p>
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">Invoking Contracts</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Invoking Contracts</h3>
       <CodeBlock
         code={`// Invoke a contract method
 const result = await app.contract.invoke({
@@ -336,7 +336,7 @@ console.log('Balance:', result);`}
         language="typescript"
       />
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">Writing Your Own Contract</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Writing Your Own Contract</h3>
       <CodeBlock
         code={`// MyMiniApp.cs
 using Neo.SmartContract.Framework;
@@ -361,7 +361,7 @@ public class MyMiniApp : SmartContract
         language="csharp"
       />
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">Deploy Contract</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Deploy Contract</h3>
       <CodeBlock
         code={`# Compile contract
 nccs MyMiniApp.cs
@@ -417,7 +417,7 @@ function PlatformServicesContent() {
         ))}
       </div>
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">Using VRF</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Using VRF</h3>
       <CodeBlock
         code={`// Request verifiable random number
 const randomResult = await app.vrf.requestRandom({
@@ -431,7 +431,7 @@ console.log('Proof:', randomResult.proof);`}
         language="typescript"
       />
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">Using Oracle</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Using Oracle</h3>
       <CodeBlock
         code={`// Get price feed
 const price = await app.oracle.getPrice('NEO/USD');
@@ -444,7 +444,7 @@ app.oracle.subscribe('GAS/USD', (update) => {
         language="typescript"
       />
 
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-8 mb-4">Using TEE</h3>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Using TEE</h3>
       <CodeBlock
         code={`// Execute confidential computation
 const result = await app.tee.execute({
