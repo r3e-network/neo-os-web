@@ -160,7 +160,7 @@ export default function AccountPage() {
 
             <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-gray-200 dark:border-gray-700">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <Shield size={14} className="text-indigo-400" />
+                <Shield size={16} className="text-indigo-400" />
                 Security Tip
               </h3>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">

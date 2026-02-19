@@ -200,7 +200,7 @@ export default function MiniAppsPage() {
                   {showSortMenu && (
                     <div
                       role="listbox"
-                      className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50"
+                      className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1 z-50"
                     >
                       {sortOptions.map((option) => (
                         <button

@@ -235,7 +235,7 @@ export default function LandingPage() {
                         )}
                       >
                         <span className="flex items-center gap-2">
-                          <Icon size={16} />
+                          <Icon size={18} />
                           {cat.label}
                         </span>
                         <span
@@ -435,4 +435,3 @@ function FeatureItem({ icon: Icon, title, desc }: { icon: React.ComponentType<{ 
     </Card>
   );
 }
-

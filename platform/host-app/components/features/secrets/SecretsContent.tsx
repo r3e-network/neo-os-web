@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSecretsStore } from "@/lib/secrets";
 import { useWalletStore } from "@/lib/wallet/store";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
@@ -84,7 +85,20 @@ export default function SecretsContent() {
             />
           )}
 
-          {loading && <p className="text-gray-500 dark:text-gray-400">Loading...</p>}
+          {loading && (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-3 w-40" />
+                  </div>
+                  <Skeleton className="h-6 w-14" />
+                </div>
+              ))}
+            </div>
+          )}
 
           {!loading && filteredTokens.length === 0 && <p className="text-gray-500 dark:text-gray-400 py-4">No tokens created yet</p>}
 
