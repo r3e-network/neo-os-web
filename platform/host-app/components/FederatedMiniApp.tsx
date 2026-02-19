@@ -102,7 +102,7 @@ function FederatedLoader({ remote, appId, view }: Props) {
     };
   }, [remote]);
 
-  if (loading) return <p className="text-sm text-gray-400" aria-busy="true">Loading federated MiniApp…</p>;
+  if (loading) return <p className="text-sm text-gray-500 dark:text-gray-400" aria-busy="true">Loading federated MiniApp…</p>;
   if (error) {
     return (
       <div className="p-3 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 max-w-md" role="alert">
@@ -112,7 +112,7 @@ function FederatedLoader({ remote, appId, view }: Props) {
     );
   }
 
-  if (!LoadedComponent) return <p className="text-sm text-gray-400">Module not available</p>;
+  if (!LoadedComponent) return <p className="text-sm text-gray-500 dark:text-gray-400">Module not available</p>;
   return <LoadedComponent appId={appId} view={view} remote={remote} />;
 }
 
