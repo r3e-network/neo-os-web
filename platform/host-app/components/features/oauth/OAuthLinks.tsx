@@ -42,6 +42,7 @@ export function OAuthLinks() {
                 <button
                   type="button"
                   onClick={() => unlinkAccount(provider.id)}
+                  aria-label={`Unlink ${provider.name}`}
                   className="rounded-md border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   Unlink
@@ -51,6 +52,7 @@ export function OAuthLinks() {
                   type="button"
                   onClick={() => linkAccount(provider.id)}
                   disabled={isLoading}
+                  aria-label={`Link ${provider.name}`}
                   className="rounded-md bg-gray-900 dark:bg-gray-100 px-3 py-1.5 text-sm text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Linking..." : "Link"}

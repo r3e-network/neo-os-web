@@ -55,7 +55,7 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
   const showSourceBadge = app.source && app.source !== "builtin";
 
   return (
-    <Link href={`/miniapps/${app.app_id}`} className="relative block">
+    <Link href={`/miniapps/${app.app_id}`} aria-label={`View ${app.name}`} className="relative block">
       <Card className="group cursor-pointer transition-all duration-300 ease-out hover:shadow-xl hover:-translate-y-1 hover:z-50 overflow-hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-md relative">
         {app.cardData ? (
           <div className="w-full h-48">
