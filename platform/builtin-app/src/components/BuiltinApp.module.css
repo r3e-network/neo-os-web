@@ -107,6 +107,12 @@
   color: #fff;
 }
 
+.navButton:focus-visible,
+.navButtonActive:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(51, 92, 255, 0.5);
+}
+
 .card {
   padding: 18px;
   border-radius: 16px;
@@ -188,6 +194,12 @@
   font-size: 14px;
 }
 
+.input:focus-visible {
+  outline: none;
+  border-color: #335cff;
+  box-shadow: 0 0 0 2px rgba(51, 92, 255, 0.3);
+}
+
 .buttonRow {
   display: flex;
   flex-wrap: wrap;
@@ -214,6 +226,12 @@
   color: #bcd0ff;
 }
 
+.buttonPrimary:focus-visible,
+.buttonSecondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(51, 92, 255, 0.5);
+}
+
 .quickRow {
   display: flex;
   flex-wrap: wrap;
@@ -235,6 +253,12 @@
   background: rgba(51, 92, 255, 0.2);
   border-color: #335cff;
   color: #fff;
+}
+
+.quickButton:focus-visible,
+.quickActive:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(51, 92, 255, 0.5);
 }
 
 .status {
@@ -281,6 +305,12 @@
   background: rgba(51, 92, 255, 0.25);
   border-color: #335cff;
   color: #fff;
+}
+
+.choiceButton:focus-visible,
+.choiceActive:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(51, 92, 255, 0.5);
 }
 
 .kpiRow {
