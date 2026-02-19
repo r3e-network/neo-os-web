@@ -133,7 +133,7 @@ export function SearchSuggestions({ onSelect, className }: SearchSuggestionsProp
                 inputRef.current?.focus();
               }}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               <X size={16} />
             </button>

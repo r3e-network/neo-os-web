@@ -43,7 +43,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
             <button
               onClick={() => toggleSection(section.id)}
               aria-expanded={expanded[section.id]}
-              className="flex items-center justify-between w-full text-left py-2 text-sm font-medium text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400"
+              className="flex items-center justify-between w-full text-left py-2 text-sm font-medium text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
             >
               {section.label}
               {expanded[section.id] ? (

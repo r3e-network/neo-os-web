@@ -40,7 +40,7 @@ export function Footer() {
             <ul className="mt-4 space-y-2">
               {footerLinks.platform.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo">
+                  <Link href={link.href} className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -54,7 +54,7 @@ export function Footer() {
             <ul className="mt-4 space-y-2">
               {footerLinks.resources.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo">
+                  <Link href={link.href} className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -72,7 +72,7 @@ export function Footer() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo"
+                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo transition-colors"
                   >
                     {link.label}
                     <span className="sr-only"> (opens in new tab)</span>

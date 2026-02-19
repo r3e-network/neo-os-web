@@ -119,7 +119,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
             {unreadCount > 0 && (
-              <button onClick={markAllAsRead} className="text-xs text-emerald-500 hover:text-emerald-600">
+              <button onClick={markAllAsRead} className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors">
                 Mark all read
               </button>
             )}

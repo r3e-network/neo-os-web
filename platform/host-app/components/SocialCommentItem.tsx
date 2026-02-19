@@ -54,14 +54,14 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
           <button
             type="button"
             onClick={() => onVote(comment.id, "upvote")}
-            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
           >
             ▲ {comment.upvotes}
           </button>
           <button
             type="button"
             onClick={() => onVote(comment.id, "downvote")}
-            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
           >
             ▼ {comment.downvotes}
           </button>
@@ -69,7 +69,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             <button
               type="button"
               onClick={() => setShowReplyForm(!showReplyForm)}
-              className="text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+              className="text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
             >
               Reply
             </button>
