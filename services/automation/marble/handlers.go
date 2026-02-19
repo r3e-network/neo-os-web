@@ -275,7 +275,7 @@ func (s *Service) handleResumeTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 	id := mux.Vars(r)["id"]
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
-	if err != nil {
+	if err != nil || trigger == nil {
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
