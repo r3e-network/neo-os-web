@@ -99,7 +99,7 @@ export default function DeveloperPage() {
               <Rocket size={16} />
               Build on Neo N3
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold text-gray-900 dark:text-white">
               Developer <span className="neo-gradient-text">Portal</span>
             </h1>
             <p className="mt-6 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">

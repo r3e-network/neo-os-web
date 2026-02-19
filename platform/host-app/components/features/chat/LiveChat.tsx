@@ -142,7 +142,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           <div className="flex items-center justify-between px-4 py-3 bg-emerald-500 text-white">
             <div className="flex items-center gap-2">
               <MessageCircle size={18} />
-              <span className="font-semibold">Live Chat</span>
+              <span className="font-semibold text-gray-900 dark:text-white">Live Chat</span>
             </div>
             <div className="flex items-center gap-1 text-sm opacity-90">
               <Users size={14} />
@@ -195,7 +195,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                   onClick={sendMessage}
                   disabled={!inputValue.trim()}
                   aria-label="Send message"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
                 >
                   <Send size={16} />
                 </button>

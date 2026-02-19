@@ -56,7 +56,7 @@ export function ForumTab({ appId }: ForumTabProps) {
           <button
             type="button"
             onClick={() => setShowNewThread(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           >
             <Plus size={16} />
             New Thread
@@ -306,7 +306,7 @@ function ThreadDetail({
             type="button"
             onClick={handleReply}
             disabled={submitting || !replyContent.trim()}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           >
             Reply
           </button>

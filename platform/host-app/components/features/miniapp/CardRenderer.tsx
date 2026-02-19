@@ -160,7 +160,7 @@ function VotingCard({ data, className }: { data: VotingData; className: string }
     <div
       className={`h-full flex flex-col justify-center p-3 text-white bg-gradient-to-br from-violet-600 to-purple-800 ${className}`}
     >
-      <p className="text-sm font-semibold truncate mb-2">{data.proposalTitle}</p>
+      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mb-2">{data.proposalTitle}</p>
       <div className="space-y-1 mb-2">
         <div className="relative h-4 bg-black/20 rounded overflow-hidden">
           <div className="absolute h-full bg-emerald-500" style={{ width: `${yesPercent}%` }} />
