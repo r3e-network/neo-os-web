@@ -30,25 +30,26 @@ export default function AnalyticsPage() {
       setLoading(false);
       return;
     }
-    fetchAnalytics(address);
-  }, [address]);
-
-  const fetchAnalytics = async (wallet: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/analytics/user?wallet=${encodeURIComponent(wallet)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setAnalytics(data);
-      } else {
-        setError(true);
+    let active = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/analytics/user?wallet=${encodeURIComponent(address)}`, { signal: AbortSignal.timeout(30000) });
+        if (!active) return;
+        if (res.ok) {
+          const data = await res.json();
+          if (active) setAnalytics(data);
+        } else {
+          if (active) setError(true);
+        }
+      } catch {
+        if (active) setError(true);
+      } finally {
+        if (active) setLoading(false);
       }
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+    return () => { active = false; };
+  }, [address]);
 
   if (!address) {
     return (

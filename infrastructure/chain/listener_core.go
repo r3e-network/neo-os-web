@@ -378,6 +378,11 @@ func (l *EventListener) runHandler(ctx context.Context, fields map[string]interf
 		if l.handlerSem != nil {
 			defer func() { <-l.handlerSem }()
 		}
+		defer func() {
+			if r := recover(); r != nil {
+				l.logger.WithFields(fields).WithField("panic", fmt.Sprintf("%v", r)).Error("panic in event handler")
+			}
+		}()
 		if err := fn(); err != nil {
 			l.logger.WithFields(fields).WithError(err).Warn(message)
 		}

@@ -53,29 +53,29 @@ export default function LandingPage() {
 
   // Fetch real stats from API
   useEffect(() => {
-    async function fetchStats() {
+    let active = true;
+    (async () => {
       try {
-        // Fetch platform-wide stats from contract_events
-        const res = await fetch("/api/platform/stats");
+        const res = await fetch("/api/platform/stats", { signal: AbortSignal.timeout(30000) });
+        if (!active) return;
         if (res.ok) {
           const data = await res.json();
-          // Use platform stats directly
+          if (!active) return;
           setAppStats({
             _platform: {
               users: data.totalUsers || 0,
               transactions: data.totalTransactions || 0,
             },
           });
-          // Initialize displayed count
           setDisplayedTxCount(data.totalTransactions || 0);
         }
       } catch (err) {
         logger.error("Failed to fetch stats:", err);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
-    }
-    fetchStats();
+    })();
+    return () => { active = false; };
   }, []);
 
   // Auto-increment transactions every 3 seconds (10-20 tx)
