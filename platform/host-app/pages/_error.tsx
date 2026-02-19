@@ -6,7 +6,7 @@ type ErrorProps = {
 
 function Error({ statusCode }: ErrorProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-[#050810] text-gray-800 dark:text-gray-200">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200">
       <div className="p-8 text-center">
         <h1 className="m-0 text-7xl font-bold text-neo">{statusCode}</h1>
         <p className="my-4 text-lg text-gray-400">
