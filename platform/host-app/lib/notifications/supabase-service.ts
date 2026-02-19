@@ -37,7 +37,7 @@ function toEventType(row: NotificationEventRow): NotificationEvent {
 export async function getPreferences(wallet: string): Promise<NotificationPreferences | null> {
   if (!isSupabaseConfigured) return null;
 
-  const { data, error } = await supabase.from(PREFS_TABLE).select("*").eq("wallet_address", wallet).single();
+  const { data, error } = await supabase.from(PREFS_TABLE).select("wallet_address,email,email_verified,notify_miniapp_results,notify_balance_changes,notify_chain_alerts,digest_frequency").eq("wallet_address", wallet).single();
 
   if (error) {
     // PGRST116 = row not found, which is expected
@@ -101,7 +101,7 @@ export async function getEvents(wallet: string, limit = 50, unreadOnly = false):
 
   let query = supabase
     .from(EVENTS_TABLE)
-    .select("*")
+    .select("id,type,wallet_address,title,content,metadata,created_at,read")
     .eq("wallet_address", wallet)
     .order("created_at", { ascending: false })
     .limit(limit);

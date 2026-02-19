@@ -23,7 +23,7 @@ export async function getMiniAppStats(
 
   // Try to fetch from database
   if (isSupabaseConfigured) {
-    const { data } = await supabase.from("miniapp_stats").select("*").eq("app_id", appId).single();
+    const { data } = await supabase.from("miniapp_stats").select("app_id,active_users_monthly,active_users_weekly,active_users_daily,total_transactions,transactions_weekly,transactions_daily,total_volume_gas,volume_weekly_gas,volume_daily_gas,rating,review_count,weekly_trend,last_updated").eq("app_id", appId).single();
 
     if (data) {
       const stats = mapDbToStats(data);
@@ -46,7 +46,7 @@ export async function getBatchStats(
   const result: Record<string, MiniAppStats> = {};
 
   if (isSupabaseConfigured) {
-    const { data } = await supabase.from("miniapp_stats").select("*").in("app_id", appIds);
+    const { data } = await supabase.from("miniapp_stats").select("app_id,active_users_monthly,active_users_weekly,active_users_daily,total_transactions,transactions_weekly,transactions_daily,total_volume_gas,volume_weekly_gas,volume_daily_gas,rating,review_count,weekly_trend,last_updated").in("app_id", appIds);
 
     if (data) {
       for (const row of data) {

@@ -67,7 +67,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
   const supabase = supabaseServiceClient();
   let query = supabase
     .from("contract_events")
-    .select("*")
+    .select("id,tx_hash,block_index,contract_hash,event_name,app_id,state,created_at")
     .order("id", { ascending: false })
     .limit(limit + 1);
 
@@ -137,7 +137,7 @@ export async function queryTransactions(
   const supabase = supabaseServiceClient();
   let query = supabase
     .from("chain_txs")
-    .select("*")
+    .select("id,tx_hash,request_id,from_service,tx_type,contract_address,method_name,params,gas_consumed,status,retry_count,error_message,rpc_endpoint,submitted_at,confirmed_at")
     .order("id", { ascending: false })
     .limit(limit + 1);
 
