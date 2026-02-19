@@ -43,7 +43,7 @@ export const useSecretsStore = create<SecretsStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const url = appId ? `/api/secrets/tokens?appId=${encodeURIComponent(appId)}` : "/api/secrets/tokens";
-      const res = await fetch(url, { headers: getWalletHeaders() });
+      const res = await fetch(url, { headers: getWalletHeaders(), signal: AbortSignal.timeout(30000) });
       if (!res.ok) throw new Error("Failed to fetch tokens");
       const data = await res.json();
       set({ tokens: data.tokens || [], loading: false });
@@ -62,6 +62,7 @@ export const useSecretsStore = create<SecretsStore>((set, get) => ({
         method: "POST",
         headers: { "Content-Type": "application/json", ...getWalletHeaders() },
         body: JSON.stringify({ name, appId, secretType, value }),
+        signal: AbortSignal.timeout(30000),
       });
       if (!res.ok) throw new Error("Failed to create token");
       const data = await res.json();
@@ -83,6 +84,7 @@ export const useSecretsStore = create<SecretsStore>((set, get) => ({
       const res = await fetch(`/api/secrets/tokens/${id}`, {
         method: "DELETE",
         headers: getWalletHeaders(),
+        signal: AbortSignal.timeout(30000),
       });
       if (!res.ok) throw new Error("Failed to revoke token");
 

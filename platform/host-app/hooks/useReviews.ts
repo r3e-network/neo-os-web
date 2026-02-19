@@ -32,7 +32,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (offset = 0) => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/miniapps/${appId}/reviews/comments?limit=20&offset=${offset}`, {
+        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?limit=20&offset=${offset}`, {
           signal: AbortSignal.timeout(30000),
         });
         if (res.ok) {
@@ -57,7 +57,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (value: number, review?: string): Promise<boolean> => {
       if (!walletAddress) return false;
       try {
-        const res = await fetch(`/api/miniapps/${appId}/reviews/ratings`, {
+        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/ratings`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, value, review }),
@@ -79,7 +79,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (content: string): Promise<boolean> => {
       if (!walletAddress) return false;
       try {
-        const res = await fetch(`/api/miniapps/${appId}/reviews/comments`, {
+        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, content }),
@@ -101,7 +101,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (commentId: string, voteType: VoteType): Promise<boolean> => {
       if (!walletAddress) return false;
       try {
-        const res = await fetch(`/api/miniapps/${appId}/reviews/${commentId}/vote`, {
+        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/${encodeURIComponent(commentId)}/vote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, vote_type: voteType }),
@@ -119,7 +119,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (parentId: string, content: string): Promise<boolean> => {
       if (!walletAddress) return false;
       try {
-        const res = await fetch(`/api/miniapps/${appId}/reviews/comments`, {
+        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, content, parent_id: parentId }),
