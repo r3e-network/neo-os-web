@@ -73,8 +73,9 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           </div>
         </div>
         <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-400">Secret Name</label>
+          <label htmlFor="secret-name" className="block text-sm text-gray-600 dark:text-gray-400">Secret Name</label>
           <input
+            id="secret-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -83,9 +84,10 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-400">Secret Value</label>
+          <label htmlFor="secret-value" className="block text-sm text-gray-600 dark:text-gray-400">Secret Value</label>
           <div className="relative mt-1">
             <input
+              id="secret-value"
               type={showValue ? "text" : "password"}
               value={secretValue}
               onChange={(e) => setSecretValue(e.target.value)}
@@ -103,8 +105,9 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           </div>
         </div>
         <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-400">App Scope</label>
+          <label htmlFor="secret-app-scope" className="block text-sm text-gray-600 dark:text-gray-400">App Scope</label>
           <input
+            id="secret-app-scope"
             type="text"
             value={appId}
             onChange={(e) => setAppId(e.target.value)}

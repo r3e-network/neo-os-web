@@ -72,11 +72,14 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
     );
   }
 
+  const inputId = `param-${param.name}`;
+
   if (param.type === "select" && param.options?.length) {
     return (
       <div className="mb-2.5">
-        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
+        <label htmlFor={inputId} className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
         <select
+          id={inputId}
           className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] text-sm bg-transparent text-gray-900 dark:text-white"
           value={value}
           onChange={e => onChange(e.target.value)}
@@ -90,8 +93,9 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
 
   return (
     <div className="mb-2.5">
-      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
+      <label htmlFor={inputId} className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
       <input
+        id={inputId}
         className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] text-sm bg-transparent text-gray-900 dark:text-white"
         type={param.type === "integer" || param.type === "amount" ? "number" : "text"}
         placeholder={param.placeholder || label}
