@@ -15,8 +15,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.badRequest(res, "app id required");
   }
 
-  const query = { ...req.query, app_id: normalizedAppId };
-  delete (query as Record<string, unknown>).id;
+  const query: Record<string, string> = { app_id: normalizedAppId };
+  const limitRaw = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+  if (limitRaw) query.limit = String(limitRaw);
 
   const url = buildEdgeUrl("miniapp-notifications", query);
   if (!url) {
