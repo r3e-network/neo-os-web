@@ -95,7 +95,7 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
             href={`https://dora.coz.io/transaction/neo3/${notification.tx_hash}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block mt-2 text-xs text-neo no-underline hover:underline"
+            className="inline-block mt-2 text-xs text-neo no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
           >
             View Transaction →
           </a>
