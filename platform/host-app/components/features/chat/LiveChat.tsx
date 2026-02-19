@@ -201,7 +201,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                 </button>
               </div>
             ) : (
-              <div className="text-center text-sm text-gray-500 py-2">Connect wallet to chat</div>
+              <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-2">Connect wallet to chat</div>
             )}
           </div>
         </div>
@@ -212,7 +212,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
 
 function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolean }) {
   if (message.type === "system") {
-    return <div className="text-center text-xs text-gray-500 py-1">{message.content}</div>;
+    return <div className="text-center text-xs text-gray-500 dark:text-gray-400 py-1">{message.content}</div>;
   }
 
   if (message.type === "tip") {
