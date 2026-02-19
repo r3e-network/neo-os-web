@@ -2,7 +2,7 @@
 package neosimulation
 
 import (
-	"fmt"
+	"log"
 	"sync/atomic"
 )
 
@@ -162,7 +162,7 @@ func (s *MiniAppSimulator) getRandomUserAddressOrWarn(appID, action string) (str
 	if address == "" {
 		atomic.AddInt64(&s.simulationErrors, 1)
 		if atomic.CompareAndSwapUint32(&s.missingUserAddressesLogged, 0, 1) {
-			fmt.Printf("neosimulation: skipping %s for %s: no user addresses configured\n", action, appID)
+			log.Printf("neosimulation: skipping %s for %s: no user addresses configured", action, appID)
 		}
 		return "", false
 	}

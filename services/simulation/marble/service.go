@@ -9,6 +9,7 @@ package neosimulation
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 	"math/rand"
 	"os"
@@ -189,10 +190,10 @@ func New(cfg Config) (*Service, error) {
 	invoker, err := NewContractInvokerFromEnv(poolClient)
 	if err != nil {
 		// Log warning but don't fail - contract invocation is optional
-		fmt.Printf("neosimulation: contract invoker disabled: %v\n", err)
+		log.Printf("neosimulation: contract invoker disabled: %v", err)
 	} else {
 		contractInvoker = invoker
-		fmt.Println("neosimulation: contract invoker initialized (using pool accounts)")
+		log.Println("neosimulation: contract invoker initialized (using pool accounts)")
 	}
 
 	// Initialize MiniApp simulator if contract invoker is available
@@ -200,7 +201,7 @@ func New(cfg Config) (*Service, error) {
 	if contractInvoker != nil {
 		// Use empty user addresses - will be populated from pool accounts
 		miniAppSimulator = NewMiniAppSimulator(contractInvoker, []string{})
-		fmt.Println("neosimulation: MiniApp simulator initialized for all 35 apps")
+		log.Println("neosimulation: MiniApp simulator initialized for all 35 apps")
 	}
 
 	s := &Service{

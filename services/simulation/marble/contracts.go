@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"os"
 	"strings"
@@ -232,7 +233,7 @@ func (inv *ContractInvoker) InvokeMiniAppContract(ctx context.Context, appID, me
 		return "", fmt.Errorf("miniapp contract execution failed: %s", resp.Exception)
 	}
 
-	fmt.Printf("neosimulation: miniapp contract invoked - app=%s, method=%s, tx=%s\n",
+	log.Printf("neosimulation: miniapp contract invoked - app=%s, method=%s, tx=%s",
 		appID, method, resp.TxHash)
 	return resp.TxHash, nil
 }
@@ -259,15 +260,15 @@ func (inv *ContractInvoker) getOrRequestAccount(ctx context.Context, purpose str
 		// Check if existing account needs funding
 		if balance, hasBalance := inv.accountBalances[accountID]; hasBalance && balance < minGASBalanceForWorkflow {
 			if addr, hasAddr := inv.accountAddresses[accountID]; hasAddr {
-				fmt.Printf("neosimulation: funding existing account %s (balance: %d) for purpose %s\n", accountID, balance, purpose)
+				log.Printf("neosimulation: funding existing account %s (balance: %d) for purpose %s", accountID, balance, purpose)
 				_, err := inv.poolClient.FundAccount(ctx, addr, fundAmountForWorkflow)
 				if err == nil {
 					inv.accountBalances[accountID] = balance + fundAmountForWorkflow
 					// Wait for funding transaction to be confirmed on blockchain
-					fmt.Printf("neosimulation: waiting %v for funding confirmation...\n", fundingConfirmationWait)
+					log.Printf("neosimulation: waiting %v for funding confirmation...", fundingConfirmationWait)
 					time.Sleep(fundingConfirmationWait)
 				} else {
-					fmt.Printf("neosimulation: warning: failed to fund existing account %s: %v\n", accountID, err)
+					log.Printf("neosimulation: warning: failed to fund existing account %s: %v", accountID, err)
 				}
 			}
 		}
@@ -295,23 +296,23 @@ func (inv *ContractInvoker) getOrRequestAccount(ctx context.Context, purpose str
 	}
 	inv.accountBalances[account.ID] = gasBalance
 
-	fmt.Printf("neosimulation: requested new account %s (address: %s, balance: %d) for purpose %s\n",
+	log.Printf("neosimulation: requested new account %s (address: %s, balance: %d) for purpose %s",
 		account.ID, account.Address, gasBalance, purpose)
 
 	// Fund the account if it has insufficient GAS for MiniApp workflows
 	if gasBalance < minGASBalanceForWorkflow {
-		fmt.Printf("neosimulation: funding new account %s with %d GAS\n", account.ID, fundAmountForWorkflow)
+		log.Printf("neosimulation: funding new account %s with %d GAS", account.ID, fundAmountForWorkflow)
 		fundResp, err := inv.poolClient.FundAccount(ctx, account.Address, fundAmountForWorkflow)
 		if err != nil {
 			// Log warning but don't fail - the account might still work for some operations
-			fmt.Printf("neosimulation: warning: failed to fund account %s: %v\n", account.ID, err)
+			log.Printf("neosimulation: warning: failed to fund account %s: %v", account.ID, err)
 		} else {
 			inv.accountBalances[account.ID] = gasBalance + fundAmountForWorkflow
-			fmt.Printf("neosimulation: funding tx submitted: %s\n", fundResp.TxHash)
+			log.Printf("neosimulation: funding tx submitted: %s", fundResp.TxHash)
 			// Wait for funding transaction to be confirmed on blockchain
-			fmt.Printf("neosimulation: waiting %v for funding confirmation...\n", fundingConfirmationWait)
+			log.Printf("neosimulation: waiting %v for funding confirmation...", fundingConfirmationWait)
 			time.Sleep(fundingConfirmationWait)
-			fmt.Printf("neosimulation: account %s funded and ready\n", account.ID)
+			log.Printf("neosimulation: account %s funded and ready", account.ID)
 		}
 	}
 
@@ -463,7 +464,7 @@ func (inv *ContractInvoker) PayoutToUser(ctx context.Context, appID string, user
 	inv.mu.Unlock()
 
 	atomic.AddInt64(&inv.callbackPayouts, 1)
-	fmt.Printf("neosimulation: callback payout sent - app=%s, to=%s, amount=%d, tx=%s, memo=%s\n",
+	log.Printf("neosimulation: callback payout sent - app=%s, to=%s, amount=%d, tx=%s, memo=%s",
 		appID, userAddress, amount, resp.TxHash, memo)
 	return resp.TxHash, nil
 }
@@ -624,9 +625,9 @@ func loadMiniAppContractsFromEnv() map[string]string {
 
 	// Log summary of loaded contracts
 	if len(contracts) > 0 {
-		fmt.Printf("neosimulation: loaded %d MiniApp contract hashes from environment\n", len(contracts))
+		log.Printf("neosimulation: loaded %d MiniApp contract hashes from environment", len(contracts))
 		for appID, hash := range contracts {
-			fmt.Printf("  - %s: %s\n", appID, hash[:min(20, len(hash))]+"...")
+			log.Printf("  - %s: %s", appID, hash[:min(20, len(hash))]+"...")
 		}
 	}
 
