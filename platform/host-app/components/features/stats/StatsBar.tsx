@@ -17,8 +17,8 @@ interface StatsBarProps {
 export function StatsBar({ stats, className }: StatsBarProps) {
   return (
     <div className={cn("mx-auto max-w-7xl px-4", className)}>
-      <div className="shadow-2xl shadow-neo/5 rounded-[2rem] p-8 border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      <div className="shadow-2xl shadow-neo/5 rounded-[2rem] p-4 sm:p-8 border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (

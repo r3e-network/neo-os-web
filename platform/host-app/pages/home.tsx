@@ -132,7 +132,7 @@ export default function HomePage() {
       <section className="bg-gray-50 py-16 dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4">
           <h2 className="mb-12 text-center text-2xl font-bold text-gray-900 dark:text-white">{t("features.title")}</h2>
-          <div className="grid gap-8 md:grid-cols-4">
+          <div className="grid gap-4 md:gap-8 md:grid-cols-4">
             {[
               { icon: "🔒", title: t("features.secureCompute"), desc: t("features.secureComputeDesc") },
               { icon: "🎲", title: t("features.verifiableRandom"), desc: t("features.verifiableRandomDesc") },
