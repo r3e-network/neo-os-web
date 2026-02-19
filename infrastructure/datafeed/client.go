@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"math/big"
 	"net/http"
 	"strings"
@@ -95,7 +95,7 @@ func (c *Client) ethCall(ctx context.Context, to string, data string) (string, e
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := httputil.ReadAllStrict(resp.Body, 2<<20)
 	if err != nil {
 		return "", err
 	}
