@@ -227,7 +227,7 @@ func (l *EventListener) processNewBlocks(ctx context.Context) {
 	for blockIndex := lastBlock + 1; blockIndex < currentBlock; blockIndex++ {
 		block, err := l.client.GetBlock(ctx, blockIndex)
 		if err != nil {
-			continue
+			break
 		}
 
 		blockTime := time.Unix(int64(block.Time), 0).UTC()
