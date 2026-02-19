@@ -1,6 +1,7 @@
 "use client";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface AppUsageChartProps {
   data: { appName: string; txCount: number }[];
@@ -10,6 +11,9 @@ interface AppUsageChartProps {
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export function AppUsageChart({ data, height = 200 }: AppUsageChartProps) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <ResponsiveContainer width="100%" height={height}>
       <PieChart>
@@ -29,10 +33,11 @@ export function AppUsageChart({ data, height = 200 }: AppUsageChartProps) {
         </Pie>
         <Tooltip
           contentStyle={{
-            backgroundColor: "rgba(17, 24, 39, 0.9)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            backgroundColor: isDark ? "rgba(17, 24, 39, 0.9)" : "rgba(255, 255, 255, 0.95)",
+            border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
             borderRadius: "8px",
             fontSize: "12px",
+            color: isDark ? "#e5e7eb" : "#1f2937",
           }}
         />
       </PieChart>

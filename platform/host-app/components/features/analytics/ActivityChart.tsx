@@ -1,6 +1,7 @@
 "use client";
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface ActivityChartProps {
   data: { date: string; txCount: number; volume: string }[];
@@ -8,6 +9,8 @@ interface ActivityChartProps {
 }
 
 export function ActivityChart({ data, height = 200 }: ActivityChartProps) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const chartData = data.map((d) => ({
     date: d.date.slice(5), // MM-DD format
     transactions: d.txCount,
@@ -27,10 +30,11 @@ export function ActivityChart({ data, height = 200 }: ActivityChartProps) {
         <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={30} />
         <Tooltip
           contentStyle={{
-            backgroundColor: "rgba(17, 24, 39, 0.9)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            backgroundColor: isDark ? "rgba(17, 24, 39, 0.9)" : "rgba(255, 255, 255, 0.95)",
+            border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
             borderRadius: "8px",
             fontSize: "12px",
+            color: isDark ? "#e5e7eb" : "#1f2937",
           }}
         />
         <Area type="monotone" dataKey="transactions" stroke="#10b981" fill="url(#colorTx)" strokeWidth={2} />

@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, AreaChart, Area, Cell,
 } from "recharts";
 import { Loader2 } from "lucide-react";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface PlatformChartsProps {
   mauHistory: { name: string; active: number; transactions: number }[];
@@ -13,6 +14,9 @@ interface PlatformChartsProps {
 }
 
 export function PlatformCharts({ mauHistory, topApps, loading }: PlatformChartsProps) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <>
       {/* MAU Growth Chart */}
@@ -29,10 +33,18 @@ export function PlatformCharts({ mauHistory, topApps, loading }: PlatformChartsP
                 <stop offset="95%" stopColor="#00d4aa" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-            <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000}k`} />
-            <Tooltip contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }} itemStyle={{ color: "#00d4aa" }} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#1e293b" : "#e5e7eb"} />
+            <XAxis dataKey="name" stroke={isDark ? "#64748b" : "#94a3b8"} fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis stroke={isDark ? "#64748b" : "#94a3b8"} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000}k`} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: isDark ? "#0f172a" : "rgba(255, 255, 255, 0.95)",
+                border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
+                borderRadius: "8px",
+                color: isDark ? "#e5e7eb" : "#1f2937",
+              }}
+              itemStyle={{ color: "#00d4aa" }}
+            />
             <Area type="monotone" dataKey="active" stroke="#00d4aa" fillOpacity={1} fill="url(#colorActive)" strokeWidth={3} />
           </AreaChart>
         </ResponsiveContainer>
@@ -44,6 +56,9 @@ export function PlatformCharts({ mauHistory, topApps, loading }: PlatformChartsP
 }
 
 export function TopAppsChart({ topApps, loading }: Omit<PlatformChartsProps, "mauHistory">) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -57,10 +72,18 @@ export function TopAppsChart({ topApps, loading }: Omit<PlatformChartsProps, "ma
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={topApps} layout="vertical">
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#1e293b" />
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={isDark ? "#1e293b" : "#e5e7eb"} />
         <XAxis type="number" hide />
-        <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={10} width={80} tickLine={false} axisLine={false} />
-        <Tooltip cursor={{ fill: "rgba(255,255,255,0.05)" }} contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }} />
+        <YAxis dataKey="name" type="category" stroke={isDark ? "#64748b" : "#94a3b8"} fontSize={10} width={80} tickLine={false} axisLine={false} />
+        <Tooltip
+          cursor={{ fill: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }}
+          contentStyle={{
+            backgroundColor: isDark ? "#0f172a" : "rgba(255, 255, 255, 0.95)",
+            border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
+            borderRadius: "8px",
+            color: isDark ? "#e5e7eb" : "#1f2937",
+          }}
+        />
         <Bar dataKey="users" radius={[0, 4, 4, 0]}>
           {topApps.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.color} />
