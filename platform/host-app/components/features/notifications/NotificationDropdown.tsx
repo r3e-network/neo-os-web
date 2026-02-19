@@ -103,7 +103,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        className="relative p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo rounded-lg"
         aria-label="Notifications"
         aria-expanded={isOpen}
       >
@@ -122,7 +122,11 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
             {unreadCount > 0 && (
-              <button type="button" onClick={markAllAsRead} className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors">
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
+              >
                 Mark all read
               </button>
             )}
@@ -154,7 +158,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
                   role="button"
                   tabIndex={0}
                   className={cn(
-                    "flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors",
+                    "flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50",
                     !n.read && "bg-emerald-50/50 dark:bg-emerald-900/10",
                   )}
                   onClick={() => !n.read && markAsRead(n.id)}

@@ -58,7 +58,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             type="button"
             onClick={() => onVote(comment.id, "upvote")}
             aria-label={`Upvote (${comment.upvotes})`}
-            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
           >
             ▲ {comment.upvotes}
           </button>
@@ -66,7 +66,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             type="button"
             onClick={() => onVote(comment.id, "downvote")}
             aria-label={`Downvote (${comment.downvotes})`}
-            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
           >
             ▼ {comment.downvotes}
           </button>
@@ -74,13 +74,18 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             <button
               type="button"
               onClick={() => setShowReplyForm(!showReplyForm)}
-              className="text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+              className="text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
             >
               Reply
             </button>
           )}
           {comment.reply_count > 0 && replies.length === 0 && (
-            <button type="button" onClick={handleLoadReplies} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed" disabled={loadingReplies}>
+            <button
+              type="button"
+              onClick={handleLoadReplies}
+              className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
+              disabled={loadingReplies}
+            >
               {loadingReplies ? "Loading..." : `${comment.reply_count} replies`}
             </button>
           )}
@@ -100,13 +105,18 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             maxLength={2000}
           />
           <div className="flex gap-2 mt-2">
-            <button type="button" onClick={handleSubmitReply} disabled={submittingReply || !replyContent.trim()} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <button
+              type="button"
+              onClick={handleSubmitReply}
+              disabled={submittingReply || !replyContent.trim()}
+              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            >
               {submittingReply ? "Submitting..." : "Submit"}
             </button>
             <button
               type="button"
               onClick={() => setShowReplyForm(false)}
-              className="px-3 py-1 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm"
+              className="px-3 py-1 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
             >
               Cancel
             </button>

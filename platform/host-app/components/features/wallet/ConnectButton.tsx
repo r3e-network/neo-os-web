@@ -94,7 +94,7 @@ export function ConnectButton() {
               role="menuitem"
               key={w.id}
               onClick={() => handleConnect(w.id)}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm hover:bg-gray-100 transition-colors dark:hover:bg-gray-800"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm hover:bg-gray-100 transition-colors dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
             >
               <img src={w.icon} alt={w.name} className="w-6 h-6 rounded" onError={(e) => { e.currentTarget.src = "/wallet-default.svg"; }} />
               <span className="font-medium text-gray-800 dark:text-white">{w.name}</span>
@@ -106,7 +106,13 @@ export function ConnectButton() {
       {wallet.error && (
         <div role="alert" className="absolute right-0 top-full mt-2 w-64 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
           <p className="text-sm text-red-600 dark:text-red-400">{wallet.error}</p>
-          <button type="button" onClick={wallet.clearError} className="mt-2 text-xs text-red-500 underline dark:text-red-400">Dismiss</button>
+          <button
+            type="button"
+            onClick={wallet.clearError}
+            className="mt-2 text-xs text-red-500 underline dark:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded"
+          >
+            Dismiss
+          </button>
         </div>
       )}
     </div>

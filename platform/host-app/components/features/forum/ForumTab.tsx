@@ -56,7 +56,7 @@ export function ForumTab({ appId }: ForumTabProps) {
           <button
             type="button"
             onClick={() => setShowNewThread(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           >
             <Plus size={16} />
             New Thread
@@ -76,7 +76,7 @@ export function ForumTab({ appId }: ForumTabProps) {
               filter === cat
                 ? "bg-emerald-500 text-white"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-            }`}
+            } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50`}
           >
             {cat}
           </button>
@@ -133,7 +133,7 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors"
+      className="w-full text-left p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${categoryColors[thread.category]}`}>
@@ -259,7 +259,11 @@ function ThreadDetail({
 
   return (
     <div className="space-y-4">
-      <button type="button" onClick={onBack} className="text-sm text-emerald-500 hover:underline">
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-sm text-emerald-500 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
+      >
         ← Back to discussions
       </button>
 
@@ -302,7 +306,7 @@ function ThreadDetail({
             type="button"
             onClick={handleReply}
             disabled={submitting || !replyContent.trim()}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:bg-emerald-600"
+            className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           >
             Reply
           </button>

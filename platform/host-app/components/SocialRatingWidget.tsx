@@ -72,7 +72,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 onClearError?.();
               }}
               aria-label="Dismiss error"
-              className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm transition-colors"
+              className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded"
             >
               ×
             </button>
@@ -134,11 +134,15 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                   type="button"
                   onClick={handleSubmit}
                   disabled={loading || selectedValue === 0}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
                 >
                   {loading ? "Submitting..." : "Submit"}
                 </button>
-                <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                >
                   Cancel
                 </button>
               </div>
