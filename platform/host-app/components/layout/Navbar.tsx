@@ -157,7 +157,7 @@ export function Navbar() {
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded-md",
+                  "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   router.pathname.startsWith(link.href)
                     ? "text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800"
                     : "text-gray-600 dark:text-gray-400",

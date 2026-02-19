@@ -138,13 +138,13 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 >
                   {loading ? "Submitting..." : "Submit"}
                 </button>
-                <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm">
+                <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => setIsEditing(true)} className="text-emerald-600 dark:text-emerald-400 text-sm">
+            <button type="button" onClick={() => setIsEditing(true)} className="text-emerald-600 dark:text-emerald-400 text-sm transition-colors hover:text-emerald-700 dark:hover:text-emerald-300">
               {rating.user_rating ? "Edit your rating" : "Rate this app"}
             </button>
           )}
