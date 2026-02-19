@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 20, 100));
-  const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+  const offset = Math.max(0, Math.min(parseInt(req.query.offset as string) || 0, 10000));
 
   if (!hasServiceRoleSupabase()) {
     return res.status(200).json({ entries: [], total: 0, hasMore: false });

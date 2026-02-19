@@ -50,7 +50,7 @@ async function getComments(appId: string, req: NextApiRequest, res: NextApiRespo
 async function getCommentsFromDB(appId: string, req: NextApiRequest, res: NextApiResponse) {
   const parentId = req.query.parent_id as string | undefined;
   const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
-  const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+  const offset = Math.min(Math.max(parseInt(req.query.offset as string) || 0, 0), 10000);
   if (parentId && parentId !== "null" && !/^[0-9a-f-]{36}$/i.test(parentId)) {
     return apiError.badRequest(res, "Invalid parent_id");
   }

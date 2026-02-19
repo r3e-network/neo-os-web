@@ -80,7 +80,7 @@ async function getThreads(appId: string, req: NextApiRequest, res: NextApiRespon
   }
 
   const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 20, 50));
-  const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+  const offset = Math.max(0, Math.min(parseInt(req.query.offset as string) || 0, 10000));
   const supabase = getServerSupabaseClient();
   if (!supabase) {
     return res.status(200).json({ threads: [], hasMore: false, total: 0 });

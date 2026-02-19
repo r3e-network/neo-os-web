@@ -20,8 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!query) {
     return apiError.badRequest(res, "Query parameter 'q' required");
   }
-  // Only allow hex hashes (0x...) and Neo N3 addresses (N...)
-  if (!/^(0x[0-9a-fA-F]+|N[A-Za-z0-9]+)$/.test(query)) {
+  // Only allow hex hashes (0x...) and Neo N3 addresses (N...), bounded length
+  if (query.length > 256 || !/^(0x[0-9a-fA-F]+|N[A-Za-z0-9]+)$/.test(query)) {
     return apiError.badRequest(res, "Invalid search query format");
   }
 
