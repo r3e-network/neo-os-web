@@ -131,6 +131,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const entries: LeaderboardEntry[] = ranked.slice(offset, offset + limit);
 
+  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
   return res.status(200).json({
     entries,
     total: ranked.length,

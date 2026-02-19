@@ -102,6 +102,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     if (error) throw error;
 
+    res.setHeader("Cache-Control", "no-store, private");
     res.status(201).json({
       success: true,
       app_id,
