@@ -173,6 +173,12 @@ spec:
               name: service-layer-config
               key: NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS
               optional: true
+        - name: NEOFEEDS_ALLOW_PRIVATE_NETWORKS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOFEEDS_ALLOW_PRIVATE_NETWORKS
+              optional: true
         - name: SERVICE_TYPE
           value: "neofeeds"
         - name: GLOBALSIGNER_SERVICE_URL
@@ -1350,6 +1356,30 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: OE_SIMULATION
+        - name: NEOREQUESTS_ONCHAIN_USAGE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_ONCHAIN_USAGE
+              optional: true
+        - name: NEOREQUESTS_TX_USAGE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_TX_USAGE
+              optional: true
+        - name: NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT
+              optional: true
+        - name: NEOREQUESTS_STATS_ROLLUP_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOREQUESTS_STATS_ROLLUP_INTERVAL
+              optional: true
         - name: SERVICE_TYPE
           value: "neorequests"
         volumeMounts:

@@ -78,6 +78,16 @@ data:
   NEOREQUESTS_TX_WAIT: "true"
   NEOREQUESTS_ENFORCE_APPREGISTRY: "true"
   NEOREQUESTS_APPREGISTRY_CACHE_SECONDS: "60"
+  # Bump MiniApp usage stats from PaymentReceived events (default false).
+  NEOREQUESTS_ONCHAIN_USAGE: "false"
+  # Log MiniApp tx activity from System.Contract.Call scans (default true).
+  NEOREQUESTS_TX_USAGE: "true"
+  # Require manifest.contract_hash for event ingestion (default true).
+  NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT: "true"
+  # How often to recompute miniapp_stats rollups (Go duration).
+  NEOREQUESTS_STATS_ROLLUP_INTERVAL: "5m"
+  # Allow NeoFeeds to fetch from private/RFC1918 source URLs (default false).
+  NEOFEEDS_ALLOW_PRIVATE_NETWORKS: "false"
 
   # Simulation service defaults (dev/test only).
   SIMULATION_ENABLED: "false"
