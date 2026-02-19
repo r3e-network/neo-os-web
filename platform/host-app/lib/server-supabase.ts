@@ -55,14 +55,18 @@ export function getServerSupabaseClient(options: { requireServiceRole?: boolean 
     return cachedServiceClient;
   }
 
+  // Prefer anon key (respects RLS) when service role is not required.
+  const anonKey = getAnonKey();
+  if (anonKey) {
+    if (!cachedAnonClient) cachedAnonClient = buildClient(anonKey);
+    return cachedAnonClient;
+  }
+
   if (serviceRoleKey) {
     if (!cachedServiceClient) cachedServiceClient = buildClient(serviceRoleKey);
     return cachedServiceClient;
   }
 
-  const anonKey = getAnonKey();
-  if (!anonKey) return null;
-  if (!cachedAnonClient) cachedAnonClient = buildClient(anonKey);
-  return cachedAnonClient;
+  return null;
 }
 
