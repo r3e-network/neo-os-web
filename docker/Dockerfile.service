@@ -120,7 +120,20 @@ cat > enclave.json <<JSON
         {"name": "SIMULATION_MINIAPPS", "fromHost": true},
         {"name": "SIMULATION_TX_INTERVAL_MIN_MS", "fromHost": true},
         {"name": "SIMULATION_TX_INTERVAL_MAX_MS", "fromHost": true},
-        {"name": "SIMULATION_WORKERS_PER_APP", "fromHost": true}
+        {"name": "SIMULATION_WORKERS_PER_APP", "fromHost": true},
+        {"name": "SIMULATION_AUTOMATION_TASK_IDS", "fromHost": true},
+        {"name": "NEOREQUESTS_ONCHAIN_USAGE", "fromHost": true},
+        {"name": "NEOREQUESTS_TX_USAGE", "fromHost": true},
+        {"name": "NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT", "fromHost": true},
+        {"name": "NEOREQUESTS_STATS_ROLLUP_INTERVAL", "fromHost": true},
+        {"name": "NEOFEEDS_ALLOW_PRIVATE_NETWORKS", "fromHost": true},
+        {"name": "CONTRACT_GAS_HASH", "fromHost": true},
+        {"name": "NEO_EVENT_START_BLOCK", "fromHost": true},
+        {"name": "NEO_EVENT_BACKFILL_BLOCKS", "fromHost": true},
+        {"name": "NEO_EVENT_CONFIRMATIONS", "fromHost": true},
+        {"name": "NEO_EVENT_LISTEN_ALL", "fromHost": true},
+        {"name": "NEOFLOW_TASK_IDS", "fromHost": true},
+        {"name": "STRICT_IDENTITY_MODE", "fromHost": true}
     ],
     "files": [
         {
