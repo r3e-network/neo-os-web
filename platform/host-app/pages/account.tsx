@@ -33,7 +33,7 @@ export default function AccountPage() {
           <div className="md:col-span-2 space-y-8">
             {/* Wallet Info */}
             <Card className="glass-card overflow-hidden">
-              <CardHeader className="bg-neo/5 border-b border-white/5">
+              <CardHeader className="bg-neo/5 border-b border-gray-200 dark:border-white/5">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-gray-900 dark:text-white">Neo Wallet</CardTitle>
@@ -89,7 +89,7 @@ export default function AccountPage() {
           <div className="space-y-6">
             {/* Reputation Card */}
             <Card className="glass-card overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-b border-white/5">
+              <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-b border-gray-200 dark:border-white/5">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <Trophy size={16} className="text-emerald-500" />
@@ -119,7 +119,7 @@ export default function AccountPage() {
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-white/5">
                   <Link
                     href="/leaderboard"
                     className="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-400 transition-colors"
@@ -158,7 +158,7 @@ export default function AccountPage() {
               </CardContent>
             </Card>
 
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-white/5">
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-gray-200 dark:border-white/5">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Shield size={14} className="text-indigo-400" />
                 Security Tip
