@@ -1011,9 +1011,7 @@ func TestGetPendingDepositsWithDB(t *testing.T) {
 	if err != nil {
 		t.Errorf("getPendingDeposits() error = %v", err)
 	}
-	if deposits == nil {
-		// Empty slice is fine
-	}
+	_ = deposits // empty slice is fine
 }
 
 func TestProcessDepositVerificationNilDB(t *testing.T) {
