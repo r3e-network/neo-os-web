@@ -60,11 +60,11 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
                 type="button"
                 aria-pressed={secretType === type.value}
                 onClick={() => setSecretType(type.value)}
-                className={`rounded border p-2 text-left text-sm text-gray-900 dark:text-white ${
+                className={`rounded border p-2 text-left text-sm text-gray-900 dark:text-white transition-colors ${
                   secretType === type.value
                     ? "border-neo bg-neo/10 dark:bg-neo/20"
-                    : "border-gray-200 dark:border-gray-700 dark:bg-gray-800"
-                }`}
+                    : "border-gray-200 dark:border-gray-700 dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo`}
               >
                 <type.icon size={18} />
                 <div className="font-medium">{type.label}</div>
