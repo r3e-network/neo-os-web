@@ -62,8 +62,9 @@ rollback_installation() {
 
     # 清理 kubeconfig
     if [[ -n "${SUDO_USER:-}" ]]; then
-        local user_home=$(eval echo ~$SUDO_USER)
-        rm -rf "$user_home/.kube"
+        local user_home
+        user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+        [[ -n "$user_home" ]] && rm -rf "$user_home/.kube"
     fi
 
     log "回滚完成，请检查日志: $LOG_FILE"
@@ -371,10 +372,11 @@ setup_kubeconfig() {
 
     # 为当前用户创建 kubeconfig (如果非 root 运行)
     if [[ -n "${SUDO_USER:-}" ]]; then
-        local user_home=$(eval echo ~$SUDO_USER)
+        local user_home
+        user_home="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
         mkdir -p "$user_home/.kube"
         cp /etc/rancher/k3s/k3s.yaml "$user_home/.kube/config"
-        chown -R $SUDO_USER:$SUDO_USER "$user_home/.kube"
+        chown -R "$SUDO_USER":"$SUDO_USER" "$user_home/.kube"
         log "✓ kubeconfig 已复制到 $user_home/.kube/config"
     fi
 

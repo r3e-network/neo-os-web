@@ -38,10 +38,16 @@ data:
   CONTRACT_SERVICEGATEWAY_HASH: "0x27b79cf631eff4b520dd9d95cd1425ec33025a53"
   # Oracle config
   ORACLE_HTTP_ALLOWLIST: "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com"
+  # Outbound request timeout for oracle HTTP fetches (Go duration).
+  ORACLE_TIMEOUT: "20s"
+  # Max upstream response body size (bytes or KiB/MiB/GiB suffix).
+  ORACLE_MAX_SIZE: "1MiB"
   # Optional Arbitrum RPC override for Chainlink (NeoFeeds). Defaults to https://arb1.arbitrum.io/rpc.
   ARBITRUM_RPC: "https://arb1.arbitrum.io/rpc"
   # NeoFlow webhook security (production/SGX): block private networks by default.
   NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS: "false"
+  # System user ID for NeoFlow scheduled automation jobs.
+  NEOFLOW_SCHEDULER_USER_ID: ""
 
   # Internal service endpoints (service-to-service clients)
   GLOBALSIGNER_SERVICE_URL: "https://globalsigner:8092"
@@ -60,6 +66,8 @@ data:
   NEOVRF_URL: "https://neovrf:8087"
   NEOORACLE_URL: "https://neooracle:8088"
   NEOCOMPUTE_URL: "https://neocompute:8086"
+  # NeoCompute result retention TTL (Go duration, e.g. 24h).
+  NEOCOMPUTE_RESULT_TTL: "24h"
   # NeoRequests callback result size limit (bytes) to stay under Neo Notify caps.
   NEOREQUESTS_MAX_RESULT_BYTES: "800"
   # Truncate error messages to avoid oversized notify payloads.
