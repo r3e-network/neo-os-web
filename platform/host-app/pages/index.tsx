@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { StatsBar } from "@/components/features/stats";
 import { MiniAppCard, MiniAppListItem, type MiniAppInfo } from "@/components/features/miniapp";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
@@ -24,6 +25,7 @@ import {
   Image,
   Vote,
   Wrench,
+  Code2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -223,6 +225,7 @@ export default function LandingPage() {
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
+                        aria-pressed={isActive}
                         className={cn(
                           "w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg cursor-pointer transition-all",
                           isActive
@@ -296,6 +299,7 @@ export default function LandingPage() {
                     <button
                       onClick={() => setViewMode("grid")}
                       aria-label="Grid view"
+                      aria-pressed={viewMode === "grid"}
                       className={cn(
                         "p-1.5 rounded-md transition-all",
                         viewMode === "grid"
@@ -308,6 +312,7 @@ export default function LandingPage() {
                     <button
                       onClick={() => setViewMode("list")}
                       aria-label="List view"
+                      aria-pressed={viewMode === "list"}
                       className={cn(
                         "p-1.5 rounded-md transition-all",
                         viewMode === "list"
@@ -340,7 +345,7 @@ export default function LandingPage() {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="col-span-full text-center py-12 text-gray-500">No apps found in this category</div>
+                  <div className="col-span-full text-center py-12 text-gray-500" role="status" aria-live="polite">No apps found in this category</div>
                 )}
               </div>
             </div>
@@ -387,7 +392,7 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-24 px-4">
         <div className="mx-auto max-w-5xl">
-          <div className="relative rounded-[2.5rem] bg-neo-gradient p-12 overflow-hidden shadow-2xl shadow-neo/20">
+          <div className="relative rounded-[2.5rem] bg-neo-gradient p-6 md:p-12 overflow-hidden shadow-2xl shadow-neo/20">
             <div className="absolute top-0 right-0 p-12 opacity-10">
               <Code2 width={240} height={240} />
             </div>
@@ -428,24 +433,3 @@ function FeatureItem({ icon: Icon, title, desc }: { icon: React.ComponentType<{ 
   );
 }
 
-function cn(...inputs: (string | boolean | undefined | null)[]) {
-  return inputs.filter(Boolean).join(" ");
-}
-
-const Code2 = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    {...props}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="m18 16 4-4-4-4" />
-    <path d="m6 8-4 4 4 4" />
-    <path d="m14.5 4-5 16" />
-  </svg>
-);
-
-export const getServerSideProps = async () => ({ props: {} });

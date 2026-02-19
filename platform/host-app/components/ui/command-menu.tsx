@@ -22,6 +22,9 @@ export function CommandMenu() {
         e.preventDefault();
         setOpen((o) => !o);
       }
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
@@ -35,8 +38,8 @@ export function CommandMenu() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
-      <div className="fixed left-1/2 top-1/4 -translate-x-1/2 w-full max-w-lg">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Command menu" onClick={() => setOpen(false)}>
+      <div className="fixed left-1/2 top-1/4 -translate-x-1/2 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <Command className="rounded-xl border border-white/10 bg-dark-900 shadow-2xl">
           <div className="flex items-center border-b border-white/10 px-3">
             <Search className="mr-2 h-4 w-4 text-slate-500" />

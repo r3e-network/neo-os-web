@@ -20,7 +20,7 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer className="border-t bg-gray-50">
+    <footer className="border-t bg-gray-50 dark:bg-gray-950 dark:border-gray-800">
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           {/* Brand */}
@@ -29,18 +29,18 @@ export function Footer() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-500">
                 <span className="text-lg font-bold text-white">N</span>
               </div>
-              <span className="text-xl font-bold">Neo MiniApps</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">Neo MiniApps</span>
             </div>
-            <p className="mt-4 text-sm text-gray-600">The future of decentralized applications on Neo N3.</p>
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">The future of decentralized applications on Neo N3.</p>
           </div>
 
           {/* Platform Links */}
           <div>
-            <h3 className="font-semibold text-gray-900">Platform</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Platform</h3>
             <ul className="mt-4 space-y-2">
               {footerLinks.platform.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-gray-600 hover:text-primary-600">
+                  <Link href={link.href} className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo">
                     {link.label}
                   </Link>
                 </li>
@@ -50,11 +50,11 @@ export function Footer() {
 
           {/* Resources Links */}
           <div>
-            <h3 className="font-semibold text-gray-900">Resources</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Resources</h3>
             <ul className="mt-4 space-y-2">
               {footerLinks.resources.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-gray-600 hover:text-primary-600">
+                  <Link href={link.href} className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo">
                     {link.label}
                   </Link>
                 </li>
@@ -64,7 +64,7 @@ export function Footer() {
 
           {/* Community Links */}
           <div>
-            <h3 className="font-semibold text-gray-900">Community</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Community</h3>
             <ul className="mt-4 space-y-2">
               {footerLinks.community.map((link) => (
                 <li key={link.href}>
@@ -72,9 +72,10 @@ export function Footer() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-gray-600 hover:text-primary-600"
+                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo"
                   >
                     {link.label}
+                    <span className="sr-only"> (opens in new tab)</span>
                   </a>
                 </li>
               ))}

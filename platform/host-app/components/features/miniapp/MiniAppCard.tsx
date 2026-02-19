@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import Link from "next/link";
+import { Users, BarChart3, Coins as CoinsIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardRenderer } from "./CardRenderer";
@@ -84,15 +85,15 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
           {/* Stats Section */}
           <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
             <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <span>👥</span>
+              <Users size={12} />
               <span>{formatNumber(app.stats?.users)}</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <span>📊</span>
+              <BarChart3 size={12} />
               <span>{formatNumber(app.stats?.transactions)} txs</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <span>💰</span>
+              <CoinsIcon size={12} />
               <span>{app.stats?.volume || "0 GAS"}</span>
             </div>
           </div>

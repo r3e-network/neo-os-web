@@ -16,6 +16,13 @@ export default class MyDocument extends Document<Props> {
         <Head>
           <meta charSet="utf-8" />
           <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content="NeoHub - MiniApp Platform for Neo N3" />
+          <meta property="og:description" content="Discover and use decentralized MiniApps on Neo N3" />
+          <meta property="og:site_name" content="NeoHub" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content="NeoHub - MiniApp Platform for Neo N3" />
+          <meta name="twitter:description" content="Discover and use decentralized MiniApps on Neo N3" />
         </Head>
         <body>
           <Main />

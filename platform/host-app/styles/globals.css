@@ -39,11 +39,11 @@
   }
 
   .neo-glow {
-    @apply shadow-[0_0_20px_rgba(0, 229, 153, 0.3)];
+    box-shadow: 0 0 20px rgba(0, 229, 153, 0.3);
   }
 
   .purple-glow {
-    @apply shadow-[0_0_20px_rgba(112, 0, 255, 0.3)];
+    box-shadow: 0 0 20px rgba(112, 0, 255, 0.3);
   }
 
   .neo-gradient-text {

@@ -16,6 +16,33 @@ module.exports = {
       colors: {
         background: "#020617",
         foreground: "#f8fafc",
+        primary: {
+          DEFAULT: "#00E599",
+          500: "#00E599",
+          600: "#00cc88",
+          foreground: "#020617",
+        },
+        secondary: {
+          DEFAULT: "#7000FF",
+          100: "#ede0ff",
+          800: "#4a00b3",
+          foreground: "#f8fafc",
+        },
+        muted: {
+          DEFAULT: "#1e293b",
+          foreground: "#94a3b8",
+        },
+        accent: {
+          DEFAULT: "#1e293b",
+          foreground: "#f8fafc",
+        },
+        destructive: {
+          DEFAULT: "#ef4444",
+          foreground: "#f8fafc",
+        },
+        ring: "#00E599",
+        input: "#334155",
+        border: "#334155",
         neo: {
           DEFAULT: "#00E599",
           hover: "#00cc88",
@@ -28,6 +55,11 @@ module.exports = {
         card: {
           DEFAULT: "rgba(15, 23, 42, 0.6)",
           foreground: "#f8fafc",
+        },
+        dark: {
+          800: "#1e293b",
+          900: "#0f172a",
+          950: "#020617",
         },
       },
       backgroundImage: {

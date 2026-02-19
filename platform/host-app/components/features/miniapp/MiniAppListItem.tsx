@@ -18,18 +18,6 @@ function formatNumber(num?: number): string {
   return num.toString();
 }
 
-function formatTimeAgo(date?: string): string {
-  if (!date) return "Recently";
-  const now = new Date();
-  const then = new Date(date);
-  const diff = now.getTime() - then.getTime();
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days}d ago`;
-  if (days < 30) return `${Math.floor(days / 7)}w ago`;
-  return `${Math.floor(days / 30)}mo ago`;
-}
 
 export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppListItemProps) {
   return (
@@ -70,7 +58,7 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
               <span>{formatNumber(app.stats?.transactions)}</span>
             </div>
             <div className="flex items-center gap-1 w-20 justify-end text-gray-400" title="Updated">
-              <span>{formatTimeAgo()}</span>
+              <span>Recently</span>
             </div>
           </div>
         </div>
