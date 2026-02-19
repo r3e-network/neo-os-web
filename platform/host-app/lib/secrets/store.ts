@@ -42,7 +42,7 @@ export const useSecretsStore = create<SecretsStore>((set, get) => ({
   fetchTokens: async (appId?: string) => {
     set({ loading: true, error: null });
     try {
-      const url = appId ? `/api/secrets/tokens?appId=${appId}` : "/api/secrets/tokens";
+      const url = appId ? `/api/secrets/tokens?appId=${encodeURIComponent(appId)}` : "/api/secrets/tokens";
       const res = await fetch(url, { headers: getWalletHeaders() });
       if (!res.ok) throw new Error("Failed to fetch tokens");
       const data = await res.json();

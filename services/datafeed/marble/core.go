@@ -429,15 +429,16 @@ func (s *Service) signPrice(price *PriceResponse) (signature, publicKey []byte, 
 }
 
 func formatSourceURL(tmpl, pair string) string {
+	safe := url.QueryEscape(pair)
 	if strings.Contains(tmpl, "%sPAIR%s") {
-		return strings.ReplaceAll(tmpl, "%sPAIR%s", pair)
+		return strings.ReplaceAll(tmpl, "%sPAIR%s", safe)
 	}
-	return strings.ReplaceAll(tmpl, "{pair}", pair)
+	return strings.ReplaceAll(tmpl, "{pair}", safe)
 }
 
 // formatSourceURLNew formats URL template with feed-specific placeholders.
 func formatSourceURLNew(tmpl, pair string, feed *FeedConfig, src *SourceConfig) string {
-	url := tmpl
+	u := tmpl
 
 	base := ""
 	quote := ""
@@ -477,16 +478,20 @@ func formatSourceURLNew(tmpl, pair string, feed *FeedConfig, src *SourceConfig) 
 		pairValue = strings.ReplaceAll(pairValue, "{quote}", quote)
 	}
 
-	url = strings.ReplaceAll(url, "{pair}", pairValue)
-	url = strings.ReplaceAll(url, "{base}", base)
-	url = strings.ReplaceAll(url, "{quote}", quote)
+	safePair := url.QueryEscape(pairValue)
+	safeBase := url.QueryEscape(base)
+	safeQuote := url.QueryEscape(quote)
+
+	u = strings.ReplaceAll(u, "{pair}", safePair)
+	u = strings.ReplaceAll(u, "{base}", safeBase)
+	u = strings.ReplaceAll(u, "{quote}", safeQuote)
 
 	// Legacy format support
-	if strings.Contains(url, "%sPAIR%s") {
-		url = strings.ReplaceAll(url, "%sPAIR%s", pairValue)
+	if strings.Contains(u, "%sPAIR%s") {
+		u = strings.ReplaceAll(u, "%sPAIR%s", safePair)
 	}
 
-	return url
+	return u
 }
 
 // formatJSONPath formats JSON path with feed-specific placeholders.
