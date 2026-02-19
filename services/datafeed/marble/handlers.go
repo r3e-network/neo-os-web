@@ -55,6 +55,8 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 		// Distinguish error types for appropriate HTTP status codes
 		errMsg := err.Error()
 		switch {
+		case contains(errMsg, "pair required"):
+			httputil.BadRequest(w, "pair required")
 		case contains(errMsg, "not found"), contains(errMsg, "unsupported"), contains(errMsg, "unknown feed"):
 			httputil.NotFound(w, "price feed not found")
 		case contains(errMsg, "no sources"), contains(errMsg, "no prices"):

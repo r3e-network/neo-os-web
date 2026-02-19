@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,11 +25,30 @@ type Syncer struct {
 
 // NewSyncer creates a new transaction syncer for all configured networks.
 func NewSyncer(cfg *Config, storage *Storage) (*Syncer, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config required")
+	}
+	if storage == nil {
+		return nil, fmt.Errorf("storage required")
+	}
+	if len(cfg.Networks) == 0 {
+		return nil, fmt.Errorf("at least one network required")
+	}
+
 	clients := make(map[Network]*chain.Client)
 
 	for _, network := range cfg.Networks {
+		if network != NetworkMainnet && network != NetworkTestnet {
+			return nil, fmt.Errorf("invalid network %q", network)
+		}
+
+		rpcURL := strings.TrimSpace(cfg.GetRPCURL(network))
+		if rpcURL == "" {
+			return nil, fmt.Errorf("rpc url required for network %s", network)
+		}
+
 		client, err := chain.NewClient(chain.Config{
-			RPCURL:    cfg.GetRPCURL(network),
+			RPCURL:    rpcURL,
 			NetworkID: getNetworkMagic(network),
 			Timeout:   cfg.RequestTimeout,
 		})

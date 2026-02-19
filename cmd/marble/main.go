@@ -78,12 +78,15 @@ func main() {
 	ctx := context.Background()
 
 	// Get service type from environment (injected by MarbleRun manifest)
-	serviceType := os.Getenv("MARBLE_TYPE")
+	serviceType := strings.TrimSpace(os.Getenv("MARBLE_TYPE"))
 	if serviceType == "" {
-		serviceType = os.Getenv("SERVICE_TYPE") // Fallback for local testing
+		serviceType = strings.TrimSpace(os.Getenv("SERVICE_TYPE")) // Fallback for local testing
 	}
 	if serviceType == "" {
 		log.Fatalf("MARBLE_TYPE environment variable required. Available services: %v", availableServices)
+	}
+	if !isAvailableService(serviceType) {
+		log.Fatalf("Unknown MARBLE_TYPE %q. Available services: %v", serviceType, availableServices)
 	}
 
 	log.Printf("Available services: %v", availableServices)
@@ -676,6 +679,15 @@ func splitAndTrimCSV(raw string) []string {
 		}
 	}
 	return values
+}
+
+func isAvailableService(serviceType string) bool {
+	for _, available := range availableServices {
+		if serviceType == available {
+			return true
+		}
+	}
+	return false
 }
 
 func parseByteSize(raw string) (int64, error) {
