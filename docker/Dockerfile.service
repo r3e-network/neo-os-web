@@ -115,7 +115,12 @@ cat > enclave.json <<JSON
         {"name": "POOL_ENCRYPTION_KEY", "fromHost": true},
         {"name": "GLOBALSIGNER_MASTER_SEED", "fromHost": true},
         {"name": "ORACLE_TIMEOUT", "fromHost": true},
-        {"name": "ORACLE_MAX_SIZE", "fromHost": true}
+        {"name": "ORACLE_MAX_SIZE", "fromHost": true},
+        {"name": "SIMULATION_ENABLED", "fromHost": true},
+        {"name": "SIMULATION_MINIAPPS", "fromHost": true},
+        {"name": "SIMULATION_TX_INTERVAL_MIN_MS", "fromHost": true},
+        {"name": "SIMULATION_TX_INTERVAL_MAX_MS", "fromHost": true},
+        {"name": "SIMULATION_WORKERS_PER_APP", "fromHost": true}
     ],
     "files": [
         {
