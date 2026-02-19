@@ -90,6 +90,7 @@ export function ConnectButton() {
           <div className="text-xs text-gray-500 px-3 py-1 mb-1 dark:text-gray-400">Select Wallet</div>
           {walletOptions.map((w) => (
             <button
+              type="button"
               role="menuitem"
               key={w.id}
               onClick={() => handleConnect(w.id)}
@@ -105,7 +106,7 @@ export function ConnectButton() {
       {wallet.error && (
         <div className="absolute right-0 top-full mt-2 w-64 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
           <p className="text-sm text-red-600 dark:text-red-400">{wallet.error}</p>
-          <button onClick={wallet.clearError} className="mt-2 text-xs text-red-500 underline dark:text-red-400">Dismiss</button>
+          <button type="button" onClick={wallet.clearError} className="mt-2 text-xs text-red-500 underline dark:text-red-400">Dismiss</button>
         </div>
       )}
     </div>

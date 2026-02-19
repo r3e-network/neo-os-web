@@ -261,6 +261,7 @@ export default function DeveloperPage() {
                     <p className="text-sm text-gray-400">Fill in your app details</p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setShowForm(false)}
                     aria-label="Close panel"
                     className="p-2 rounded-lg hover:bg-white/10 transition-colors"

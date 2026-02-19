@@ -186,6 +186,7 @@ export default function MiniAppsPage() {
                 {/* Sort Dropdown */}
                 <div ref={sortRef} className="relative">
                   <button
+                    type="button"
                     onClick={() => setShowSortMenu(!showSortMenu)}
                     aria-haspopup="listbox"
                     aria-expanded={showSortMenu}
@@ -203,6 +204,7 @@ export default function MiniAppsPage() {
                     >
                       {sortOptions.map((option) => (
                         <button
+                          type="button"
                           key={option.value}
                           role="option"
                           aria-selected={sortBy === option.value}
@@ -228,6 +230,7 @@ export default function MiniAppsPage() {
                 {/* View Toggle */}
                 <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                   <button
+                    type="button"
                     onClick={() => setViewMode("list")}
                     aria-pressed={viewMode === "list"}
                     className={cn(
@@ -241,6 +244,7 @@ export default function MiniAppsPage() {
                     <List size={18} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => setViewMode("grid")}
                     aria-pressed={viewMode === "grid"}
                     className={cn(

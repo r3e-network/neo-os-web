@@ -21,6 +21,7 @@ export default function LoginPage() {
           <div className="space-y-3">
             {socialProviders.map((p) => (
               <button
+                type="button"
                 key={p.id}
                 onClick={() => loginSocial(p.id)}
                 disabled={loading}
@@ -40,6 +41,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             {walletOptions.map((w) => (
               <button
+                type="button"
                 key={w.id}
                 onClick={() => loginWallet(w.id as WalletProvider)}
                 disabled={loading}
@@ -55,7 +57,7 @@ export default function LoginPage() {
           {error && (
             <div role="alert" className="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">
               {error}
-              <button onClick={clearError} className="ml-2 underline">dismiss</button>
+              <button type="button" onClick={clearError} className="ml-2 underline">dismiss</button>
             </div>
           )}
         </div>
