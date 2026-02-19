@@ -87,7 +87,7 @@ const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser
   };
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 ${isCurrentUser ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
+    <div className={`flex items-center gap-3 px-4 py-3 transition-colors ${isCurrentUser ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
       <div className="w-8 flex justify-center">{getRankIcon()}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">

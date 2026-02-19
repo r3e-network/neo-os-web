@@ -278,7 +278,7 @@ function ThreadDetail({
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-500">{replies.length} Replies</h3>
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400">{replies.length} Replies</h3>
         {replies.map((reply) => (
           <div key={reply.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
