@@ -123,12 +123,12 @@ func LoadFromEnv() (*Config, error) {
 		}
 	}
 	if batch := os.Getenv("INDEXER_BATCH_SIZE"); batch != "" {
-		if b, err := strconv.Atoi(batch); err == nil && b > 0 && b <= 10000 {
+		if b, err := strconv.Atoi(batch); err == nil && b > 0 && b <= 1000 {
 			cfg.BatchSize = b
 		}
 	}
 	if workers := os.Getenv("INDEXER_WORKERS"); workers != "" {
-		if w, err := strconv.Atoi(workers); err == nil && w > 0 && w <= 64 {
+		if w, err := strconv.Atoi(workers); err == nil && w > 0 && w <= 32 {
 			cfg.Workers = w
 		}
 	}
@@ -180,8 +180,8 @@ func escapeConnParam(s string) string {
 func (c *Config) GetPostgresDSN() string {
 	return fmt.Sprintf(
 		"host=%s port=%d dbname=%s user=%s password=%s sslmode=%s",
-		c.PostgresHost, c.PostgresPort, c.PostgresDB,
-		c.PostgresUser, escapeConnParam(c.PostgresPassword), c.PostgresSSLMode,
+		escapeConnParam(c.PostgresHost), c.PostgresPort, escapeConnParam(c.PostgresDB),
+		escapeConnParam(c.PostgresUser), escapeConnParam(c.PostgresPassword), escapeConnParam(c.PostgresSSLMode),
 	)
 }
 
