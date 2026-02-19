@@ -137,7 +137,7 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 
 	outHeaders := map[string]string{}
 	for k, vals := range resp.Header {
-		if len(vals) > 0 {
+		if len(vals) > 0 && !strings.ContainsAny(vals[0], "\r\n") {
 			outHeaders[k] = vals[0]
 		}
 	}

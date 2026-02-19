@@ -1,11 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { buildEdgeUrl, forwardAuthHeaders } from "../../lib/edge";
 import { apiError } from "../../lib/api-response";
+import { relaxedLimit } from "../../lib/rate-limit";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
+  if (relaxedLimit(req, res)) return;
 
   const url = buildEdgeUrl("market-trending", req.query);
   if (!url) {
