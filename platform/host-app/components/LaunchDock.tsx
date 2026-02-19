@@ -27,7 +27,7 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
   const walletDotBg = wallet.connected ? "bg-green-500" : "bg-red-500";
 
   return (
-    <div className="fixed top-0 inset-x-0 h-12 bg-[rgba(10,10,10,0.95)] backdrop-blur-sm flex items-center px-4 gap-4 z-[9999] border-b border-white/[0.08]">
+    <div className="fixed top-0 inset-x-0 h-12 bg-[rgba(10,10,10,0.95)] backdrop-blur-sm flex items-center px-4 gap-4 z-50 border-b border-white/[0.08]">
       {/* Left: App Name */}
       <div className="text-base font-semibold text-gray-100 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">{appName}</div>
 
@@ -52,7 +52,7 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
         <button
           type="button"
           onClick={onShare}
-          className="bg-transparent border-none text-gray-400 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
+          className="bg-transparent border-none text-gray-400 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-gray-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
           title="Copy share link"
           aria-label="Copy share link"
         >
@@ -63,7 +63,7 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
         <button
           type="button"
           onClick={onExit}
-          className="bg-transparent border-none text-red-500 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          className="bg-transparent border-none text-red-500 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-red-400 hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           title="Exit (ESC)"
           aria-label="Exit"
         >
