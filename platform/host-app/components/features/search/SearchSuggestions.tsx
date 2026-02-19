@@ -184,6 +184,7 @@ function SearchDropdown({
           <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase">Apps</div>
           {results.map((r, i) => (
             <button
+              type="button"
               key={r.app_id}
               onClick={() => onSelectApp(r.app_id)}
               className={cn(

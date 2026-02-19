@@ -108,6 +108,7 @@ export default function DocsPage() {
                   const isActive = activeSection === section.id;
                   return (
                     <button
+                      type="button"
                       key={section.id}
                       onClick={() => setActiveSection(section.id)}
                       aria-current={isActive ? "page" : undefined}
