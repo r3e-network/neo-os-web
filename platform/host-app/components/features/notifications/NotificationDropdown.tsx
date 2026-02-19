@@ -129,9 +129,9 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           {/* Notification List */}
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-center text-gray-500">Loading...</div>
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">Loading...</div>
             ) : notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 <Bell className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 <p>No notifications yet</p>
               </div>

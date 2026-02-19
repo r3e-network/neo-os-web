@@ -74,7 +74,7 @@ export default function AnalyticsPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Your Analytics</h1>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-500">Loading...</div>
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>
         ) : analytics ? (
           <AnalyticsDashboard analytics={analytics} />
         ) : (

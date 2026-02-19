@@ -96,9 +96,9 @@ export function ForumTab({ appId }: ForumTabProps) {
       {/* Thread List */}
       <div className="space-y-2">
         {loading ? (
-          <div className="text-center py-8 text-gray-500">Loading...</div>
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">Loading...</div>
         ) : threads.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" />
             <p>No discussions yet</p>
           </div>
