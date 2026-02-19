@@ -120,7 +120,7 @@ function EmailSection({
             placeholder="Enter email"
             className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded px-2 py-1 flex-1 focus:outline-none focus:ring-2 focus:ring-neo/50"
           />
-          <button type="button" onClick={() => bindEmail(email)} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors">
+          <button type="button" onClick={() => bindEmail(email)} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
             Bind
           </button>
         </div>
@@ -128,7 +128,7 @@ function EmailSection({
         <button
           type="button"
           onClick={() => setShowEmailInput(true)}
-          className="text-blue-500 dark:text-blue-400 underline transition-colors"
+          className="text-blue-500 dark:text-blue-400 underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded"
         >
           Add email
         </button>
