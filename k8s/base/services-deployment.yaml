@@ -379,6 +379,12 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS
+        - name: NEOFLOW_SCHEDULER_USER_ID
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOFLOW_SCHEDULER_USER_ID
+              optional: true
         - name: SERVICE_TYPE
           value: "neoflow"
         - name: GLOBALSIGNER_SERVICE_URL
@@ -555,6 +561,18 @@ spec:
               key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "neoaccounts"
+        - name: POOL_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: POOL_MASTER_KEY
+              optional: true
+        - name: POOL_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: POOL_ENCRYPTION_KEY
+              optional: true
         - name: GLOBALSIGNER_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -1087,6 +1105,18 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: ORACLE_HTTP_ALLOWLIST
+        - name: ORACLE_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: ORACLE_TIMEOUT
+              optional: true
+        - name: ORACLE_MAX_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: ORACLE_MAX_SIZE
+              optional: true
         volumeMounts:
         - name: marble-data
           mountPath: /marble
