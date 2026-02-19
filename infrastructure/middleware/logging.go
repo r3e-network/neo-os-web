@@ -3,6 +3,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -18,7 +19,7 @@ func LoggingMiddleware(logger *logging.Logger) mux.MiddlewareFunc {
 
 			// Generate or extract trace ID
 			traceID := r.Header.Get("X-Trace-ID")
-			if traceID == "" {
+			if traceID == "" || strings.ContainsAny(traceID, "\r\n\x00") {
 				traceID = logging.NewTraceID()
 			}
 
