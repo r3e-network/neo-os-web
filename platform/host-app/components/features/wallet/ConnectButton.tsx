@@ -109,7 +109,7 @@ export function ConnectButton() {
           <button
             type="button"
             onClick={wallet.clearError}
-            className="mt-2 text-xs text-red-500 underline dark:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded"
+            className="mt-2 text-xs text-red-500 underline dark:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded"
           >
             Dismiss
           </button>

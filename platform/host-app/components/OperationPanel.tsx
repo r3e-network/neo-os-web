@@ -50,7 +50,7 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
       ))}
       <button
         type="button"
-        className={`w-full py-2.5 rounded-lg border-none text-white font-semibold text-sm cursor-pointer transition-colors ${btnClass}`}
+        className={`w-full py-2.5 rounded-lg border-none text-white font-semibold text-sm cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${btnClass}`}
         onClick={handleSubmit}
       >
         {op.name}
