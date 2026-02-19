@@ -100,7 +100,22 @@ cat > enclave.json <<JSON
         {"name": "NEOREQUESTS_APPREGISTRY_CACHE_SECONDS", "fromHost": true},
         {"name": "NEOCOMPUTE_RESULT_TTL", "fromHost": true},
         {"name": "NEOFLOW_SCHEDULER_USER_ID", "fromHost": true},
-        {"name": "NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS", "fromHost": true}
+        {"name": "NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS", "fromHost": true},
+        {"name": "SUPABASE_REST_PREFIX", "fromHost": true},
+        {"name": "SUPABASE_ALLOW_INSECURE", "fromHost": true},
+        {"name": "NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY", "fromHost": true},
+        {"name": "NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS", "fromHost": true},
+        {"name": "NEOACCOUNTS_SERVICE_URL", "fromHost": true},
+        {"name": "GASBANK_URL", "fromHost": true},
+        {"name": "GASBANK_DEPOSIT_ADDRESS", "fromHost": true},
+        {"name": "TOPUP_ENABLED", "fromHost": true},
+        {"name": "TXPROXY_TIMEOUT", "fromHost": true},
+        {"name": "BINANCE_API_KEY", "fromHost": true},
+        {"name": "COORD_MASTER_SEED", "fromHost": true},
+        {"name": "POOL_ENCRYPTION_KEY", "fromHost": true},
+        {"name": "GLOBALSIGNER_MASTER_SEED", "fromHost": true},
+        {"name": "ORACLE_TIMEOUT", "fromHost": true},
+        {"name": "ORACLE_MAX_SIZE", "fromHost": true}
     ],
     "files": [
         {
