@@ -149,6 +149,13 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 			httpClient = &http.Client{Timeout: 30 * time.Second}
 		}
 	}
+	// Disable automatic redirects to prevent SSRF via redirect chains
+	// when fetching TEE scripts from external manifest URLs.
+	if cfg.HTTPClient == nil {
+		httpClient.CheckRedirect = func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
 
 	serviceGatewayHash := normalizeContractHash(cfg.ServiceGatewayHash)
 	if serviceGatewayHash == "" {

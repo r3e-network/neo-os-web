@@ -32,8 +32,9 @@ export async function handler(req: Request): Promise<Response> {
   if (supplyRes.ok) {
     try {
       const data = await supplyRes.json();
-      if (data.result?.stack?.[0]?.value) {
-        const raw = BigInt(data.result.stack[0].value);
+      const stackVal = String(data.result?.stack?.[0]?.value ?? "");
+      if (/^\d+$/.test(stackVal)) {
+        const raw = BigInt(stackVal);
         totalSupply = (raw / 100000000n).toString();
       }
     } catch {

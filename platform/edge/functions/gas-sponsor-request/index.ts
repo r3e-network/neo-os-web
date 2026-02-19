@@ -62,6 +62,9 @@ export async function handler(req: Request): Promise<Response> {
     const bParts = balanceStr.split(".");
     const bInt = bParts[0] || "0";
     const bFrac = (bParts[1] || "").padEnd(8, "0").slice(0, 8);
+    if (!/^\d+$/.test(bInt) || !/^\d+$/.test(bFrac)) {
+      return error(500, "invalid balance format", "RPC_ERROR", req);
+    }
     balanceScaled = BigInt(bInt) * 100000000n + BigInt(bFrac);
   } catch (e) {
     return error(500, "failed to query balance", "RPC_ERROR", req);
