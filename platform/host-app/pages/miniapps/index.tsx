@@ -58,6 +58,7 @@ export default function MiniAppsPage() {
   const [communityApps, setCommunityApps] = useState<MiniAppInfo[]>([]);
   const [apps, setApps] = useState<MiniAppInfo[]>([]);
   const [statsMap, setStatsMap] = useState<StatsMap>({});
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -65,6 +66,7 @@ export default function MiniAppsPage() {
       fetch("/api/miniapp-stats").then((r) => r.json()).catch(() => null),
       fetch("/api/miniapps/community").then((r) => r.json()).catch(() => null),
     ]).then(([catalogData, statsData, communityData]) => {
+      if (!catalogData && !communityData) setFetchError(true);
       const list = Array.isArray(catalogData?.apps) ? catalogData.apps : [];
       setApps(list.map((app: MiniAppInfo) => ({ ...app, cardData: getCardData(app.app_id) })));
 
@@ -224,6 +226,11 @@ export default function MiniAppsPage() {
 
           {/* Apps List/Grid */}
           <div className="p-6">
+            {fetchError && (
+              <p className="mb-4 text-sm text-red-600 dark:text-red-400">
+                Failed to load apps. Please try again later.
+              </p>
+            )}
             {searchQuery && (
               <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
                 Results for "<span className="text-gray-900 dark:text-white">{searchQuery}</span>"

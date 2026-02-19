@@ -23,6 +23,7 @@ export default function AnalyticsPage() {
   const { address } = useWalletStore();
   const [analytics, setAnalytics] = useState<UserAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!address) {
@@ -39,9 +40,11 @@ export default function AnalyticsPage() {
       if (res.ok) {
         const data = await res.json();
         setAnalytics(data);
+      } else {
+        setError(true);
       }
     } catch {
-      // Silent fail
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -74,7 +77,9 @@ export default function AnalyticsPage() {
         ) : analytics ? (
           <AnalyticsDashboard analytics={analytics} />
         ) : (
-          <div className="text-center py-12 text-gray-500">No data available</div>
+          <div className="text-center py-12 text-gray-500">
+            {error ? "Failed to load analytics. Please try again later." : "No data available"}
+          </div>
         )}
       </div>
     </Layout>
