@@ -99,13 +99,13 @@ export async function handler(req: Request): Promise<Response> {
       if (poolResp.ok) {
         const { address } = await poolResp.json();
         if (address) {
-          await supabase.from("linked_neo_accounts").insert({
+          await supabase.from("linked_neo_accounts").upsert({
             neohub_account_id: accountId,
             address,
             public_key: "custodial",
             is_primary: true,
             linked_at: new Date().toISOString(),
-          });
+          }, { onConflict: "neohub_account_id,address" });
         }
       }
     } catch {
