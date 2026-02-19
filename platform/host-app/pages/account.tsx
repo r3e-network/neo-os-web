@@ -53,7 +53,7 @@ export default function AccountPage() {
                     <p className="text-sm text-slate-400">Wallet Address</p>
                     <p className="text-lg font-mono text-gray-900 dark:text-white truncate">NdovA...s9Kda</p>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
+                  <Button variant="ghost" size="sm" className="text-slate-400 hover:text-gray-900 dark:hover:text-white">
                     Copy
                   </Button>
                 </div>
@@ -210,7 +210,7 @@ function OAuthBindingItem({
         className={cn(
           "h-8 text-xs",
           isConnected
-            ? "border-white/10 text-slate-400 hover:text-red-400 hover:border-red-400/30"
+            ? "border-gray-200 dark:border-white/10 text-slate-400 hover:text-red-400 hover:border-red-400/30"
             : "bg-neo hover:bg-neo/90",
         )}
       >
