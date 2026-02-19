@@ -41,6 +41,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
         {sections.map((section) => (
           <div key={section.id} className="mb-4">
             <button
+              type="button"
               onClick={() => toggleSection(section.id)}
               aria-expanded={expanded[section.id]}
               className="flex items-center justify-between w-full text-left py-2 text-sm font-medium text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"

@@ -49,7 +49,7 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
       {(op.params ?? []).map((p) => (
         <ParamInput key={p.name} param={p} value={values[p.name] ?? ""} onChange={v => setValues({ ...values, [p.name]: v })} />
       ))}
-      <button style={{ ...invokeBtn, background: btnColor }} onClick={handleSubmit}>
+      <button type="button" style={{ ...invokeBtn, background: btnColor }} onClick={handleSubmit}>
         {op.name}
       </button>
     </div>

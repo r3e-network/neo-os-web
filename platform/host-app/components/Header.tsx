@@ -14,7 +14,7 @@ export function Header({ wallet, onConnect }: Props) {
         <div style={logoIcon}>N</div>
         <span>Neo MiniApps</span>
       </div>
-      <button onClick={onConnect} style={walletBtn}>
+      <button type="button" onClick={onConnect} style={walletBtn}>
         {wallet.connected ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}` : "Connect Wallet"}
       </button>
     </header>

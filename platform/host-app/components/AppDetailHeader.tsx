@@ -24,7 +24,7 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
 
   return (
     <header style={headerStyle}>
-      <button onClick={onBack} style={backButtonStyle} aria-label="Go back">
+      <button type="button" onClick={onBack} style={backButtonStyle} aria-label="Go back">
         ← Back
       </button>
       <div style={headerContentStyle}>

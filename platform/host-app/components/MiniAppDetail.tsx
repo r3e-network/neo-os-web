@@ -41,7 +41,7 @@ export function MiniAppDetail({ app, stats }: Props) {
         </div>
       )}
 
-      <button style={launchBtn}>Launch App</button>
+      <button type="button" style={launchBtn}>Launch App</button>
     </div>
   );
 }

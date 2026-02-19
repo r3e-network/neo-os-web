@@ -98,12 +98,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={this.handleReset}
                 className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
               >
                 Try Again
               </button>
               <button
+                type="button"
                 onClick={() => (window.location.href = "/")}
                 className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
               >

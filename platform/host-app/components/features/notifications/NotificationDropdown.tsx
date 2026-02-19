@@ -99,6 +99,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
     <div ref={dropdownRef} className="relative">
       {/* Bell Button */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         aria-label="Notifications"
@@ -119,7 +120,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
             {unreadCount > 0 && (
-              <button onClick={markAllAsRead} className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors">
+              <button type="button" onClick={markAllAsRead} className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors">
                 Mark all read
               </button>
             )}
@@ -138,11 +139,14 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
               notifications.map((n) => (
                 <div
                   key={n.id}
+                  role="button"
+                  tabIndex={0}
                   className={cn(
                     "flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer",
                     !n.read && "bg-emerald-50/50 dark:bg-emerald-900/10",
                   )}
                   onClick={() => !n.read && markAsRead(n.id)}
+                  onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !n.read) { e.preventDefault(); markAsRead(n.id); } }}
                 >
                   <span className="text-xl">{typeIcons[n.type] || "📬"}</span>
                   <div className="flex-1 min-w-0">
