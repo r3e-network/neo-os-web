@@ -117,7 +117,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             <button
               type="button"
               onClick={() => setShowReplyForm(false)}
-              className="px-3 py-1 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+              className="px-3 py-1 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
             >
               Cancel
             </button>

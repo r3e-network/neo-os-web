@@ -59,7 +59,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
   const displayError = error?.message || localError;
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4">
       {/* Error Display */}
       {displayError && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded" role="alert">

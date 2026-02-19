@@ -37,9 +37,9 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
 
   if (created) {
     return (
-      <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-        <h4 className="font-semibold text-green-800 dark:text-green-400">Secret Created!</h4>
-        <p className="mt-1 text-sm text-green-700 dark:text-green-300">Your secret has been securely stored.</p>
+      <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+        <h4 className="font-semibold text-emerald-800 dark:text-emerald-400">Secret Created!</h4>
+        <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">Your secret has been securely stored.</p>
         <Button size="sm" className="mt-3" onClick={onClose}>
           Done
         </Button>

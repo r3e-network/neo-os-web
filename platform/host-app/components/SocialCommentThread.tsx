@@ -113,7 +113,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
           </div>
           {hasMore && (
             <div className="p-4 text-center">
-              <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded">
+              <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:text-emerald-700 dark:hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded">
                 {loading ? "Loading..." : "Load more comments"}
               </button>
             </div>
