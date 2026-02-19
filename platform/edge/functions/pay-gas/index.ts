@@ -2,6 +2,7 @@ import { handleCorsPreflight } from "../_shared/cors.ts";
 import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { mustGetEnv, getEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
@@ -42,12 +43,9 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  let body: PayGasRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
-  }
+  const bodyOrErr = await readJsonBody<PayGasRequest>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const appId = (body.app_id ?? "").trim();
   if (!appId) return error(400, "app_id required", "APP_ID_REQUIRED", req);
