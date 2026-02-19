@@ -58,6 +58,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-red-700 dark:text-red-400 text-sm">{displayError}</span>
             <button
+              type="button"
               onClick={() => {
                 setLocalError(null);
                 onClearError?.();
@@ -116,25 +117,26 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 onChange={(e) => setReviewText(e.target.value)}
                 placeholder="Write a review (optional)"
                 aria-label="Write a review"
-                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 text-sm"
+                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 rows={3}
                 maxLength={1000}
               />
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={loading || selectedValue === 0}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm disabled:opacity-50"
                 >
                   {loading ? "Submitting..." : "Submit"}
                 </button>
-                <button onClick={() => setIsEditing(false)} className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm">
+                <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm">
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <button onClick={() => setIsEditing(true)} className="text-emerald-600 dark:text-emerald-400 text-sm">
+            <button type="button" onClick={() => setIsEditing(true)} className="text-emerald-600 dark:text-emerald-400 text-sm">
               {rating.user_rating ? "Edit your rating" : "Rate this app"}
             </button>
           )}

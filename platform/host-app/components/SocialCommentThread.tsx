@@ -61,6 +61,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-red-700 dark:text-red-400 text-sm">{displayError}</span>
             <button
+              type="button"
               onClick={() => {
                 setLocalError(null);
                 onClearError?.();
@@ -81,14 +82,15 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write a comment..."
             aria-label="Write a comment"
-            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-3"
+            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             rows={3}
             maxLength={2000}
           />
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={submitting || !newComment.trim()}
-            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded"
+            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded disabled:opacity-50"
           >
             {submitting ? "Posting..." : "Post Comment"}
           </button>
