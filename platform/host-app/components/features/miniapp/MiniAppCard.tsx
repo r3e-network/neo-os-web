@@ -86,15 +86,15 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
           {/* Stats Section */}
           <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
             <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <Users size={12} />
-              <span>{formatNumber(app.stats?.users)}</span>
+              <Users size={12} aria-hidden="true" />
+              <span>{formatNumber(app.stats?.users)} users</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <BarChart3 size={12} />
+              <BarChart3 size={12} aria-hidden="true" />
               <span>{formatNumber(app.stats?.transactions)} txs</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-              <CoinsIcon size={12} />
+              <CoinsIcon size={12} aria-hidden="true" />
               <span>{app.stats?.volume || "0 GAS"}</span>
             </div>
           </div>
