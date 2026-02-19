@@ -41,7 +41,7 @@ export function ConnectButton() {
     return (
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 dark:bg-gray-800">
-          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <div className="h-2 w-2 rounded-full bg-emerald-500" />
           <span className="text-sm font-medium dark:text-white">{user.email || user.name || "Connected"}</span>
         </div>
         <Button variant="ghost" size="sm" onClick={() => auth.logout()}>
@@ -55,7 +55,7 @@ export function ConnectButton() {
     return (
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 dark:bg-gray-800">
-          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <div className="h-2 w-2 rounded-full bg-emerald-500" />
           <span className="text-sm font-medium dark:text-white">
             {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
           </span>
@@ -80,7 +80,7 @@ export function ConnectButton() {
         disabled={wallet.loading}
         aria-haspopup="true"
         aria-expanded={showMenu}
-        className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 transition-colors"
+        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2 transition-colors"
       >
         {wallet.loading ? "Connecting..." : "Connect Wallet"}
       </Button>

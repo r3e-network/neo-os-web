@@ -40,7 +40,7 @@ class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: E
     return (
       <div className="p-3 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 max-w-md" role="alert">
         <div className="font-semibold text-gray-900 dark:text-white mb-1.5">Failed to load federated MiniApp</div>
-        <div className="text-xs text-red-700 dark:text-red-400">{this.state.error.message}</div>
+        <div className="text-xs text-red-600 dark:text-red-400">{this.state.error.message}</div>
       </div>
     );
   }
@@ -107,7 +107,7 @@ function FederatedLoader({ remote, appId, view }: Props) {
     return (
       <div className="p-3 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 max-w-md" role="alert">
         <div className="font-semibold text-gray-900 dark:text-white mb-1.5">Failed to load federated MiniApp</div>
-        <div className="text-xs text-red-700 dark:text-red-400">{error}</div>
+        <div className="text-xs text-red-600 dark:text-red-400">{error}</div>
       </div>
     );
   }

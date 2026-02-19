@@ -133,7 +133,11 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
 
       {/* Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[480px] flex flex-col rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+        <div
+          className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[480px] flex flex-col rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden"
+          role="dialog"
+          aria-label="Live chat"
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-emerald-500 text-white">
             <div className="flex items-center gap-2">

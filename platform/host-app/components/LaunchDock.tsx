@@ -13,7 +13,7 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
   // Network indicator color based on latency
   const getNetworkStatus = (): { bg: string; label: string } => {
     if (networkLatency === null) return { bg: "bg-red-500", label: "Offline" };
-    if (networkLatency < 100) return { bg: "bg-green-500", label: "Good" };
+    if (networkLatency < 100) return { bg: "bg-emerald-500", label: "Good" };
     if (networkLatency < 500) return { bg: "bg-yellow-500", label: "Fair" };
     return { bg: "bg-red-500", label: "Slow" };
   };
@@ -24,7 +24,7 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
     ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
     : "Connect Wallet";
 
-  const walletDotBg = wallet.connected ? "bg-green-500" : "bg-red-500";
+  const walletDotBg = wallet.connected ? "bg-emerald-500" : "bg-red-500";
 
   return (
     <div className="fixed top-0 inset-x-0 h-12 bg-[rgba(10,10,10,0.95)] backdrop-blur-sm flex items-center px-4 gap-4 z-50 border-b border-white/[0.08]">

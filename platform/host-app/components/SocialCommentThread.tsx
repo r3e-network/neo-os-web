@@ -59,14 +59,14 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
       {displayError && (
         <div className="p-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
           <div className="flex items-center justify-between">
-            <span className="text-red-700 dark:text-red-400 text-sm">{displayError}</span>
+            <span className="text-red-600 dark:text-red-400 text-sm">{displayError}</span>
             <button
               type="button"
               onClick={() => {
                 setLocalError(null);
                 onClearError?.();
               }}
-              className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm transition-colors"
+              className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-sm transition-colors"
             >
               Dismiss
             </button>

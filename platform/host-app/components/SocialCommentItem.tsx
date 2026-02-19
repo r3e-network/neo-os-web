@@ -74,6 +74,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             <button
               type="button"
               onClick={() => setShowReplyForm(!showReplyForm)}
+              aria-expanded={showReplyForm}
               className="text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
             >
               Reply

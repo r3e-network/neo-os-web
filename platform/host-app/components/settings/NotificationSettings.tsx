@@ -54,7 +54,7 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
       <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notification Settings</h2>
 
       {error && (
-        <div role="alert" className="bg-red-100 dark:bg-red-900/20 p-3 rounded text-red-700 dark:text-red-400">
+        <div role="alert" className="bg-red-100 dark:bg-red-900/20 p-3 rounded text-red-600 dark:text-red-400">
           {error}
           <button type="button" onClick={clearError} className="ml-2 underline">
             Dismiss
