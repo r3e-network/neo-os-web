@@ -43,6 +43,7 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries: num
 }
 
 const MAX_BODY_SIZE = 256 * 1024; // 256 KB
+const MAX_RESPONSE_SIZE = 2 * 1024 * 1024; // 2 MB
 
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -108,7 +109,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.setHeader(key, value);
     });
 
+    const contentLength = parseInt(upstream.headers.get("content-length") || "0", 10);
+    if (contentLength > MAX_RESPONSE_SIZE) {
+      return apiError.gatewayError(res, "upstream response too large");
+    }
     const buf = Buffer.from(await upstream.arrayBuffer());
+    if (buf.length > MAX_RESPONSE_SIZE) {
+      return apiError.gatewayError(res, "upstream response too large");
+    }
     res.send(buf);
   } catch (err) {
     console.error("RPC upstream error:", err instanceof Error ? err.message : "unknown error");

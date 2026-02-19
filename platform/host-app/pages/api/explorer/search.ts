@@ -84,9 +84,9 @@ async function searchTransaction(url: string, key: string, hash: string) {
   if (!tx || tx.length === 0) return { type: "transaction", found: false };
 
   const [traces, calls, syscalls] = await Promise.all([
-    supabaseQuery(url, key, "indexer_opcode_traces", `tx_hash=eq.${safeHash}&order=step_index`),
-    supabaseQuery(url, key, "indexer_contract_calls", `tx_hash=eq.${safeHash}&order=call_index`),
-    supabaseQuery(url, key, "indexer_syscalls", `tx_hash=eq.${safeHash}&order=call_index`),
+    supabaseQuery(url, key, "indexer_opcode_traces", `tx_hash=eq.${safeHash}&order=step_index&limit=500`),
+    supabaseQuery(url, key, "indexer_contract_calls", `tx_hash=eq.${safeHash}&order=call_index&limit=200`),
+    supabaseQuery(url, key, "indexer_syscalls", `tx_hash=eq.${safeHash}&order=call_index&limit=200`),
   ]);
 
   return {
