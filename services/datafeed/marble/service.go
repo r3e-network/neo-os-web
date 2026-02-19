@@ -164,6 +164,7 @@ func New(cfg Config) (*Service, error) {
 	// Use the Marble-provided external client (system roots, no mTLS). Apply
 	// per-source timeouts via request contexts to avoid creating clients per call.
 	httpClient := httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), 0, true)
+	httpClient.Transport = httputil.NewSafeTransport()
 
 	// Use config-specified interval, then service config, then default
 	updateInterval := feedsConfig.UpdateInterval
