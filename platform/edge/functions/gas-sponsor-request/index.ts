@@ -116,7 +116,7 @@ export async function handler(req: Request): Promise<Response> {
     // Update request as failed (best-effort)
     const { error: failErr } = await supabase
       .from("gas_sponsor_requests")
-      .update({ status: "failed", error_message: (e as Error).message })
+      .update({ status: "failed", error_message: "transfer failed" })
       .eq("id", requestId);
     if (failErr) console.error("gas-sponsor failure status update failed:", failErr.message);
 
