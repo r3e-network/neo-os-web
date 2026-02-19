@@ -172,7 +172,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message..."
                   maxLength={500}
-                  className="flex-1 h-10 px-4 text-sm rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 h-10 px-4 text-sm rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 />
                 <button
                   type="button"

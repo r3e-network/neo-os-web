@@ -122,7 +122,7 @@ export function SearchSuggestions({ onSelect, className }: SearchSuggestionsProp
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder="Search MiniApps..."
-            className="w-full h-10 pl-10 pr-10 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full h-10 pl-10 pr-10 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           />
           {query && (
             <button
