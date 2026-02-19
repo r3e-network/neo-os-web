@@ -46,8 +46,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (body.developer_name && body.developer_name.length > 128) {
     return apiError.badRequest(res, "developer_name max 128 chars");
   }
-  if (body.icon && body.icon.length > 64) {
-    return apiError.badRequest(res, "icon max 64 chars");
+  if (body.icon && (body.icon.length > 64 || /[<>"']|:\/\/|^(javascript|data|vbscript):/i.test(body.icon))) {
+    return apiError.badRequest(res, "Invalid icon value");
   }
 
   // URL validation
