@@ -43,6 +43,7 @@ export function BadgeGrid({ earnedBadges }: BadgeGridProps) {
 function BadgeItem({ badge, earned, onClick }: { badge: Badge; earned: boolean; onClick: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-label={`${badge.name} badge${earned ? "" : " (not earned)"}`}
       className={`p-3 rounded-lg border-2 text-center transition-all ${
