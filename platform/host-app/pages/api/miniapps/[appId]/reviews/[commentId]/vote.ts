@@ -93,7 +93,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { data: voteRows } = await supabase
     .from("social_comment_votes")
     .select("vote_type")
-    .eq("comment_id", commentId);
+    .eq("comment_id", commentId)
+    .limit(10000);
 
   let upvotes = 0;
   let downvotes = 0;
