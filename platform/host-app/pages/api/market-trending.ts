@@ -25,5 +25,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (upstream.ok) {
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
   }
-  res.status(upstream.status).json(payload);
+  const status = upstream.ok ? upstream.status : 502;
+  res.status(status).json(payload);
 }

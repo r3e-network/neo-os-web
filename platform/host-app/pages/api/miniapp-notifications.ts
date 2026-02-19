@@ -21,5 +21,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   res.setHeader("Cache-Control", "no-store, private");
-  res.status(upstream.status).json(payload);
+  const status = upstream.ok ? upstream.status : 502;
+  res.status(status).json(payload);
 }
