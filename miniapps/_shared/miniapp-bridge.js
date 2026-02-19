@@ -12,15 +12,15 @@
 
   function getParentOrigin() {
     const ref = String(document.referrer || "").trim();
-    if (!ref) return "*";
+    if (!ref) return null;
     try {
       return new URL(ref).origin;
     } catch {
-      return "*";
+      return null;
     }
   }
 
-  const parentOrigin = getParentOrigin();
+  let parentOrigin = getParentOrigin();
 
   function makeID() {
     try {
@@ -39,7 +39,8 @@
     const data = event.data;
     if (!data || typeof data !== "object") return;
     if (data.type !== TYPES.response) return;
-    if (parentOrigin !== "*" && event.origin !== parentOrigin) return;
+    if (parentOrigin && event.origin !== parentOrigin) return;
+    if (!parentOrigin) parentOrigin = event.origin; // trust-on-first-use
 
     const id = String(data.id || "").trim();
     if (!id) return;
@@ -63,7 +64,7 @@
       try {
         window.parent.postMessage(
           { type: TYPES.request, id, method, params },
-          parentOrigin,
+          parentOrigin || "*",
         );
       } catch (err) {
         pending.delete(id);
