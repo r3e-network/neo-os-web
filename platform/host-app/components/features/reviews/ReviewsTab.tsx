@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { SocialRatingWidget } from "@/components/SocialRatingWidget";
 import { SocialCommentThread } from "@/components/SocialCommentThread";
 import { useReviews } from "@/hooks/useReviews";
