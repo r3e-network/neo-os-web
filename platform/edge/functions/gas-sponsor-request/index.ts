@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { getEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
@@ -31,12 +32,9 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  let body: RequestBody;
-  try {
-    body = await req.json();
-  } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
-  }
+  const bodyOrErr = await readJsonBody<RequestBody>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const amountStr = (body.amount ?? "0").trim();
   if (!/^\d+(\.\d{1,8})?$/.test(amountStr)) {

@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
@@ -26,12 +27,9 @@ export async function handler(req: Request): Promise<Response> {
   const ensured = await ensureUserRow(auth, {}, req);
   if (ensured instanceof Response) return ensured;
 
-  let body: DeleteSecretRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
-  }
+  const bodyOrErr = await readJsonBody<DeleteSecretRequest>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const name = String(body.name ?? "").trim();
   if (!name) return error(400, "name required", "NAME_REQUIRED", req);

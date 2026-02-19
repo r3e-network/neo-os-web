@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { ensureUserRow, requirePrimaryWallet, requireUser, supabaseServiceClient } from "../_shared/supabase.ts";
@@ -18,12 +19,9 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  let body: RevokeAPIKeyRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
-  }
+  const bodyOrErr = await readJsonBody<RevokeAPIKeyRequest>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const id = String(body.id ?? "").trim();
   if (!id) return error(400, "id required", "ID_REQUIRED", req);

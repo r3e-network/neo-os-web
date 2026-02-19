@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { upsertMiniAppManifest } from "../_shared/apps.ts";
@@ -31,12 +32,9 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  let body: AppUpdateManifestRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
-  }
+  const bodyOrErr = await readJsonBody<AppUpdateManifestRequest>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const manifest = body?.manifest;
   if (!manifest) return error(400, "manifest required", "MANIFEST_REQUIRED", req);

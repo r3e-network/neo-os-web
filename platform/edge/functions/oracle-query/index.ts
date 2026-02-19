@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
@@ -30,12 +31,9 @@ export async function handler(req: Request): Promise<Response> {
   const scopeCheck = requireHostScope(req, auth, "oracle-query");
   if (scopeCheck) return scopeCheck;
 
-  let body: OracleQueryRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
-  }
+  const bodyOrErr = await readJsonBody<OracleQueryRequest>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const url = String(body.url ?? "").trim();
   if (!url) return error(400, "url required", "URL_REQUIRED", req);

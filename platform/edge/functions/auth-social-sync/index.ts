@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { mustGetEnv } from "../_shared/env.ts";
@@ -19,7 +20,8 @@ export async function handler(req: Request): Promise<Response> {
     return error(401, "invalid service key", "AUTH_REQUIRED", req);
   }
 
-  const body = await req.json().catch(() => null);
+  const bodyOrErr = await readJsonBody<Record<string, unknown>>(req);
+  const body = bodyOrErr instanceof Response ? null : bodyOrErr;
   if (!body?.sub) return error(400, "sub required", "INVALID_INPUT", req);
 
   const { sub, email, name, avatar } = body as {

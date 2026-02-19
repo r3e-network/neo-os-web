@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireScope } from "../_shared/scopes.ts";
@@ -33,12 +34,9 @@ export async function handler(req: Request): Promise<Response> {
   if (rl) return rl;
 
   // Parse request body
-  let body: CreateCommentRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return error(400, "invalid JSON body", "INVALID_JSON", req);
-  }
+  const bodyOrErr = await readJsonBody<CreateCommentRequest>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const { app_id, content, parent_id } = body;
 

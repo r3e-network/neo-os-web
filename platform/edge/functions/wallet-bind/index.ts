@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { verifyNeoSignature } from "../_shared/neo.ts";
@@ -25,12 +26,9 @@ export async function handler(req: Request): Promise<Response> {
   const rl = await requireRateLimit(req, "wallet-bind", auth);
   if (rl) return rl;
 
-  let body: WalletBindRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
-  }
+  const bodyOrErr = await readJsonBody<WalletBindRequest>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const address = String(body.address ?? "").trim();
   const publicKey = String(body.public_key ?? "").trim();
