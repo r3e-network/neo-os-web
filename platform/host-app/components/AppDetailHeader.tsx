@@ -34,8 +34,8 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-neo/10 text-[64px]">
           {app.icon}
         </div>
-        <div className="flex-1">
-          <h1 className="mb-2 text-[28px] font-bold text-gray-900 dark:text-white">{app.name}</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="mb-2 text-[28px] font-bold text-gray-900 dark:text-white truncate">{app.name}</h1>
           <div className="flex items-center gap-3">
             <span className="rounded-md bg-neo/15 px-3 py-1 text-xs font-semibold uppercase text-neo">
               {app.category}

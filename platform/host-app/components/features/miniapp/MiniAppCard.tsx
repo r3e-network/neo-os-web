@@ -69,7 +69,7 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
         <CardContent className="p-5 bg-white dark:bg-gray-900">
           <div className="flex items-center gap-3 mb-2">
             <MiniAppLogo appId={app.app_id} category={app.category} size="md" />
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate flex-1">{app.name}</h3>
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate flex-1 min-w-0">{app.name}</h3>
             <Badge className={categoryColors[app.category]} variant="secondary">
               {app.category}
             </Badge>

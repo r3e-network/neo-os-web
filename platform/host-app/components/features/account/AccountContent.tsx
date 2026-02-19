@@ -17,9 +17,9 @@ export default function AccountContent() {
           {connected ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="text-sm text-gray-500 dark:text-gray-400">Connected via {provider}</div>
-                  <div className="font-mono text-lg text-gray-900 dark:text-white">{address}</div>
+                  <div className="font-mono text-lg text-gray-900 dark:text-white truncate">{address}</div>
                 </div>
                 <div className="h-3 w-3 rounded-full bg-green-500" />
               </div>
