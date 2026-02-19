@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireScope } from "../_shared/scopes.ts";
@@ -25,22 +26,25 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  let body: CreateDepositRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return error(400, "invalid JSON body", "BAD_JSON", req);
+  const bodyOrErr = await readJsonBody<CreateDepositRequest>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
+
+  const fromAddress = String(body.from_address ?? "").trim();
+  if (!/^N[A-HJ-NP-Za-km-z1-9]{33}$/.test(fromAddress)) {
+    return error(400, "invalid Neo N3 address", "FROM_ADDRESS_INVALID", req);
   }
 
-  const fromAddress = String(body.from_address ?? "").trim().slice(0, 64);
-  if (!fromAddress) return error(400, "from_address required", "FROM_ADDRESS_REQUIRED", req);
-
   const txHash = String(body.tx_hash ?? "").trim().slice(0, 66) || null;
+  if (txHash && !/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+    return error(400, "invalid tx_hash format", "TX_HASH_INVALID", req);
+  }
 
   const rawAmount = String(body.amount ?? "").trim();
   if (!/^\d+$/.test(rawAmount)) return error(400, "amount must be an integer string", "AMOUNT_INVALID", req);
   const amount = BigInt(rawAmount);
   if (amount <= 0n) return error(400, "amount must be > 0", "AMOUNT_INVALID", req);
+  if (amount > 10_000_000_000n) return error(400, "amount exceeds maximum", "AMOUNT_TOO_LARGE", req);
 
   const ensured = await ensureUserRow(auth, {}, req);
   if (ensured instanceof Response) return ensured;
