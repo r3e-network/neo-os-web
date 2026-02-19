@@ -275,10 +275,11 @@ export default function DeveloperPage() {
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* App Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="submit-app-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     App Name <span className="text-red-400">*</span>
                   </label>
                   <input
+                    id="submit-app-name"
                     type="text"
                     required
                     placeholder="My Awesome MiniApp"
@@ -290,10 +291,11 @@ export default function DeveloperPage() {
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="submit-app-desc" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Description <span className="text-red-400">*</span>
                   </label>
                   <textarea
+                    id="submit-app-desc"
                     required
                     rows={3}
                     placeholder="Describe what your app does..."
@@ -306,8 +308,9 @@ export default function DeveloperPage() {
                 {/* Icon & Category */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Icon (emoji)</label>
+                    <label htmlFor="submit-app-icon" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Icon (emoji)</label>
                     <input
+                      id="submit-app-icon"
                       type="text"
                       placeholder="📦"
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white text-center text-2xl placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
@@ -316,8 +319,9 @@ export default function DeveloperPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                    <label htmlFor="submit-app-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
                     <select
+                      id="submit-app-category"
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all appearance-none cursor-pointer"
                       value={form.category}
                       onChange={(e) => setForm({ ...form, category: e.target.value as FormData["category"] })}
@@ -333,10 +337,11 @@ export default function DeveloperPage() {
 
                 {/* Entry URL */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="submit-entry-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Entry URL <span className="text-red-400">*</span>
                   </label>
                   <input
+                    id="submit-entry-url"
                     type="url"
                     required
                     placeholder="https://your-app.com/miniapp"
@@ -348,8 +353,9 @@ export default function DeveloperPage() {
 
                 {/* Contract Hash */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contract Hash</label>
+                  <label htmlFor="submit-contract-hash" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contract Hash</label>
                   <input
+                    id="submit-contract-hash"
                     type="text"
                     placeholder="0x... (optional)"
                     className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all font-mono text-sm"
@@ -363,8 +369,9 @@ export default function DeveloperPage() {
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Developer Information</h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Developer Name</label>
+                      <label htmlFor="submit-dev-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Developer Name</label>
                       <input
+                        id="submit-dev-name"
                         type="text"
                         placeholder="Your name or team"
                         className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
@@ -373,10 +380,11 @@ export default function DeveloperPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="submit-dev-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Neo Address <span className="text-red-400">*</span>
                       </label>
                       <input
+                        id="submit-dev-address"
                         type="text"
                         required
                         placeholder="NXxx..."

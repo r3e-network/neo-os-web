@@ -104,7 +104,7 @@ export default function EnhancedStatsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Platform Analytics</h1>
-            <p className="mt-2 text-slate-400">Real-time performance metrics for the Neo MiniApp ecosystem</p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Real-time performance metrics for the Neo MiniApp ecosystem</p>
           </div>
           <Badge className="bg-neo/10 text-neo border-neo/20 h-8 px-4 flex items-center gap-2">
             <span className="relative flex h-2 w-2">
@@ -203,20 +203,20 @@ export default function EnhancedStatsPage() {
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
                           {event.method || "invokefunction"}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Contract: {event.contract || "Unknown"} ({event.contractHash?.slice(0, 6)}...
                           {event.contractHash?.slice(-4)})
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-mono text-gray-500 dark:text-slate-300">{event.gasUsed || "0"} GAS</p>
-                      <p className="text-[10px] text-slate-500">{formatTimeAgo(event.timestamp)}</p>
+                      <p className="text-sm font-mono text-gray-500 dark:text-gray-300">{event.gasUsed || "0"} GAS</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatTimeAgo(event.timestamp)}</p>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-slate-500">No recent events</div>
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">No recent events</div>
               )}
             </div>
           </CardContent>
@@ -240,7 +240,7 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading }: StatSumma
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-400">{title}</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
             <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1 tracking-tight">
               {loading ? <Loader2 className="animate-spin" size={24} /> : value}
             </h3>
