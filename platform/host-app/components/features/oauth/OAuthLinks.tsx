@@ -12,7 +12,7 @@ export function OAuthLinks() {
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Linked Accounts</h3>
 
       {error && (
-        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
+        <div role="alert" className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           <button type="button" onClick={clearError} className="mt-1 text-xs text-red-500 dark:text-red-400 underline">
             Dismiss
