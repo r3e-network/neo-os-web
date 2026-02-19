@@ -95,7 +95,7 @@ export default function ExplorerPage() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Neo N3 Explorer</h1>
-          <p className="text-muted-foreground">Search transactions, addresses, and contracts with execution traces</p>
+          <p className="text-gray-500 dark:text-gray-400">Search transactions, addresses, and contracts with execution traces</p>
         </div>
 
         {/* Search Bar */}
@@ -127,7 +127,7 @@ function SearchResults({ result }: { result: SearchResult }) {
   if (!result.found) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">No results found for this query</CardContent>
+        <CardContent className="py-8 text-center text-gray-500 dark:text-gray-400">No results found for this query</CardContent>
       </Card>
     );
   }
@@ -157,19 +157,19 @@ function TransactionResult({ data }: { data: TransactionData }) {
         <CardContent className="space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">Hash:</span>
+              <span className="text-gray-500 dark:text-gray-400">Hash:</span>
               <p className="font-mono text-xs break-all">{data.hash}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">Sender:</span>
+              <span className="text-gray-500 dark:text-gray-400">Sender:</span>
               <p className="font-mono text-xs">{data.sender}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">Status:</span>
+              <span className="text-gray-500 dark:text-gray-400">Status:</span>
               <Badge variant={data.vm_state === "HALT" ? "default" : "destructive"}>{data.vm_state}</Badge>
             </div>
             <div>
-              <span className="text-muted-foreground">Gas:</span>
+              <span className="text-gray-500 dark:text-gray-400">Gas:</span>
               <p>{data.gas_consumed}</p>
             </div>
           </div>
@@ -188,7 +188,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
           <CardContent>
             <div className="max-h-96 overflow-auto">
               <table className="w-full text-xs font-mono">
-                <thead className="sticky top-0 bg-background">
+                <thead className="sticky top-0 bg-white dark:bg-gray-900">
                   <tr className="border-b">
                     <th className="p-2 text-left">Step</th>
                     <th className="p-2 text-left">Opcode</th>
@@ -198,10 +198,10 @@ function TransactionResult({ data }: { data: TransactionData }) {
                 </thead>
                 <tbody>
                   {data.opcode_traces.map((t) => (
-                    <tr key={t.step_index} className="border-b hover:bg-muted/50">
+                    <tr key={t.step_index} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="p-2">{t.step_index}</td>
                       <td className="p-2 text-green-600 dark:text-green-400">{t.opcode}</td>
-                      <td className="p-2 text-muted-foreground">{t.opcode_hex}</td>
+                      <td className="p-2 text-gray-500 dark:text-gray-400">{t.opcode_hex}</td>
                       <td className="p-2">{t.instruction_ptr}</td>
                     </tr>
                   ))}
@@ -226,7 +226,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
                     <span className="font-medium">{c.method}</span>
                     <Badge variant={c.success ? "default" : "destructive"}>{c.success ? "Success" : "Failed"}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground font-mono">{c.contract_hash}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{c.contract_hash}</p>
                 </div>
               ))}
             </div>
@@ -248,7 +248,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
               {data.syscalls.map((s) => (
                 <div key={`${s.contract_hash}-${s.syscall_name}`} className="flex justify-between text-sm p-2 border rounded">
                   <span className="font-mono">{s.syscall_name}</span>
-                  <span className="text-muted-foreground">{s.gas_consumed} GAS</span>
+                  <span className="text-gray-500 dark:text-gray-400">{s.gas_consumed} GAS</span>
                 </div>
               ))}
             </div>
