@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Key, Lock, FileText } from "lucide-react";
 import { useSecretsStore, SecretToken } from "@/lib/secrets";
+import { cn } from "@/lib/utils";
 import { useWalletStore } from "@/lib/wallet/store";
 import { CreateTokenForm } from "./CreateTokenForm";
 
@@ -23,36 +25,39 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
 
   if (!connected) {
     return (
-      <div style={containerStyle}>
-        <p style={messageStyle}>Connect wallet to manage secrets for {appName}</p>
+      <div className="py-4">
+        <p className="text-center text-gray-500 dark:text-gray-400 py-6">Connect wallet to manage secrets for {appName}</p>
       </div>
     );
   }
 
   return (
-    <div style={containerStyle}>
-      <div style={headerStyle}>
-        <h3 style={titleStyle}>Secrets for {appName}</h3>
-        <button style={createBtnStyle} onClick={() => setShowCreate(true)}>
+    <div className="py-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Secrets for {appName}</h3>
+        <button
+          className="px-4 py-2 bg-neo dark:bg-neo text-gray-900 dark:text-gray-900 font-medium rounded-md hover:bg-neo/90 dark:hover:bg-neo/90 transition-colors"
+          onClick={() => setShowCreate(true)}
+        >
           + Add Secret
         </button>
       </div>
 
       {showCreate && <CreateTokenForm onClose={() => setShowCreate(false)} defaultAppId={appId} />}
 
-      {loading && <p style={messageStyle}>Loading...</p>}
+      {loading && <p className="text-center text-gray-500 dark:text-gray-400 py-6">Loading...</p>}
 
-      {!loading && appTokens.length === 0 && <p style={messageStyle}>No secrets configured for this app</p>}
+      {!loading && appTokens.length === 0 && <p className="text-center text-gray-500 dark:text-gray-400 py-6">No secrets configured for this app</p>}
 
       {appTokens.length > 0 && (
-        <div style={listStyle}>
+        <div className="flex flex-col gap-3">
           {appTokens.map((token) => (
             <SecretItem key={token.id} token={token} onRevoke={revokeToken} />
           ))}
         </div>
       )}
 
-      <div style={infoStyle}>
+      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-800 dark:text-blue-300">
         <p>Secrets are encrypted and stored securely for TEE confidential computing.</p>
       </div>
     </div>
@@ -60,27 +65,40 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
 }
 
 function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: string) => void }) {
-  const typeIcons: Record<string, string> = {
-    api_key: "🔑",
-    encryption_key: "🔐",
-    custom: "📝",
+  const typeIcons: Record<string, React.ComponentType<{ size?: number | string; className?: string }>> = {
+    api_key: Key,
+    encryption_key: Lock,
+    custom: FileText,
   };
+  const Icon = typeIcons[token.secretType] || FileText;
 
   return (
-    <div style={itemStyle}>
-      <div style={itemInfoStyle}>
-        <span style={iconStyle}>{typeIcons[token.secretType] || "📝"}</span>
+    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+      <div className="flex items-center gap-3">
+        <Icon size={20} className="text-gray-500 dark:text-gray-400" />
         <div>
-          <div style={nameStyle}>{token.name}</div>
-          <div style={metaStyle}>
+          <div className="font-medium text-gray-900 dark:text-white">{token.name}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             {token.appId === "global" ? "Global" : token.appId} • {token.secretType}
           </div>
         </div>
       </div>
-      <div style={actionsStyle}>
-        <span style={statusStyle(token.status)}>{token.status}</span>
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            "text-xs px-2 py-0.5 rounded",
+            token.status === "active"
+              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+              : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400"
+          )}
+        >
+          {token.status}
+        </span>
         {token.status === "active" && (
-          <button style={revokeBtnStyle} onClick={() => onRevoke(token.id)}>
+          <button
+            className="px-2 py-1 text-xs border border-red-500 dark:border-red-400 text-red-500 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            onClick={() => onRevoke(token.id)}
+          >
             Revoke
           </button>
         )}
@@ -88,60 +106,3 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
     </div>
   );
 }
-
-// Inline styles
-const containerStyle: React.CSSProperties = { padding: "16px 0" };
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 16,
-};
-const titleStyle: React.CSSProperties = { fontSize: 18, fontWeight: 600, margin: 0 };
-const createBtnStyle: React.CSSProperties = {
-  padding: "8px 16px",
-  background: "#3b82f6",
-  color: "white",
-  border: "none",
-  borderRadius: 6,
-  cursor: "pointer",
-};
-const messageStyle: React.CSSProperties = { color: "#6b7280", textAlign: "center", padding: 24 };
-const listStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 12 };
-const itemStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: 12,
-  background: "#f9fafb",
-  borderRadius: 8,
-};
-const itemInfoStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12 };
-const iconStyle: React.CSSProperties = { fontSize: 24 };
-const nameStyle: React.CSSProperties = { fontWeight: 500 };
-const metaStyle: React.CSSProperties = { fontSize: 12, color: "#6b7280" };
-const actionsStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8 };
-const statusStyle = (status: string): React.CSSProperties => ({
-  fontSize: 12,
-  padding: "2px 8px",
-  borderRadius: 4,
-  background: status === "active" ? "#dcfce7" : "#fee2e2",
-  color: status === "active" ? "#166534" : "#991b1b",
-});
-const revokeBtnStyle: React.CSSProperties = {
-  padding: "4px 8px",
-  fontSize: 12,
-  background: "transparent",
-  border: "1px solid #ef4444",
-  color: "#ef4444",
-  borderRadius: 4,
-  cursor: "pointer",
-};
-const infoStyle: React.CSSProperties = {
-  marginTop: 16,
-  padding: 12,
-  background: "#eff6ff",
-  borderRadius: 8,
-  fontSize: 13,
-  color: "#1e40af",
-};

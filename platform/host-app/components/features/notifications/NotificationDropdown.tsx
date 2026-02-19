@@ -40,8 +40,15 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
         setIsOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   // Fetch notifications
@@ -95,6 +102,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         aria-label="Notifications"
+        aria-expanded={isOpen}
       >
         <Bell size={18} />
         {unreadCount > 0 && (

@@ -9,6 +9,7 @@ import { useWalletStore } from "@/lib/wallet/store";
 import { useOAuthStore, oauthProviders } from "@/lib/oauth/store";
 import { useGamification } from "@/hooks/useGamification";
 import { BadgeGrid } from "@/components/features/gamification";
+import { cn } from "@/lib/utils";
 
 export default function AccountPage() {
   const { address, connected } = useWalletStore();
@@ -173,10 +174,6 @@ export default function AccountPage() {
   );
 }
 
-function cn(...inputs: (string | boolean | undefined | null)[]) {
-  return inputs.filter(Boolean).join(" ");
-}
-
 function OAuthBindingItem({
   provider,
   account,
@@ -231,5 +228,3 @@ function StatItem({ label, value }: { label: string; value: string | number }) {
     </div>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown } from "lucide-react";
 import { Layout } from "@/components/layout";
@@ -59,6 +59,7 @@ export default function MiniAppsPage() {
   const [apps, setApps] = useState<MiniAppInfo[]>([]);
   const [statsMap, setStatsMap] = useState<StatsMap>({});
   const [fetchError, setFetchError] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     Promise.all([
@@ -86,6 +87,30 @@ export default function MiniAppsPage() {
       setCommunityApps(communityData?.apps || []);
     });
   }, []);
+
+  useEffect(() => {
+    if (!showSortMenu) return;
+
+    const handleMouseDown = (event: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setShowSortMenu(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowSortMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showSortMenu]);
 
   const handleFilterChange = (sectionId: string, values: string[]) => {
     setFilters((prev) => ({ ...prev, [sectionId]: values }));
@@ -159,9 +184,11 @@ export default function MiniAppsPage() {
 
               <div className="flex items-center gap-3">
                 {/* Sort Dropdown */}
-                <div className="relative">
+                <div ref={sortRef} className="relative">
                   <button
                     onClick={() => setShowSortMenu(!showSortMenu)}
+                    aria-haspopup="listbox"
+                    aria-expanded={showSortMenu}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     <currentSort.icon size={14} />
@@ -170,10 +197,15 @@ export default function MiniAppsPage() {
                   </button>
 
                   {showSortMenu && (
-                    <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50">
+                    <div
+                      role="listbox"
+                      className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50"
+                    >
                       {sortOptions.map((option) => (
                         <button
                           key={option.value}
+                          role="option"
+                          aria-selected={sortBy === option.value}
                           onClick={() => {
                             setSortBy(option.value);
                             setShowSortMenu(false);
@@ -197,6 +229,7 @@ export default function MiniAppsPage() {
                 <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                   <button
                     onClick={() => setViewMode("list")}
+                    aria-pressed={viewMode === "list"}
                     className={cn(
                       "p-2 transition-colors",
                       viewMode === "list"
@@ -209,6 +242,7 @@ export default function MiniAppsPage() {
                   </button>
                   <button
                     onClick={() => setViewMode("grid")}
+                    aria-pressed={viewMode === "grid"}
                     className={cn(
                       "p-2 transition-colors",
                       viewMode === "grid"
@@ -255,5 +289,3 @@ export default function MiniAppsPage() {
     </Layout>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

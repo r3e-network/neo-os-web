@@ -86,6 +86,7 @@ export default function DocsPage() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="text"
+                  aria-label="Search documentation"
                   placeholder="Search documentation..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -109,6 +110,7 @@ export default function DocsPage() {
                     <button
                       key={section.id}
                       onClick={() => setActiveSection(section.id)}
+                      aria-current={isActive ? "page" : undefined}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
                         isActive
                           ? "bg-neo/10 text-neo font-medium"
@@ -464,5 +466,3 @@ console.log('Attestation:', result.attestation);`}
     </div>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

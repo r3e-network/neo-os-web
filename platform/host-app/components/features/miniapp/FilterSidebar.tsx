@@ -42,6 +42,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
           <div key={section.id} className="mb-4">
             <button
               onClick={() => toggleSection(section.id)}
+              aria-expanded={expanded[section.id]}
               className="flex items-center justify-between w-full text-left py-2 text-sm font-medium text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400"
             >
               {section.label}
@@ -70,7 +71,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleOption(section.id, option.value)}
-                        className="hidden"
+                        className="sr-only"
                       />
                       <span className="flex-1 truncate">{option.label}</span>
                       {option.count !== undefined && (

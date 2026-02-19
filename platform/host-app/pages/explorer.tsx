@@ -72,7 +72,7 @@ export default function ExplorerPage() {
     setResult(null);
 
     try {
-      const res = await fetch(`/api/explorer/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/explorer/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(30000) });
       const data = await res.json();
       if (data.error) {
         setError(data.error);
@@ -99,7 +99,7 @@ export default function ExplorerPage() {
         </div>
 
         {/* Search Bar */}
-        <div className="flex gap-2 mb-8 max-w-2xl mx-auto">
+        <div role="search" className="flex gap-2 mb-8 max-w-2xl mx-auto">
           <Input
             placeholder="Search by tx hash, address, or contract..."
             value={query}
@@ -107,7 +107,7 @@ export default function ExplorerPage() {
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             className="flex-1"
           />
-          <Button onClick={handleSearch} disabled={loading}>
+          <Button aria-label="Search" onClick={handleSearch} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>
         </div>

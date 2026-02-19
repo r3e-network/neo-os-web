@@ -49,7 +49,7 @@ export default function DeveloperPage() {
     setResult(null);
 
     try {
-      const res = await fetch("/api/miniapps/submit", {
+      const res = await fetch("/api/miniapps/submit", { signal: AbortSignal.timeout(30000),
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -248,6 +248,9 @@ export default function DeveloperPage() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Submit MiniApp"
               className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-gray-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl overflow-y-auto"
             >
               {/* Panel Header */}
@@ -259,6 +262,7 @@ export default function DeveloperPage() {
                   </div>
                   <button
                     onClick={() => setShowForm(false)}
+                    aria-label="Close panel"
                     className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                   >
                     <X className="text-gray-400" size={20} />
@@ -429,5 +433,3 @@ export default function DeveloperPage() {
     </Layout>
   );
 }
-
-export const getServerSideProps = async () => ({ props: {} });

@@ -18,10 +18,10 @@ const categoryIcons = {
 };
 
 const categoryColors = {
-  general: "bg-gray-100 text-gray-700",
-  bug: "bg-red-100 text-red-700",
-  feature: "bg-purple-100 text-purple-700",
-  help: "bg-blue-100 text-blue-700",
+  general: "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+  bug: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+  feature: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
+  help: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
 };
 
 export function ForumTab({ appId }: ForumTabProps) {
@@ -68,6 +68,7 @@ export function ForumTab({ appId }: ForumTabProps) {
           <button
             key={cat}
             onClick={() => setFilter(cat)}
+            aria-pressed={filter === cat}
             className={`px-3 py-1 text-xs rounded-full capitalize ${
               filter === cat
                 ? "bg-emerald-500 text-white"
@@ -113,9 +114,9 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
   const Icon = categoryIcons[thread.category] || MessageSquare;
 
   return (
-    <div
+    <button
       onClick={onClick}
-      className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors"
+      className="w-full text-left p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors"
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${categoryColors[thread.category]}`}>
@@ -135,7 +136,7 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 });
 

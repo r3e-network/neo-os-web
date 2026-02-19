@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSecretsStore } from "@/lib/secrets";
+import { Key, Lock, FileText, Eye, EyeOff } from "lucide-react";
 
 const SECRET_TYPES = [
-  { value: "api_key", label: "API Key", icon: "🔑", desc: "External service API keys" },
-  { value: "encryption_key", label: "Encryption Key", icon: "🔐", desc: "For confidential computing" },
-  { value: "custom", label: "Custom Secret", icon: "📝", desc: "Custom key-value secret" },
+  { value: "api_key", label: "API Key", icon: Key, desc: "External service API keys" },
+  { value: "encryption_key", label: "Encryption Key", icon: Lock, desc: "For confidential computing" },
+  { value: "custom", label: "Custom Secret", icon: FileText, desc: "Custom key-value secret" },
 ] as const;
 
 interface CreateTokenFormProps {
@@ -36,9 +37,9 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
 
   if (created) {
     return (
-      <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
-        <h4 className="font-semibold text-green-800">Secret Created!</h4>
-        <p className="mt-1 text-sm text-green-700">Your secret has been securely stored.</p>
+      <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+        <h4 className="font-semibold text-green-800 dark:text-green-400">Secret Created!</h4>
+        <p className="mt-1 text-sm text-green-700 dark:text-green-300">Your secret has been securely stored.</p>
         <Button size="sm" className="mt-3" onClick={onClose}>
           Done
         </Button>
@@ -47,66 +48,72 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 rounded-lg border p-4">
-      <h4 className="font-semibold">Create New Secret</h4>
+    <form onSubmit={handleSubmit} className="mb-6 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+      <h4 className="font-semibold text-gray-900 dark:text-white">Create New Secret</h4>
       <div className="mt-3 space-y-3">
         <div>
-          <label className="block text-sm text-gray-600">Secret Type</label>
+          <label className="block text-sm text-gray-600 dark:text-gray-400">Secret Type</label>
           <div className="mt-1 grid grid-cols-3 gap-2">
             {SECRET_TYPES.map((type) => (
               <button
                 key={type.value}
                 type="button"
+                aria-pressed={secretType === type.value}
                 onClick={() => setSecretType(type.value)}
-                className={`rounded border p-2 text-left text-sm ${
-                  secretType === type.value ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                className={`rounded border p-2 text-left text-sm text-gray-900 dark:text-white ${
+                  secretType === type.value
+                    ? "border-neo bg-neo/10 dark:bg-neo/20"
+                    : "border-gray-200 dark:border-gray-700 dark:bg-gray-800"
                 }`}
               >
-                <span className="text-lg">{type.icon}</span>
+                <type.icon size={18} />
                 <div className="font-medium">{type.label}</div>
               </button>
             ))}
           </div>
         </div>
         <div>
-          <label className="block text-sm text-gray-600">Secret Name</label>
+          <label className="block text-sm text-gray-600 dark:text-gray-400">Secret Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My API Token"
-            className="mt-1 w-full rounded border px-3 py-2"
+            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-600">Secret Value</label>
+          <label className="block text-sm text-gray-600 dark:text-gray-400">Secret Value</label>
           <div className="relative mt-1">
             <input
               type={showValue ? "text" : "password"}
               value={secretValue}
               onChange={(e) => setSecretValue(e.target.value)}
               placeholder="Enter your secret value"
-              className="w-full rounded border px-3 py-2 pr-10"
+              className="w-full rounded border border-gray-200 bg-white px-3 py-2 pr-10 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />
             <button
               type="button"
               onClick={() => setShowValue(!showValue)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
+              aria-label={showValue ? "Hide secret" : "Show secret"}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
             >
-              {showValue ? "🙈" : "👁"}
+              {showValue ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
         <div>
-          <label className="block text-sm text-gray-600">App Scope</label>
+          <label className="block text-sm text-gray-600 dark:text-gray-400">App Scope</label>
           <input
             type="text"
             value={appId}
             onChange={(e) => setAppId(e.target.value)}
             placeholder="Leave empty for global access"
-            className="mt-1 w-full rounded border px-3 py-2"
+            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           />
-          <p className="mt-1 text-xs text-gray-500">Restrict to specific MiniApp or leave empty for all apps</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Restrict to specific MiniApp or leave empty for all apps
+          </p>
         </div>
       </div>
       <div className="mt-4 flex gap-2">

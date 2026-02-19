@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 
 const PlatformCharts = dynamic(
@@ -254,10 +255,6 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading }: StatSumma
   );
 }
 
-function cn(...inputs: (string | boolean | undefined | null)[]) {
-  return inputs.filter(Boolean).join(" ");
-}
-
 function formatNumber(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
@@ -277,5 +274,3 @@ function formatTimeAgo(timestamp: string): string {
   const days = Math.floor(hours / 24);
   return `${days} day${days > 1 ? "s" : ""} ago`;
 }
-
-export const getServerSideProps = async () => ({ props: {} });
