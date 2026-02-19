@@ -190,6 +190,15 @@ func (s *Service) markSeenInMemory(requestID string) bool {
 		return false
 	}
 
+	// Prevent unbounded growth under high request volume.
+	if len(s.seenRequests) >= 100_000 {
+		for k, until := range s.seenRequests {
+			if now.After(until) {
+				delete(s.seenRequests, k)
+			}
+		}
+	}
+
 	s.seenRequests[requestID] = now.Add(s.replayWindow)
 	return true
 }
