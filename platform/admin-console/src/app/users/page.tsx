@@ -45,7 +45,7 @@ export default function UsersPage() {
           {isLoading ? (
             <Spinner />
           ) : error ? (
-            <div className="text-center text-red-500 dark:text-red-400">Failed to load users</div>
+            <div role="alert" className="text-center text-red-500 dark:text-red-400">Failed to load users</div>
           ) : (
             <Table>
               <TableHeader>

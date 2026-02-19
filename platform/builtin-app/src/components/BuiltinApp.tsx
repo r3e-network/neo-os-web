@@ -161,7 +161,7 @@ function StatusBanner({ status }: { status: StatusState | null }) {
   let className = styles.status;
   if (status.tone === "error") className = `${styles.status} ${styles.statusError}`;
   if (status.tone === "success") className = `${styles.status} ${styles.statusSuccess}`;
-  return <div className={className}>{status.message}</div>;
+  return <div role="alert" className={className}>{status.message}</div>;
 }
 
 function PriceTickerPanel({ sdk }: PanelProps) {

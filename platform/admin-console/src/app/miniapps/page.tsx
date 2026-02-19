@@ -696,7 +696,7 @@ function CreateFormPanel({
           </div>
         )}
 
-        {formError && <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>}
+        {formError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{formError}</p>}
         {tab !== "json" && (
           <div className="flex gap-2">
             <Button onClick={onSubmit} disabled={loading}>{loading ? (mode === "edit" ? "Saving..." : "Creating...") : (mode === "edit" ? "Save Changes" : "Create MiniApp")}</Button>
