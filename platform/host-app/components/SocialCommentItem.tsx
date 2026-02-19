@@ -75,7 +75,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             </button>
           )}
           {comment.reply_count > 0 && replies.length === 0 && (
-            <button type="button" onClick={handleLoadReplies} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50" disabled={loadingReplies}>
+            <button type="button" onClick={handleLoadReplies} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed" disabled={loadingReplies}>
               {loadingReplies ? "Loading..." : `${comment.reply_count} replies`}
             </button>
           )}

@@ -51,7 +51,7 @@ export function OAuthLinks() {
                   type="button"
                   onClick={() => linkAccount(provider.id)}
                   disabled={isLoading}
-                  className="rounded-md bg-gray-900 dark:bg-gray-100 px-3 py-1.5 text-sm text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50"
+                  className="rounded-md bg-gray-900 dark:bg-gray-100 px-3 py-1.5 text-sm text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Linking..." : "Link"}
                 </button>

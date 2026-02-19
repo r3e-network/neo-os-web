@@ -201,7 +201,7 @@ function NewThreadForm({
             type="button"
             onClick={handleSubmit}
             disabled={submitting || !title.trim() || !content.trim()}
-            className="px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50"
+            className="px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Posting..." : "Post"}
           </button>
@@ -287,7 +287,7 @@ function ThreadDetail({
             type="button"
             onClick={handleReply}
             disabled={submitting || !replyContent.trim()}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 transition-colors hover:bg-emerald-600"
+            className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:bg-emerald-600"
           >
             Reply
           </button>

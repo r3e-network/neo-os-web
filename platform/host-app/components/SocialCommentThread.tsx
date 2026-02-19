@@ -90,7 +90,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={submitting || !newComment.trim()}
-            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded disabled:opacity-50 transition-colors"
+            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? "Posting..." : "Post Comment"}
           </button>
@@ -111,7 +111,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
       {/* Load More */}
       {hasMore && (
         <div className="p-4 text-center">
-          <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50">
+          <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? "Loading..." : "Load more comments"}
           </button>
         </div>
