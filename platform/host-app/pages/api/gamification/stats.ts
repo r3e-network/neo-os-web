@@ -21,6 +21,7 @@ type WalletStatsRow = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (standardLimit(req, res)) return;
+  res.setHeader("Cache-Control", "no-store, private");
   const { wallet } = req.query;
 
   if (!wallet || typeof wallet !== "string" || !isValidWalletAddress(wallet)) {
