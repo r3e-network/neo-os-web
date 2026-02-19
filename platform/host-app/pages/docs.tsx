@@ -254,7 +254,7 @@ function SDKReferenceContent() {
         ].map((item) => (
           <div
             key={item.title}
-            className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 hover:border-neo/30 transition-colors cursor-pointer"
+            className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 transition-colors"
           >
             <div className="p-2 rounded-lg bg-neo/10">
               <item.icon className="text-neo" size={20} />

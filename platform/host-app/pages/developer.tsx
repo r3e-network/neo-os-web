@@ -192,7 +192,7 @@ export default function DeveloperPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 * idx }}
-                className="group glass-card rounded-xl p-6 bg-gray-900/30 dark:bg-gray-900/30 hover:bg-gray-900/50 transition-all cursor-pointer"
+                className="group glass-card rounded-xl p-6 bg-gray-900/30 dark:bg-gray-900/30 hover:bg-gray-900/50 transition-all"
               >
                 <div
                   className={`w-12 h-12 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
