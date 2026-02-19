@@ -80,7 +80,7 @@ export function ConnectButton() {
         disabled={wallet.loading}
         aria-haspopup="true"
         aria-expanded={showMenu}
-        className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2"
+        className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 transition-colors"
       >
         {wallet.loading ? "Connecting..." : "Connect Wallet"}
       </Button>

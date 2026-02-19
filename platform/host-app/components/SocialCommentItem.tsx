@@ -94,7 +94,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             maxLength={2000}
           />
           <div className="flex gap-2 mt-2">
-            <button type="button" onClick={handleSubmitReply} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm">
+            <button type="button" onClick={handleSubmitReply} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm transition-colors">
               Submit
             </button>
             <button

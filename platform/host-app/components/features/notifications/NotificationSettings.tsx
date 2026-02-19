@@ -155,7 +155,7 @@ function EmailBindInput({
         type="button"
         onClick={onBind}
         disabled={loading || !email}
-        className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
+        className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 transition-colors"
       >
         {loading ? "..." : "Bind"}
       </button>
@@ -190,7 +190,7 @@ function VerifyCodeInput({
           type="button"
           onClick={onVerify}
           disabled={loading || code.length !== 6}
-          className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 transition-colors"
         >
           {loading ? "..." : "Verify"}
         </button>

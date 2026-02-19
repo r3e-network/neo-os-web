@@ -90,7 +90,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={submitting || !newComment.trim()}
-            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded disabled:opacity-50"
+            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded disabled:opacity-50 transition-colors"
           >
             {submitting ? "Posting..." : "Post Comment"}
           </button>

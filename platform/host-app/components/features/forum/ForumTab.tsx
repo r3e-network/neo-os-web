@@ -54,7 +54,7 @@ export function ForumTab({ appId }: ForumTabProps) {
         {walletAddress && (
           <button
             onClick={() => setShowNewThread(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600"
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600 transition-colors"
           >
             <Plus size={16} />
             New Thread
