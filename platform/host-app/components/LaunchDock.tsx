@@ -11,21 +11,20 @@ export type LaunchDockProps = {
 
 export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onShare }: LaunchDockProps) {
   // Network indicator color based on latency
-  const getNetworkStatus = (): { color: string; label: string } => {
-    if (networkLatency === null) return { color: "#ef4444", label: "Offline" };
-    if (networkLatency < 100) return { color: "#22c55e", label: "Good" };
-    if (networkLatency < 500) return { color: "#eab308", label: "Fair" };
-    return { color: "#ef4444", label: "Slow" };
+  const getNetworkStatus = (): { bg: string; label: string } => {
+    if (networkLatency === null) return { bg: "bg-red-500", label: "Offline" };
+    if (networkLatency < 100) return { bg: "bg-green-500", label: "Good" };
+    if (networkLatency < 500) return { bg: "bg-yellow-500", label: "Fair" };
+    return { bg: "bg-red-500", label: "Slow" };
   };
 
   const networkStatus = getNetworkStatus();
 
-  // Wallet display
   const walletDisplay = wallet.connected
     ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
     : "Connect Wallet";
 
-  const walletDotColor = wallet.connected ? "#22c55e" : "#ef4444";
+  const walletDotBg = wallet.connected ? "bg-green-500" : "bg-red-500";
 
   return (
     <div className="fixed top-0 inset-x-0 h-12 bg-[rgba(10,10,10,0.95)] backdrop-blur-sm flex items-center px-4 gap-4 z-[9999] border-b border-white/[0.08]">
@@ -39,13 +38,13 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
       <div className="flex items-center gap-4">
         {/* Wallet Status */}
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full" style={{ background: walletDotColor }} />
+          <div className={`w-2 h-2 rounded-full ${walletDotBg}`} />
           <span className="text-sm text-gray-400 font-mono">{walletDisplay}</span>
         </div>
 
         {/* Network Indicator */}
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full" style={{ background: networkStatus.color }} />
+          <div className={`w-2 h-2 rounded-full ${networkStatus.bg}`} />
           <span className="text-sm text-gray-400 font-mono">{networkLatency !== null ? `${networkLatency}ms` : networkStatus.label}</span>
         </div>
 
