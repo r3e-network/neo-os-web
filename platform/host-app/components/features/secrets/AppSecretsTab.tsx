@@ -89,7 +89,7 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
           className={cn(
             "text-xs px-2 py-0.5 rounded",
             token.status === "active"
-              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
+              ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400"
               : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400"
           )}
         >
