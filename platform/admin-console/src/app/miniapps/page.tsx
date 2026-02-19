@@ -524,7 +524,7 @@ function CreateFormPanel({
           <div className="flex gap-2">
             {Object.entries(TEMPLATES).map(([key, t]) => (
               <button key={key} type="button" onClick={() => applyTemplate(key)}
-                className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-left hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-left hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors">
                 <div className="text-sm font-medium">{t.label}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">{t.desc}</div>
               </button>
@@ -585,7 +585,7 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contracts</label>
-                <button type="button" onClick={addContract} className="text-xs text-blue-600 hover:underline">+ Add Contract</button>
+                <button type="button" onClick={addContract} className="text-xs text-primary-600 hover:underline">+ Add Contract</button>
               </div>
               {form.contracts.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
@@ -599,7 +599,7 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Operations</label>
-                <button type="button" onClick={addOperation} className="text-xs text-blue-600 hover:underline">+ Add Operation</button>
+                <button type="button" onClick={addOperation} className="text-xs text-primary-600 hover:underline">+ Add Operation</button>
               </div>
               {form.operations.map((o, i) => (
                 <div key={i} className="rounded border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
@@ -630,7 +630,7 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Components</label>
-                <button type="button" onClick={addComponent} className="text-xs text-blue-600 hover:underline">+ Add Component</button>
+                <button type="button" onClick={addComponent} className="text-xs text-primary-600 hover:underline">+ Add Component</button>
               </div>
               {form.components.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
@@ -728,7 +728,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
     <div className="pl-4 border-l-2 border-gray-100 dark:border-gray-800">
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-gray-500 dark:text-gray-400">Parameters</span>
-        <button type="button" onClick={add} className="text-xs text-blue-600 hover:underline">+ Add Param</button>
+        <button type="button" onClick={add} className="text-xs text-primary-600 hover:underline">+ Add Param</button>
       </div>
       {params.map((p, i) => (
         <div key={i} className="flex gap-1.5 mb-1.5 items-center">
