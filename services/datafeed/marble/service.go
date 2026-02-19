@@ -253,11 +253,14 @@ func New(cfg Config) (*Service, error) {
 
 	sourceConcurrency := cfg.SourceConcurrency
 	if sourceConcurrency <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOFEEDS_SOURCE_CONCURRENCY"); ok && parsed > 0 {
+		if parsed, ok := runtime.ParseEnvInt("NEOFEEDS_SOURCE_CONCURRENCY"); ok && parsed > 0 && parsed <= 64 {
 			sourceConcurrency = parsed
 		} else {
 			sourceConcurrency = 8
 		}
+	}
+	if sourceConcurrency > 64 {
+		sourceConcurrency = 64
 	}
 	s.sourceSem = make(chan struct{}, sourceConcurrency)
 
