@@ -26,6 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const health = await checkChainHealth(rpcUrl, network as "testnet" | "mainnet");
+    res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate=60");
     return res.status(200).json(health);
   } catch (err) {
     logger.error("Chain health check failed:", err instanceof Error ? err.message : "unknown error");

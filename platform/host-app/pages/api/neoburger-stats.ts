@@ -12,6 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const response = await fetch(`${API_BASE}/neoburger-stats`, { signal: AbortSignal.timeout(10000) });
     if (!response.ok) throw new Error(`Upstream error: ${response.status}`);
     const data = await response.json();
+    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
     res.status(200).json(data);
   } catch {
     res.status(200).json({

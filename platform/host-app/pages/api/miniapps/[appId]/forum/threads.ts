@@ -111,6 +111,7 @@ async function getThreads(appId: string, req: NextApiRequest, res: NextApiRespon
 
   const threads = ((data || []) as ForumThreadRow[]).map(toThread);
 
+  res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
   return res.status(200).json({
     threads,
     hasMore: offset + limit < (count || 0),

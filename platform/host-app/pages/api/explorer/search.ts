@@ -51,6 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         result = await searchAll(indexerUrl, indexerKey, query);
     }
 
+    res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
     return res.status(200).json(result);
   } catch (error) {
     logger.error("Explorer search error:", error instanceof Error ? error.message : "unknown error");

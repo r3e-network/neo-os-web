@@ -82,6 +82,7 @@ async function getReplies(appId: string, threadId: string, req: NextApiRequest, 
     return apiError.internal(res, "Failed to fetch replies");
   }
 
+  res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
   return res.status(200).json({ replies: ((data || []) as ForumReplyRow[]).map(toReply) });
 }
 

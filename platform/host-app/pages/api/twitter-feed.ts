@@ -7,6 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const response = await fetch(`${API_BASE}/twitter-feed`, { signal: AbortSignal.timeout(10000) });
     const data = await response.json();
+    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
     res.status(200).json(data);
   } catch {
     res.status(200).json({ tweets: [] });

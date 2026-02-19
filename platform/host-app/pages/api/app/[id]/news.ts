@@ -29,6 +29,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch {
       return apiError.internal(res, "Failed to parse upstream response");
     }
+    if (upstream.ok) {
+      res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+    }
     res.status(upstream.status).json(payload);
   } catch {
     return apiError.internal(res, "Failed to fetch news");

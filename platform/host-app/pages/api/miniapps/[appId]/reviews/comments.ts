@@ -132,6 +132,7 @@ async function getCommentsFromDB(appId: string, req: NextApiRequest, res: NextAp
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
+  res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
   return res.status(200).json({
     comments,
     hasMore: offset + limit < (count || 0),
