@@ -62,9 +62,9 @@ export default function MiniAppsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/miniapps/catalog").then((r) => r.json()).catch(() => null),
-      fetch("/api/miniapp-stats").then((r) => r.json()).catch(() => null),
-      fetch("/api/miniapps/community").then((r) => r.json()).catch(() => null),
+      fetch("/api/miniapps/catalog", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
+      fetch("/api/miniapp-stats", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
+      fetch("/api/miniapps/community", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
     ]).then(([catalogData, statsData, communityData]) => {
       if (!catalogData && !communityData) setFetchError(true);
       const list = Array.isArray(catalogData?.apps) ? catalogData.apps : [];

@@ -56,7 +56,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       try {
         const start = performance.now();
         // Ping a lightweight endpoint (using /api/health or Supabase REST endpoint)
-        await fetch("/api/health", { method: "HEAD" });
+        await fetch("/api/health", { method: "HEAD", signal: AbortSignal.timeout(5000) });
         const end = performance.now();
         setNetworkLatency(Math.round(end - start));
       } catch (e) {
@@ -357,7 +357,7 @@ export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (co
   const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
 
   try {
-    const catalogRes = await fetch(`${baseUrl}/api/miniapps/catalog?app_id=${encodeURIComponent(id)}`);
+    const catalogRes = await fetch(`${baseUrl}/api/miniapps/catalog?app_id=${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(10000) });
     const catalogPayload = await catalogRes.json().catch(() => null);
     const raw = catalogPayload?.app || null;
     const app = coerceMiniAppInfo(raw, fallback) ?? fallback ?? null;

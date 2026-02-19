@@ -13,7 +13,7 @@ export function TwitterFeed() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/twitter-feed")
+    fetch("/api/twitter-feed", { signal: AbortSignal.timeout(30000) })
       .then((res) => res.json())
       .then((data) => {
         setTweets(data.tweets || []);

@@ -18,7 +18,7 @@ export default function FederatedMiniApp() {
 
     const loadPermissions = async () => {
       try {
-        const res = await fetch(`/api/miniapp-stats?app_id=${encodeURIComponent(appId)}`);
+        const res = await fetch(`/api/miniapp-stats?app_id=${encodeURIComponent(appId)}`, { signal: AbortSignal.timeout(30000) });
         const payload = await res.json();
         const list = Array.isArray(payload?.stats)
           ? payload.stats

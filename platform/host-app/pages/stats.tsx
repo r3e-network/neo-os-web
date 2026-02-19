@@ -45,8 +45,8 @@ export default function EnhancedStatsPage() {
     async function fetchData() {
       try {
         const [statsRes, eventsRes] = await Promise.all([
-          fetch("/api/platform/stats"),
-          fetch("/api/activity/events?limit=5"),
+          fetch("/api/platform/stats", { signal: AbortSignal.timeout(30000) }),
+          fetch("/api/activity/events?limit=5", { signal: AbortSignal.timeout(30000) }),
         ]);
 
         if (statsRes.ok) {
