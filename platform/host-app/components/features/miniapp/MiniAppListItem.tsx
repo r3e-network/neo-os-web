@@ -23,7 +23,7 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
   return (
     <Link
       href={`/miniapps/${app.app_id}`}
-      className="group block border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+      className="group block border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
     >
       <div className="flex items-center gap-4 px-4 py-3">
         {/* Logo */}
