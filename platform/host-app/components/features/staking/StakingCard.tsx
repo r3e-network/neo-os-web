@@ -55,9 +55,10 @@ export function StakingCard({ onStake }: StakingCardProps) {
       </div>
 
       <div className="mb-4">
-        <label className="mb-2 block text-sm text-green-100">Amount to Stake (NEO)</label>
+        <label htmlFor="stake-amount" className="mb-2 block text-sm text-green-100">Amount to Stake (NEO)</label>
         <div className="flex gap-2">
           <input
+            id="stake-amount"
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
