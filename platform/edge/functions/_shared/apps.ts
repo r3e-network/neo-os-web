@@ -222,7 +222,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
 
   const row = data as MiniAppRow;
   const status = String(row.status ?? "").toLowerCase();
-  if (status && status !== "active") {
+  if (!status || status !== "active") {
     return error(403, "app is not active", "APP_INACTIVE", req);
   }
 
