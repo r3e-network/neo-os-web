@@ -51,7 +51,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
     const fetchNotifications = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/notifications/events?wallet=${encodeURIComponent(walletAddress)}&limit=10`);
+        const res = await fetch(`/api/notifications/events?wallet=${encodeURIComponent(walletAddress)}&limit=10`, { signal: AbortSignal.timeout(30000) });
         if (res.ok && active) {
           const data = await res.json();
           setNotifications(data.events || []);

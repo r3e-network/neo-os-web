@@ -15,7 +15,7 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
 
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const res = await fetch("/api/gamification/leaderboard?limit=20");
+      const res = await fetch("/api/gamification/leaderboard?limit=20", { signal: AbortSignal.timeout(30000) });
       if (res.ok) {
         const data = await res.json();
         setEntries(data.entries);

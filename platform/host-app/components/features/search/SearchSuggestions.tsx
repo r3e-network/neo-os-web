@@ -31,7 +31,7 @@ export function SearchSuggestions({ onSelect, className }: SearchSuggestionsProp
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/miniapps/search?q=${encodeURIComponent(q)}&limit=6`);
+      const res = await fetch(`/api/miniapps/search?q=${encodeURIComponent(q)}&limit=6`, { signal: AbortSignal.timeout(30000) });
       if (res.ok) {
         const data = await res.json();
         setResults(data.results || []);
