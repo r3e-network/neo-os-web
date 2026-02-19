@@ -40,7 +40,7 @@ export function CommandMenu() {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm cursor-pointer" role="dialog" aria-modal="true" aria-label="Command menu" onClick={() => setOpen(false)}>
       <div className="fixed left-1/2 top-1/4 -translate-x-1/2 w-full max-w-lg cursor-default" onClick={(e) => e.stopPropagation()}>
-        <Command className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-900 shadow-2xl">
+        <Command className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl">
           <div className="flex items-center border-b border-gray-200 dark:border-gray-700 px-3">
             <Search className="mr-2 h-4 w-4 text-gray-400 dark:text-gray-500" />
             <Command.Input

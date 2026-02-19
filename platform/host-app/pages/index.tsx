@@ -207,7 +207,7 @@ export default function LandingPage() {
       </div>
 
       {/* Main Content Section (HF Style) */}
-      <section className="py-12 px-4 bg-gray-50 dark:bg-dark-950 min-h-screen">
+      <section className="py-12 px-4 bg-gray-50 dark:bg-gray-950 min-h-screen">
         <div className="mx-auto max-w-[1600px]">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar Filters */}
@@ -296,7 +296,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex items-center gap-2 ml-auto">
-                  <div className="bg-gray-100 dark:bg-dark-900 rounded-lg p-1 flex items-center border border-gray-200 dark:border-gray-700">
+                  <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-1 flex items-center border border-gray-200 dark:border-gray-700">
                     <button
                       type="button"
                       onClick={() => setViewMode("grid")}
@@ -357,7 +357,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-24 px-4 bg-gray-100 dark:bg-dark-950">
+      <section className="py-24 px-4 bg-gray-100 dark:bg-gray-950">
         <div className="mx-auto max-w-7xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Why MiniApps on Neo?</h2>
@@ -426,7 +426,7 @@ export default function LandingPage() {
 
 function FeatureItem({ icon: Icon, title, desc }: { icon: React.ComponentType<{ size?: number | string }>; title: string; desc: string }) {
   return (
-    <Card className="glass-card p-8 border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-900/20 text-left hover:bg-gray-50 dark:hover:bg-dark-900/40 transform hover:-translate-y-1 transition-all">
+    <Card className="glass-card p-8 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/20 text-left hover:bg-gray-50 dark:hover:bg-gray-900/40 transform hover:-translate-y-1 transition-all">
       <div className="w-12 h-12 rounded-xl bg-neo/10 flex items-center justify-center text-neo mb-6">
         <Icon size={24} />
       </div>

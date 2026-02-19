@@ -45,7 +45,7 @@ export default function AccountPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-100 dark:bg-dark-800/50 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neo/20">
                     <Wallet className="text-neo" size={24} />
                   </div>
@@ -112,7 +112,7 @@ export default function AccountPage() {
                       {stats?.xp || 0}/{levelInfo?.maxXP || 100}
                     </span>
                   </div>
-                  <div className="h-2 w-full bg-gray-200 dark:bg-dark-800 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all"
                       style={{ width: `${levelInfo?.progress || 0}%` }}
@@ -190,7 +190,7 @@ function OAuthBindingItem({
   const isConnected = Boolean(account);
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-dark-900 border border-gray-200 dark:border-gray-700">
+    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-3">
         <span className="text-2xl">{provider.icon}</span>
         <div>
@@ -222,7 +222,7 @@ function OAuthBindingItem({
 
 function StatItem({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="p-3 rounded-lg bg-gray-100 dark:bg-dark-800/50 text-center">
+    <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-900 text-center">
       <div className="text-lg font-bold text-gray-900 dark:text-white">{value}</div>
       <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
     </div>
