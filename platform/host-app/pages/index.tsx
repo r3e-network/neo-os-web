@@ -224,6 +224,7 @@ export default function LandingPage() {
                     return (
                       <button
                         key={cat.id}
+                        type="button"
                         onClick={() => setSelectedCategory(cat.id)}
                         aria-pressed={isActive}
                         className={cn(
@@ -297,6 +298,7 @@ export default function LandingPage() {
                 <div className="flex items-center gap-2 ml-auto">
                   <div className="bg-gray-100 dark:bg-dark-900 rounded-lg p-1 flex items-center border border-gray-200 dark:border-white/5">
                     <button
+                      type="button"
                       onClick={() => setViewMode("grid")}
                       aria-label="Grid view"
                       aria-pressed={viewMode === "grid"}
@@ -310,6 +312,7 @@ export default function LandingPage() {
                       <LayoutGrid size={18} />
                     </button>
                     <button
+                      type="button"
                       onClick={() => setViewMode("list")}
                       aria-label="List view"
                       aria-pressed={viewMode === "list"}
