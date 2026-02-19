@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   if (standardLimit(req, res)) return;
 
   const { q, category, limit = "20" } = req.query;
-  const query = (typeof q === "string" ? q : "").toLowerCase().trim();
+  const query = (typeof q === "string" ? q : "").slice(0, 200).toLowerCase().trim();
   const maxResults = Math.max(1, Math.min(parseInt(limit as string) || 20, 100));
 
   if (!query) {
