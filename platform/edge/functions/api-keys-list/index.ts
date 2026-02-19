@@ -24,7 +24,8 @@ export async function handler(req: Request): Promise<Response> {
     .from("api_keys")
     .select("id,name,prefix,scopes,description,created_at,last_used,expires_at,revoked")
     .eq("user_id", auth.userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   if (listErr) return error(500, "failed to list api keys", "DB_ERROR", req);
   return json({ api_keys: data ?? [] }, {}, req);

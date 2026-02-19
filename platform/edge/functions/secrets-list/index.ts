@@ -27,7 +27,8 @@ export async function handler(req: Request): Promise<Response> {
     .from("secrets")
     .select("id,name,version,created_at,updated_at")
     .eq("user_id", auth.userId)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .limit(200);
 
   if (listErr) return error(500, "failed to list secrets", "DB_ERROR", req);
   return json({ secrets: data ?? [] }, {}, req);
