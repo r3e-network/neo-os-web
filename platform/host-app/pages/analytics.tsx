@@ -8,6 +8,7 @@ import { Activity, Wallet, LayoutGrid, Clock } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import dynamic from "next/dynamic";
 import { StatCard } from "@/components/features/analytics";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ActivityChart = dynamic(
   () => import("@/components/features/analytics/ActivityChart").then((m) => ({ default: m.ActivityChart })),
@@ -74,7 +75,19 @@ export default function AnalyticsPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Your Analytics</h1>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>
+          <div className="space-y-8">
+            <div className="grid gap-4 md:grid-cols-4">
+              {Array.from({ length: 4 }, (_, i) => (
+                <Card key={i} className="glass-card"><CardContent className="p-6 space-y-3">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-20" />
+                </CardContent></Card>
+              ))}
+            </div>
+            <Card className="glass-card"><CardContent className="p-6">
+              <Skeleton className="h-[220px] w-full rounded-lg" />
+            </CardContent></Card>
+          </div>
         ) : analytics ? (
           <AnalyticsDashboard analytics={analytics} />
         ) : (

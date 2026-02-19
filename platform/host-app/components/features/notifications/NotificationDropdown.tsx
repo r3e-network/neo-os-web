@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
 import type { NotificationEvent } from "@/lib/notifications/types";
 
@@ -130,7 +131,17 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           {/* Notification List */}
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-center text-gray-500 dark:text-gray-400">Loading...</div>
+              <div className="p-2">
+                {Array.from({ length: 3 }, (_, i) => (
+                  <div key={i} className="flex items-start gap-3 px-4 py-3">
+                    <Skeleton className="h-6 w-6 rounded" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : notifications.length === 0 ? (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 <Bell className="mx-auto mb-2 h-8 w-8 opacity-50" />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNotificationStore } from "@/lib/notifications";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface NotificationSettingsProps {
   walletAddress: string;
@@ -21,7 +22,27 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
   }, [walletAddress, loadPreferences]);
 
   if (loading) {
-    return <div className="p-4 text-gray-500 dark:text-gray-400">Loading...</div>;
+    return (
+      <div className="space-y-6 p-4">
+        <Skeleton className="h-7 w-48" />
+        <div className="border border-gray-200 dark:border-gray-700 rounded p-4 space-y-3">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="border border-gray-200 dark:border-gray-700 rounded p-4 space-y-4">
+          <Skeleton className="h-5 w-36" />
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <Skeleton className="h-5 w-5 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!preferences) {

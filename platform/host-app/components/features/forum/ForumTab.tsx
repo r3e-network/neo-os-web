@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { MessageSquare, Plus, Pin, Lock, Bug, Lightbulb, HelpCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useForum } from "./useForum";
 import { useWalletStore } from "@/lib/wallet/store";
 import type { ForumThread } from "./types";
@@ -96,7 +97,20 @@ export function ForumTab({ appId }: ForumTabProps) {
       {/* Thread List */}
       <div className="space-y-2">
         {loading ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">Loading...</div>
+          <div className="space-y-2">
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={i} className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : threads.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" />

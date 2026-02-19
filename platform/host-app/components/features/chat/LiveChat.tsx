@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageCircle, Send, X, Users, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
 import type { ChatMessage } from "./types";
 
@@ -148,7 +149,16 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {loading && messages.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">Loading...</div>
+              <div className="space-y-3 py-4">
+                {Array.from({ length: 4 }, (_, i) => (
+                  <div key={i} className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
+                    <div className="space-y-1.5 max-w-[70%]">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className={`h-10 ${i % 2 === 0 ? "w-48" : "w-36"} rounded-xl`} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : messages.length === 0 ? (
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                 <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
