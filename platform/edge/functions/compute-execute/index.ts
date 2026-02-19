@@ -48,12 +48,17 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid secret_refs", "INVALID_SECRET_REFS", req);
   }
 
+  const entryPoint = String(body.entry_point ?? "").trim() || undefined;
+  if (entryPoint && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(entryPoint)) {
+    return error(400, "entry_point must be a valid identifier", "INVALID_ENTRY_POINT", req);
+  }
+
   const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
   const result = await postJSON(
     `${neocomputeURL}/execute`,
     {
       script,
-      entry_point: body.entry_point,
+      entry_point: entryPoint,
       input: body.input,
       secret_refs: secretRefs,
       timeout,
