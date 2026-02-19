@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import type { AppProps } from "next/app";
 import { UserProvider, useUser } from "@auth0/nextjs-auth0/client";
 import { QueryProvider } from "@/lib/query";
@@ -8,7 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAuthStore } from "@/lib/auth/store";
 import "@/styles/globals.css";
 
-function AuthSync({ children }: { children: React.ReactNode }) {
+function AuthSync({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const syncFromSession = useAuthStore((s) => s.syncFromSession);
   useEffect(() => { syncFromSession(user ?? null); }, [user, syncFromSession]);
