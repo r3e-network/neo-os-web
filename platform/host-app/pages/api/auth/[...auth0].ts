@@ -21,6 +21,7 @@ export default handleAuth({
                 name: session.user.name,
                 avatar: session.user.picture,
               }),
+              signal: AbortSignal.timeout(10000),
             });
           } catch {
             // Best-effort sync - don't block login on failure
