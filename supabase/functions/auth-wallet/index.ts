@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { verifyNeoSignature } from "../_shared/neo.ts";
@@ -8,9 +9,9 @@ export async function handler(req: Request): Promise<Response> {
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
-  try {
-  const body = await req.json().catch(() => null);
-  if (!body) return error(400, "invalid JSON", "INVALID_INPUT", req);
+  const bodyOrErr = await readJsonBody(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const { address, public_key, signature, message } = body as {
     address: string; public_key: string; signature: string; message: string;
@@ -47,21 +48,16 @@ export async function handler(req: Request): Promise<Response> {
     .maybeSingle();
 
   const nonceMatch = message.match(/Nonce: ([a-f0-9-]+)/);
-  if (!userRow?.nonce || !nonceMatch || nonceMatch[1] !== userRow.nonce) {
+  const encoder = new TextEncoder();
+  const nonceA = encoder.encode(nonceMatch?.[1] ?? "");
+  const nonceB = encoder.encode(userRow?.nonce ?? "");
+  if (!userRow?.nonce || !nonceMatch || nonceA.byteLength !== nonceB.byteLength || !crypto.subtle.timingSafeEqual(nonceA, nonceB)) {
     return error(401, "nonce mismatch or wallet not registered", "AUTH_INVALID", req);
   }
 
-  // Clear nonce atomically (single-use) - only clear if it still matches
-  const { data: cleared } = await supabase
-    .from("users")
-    .update({ nonce: null })
-    .eq("address", address)
-    .eq("nonce", nonceMatch[1])
-    .select("id")
-    .maybeSingle();
-  if (!cleared) {
-    return error(401, "nonce already consumed", "AUTH_INVALID", req);
-  }
+  // Clear nonce immediately (single-use, prevent replay on verification failure)
+  await supabase.from("users").update({ nonce: null }).eq("address", address);
+  // Note: nonce cleared before any further processing to prevent retry attacks
 
   // Create neohub_accounts if needed
   if (!accountId) {
@@ -76,18 +72,16 @@ export async function handler(req: Request): Promise<Response> {
     accountId = newAcct.id;
   }
 
-  // Ensure linked_neo_accounts entry exists (with public_key)
-  if (!wallet) {
-    const { error: linkErr } = await supabase.from("linked_neo_accounts").upsert({
-      neohub_account_id: accountId,
-      address,
-      public_key,
-      is_primary: true,
-      linked_at: new Date().toISOString(),
-    }, { onConflict: "neohub_account_id,address" });
-    if (linkErr) {
-      return error(500, "failed to link wallet", "DB_ERROR", req);
-    }
+  // Always upsert linked_neo_accounts to handle race conditions
+  const { error: linkAcctErr } = await supabase.from("linked_neo_accounts").upsert({
+    neohub_account_id: accountId,
+    address,
+    public_key,
+    is_primary: true,
+    linked_at: new Date().toISOString(),
+  }, { onConflict: "neohub_account_id,address" });
+  if (linkAcctErr) {
+    return error(500, "failed to link wallet", "AUTH_ERROR", req);
   }
 
   // Create or get Supabase Auth user
@@ -117,6 +111,7 @@ export async function handler(req: Request): Promise<Response> {
 
   // Verify the token to get a session
   const { data: verifyData, error: verifyErr } = await supabase.auth.verifyOtp({
+    email,
     token_hash: linkData.properties.hashed_token,
     type: "magiclink",
   });
@@ -127,9 +122,6 @@ export async function handler(req: Request): Promise<Response> {
   const accessToken = verifyData.session.access_token;
 
   return json({ access_token: accessToken, user: { id: accountId, address } }, {}, req);
-  } catch {
-    return error(500, "internal error", "INTERNAL", req);
-  }
 }
 
 if (import.meta.main) {

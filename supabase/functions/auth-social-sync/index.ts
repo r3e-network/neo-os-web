@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { mustGetEnv } from "../_shared/env.ts";
@@ -9,22 +10,18 @@ export async function handler(req: Request): Promise<Response> {
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
-  // Service-to-service auth (constant-time comparison)
+  // Service-to-service auth (timing-safe comparison)
   const serviceKey = req.headers.get("X-Service-Key")?.trim() ?? "";
   const expected = mustGetEnv("SERVICE_AUTH_KEY");
-  if (!serviceKey || serviceKey.length !== expected.length) {
-    return error(401, "invalid service key", "AUTH_REQUIRED", req);
-  }
   const encoder = new TextEncoder();
   const a = encoder.encode(serviceKey);
   const b = encoder.encode(expected);
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) mismatch |= a[i] ^ b[i];
-  if (mismatch !== 0) {
+  if (a.byteLength !== b.byteLength || !crypto.subtle.timingSafeEqual(a, b)) {
     return error(401, "invalid service key", "AUTH_REQUIRED", req);
   }
 
-  const body = await req.json().catch(() => null);
+  const bodyOrErr = await readJsonBody<Record<string, unknown>>(req);
+  const body = bodyOrErr instanceof Response ? null : bodyOrErr;
   if (!body?.sub) return error(400, "sub required", "INVALID_INPUT", req);
 
   const { sub, email, name, avatar } = body as {
@@ -36,6 +33,7 @@ export async function handler(req: Request): Promise<Response> {
   if (pipeIdx < 0) return error(400, "invalid sub format", "INVALID_INPUT", req);
   const rawProvider = sub.slice(0, pipeIdx);
   const providerUserId = sub.slice(pipeIdx + 1);
+  if (!providerUserId) return error(400, "invalid sub format", "INVALID_INPUT", req);
   const provider = rawProvider.replace(/-oauth2$/, "");
 
   const supabase = supabaseServiceClient();
@@ -83,7 +81,7 @@ export async function handler(req: Request): Promise<Response> {
 
     // Also create users row for metadata
     const { error: userErr } = await supabase.from("users").insert({ email, wallet_type: "custodial" }).select("id").maybeSingle();
-    if (userErr && userErr.code !== "23505") {
+    if (userErr && !userErr.message.includes("duplicate")) {
       return error(500, "failed to create user", "DB_ERROR", req);
     }
 
@@ -93,19 +91,19 @@ export async function handler(req: Request): Promise<Response> {
       const poolResp = await fetch(`${poolUrl}/user-wallet`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Service-ID": "auth-social-sync" },
-        body: JSON.stringify({ user_id: accountId }),
         signal: AbortSignal.timeout(10000),
+        body: JSON.stringify({ user_id: accountId }),
       });
       if (poolResp.ok) {
         const { address } = await poolResp.json();
         if (address) {
-          await supabase.from("linked_neo_accounts").upsert({
+          await supabase.from("linked_neo_accounts").insert({
             neohub_account_id: accountId,
             address,
             public_key: "custodial",
             is_primary: true,
             linked_at: new Date().toISOString(),
-          }, { onConflict: "neohub_account_id,address" });
+          });
         }
       }
     } catch {

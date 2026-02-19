@@ -200,7 +200,7 @@ export async function getCommentVoteCounts(
  * Check if user is the developer of an app
  */
 export async function isDeveloperOfApp(supabase: SupabaseClient, userId: string, appId: string): Promise<boolean> {
-  const { data, error: err } = await supabase.from("miniapps").select("developer_user_id").eq("app_id", appId).maybeSingle();
+  const { data, error: err } = await supabase.from("miniapps").select("developer_user_id").eq("app_id", appId).single();
 
   if (err || !data) {
     return false;

@@ -102,7 +102,7 @@ export async function enforceUsageCaps(input: UsageCapInput): Promise<Response |
     supabase = supabaseServiceClient();
   } catch (err) {
     if (!enforceCaps) {
-      console.warn("usage tracking unavailable", err);
+      console.warn("usage tracking unavailable", err instanceof Error ? err.message : "unknown error");
       return null;
     }
     return error(500, "usage tracking unavailable", "USAGE_UNAVAILABLE", input.req);
@@ -148,10 +148,7 @@ export async function upsertMiniAppManifest(input: {
     .eq("app_id", input.core.appId)
     .maybeSingle();
 
-  if (loadErr) {
-    console.error("[apps] load error:", loadErr.message);
-    return error(500, "failed to load app registry", "DB_ERROR", input.req);
-  }
+  if (loadErr) return error(500, "failed to load app registry", "DB_ERROR", input.req);
 
   if (existing) {
     if (String(existing.developer_user_id ?? "") !== input.developerUserId) {
@@ -169,7 +166,7 @@ export async function upsertMiniAppManifest(input: {
     enforceMiniAppAssetPolicy(input.canonicalManifest);
     canonical = canonicalizeMiniAppManifest(input.canonicalManifest);
   } catch (e) {
-    return error(400, (e as Error).message, "MANIFEST_INVALID", input.req);
+    return error(400, "invalid manifest", "MANIFEST_INVALID", input.req);
   }
   const permissions = (canonical.permissions as Record<string, unknown> | undefined) ?? {};
   const limits = (canonical.limits as Record<string, unknown> | undefined) ?? {};
@@ -200,8 +197,7 @@ export async function upsertMiniAppManifest(input: {
     .upsert(payload, { onConflict: "app_id" });
 
   if (upsertErr) {
-    console.error("[apps] upsert error:", upsertErr.message);
-    return error(500, "failed to store miniapp manifest", "DB_ERROR", input.req);
+    return error(500, "failed to store manifest", "DB_ERROR", input.req);
   }
 
   return null;
@@ -215,10 +211,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
     .eq("app_id", appId)
     .maybeSingle();
 
-  if (loadErr) {
-    console.error("[apps] load error:", loadErr.message);
-    return error(500, "failed to load app registry", "DB_ERROR", req);
-  }
+  if (loadErr) return error(500, "failed to load app registry", "DB_ERROR", req);
 
   if (!data) {
     if (isProductionEnv()) {
@@ -229,7 +222,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
 
   const row = data as MiniAppRow;
   const status = String(row.status ?? "").toLowerCase();
-  if (status && status !== "active") {
+  if (!status || status !== "active") {
     return error(403, "app is not active", "APP_INACTIVE", req);
   }
 
@@ -239,7 +232,6 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
     canonical = canonicalizeMiniAppManifest(row.manifest ?? {});
   } catch (e) {
     const detail = (e as Error).message;
-    console.error("[apps] stored manifest invalid:", detail);
     return error(500, "stored manifest invalid", "APP_MANIFEST_INVALID", req);
   }
 
@@ -254,8 +246,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
       governanceCap: parseNeoLimit(limitsRaw.governance_cap, "manifest.limits.governance_cap"),
     };
   } catch (e) {
-    console.error("[apps] limits parse error:", (e as Error).message);
-    return error(500, "app limits invalid", "APP_LIMITS_INVALID", req);
+    return error(500, "invalid app limits", "APP_LIMITS_INVALID", req);
   }
 
   const manifestHash = String(row.manifest_hash ?? "");
