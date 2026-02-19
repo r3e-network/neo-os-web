@@ -34,6 +34,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.internal(res, "Failed to verify email");
   }
 
+  res.setHeader("Cache-Control", "no-store, private");
   return res.status(200).json({ success: true });
 }
 

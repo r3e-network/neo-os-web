@@ -57,6 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch {
       return apiError.internal(res, "Failed to parse upstream response");
     }
+    res.setHeader("Cache-Control", "no-store, private");
     res.status(upstream.status).json(data);
   } catch (err) {
     return apiError.internal(res, "Failed to fetch events");

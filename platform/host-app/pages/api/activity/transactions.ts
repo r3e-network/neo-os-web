@@ -48,6 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const data = await upstream.json();
+    res.setHeader("Cache-Control", "no-store, private");
     res.status(upstream.status).json(data);
   } catch (err) {
     console.error("Failed to fetch transactions:", err instanceof Error ? err.message : "unknown error");

@@ -48,6 +48,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.gatewayError(res, "Failed to send verification email");
   }
 
+  res.setHeader("Cache-Control", "no-store, private");
   return res.status(200).json({
     success: true,
     message: "Verification code sent to email.",

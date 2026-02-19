@@ -15,6 +15,7 @@ const DEFAULT_PREFERENCES = {
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (standardLimit(req, res)) return;
+  res.setHeader("Cache-Control", "no-store, private");
   try {
     if (req.method === "GET") {
       const { wallet } = req.query;

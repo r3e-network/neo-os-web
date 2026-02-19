@@ -6,6 +6,7 @@ import { standardLimit } from "@/lib/rate-limit";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (standardLimit(req, res)) return;
+  res.setHeader("Cache-Control", "no-store, private");
 
   const { wallet } = req.query;
 
