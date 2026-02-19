@@ -91,10 +91,10 @@ const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser
       <div className="w-8 flex justify-center">{getRankIcon()}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-gray-900 dark:text-white truncate">{entry.wallet}</span>
+          <span className="font-semibold text-gray-900 dark:text-white truncate">{entry.wallet}</span>
           {isCurrentUser && <span className="text-xs text-emerald-500">(You)</span>}
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           <span className={level.color}>Lv.{entry.level}</span>
           <span>•</span>
           <span>{entry.badges} badges</span>

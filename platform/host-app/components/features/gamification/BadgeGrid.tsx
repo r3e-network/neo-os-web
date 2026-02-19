@@ -50,7 +50,7 @@ function BadgeItem({ badge, earned, onClick }: { badge: Badge; earned: boolean; 
         earned
           ? rarityColors[badge.rarity]
           : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-40"
-      } hover:scale-105`}
+      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 hover:scale-105`}
     >
       <span className="text-2xl">{badge.icon}</span>
     </button>
@@ -91,7 +91,7 @@ function BadgeModal({ badge, earned, onClose }: { badge: Badge; earned: boolean;
             {badge.rarity}
           </span>
           <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">{badge.description}</p>
-          <p className="mt-2 text-xs text-gray-500">{badge.requirement}</p>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{badge.requirement}</p>
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <span className="text-amber-500 font-bold">+{badge.points} XP</span>
           </div>
