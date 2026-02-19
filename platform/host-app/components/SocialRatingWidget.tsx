@@ -15,7 +15,7 @@ const StarIcon: React.FC<{ filled: boolean; onClick?: () => void; label?: string
     onClick={onClick}
     role={onClick ? "button" : "img"}
     aria-label={label}
-    className={`w-6 h-6 cursor-pointer ${filled ? "text-yellow-400" : "text-gray-300"}`}
+    className={`w-6 h-6 cursor-pointer ${filled ? "text-yellow-400" : "text-gray-300 dark:text-gray-600"}`}
     fill="currentColor"
     viewBox="0 0 20 20"
   >
@@ -51,19 +51,19 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
   const displayError = error?.message || localError;
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4">
       {/* Error Display */}
       {displayError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
           <div className="flex items-center justify-between">
-            <span className="text-red-700 text-sm">{displayError}</span>
+            <span className="text-red-700 dark:text-red-400 text-sm">{displayError}</span>
             <button
               onClick={() => {
                 setLocalError(null);
                 onClearError?.();
               }}
               aria-label="Dismiss error"
-              className="text-red-500 hover:text-red-700 text-sm"
+              className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm"
             >
               ×
             </button>
@@ -73,14 +73,14 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
 
       {/* Rating Summary */}
       <div className="flex items-center gap-4 mb-4">
-        <div className="text-4xl font-bold">{rating.avg_rating.toFixed(1)}</div>
+        <div className="text-4xl font-bold text-gray-900 dark:text-white">{rating.avg_rating.toFixed(1)}</div>
         <div>
           <div className="flex">
             {[1, 2, 3, 4, 5].map((i) => (
               <StarIcon key={i} filled={i <= Math.round(rating.avg_rating)} label={`${i} star`} />
             ))}
           </div>
-          <div className="text-sm text-gray-500">{rating.total_ratings} ratings</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{rating.total_ratings} ratings</div>
         </div>
       </div>
 
@@ -92,10 +92,10 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
           return (
             <div key={star} className="flex items-center gap-2 text-sm">
               <span className="w-3">{star}</span>
-              <div className="flex-1 bg-gray-200 rounded h-2">
+              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded h-2">
                 <div className="bg-yellow-400 h-2 rounded" style={{ width: `${pct}%` }} />
               </div>
-              <span className="w-8 text-gray-500">{count}</span>
+              <span className="w-8 text-gray-500 dark:text-gray-400">{count}</span>
             </div>
           );
         })}
@@ -103,7 +103,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
 
       {/* User Rating */}
       {canRate && (
-        <div className="border-t pt-4">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
           {isEditing ? (
             <div className="space-y-3">
               <div className="flex gap-1">
@@ -116,7 +116,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 onChange={(e) => setReviewText(e.target.value)}
                 placeholder="Write a review (optional)"
                 aria-label="Write a review"
-                className="w-full border rounded p-2 text-sm"
+                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 text-sm"
                 rows={3}
                 maxLength={1000}
               />
@@ -124,24 +124,24 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 <button
                   onClick={handleSubmit}
                   disabled={loading || selectedValue === 0}
-                  className="px-4 py-2 bg-blue-600 text-white rounded text-sm"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm"
                 >
                   {loading ? "Submitting..." : "Submit"}
                 </button>
-                <button onClick={() => setIsEditing(false)} className="px-4 py-2 border rounded text-sm">
+                <button onClick={() => setIsEditing(false)} className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm">
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <button onClick={() => setIsEditing(true)} className="text-blue-600 text-sm">
+            <button onClick={() => setIsEditing(true)} className="text-emerald-600 dark:text-emerald-400 text-sm">
               {rating.user_rating ? "Edit your rating" : "Rate this app"}
             </button>
           )}
         </div>
       )}
 
-      {!canRate && <div className="border-t pt-4 text-sm text-gray-500">Use this app to leave a rating</div>}
+      {!canRate && <div className="border-t border-gray-200 dark:border-gray-700 pt-4 text-sm text-gray-500 dark:text-gray-400">Use this app to leave a rating</div>}
     </div>
   );
 };
