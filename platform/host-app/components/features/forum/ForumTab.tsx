@@ -143,7 +143,7 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
           <div className="flex items-center gap-2">
             {thread.is_pinned && <Pin size={12} className="text-amber-500" />}
             {thread.is_locked && <Lock size={12} className="text-gray-400" />}
-            <h4 className="font-medium text-gray-900 dark:text-white truncate">{thread.title}</h4>
+            <h4 className="font-semibold text-gray-900 dark:text-white truncate">{thread.title}</h4>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">{thread.content}</p>
           <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
@@ -278,7 +278,7 @@ function ThreadDetail({
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-gray-500">{replies.length} Replies</h3>
+        <h3 className="text-sm font-semibold text-gray-500">{replies.length} Replies</h3>
         {replies.map((reply) => (
           <div key={reply.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">

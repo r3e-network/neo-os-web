@@ -17,11 +17,11 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
         <div key={token.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-900 dark:text-white">{token.name}</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{token.name}</span>
               <StatusBadge status={token.status} />
             </div>
             <div className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">App: {token.appName || token.appId}</div>
-            <div className="text-xs text-gray-400 dark:text-gray-500">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
               Created: {formatDate(token.createdAt)}
               {token.lastUsed && ` • Last used: ${formatDate(token.lastUsed)}`}
             </div>

@@ -162,11 +162,11 @@ export default function LandingPage() {
             <Badge variant="outline" className="mb-6 border-neo/20 bg-neo/5 text-neo px-4 py-1">
               ✨ New: Neo N3 Testnet Phase II Live
             </Badge>
-            <h1 className="text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white md:text-7xl lg:text-8xl">
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white md:text-7xl lg:text-8xl">
               Next-Gen <br />
               <span className="neo-gradient-text">MiniApp Platform</span>
             </h1>
-            <p className="mx-auto mt-8 max-w-2xl text-lg text-gray-600 dark:text-gray-400 md:text-xl">
+            <p className="mx-auto mt-8 max-w-2xl text-base sm:text-lg text-gray-600 dark:text-gray-400 md:text-xl">
               Experience the power of Neo N3 with unified identity, zero-friction wallet connectivity, and the most
               secure execution environment for decentralized apps.
             </p>

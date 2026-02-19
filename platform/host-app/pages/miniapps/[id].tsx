@@ -146,7 +146,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
       <Head><title>{app.name} - NeoHub</title></Head>
       <AppDetailHeader app={app} stats={stats || undefined} onBack={handleBack} />
 
-      <main className="max-w-[1200px] mx-auto px-6 py-8">
+      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Hero Section */}
         <section className="mb-8">
           <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed">{app.description}</p>
@@ -154,7 +154,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
         {/* Stats Grid */}
         {stats && statCards.length > 0 && (
-          <section className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4 mb-8">
+          <section className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4 mb-8">
             {statCards.map((card) => (
               <AppStatsCard
                 key={card.title}
@@ -175,7 +175,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
         {/* Tabs */}
         <section className="mb-8">
-          <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
+          <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
             <button
               type="button"
               aria-pressed={activeTab === "overview"}

@@ -21,7 +21,7 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
   }
 
   return (
-    <header className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 px-8 py-6">
+    <header className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 px-4 sm:px-8 py-4 sm:py-6">
       <button
         type="button"
         onClick={onBack}
@@ -31,11 +31,11 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
         ← Back
       </button>
       <div className="flex items-center gap-5">
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-neo/10 text-[64px]">
+        <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-neo/10 text-[64px]">
           {app.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="mb-2 text-[28px] font-bold text-gray-900 dark:text-white truncate">{app.name}</h1>
+          <h1 className="mb-2 text-xl sm:text-2xl md:text-[28px] font-bold text-gray-900 dark:text-white truncate">{app.name}</h1>
           <div className="flex items-center gap-3">
             <span className="rounded-md bg-neo/15 px-3 py-1 text-xs font-semibold uppercase text-neo">
               {app.category}
