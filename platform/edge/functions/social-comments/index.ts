@@ -34,7 +34,7 @@ export async function handler(req: Request): Promise<Response> {
   let offset = 0;
   if (offsetRaw) {
     const parsed = Number.parseInt(offsetRaw, 10);
-    if (!Number.isNaN(parsed)) offset = Math.max(parsed, 0);
+    if (!Number.isNaN(parsed)) offset = Math.min(Math.max(parsed, 0), 10000);
   }
 
   const supabase = supabaseClient();

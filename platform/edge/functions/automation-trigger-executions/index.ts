@@ -31,7 +31,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const neoflowURL = mustGetEnv("NEOFLOW_URL").replace(/\/$/, "");
   const upstream = new URL(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}/executions`);
-  if (Number.isFinite(limit) && limit && limit > 0) upstream.searchParams.set("limit", String(limit));
+  if (Number.isFinite(limit) && limit && limit > 0) upstream.searchParams.set("limit", String(Math.min(limit, 100)));
 
   const result = await getJSON(upstream.toString(), { "X-User-ID": auth.userId }, req);
   if (result instanceof Response) return result;
