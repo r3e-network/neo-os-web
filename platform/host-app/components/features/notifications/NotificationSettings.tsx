@@ -92,7 +92,7 @@ function SettingsSection({
     <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <span className="text-gray-500 dark:text-gray-400">{icon}</span>
-        <h3 className="font-medium text-gray-900 dark:text-white">{title}</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
       </div>
       <div className="p-4 space-y-3">{children}</div>
     </div>

@@ -171,7 +171,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{n.title}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{n.content}</p>
-                    <p className="text-xs text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
                   </div>
                   {!n.read && <span className="h-2 w-2 rounded-full bg-emerald-500 mt-2" />}
                 </div>
