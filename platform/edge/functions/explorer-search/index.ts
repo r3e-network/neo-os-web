@@ -78,14 +78,14 @@ function detectSearchType(query: string): string {
 }
 
 async function searchTransaction(supabase: SupabaseClient, hash: string) {
-  const { data: tx } = await supabase.from("indexer_transactions").select("*").eq("hash", hash).single();
+  const { data: tx } = await supabase.from("indexer_transactions").select("hash, network, block_index, block_time, size, version, nonce, sender, system_fee, network_fee, valid_until_block, script, vm_state, gas_consumed, exception, signers_json, created_at").eq("hash", hash).single();
 
   if (!tx) return { type: "transaction", found: false };
 
   const [traces, calls, syscalls] = await Promise.all([
     supabase
       .from("indexer_opcode_traces")
-      .select("*")
+      .select("id, tx_hash, step_index, opcode, opcode_hex, gas_consumed, stack_size, contract_hash, instruction_ptr")
       .eq("tx_hash", hash)
       .order("step_index")
       .limit(500)
@@ -93,7 +93,7 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
       .catch(() => []),
     supabase
       .from("indexer_contract_calls")
-      .select("*")
+      .select("id, tx_hash, call_index, contract_hash, method, args_json, gas_consumed, success, parent_call_id")
       .eq("tx_hash", hash)
       .order("call_index")
       .limit(200)
@@ -101,7 +101,7 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
       .catch(() => []),
     supabase
       .from("indexer_syscalls")
-      .select("*")
+      .select("id, tx_hash, call_index, syscall_name, args_json, result_json, gas_consumed, contract_hash")
       .eq("tx_hash", hash)
       .order("call_index")
       .limit(200)
