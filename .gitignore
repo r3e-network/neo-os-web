@@ -37,6 +37,9 @@ sdk/rust/devpack/target/
 *.out
 *.cov
 
+# TypeScript build info
+*.tsbuildinfo
+
 # Build outputs
 bin/
 appserver
