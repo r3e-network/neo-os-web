@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
   const { q, category, limit = "20" } = req.query;
   const query = (typeof q === "string" ? q : "").toLowerCase().trim();
-  const maxResults = Math.min(parseInt(limit as string) || 20, 100);
+  const maxResults = Math.max(1, Math.min(parseInt(limit as string) || 20, 100));
 
   if (!query) {
     return res.status(200).json({ results: [], total: 0, query: "", suggestions: getPopularSearches() });

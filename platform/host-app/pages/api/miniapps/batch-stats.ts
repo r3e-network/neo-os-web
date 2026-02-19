@@ -17,7 +17,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === "GET" && req.query.appIds) {
     appIds = (req.query.appIds as string).slice(0, 4096).split(",").map((id) => id.trim().slice(0, 128)).filter(Boolean);
   } else if (req.method === "POST" && req.body?.appIds) {
-    appIds = Array.isArray(req.body.appIds) ? req.body.appIds : [];
+    appIds = Array.isArray(req.body.appIds)
+      ? req.body.appIds.slice(0, 50).map((id: unknown) => String(id ?? "").trim().slice(0, 128)).filter(Boolean)
+      : [];
   }
 
   // Limit to prevent DoS

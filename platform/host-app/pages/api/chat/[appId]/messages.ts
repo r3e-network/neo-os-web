@@ -65,7 +65,7 @@ async function getMessages(appId: string, req: NextApiRequest, res: NextApiRespo
     return res.status(200).json({ messages: [], participantCount: 0 });
   }
 
-  const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 50, 100));
   const supabase = getServerSupabaseClient();
   if (!supabase) {
     return res.status(200).json({ messages: [], participantCount: 0 });
