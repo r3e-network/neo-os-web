@@ -15,7 +15,7 @@ const StarIcon: React.FC<{ filled: boolean; onClick?: () => void; label?: string
     onClick={onClick}
     role={onClick ? "button" : "img"}
     aria-label={label}
-    className={`w-6 h-6 cursor-pointer ${filled ? "text-yellow-400" : "text-gray-300 dark:text-gray-600"}`}
+    className={`w-6 h-6 ${onClick ? "cursor-pointer" : ""} ${filled ? "text-yellow-400" : "text-gray-300 dark:text-gray-600"}`}
     fill="currentColor"
     viewBox="0 0 20 20"
   >

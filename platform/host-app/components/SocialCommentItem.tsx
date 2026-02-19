@@ -89,6 +89,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."
+            aria-label="Write a reply"
             className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             rows={2}
             maxLength={2000}
