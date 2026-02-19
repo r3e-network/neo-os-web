@@ -25,17 +25,17 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Overview of your MiniApp platform</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-400">Overview of your MiniApp platform</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-sm font-medium text-gray-600">Services Health</div>
+            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Services Health</div>
             <div className="mt-2 flex items-baseline">
-              <div className="text-3xl font-semibold text-gray-900">
+              <div className="text-3xl font-semibold text-gray-900 dark:text-white">
                 {servicesLoading ? "..." : `${healthyServices}/${totalServices}`}
               </div>
             </div>
@@ -47,25 +47,25 @@ export default function DashboardPage() {
 
         <Card>
           <CardContent className="pt-6">
-            <div className="text-sm font-medium text-gray-600">Active MiniApps</div>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">{miniappsLoading ? "..." : activeMiniApps}</div>
-            <p className="mt-2 text-sm text-gray-500">Total: {miniapps?.length || 0}</p>
+            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Active MiniApps</div>
+            <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{miniappsLoading ? "..." : activeMiniApps}</div>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Total: {miniapps?.length || 0}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6">
-            <div className="text-sm font-medium text-gray-600">Total Users</div>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">{usersLoading ? "..." : totalUsers}</div>
-            <p className="mt-2 text-sm text-gray-500">Registered users</p>
+            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Users</div>
+            <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{usersLoading ? "..." : totalUsers}</div>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Registered users</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6">
-            <div className="text-sm font-medium text-gray-600">Platform Status</div>
+            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Platform Status</div>
             <div className="mt-2 text-3xl font-semibold text-success-600">Online</div>
-            <p className="mt-2 text-sm text-gray-500">All systems operational</p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">All systems operational</p>
           </CardContent>
         </Card>
       </div>
@@ -83,11 +83,11 @@ export default function DashboardPage() {
               {services?.map((service) => (
                 <div
                   key={service.name}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
+                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4"
                 >
                   <div>
-                    <div className="font-medium text-gray-900">{service.name}</div>
-                    <div className="text-sm text-gray-500">{formatRelativeTime(service.lastCheck)}</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{service.name}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(service.lastCheck)}</div>
                   </div>
                   <Badge
                     variant={
@@ -114,10 +114,10 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {miniapps?.slice(0, 5).map((app) => (
-                <div key={app.app_id} className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div key={app.app_id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
                   <div>
-                    <div className="font-medium text-gray-900">{app.app_id}</div>
-                    <div className="text-sm text-gray-500">{formatRelativeTime(app.created_at)}</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{app.app_id}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(app.created_at)}</div>
                   </div>
                   <Badge
                     variant={app.status === "active" ? "success" : app.status === "pending" ? "warning" : "danger"}

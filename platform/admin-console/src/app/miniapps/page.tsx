@@ -185,8 +185,8 @@ export default function MiniAppsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">MiniApps</h1>
-          <p className="text-gray-600">Manage registered MiniApps</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">MiniApps</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage registered MiniApps</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => { resetPanel(); setPanel("create"); }}>Create MiniApp</Button>
@@ -219,7 +219,7 @@ export default function MiniAppsPage() {
           ) : error ? (
             <div className="text-center text-danger-600">Failed to load MiniApps</div>
           ) : !miniapps?.length ? (
-            <p className="text-center text-gray-500 py-8">No MiniApps registered yet</p>
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8">No MiniApps registered yet</p>
           ) : (
             <Table>
               <TableHeader>
@@ -236,16 +236,16 @@ export default function MiniAppsPage() {
                 {miniapps.map((app) => (
                   <TableRow key={app.app_id}>
                     <TableCell className="font-medium">{app.app_id}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{truncate(app.entry_url, 35)}</TableCell>
+                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">{truncate(app.entry_url, 35)}</TableCell>
                     <TableCell>
                       <Badge variant={app.status === "active" ? "success" : app.status === "pending" ? "warning" : "danger"}>
                         {app.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-gray-500">
+                    <TableCell className="text-xs text-gray-500 dark:text-gray-400">
                       {Object.entries(app.permissions || {}).filter(([, v]) => v).map(([k]) => k).join(", ") || "—"}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">{formatDate(app.created_at)}</TableCell>
+                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatDate(app.created_at)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button size="sm" variant="ghost" onClick={() => handleEdit(app)}>
@@ -292,12 +292,12 @@ export default function MiniAppsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <dl className="grid grid-cols-2 gap-4 text-sm">
-              <div><dt className="font-medium text-gray-500">Entry URL</dt><dd>{selectedApp.entry_url}</dd></div>
-              <div><dt className="font-medium text-gray-500">Status</dt><dd><Badge variant={selectedApp.status === "active" ? "success" : "danger"}>{selectedApp.status}</Badge></dd></div>
-              <div><dt className="font-medium text-gray-500">Developer Pubkey</dt><dd className="font-mono text-xs break-all">{selectedApp.developer_pubkey || "—"}</dd></div>
-              <div><dt className="font-medium text-gray-500">Assets Allowed</dt><dd>{selectedApp.assets_allowed?.join(", ") || "—"}</dd></div>
-              <div><dt className="font-medium text-gray-500">Permissions</dt><dd>{Object.entries(selectedApp.permissions || {}).filter(([, v]) => v).map(([k]) => k).join(", ") || "—"}</dd></div>
-              <div><dt className="font-medium text-gray-500">Limits</dt><dd><pre className="text-xs">{JSON.stringify(selectedApp.limits, null, 2)}</pre></dd></div>
+              <div><dt className="font-medium text-gray-500 dark:text-gray-400">Entry URL</dt><dd>{selectedApp.entry_url}</dd></div>
+              <div><dt className="font-medium text-gray-500 dark:text-gray-400">Status</dt><dd><Badge variant={selectedApp.status === "active" ? "success" : "danger"}>{selectedApp.status}</Badge></dd></div>
+              <div><dt className="font-medium text-gray-500 dark:text-gray-400">Developer Pubkey</dt><dd className="font-mono text-xs break-all">{selectedApp.developer_pubkey || "—"}</dd></div>
+              <div><dt className="font-medium text-gray-500 dark:text-gray-400">Assets Allowed</dt><dd>{selectedApp.assets_allowed?.join(", ") || "—"}</dd></div>
+              <div><dt className="font-medium text-gray-500 dark:text-gray-400">Permissions</dt><dd>{Object.entries(selectedApp.permissions || {}).filter(([, v]) => v).map(([k]) => k).join(", ") || "—"}</dd></div>
+              <div><dt className="font-medium text-gray-500 dark:text-gray-400">Limits</dt><dd><pre className="text-xs">{JSON.stringify(selectedApp.limits, null, 2)}</pre></dd></div>
             </dl>
 
             {/* Contracts */}
@@ -310,12 +310,12 @@ export default function MiniAppsPage() {
                 <>
                   {contracts.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">Contracts</h4>
-                      <div className="rounded border border-gray-200 divide-y">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Contracts</h4>
+                      <div className="rounded border border-gray-200 dark:border-gray-700 divide-y">
                         {contracts.map((c, i) => (
                           <div key={i} className="flex justify-between px-3 py-2 text-sm">
                             <span className="font-medium">{c.name}</span>
-                            <span className="font-mono text-xs text-gray-500">{c.hash}</span>
+                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{c.hash}</span>
                           </div>
                         ))}
                       </div>
@@ -323,14 +323,14 @@ export default function MiniAppsPage() {
                   )}
                   {operations.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">Operations</h4>
-                      <div className="rounded border border-gray-200 divide-y">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Operations</h4>
+                      <div className="rounded border border-gray-200 dark:border-gray-700 divide-y">
                         {operations.map((o, i) => (
                           <div key={i} className="flex items-center gap-4 px-3 py-2 text-sm">
                             <span className="font-medium w-32">{o.name}</span>
                             <span className="font-mono text-xs">{o.method}</span>
                             {o.gas_cost && <span className="text-xs text-gray-400">{o.gas_cost} GAS</span>}
-                            {o.description && <span className="text-xs text-gray-500 ml-auto">{o.description}</span>}
+                            {o.description && <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{o.description}</span>}
                           </div>
                         ))}
                       </div>
@@ -338,7 +338,7 @@ export default function MiniAppsPage() {
                   )}
                   {content && (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">Content</h4>
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Content</h4>
                       <dl className="grid grid-cols-2 gap-2 text-sm">
                         {!!content.description && <div className="col-span-2"><dt className="font-medium text-gray-400">Description</dt><dd>{String(content.description)}</dd></div>}
                         {!!content.category && <div><dt className="font-medium text-gray-400">Category</dt><dd>{String(content.category)}</dd></div>}
@@ -350,7 +350,7 @@ export default function MiniAppsPage() {
               );
             })()}
 
-            <div><h4 className="text-sm font-medium text-gray-500 mb-1">Full Manifest</h4><pre className="rounded bg-gray-50 p-3 text-xs overflow-auto max-h-64">{JSON.stringify(selectedApp.manifest || {}, null, 2)}</pre></div>
+            <div><h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Full Manifest</h4><pre className="rounded bg-gray-50 dark:bg-gray-800 p-3 text-xs overflow-auto max-h-64">{JSON.stringify(selectedApp.manifest || {}, null, 2)}</pre></div>
           </CardContent>
         </Card>
       )}
@@ -520,13 +520,13 @@ function CreateFormPanel({
       <CardContent className="space-y-4">
         {/* Template Selector */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-2">Quick Start — choose a template</label>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Quick Start — choose a template</label>
           <div className="flex gap-2">
             {Object.entries(TEMPLATES).map(([key, t]) => (
               <button key={key} type="button" onClick={() => applyTemplate(key)}
-                className="flex-1 rounded-lg border border-gray-200 p-3 text-left hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-left hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
                 <div className="text-sm font-medium">{t.label}</div>
-                <div className="text-xs text-gray-500">{t.desc}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{t.desc}</div>
               </button>
             ))}
           </div>
@@ -559,7 +559,7 @@ function CreateFormPanel({
         {/* Tab: Content */}
         {tab === "content" && (
           <div className="space-y-4">
-            <textarea className="w-full rounded-md border border-gray-300 p-2 text-sm" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} aria-label="App description" />
+            <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} aria-label="App description" />
             <div className="grid grid-cols-3 gap-4">
               <Input label="Icon URL" placeholder="https://..." value={form.content_icon_url} onChange={e => update("content_icon_url", e.target.value)} />
               <Input label="Logo URL" placeholder="https://..." value={form.content_logo_url} onChange={e => update("content_logo_url", e.target.value)} />
@@ -568,8 +568,8 @@ function CreateFormPanel({
             <div className="grid grid-cols-3 gap-4">
               <Input label="Docs URL" placeholder="https://docs.example.com" value={form.content_docs_url} onChange={e => update("content_docs_url", e.target.value)} />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <select className="w-full rounded-md border border-gray-300 p-2 text-sm" value={form.content_category} onChange={e => update("content_category", e.target.value)} aria-label="Category">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm" value={form.content_category} onChange={e => update("content_category", e.target.value)} aria-label="Category">
                   <option value="">Select...</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -584,35 +584,35 @@ function CreateFormPanel({
           <div className="space-y-6">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">Contracts</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contracts</label>
                 <button type="button" onClick={addContract} className="text-xs text-blue-600 hover:underline">+ Add Contract</button>
               </div>
               {form.contracts.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <Input placeholder="Contract name" value={c.name} onChange={e => updateContract(i, "name", e.target.value)} />
                   <Input placeholder="0x..." value={c.hash} onChange={e => updateContract(i, "hash", e.target.value)} />
-                  <button type="button" onClick={() => removeContract(i)} className="text-red-500 text-xs px-2 shrink-0">Remove</button>
+                  <button type="button" onClick={() => removeContract(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0">Remove</button>
                 </div>
               ))}
               {!form.contracts.length && <p className="text-xs text-gray-400">No contracts added</p>}
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">Operations</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Operations</label>
                 <button type="button" onClick={addOperation} className="text-xs text-blue-600 hover:underline">+ Add Operation</button>
               </div>
               {form.operations.map((o, i) => (
-                <div key={i} className="rounded border border-gray-200 p-3 mb-3 space-y-2">
+                <div key={i} className="rounded border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
                   <div className="flex gap-2">
                     <Input placeholder="Name" value={o.name} onChange={e => updateOperation(i, "name", e.target.value)} />
                     <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} />
                     <Input placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} />
                     <Input placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} />
-                    <button type="button" onClick={() => removeOperation(i)} className="text-red-500 text-xs px-2 shrink-0">Remove</button>
+                    <button type="button" onClick={() => removeOperation(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0">Remove</button>
                   </div>
                   <div className="flex gap-2">
                     <div className="w-40">
-                      <select className="w-full rounded-md border border-gray-300 p-1.5 text-xs" value={o.button_style} onChange={e => updateOperation(i, "button_style", e.target.value)} aria-label="Button style">
+                      <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs" value={o.button_style} onChange={e => updateOperation(i, "button_style", e.target.value)} aria-label="Button style">
                         <option value="">Button Style</option>
                         <option value="primary">Primary</option>
                         <option value="secondary">Secondary</option>
@@ -629,7 +629,7 @@ function CreateFormPanel({
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">Components</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Components</label>
                 <button type="button" onClick={addComponent} className="text-xs text-blue-600 hover:underline">+ Add Component</button>
               </div>
               {form.components.map((c, i) => (
@@ -637,7 +637,7 @@ function CreateFormPanel({
                   <Input placeholder="live_voting" value={c.type} onChange={e => updateComponent(i, "type", e.target.value)} />
                   <Input placeholder="card" value={c.display} onChange={e => updateComponent(i, "display", e.target.value)} />
                   <Input placeholder='{"key":"value"}' value={c.props} onChange={e => updateComponent(i, "props", e.target.value)} />
-                  <button type="button" onClick={() => removeComponent(i)} className="text-red-500 text-xs px-2 shrink-0">Remove</button>
+                  <button type="button" onClick={() => removeComponent(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0">Remove</button>
                 </div>
               ))}
               {!form.components.length && <p className="text-xs text-gray-400">No components added</p>}
@@ -653,7 +653,7 @@ function CreateFormPanel({
         {tab === "perms" && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Permissions</label>
               <div className="flex flex-wrap gap-3">
                 {PERMISSION_KEYS.map(key => (
                   <label key={key} className="flex items-center gap-1.5 text-sm">
@@ -678,12 +678,12 @@ function CreateFormPanel({
         {/* Tab: JSON */}
         {tab === "json" && (
           <div className="space-y-3">
-            <p className="text-xs text-gray-500">Paste or upload a full MiniApp manifest JSON. This will replace the form fields.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Paste or upload a full MiniApp manifest JSON. This will replace the form fields.</p>
             <div className="flex gap-2 items-center">
               <input type="file" accept=".json" onChange={onFileUpload} className="text-sm" aria-label="Upload JSON manifest" />
             </div>
             <textarea
-              className="w-full rounded-md border border-gray-300 p-3 font-mono text-xs"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-3 font-mono text-xs"
               rows={16}
               value={jsonText}
               onChange={e => setJsonText(e.target.value)}
@@ -696,7 +696,7 @@ function CreateFormPanel({
           </div>
         )}
 
-        {formError && <p className="text-sm text-red-600">{formError}</p>}
+        {formError && <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>}
         {tab !== "json" && (
           <div className="flex gap-2">
             <Button onClick={onSubmit} disabled={loading}>{loading ? (mode === "edit" ? "Saving..." : "Creating...") : (mode === "edit" ? "Save Changes" : "Create MiniApp")}</Button>
@@ -725,15 +725,15 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
   };
 
   return (
-    <div className="pl-4 border-l-2 border-gray-100">
+    <div className="pl-4 border-l-2 border-gray-100 dark:border-gray-800">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-gray-500">Parameters</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">Parameters</span>
         <button type="button" onClick={add} className="text-xs text-blue-600 hover:underline">+ Add Param</button>
       </div>
       {params.map((p, i) => (
         <div key={i} className="flex gap-1.5 mb-1.5 items-center">
           <Input placeholder="name" value={p.name} onChange={e => update(i, "name", e.target.value)} />
-          <select className="rounded-md border border-gray-300 p-1.5 text-xs w-28 shrink-0" value={p.type} onChange={e => update(i, "type", e.target.value)} aria-label="Parameter type">
+          <select className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs w-28 shrink-0" value={p.type} onChange={e => update(i, "type", e.target.value)} aria-label="Parameter type">
             {PARAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <Input placeholder="Label" value={p.label} onChange={e => update(i, "label", e.target.value)} />
@@ -742,7 +742,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
             <input type="checkbox" checked={p.required} onChange={e => update(i, "required", e.target.checked)} className="rounded" />
             Req
           </label>
-          <button type="button" onClick={() => remove(i)} className="text-red-500 text-xs px-1 shrink-0">×</button>
+          <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0">×</button>
         </div>
       ))}
     </div>

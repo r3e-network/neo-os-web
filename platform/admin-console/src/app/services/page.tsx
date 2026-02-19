@@ -17,8 +17,8 @@ export default function ServicesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Services</h1>
-        <p className="text-gray-600">Monitor service health and status</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Services</h1>
+        <p className="text-gray-600 dark:text-gray-400">Monitor service health and status</p>
       </div>
 
       <Card>
@@ -59,9 +59,9 @@ export default function ServicesPage() {
                         {service.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-gray-500">{service.url}</TableCell>
+                    <TableCell className="text-xs text-gray-500 dark:text-gray-400">{service.url}</TableCell>
                     <TableCell>{service.version || "N/A"}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{formatRelativeTime(service.lastCheck)}</TableCell>
+                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(service.lastCheck)}</TableCell>
                     <TableCell className="text-sm text-danger-600">{service.error || "-"}</TableCell>
                   </TableRow>
                 ))}

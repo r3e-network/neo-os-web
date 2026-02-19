@@ -24,8 +24,8 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-        <p className="text-gray-600">Manage platform users</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Users</h1>
+        <p className="text-gray-600 dark:text-gray-400">Manage platform users</p>
       </div>
 
       <Card>
@@ -45,7 +45,7 @@ export default function UsersPage() {
           {isLoading ? (
             <Spinner />
           ) : error ? (
-            <div className="text-center text-red-500">Failed to load users</div>
+            <div className="text-center text-red-500 dark:text-red-400">Failed to load users</div>
           ) : (
             <Table>
               <TableHeader>
@@ -62,9 +62,9 @@ export default function UsersPage() {
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{truncate(user.id, 12)}</TableCell>
                     <TableCell className="font-mono text-sm">{user.address}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{user.email || "N/A"}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{formatDate(user.created_at)}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{formatDate(user.updated_at)}</TableCell>
+                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">{user.email || "N/A"}</TableCell>
+                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatDate(user.created_at)}</TableCell>
+                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatDate(user.updated_at)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -72,7 +72,7 @@ export default function UsersPage() {
           )}
 
           {!isLoading && users?.length === 0 && (
-            <div className="py-8 text-center text-gray-500">
+            <div className="py-8 text-center text-gray-500 dark:text-gray-400">
               {searchTerm ? "No users found matching your search" : "No users registered yet"}
             </div>
           )}

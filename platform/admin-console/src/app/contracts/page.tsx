@@ -28,8 +28,8 @@ export default function ContractsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Contracts</h1>
-          <p className="text-gray-600">Manage smart contracts</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Contracts</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage smart contracts</p>
         </div>
         <Button>Deploy New Contract</Button>
       </div>
@@ -43,12 +43,12 @@ export default function ContractsPage() {
             {contracts.map((contract) => (
               <div
                 key={contract.name}
-                className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
+                className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4"
               >
                 <div>
-                  <div className="font-medium text-gray-900">{contract.name}</div>
-                  <div className="text-sm text-gray-500">Hash: {contract.hash}</div>
-                  <div className="text-sm text-gray-500">Network: {network}</div>
+                  <div className="font-medium text-gray-900 dark:text-white">{contract.name}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Hash: {contract.hash}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Network: {network}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant={contract.deployed ? "success" : "default"}>
@@ -69,11 +69,11 @@ export default function ContractsPage() {
           <CardTitle>Contract Deployment Wizard</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-            <p className="text-gray-600">Contract deployment available via CLI</p>
-            <p className="mt-2 text-sm text-gray-500">
-              Use <code className="bg-gray-200 px-1 rounded">neo-go contract deploy</code> or the deploy scripts in{" "}
-              <code className="bg-gray-200 px-1 rounded">cmd/deploy-contracts</code>
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-8 text-center">
+            <p className="text-gray-600 dark:text-gray-400">Contract deployment available via CLI</p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Use <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">neo-go contract deploy</code> or the deploy scripts in{" "}
+              <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">cmd/deploy-contracts</code>
             </p>
           </div>
         </CardContent>
