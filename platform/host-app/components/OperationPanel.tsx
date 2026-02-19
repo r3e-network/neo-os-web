@@ -39,7 +39,7 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
     : "bg-neo hover:bg-neo/90";
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-4 mb-3 border border-gray-200 dark:border-white/[0.08]">
+    <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700">
       <div className="flex justify-between items-center mb-2">
         <span className="font-semibold text-sm text-gray-900 dark:text-white">{op.name}</span>
         {op.gas_cost && <span className="text-xs text-neo bg-neo/10 px-2 py-0.5 rounded-md">{op.gas_cost} GAS</span>}
@@ -79,7 +79,7 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
         <label htmlFor={inputId} className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
         <select
           id={inputId}
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] text-sm bg-transparent text-gray-900 dark:text-white"
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-transparent text-gray-900 dark:text-white"
           value={value}
           onChange={e => onChange(e.target.value)}
         >
@@ -95,7 +95,7 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
       <label htmlFor={inputId} className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
       <input
         id={inputId}
-        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] text-sm bg-transparent text-gray-900 dark:text-white"
+        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-transparent text-gray-900 dark:text-white"
         type={param.type === "integer" || param.type === "amount" ? "number" : "text"}
         placeholder={param.placeholder || label}
         value={value}

@@ -21,12 +21,12 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
   }
 
   return (
-    <header className="border-b border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-gray-900/80 px-8 py-6">
+    <header className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 px-8 py-6">
       <button
         type="button"
         onClick={onBack}
         aria-label="Go back"
-        className="mb-4 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-transparent px-4 py-2 text-sm text-gray-900 dark:text-white transition-all hover:bg-gray-100 dark:hover:bg-white/5"
+        className="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent px-4 py-2 text-sm text-gray-900 dark:text-white transition-all hover:bg-gray-100 dark:hover:bg-white/5"
       >
         ← Back
       </button>

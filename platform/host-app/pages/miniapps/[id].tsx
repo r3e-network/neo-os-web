@@ -121,7 +121,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           </p>
           <button
             type="button"
-            className="px-6 py-3 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-transparent text-gray-900 dark:text-white text-sm cursor-pointer"
+            className="px-6 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white text-sm cursor-pointer"
             onClick={() => router.push("/miniapps")}
           >
             ← Back to MiniApps
@@ -175,7 +175,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
         {/* Tabs */}
         <section className="mb-8">
-          <div className="flex gap-2 border-b border-gray-200 dark:border-white/[0.08] mb-6">
+          <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
             <button
               type="button"
               aria-pressed={activeTab === "overview"}
@@ -246,7 +246,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
       </main>
 
       {/* Fixed Launch Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-50 dark:bg-gray-900/80 border-t border-gray-200 dark:border-white/[0.08] px-6 py-4 flex justify-center z-[100]">
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-50 dark:bg-gray-900/80 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-center z-[100]">
         <button
           type="button"
           className="px-12 py-3.5 rounded-xl border-none bg-neo text-black text-base font-bold cursor-pointer transition-all hover:bg-neo/90"
@@ -262,7 +262,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 function OverviewTab({ app }: { app: MiniAppInfo }) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+      <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Permissions</h3>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
           {Object.entries(app.permissions).map(([key, value]) =>
@@ -277,21 +277,21 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
       </div>
 
       {app.limits && (
-        <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+        <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Limits</h3>
           <ul className="list-none p-0 m-0">
             {app.limits.max_gas_per_tx && (
-              <li className="text-sm text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-white/[0.08]">
+              <li className="text-sm text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-gray-700">
                 Max GAS per transaction: {app.limits.max_gas_per_tx}
               </li>
             )}
             {app.limits.daily_gas_cap_per_user && (
-              <li className="text-sm text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-white/[0.08]">
+              <li className="text-sm text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-gray-700">
                 Daily GAS cap per user: {app.limits.daily_gas_cap_per_user}
               </li>
             )}
             {app.limits.governance_cap && (
-              <li className="text-sm text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-white/[0.08]">
+              <li className="text-sm text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-gray-700">
                 Governance cap per user: {app.limits.governance_cap}
               </li>
             )}
@@ -300,7 +300,7 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
       )}
 
       {app.docs_url && (
-        <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+        <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Documentation</h3>
           <a
             href={app.docs_url}
@@ -321,7 +321,7 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
         return <OperationPanel operations={ops} contractHash={app.contract_hash ?? undefined} onInvoke={(method, params) => { logger.debug("invoke", app.contract_hash, method, params); }} />;
       })()}
 
-      <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+      <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Contract Details</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
           App ID: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo break-all">{app.app_id}</code>

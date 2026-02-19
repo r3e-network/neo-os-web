@@ -11,7 +11,7 @@ export function AppStatsCard({ title, value, icon, trend, trendValue }: Props) {
     trend === "up" ? "text-neo" : trend === "down" ? "text-red-500" : "text-gray-500 dark:text-gray-400";
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-gray-900/80 p-5 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+    <div className="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 p-5 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
       <div className="flex items-center gap-2">
         <span className="text-xl">{icon}</span>
         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">

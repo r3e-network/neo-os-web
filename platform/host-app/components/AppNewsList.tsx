@@ -67,7 +67,7 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
   };
 
   return (
-    <div className="flex gap-3 p-4 bg-gray-50 dark:bg-gray-900/80 rounded-xl border border-gray-200 dark:border-white/[0.08]">
+    <div className="flex gap-3 p-4 bg-gray-50 dark:bg-gray-900/80 rounded-xl border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-neo/10 text-2xl shrink-0">
         {getTypeIcon(notification.notification_type)}
       </div>

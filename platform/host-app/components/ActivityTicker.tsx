@@ -82,8 +82,8 @@ export const ActivityTicker = ({
   const displayActivities = activities.slice(0, maxItems);
 
   return (
-    <div className="bg-gray-100 dark:bg-black/40 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
-      <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20">
+    <div className="bg-gray-100 dark:bg-black/40 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/20">
         <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
           <span className="text-emerald-500 text-xs animate-pulse">●</span> {title}
         </span>
