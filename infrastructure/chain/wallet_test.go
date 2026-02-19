@@ -25,9 +25,9 @@ func TestNewWallet(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "empty key creates zero-key wallet",
+			name:    "empty key rejected",
 			keyHex:  "",
-			wantErr: false, // Empty hex decodes to empty bytes, creates wallet with zero key
+			wantErr: true,
 		},
 	}
 

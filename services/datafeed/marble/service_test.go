@@ -345,7 +345,7 @@ func TestGetPriceWithMockSources(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig, HTTPClient: &http.Client{}})
 
 	price, err := svc.GetPrice(context.Background(), "BTCUSDT")
 	if err != nil {
@@ -410,7 +410,7 @@ func TestGetPriceAllSourcesFail(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(Config{Marble: m, FeedsConfig: failConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: failConfig, HTTPClient: &http.Client{}})
 
 	_, err := svc.GetPrice(context.Background(), "BTCUSDT")
 	if err == nil {
@@ -437,7 +437,7 @@ func TestGetPriceWithSigningKey(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig, HTTPClient: &http.Client{}})
 
 	price, err := svc.GetPrice(context.Background(), "BTCUSDT")
 	if err != nil {
@@ -458,7 +458,7 @@ func TestFetchPriceSuccess(t *testing.T) {
 	defer mockServer.Close()
 
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(Config{Marble: m})
+	svc, _ := New(Config{Marble: m, HTTPClient: &http.Client{}})
 
 	source := PriceSource{
 		Name:     "Mock",
@@ -485,7 +485,7 @@ func TestFetchPriceInvalidJSON(t *testing.T) {
 	defer mockServer.Close()
 
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(Config{Marble: m})
+	svc, _ := New(Config{Marble: m, HTTPClient: &http.Client{}})
 
 	source := PriceSource{
 		Name:     "Mock",
@@ -509,7 +509,7 @@ func TestFetchPriceMissingPath(t *testing.T) {
 	defer mockServer.Close()
 
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(Config{Marble: m})
+	svc, _ := New(Config{Marble: m, HTTPClient: &http.Client{}})
 
 	source := PriceSource{
 		Name:     "Mock",
@@ -531,7 +531,7 @@ func TestFetchPriceHTTPError(t *testing.T) {
 	defer mockServer.Close()
 
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := New(Config{Marble: m})
+	svc, _ := New(Config{Marble: m, HTTPClient: &http.Client{}})
 
 	source := PriceSource{
 		Name:     "Mock",
@@ -583,7 +583,7 @@ func TestHandleGetPriceSuccess(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig, HTTPClient: &http.Client{}})
 
 	req := httptest.NewRequest("GET", "/price/BTCUSDT", nil)
 	req = mux.SetURLVars(req, map[string]string{"pair": "BTCUSDT"})
@@ -623,7 +623,7 @@ func TestHandleGetPriceLegacySlashPair(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig})
+	svc, _ := New(Config{Marble: m, FeedsConfig: mockConfig, HTTPClient: &http.Client{}})
 
 	req := httptest.NewRequest("GET", "/price/BTC/USD", nil)
 	req = mux.SetURLVars(req, map[string]string{"pair": "BTC/USD"})

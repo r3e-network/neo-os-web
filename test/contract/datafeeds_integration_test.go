@@ -129,7 +129,7 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig})
+	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: &http.Client{}})
 
 	t.Run("health endpoint", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/health", nil)
@@ -200,7 +200,7 @@ func TestNeoFeedsSignatureVerification(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig})
+	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: &http.Client{}})
 
 	ctx := context.Background()
 	price, err := svc.GetPrice(ctx, "BTC/USD") // legacy input should still work

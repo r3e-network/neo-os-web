@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -411,8 +412,9 @@ func TestInitDefault(t *testing.T) {
 }
 
 func TestDefault(t *testing.T) {
-	// Reset default logger
+	// Reset default logger and sync.Once so Default() re-initializes
 	defaultLogger = nil
+	defaultLoggerOnce = sync.Once{}
 
 	logger := Default()
 	if logger == nil {

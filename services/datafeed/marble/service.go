@@ -100,6 +100,7 @@ type Config struct {
 	GasBank *gasbankclient.Client
 
 	SourceConcurrency int
+	HTTPClient        *http.Client // Optional HTTP client override (for testing)
 }
 
 // New creates a new NeoFeeds service.
@@ -161,10 +162,15 @@ func New(cfg Config) (*Service, error) {
 		}
 	}
 
-	// Use the Marble-provided external client (system roots, no mTLS). Apply
-	// per-source timeouts via request contexts to avoid creating clients per call.
-	httpClient := httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), 0, true)
-	httpClient.Transport = httputil.NewSafeTransport()
+	var httpClient *http.Client
+	if cfg.HTTPClient != nil {
+		httpClient = cfg.HTTPClient
+	} else {
+		// Use the Marble-provided external client (system roots, no mTLS). Apply
+		// per-source timeouts via request contexts to avoid creating clients per call.
+		httpClient = httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), 0, true)
+		httpClient.Transport = httputil.NewSafeTransport()
+	}
 
 	// Use config-specified interval, then service config, then default
 	updateInterval := feedsConfig.UpdateInterval

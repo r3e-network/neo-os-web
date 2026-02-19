@@ -418,6 +418,7 @@ func TestHTTPHandlers(t *testing.T) {
 
 	t.Run("GET /status", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/status", nil)
+		req.Header.Set("X-User-Role", "admin")
 		rec := httptest.NewRecorder()
 		s.Router().ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -427,6 +428,7 @@ func TestHTTPHandlers(t *testing.T) {
 		body := strings.NewReader(`{}`)
 		req := httptest.NewRequest(http.MethodPost, "/start", body)
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-User-Role", "admin")
 		rec := httptest.NewRecorder()
 		s.Router().ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -437,6 +439,7 @@ func TestHTTPHandlers(t *testing.T) {
 		body := strings.NewReader(`{}`)
 		req := httptest.NewRequest(http.MethodPost, "/start", body)
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-User-Role", "admin")
 		rec := httptest.NewRecorder()
 		s.Router().ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -444,6 +447,7 @@ func TestHTTPHandlers(t *testing.T) {
 
 	t.Run("POST /stop", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/stop", nil)
+		req.Header.Set("X-User-Role", "admin")
 		rec := httptest.NewRecorder()
 		s.Router().ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -452,6 +456,7 @@ func TestHTTPHandlers(t *testing.T) {
 
 	t.Run("POST /stop when not running", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/stop", nil)
+		req.Header.Set("X-User-Role", "admin")
 		rec := httptest.NewRecorder()
 		s.Router().ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -474,38 +479,41 @@ func TestHTTPHandlersWithConfig(t *testing.T) {
 	}
 	s.registerRoutes()
 
-	t.Run("POST /start with custom mini_apps", func(t *testing.T) {
-		body := strings.NewReader(`{"mini_apps":["custom-app1","custom-app2"]}`)
-		req := httptest.NewRequest(http.MethodPost, "/start", body)
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-		s.Router().ServeHTTP(rec, req)
-		assert.Equal(t, http.StatusOK, rec.Code)
+		t.Run("POST /start with custom mini_apps", func(t *testing.T) {
+			body := strings.NewReader(`{"mini_apps":["custom-app1","custom-app2"]}`)
+			req := httptest.NewRequest(http.MethodPost, "/start", body)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-User-Role", "admin")
+			rec := httptest.NewRecorder()
+			s.Router().ServeHTTP(rec, req)
+			assert.Equal(t, http.StatusOK, rec.Code)
 		assert.True(t, s.running)
 		assert.Equal(t, []string{"builtin-custom-app1", "builtin-custom-app2"}, s.miniApps)
 		s.Stop()
 	})
 
-	t.Run("POST /start with custom intervals", func(t *testing.T) {
-		body := strings.NewReader(`{"min_interval_ms":500,"max_interval_ms":1500}`)
-		req := httptest.NewRequest(http.MethodPost, "/start", body)
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-		s.Router().ServeHTTP(rec, req)
-		assert.Equal(t, http.StatusOK, rec.Code)
+		t.Run("POST /start with custom intervals", func(t *testing.T) {
+			body := strings.NewReader(`{"min_interval_ms":500,"max_interval_ms":1500}`)
+			req := httptest.NewRequest(http.MethodPost, "/start", body)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-User-Role", "admin")
+			rec := httptest.NewRecorder()
+			s.Router().ServeHTTP(rec, req)
+			assert.Equal(t, http.StatusOK, rec.Code)
 		assert.True(t, s.running)
 		assert.Equal(t, 500*time.Millisecond, s.minInterval)
 		assert.Equal(t, 1500*time.Millisecond, s.maxInterval)
 		s.Stop()
 	})
 
-	t.Run("POST /start with all config options", func(t *testing.T) {
-		body := strings.NewReader(`{"mini_apps":["full-config-app"],"min_interval_ms":200,"max_interval_ms":800}`)
-		req := httptest.NewRequest(http.MethodPost, "/start", body)
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-		s.Router().ServeHTTP(rec, req)
-		assert.Equal(t, http.StatusOK, rec.Code)
+		t.Run("POST /start with all config options", func(t *testing.T) {
+			body := strings.NewReader(`{"mini_apps":["full-config-app"],"min_interval_ms":200,"max_interval_ms":800}`)
+			req := httptest.NewRequest(http.MethodPost, "/start", body)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-User-Role", "admin")
+			rec := httptest.NewRecorder()
+			s.Router().ServeHTTP(rec, req)
+			assert.Equal(t, http.StatusOK, rec.Code)
 		assert.True(t, s.running)
 		assert.Equal(t, []string{"builtin-full-config-app"}, s.miniApps)
 		assert.Equal(t, 200*time.Millisecond, s.minInterval)
@@ -513,13 +521,14 @@ func TestHTTPHandlersWithConfig(t *testing.T) {
 		s.Stop()
 	})
 
-	t.Run("POST /start with invalid JSON", func(t *testing.T) {
-		body := strings.NewReader(`{invalid json}`)
-		req := httptest.NewRequest(http.MethodPost, "/start", body)
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-		s.Router().ServeHTTP(rec, req)
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		t.Run("POST /start with invalid JSON", func(t *testing.T) {
+			body := strings.NewReader(`{invalid json}`)
+			req := httptest.NewRequest(http.MethodPost, "/start", body)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-User-Role", "admin")
+			rec := httptest.NewRecorder()
+			s.Router().ServeHTTP(rec, req)
+			assert.Equal(t, http.StatusBadRequest, rec.Code)
 	})
 }
 
