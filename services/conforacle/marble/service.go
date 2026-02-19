@@ -84,6 +84,11 @@ func New(cfg Config) (*Service, error) {
 			} else {
 				client.Transport = httputil.NewSafeTransport()
 			}
+			// Disable automatic redirects so the URL allowlist cannot be
+			// bypassed via a redirect chain to a non-allowlisted host.
+			client.CheckRedirect = func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
 			return client
 		}(),
 		maxBodyBytes: maxBytes,
