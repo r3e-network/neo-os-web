@@ -91,7 +91,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="mt-12 border-t dark:border-gray-800 pt-8">
-          <p className="text-center text-sm text-gray-500">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
             © {new Date().getFullYear()} Neo MiniApp Platform. All rights reserved.
           </p>
         </div>

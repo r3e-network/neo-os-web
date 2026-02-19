@@ -71,7 +71,7 @@ export function StakingCard({ onStake }: StakingCardProps) {
             type="button"
             onClick={() => setAmount(userBalance)}
             aria-label="Set max stake amount"
-            className="rounded bg-white/20 px-3 py-2 text-sm hover:bg-white/30 transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            className="rounded-lg bg-white/20 px-3 py-2 text-sm hover:bg-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
             MAX
           </button>
