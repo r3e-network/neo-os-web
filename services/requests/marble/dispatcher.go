@@ -1197,7 +1197,7 @@ func (s *Service) loadTeeScript(ctx context.Context, appID, scriptName string) (
 	var manifest struct {
 		TeeScripts map[string]teeScriptInfo `json:"tee_scripts"`
 	}
-	if err := json.NewDecoder(manifestResp.Body).Decode(&manifest); err != nil {
+	if err := json.NewDecoder(io.LimitReader(manifestResp.Body, 1<<20)).Decode(&manifest); err != nil {
 		return "", "", fmt.Errorf("invalid manifest: %w", err)
 	}
 
