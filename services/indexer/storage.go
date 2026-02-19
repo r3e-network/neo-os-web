@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -90,7 +91,7 @@ func (s *Storage) GetTransaction(ctx context.Context, hash string) (*Transaction
 		&tx.Sender, &tx.SystemFee, &tx.NetworkFee, &tx.ValidUntilBlock, &tx.Script,
 		&tx.VMState, &tx.GasConsumed, &tx.Exception, &tx.SignersJSON, &tx.CreatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	return tx, err
@@ -332,7 +333,7 @@ func (s *Storage) GetSyncState(ctx context.Context, network Network) (*SyncState
 		&state.ID, &state.Network, &state.LastBlockIndex, &state.LastBlockTime,
 		&state.TotalTxIndexed, &state.LastSyncAt, &state.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	return state, err
