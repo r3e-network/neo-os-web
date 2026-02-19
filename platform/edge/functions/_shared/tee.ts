@@ -75,6 +75,7 @@ export async function requestJSON(
     method: init.method,
     headers,
     body,
+    signal: AbortSignal.timeout(30000),
   };
 
   const client = getMTLSClient();

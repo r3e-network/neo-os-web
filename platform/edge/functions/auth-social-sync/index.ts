@@ -89,6 +89,7 @@ export async function handler(req: Request): Promise<Response> {
       const poolResp = await fetch(`${poolUrl}/user-wallet`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Service-ID": "auth-social-sync" },
+        signal: AbortSignal.timeout(10000),
         body: JSON.stringify({ user_id: accountId }),
       });
       if (poolResp.ok) {
