@@ -14,7 +14,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.configError(res, "EDGE_BASE_URL not configured");
   }
 
-  const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req), signal: AbortSignal.timeout(15000) });
+  let upstream: Response;
+  try {
+    upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req), signal: AbortSignal.timeout(15000) });
+  } catch {
+    return apiError.gatewayError(res, "upstream request failed");
+  }
   let payload: unknown = null;
   try {
     payload = await upstream.json();
