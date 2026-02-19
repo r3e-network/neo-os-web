@@ -85,7 +85,7 @@ export const ActivityTicker = ({
     <div className="bg-gray-100 dark:bg-black/40 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
       <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20">
         <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <span className="text-emerald-500 text-[10px] animate-pulse">●</span> {title}
+          <span className="text-emerald-500 text-xs animate-pulse">●</span> {title}
         </span>
         <span className="text-xs text-gray-500 dark:text-white/50">{activities.length} events</span>
       </div>
@@ -115,20 +115,20 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
       <div className="text-base w-6 text-center shrink-0">{activity.app_icon || icon}</div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center gap-2">
-          <span className="text-[13px] font-medium text-gray-900 dark:text-white truncate">{activity.title}</span>
-          <span className="text-[11px] text-gray-400 dark:text-white/40 shrink-0">
+          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{activity.title}</span>
+          <span className="text-xs text-gray-400 dark:text-white/40 shrink-0">
             {formatTimeAgo(activity.timestamp)}
           </span>
         </div>
         <div className="text-xs text-gray-500 dark:text-white/60 mt-0.5 truncate">{activity.description}</div>
         {activity.tx_hash && (
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono">
+            <span className="text-xs text-gray-400 dark:text-white/30 font-mono">
               TX: {truncateHash(activity.tx_hash)}
             </span>
             {statusColor && (
               <span
-                className="text-[9px] px-1.5 py-0.5 rounded text-white font-semibold uppercase"
+                className="text-xs px-1.5 py-0.5 rounded text-white font-semibold uppercase"
                 style={{ backgroundColor: statusColor }}
               >
                 {activity.status}

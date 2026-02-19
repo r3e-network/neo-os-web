@@ -73,14 +73,14 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
             {notification.title}
           </h4>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {getTimeAgo(notification.created_at)}
           </span>
         </div>
-        <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed">
+        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
           {notification.content}
         </p>
         {notification.tx_hash && (

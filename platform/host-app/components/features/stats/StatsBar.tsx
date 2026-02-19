@@ -33,7 +33,7 @@ export function StatsBar({ stats, className }: StatsBarProps) {
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-400 font-bold mb-1">
+                    <p className="text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400 font-bold mb-1">
                       {stat.label}
                     </p>
                     <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{stat.value}</p>

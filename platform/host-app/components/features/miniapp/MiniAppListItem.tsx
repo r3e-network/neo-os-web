@@ -40,7 +40,7 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
               <h3 className="font-bold text-gray-900 dark:text-white truncate group-hover:text-neo dark:group-hover:text-neo transition-colors">
                 {app.name}
               </h3>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+              <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
                 {app.category}
               </Badge>
             </div>

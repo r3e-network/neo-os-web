@@ -40,7 +40,7 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
             <span className="rounded-md bg-neo/15 px-3 py-1 text-xs font-semibold uppercase text-neo">
               {app.category}
             </span>
-            <span className={`text-[13px] font-medium ${statusColor}`}>● {statusBadge}</span>
+            <span className={`text-xs font-medium ${statusColor}`}>● {statusBadge}</span>
           </div>
         </div>
       </div>

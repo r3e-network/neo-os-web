@@ -211,7 +211,7 @@ export default function EnhancedStatsPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-mono text-gray-500 dark:text-gray-300">{event.gasUsed || "0"} GAS</p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatTimeAgo(event.timestamp)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(event.timestamp)}</p>
                     </div>
                   </div>
                 ))
