@@ -56,8 +56,9 @@ export default function SecretsContent() {
         <CardContent>
           {/* MiniApp Filter */}
           <div className="mb-4">
-            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Filter by MiniApp</label>
+            <label htmlFor="secrets-app-filter" className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Filter by MiniApp</label>
             <select
+              id="secrets-app-filter"
               value={selectedApp}
               onChange={(e) => setSelectedApp(e.target.value)}
               className="w-full rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-neo/50"
