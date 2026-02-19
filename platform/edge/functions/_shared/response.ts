@@ -3,6 +3,7 @@ import { withCors } from "./cors.ts";
 export function json(data: unknown, init: ResponseInit = {}, req?: Request): Response {
   const headers = withCors(init.headers, req);
   headers.set("Content-Type", "application/json; charset=utf-8");
+  headers.set("X-Content-Type-Options", "nosniff");
   return new Response(JSON.stringify(data), { ...init, headers });
 }
 

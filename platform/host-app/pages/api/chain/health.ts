@@ -22,6 +22,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (standardLimit(req, res)) return;
 
   const network = (req.query.network as string) || "testnet";
+  if (network !== "testnet" && network !== "mainnet") {
+    return apiError.badRequest(res, "network must be testnet or mainnet");
+  }
   const rpcUrl = network === "mainnet" ? NEO_RPC_MAINNET : NEO_RPC_TESTNET;
 
   try {
