@@ -395,7 +395,7 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-24 px-4">
         <div className="mx-auto max-w-5xl">
-          <div className="relative rounded-[2.5rem] bg-neo-gradient p-6 md:p-12 overflow-hidden shadow-2xl shadow-neo/20">
+          <div className="relative rounded-[2.5rem] bg-neo-purple-grad p-6 md:p-12 overflow-hidden shadow-2xl shadow-neo/20">
             <div className="absolute top-0 right-0 p-12 opacity-10">
               <Code2 width={240} height={240} />
             </div>
