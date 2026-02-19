@@ -118,7 +118,7 @@ function CanvasCard({ data, className }: { data: CanvasData; className: string }
     <div
       className={`h-full flex flex-col justify-center items-center p-3 text-white bg-gradient-to-br from-gray-800 to-gray-900 ${className}`}
     >
-      <canvas ref={canvasRef} width={80} height={80} className="rounded border-2 border-white/10 mb-2" />
+      <canvas ref={canvasRef} width={80} height={80} aria-label="Pixel art canvas" className="rounded border-2 border-white/10 mb-2" />
       <div className="flex justify-between w-full text-xs opacity-90 px-2">
         <span>🎨 {data.activeUsers} active</span>
         <span>

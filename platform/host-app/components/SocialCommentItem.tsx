@@ -54,6 +54,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
           <button
             type="button"
             onClick={() => onVote(comment.id, "upvote")}
+            aria-label={`Upvote (${comment.upvotes})`}
             className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
           >
             ▲ {comment.upvotes}
@@ -61,6 +62,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
           <button
             type="button"
             onClick={() => onVote(comment.id, "downvote")}
+            aria-label={`Downvote (${comment.downvotes})`}
             className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
           >
             ▼ {comment.downvotes}

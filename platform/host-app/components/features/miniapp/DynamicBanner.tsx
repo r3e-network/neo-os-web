@@ -263,6 +263,7 @@ export function DynamicBanner({ category, icon, appId }: DynamicBannerProps) {
         {elements.map((emoji, idx) => (
           <span
             key={idx}
+            aria-hidden="true"
             className={`absolute ${positions[idx].size} ${positions[idx].animation}`}
             style={{
               top: `${positions[idx].top}%`,
