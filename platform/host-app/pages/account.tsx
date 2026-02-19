@@ -51,9 +51,9 @@ export default function AccountPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Wallet Address</p>
-                    <p className="text-lg font-mono text-gray-900 dark:text-white truncate">NdovA...s9Kda</p>
+                    <p className="text-lg font-mono text-gray-900 dark:text-white truncate">{address.slice(0, 6)}...{address.slice(-4)}</p>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                  <Button variant="ghost" size="sm" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white" onClick={() => navigator.clipboard.writeText(address)}>
                     Copy
                   </Button>
                 </div>

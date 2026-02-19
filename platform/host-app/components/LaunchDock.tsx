@@ -1,6 +1,4 @@
-import React from "react";
 import { WalletState } from "./types";
-import { colors } from "./styles";
 
 export type LaunchDockProps = {
   appName: string;
@@ -30,34 +28,46 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
   const walletDotColor = wallet.connected ? "#22c55e" : "#ef4444";
 
   return (
-    <div style={dockStyle}>
+    <div className="fixed top-0 inset-x-0 h-12 bg-[rgba(10,10,10,0.95)] backdrop-blur-sm flex items-center px-4 gap-4 z-[9999] border-b border-white/[0.08]">
       {/* Left: App Name */}
-      <div style={appNameStyle}>{appName}</div>
+      <div className="text-base font-semibold text-gray-100 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">{appName}</div>
 
       {/* Spacer */}
-      <div style={{ flex: 1 }} />
+      <div className="flex-1" />
 
       {/* Right section: Wallet, Network, Share, Exit */}
-      <div style={rightSectionStyle}>
+      <div className="flex items-center gap-4">
         {/* Wallet Status */}
-        <div style={statusItemStyle}>
-          <div style={{ ...dotStyle, background: walletDotColor }} />
-          <span style={statusTextStyle}>{walletDisplay}</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full" style={{ background: walletDotColor }} />
+          <span className="text-sm text-gray-400 font-mono">{walletDisplay}</span>
         </div>
 
         {/* Network Indicator */}
-        <div style={statusItemStyle}>
-          <div style={{ ...dotStyle, background: networkStatus.color }} />
-          <span style={statusTextStyle}>{networkLatency !== null ? `${networkLatency}ms` : networkStatus.label}</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full" style={{ background: networkStatus.color }} />
+          <span className="text-sm text-gray-400 font-mono">{networkLatency !== null ? `${networkLatency}ms` : networkStatus.label}</span>
         </div>
 
         {/* Share Button */}
-        <button type="button" onClick={onShare} style={iconButtonStyle} title="Copy share link" aria-label="Copy share link">
+        <button
+          type="button"
+          onClick={onShare}
+          className="bg-transparent border-none text-gray-400 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-gray-200"
+          title="Copy share link"
+          aria-label="Copy share link"
+        >
           <ShareIcon />
         </button>
 
         {/* Exit Button */}
-        <button type="button" onClick={onExit} style={exitButtonStyle} title="Exit (ESC)" aria-label="Exit">
+        <button
+          type="button"
+          onClick={onExit}
+          className="bg-transparent border-none text-red-500 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-red-400"
+          title="Exit (ESC)"
+          aria-label="Exit"
+        >
           <ExitIcon />
         </button>
       </div>
@@ -86,72 +96,3 @@ function ExitIcon() {
     </svg>
   );
 }
-
-// Styles
-const dockStyle: React.CSSProperties = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  height: 48,
-  background: "rgba(10,10,10,0.95)",
-  backdropFilter: "blur(8px)",
-  display: "flex",
-  alignItems: "center",
-  padding: "0 16px",
-  gap: 16,
-  zIndex: 9999,
-  borderBottom: `1px solid ${colors.border}`,
-};
-
-const appNameStyle: React.CSSProperties = {
-  fontSize: 16,
-  fontWeight: 600,
-  color: colors.text,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  maxWidth: 200,
-};
-
-const rightSectionStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 16,
-};
-
-const statusItemStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-};
-
-const dotStyle: React.CSSProperties = {
-  width: 8,
-  height: 8,
-  borderRadius: "50%",
-};
-
-const statusTextStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: colors.textMuted,
-  fontFamily: "monospace",
-};
-
-const iconButtonStyle: React.CSSProperties = {
-  background: "transparent",
-  border: "none",
-  color: colors.textMuted,
-  cursor: "pointer",
-  padding: 8,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: 6,
-  transition: "all 0.2s",
-};
-
-const exitButtonStyle: React.CSSProperties = {
-  ...iconButtonStyle,
-  color: "#ef4444",
-};

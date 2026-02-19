@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
@@ -207,7 +207,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   }, [app.app_id]);
 
   return (
-    <div style={containerStyle}>
+    <div className="fixed inset-0 bg-black overflow-hidden">
       <Head><title>{app.name} - NeoHub</title></Head>
       <LaunchDock
         appName={app.name}
@@ -218,20 +218,20 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         onShare={handleShare}
       />
       {federated ? (
-        <div style={federatedStyle}>
+        <div className="absolute top-12 left-0 w-screen h-[calc(100vh-48px)] overflow-auto">
           <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
         </div>
       ) : (
         <iframe
           src={app.entry_url}
           ref={iframeRef}
-          style={iframeStyle}
+          className="absolute top-12 left-0 w-screen h-[calc(100vh-48px)] border-none"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           title={`${app.name} MiniApp`}
           allowFullScreen
         />
       )}
-      {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
+      {toastMessage && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-neo/90 text-black px-6 py-3 rounded-lg font-semibold text-sm z-[9999]">{toastMessage}</div>}
 
       {/* LiveChat for MiniApp */}
       <LiveChat
@@ -379,44 +379,4 @@ export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (co
       props: { app: fallback },
     };
   }
-};
-
-// Styles
-const containerStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "#000",
-  overflow: "hidden",
-};
-
-const iframeStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 48,
-  left: 0,
-  width: "100vw",
-  height: "calc(100vh - 48px)",
-  border: "none",
-};
-
-const federatedStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 48,
-  left: 0,
-  width: "100vw",
-  height: "calc(100vh - 48px)",
-  overflow: "auto",
-};
-
-const toastStyle: React.CSSProperties = {
-  position: "fixed",
-  bottom: 24,
-  left: "50%",
-  transform: "translateX(-50%)",
-  background: "rgba(0, 255, 136, 0.9)",
-  color: "#000",
-  padding: "12px 24px",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  zIndex: 9999,
 };
