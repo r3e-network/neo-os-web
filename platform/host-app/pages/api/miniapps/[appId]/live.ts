@@ -41,8 +41,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.badRequest(res, "Invalid appId format");
   }
 
-  // Auto-resolve contract hash from app ID
-  const contractHash = (req.query.contract as string) || APP_CONTRACTS[appId];
+  // Auto-resolve contract hash from app ID (whitelist only)
+  const contractHash = APP_CONTRACTS[appId];
   const category = (req.query.category as string) || APP_CATEGORIES[appId] || "gaming";
   const network = (req.query.network as "testnet" | "mainnet") || "testnet";
 
