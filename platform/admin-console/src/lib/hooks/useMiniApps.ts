@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAdminAuthHeaders } from "@/lib/admin-client";
 import { DEFAULT_STALE_TIME_MS } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 import type { MiniApp } from "@/types";
 
 /**
@@ -93,7 +94,7 @@ export function useUpdateMiniAppStatus() {
             );
           }
         } catch {
-          console.warn("Unable to display status-change alert; invocation:", payload);
+          logger.warn("Unable to display status-change alert; invocation:", payload);
         }
       }
       return data;
