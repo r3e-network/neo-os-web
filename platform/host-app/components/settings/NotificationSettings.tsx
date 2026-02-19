@@ -21,7 +21,7 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
   }, [walletAddress, loadPreferences]);
 
   if (loading) {
-    return <div className="p-4">Loading...</div>;
+    return <div className="p-4 text-gray-500 dark:text-gray-400">Loading...</div>;
   }
 
   if (!preferences) {

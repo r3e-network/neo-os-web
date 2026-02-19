@@ -147,9 +147,9 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {loading && messages.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">Loading...</div>
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">Loading...</div>
             ) : messages.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                 <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 <p>No messages yet</p>
                 <p className="text-xs mt-1">Be the first to say hi!</p>
