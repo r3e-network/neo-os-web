@@ -210,6 +210,7 @@ function SearchDropdown({
           </div>
           {suggestions.map((s, i) => (
             <button
+              type="button"
               key={s}
               onClick={() => onSelectSuggestion(s)}
               className={cn(

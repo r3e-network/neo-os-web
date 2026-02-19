@@ -97,6 +97,7 @@ export function Navbar() {
         {/* Right Actions */}
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={toggleTheme}
             className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Toggle theme"
@@ -109,6 +110,7 @@ export function Navbar() {
 
           {/* Language Switcher */}
           <button
+            type="button"
             onClick={() => setLocale(locale === "en" ? "zh" : "en")}
             className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
             aria-label="Switch language"
@@ -121,6 +123,7 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
+            type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Toggle navigation menu"

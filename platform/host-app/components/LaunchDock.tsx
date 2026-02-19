@@ -52,12 +52,12 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
         </div>
 
         {/* Share Button */}
-        <button onClick={onShare} style={iconButtonStyle} title="Copy share link">
+        <button type="button" onClick={onShare} style={iconButtonStyle} title="Copy share link" aria-label="Copy share link">
           <ShareIcon />
         </button>
 
         {/* Exit Button */}
-        <button onClick={onExit} style={exitButtonStyle} title="Exit (ESC)">
+        <button type="button" onClick={onExit} style={exitButtonStyle} title="Exit (ESC)" aria-label="Exit">
           <ExitIcon />
         </button>
       </div>
