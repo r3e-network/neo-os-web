@@ -36,6 +36,7 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Secrets for {appName}</h3>
         <button
+          type="button"
           className="px-4 py-2 bg-neo dark:bg-neo text-gray-900 dark:text-gray-900 font-medium rounded-md hover:bg-neo/90 dark:hover:bg-neo/90 transition-colors"
           onClick={() => setShowCreate(true)}
         >
@@ -96,6 +97,7 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
         </span>
         {token.status === "active" && (
           <button
+            type="button"
             className="px-2 py-1 text-xs border border-red-500 dark:border-red-400 text-red-500 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             onClick={() => onRevoke(token.id)}
           >
