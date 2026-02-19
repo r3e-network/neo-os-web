@@ -10,7 +10,7 @@ import { logger } from "@/lib/logger";
 const features = [
   { icon: Code2, title: "SDK", desc: "TypeScript SDK for building MiniApps", color: "from-blue-500 to-cyan-500" },
   { icon: Shield, title: "TEE", desc: "Confidential computing support", color: "from-purple-500 to-pink-500" },
-  { icon: Dice5, title: "VRF", desc: "Verifiable random functions", color: "from-green-500 to-emerald-500" },
+  { icon: Dice5, title: "VRF", desc: "Verifiable random functions", color: "from-emerald-500 to-emerald-600" },
   { icon: TrendingUp, title: "Oracles", desc: "Real-time price feeds", color: "from-orange-500 to-yellow-500" },
 ];
 

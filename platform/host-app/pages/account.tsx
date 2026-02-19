@@ -95,7 +95,7 @@ export default function AccountPage() {
                     <Trophy size={16} className="text-emerald-500" />
                     Reputation
                   </CardTitle>
-                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                  <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
                     Lv.{stats?.level || 1}
                   </Badge>
                 </div>
@@ -122,7 +122,7 @@ export default function AccountPage() {
                 <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                   <Link
                     href="/leaderboard"
-                    className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-emerald-400 transition-colors"
+                    className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-emerald-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
                   >
                     <TrendingUp size={12} />
                     <span>Rank #{stats?.rank || "-"}</span>
