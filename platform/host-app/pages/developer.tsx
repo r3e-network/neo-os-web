@@ -5,6 +5,7 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { X, Code2, Rocket, Shield, Dice5, TrendingUp, ChevronRight, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from "@/lib/logger";
 
 const features = [
   { icon: Code2, title: "SDK", desc: "TypeScript SDK for building MiniApps", color: "from-blue-500 to-cyan-500" },
@@ -66,7 +67,8 @@ export default function DeveloperPage() {
       } else {
         setResult({ success: false, message: data.error || "Submission failed" });
       }
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to submit miniapp:", err);
       setResult({ success: false, message: "Network error" });
     } finally {
       setSubmitting(false);

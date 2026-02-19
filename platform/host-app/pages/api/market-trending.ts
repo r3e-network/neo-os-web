@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { buildEdgeUrl, forwardAuthHeaders } from "../../lib/edge";
 import { apiError } from "../../lib/api-response";
 import { relaxedLimit } from "../../lib/rate-limit";
+import { logger } from "../../lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -17,13 +18,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let upstream: Response;
   try {
     upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req), signal: AbortSignal.timeout(15000) });
-  } catch {
+  } catch (err) {
+    logger.error("Market trending upstream request failed:", err instanceof Error ? err.message : "unknown error");
     return apiError.gatewayError(res, "upstream request failed");
   }
   let payload: unknown = null;
   try {
     payload = await upstream.json();
-  } catch {
+  } catch (err) {
+    logger.error("Market trending invalid upstream response:", err instanceof Error ? err.message : "unknown error");
     return apiError.gatewayError(res, "invalid upstream response");
   }
 

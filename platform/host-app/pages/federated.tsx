@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { FederatedMiniApp as FederatedMiniAppRenderer } from "../components/FederatedMiniApp";
 import { installMiniAppSDK } from "../lib/miniapp-sdk";
 import { coerceMiniAppInfo } from "../lib/miniapp";
+import { logger } from "../lib/logger";
 
 export default function FederatedMiniApp() {
   const router = useRouter();
@@ -30,7 +31,8 @@ export default function FederatedMiniApp() {
         const info = coerceMiniAppInfo(list[0]);
         if (!mounted) return;
         installMiniAppSDK({ appId: info?.app_id ?? appId, permissions: info?.permissions });
-      } catch {
+      } catch (err) {
+        logger.warn("Failed to load miniapp permissions:", err);
         if (!mounted) return;
         installMiniAppSDK({ appId });
       }

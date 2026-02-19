@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl, isEdgeRpcAllowed } from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
 import { standardLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 /** Parsed JSON body with optional function name fields */
 interface RPCJsonBody {
@@ -123,6 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     res.send(buf);
   } catch (err) {
+    logger.error("RPC relay error:", err instanceof Error ? err.message : "unknown error");
     if (controller.signal.aborted) {
       return apiError.gatewayError(res, "upstream request timed out");
     } else {
