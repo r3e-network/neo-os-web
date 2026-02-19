@@ -193,7 +193,7 @@ export default function EnhancedStatsPage() {
                 events.map((event, i) => (
                   <div
                     key={event.id || i}
-                    className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/5"
+                    className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-gray-700"
                   >
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-lg bg-neo/10 flex items-center justify-center text-neo">

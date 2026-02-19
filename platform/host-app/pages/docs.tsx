@@ -35,8 +35,8 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
   };
 
   return (
-    <div className="relative group rounded-xl bg-gray-900 dark:bg-black/50 border border-gray-800 dark:border-white/10 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 dark:border-white/10 bg-gray-800/50">
+    <div className="relative group rounded-xl bg-gray-900 dark:bg-black/50 border border-gray-800 dark:border-gray-700 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 dark:border-gray-700 bg-gray-800/50">
         <span className="text-xs text-gray-400 font-mono">{language}</span>
         <button type="button" onClick={handleCopy} aria-label="Copy code" className="p-1.5 rounded-md hover:bg-white/10 transition-colors">
           {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-gray-400" />}
@@ -69,7 +69,7 @@ export default function DocsPage() {
 
       <div className="min-h-screen bg-white dark:bg-gray-950">
         {/* Hero Header */}
-        <section className="relative py-16 border-b border-gray-200 dark:border-white/10">
+        <section className="relative py-16 border-b border-gray-200 dark:border-gray-700">
           <div className="absolute inset-0 -z-10">
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-neo/10 blur-[120px] rounded-full" />
           </div>
@@ -88,7 +88,7 @@ export default function DocsPage() {
                   placeholder="Search documentation..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-12 pl-12 pr-4 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                  className="w-full h-12 pl-12 pr-4 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
                 />
               </div>
             </motion.div>
@@ -123,7 +123,7 @@ export default function DocsPage() {
                 })}
 
                 {/* External Links */}
-                <div className="pt-6 mt-6 border-t border-gray-200 dark:border-white/10 space-y-1">
+                <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700 space-y-1">
                   <a
                     href="https://github.com/neo-project"
                     target="_blank"
@@ -227,7 +227,7 @@ console.log('TX Hash:', result.txid);`}
           </Button>
         </Link>
         <a href="https://github.com/neo-project/neo-miniapp-template" target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" className="border-gray-300 dark:border-white/20">
+          <Button variant="outline" className="border-gray-300 dark:border-gray-600">
             <Github size={16} className="mr-2" />
             View Template
           </Button>
@@ -252,7 +252,7 @@ function SDKReferenceContent() {
         ].map((item) => (
           <div
             key={item.title}
-            className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 transition-colors"
+            className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 transition-colors"
           >
             <div className="p-2 rounded-lg bg-neo/10">
               <item.icon className="text-neo" size={20} />
@@ -404,7 +404,7 @@ function PlatformServicesContent() {
         ].map((item) => (
           <div
             key={item.title}
-            className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10"
+            className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700"
           >
             <div
               className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4`}

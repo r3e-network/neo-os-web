@@ -111,7 +111,7 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
   const statusColor = activity.status ? STATUS_COLORS[activity.status] : undefined;
 
   return (
-    <div className="flex gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-white/5">
+    <div className="flex gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
       <div className="text-base w-6 text-center shrink-0">{activity.app_icon || icon}</div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center gap-2">

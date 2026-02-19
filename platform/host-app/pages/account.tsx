@@ -33,7 +33,7 @@ export default function AccountPage() {
           <div className="md:col-span-2 space-y-8">
             {/* Wallet Info */}
             <Card className="glass-card overflow-hidden">
-              <CardHeader className="bg-neo/5 border-b border-gray-200 dark:border-white/5">
+              <CardHeader className="bg-neo/5 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-gray-900 dark:text-white">Neo Wallet</CardTitle>
@@ -45,7 +45,7 @@ export default function AccountPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-100 dark:bg-dark-800/50 border border-gray-200 dark:border-white/5">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-100 dark:bg-dark-800/50 border border-gray-200 dark:border-gray-700">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neo/20">
                     <Wallet className="text-neo" size={24} />
                   </div>
@@ -89,7 +89,7 @@ export default function AccountPage() {
           <div className="space-y-6">
             {/* Reputation Card */}
             <Card className="glass-card overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-b border-gray-200 dark:border-white/5">
+              <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <Trophy size={16} className="text-emerald-500" />
@@ -119,7 +119,7 @@ export default function AccountPage() {
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-white/5">
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                   <Link
                     href="/leaderboard"
                     className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-emerald-400 transition-colors"
@@ -158,7 +158,7 @@ export default function AccountPage() {
               </CardContent>
             </Card>
 
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-gray-200 dark:border-white/5">
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-gray-200 dark:border-gray-700">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Shield size={14} className="text-indigo-400" />
                 Security Tip
@@ -190,7 +190,7 @@ function OAuthBindingItem({
   const isConnected = Boolean(account);
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-dark-900 border border-gray-200 dark:border-white/5">
+    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-dark-900 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-3">
         <span className="text-2xl">{provider.icon}</span>
         <div>
@@ -210,7 +210,7 @@ function OAuthBindingItem({
         className={cn(
           "h-8 text-xs",
           isConnected
-            ? "border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:text-red-400 hover:border-red-400/30"
+            ? "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-red-400 hover:border-red-400/30"
             : "bg-neo hover:bg-neo/90",
         )}
       >

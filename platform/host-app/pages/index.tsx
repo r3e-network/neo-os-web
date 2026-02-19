@@ -180,7 +180,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-gray-300 dark:border-white/10 bg-white/80 dark:bg-transparent text-gray-900 dark:text-white font-bold px-8 h-14 rounded-2xl hover:bg-gray-100 dark:hover:bg-white/5"
+                  className="border-gray-300 dark:border-gray-700 bg-white/80 dark:bg-transparent text-gray-900 dark:text-white font-bold px-8 h-14 rounded-2xl hover:bg-gray-100 dark:hover:bg-white/5"
                 >
                   Developer SDK <Code2 className="ml-2" width={18} height={18} />
                 </Button>
@@ -263,7 +263,7 @@ export default function LandingPage() {
                     className={cn(
                       "h-8 rounded-full text-xs font-semibold",
                       sortBy === "trending"
-                        ? "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10"
+                        ? "bg-white dark:bg-white/5 border-gray-200 dark:border-gray-700"
                         : "text-gray-500 hover:text-gray-900 dark:hover:text-white",
                     )}
                   >
@@ -275,7 +275,7 @@ export default function LandingPage() {
                     className={cn(
                       "h-8 rounded-full text-xs font-semibold",
                       sortBy === "recent"
-                        ? "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10"
+                        ? "bg-white dark:bg-white/5 border-gray-200 dark:border-gray-700"
                         : "text-gray-500 hover:text-gray-900 dark:hover:text-white",
                     )}
                   >
@@ -287,7 +287,7 @@ export default function LandingPage() {
                     className={cn(
                       "h-8 rounded-full text-xs font-semibold",
                       sortBy === "popular"
-                        ? "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10"
+                        ? "bg-white dark:bg-white/5 border-gray-200 dark:border-gray-700"
                         : "text-gray-500 hover:text-gray-900 dark:hover:text-white",
                     )}
                   >
@@ -296,7 +296,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex items-center gap-2 ml-auto">
-                  <div className="bg-gray-100 dark:bg-dark-900 rounded-lg p-1 flex items-center border border-gray-200 dark:border-white/5">
+                  <div className="bg-gray-100 dark:bg-dark-900 rounded-lg p-1 flex items-center border border-gray-200 dark:border-gray-700">
                     <button
                       type="button"
                       onClick={() => setViewMode("grid")}
@@ -426,7 +426,7 @@ export default function LandingPage() {
 
 function FeatureItem({ icon: Icon, title, desc }: { icon: React.ComponentType<{ size?: number | string }>; title: string; desc: string }) {
   return (
-    <Card className="glass-card p-8 border-gray-200 dark:border-white/5 bg-white dark:bg-dark-900/20 text-left hover:bg-gray-50 dark:hover:bg-dark-900/40 transform hover:-translate-y-1 transition-all">
+    <Card className="glass-card p-8 border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-900/20 text-left hover:bg-gray-50 dark:hover:bg-dark-900/40 transform hover:-translate-y-1 transition-all">
       <div className="w-12 h-12 rounded-xl bg-neo/10 flex items-center justify-center text-neo mb-6">
         <Icon size={24} />
       </div>

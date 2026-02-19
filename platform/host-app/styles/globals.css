@@ -31,7 +31,7 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white dark:bg-white/[0.05] backdrop-blur-xl border border-gray-200 dark:border-white/5 hover:border-neo/30 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-500 shadow-md dark:shadow-2xl;
+    @apply bg-white dark:bg-white/[0.05] backdrop-blur-xl border border-gray-200 dark:border-gray-700 hover:border-neo/30 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-500 shadow-md dark:shadow-2xl;
   }
 
   .neo-gradient-text {
