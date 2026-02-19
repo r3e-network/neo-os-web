@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl, isEdgeRpcAllowed } from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
 const FETCH_TIMEOUT_MS = 30000; // 30 seconds
@@ -120,7 +121,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     res.send(buf);
   } catch (err) {
-    console.error("RPC upstream error:", err instanceof Error ? err.message : "unknown error");
+    logger.error("RPC upstream error:", err instanceof Error ? err.message : "unknown error");
     apiError.gatewayTimeout(res, "Upstream request failed");
   }
 }

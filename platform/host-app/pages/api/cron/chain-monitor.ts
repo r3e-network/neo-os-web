@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { timingSafeEqual } from "crypto";
 import { checkChainStatus, sendChainAlerts } from "@/lib/chain/monitor";
 import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET" && req.method !== "POST") {
@@ -27,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ success: true, results });
   } catch (err) {
-    console.error("Monitor check failed:", err instanceof Error ? err.message : "unknown error");
+    logger.error("Monitor check failed:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Monitor check failed");
   }
 }

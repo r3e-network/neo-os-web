@@ -4,6 +4,7 @@
  */
 
 import { invokeRead, type Network, type StackItem } from "./rpc-client";
+import { logger } from "@/lib/logger";
 
 // Contract addresses from manifest
 export const CONTRACTS = {
@@ -64,7 +65,7 @@ export async function getLotteryState(
       endTime: Date.now() + 3600000,
     };
   } catch (err) {
-    console.warn("getLotteryState failed:", err);
+    logger.warn("getLotteryState failed:", err);
     return { prizePool: "0", ticketsSold: 0, currentRound: 0, endTime: 0 };
   }
 }
@@ -91,7 +92,7 @@ export async function getGameState(contractHash: string, network: Network = "tes
       roundId: safeNumber(parseInteger(roundRes.stack[0])),
     };
   } catch (err) {
-    console.warn("getGameState failed:", err);
+    logger.warn("getGameState failed:", err);
     return { currentMultiplier: 1.0, playerCount: 0, totalBets: "0", roundId: 0 };
   }
 }
@@ -125,7 +126,7 @@ export async function getVotingState(
       };
     }
   } catch (err) {
-    console.warn("getVotingState failed:", err);
+    logger.warn("getVotingState failed:", err);
   }
   return {
     proposalId: 0,
@@ -155,7 +156,7 @@ export async function getContractStats(contractHash: string, network: Network = 
       };
     }
   } catch (err) {
-    console.warn("getContractStats failed:", err);
+    logger.warn("getContractStats failed:", err);
   }
   return { totalValueLocked: "0", totalTransactions: 0, uniqueUsers: 0 };
 }

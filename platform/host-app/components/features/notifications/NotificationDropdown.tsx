@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import type { NotificationEvent } from "@/lib/notifications/types";
 
 interface NotificationDropdownProps {
@@ -65,7 +66,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           setUnreadCount(data.events?.filter((n: NotificationEvent) => !n.read).length || 0);
         }
       } catch (err) {
-        console.warn("Failed to fetch notifications:", err);
+        logger.warn("Failed to fetch notifications:", err);
       } finally {
         if (active) setLoading(false);
       }
@@ -80,7 +81,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
-      console.warn("Failed to mark notification as read:", err);
+      logger.warn("Failed to mark notification as read:", err);
     }
   };
 
@@ -91,7 +92,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (err) {
-      console.warn("Failed to mark all notifications as read:", err);
+      logger.warn("Failed to mark all notifications as read:", err);
     }
   };
 

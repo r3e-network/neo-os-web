@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageCircle, Send, X, Users, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import type { ChatMessage } from "./types";
 
 interface LiveChatProps {
@@ -61,7 +62,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           setParticipantCount(data.participantCount || 0);
         }
       } catch (err) {
-        console.warn("Failed to fetch chat messages:", err);
+        logger.warn("Failed to fetch chat messages:", err);
       } finally {
         if (active) setLoading(false);
       }
