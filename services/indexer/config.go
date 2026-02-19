@@ -169,12 +169,19 @@ func (c *Config) GetRPCURL(network Network) string {
 	return c.TestnetRPCURL
 }
 
+// escapeConnParam quotes a libpq keyword=value parameter so that special
+// characters (spaces, single quotes, backslashes) are handled correctly.
+func escapeConnParam(s string) string {
+	r := strings.NewReplacer(`\`, `\\`, `'`, `\'`)
+	return "'" + r.Replace(s) + "'"
+}
+
 // GetPostgresDSN returns the PostgreSQL connection string.
 func (c *Config) GetPostgresDSN() string {
 	return fmt.Sprintf(
 		"host=%s port=%d dbname=%s user=%s password=%s sslmode=%s",
 		c.PostgresHost, c.PostgresPort, c.PostgresDB,
-		c.PostgresUser, c.PostgresPassword, c.PostgresSSLMode,
+		c.PostgresUser, escapeConnParam(c.PostgresPassword), c.PostgresSSLMode,
 	)
 }
 
