@@ -103,7 +103,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const upstream = await fetchWithRetry(url.toString(), { method, headers, body }, MAX_RETRIES);
 
     res.status(upstream.status);
-    const blockedHeaders = new Set(["transfer-encoding", "connection", "set-cookie", "access-control-allow-origin"]);
+    res.setHeader("Cache-Control", "no-store, private");
+    const blockedHeaders = new Set(["transfer-encoding", "connection", "set-cookie", "access-control-allow-origin", "cache-control"]);
     upstream.headers.forEach((value, key) => {
       if (blockedHeaders.has(key)) return;
       res.setHeader(key, value);
