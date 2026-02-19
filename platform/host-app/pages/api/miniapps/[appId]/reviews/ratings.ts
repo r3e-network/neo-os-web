@@ -117,6 +117,7 @@ async function getRatings(appId: string, req: NextApiRequest, res: NextApiRespon
     user_rating: userRating,
   };
 
+  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
   return res.status(200).json({ rating });
 }
 

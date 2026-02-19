@@ -32,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const stats = await getBatchStats(appIds, network);
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
     res.status(200).json({ stats });
   } catch (error) {
     logger.error("Batch stats error:", error instanceof Error ? error.message : "unknown error");

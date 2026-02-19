@@ -95,6 +95,7 @@ async function getMessages(appId: string, req: NextApiRequest, res: NextApiRespo
   const participantCount = new Set((participantRows || []).map((row) => String(row.sender_wallet || "").trim()).filter(Boolean))
     .size;
 
+  res.setHeader("Cache-Control", "no-store, private");
   return res.status(200).json({
     messages: ordered,
     participantCount,

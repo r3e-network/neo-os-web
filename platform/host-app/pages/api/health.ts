@@ -14,5 +14,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return;
   }
 
+  res.setHeader("Cache-Control", "s-maxage=10, stale-while-revalidate=30");
   res.status(200).json({ status: "ok" });
 }

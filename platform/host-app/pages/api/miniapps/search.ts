@@ -39,6 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const results = searchApps(catalog, query, category as string, maxResults);
   const suggestions = generateSuggestions(catalog, query);
 
+  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
   return res.status(200).json({
     results,
     total: results.length,

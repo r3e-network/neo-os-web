@@ -103,6 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       permissions: row.permissions || {},
     }));
 
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
     return res.status(200).json({ apps });
   } catch (error) {
     logger.warn("Fetch community apps error:", error instanceof Error ? error.message : "unknown error");
