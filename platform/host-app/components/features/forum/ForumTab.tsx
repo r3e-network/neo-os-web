@@ -183,7 +183,7 @@ function NewThreadForm({
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm"
+          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white"
         >
           <option value="general">General</option>
           <option value="bug">Bug Report</option>
@@ -276,7 +276,7 @@ function ThreadDetail({
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."
             aria-label="Reply"
-            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm"
+            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white"
             maxLength={2000}
           />
           <button
