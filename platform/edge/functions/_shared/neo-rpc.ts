@@ -78,6 +78,7 @@ export async function getGasBalance(address: string): Promise<string> {
   }
 
   // Convert from integer (8 decimals) to decimal string
+  if (typeof gasBalance.amount !== "string" || !/^-?\d+$/.test(gasBalance.amount)) return "0";
   const amount = BigInt(gasBalance.amount);
   const decimals = 8n;
   const divisor = 10n ** decimals;

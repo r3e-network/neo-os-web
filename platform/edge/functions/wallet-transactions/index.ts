@@ -127,6 +127,7 @@ function formatAmount(amount: string, hash: string): string {
   const h = hash.toLowerCase();
   const decimals = h === "0xd2a4cff31913016155e38e474a2c06d08be276cf" ? 8 : 0;
   if (decimals === 0) return amount;
+  if (!/^-?\d+$/.test(amount)) return "0";
 
   const val = BigInt(amount);
   const div = 10n ** BigInt(decimals);

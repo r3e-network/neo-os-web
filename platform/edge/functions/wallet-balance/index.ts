@@ -62,6 +62,7 @@ export async function handler(req: Request): Promise<Response> {
 
   for (const b of balances) {
     const hash = b.assethash.toLowerCase();
+    if (typeof b.amount !== "string" || !/^-?\d+$/.test(b.amount)) continue;
     const amount = BigInt(b.amount);
     const decimals = hash === GAS_HASH.toLowerCase() ? 8n : 0n;
     const divisor = 10n ** decimals;
