@@ -133,7 +133,15 @@ cat > enclave.json <<JSON
         {"name": "NEO_EVENT_CONFIRMATIONS", "fromHost": true},
         {"name": "NEO_EVENT_LISTEN_ALL", "fromHost": true},
         {"name": "NEOFLOW_TASK_IDS", "fromHost": true},
-        {"name": "STRICT_IDENTITY_MODE", "fromHost": true}
+        {"name": "STRICT_IDENTITY_MODE", "fromHost": true},
+        {"name": "GLOBALSIGNER_MAX_BODY_BYTES", "fromHost": true},
+        {"name": "GLOBALSIGNER_DOMAIN_ALLOWLIST", "fromHost": true},
+        {"name": "GLOBALSIGNER_SIGN_RAW_ALLOWLIST", "fromHost": true},
+        {"name": "GLOBALSIGNER_REQUIRE_QUOTE", "fromHost": true},
+        {"name": "CONTRACT_APP_REGISTRY_HASH", "fromHost": true},
+        {"name": "CONTRACT_PAYMENT_HUB_HASH", "fromHost": true},
+        {"name": "CONTRACT_GATEWAY_HASH", "fromHost": true},
+        {"name": "ENVIRONMENT", "fromHost": true}
     ],
     "files": [
         {

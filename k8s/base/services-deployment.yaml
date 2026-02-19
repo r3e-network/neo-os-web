@@ -1743,6 +1743,30 @@ spec:
               key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "globalsigner"
+        - name: GLOBALSIGNER_DOMAIN_ALLOWLIST
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_DOMAIN_ALLOWLIST
+              optional: true
+        - name: GLOBALSIGNER_SIGN_RAW_ALLOWLIST
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_SIGN_RAW_ALLOWLIST
+              optional: true
+        - name: GLOBALSIGNER_MAX_BODY_BYTES
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_MAX_BODY_BYTES
+              optional: true
+        - name: GLOBALSIGNER_REQUIRE_QUOTE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: GLOBALSIGNER_REQUIRE_QUOTE
+              optional: true
         volumeMounts:
         - name: marble-data
           mountPath: /marble
