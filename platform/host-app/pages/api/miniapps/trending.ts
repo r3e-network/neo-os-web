@@ -63,6 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   scored.sort((a, b) => b.score - a.score);
 
+  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
   return res.status(200).json({
     trending: scored.slice(0, maxResults),
     updated_at: new Date().toISOString(),

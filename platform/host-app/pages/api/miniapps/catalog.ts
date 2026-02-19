@@ -22,5 +22,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ app });
   }
 
+  res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
   return res.status(200).json({ apps: catalog });
 }

@@ -45,6 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       level: Number(row.level || 1),
       badges: Number(row.badges || 0),
     }));
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
     return res.status(200).json({
       entries,
       total: offset + entries.length + (entries.length === limit ? 1 : 0),

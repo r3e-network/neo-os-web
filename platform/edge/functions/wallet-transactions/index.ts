@@ -61,7 +61,10 @@ export async function handler(req: Request): Promise<Response> {
     return error(500, "RPC request failed", "RPC_ERROR", req);
   }
 
-  const data = await res.json();
+  let data;
+  try { data = await res.json(); } catch {
+    return error(500, "invalid RPC response", "RPC_ERROR", req);
+  }
   if (data.error) {
     return error(500, "failed to fetch transactions", "RPC_ERROR", req);
   }
