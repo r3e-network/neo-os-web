@@ -220,7 +220,7 @@ func Sign(privateKey *ecdsa.PrivateKey, data []byte) ([]byte, error) {
 
 // Verify verifies an ECDSA signature.
 func Verify(publicKey *ecdsa.PublicKey, data, signature []byte) bool {
-	if len(signature) != 64 {
+	if publicKey == nil || len(signature) != 64 {
 		return false
 	}
 

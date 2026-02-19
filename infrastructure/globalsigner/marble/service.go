@@ -282,6 +282,7 @@ func (s *Service) deriveKeyForVersion(version string) (*ecdsa.PrivateKey, error)
 	if err != nil {
 		return nil, fmt.Errorf("key derivation failed: %w", err)
 	}
+	defer crypto.ZeroBytes(keyMaterial)
 
 	// Convert to P-256 private key using standard library
 	curve := elliptic.P256()
@@ -893,6 +894,7 @@ func (s *Service) Derive(ctx context.Context, req *DeriveRequest) (*DeriveRespon
 	if err != nil {
 		return nil, fmt.Errorf("derivation failed: %w", err)
 	}
+	defer crypto.ZeroBytes(childKeyMaterial)
 
 	// Convert to P-256 private key using standard library
 	curve := elliptic.P256()
