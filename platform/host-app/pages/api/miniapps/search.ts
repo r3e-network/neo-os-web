@@ -35,17 +35,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(200).json({ results: [], total: 0, query: "", suggestions: getPopularSearches() });
   }
 
-  const catalog = await loadMiniAppCatalog("active");
-  const results = searchApps(catalog, query, category as string, maxResults);
-  const suggestions = generateSuggestions(catalog, query);
+  try {
+    const catalog = await loadMiniAppCatalog("active");
+    const results = searchApps(catalog, query, category as string, maxResults);
+    const suggestions = generateSuggestions(catalog, query);
 
-  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-  return res.status(200).json({
-    results,
-    total: results.length,
-    query,
-    suggestions,
-  });
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+    return res.status(200).json({
+      results,
+      total: results.length,
+      query,
+      suggestions,
+    });
+  } catch {
+    return apiError.internal(res);
+  }
 }
 
 /** Full-text search across apps */

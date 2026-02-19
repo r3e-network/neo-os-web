@@ -13,15 +13,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const status = statusRaw === "pending" || statusRaw === "disabled" ? statusRaw : "active";
   const appId = String(req.query.app_id || "").trim();
 
-  const catalog = await loadMiniAppCatalog(status);
-  if (appId) {
-    const app = filterCatalogByAppId(catalog, appId);
-    if (!app) {
-      return apiError.notFound(res, "MiniApp not found");
+  try {
+    const catalog = await loadMiniAppCatalog(status);
+    if (appId) {
+      const app = filterCatalogByAppId(catalog, appId);
+      if (!app) {
+        return apiError.notFound(res, "MiniApp not found");
+      }
+      return res.status(200).json({ app });
     }
-    return res.status(200).json({ app });
-  }
 
-  res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
-  return res.status(200).json({ apps: catalog });
+    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+    return res.status(200).json({ apps: catalog });
+  } catch {
+    return apiError.internal(res);
+  }
 }
