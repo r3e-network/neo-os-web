@@ -33,10 +33,10 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
     onInvoke(op.method, values);
   };
 
-  const btnColor = op.button_style === "danger" ? "#ef4444"
-    : op.button_style === "success" ? "#22c55e"
-    : op.button_style === "secondary" ? "#6b7280"
-    : "#00d4aa";
+  const btnClass = op.button_style === "danger" ? "bg-red-500 hover:bg-red-600"
+    : op.button_style === "success" ? "bg-green-500 hover:bg-green-600"
+    : op.button_style === "secondary" ? "bg-gray-500 hover:bg-gray-600"
+    : "bg-neo hover:bg-neo/90";
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-4 mb-3 border border-gray-200 dark:border-white/[0.08]">
@@ -50,8 +50,7 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
       ))}
       <button
         type="button"
-        className="w-full py-2.5 rounded-lg border-none text-white font-semibold text-sm cursor-pointer"
-        style={{ background: btnColor }}
+        className={`w-full py-2.5 rounded-lg border-none text-white font-semibold text-sm cursor-pointer transition-colors ${btnClass}`}
         onClick={handleSubmit}
       >
         {op.name}

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getEvents, markAsRead, getUnreadCount } from "@/lib/notifications/supabase-service";
 import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 import { withCsrfProtection } from "@/lib/csrf";
 import { standardLimit } from "@/lib/rate-limit";
 
@@ -37,7 +38,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     return apiError.methodNotAllowed(res);
-  } catch {
+  } catch (err) {
+    logger.error("Notification events error:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Failed to process notification events");
   }
 }

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -62,6 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Cache-Control", "no-store, private");
     res.status(upstream.status).json(data);
   } catch (err) {
+    logger.error("Failed to fetch events:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Failed to fetch events");
   }
 }
