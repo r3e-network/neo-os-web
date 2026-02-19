@@ -6,7 +6,6 @@ import { MiniAppGrid, type MiniAppInfo } from "@/components/features/miniapp";
 import { TwitterFeed } from "@/components/features/twitter";
 import { StakingCard } from "@/components/features/staking";
 import { useTranslation } from "@/lib/i18n/react";
-import { LanguageToggle } from "@/lib/i18n/LanguageSwitcher";
 
 // Platform stats
 const platformStats = [
@@ -78,11 +77,6 @@ export default function HomePage() {
         <title>{t("hero.title")}</title>
         <meta name="description" content={t("hero.subtitle")} />
       </Head>
-
-      {/* Language Toggle */}
-      <div className="absolute right-4 top-4 z-50">
-        <LanguageToggle />
-      </div>
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary-500 to-primary-700 py-20 text-white">
