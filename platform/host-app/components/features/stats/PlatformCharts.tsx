@@ -49,7 +49,7 @@ export function PlatformCharts({ mauHistory, topApps, loading }: PlatformChartsP
           </AreaChart>
         </ResponsiveContainer>
       ) : (
-        <div className="flex items-center justify-center h-full text-slate-500">No historical data available</div>
+        <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">No historical data available</div>
       )}
     </>
   );
@@ -67,7 +67,7 @@ export function TopAppsChart({ topApps, loading }: Omit<PlatformChartsProps, "ma
     );
   }
   if (topApps.length === 0) {
-    return <div className="flex items-center justify-center h-full text-slate-500">No app data available</div>;
+    return <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">No app data available</div>;
   }
   return (
     <ResponsiveContainer width="100%" height="100%">

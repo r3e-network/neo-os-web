@@ -166,7 +166,7 @@ export default function LandingPage() {
               Next-Gen <br />
               <span className="neo-gradient-text">MiniApp Platform</span>
             </h1>
-            <p className="mx-auto mt-8 max-w-2xl text-lg text-slate-400 md:text-xl">
+            <p className="mx-auto mt-8 max-w-2xl text-lg text-gray-600 dark:text-gray-400 md:text-xl">
               Experience the power of Neo N3 with unified identity, zero-friction wallet connectivity, and the most
               secure execution environment for decentralized apps.
             </p>
@@ -361,7 +361,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Why MiniApps on Neo?</h2>
-            <p className="mt-4 text-slate-400 max-w-2xl mx-auto">
+            <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Neo N3 provides the ultimate developer experience and user security for the next generation of web3
               applications.
             </p>
@@ -431,7 +431,7 @@ function FeatureItem({ icon: Icon, title, desc }: { icon: React.ComponentType<{ 
         <Icon size={24} />
       </div>
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{title}</h3>
-      <p className="text-gray-600 dark:text-slate-400 text-sm leading-relaxed">{desc}</p>
+      <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{desc}</p>
     </Card>
   );
 }

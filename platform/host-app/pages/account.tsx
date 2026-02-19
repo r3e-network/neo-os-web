@@ -25,7 +25,7 @@ export default function AccountPage() {
       <div className="mx-auto max-w-4xl px-4 py-12">
         <div className="mb-10">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Profile Settings</h1>
-          <p className="mt-2 text-slate-400">Manage your Neo identity and social connections</p>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">Manage your Neo identity and social connections</p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-3">
@@ -50,10 +50,10 @@ export default function AccountPage() {
                     <Wallet className="text-neo" size={24} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-400">Wallet Address</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Wallet Address</p>
                     <p className="text-lg font-mono text-gray-900 dark:text-white truncate">NdovA...s9Kda</p>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-slate-400 hover:text-gray-900 dark:hover:text-white">
+                  <Button variant="ghost" size="sm" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
                     Copy
                   </Button>
                 </div>
@@ -103,12 +103,12 @@ export default function AccountPage() {
               <CardContent className="pt-4 space-y-4">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-emerald-500">{stats?.xp || 0}</div>
-                  <div className="text-xs text-slate-400">{levelInfo?.name || "Newcomer"}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{levelInfo?.name || "Newcomer"}</div>
                 </div>
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">Progress to Lv.{(stats?.level || 1) + 1}</span>
-                    <span className="text-slate-400">
+                    <span className="text-gray-500 dark:text-gray-400">Progress to Lv.{(stats?.level || 1) + 1}</span>
+                    <span className="text-gray-500 dark:text-gray-400">
                       {stats?.xp || 0}/{levelInfo?.maxXP || 100}
                     </span>
                   </div>
@@ -122,7 +122,7 @@ export default function AccountPage() {
                 <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-white/5">
                   <Link
                     href="/leaderboard"
-                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-400 transition-colors"
+                    className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-emerald-400 transition-colors"
                   >
                     <TrendingUp size={12} />
                     <span>Rank #{stats?.rank || "-"}</span>
@@ -163,7 +163,7 @@ export default function AccountPage() {
                 <Shield size={14} className="text-indigo-400" />
                 Security Tip
               </h3>
-              <p className="mt-2 text-xs text-slate-400 leading-relaxed">
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                 Connect multiple socials to ensure you can always recover your account access.
               </p>
             </div>
@@ -196,9 +196,9 @@ function OAuthBindingItem({
         <div>
           <p className="text-sm font-medium text-gray-900 dark:text-white">{provider.name}</p>
           {isConnected && account ? (
-            <p className="text-xs text-slate-500">{account.email || account.name}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{account.email || account.name}</p>
           ) : (
-            <p className="text-xs text-slate-500">Not connected</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Not connected</p>
           )}
         </div>
       </div>
@@ -210,7 +210,7 @@ function OAuthBindingItem({
         className={cn(
           "h-8 text-xs",
           isConnected
-            ? "border-gray-200 dark:border-white/10 text-slate-400 hover:text-red-400 hover:border-red-400/30"
+            ? "border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:text-red-400 hover:border-red-400/30"
             : "bg-neo hover:bg-neo/90",
         )}
       >
@@ -224,7 +224,7 @@ function StatItem({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="p-3 rounded-lg bg-gray-100 dark:bg-dark-800/50 text-center">
       <div className="text-lg font-bold text-gray-900 dark:text-white">{value}</div>
-      <div className="text-[10px] text-slate-400">{label}</div>
+      <div className="text-[10px] text-gray-500 dark:text-gray-400">{label}</div>
     </div>
   );
 }

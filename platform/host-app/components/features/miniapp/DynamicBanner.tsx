@@ -183,10 +183,10 @@ const CATEGORY_GLOWS: Record<string, string> = {
   defi: "bg-cyan-400/30",
   social: "bg-rose-400/30",
   governance: "bg-emerald-400/30",
-  utility: "bg-slate-400/30",
+  utility: "bg-gray-400/30",
   nft: "bg-teal-400/30",
   data: "bg-cyan-400/30",
-  other: "bg-slate-400/30",
+  other: "bg-gray-400/30",
 };
 
 // Seeded random number generator for consistent randomness per appId

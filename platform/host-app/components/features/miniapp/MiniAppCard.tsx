@@ -33,7 +33,7 @@ const categoryColors = {
   utility: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
   nft: "bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300",
   data: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300",
-  other: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300",
+  other: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
 };
 
 const sourceColors = {
