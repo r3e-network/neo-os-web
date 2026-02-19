@@ -32,6 +32,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return sendError(res, "Invalid state parameter");
   }
 
+  // Clear state cookie to prevent replay
+  res.setHeader("Set-Cookie", "oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+
   if (!code) {
     return sendError(res, "Missing authorization code");
   }

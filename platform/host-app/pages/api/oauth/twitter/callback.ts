@@ -31,6 +31,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return sendError(res, "Invalid state");
   }
 
+  // Clear state and PKCE cookies to prevent replay
+  res.setHeader("Set-Cookie", [
+    "oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
+    "code_verifier=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
+  ]);
+
   if (!code || !codeVerifier) {
     return sendError(res, "Missing code or verifier");
   }
