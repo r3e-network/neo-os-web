@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 
@@ -7,8 +8,9 @@ export async function handler(req: Request): Promise<Response> {
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
-  const body = await req.json().catch(() => null);
-  const address = (body?.address ?? "").trim();
+  const bodyOrErr = await readJsonBody(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const address = ((bodyOrErr as Record<string, unknown>)?.address as string ?? "").trim();
   if (!address || !/^N[A-HJ-NP-Za-km-z1-9]{33}$/.test(address)) {
     return error(400, "valid Neo N3 address required", "INVALID_INPUT", req);
   }
