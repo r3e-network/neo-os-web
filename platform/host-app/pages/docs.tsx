@@ -260,7 +260,7 @@ function SDKReferenceContent() {
             </div>
             <div>
               <h4 className="font-medium text-gray-900 dark:text-white">{item.title}</h4>
-              <p className="text-sm text-gray-500">{item.desc}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
             </div>
             <ChevronRight className="ml-auto text-gray-400" size={16} />
           </div>
@@ -413,7 +413,7 @@ function PlatformServicesContent() {
               <item.icon className="text-white" size={24} />
             </div>
             <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{item.title}</h4>
-            <p className="text-sm text-gray-500">{item.desc}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
           </div>
         ))}
       </div>

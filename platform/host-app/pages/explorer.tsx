@@ -197,7 +197,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
                   {data.opcode_traces.map((t) => (
                     <tr key={t.step_index} className="border-b hover:bg-muted/50">
                       <td className="p-2">{t.step_index}</td>
-                      <td className="p-2 text-green-600">{t.opcode}</td>
+                      <td className="p-2 text-green-600 dark:text-green-400">{t.opcode}</td>
                       <td className="p-2 text-muted-foreground">{t.opcode_hex}</td>
                       <td className="p-2">{t.instruction_ptr}</td>
                     </tr>
