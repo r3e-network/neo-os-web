@@ -72,7 +72,7 @@ const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser
           {isCurrentUser && <span className="text-xs text-emerald-500">(You)</span>}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">
-          <span style={{ color: level.color }}>Lv.{entry.level}</span>
+          <span className={level.color}>Lv.{entry.level}</span>
           <span>•</span>
           <span>{entry.badges} badges</span>
         </div>

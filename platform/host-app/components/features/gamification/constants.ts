@@ -1,12 +1,12 @@
 import type { Badge, UserLevel } from "./types";
 
 export const LEVELS: UserLevel[] = [
-  { level: 1, name: "Newcomer", minXP: 0, maxXP: 100, color: "#9CA3AF", perks: [] },
-  { level: 2, name: "Explorer", minXP: 100, maxXP: 300, color: "#10B981", perks: ["Profile badge"] },
-  { level: 3, name: "Contributor", minXP: 300, maxXP: 600, color: "#3B82F6", perks: ["Custom avatar"] },
-  { level: 4, name: "Veteran", minXP: 600, maxXP: 1000, color: "#8B5CF6", perks: ["Priority support"] },
-  { level: 5, name: "Pioneer", minXP: 1000, maxXP: 2000, color: "#F59E0B", perks: ["Beta access"] },
-  { level: 6, name: "Legend", minXP: 2000, maxXP: 5000, color: "#EF4444", perks: ["Exclusive events"] },
+  { level: 1, name: "Newcomer", minXP: 0, maxXP: 100, color: "text-gray-400", perks: [] },
+  { level: 2, name: "Explorer", minXP: 100, maxXP: 300, color: "text-emerald-500", perks: ["Profile badge"] },
+  { level: 3, name: "Contributor", minXP: 300, maxXP: 600, color: "text-blue-500", perks: ["Custom avatar"] },
+  { level: 4, name: "Veteran", minXP: 600, maxXP: 1000, color: "text-violet-500", perks: ["Priority support"] },
+  { level: 5, name: "Pioneer", minXP: 1000, maxXP: 2000, color: "text-amber-500", perks: ["Beta access"] },
+  { level: 6, name: "Legend", minXP: 2000, maxXP: 5000, color: "text-red-500", perks: ["Exclusive events"] },
 ];
 
 export const BADGES: Badge[] = [
