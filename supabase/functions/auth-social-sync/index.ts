@@ -83,7 +83,7 @@ export async function handler(req: Request): Promise<Response> {
 
     // Also create users row for metadata
     const { error: userErr } = await supabase.from("users").insert({ email, wallet_type: "custodial" }).select("id").maybeSingle();
-    if (userErr && !userErr.message.includes("duplicate")) {
+    if (userErr && userErr.code !== "23505") {
       return error(500, "failed to create user", "DB_ERROR", req);
     }
 
