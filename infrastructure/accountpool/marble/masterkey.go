@@ -55,7 +55,7 @@ func (s *Service) loadMasterKey(m *marble.Marble) error {
 			return fmt.Errorf("parse %s: %w", secretPoolMasterKeyHash, err)
 		}
 		if !equalHash(expHash, computedHash[:]) {
-			return fmt.Errorf("%s mismatch: expected %s got %s", secretPoolMasterKeyHash, hex.EncodeToString(expHash), hex.EncodeToString(computedHash[:]))
+			return fmt.Errorf("%s mismatch", secretPoolMasterKeyHash)
 		}
 	} else if m.IsEnclave() {
 		return fmt.Errorf("missing %s secret in enclave mode", secretPoolMasterKeyHash)
