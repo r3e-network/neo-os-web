@@ -156,10 +156,10 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
   defi: "from-cyan-500 to-blue-600",
   social: "from-pink-500 to-rose-600",
   governance: "from-emerald-500 to-teal-600",
-  utility: "from-slate-500 to-gray-600",
+  utility: "from-gray-500 to-gray-600",
   nft: "from-teal-500 to-emerald-600",
   data: "from-cyan-500 to-sky-700",
-  other: "from-slate-500 to-zinc-700",
+  other: "from-gray-500 to-zinc-700",
 };
 
 interface MiniAppLogoProps {

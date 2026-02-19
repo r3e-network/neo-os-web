@@ -116,7 +116,7 @@ function CanvasCard({ data, className }: { data: CanvasData; className: string }
 
   return (
     <div
-      className={`h-full flex flex-col justify-center items-center p-3 text-white bg-gradient-to-br from-slate-800 to-slate-900 ${className}`}
+      className={`h-full flex flex-col justify-center items-center p-3 text-white bg-gradient-to-br from-gray-800 to-gray-900 ${className}`}
     >
       <canvas ref={canvasRef} width={80} height={80} className="rounded border-2 border-white/10 mb-2" />
       <div className="flex justify-between w-full text-xs opacity-90 px-2">
@@ -189,7 +189,7 @@ function PriceCard({ data, className }: { data: PriceData; className: string }) 
 
   return (
     <div
-      className={`h-full flex flex-col justify-center p-3 text-white bg-gradient-to-br from-slate-800 to-slate-950 ${className}`}
+      className={`h-full flex flex-col justify-center p-3 text-white bg-gradient-to-br from-gray-800 to-gray-950 ${className}`}
     >
       <div className="flex justify-between items-center mb-1">
         <span className="text-xs font-semibold opacity-90">{data.symbol}</span>

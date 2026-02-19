@@ -122,10 +122,10 @@ const UNIQUE_GRADIENTS = [
   // Amber/Yellow family
   "from-amber-500 via-yellow-600 to-amber-700",
   "from-yellow-500 via-amber-600 to-orange-600",
-  // Slate/Gray family
-  "from-slate-500 via-gray-600 to-slate-800",
-  "from-gray-500 via-slate-600 to-zinc-700",
-  "from-zinc-500 via-gray-600 to-slate-700",
+  // Gray family
+  "from-gray-500 via-gray-600 to-gray-800",
+  "from-gray-500 via-gray-600 to-zinc-700",
+  "from-zinc-500 via-gray-600 to-gray-700",
   // Mixed gradients
   "from-purple-600 via-pink-500 to-red-600",
   "from-blue-600 via-purple-500 to-pink-600",
