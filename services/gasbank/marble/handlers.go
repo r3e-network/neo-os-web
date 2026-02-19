@@ -139,6 +139,10 @@ func (s *Service) handleGetTransactions(w http.ResponseWriter, r *http.Request) 
 		httputil.InternalError(w, "internal error")
 		return
 	}
+	if account == nil {
+		httputil.WriteJSON(w, http.StatusOK, map[string]any{"transactions": []any{}})
+		return
+	}
 
 	limit := 50 // Default limit
 	txs, err := s.db.GetGasBankTransactions(r.Context(), account.ID, limit)
