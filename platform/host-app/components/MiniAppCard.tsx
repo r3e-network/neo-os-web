@@ -10,7 +10,7 @@ type Props = {
 
 export function MiniAppCard({ app, stats, onClick }: Props) {
   return (
-    <div onClick={onClick} style={cardStyle}>
+    <div role="button" tabIndex={0} onClick={onClick} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }} style={cardStyle}>
       {app.logo_url ? (
         <img src={app.logo_url} alt={app.name} style={logoImgStyle} />
       ) : (
