@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { OperationEntry, OperationParam } from "./types";
-import { colors } from "./styles";
 
 type Props = {
   operations: OperationEntry[];
@@ -11,8 +10,8 @@ type Props = {
 export function OperationPanel({ operations, contractHash, onInvoke }: Props) {
   if (!operations.length) return null;
   return (
-    <div style={container}>
-      <h3 style={heading}>Operations</h3>
+    <div className="mt-6">
+      <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Operations</h3>
       {operations.map((op, i) => (
         <OperationCard key={op.method} op={op} onInvoke={onInvoke} />
       ))}
@@ -37,19 +36,24 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
   const btnColor = op.button_style === "danger" ? "#ef4444"
     : op.button_style === "success" ? "#22c55e"
     : op.button_style === "secondary" ? "#6b7280"
-    : colors.primary;
+    : "#00d4aa";
 
   return (
-    <div style={card}>
-      <div style={cardHeader}>
-        <span style={opName}>{op.name}</span>
-        {op.gas_cost && <span style={gasBadge}>{op.gas_cost} GAS</span>}
+    <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-4 mb-3 border border-gray-200 dark:border-white/[0.08]">
+      <div className="flex justify-between items-center mb-2">
+        <span className="font-semibold text-[15px] text-gray-900 dark:text-white">{op.name}</span>
+        {op.gas_cost && <span className="text-[11px] text-neo bg-neo/10 px-2 py-0.5 rounded-md">{op.gas_cost} GAS</span>}
       </div>
-      {op.description && <p style={desc}>{op.description}</p>}
+      {op.description && <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-3">{op.description}</p>}
       {(op.params ?? []).map((p) => (
         <ParamInput key={p.name} param={p} value={values[p.name] ?? ""} onChange={v => setValues({ ...values, [p.name]: v })} />
       ))}
-      <button type="button" style={{ ...invokeBtn, background: btnColor }} onClick={handleSubmit}>
+      <button
+        type="button"
+        className="w-full py-2.5 rounded-lg border-none text-white font-semibold text-sm cursor-pointer"
+        style={{ background: btnColor }}
+        onClick={handleSubmit}
+      >
         {op.name}
       </button>
     </div>
@@ -61,7 +65,7 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
 
   if (param.type === "boolean") {
     return (
-      <label style={boolLabel}>
+      <label className="flex items-center gap-2 text-sm mb-2.5 text-gray-900 dark:text-white">
         <input type="checkbox" checked={value === "true"} onChange={e => onChange(String(e.target.checked))} />
         {label}
       </label>
@@ -70,9 +74,13 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
 
   if (param.type === "select" && param.options?.length) {
     return (
-      <div style={fieldWrap}>
-        <label style={fieldLabel}>{label}{param.required && " *"}</label>
-        <select style={selectStyle} value={value} onChange={e => onChange(e.target.value)}>
+      <div className="mb-2.5">
+        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
+        <select
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] text-sm bg-transparent text-gray-900 dark:text-white"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+        >
           <option value="">Select...</option>
           {param.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -81,10 +89,10 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
   }
 
   return (
-    <div style={fieldWrap}>
-      <label style={fieldLabel}>{label}{param.required && " *"}</label>
+    <div className="mb-2.5">
+      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
       <input
-        style={inputStyle}
+        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] text-sm bg-transparent text-gray-900 dark:text-white"
         type={param.type === "integer" || param.type === "amount" ? "number" : "text"}
         placeholder={param.placeholder || label}
         value={value}
@@ -93,17 +101,3 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
     </div>
   );
 }
-
-const container: React.CSSProperties = { marginTop: 24 };
-const heading: React.CSSProperties = { fontSize: 18, fontWeight: 600, marginBottom: 12 };
-const card: React.CSSProperties = { background: colors.bgCard, borderRadius: 12, padding: 16, marginBottom: 12, border: `1px solid ${colors.border}` };
-const cardHeader: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 };
-const opName: React.CSSProperties = { fontWeight: 600, fontSize: 15 };
-const gasBadge: React.CSSProperties = { fontSize: 11, color: colors.primary, background: "rgba(0,212,170,0.12)", padding: "2px 8px", borderRadius: 6 };
-const desc: React.CSSProperties = { fontSize: 13, color: colors.textMuted, margin: "0 0 12px 0" };
-const fieldWrap: React.CSSProperties = { marginBottom: 10 };
-const fieldLabel: React.CSSProperties = { display: "block", fontSize: 12, color: colors.textMuted, marginBottom: 4 };
-const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${colors.border}`, fontSize: 14, background: "transparent", color: colors.text };
-const selectStyle: React.CSSProperties = { ...inputStyle };
-const boolLabel: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 10 };
-const invokeBtn: React.CSSProperties = { width: "100%", padding: 10, borderRadius: 8, border: "none", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer" };

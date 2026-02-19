@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -6,7 +6,6 @@ import {
   MiniAppInfo,
   MiniAppStats,
   MiniAppNotification,
-  colors,
   AppDetailHeader,
   AppStatsCard,
   AppNewsList,
@@ -114,11 +113,17 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
   if (error || !app) {
     return (
-      <div style={containerStyle}>
-        <div style={errorContainerStyle}>
-          <h1 style={errorTitleStyle}>App Not Found</h1>
-          <p style={errorMessageStyle}>{error || "The requested MiniApp does not exist."}</p>
-          <button type="button" style={backButtonStyle} onClick={() => router.push("/miniapps")}>
+      <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-24">
+        <div className="flex flex-col items-center justify-center min-h-screen p-8">
+          <h1 className="text-[32px] font-bold text-gray-900 dark:text-white mb-4">App Not Found</h1>
+          <p className="text-base text-gray-500 dark:text-gray-400 mb-6">
+            {error || "The requested MiniApp does not exist."}
+          </p>
+          <button
+            type="button"
+            className="px-6 py-3 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-transparent text-gray-900 dark:text-white text-sm cursor-pointer"
+            onClick={() => router.push("/miniapps")}
+          >
             ← Back to MiniApps
           </button>
         </div>
@@ -137,19 +142,19 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   const statCards = stats ? buildStatCards(stats, app.stats_display ?? undefined) : [];
 
   return (
-    <div style={containerStyle}>
+    <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-24">
       <Head><title>{app.name} - NeoHub</title></Head>
       <AppDetailHeader app={app} stats={stats || undefined} onBack={handleBack} />
 
-      <main style={mainStyle}>
+      <main className="max-w-[1200px] mx-auto px-6 py-8">
         {/* Hero Section */}
-        <section style={heroStyle}>
-          <p style={descriptionStyle}>{app.description}</p>
+        <section className="mb-8">
+          <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed">{app.description}</p>
         </section>
 
         {/* Stats Grid */}
         {stats && statCards.length > 0 && (
-          <section style={statsGridStyle}>
+          <section className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4 mb-8">
             {statCards.map((card) => (
               <AppStatsCard
                 key={card.title}
@@ -164,17 +169,19 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
         )}
 
         {/* App Activity Ticker */}
-        <section style={activitySectionStyle}>
+        <section className="mb-6">
           <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={150} scrollSpeed={20} />
         </section>
 
         {/* Tabs */}
-        <section style={tabsContainerStyle}>
-          <div style={tabsHeaderStyle}>
+        <section className="mb-8">
+          <div className="flex gap-2 border-b border-gray-200 dark:border-white/[0.08] mb-6">
             <button
               type="button"
               aria-pressed={activeTab === "overview"}
-              style={activeTab === "overview" ? tabButtonActiveStyle : tabButtonStyle}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                activeTab === "overview" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
+              }`}
               onClick={() => setActiveTab("overview")}
             >
               Overview
@@ -182,7 +189,9 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             <button
               type="button"
               aria-pressed={activeTab === "reviews"}
-              style={activeTab === "reviews" ? tabButtonActiveStyle : tabButtonStyle}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                activeTab === "reviews" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
+              }`}
               onClick={() => setActiveTab("reviews")}
             >
               ⭐ Reviews
@@ -190,7 +199,9 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             <button
               type="button"
               aria-pressed={activeTab === "forum"}
-              style={activeTab === "forum" ? tabButtonActiveStyle : tabButtonStyle}
+              className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                activeTab === "forum" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
+              }`}
               onClick={() => setActiveTab("forum")}
             >
               💬 Forum
@@ -199,7 +210,9 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               <button
                 type="button"
                 aria-pressed={activeTab === "news"}
-                style={activeTab === "news" ? tabButtonActiveStyle : tabButtonStyle}
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                  activeTab === "news" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
+                }`}
                 onClick={() => setActiveTab("news")}
               >
                 News ({notifications.length})
@@ -209,7 +222,9 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               <button
                 type="button"
                 aria-pressed={activeTab === "secrets"}
-                style={activeTab === "secrets" ? tabButtonActiveStyle : tabButtonStyle}
+                className={`px-6 py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                  activeTab === "secrets" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
+                }`}
                 onClick={() => setActiveTab("secrets")}
               >
                 🔐 Secrets
@@ -217,20 +232,26 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             )}
           </div>
 
-          <div style={tabContentStyle}>
+          <div className="min-h-[200px]">
             {activeTab === "overview" && <OverviewTab app={app} />}
             {activeTab === "reviews" && <ReviewsTab appId={app.app_id} />}
             {activeTab === "forum" && <ForumTab appId={app.app_id} />}
             {activeTab === "news" && showNews && <AppNewsList notifications={notifications} />}
             {activeTab === "secrets" && showSecrets && <AppSecretsTab appId={app.app_id} appName={app.name} />}
-            {!showNews && activeTab === "news" && <p style={newsDisabledStyle}>News feed disabled by manifest.</p>}
+            {!showNews && activeTab === "news" && (
+              <p className="mt-4 text-[13px] text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
+            )}
           </div>
         </section>
       </main>
 
       {/* Fixed Launch Button */}
-      <div style={launchBarStyle}>
-        <button type="button" style={launchButtonStyle} onClick={handleLaunch}>
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-50 dark:bg-gray-900/80 border-t border-gray-200 dark:border-white/[0.08] px-6 py-4 flex justify-center z-[100]">
+        <button
+          type="button"
+          className="px-12 py-3.5 rounded-xl border-none bg-neo text-black text-base font-bold cursor-pointer transition-all hover:bg-neo/90"
+          onClick={handleLaunch}
+        >
           Launch App →
         </button>
       </div>
@@ -240,15 +261,15 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
 function OverviewTab({ app }: { app: MiniAppInfo }) {
   return (
-    <div style={overviewContainerStyle}>
-      <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>Permissions</h3>
-        <div style={permissionsGridStyle}>
+    <div className="flex flex-col gap-6">
+      <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Permissions</h3>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
           {Object.entries(app.permissions).map(([key, value]) =>
             value ? (
-              <div key={key} style={permissionItemStyle}>
-                <span style={permissionIconStyle}>✓</span>
-                <span style={permissionTextStyle}>{formatPermission(key)}</span>
+              <div key={key} className="flex items-center gap-2">
+                <span className="text-neo text-base font-bold">✓</span>
+                <span className="text-sm text-gray-900 dark:text-white">{formatPermission(key)}</span>
               </div>
             ) : null,
           )}
@@ -256,26 +277,37 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
       </div>
 
       {app.limits && (
-        <div style={sectionStyle}>
-          <h3 style={sectionTitleStyle}>Limits</h3>
-          <ul style={limitListStyle}>
+        <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Limits</h3>
+          <ul className="list-none p-0 m-0">
             {app.limits.max_gas_per_tx && (
-              <li style={limitItemStyle}>Max GAS per transaction: {app.limits.max_gas_per_tx}</li>
+              <li className="text-sm text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-white/[0.08]">
+                Max GAS per transaction: {app.limits.max_gas_per_tx}
+              </li>
             )}
             {app.limits.daily_gas_cap_per_user && (
-              <li style={limitItemStyle}>Daily GAS cap per user: {app.limits.daily_gas_cap_per_user}</li>
+              <li className="text-sm text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-white/[0.08]">
+                Daily GAS cap per user: {app.limits.daily_gas_cap_per_user}
+              </li>
             )}
             {app.limits.governance_cap && (
-              <li style={limitItemStyle}>Governance cap per user: {app.limits.governance_cap}</li>
+              <li className="text-sm text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-white/[0.08]">
+                Governance cap per user: {app.limits.governance_cap}
+              </li>
             )}
           </ul>
         </div>
       )}
 
       {app.docs_url && (
-        <div style={sectionStyle}>
-          <h3 style={sectionTitleStyle}>Documentation</h3>
-          <a href={app.docs_url} target="_blank" rel="noopener noreferrer" style={docsLinkStyle}>
+        <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Documentation</h3>
+          <a
+            href={app.docs_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-neo no-underline text-sm font-medium"
+          >
             📄 View Documentation →
           </a>
         </div>
@@ -289,30 +321,23 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
         return <OperationPanel operations={ops} contractHash={app.contract_hash ?? undefined} onInvoke={(method, params) => { logger.debug("invoke", app.contract_hash, method, params); }} />;
       })()}
 
-      <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>Contract Details</h3>
-        <p style={infoTextStyle}>
-          App ID: <code style={codeStyle}>{app.app_id}</code>
+      <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Contract Details</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
+          App ID: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[13px] font-mono text-neo">{app.app_id}</code>
         </p>
         {app.contract_hash && (
-          <p style={infoTextStyle}>
-            Contract Hash: <code style={codeStyle}>{app.contract_hash}</code>
+          <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
+            Contract Hash: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[13px] font-mono text-neo">{app.contract_hash}</code>
           </p>
         )}
-        <p style={infoTextStyle}>
-          Entry URL: <code style={codeStyle}>{app.entry_url}</code>
+        <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
+          Entry URL: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[13px] font-mono text-neo">{app.entry_url}</code>
         </p>
       </div>
     </div>
   );
 }
-
-const docsLinkStyle: React.CSSProperties = {
-  color: colors.primary,
-  textDecoration: "none",
-  fontSize: 14,
-  fontWeight: 500,
-};
 
 function formatPermission(key: string): string {
   return key
@@ -421,214 +446,4 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
       },
     };
   }
-};
-
-// Styles
-const containerStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: colors.bg,
-  color: colors.text,
-  paddingBottom: 100,
-};
-
-const errorContainerStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: "100vh",
-  padding: 32,
-};
-
-const errorTitleStyle: React.CSSProperties = {
-  fontSize: 32,
-  fontWeight: 700,
-  color: colors.text,
-  marginBottom: 16,
-};
-
-const errorMessageStyle: React.CSSProperties = {
-  fontSize: 16,
-  color: colors.textMuted,
-  marginBottom: 24,
-};
-
-const backButtonStyle: React.CSSProperties = {
-  padding: "12px 24px",
-  borderRadius: 8,
-  border: `1px solid ${colors.border}`,
-  background: "transparent",
-  color: colors.text,
-  fontSize: 14,
-  cursor: "pointer",
-};
-
-const mainStyle: React.CSSProperties = {
-  maxWidth: 1200,
-  margin: "0 auto",
-  padding: "32px 24px",
-};
-
-const heroStyle: React.CSSProperties = {
-  marginBottom: 32,
-};
-
-const descriptionStyle: React.CSSProperties = {
-  fontSize: 16,
-  color: colors.textMuted,
-  lineHeight: 1.6,
-  margin: 0,
-};
-
-const statsGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: 16,
-  marginBottom: 32,
-};
-
-const activitySectionStyle: React.CSSProperties = {
-  marginBottom: 24,
-};
-
-const tabsContainerStyle: React.CSSProperties = {
-  marginBottom: 32,
-};
-
-const tabsHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 8,
-  borderBottom: `1px solid ${colors.border}`,
-  marginBottom: 24,
-};
-
-const tabButtonStyle: React.CSSProperties = {
-  padding: "12px 24px",
-  background: "transparent",
-  border: "none",
-  borderBottom: "2px solid transparent",
-  color: colors.textMuted,
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: "pointer",
-  transition: "all 0.2s",
-};
-
-const tabButtonActiveStyle: React.CSSProperties = {
-  padding: "12px 24px",
-  background: "transparent",
-  border: "none",
-  borderBottom: `2px solid ${colors.primary}`,
-  color: colors.primary,
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: "pointer",
-  transition: "all 0.2s",
-};
-
-const tabContentStyle: React.CSSProperties = {
-  minHeight: 200,
-};
-
-const newsDisabledStyle: React.CSSProperties = {
-  marginTop: 16,
-  fontSize: 13,
-  color: colors.textMuted,
-};
-
-const launchBarStyle: React.CSSProperties = {
-  position: "fixed",
-  bottom: 0,
-  left: 0,
-  right: 0,
-  background: colors.bgCard,
-  borderTop: `1px solid ${colors.border}`,
-  padding: "16px 24px",
-  display: "flex",
-  justifyContent: "center",
-  zIndex: 100,
-};
-
-const launchButtonStyle: React.CSSProperties = {
-  padding: "14px 48px",
-  borderRadius: 10,
-  border: "none",
-  background: colors.primary,
-  color: "#000",
-  fontSize: 16,
-  fontWeight: 700,
-  cursor: "pointer",
-  transition: "all 0.2s",
-};
-
-const overviewContainerStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 24,
-};
-
-const sectionStyle: React.CSSProperties = {
-  background: colors.bgCard,
-  borderRadius: 12,
-  padding: 24,
-  border: `1px solid ${colors.border}`,
-};
-
-const sectionTitleStyle: React.CSSProperties = {
-  fontSize: 18,
-  fontWeight: 600,
-  color: colors.text,
-  marginTop: 0,
-  marginBottom: 16,
-};
-
-const permissionsGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-  gap: 12,
-};
-
-const permissionItemStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-};
-
-const permissionIconStyle: React.CSSProperties = {
-  color: colors.primary,
-  fontSize: 16,
-  fontWeight: 700,
-};
-
-const permissionTextStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: colors.text,
-};
-
-const limitListStyle: React.CSSProperties = {
-  listStyle: "none",
-  padding: 0,
-  margin: 0,
-};
-
-const limitItemStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: colors.textMuted,
-  padding: "8px 0",
-  borderBottom: `1px solid ${colors.border}`,
-};
-
-const infoTextStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: colors.textMuted,
-  margin: "8px 0",
-};
-
-const codeStyle: React.CSSProperties = {
-  background: "rgba(0,212,170,0.1)",
-  padding: "2px 6px",
-  borderRadius: 4,
-  fontSize: 13,
-  fontFamily: "monospace",
-  color: colors.primary,
 };

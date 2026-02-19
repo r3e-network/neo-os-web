@@ -1,6 +1,5 @@
 import React from "react";
 import { MiniAppInfo, MiniAppStats } from "./types";
-import { colors } from "./styles";
 
 type Props = {
   app: MiniAppInfo;
@@ -10,100 +9,42 @@ type Props = {
 
 export function AppDetailHeader({ app, stats, onBack }: Props) {
   let statusBadge = stats?.last_activity_at ? "Active" : "Inactive";
-  let statusColor = stats?.last_activity_at ? colors.primary : colors.textMuted;
+  let statusColor = stats?.last_activity_at ? "text-neo" : "text-gray-500 dark:text-gray-400";
   if (app.status === "active") {
     statusBadge = "Online";
-    statusColor = colors.primary;
+    statusColor = "text-neo";
   } else if (app.status === "disabled") {
     statusBadge = "Maintenance";
-    statusColor = "#10b981"; // emerald-500 (Neo Green style)
+    statusColor = "text-emerald-500";
   } else if (app.status === "pending") {
     statusBadge = "Pending";
-    statusColor = colors.textMuted;
+    statusColor = "text-gray-500 dark:text-gray-400";
   }
 
   return (
-    <header style={headerStyle}>
-      <button type="button" onClick={onBack} style={backButtonStyle} aria-label="Go back">
+    <header className="border-b border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-gray-900/80 px-8 py-6">
+      <button
+        type="button"
+        onClick={onBack}
+        aria-label="Go back"
+        className="mb-4 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-transparent px-4 py-2 text-sm text-gray-900 dark:text-white transition-all hover:bg-gray-100 dark:hover:bg-white/5"
+      >
         ← Back
       </button>
-      <div style={headerContentStyle}>
-        <div style={iconContainerStyle}>{app.icon}</div>
-        <div style={infoStyle}>
-          <h1 style={titleStyle}>{app.name}</h1>
-          <div style={metaRowStyle}>
-            <span style={categoryBadgeStyle}>{app.category}</span>
-            <span style={{ ...statusBadgeStyle, color: statusColor }}>● {statusBadge}</span>
+      <div className="flex items-center gap-5">
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-neo/10 text-[64px]">
+          {app.icon}
+        </div>
+        <div className="flex-1">
+          <h1 className="mb-2 text-[28px] font-bold text-gray-900 dark:text-white">{app.name}</h1>
+          <div className="flex items-center gap-3">
+            <span className="rounded-md bg-neo/15 px-3 py-1 text-xs font-semibold uppercase text-neo">
+              {app.category}
+            </span>
+            <span className={`text-[13px] font-medium ${statusColor}`}>● {statusBadge}</span>
           </div>
         </div>
       </div>
     </header>
   );
 }
-
-const headerStyle: React.CSSProperties = {
-  padding: "24px 32px",
-  borderBottom: `1px solid ${colors.border}`,
-  background: colors.bgCard,
-};
-
-const backButtonStyle: React.CSSProperties = {
-  background: "transparent",
-  border: `1px solid ${colors.border}`,
-  color: colors.text,
-  padding: "8px 16px",
-  borderRadius: 8,
-  cursor: "pointer",
-  fontSize: 14,
-  marginBottom: 16,
-  transition: "all 0.2s",
-};
-
-const headerContentStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 20,
-  alignItems: "center",
-};
-
-const iconContainerStyle: React.CSSProperties = {
-  fontSize: 64,
-  width: 80,
-  height: 80,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "rgba(0,212,170,0.1)",
-  borderRadius: 16,
-};
-
-const infoStyle: React.CSSProperties = {
-  flex: 1,
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: 28,
-  fontWeight: 700,
-  margin: "0 0 8px 0",
-  color: colors.text,
-};
-
-const metaRowStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 12,
-  alignItems: "center",
-};
-
-const categoryBadgeStyle: React.CSSProperties = {
-  fontSize: 12,
-  padding: "4px 12px",
-  borderRadius: 6,
-  background: "rgba(0,212,170,0.15)",
-  color: colors.primary,
-  textTransform: "uppercase",
-  fontWeight: 600,
-};
-
-const statusBadgeStyle: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 500,
-};

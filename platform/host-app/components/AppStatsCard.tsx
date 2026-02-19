@@ -1,5 +1,4 @@
 import React from "react";
-import { colors, shadows } from "./styles";
 
 type Props = {
   title: string;
@@ -10,72 +9,23 @@ type Props = {
 };
 
 export function AppStatsCard({ title, value, icon, trend, trendValue }: Props) {
-  const getTrendColor = () => {
-    if (!trend) return colors.textMuted;
-    if (trend === "up") return "#00e599";
-    if (trend === "down") return "#ff4757";
-    return colors.textMuted;
-  };
-
-  const getTrendSymbol = () => {
-    if (trend === "up") return "↑";
-    if (trend === "down") return "↓";
-    return "";
-  };
+  const trendColor =
+    trend === "up" ? "text-neo" : trend === "down" ? "text-red-500" : "text-gray-500 dark:text-gray-400";
 
   return (
-    <div style={cardStyle}>
-      <div style={headerRowStyle}>
-        <span style={iconStyle}>{icon}</span>
-        <span style={titleStyle}>{title}</span>
+    <div className="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-gray-900/80 p-5 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+      <div className="flex items-center gap-2">
+        <span className="text-xl">{icon}</span>
+        <span className="text-[13px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          {title}
+        </span>
       </div>
-      <div style={valueStyle}>{value}</div>
+      <div className="text-[32px] font-bold leading-none text-gray-900 dark:text-white">{value}</div>
       {trendValue && (
-        <div style={{ ...trendStyle, color: getTrendColor() }} aria-label={`${trend === "up" ? "Increase" : trend === "down" ? "Decrease" : "No change"} ${trendValue}`}>
-          {getTrendSymbol()} {trendValue}
+        <div className={`text-[13px] font-semibold ${trendColor}`} aria-label={`${trend === "up" ? "Increase" : trend === "down" ? "Decrease" : "No change"} ${trendValue}`}>
+          {trend === "up" ? "↑" : trend === "down" ? "↓" : ""} {trendValue}
         </div>
       )}
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  background: colors.bgCard,
-  borderRadius: 12,
-  padding: "20px",
-  border: `1px solid ${colors.border}`,
-  boxShadow: shadows.card,
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-};
-
-const headerRowStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-};
-
-const iconStyle: React.CSSProperties = {
-  fontSize: 20,
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: 13,
-  color: colors.textMuted,
-  textTransform: "uppercase",
-  fontWeight: 600,
-  letterSpacing: "0.5px",
-};
-
-const valueStyle: React.CSSProperties = {
-  fontSize: 32,
-  fontWeight: 700,
-  color: colors.text,
-  lineHeight: 1,
-};
-
-const trendStyle: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 600,
-};
