@@ -66,6 +66,10 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 		if forbiddenHeaders[strings.ToLower(k)] {
 			continue
 		}
+		if strings.ContainsAny(k, "\r\n") || strings.ContainsAny(v, "\r\n") {
+			httputil.BadRequest(w, "header contains invalid characters")
+			return
+		}
 		headers.Set(k, v)
 	}
 
