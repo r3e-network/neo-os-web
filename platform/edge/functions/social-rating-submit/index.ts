@@ -65,7 +65,7 @@ export async function handler(req: Request): Promise<Response> {
       },
       { onConflict: "app_id,rater_user_id" },
     )
-    .select()
+    .select("id,app_id,rater_user_id,rating_value,review_text,created_at,updated_at")
     .single();
 
   if (upsertErr) {

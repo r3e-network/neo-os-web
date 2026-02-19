@@ -94,7 +94,7 @@ export async function handler(req: Request): Promise<Response> {
       parent_id: parent_id || null,
       is_developer_reply: isDev,
     })
-    .select()
+    .select("id,app_id,author_user_id,parent_id,content,is_developer_reply,created_at,updated_at")
     .single();
 
   if (insertErr) {

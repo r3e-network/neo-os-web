@@ -155,7 +155,7 @@ export async function handler(req: Request): Promise<Response> {
 
   if (appId) {
     // Single app stats
-    const { data, error: err } = await supabase.from("miniapp_stats").select("*").eq("app_id", appId).single();
+    const { data, error: err } = await supabase.from("miniapp_stats").select("app_id,total_transactions,total_users,total_gas_used,total_gas_earned,method_calls,daily_active_users,weekly_active_users,last_activity_at,stats_updated_at").eq("app_id", appId).single();
 
     if (err) return error(404, "app not found", "NOT_FOUND", req);
     const metaMap = await loadMiniAppMeta([appId]);
@@ -166,7 +166,7 @@ export async function handler(req: Request): Promise<Response> {
   // All apps stats
   const { data, error: err } = await supabase
     .from("miniapp_stats")
-    .select("*")
+    .select("app_id,total_transactions,total_users,total_gas_used,total_gas_earned,method_calls,daily_active_users,weekly_active_users,last_activity_at,stats_updated_at")
     .order("total_transactions", { ascending: false })
     .limit(50);
 
