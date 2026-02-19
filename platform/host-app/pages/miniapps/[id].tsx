@@ -210,7 +210,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               <button
                 type="button"
                 aria-pressed={activeTab === "news"}
-                className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                   activeTab === "news" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
                 }`}
                 onClick={() => setActiveTab("news")}
@@ -222,7 +222,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               <button
                 type="button"
                 aria-pressed={activeTab === "secrets"}
-                className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+                className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                   activeTab === "secrets" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
                 }`}
                 onClick={() => setActiveTab("secrets")}
@@ -306,7 +306,7 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
             href={app.docs_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-neo no-underline text-sm font-medium"
+            className="text-neo no-underline text-sm font-medium transition-colors hover:text-neo/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
           >
             📄 View Documentation →
           </a>
