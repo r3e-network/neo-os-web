@@ -245,7 +245,7 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading }: StatSumma
               {loading ? <Loader2 className="animate-spin" size={24} /> : value}
             </h3>
           </div>
-          <div className={cn("p-3 rounded-xl bg-white/5", color)}>
+          <div className={cn("p-3 rounded-xl bg-gray-100 dark:bg-white/5", color)}>
             <Icon size={24} />
           </div>
         </div>

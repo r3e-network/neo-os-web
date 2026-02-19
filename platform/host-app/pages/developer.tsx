@@ -117,15 +117,15 @@ export default function DeveloperPage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="glass-card rounded-2xl p-8 bg-gray-900/50 dark:bg-gray-900/50"
+              className="glass-card rounded-2xl p-8 bg-white dark:bg-gray-900/50"
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neo to-emerald-600 flex items-center justify-center">
                   <Code2 className="text-white" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Quick Start</h2>
-                  <p className="text-gray-400 text-sm">Get up and running in minutes</p>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quick Start</h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Get up and running in minutes</p>
                 </div>
               </div>
               <div className="rounded-xl bg-black/50 p-4 font-mono text-sm overflow-x-auto">
@@ -147,23 +147,23 @@ export default function DeveloperPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="glass-card rounded-2xl p-8 bg-gray-900/50 dark:bg-gray-900/50"
+              className="glass-card rounded-2xl p-8 bg-white dark:bg-gray-900/50"
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
                   <Rocket className="text-white" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Submit Your App</h2>
-                  <p className="text-gray-400 text-sm">Publish to the marketplace</p>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Submit Your App</h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Publish to the marketplace</p>
                 </div>
               </div>
-              <p className="text-gray-400 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Ready to launch? Submit your MiniApp for review and reach thousands of Neo users.
               </p>
               <ul className="space-y-2 mb-6">
                 {["Automated security review", "Performance testing", "Listing in marketplace"].map((item) => (
-                  <li key={item} className="flex items-center gap-2 text-sm text-gray-300">
+                  <li key={item} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                     <div className="w-1.5 h-1.5 rounded-full bg-neo" />
                     {item}
                   </li>
@@ -192,15 +192,15 @@ export default function DeveloperPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 * idx }}
-                className="group glass-card rounded-xl p-6 bg-gray-900/30 dark:bg-gray-900/30 hover:bg-gray-900/50 transition-all"
+                className="group glass-card rounded-xl p-6 bg-gray-100 dark:bg-gray-900/30 hover:bg-gray-200 dark:hover:bg-gray-900/50 transition-all"
               >
                 <div
                   className={`w-12 h-12 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
                 >
                   <f.icon className="text-white" size={24} />
                 </div>
-                <h3 className="font-bold text-white mb-1">{f.title}</h3>
-                <p className="text-sm text-gray-400">{f.desc}</p>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-1">{f.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{f.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -251,20 +251,20 @@ export default function DeveloperPage() {
               role="dialog"
               aria-modal="true"
               aria-label="Submit MiniApp"
-              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-gray-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-white dark:bg-gray-900/95 backdrop-blur-xl border-l border-gray-200 dark:border-white/10 shadow-2xl overflow-y-auto"
             >
               {/* Panel Header */}
-              <div className="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-xl border-b border-white/10 px-6 py-4">
+              <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/10 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-white">Submit MiniApp</h2>
-                    <p className="text-sm text-gray-400">Fill in your app details</p>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Submit MiniApp</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Fill in your app details</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
                     aria-label="Close panel"
-                    className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                   >
                     <X className="text-gray-400" size={20} />
                   </button>
@@ -275,14 +275,14 @@ export default function DeveloperPage() {
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* App Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     App Name <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     placeholder="My Awesome MiniApp"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
@@ -290,14 +290,14 @@ export default function DeveloperPage() {
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Description <span className="text-red-400">*</span>
                   </label>
                   <textarea
                     required
                     rows={3}
                     placeholder="Describe what your app does..."
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all resize-none"
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                   />
@@ -306,24 +306,24 @@ export default function DeveloperPage() {
                 {/* Icon & Category */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Icon (emoji)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Icon (emoji)</label>
                     <input
                       type="text"
                       placeholder="📦"
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-center text-2xl placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white text-center text-2xl placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
                       value={form.icon}
                       onChange={(e) => setForm({ ...form, icon: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
                     <select
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all appearance-none cursor-pointer"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all appearance-none cursor-pointer"
                       value={form.category}
                       onChange={(e) => setForm({ ...form, category: e.target.value as FormData["category"] })}
                     >
                       {categories.map((c) => (
-                        <option key={c} value={c} className="bg-gray-900">
+                        <option key={c} value={c} className="bg-white dark:bg-gray-900">
                           {c.charAt(0).toUpperCase() + c.slice(1)}
                         </option>
                       ))}
@@ -333,14 +333,14 @@ export default function DeveloperPage() {
 
                 {/* Entry URL */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Entry URL <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="url"
                     required
                     placeholder="https://your-app.com/miniapp"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
                     value={form.entry_url}
                     onChange={(e) => setForm({ ...form, entry_url: e.target.value })}
                   />
@@ -348,39 +348,39 @@ export default function DeveloperPage() {
 
                 {/* Contract Hash */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Contract Hash</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contract Hash</label>
                   <input
                     type="text"
                     placeholder="0x... (optional)"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all font-mono text-sm"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all font-mono text-sm"
                     value={form.contract_hash}
                     onChange={(e) => setForm({ ...form, contract_hash: e.target.value })}
                   />
                 </div>
 
                 {/* Developer Info */}
-                <div className="pt-4 border-t border-white/10">
-                  <h3 className="text-sm font-semibold text-gray-300 mb-4">Developer Information</h3>
+                <div className="pt-4 border-t border-gray-200 dark:border-white/10">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Developer Information</h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Developer Name</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Developer Name</label>
                       <input
                         type="text"
                         placeholder="Your name or team"
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
                         value={form.developer_name}
                         onChange={(e) => setForm({ ...form, developer_name: e.target.value })}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Neo Address <span className="text-red-400">*</span>
                       </label>
                       <input
                         type="text"
                         required
                         placeholder="NXxx..."
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all font-mono text-sm"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all font-mono text-sm"
                         value={form.developer_address}
                         onChange={(e) => setForm({ ...form, developer_address: e.target.value })}
                       />
@@ -407,7 +407,7 @@ export default function DeveloperPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setShowForm(false)}
-                    className="flex-1 border-white/20 text-gray-300 hover:bg-white/10"
+                    className="flex-1 border-gray-300 dark:border-white/20 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
                   >
                     Cancel
                   </Button>
