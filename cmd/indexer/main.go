@@ -17,6 +17,9 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("load config")
 	}
+	if err := cfg.Validate(); err != nil {
+		log.WithError(err).Fatal("validate config")
+	}
 
 	svc, err := indexer.NewService(cfg)
 	if err != nil {
