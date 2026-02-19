@@ -72,12 +72,10 @@ export async function handler(req: Request): Promise<Response> {
   await logSpamAction(supabase, userId, "vote");
 
   // Get updated counts
-  const { data: votes } = await supabase.from("social_comment_votes").select("vote_type").eq("comment_id", comment_id);
+  const { count: upvotes } = await supabase.from("social_comment_votes").select("id", { count: "exact", head: true }).eq("comment_id", comment_id).eq("vote_type", "upvote");
+  const { count: downvotes } = await supabase.from("social_comment_votes").select("id", { count: "exact", head: true }).eq("comment_id", comment_id).eq("vote_type", "downvote");
 
-  const upvotes = (votes || []).filter((v) => v.vote_type === "upvote").length;
-  const downvotes = (votes || []).filter((v) => v.vote_type === "downvote").length;
-
-  return json({ success: true, upvotes, downvotes }, {}, req);
+  return json({ success: true, upvotes: upvotes ?? 0, downvotes: downvotes ?? 0 }, {}, req);
 }
 
 if (import.meta.main) {

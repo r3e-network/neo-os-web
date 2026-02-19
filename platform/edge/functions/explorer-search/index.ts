@@ -87,6 +87,7 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
       .select("*")
       .eq("tx_hash", hash)
       .order("step_index")
+      .limit(500)
       .then(({ data }) => data || [])
       .catch(() => []),
     supabase
@@ -94,6 +95,7 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
       .select("*")
       .eq("tx_hash", hash)
       .order("call_index")
+      .limit(200)
       .then(({ data }) => data || [])
       .catch(() => []),
     supabase
@@ -101,6 +103,7 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
       .select("*")
       .eq("tx_hash", hash)
       .order("call_index")
+      .limit(200)
       .then(({ data }) => data || [])
       .catch(() => []),
   ]);
