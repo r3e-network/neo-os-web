@@ -506,6 +506,10 @@ services:
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
       - GLOBALSIGNER_MASTER_SEED
+      - GLOBALSIGNER_DOMAIN_ALLOWLIST
+      - GLOBALSIGNER_SIGN_RAW_ALLOWLIST
+      - GLOBALSIGNER_MAX_BODY_BYTES
+      - GLOBALSIGNER_REQUIRE_QUOTE
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
