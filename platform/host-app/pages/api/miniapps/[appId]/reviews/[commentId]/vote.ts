@@ -103,6 +103,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (vote.vote_type === "downvote") downvotes += 1;
   }
 
+  res.setHeader("Cache-Control", "no-store, private");
   return res.status(200).json({ success: true, upvotes, downvotes });
 }
 
