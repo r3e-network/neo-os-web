@@ -146,5 +146,3 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
     </div>
   );
 };
-
-export default SocialRatingWidget;

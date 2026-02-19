@@ -75,5 +75,3 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
     </div>
   );
 }
-
-export default ReviewsTab;

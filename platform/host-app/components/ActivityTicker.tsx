@@ -140,5 +140,3 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
     </div>
   );
 });
-
-export default ActivityTicker;

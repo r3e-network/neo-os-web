@@ -121,5 +121,3 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
     </div>
   );
 };
-
-export default SocialCommentThread;
