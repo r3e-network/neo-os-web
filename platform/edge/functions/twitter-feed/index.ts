@@ -14,6 +14,7 @@ interface Tweet {
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
+  if (req.method !== "GET") return json({ error: { code: "METHOD_NOT_ALLOWED", message: "method not allowed" } }, { status: 405 }, req);
 
   const rl = await requireRateLimit(req, "twitter-feed");
   if (rl) return rl;

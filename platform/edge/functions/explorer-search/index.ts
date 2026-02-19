@@ -11,6 +11,7 @@ import { error, json } from "../_shared/response.ts";
 async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
+  if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
   const rl = await requireRateLimit(req, "explorer-search");
   if (rl) return rl;
