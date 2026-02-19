@@ -40,6 +40,8 @@ export async function handler(req: Request): Promise<Response> {
 
   const script = String(body.script ?? "").trim();
   if (!script) return error(400, "script required", "SCRIPT_REQUIRED", req);
+  if (script.length > 1024 * 1024) return error(400, "script too large (max 1MB)", "SCRIPT_TOO_LARGE", req);
+  const timeout = Math.min(Math.max(Number(body.timeout) || 30, 1), 60);
 
   const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
   const result = await postJSON(
@@ -49,7 +51,7 @@ export async function handler(req: Request): Promise<Response> {
       entry_point: body.entry_point,
       input: body.input,
       secret_refs: body.secret_refs,
-      timeout: body.timeout,
+      timeout,
     },
     { "X-User-ID": auth.userId },
     req,
