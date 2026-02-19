@@ -132,6 +132,9 @@ func ServiceUnavailable(w http.ResponseWriter, message string) {
 	WriteError(w, http.StatusServiceUnavailable, message)
 }
 
+// maxRequestBodyBytes is the default limit for incoming JSON request bodies (1 MB).
+const maxRequestBodyBytes = 1 << 20
+
 // DecodeJSON decodes a JSON request body into the provided struct.
 // Returns false and writes an error response if decoding fails.
 func DecodeJSON(w http.ResponseWriter, r *http.Request, v interface{}) bool {
@@ -140,6 +143,7 @@ func DecodeJSON(w http.ResponseWriter, r *http.Request, v interface{}) bool {
 		BadRequest(w, "Content-Type must be application/json")
 		return false
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
 		var maxErr *http.MaxBytesError
 		if errors.As(err, &maxErr) {
@@ -161,6 +165,7 @@ func DecodeJSONOptional(w http.ResponseWriter, r *http.Request, v interface{}) b
 		return true
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
 		if errors.Is(err, io.EOF) {
 			return true
