@@ -60,7 +60,7 @@ export default function SecretsContent() {
             <select
               value={selectedApp}
               onChange={(e) => setSelectedApp(e.target.value)}
-              className="w-full rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2"
+              className="w-full rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-neo/50"
             >
               <option value="all">All Apps</option>
               <option value="global">Global Secrets Only</option>
