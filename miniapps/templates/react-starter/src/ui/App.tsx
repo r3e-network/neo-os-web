@@ -50,10 +50,11 @@ export function App() {
         </label>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button onClick={() => run(() => sdk?.wallet.getAddress())} disabled={!sdk}>
+          <button type="button" onClick={() => run(() => sdk?.wallet.getAddress())} disabled={!sdk}>
             wallet.getAddress
           </button>
           <button
+            type="button"
             onClick={() =>
               run(async () => {
                 const intent = await sdk!.payments.payGAS(appId, amountGas, "hello");
@@ -69,7 +70,7 @@ export function App() {
           >
             payments.payGAS (+ invoke if available)
           </button>
-          <button onClick={() => run(() => sdk!.rng.requestRandom(appId))} disabled={!sdk}>
+          <button type="button" onClick={() => run(() => sdk!.rng.requestRandom(appId))} disabled={!sdk}>
             rng.requestRandom
           </button>
         </div>
@@ -86,7 +87,7 @@ export function App() {
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button onClick={() => run(() => sdk!.datafeed.getPrice(symbol))} disabled={!sdk}>
+          <button type="button" onClick={() => run(() => sdk!.datafeed.getPrice(symbol))} disabled={!sdk}>
             datafeed.getPrice
           </button>
         </div>
@@ -104,6 +105,7 @@ export function App() {
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button
+            type="button"
             onClick={() =>
               run(async () => {
                 const intent = await sdk!.governance.vote(appId, proposalId, neoAmount, true);

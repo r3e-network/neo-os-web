@@ -248,6 +248,7 @@ function PriceTickerPanel({ sdk }: PanelProps) {
           </div>
           <div className={styles.buttonRow}>
             <button
+              type="button"
               className={styles.buttonPrimary}
               onClick={refreshPrice}
               disabled={isLoading || !sdk?.datafeed?.getPrice}
@@ -255,6 +256,7 @@ function PriceTickerPanel({ sdk }: PanelProps) {
               Refresh
             </button>
             <button
+              type="button"
               className={styles.buttonSecondary}
               onClick={() => setAutoRefresh((prev) => !prev)}
             >
@@ -264,6 +266,7 @@ function PriceTickerPanel({ sdk }: PanelProps) {
           <div className={styles.quickRow}>
             {["NEO-USD", "GAS-USD", "BTC-USD", "ETH-USD"].map((item) => (
               <button
+                type="button"
                 key={item}
                 className={item === symbol ? styles.quickActive : styles.quickButton}
                 onClick={() => setSymbol(item)}
@@ -405,6 +408,7 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
           <div className={styles.choiceGrid}>
             {config.choices.map((choice) => (
               <button
+                type="button"
                 key={choice}
                 className={choice === selectedChoice ? styles.choiceActive : styles.choiceButton}
                 onClick={() => setSelectedChoice(choice)}
@@ -425,10 +429,11 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
             />
           </div>
           <div className={styles.buttonRow}>
-            <button className={styles.buttonPrimary} onClick={handlePlay} disabled={isBusy}>
+            <button type="button" className={styles.buttonPrimary} onClick={handlePlay} disabled={isBusy}>
               {isBusy ? "Playing…" : "Play"}
             </button>
             <button
+              type="button"
               className={styles.buttonSecondary}
               onClick={() => setBetAmount(config.minBet.toString())}
             >
@@ -586,10 +591,10 @@ function LotteryPanel({ sdk, appId }: PanelProps) {
             </div>
           </div>
           <div className={styles.buttonRow}>
-            <button className={styles.buttonPrimary} onClick={buyTickets} disabled={isBusy}>
+            <button type="button" className={styles.buttonPrimary} onClick={buyTickets} disabled={isBusy}>
               Buy Tickets
             </button>
-            <button className={styles.buttonSecondary} onClick={drawWinner} disabled={isBusy}>
+            <button type="button" className={styles.buttonSecondary} onClick={drawWinner} disabled={isBusy}>
               Draw Winner
             </button>
           </div>
@@ -680,19 +685,21 @@ function PredictionMarketPanel({ sdk, appId }: PanelProps) {
           </div>
           <div className={styles.buttonRow}>
             <button
+              type="button"
               className={direction === "up" ? styles.choiceActive : styles.choiceButton}
               onClick={() => setDirection("up")}
             >
               Predict Up
             </button>
             <button
+              type="button"
               className={direction === "down" ? styles.choiceActive : styles.choiceButton}
               onClick={() => setDirection("down")}
             >
               Predict Down
             </button>
           </div>
-          <button className={styles.buttonPrimary} onClick={placePrediction} disabled={isBusy}>
+          <button type="button" className={styles.buttonPrimary} onClick={placePrediction} disabled={isBusy}>
             {isBusy ? "Running…" : "Place Prediction"}
           </button>
           <StatusBanner status={status} />
@@ -780,7 +787,7 @@ function FlashloanPanel({ sdk, appId }: PanelProps) {
               <div className={styles.kpiValue}>{feeAmount} GAS</div>
             </div>
           </div>
-          <button className={styles.buttonPrimary} onClick={requestFlashloan} disabled={isBusy}>
+          <button type="button" className={styles.buttonPrimary} onClick={requestFlashloan} disabled={isBusy}>
             {isBusy ? "Submitting…" : "Request Flashloan"}
           </button>
           <StatusBanner status={status} />
@@ -935,6 +942,7 @@ export default function BuiltinApp({ appId, view }: BuiltinAppProps) {
           </div>
           <div className={styles.walletRow}>
             <button
+              type="button"
               className={styles.buttonSecondary}
               onClick={requestAddress}
               disabled={!sdk?.wallet?.getAddress}
@@ -950,6 +958,7 @@ export default function BuiltinApp({ appId, view }: BuiltinAppProps) {
       <nav className={styles.nav}>
         {builtinDefinitions.map((item) => (
           <button
+            type="button"
             key={item.id}
             className={item.id === activeId ? styles.navButtonActive : styles.navButton}
             onClick={() => setActiveId(item.id)}

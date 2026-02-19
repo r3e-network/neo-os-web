@@ -17,6 +17,7 @@ export function LanguageSwitcher({ className = "", showLabel = true }: LanguageS
       {showLabel && <span className="text-sm text-gray-500">{t("language.language")}</span>}
       <select
         value={locale}
+        aria-label="Select language"
         onChange={(e) => {
           const value = e.target.value;
           if (locales.includes(value as Locale)) {
@@ -46,6 +47,7 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
 
   return (
     <button
+      type="button"
       onClick={toggle}
       className={`px-3 py-1 text-sm border rounded hover:bg-gray-100 ${className}`}
       title="Switch Language"
