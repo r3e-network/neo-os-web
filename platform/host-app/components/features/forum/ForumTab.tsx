@@ -53,6 +53,7 @@ export function ForumTab({ appId }: ForumTabProps) {
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Discussions</h3>
         {walletAddress && (
           <button
+            type="button"
             onClick={() => setShowNewThread(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600 transition-colors"
           >
@@ -66,6 +67,7 @@ export function ForumTab({ appId }: ForumTabProps) {
       <div className="flex gap-2">
         {["all", "general", "bug", "feature", "help"].map((cat) => (
           <button
+            type="button"
             key={cat}
             onClick={() => setFilter(cat)}
             aria-pressed={filter === cat}
@@ -115,6 +117,7 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
 
   return (
     <button
+      type="button"
       onClick={onClick}
       className="w-full text-left p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors"
     >
@@ -167,7 +170,7 @@ function NewThreadForm({
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Thread title..."
         aria-label="Thread title"
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
         maxLength={200}
       />
       <textarea
@@ -175,7 +178,7 @@ function NewThreadForm({
         onChange={(e) => setContent(e.target.value)}
         placeholder="What's on your mind?"
         aria-label="Thread content"
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
         rows={4}
         maxLength={5000}
       />
@@ -191,10 +194,11 @@ function NewThreadForm({
           <option value="help">Help</option>
         </select>
         <div className="flex gap-2">
-          <button onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400">
+          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400">
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={submitting || !title.trim() || !content.trim()}
             className="px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50"
@@ -240,7 +244,7 @@ function ThreadDetail({
 
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="text-sm text-emerald-500 hover:underline">
+      <button type="button" onClick={onBack} className="text-sm text-emerald-500 hover:underline">
         ← Back to discussions
       </button>
 
@@ -276,13 +280,14 @@ function ThreadDetail({
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."
             aria-label="Reply"
-            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white"
+            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             maxLength={2000}
           />
           <button
+            type="button"
             onClick={handleReply}
             disabled={submitting || !replyContent.trim()}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50"
+            className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 transition-colors hover:bg-emerald-600"
           >
             Reply
           </button>
