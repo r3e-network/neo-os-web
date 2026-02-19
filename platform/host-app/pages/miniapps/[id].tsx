@@ -117,7 +117,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
         <div style={errorContainerStyle}>
           <h1 style={errorTitleStyle}>App Not Found</h1>
           <p style={errorMessageStyle}>{error || "The requested MiniApp does not exist."}</p>
-          <button style={backButtonStyle} onClick={() => router.push("/miniapps")}>
+          <button type="button" style={backButtonStyle} onClick={() => router.push("/miniapps")}>
             ← Back to MiniApps
           </button>
         </div>
@@ -170,6 +170,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
         <section style={tabsContainerStyle}>
           <div style={tabsHeaderStyle}>
             <button
+              type="button"
               aria-pressed={activeTab === "overview"}
               style={activeTab === "overview" ? tabButtonActiveStyle : tabButtonStyle}
               onClick={() => setActiveTab("overview")}
@@ -177,6 +178,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               Overview
             </button>
             <button
+              type="button"
               aria-pressed={activeTab === "reviews"}
               style={activeTab === "reviews" ? tabButtonActiveStyle : tabButtonStyle}
               onClick={() => setActiveTab("reviews")}
@@ -184,6 +186,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               ⭐ Reviews
             </button>
             <button
+              type="button"
               aria-pressed={activeTab === "forum"}
               style={activeTab === "forum" ? tabButtonActiveStyle : tabButtonStyle}
               onClick={() => setActiveTab("forum")}
@@ -192,6 +195,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             </button>
             {showNews && (
               <button
+                type="button"
                 aria-pressed={activeTab === "news"}
                 style={activeTab === "news" ? tabButtonActiveStyle : tabButtonStyle}
                 onClick={() => setActiveTab("news")}
@@ -201,6 +205,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             )}
             {showSecrets && (
               <button
+                type="button"
                 aria-pressed={activeTab === "secrets"}
                 style={activeTab === "secrets" ? tabButtonActiveStyle : tabButtonStyle}
                 onClick={() => setActiveTab("secrets")}
@@ -223,7 +228,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
       {/* Fixed Launch Button */}
       <div style={launchBarStyle}>
-        <button style={launchButtonStyle} onClick={handleLaunch}>
+        <button type="button" style={launchButtonStyle} onClick={handleLaunch}>
           Launch App →
         </button>
       </div>
