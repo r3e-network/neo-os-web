@@ -121,7 +121,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           </p>
           <button
             type="button"
-            className="px-6 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white text-sm cursor-pointer"
+            className="px-6 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white text-sm cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             onClick={() => router.push("/miniapps")}
           >
             ← Back to MiniApps
@@ -179,7 +179,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             <button
               type="button"
               aria-pressed={activeTab === "overview"}
-              className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+              className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "overview" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
               onClick={() => setActiveTab("overview")}
@@ -189,7 +189,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             <button
               type="button"
               aria-pressed={activeTab === "reviews"}
-              className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+              className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "reviews" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
               onClick={() => setActiveTab("reviews")}
@@ -199,7 +199,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             <button
               type="button"
               aria-pressed={activeTab === "forum"}
-              className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all ${
+              className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "forum" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
               onClick={() => setActiveTab("forum")}
@@ -249,7 +249,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
       <div className="fixed bottom-0 left-0 right-0 bg-gray-50 dark:bg-gray-900/80 border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 sm:py-4 flex justify-center z-[100]">
         <button
           type="button"
-          className="px-12 py-3.5 rounded-xl border-none bg-neo text-black text-base font-bold cursor-pointer transition-all hover:bg-neo/90"
+          className="px-12 py-3.5 rounded-xl border-none bg-neo text-black text-base font-bold cursor-pointer transition-all hover:bg-neo/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           onClick={handleLaunch}
         >
           Launch App →
