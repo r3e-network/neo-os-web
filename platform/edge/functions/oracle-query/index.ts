@@ -50,6 +50,13 @@ export async function handler(req: Request): Promise<Response> {
   if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
     return error(400, "url must use http or https", "INVALID_URL_SCHEME", req);
   }
+  const host = parsedUrl.hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]" ||
+      host === "0.0.0.0" || host.endsWith(".local") || host === "169.254.169.254" ||
+      host.startsWith("10.") || host.startsWith("192.168.") ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host)) {
+    return error(400, "private/internal URLs not allowed", "INVALID_URL_HOST", req);
+  }
 
   const neooracleURL = mustGetEnv("NEOORACLE_URL").replace(/\/$/, "");
   const result = await postJSON(
