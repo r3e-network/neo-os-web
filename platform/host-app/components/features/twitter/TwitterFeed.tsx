@@ -43,6 +43,10 @@ export function TwitterFeed() {
     );
   }
 
+  if (tweets.length === 0) {
+    return <div className="py-8 text-center text-gray-500 dark:text-gray-400">No tweets available</div>;
+  }
+
   return (
     <div className="space-y-4">
       {tweets.map((tweet) => (

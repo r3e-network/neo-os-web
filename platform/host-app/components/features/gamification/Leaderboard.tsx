@@ -36,6 +36,10 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
     return <div className="text-center py-8 text-gray-500 dark:text-gray-400">Loading...</div>;
   }
 
+  if (entries.length === 0) {
+    return <div className="text-center py-8 text-gray-500 dark:text-gray-400">No leaderboard entries yet</div>;
+  }
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="px-4 py-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-gray-200 dark:border-gray-700">

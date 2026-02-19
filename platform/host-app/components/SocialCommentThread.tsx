@@ -100,24 +100,26 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
       {!canComment && <div className="p-4 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">Use this app to leave comments</div>}
 
       {/* Comments List */}
-      <div className="divide-y divide-gray-200 dark:divide-gray-700">
-        {comments.map((comment) => (
-          <div key={comment.id} className="px-4">
-            <CommentItem comment={comment} onVote={onVote} onReply={onReply} onLoadReplies={onLoadReplies} />
+      {comments.length === 0 ? (
+        <div className="p-8 text-center text-gray-500 dark:text-gray-400">No comments yet</div>
+      ) : (
+        <>
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {comments.map((comment) => (
+              <div key={comment.id} className="px-4">
+                <CommentItem comment={comment} onVote={onVote} onReply={onReply} onLoadReplies={onLoadReplies} />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-
-      {/* Load More */}
-      {hasMore && (
-        <div className="p-4 text-center">
-          <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed">
-            {loading ? "Loading..." : "Load more comments"}
-          </button>
-        </div>
+          {hasMore && (
+            <div className="p-4 text-center">
+              <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                {loading ? "Loading..." : "Load more comments"}
+              </button>
+            </div>
+          )}
+        </>
       )}
-
-      {comments.length === 0 && <div className="p-8 text-center text-gray-500 dark:text-gray-400">No comments yet</div>}
     </div>
   );
 };

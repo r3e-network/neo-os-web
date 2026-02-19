@@ -7,6 +7,10 @@ interface TokenListProps {
 }
 
 export function TokenList({ tokens, onRevoke }: TokenListProps) {
+  if (tokens.length === 0) {
+    return <div className="py-6 text-center text-gray-500 dark:text-gray-400">No tokens created yet</div>;
+  }
+
   return (
     <div className="space-y-3">
       {tokens.map((token) => (
