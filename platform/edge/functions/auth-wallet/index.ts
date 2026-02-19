@@ -46,7 +46,10 @@ export async function handler(req: Request): Promise<Response> {
     .maybeSingle();
 
   const nonceMatch = message.match(/Nonce: ([a-f0-9-]+)/);
-  if (!userRow?.nonce || !nonceMatch || nonceMatch[1] !== userRow.nonce) {
+  const encoder = new TextEncoder();
+  const nonceA = encoder.encode(nonceMatch?.[1] ?? "");
+  const nonceB = encoder.encode(userRow?.nonce ?? "");
+  if (!userRow?.nonce || !nonceMatch || nonceA.byteLength !== nonceB.byteLength || !crypto.subtle.timingSafeEqual(nonceA, nonceB)) {
     return error(401, "nonce mismatch or wallet not registered", "AUTH_INVALID", req);
   }
 
