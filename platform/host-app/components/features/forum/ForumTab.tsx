@@ -72,10 +72,10 @@ export function ForumTab({ appId }: ForumTabProps) {
             key={cat}
             onClick={() => setFilter(cat)}
             aria-pressed={filter === cat}
-            className={`px-3 py-1 text-xs rounded-full capitalize ${
+            className={`px-3 py-1 text-xs rounded-full capitalize transition-colors ${
               filter === cat
                 ? "bg-emerald-500 text-white"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
             } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50`}
           >
             {cat}
@@ -209,14 +209,14 @@ function NewThreadForm({
           <option value="help">Help</option>
         </select>
         <div className="flex gap-2">
-          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400">
+          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={submitting || !title.trim() || !content.trim()}
-            className="px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-600 transition-colors"
           >
             {submitting ? "Posting..." : "Post"}
           </button>

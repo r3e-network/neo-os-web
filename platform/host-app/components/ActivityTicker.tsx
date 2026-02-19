@@ -97,7 +97,7 @@ export const ActivityTicker = ({
         onMouseLeave={() => setIsPaused(false)}
       >
         {displayActivities.length === 0 ? (
-          <div className="p-6 text-center text-gray-400 dark:text-gray-500 text-sm">No activity yet</div>
+          <div className="p-6 text-center text-gray-400 dark:text-gray-400 text-sm">No activity yet</div>
         ) : (
           displayActivities.map((activity) => <ActivityItem key={activity.id} activity={activity} />)
         )}
@@ -116,14 +116,14 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center gap-2">
           <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{activity.title}</span>
-          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+          <span className="text-xs text-gray-400 dark:text-gray-400 shrink-0">
             {formatTimeAgo(activity.timestamp)}
           </span>
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-300 mt-0.5 truncate">{activity.description}</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{activity.description}</div>
         {activity.tx_hash && (
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-gray-400 dark:text-gray-600 font-mono">
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
               TX: {truncateHash(activity.tx_hash)}
             </span>
             {statusColor && (

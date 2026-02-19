@@ -8,7 +8,7 @@ type Props = {
 
 export function AppStatsCard({ title, value, icon, trend, trendValue }: Props) {
   const trendColor =
-    trend === "up" ? "text-neo" : trend === "down" ? "text-red-500" : "text-gray-500 dark:text-gray-400";
+    trend === "up" ? "text-neo" : trend === "down" ? "text-red-600" : "text-gray-500 dark:text-gray-400";
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 p-5 shadow-sm">

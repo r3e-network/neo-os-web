@@ -14,7 +14,7 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
     statusColor = "text-neo";
   } else if (app.status === "disabled") {
     statusBadge = "Maintenance";
-    statusColor = "text-emerald-500";
+    statusColor = "text-amber-500";
   } else if (app.status === "pending") {
     statusBadge = "Pending";
     statusColor = "text-gray-500 dark:text-gray-400";
@@ -26,7 +26,7 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
         type="button"
         onClick={onBack}
         aria-label="Go back"
-        className="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent px-4 py-2 text-sm text-gray-900 dark:text-white transition-all hover:bg-gray-100 dark:hover:bg-white/5"
+        className="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent px-4 py-2 text-sm text-gray-900 dark:text-white transition-all hover:bg-gray-100 dark:hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
       >
         ← Back
       </button>

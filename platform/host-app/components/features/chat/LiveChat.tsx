@@ -142,7 +142,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           <div className="flex items-center justify-between px-4 py-3 bg-emerald-500 text-white">
             <div className="flex items-center gap-2">
               <MessageCircle size={18} />
-              <span className="font-semibold text-gray-900 dark:text-white">Live Chat</span>
+              <span className="font-semibold">Live Chat</span>
             </div>
             <div className="flex items-center gap-1 text-sm opacity-90">
               <Users size={14} />
