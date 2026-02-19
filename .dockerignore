@@ -27,10 +27,19 @@ dist-ssr
 coverage*
 *.out
 
-# Node / frontend artifacts
+# Node / frontend artifacts (saves ~13 GB of build context)
 node_modules
-frontend/node_modules
-frontend/dist
+platform
+miniapps-uniapp
+miniapps
+frontend
+sdk
+examples
+pages
+
+# Documentation and reports
+docs
+reports
 
 # Local runtime artifacts
 /manifest-current.json
@@ -42,3 +51,11 @@ tmp
 snapshots
 test
 deploy/wallets
+
+# Tool / workspace state
+.claude
+.claude-flow
+.hive-mind
+.serena
+.trae
+.cursor
