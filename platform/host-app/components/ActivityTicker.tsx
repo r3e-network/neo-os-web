@@ -16,9 +16,9 @@ const ACTIVITY_ICONS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "#f59e0b",
-  confirmed: "#10b981",
-  failed: "#ef4444",
+  pending: "bg-amber-500",
+  confirmed: "bg-emerald-500",
+  failed: "bg-red-500",
 };
 
 function formatTimeAgo(timestamp: string): string {
@@ -128,8 +128,7 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
             </span>
             {statusColor && (
               <span
-                className="text-xs px-1.5 py-0.5 rounded text-white font-semibold uppercase"
-                style={{ backgroundColor: statusColor }}
+                className={`text-xs px-1.5 py-0.5 rounded text-white font-semibold uppercase ${statusColor}`}
               >
                 {activity.status}
               </span>
