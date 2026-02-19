@@ -1,11 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
+import { standardLimit } from "@/lib/rate-limit";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
+  if (standardLimit(req, res)) return;
 
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
