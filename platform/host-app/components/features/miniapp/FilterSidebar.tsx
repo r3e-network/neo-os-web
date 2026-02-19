@@ -76,7 +76,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
                       />
                       <span className="flex-1 truncate">{option.label}</span>
                       {option.count !== undefined && (
-                        <span className="text-xs text-gray-400 group-hover:text-gray-500">{option.count}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-600">{option.count}</span>
                       )}
                     </label>
                   );
