@@ -97,7 +97,11 @@ func (s *Service) executeTrigger(ctx context.Context, trigger *neoflowsupabase.T
 			ActionPayload: trigger.Action,
 		}
 		if err != nil {
-			exec.Error = err.Error()
+			msg := err.Error()
+			if len(msg) > 512 {
+				msg = msg[:512]
+			}
+			exec.Error = msg
 		}
 		if execErr := s.repo.CreateExecution(ctx, exec); execErr != nil {
 			s.Logger().WithContext(ctx).WithError(execErr).WithField("trigger_id", trigger.ID).Warn("failed to persist execution log")

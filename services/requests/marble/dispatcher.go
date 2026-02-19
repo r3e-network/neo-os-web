@@ -81,7 +81,7 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 	if err := s.validateAppRegistry(ctx, app); err != nil {
 		logger.WithError(err).Warn("app registry validation failed")
 		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
-		s.updateServiceRequest(ctx, serviceReq, nil, "failed", nil, err.Error())
+		s.updateServiceRequest(ctx, serviceReq, nil, "failed", nil, sanitizeError(err.Error(), s.maxErrorLen))
 		return nil
 	}
 
