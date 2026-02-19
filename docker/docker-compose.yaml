@@ -507,5 +507,59 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # =============================================================================
+  # NeoSimulation Service Marble
+  # =============================================================================
+  neosimulation:
+    image: service-layer/neosimulation:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: neosimulation
+        EGO_VERSION: ${EGO_VERSION:-1.8.0}
+        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
+    container_name: service-neosimulation
+    environment:
+      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - EDG_MARBLE_TYPE=neosimulation
+      - EDG_MARBLE_DNS_NAMES=localhost,neosimulation
+      - SERVICE_TYPE=neosimulation
+      - OE_SIMULATION=${OE_SIMULATION:-0}
+      - MARBLE_ENV=${MARBLE_ENV:-production}
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_KEY
+      - NEO_RPC_URL
+      - NEO_NETWORK_MAGIC
+      - CONTRACT_PAYMENTHUB_HASH
+      - CONTRACT_PRICEFEED_HASH
+      - CONTRACT_RANDOMNESSLOG_HASH
+      - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
+      - SIMULATION_ENABLED
+      - SIMULATION_MINIAPPS
+      - SIMULATION_TX_INTERVAL_MIN_MS
+      - SIMULATION_TX_INTERVAL_MAX_MS
+      - SIMULATION_WORKERS_PER_APP
+    volumes:
+      - /var/run/aesmd:/var/run/aesmd
+      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
+    devices:
+      - /dev/sgx_enclave:/dev/sgx_enclave
+      - /dev/sgx_provision:/dev/sgx_provision
+    healthcheck:
+      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8093/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 512m
+    cpus: 1.0
+    depends_on:
+      coordinator:
+        condition: service_healthy
+      neoaccounts:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   coordinator-data:
