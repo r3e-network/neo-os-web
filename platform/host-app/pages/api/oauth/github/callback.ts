@@ -101,6 +101,7 @@ function safeJSON(obj: unknown): string {
 function sendSuccess(res: NextApiResponse, account: object) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "no-store, private");
   res.send(`<script>
     window.opener.postMessage({
       type: "oauth-success",
@@ -114,6 +115,7 @@ function sendSuccess(res: NextApiResponse, account: object) {
 function sendError(res: NextApiResponse, error: string) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "no-store, private");
   res.send(`<script>
     window.opener.postMessage({
       type: "oauth-error",
