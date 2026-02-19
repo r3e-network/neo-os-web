@@ -19,6 +19,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     .digest("base64url");
 
   const prod = process.env.NODE_ENV === "production";
+  res.setHeader("Cache-Control", "no-store, private");
   res.setHeader("Set-Cookie", [
     `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${prod ? "; Secure" : ""}`,
     `code_verifier=${codeVerifier}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${prod ? "; Secure" : ""}`,

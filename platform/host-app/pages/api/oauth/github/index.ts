@@ -11,6 +11,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const REDIRECT_URI = `${NEXTAUTH_URL}/api/oauth/github/callback`;
   const state = generateState();
+  res.setHeader("Cache-Control", "no-store, private");
   res.setHeader("Set-Cookie", `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
 
   const authUrl =
