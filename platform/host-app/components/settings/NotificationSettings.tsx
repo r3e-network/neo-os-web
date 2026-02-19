@@ -56,7 +56,11 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
       {error && (
         <div role="alert" className="bg-red-100 dark:bg-red-900/20 p-3 rounded text-red-600 dark:text-red-400">
           {error}
-          <button type="button" onClick={clearError} className="ml-2 underline">
+          <button
+            type="button"
+            onClick={clearError}
+            className="ml-2 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded"
+          >
             Dismiss
           </button>
         </div>
@@ -101,7 +105,7 @@ function EmailSection({
         <div className="flex items-center gap-2">
           <span>{preferences.email}</span>
           {preferences.emailVerified ? (
-            <span className="text-green-600 dark:text-green-400 text-sm">Verified</span>
+            <span className="text-emerald-600 dark:text-emerald-400 text-sm">Verified</span>
           ) : (
             <span className="text-yellow-600 dark:text-yellow-400 text-sm">Pending</span>
           )}
@@ -112,6 +116,7 @@ function EmailSection({
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            aria-label="Email address"
             placeholder="Enter email"
             className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded px-2 py-1 flex-1 focus:outline-none focus:ring-2 focus:ring-neo/50"
           />
@@ -120,7 +125,11 @@ function EmailSection({
           </button>
         </div>
       ) : (
-        <button type="button" onClick={() => setShowEmailInput(true)} className="text-blue-500 dark:text-blue-400 underline">
+        <button
+          type="button"
+          onClick={() => setShowEmailInput(true)}
+          className="text-blue-500 dark:text-blue-400 underline transition-colors"
+        >
           Add email
         </button>
       )}

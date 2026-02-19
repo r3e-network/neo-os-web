@@ -92,9 +92,9 @@ export default function ExplorerPage() {
         <title>Neo Explorer | MiniApp Platform</title>
       </Head>
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-4 sm:py-8 max-w-6xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Neo N3 Explorer</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Neo N3 Explorer</h1>
           <p className="text-gray-500 dark:text-gray-400">Search transactions, addresses, and contracts with execution traces</p>
         </div>
 
@@ -113,7 +113,7 @@ export default function ExplorerPage() {
           </Button>
         </div>
 
-        {error && <div role="alert" className="text-center text-red-500 mb-4">{error}</div>}
+        {error && <div role="alert" className="text-center text-red-500 dark:text-red-400 mb-4">{error}</div>}
 
         <div aria-live="polite">
           {result && <SearchResults result={result} />}
@@ -198,9 +198,9 @@ function TransactionResult({ data }: { data: TransactionData }) {
                 </thead>
                 <tbody>
                   {data.opcode_traces.map((t) => (
-                    <tr key={t.step_index} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <tr key={t.step_index} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                       <td className="p-2">{t.step_index}</td>
-                      <td className="p-2 text-green-600 dark:text-green-400">{t.opcode}</td>
+                      <td className="p-2 text-emerald-600 dark:text-emerald-400">{t.opcode}</td>
                       <td className="p-2 text-gray-500 dark:text-gray-400">{t.opcode_hex}</td>
                       <td className="p-2">{t.instruction_ptr}</td>
                     </tr>
