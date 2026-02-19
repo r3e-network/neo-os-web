@@ -52,6 +52,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address }),
+        signal: AbortSignal.timeout(10000),
       });
       if (!nonceResp.ok) throw new Error("failed to get nonce");
       const { nonce, message } = await nonceResp.json();
@@ -70,6 +71,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           message,
           nonce,
         }),
+        signal: AbortSignal.timeout(10000),
       });
       if (!authResp.ok) throw new Error("authentication failed");
       const { access_token, user } = await authResp.json();
