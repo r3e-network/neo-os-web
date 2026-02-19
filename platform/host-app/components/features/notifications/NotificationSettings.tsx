@@ -12,7 +12,7 @@ export function NotificationSettings() {
   const [showVerify, setShowVerify] = useState(false);
 
   if (!preferences) {
-    return <div className="p-4 text-gray-500">Connect wallet to manage notifications</div>;
+    return <div className="p-4 text-gray-500 dark:text-gray-400">Connect wallet to manage notifications</div>;
   }
 
   const handleBindEmail = async () => {
@@ -91,7 +91,7 @@ function SettingsSection({
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <span className="text-gray-500">{icon}</span>
+        <span className="text-gray-500 dark:text-gray-400">{icon}</span>
         <h3 className="font-medium text-gray-900 dark:text-white">{title}</h3>
       </div>
       <div className="p-4 space-y-3">{children}</div>
@@ -114,7 +114,7 @@ function ToggleItem({
     <div className="flex items-center justify-between">
       <div>
         <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
-        <p className="text-xs text-gray-500">{description}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
       </div>
       <button
         role="switch"
@@ -149,9 +149,10 @@ function EmailBindInput({
         value={email}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Enter email address"
-        className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
+        className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
       />
       <button
+        type="button"
         onClick={onBind}
         disabled={loading || !email}
         className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
@@ -175,7 +176,7 @@ function VerifyCodeInput({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs text-gray-500">Enter the verification code sent to your email</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">Enter the verification code sent to your email</p>
       <div className="flex gap-2">
         <input
           type="text"
@@ -183,9 +184,10 @@ function VerifyCodeInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder="6-digit code"
           maxLength={6}
-          className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
+          className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
         />
         <button
+          type="button"
           onClick={onVerify}
           disabled={loading || code.length !== 6}
           className="px-4 py-2 text-sm font-medium rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
@@ -208,6 +210,7 @@ function FrequencySelector({ value, onChange }: { value: DigestFrequency; onChan
     <div className="space-y-2">
       {options.map((opt) => (
         <button
+          type="button"
           key={opt.value}
           aria-pressed={value === opt.value}
           onClick={() => onChange(opt.value)}
@@ -219,7 +222,7 @@ function FrequencySelector({ value, onChange }: { value: DigestFrequency; onChan
         >
           <div className="text-left">
             <p className="text-sm font-medium text-gray-900 dark:text-white">{opt.label}</p>
-            <p className="text-xs text-gray-500">{opt.desc}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
           </div>
           {value === opt.value && <span className="text-emerald-500">✓</span>}
         </button>
