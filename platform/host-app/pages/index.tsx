@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { StatsBar } from "@/components/features/stats";
-import { MiniAppCard, MiniAppListItem, type MiniAppInfo } from "@/components/features/miniapp";
+import { MiniAppCard, MiniAppListItem } from "@/components/features/miniapp";
 import { BUILTIN_APPS } from "@/lib/builtin-apps";
 import {
   Rocket,

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { NotificationPreferences, NotificationEvent, ChainHealthStatus, DigestFrequency } from "./types";
+import type { NotificationPreferences, NotificationEvent, ChainHealthStatus } from "./types";
 
 interface NotificationState {
   preferences: NotificationPreferences | null;

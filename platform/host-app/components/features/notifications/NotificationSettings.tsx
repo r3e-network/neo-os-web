@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Mail, Zap, AlertTriangle, Clock } from "lucide-react";
+import { Bell, Mail, Clock } from "lucide-react";
 import { useNotificationStore } from "@/lib/notifications/store";
 import type { DigestFrequency } from "@/lib/notifications/types";
 

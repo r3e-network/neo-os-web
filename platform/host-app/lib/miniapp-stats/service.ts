@@ -6,7 +6,7 @@
 import type { MiniAppStats, MiniAppLiveStatus } from "./types";
 import { statsCache, CACHE_TTL } from "./collector";
 import { supabase, isSupabaseConfigured } from "../supabase";
-import { getLotteryState, getGameState, getContractStats, CONTRACTS } from "../chain";
+import { getLotteryState, getContractStats } from "../chain";
 
 /**
  * Get stats for a single MiniApp

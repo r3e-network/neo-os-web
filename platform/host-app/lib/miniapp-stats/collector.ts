@@ -3,7 +3,7 @@
  * Collects transaction and user data from Neo blockchain
  */
 
-import type { MiniAppStats, MiniAppLiveStatus, ContractEvent } from "./types";
+import type { MiniAppStats, ContractEvent } from "./types";
 
 const NEO_RPC = {
   testnet: process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443",

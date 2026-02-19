@@ -31,7 +31,6 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
   error = null,
   onClearError,
 }) => {
-  const [hoverValue, setHoverValue] = useState(0);
   const [selectedValue, setSelectedValue] = useState(rating.user_rating?.rating_value || 0);
   const [reviewText, setReviewText] = useState(rating.user_rating?.review_text || "");
   const [isEditing, setIsEditing] = useState(false);
@@ -109,7 +108,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
             <div className="space-y-3">
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <StarIcon key={i} filled={i <= (hoverValue || selectedValue)} onClick={() => setSelectedValue(i)} label={`Rate ${i} star${i > 1 ? "s" : ""}`} />
+                  <StarIcon key={i} filled={i <= selectedValue} onClick={() => setSelectedValue(i)} label={`Rate ${i} star${i > 1 ? "s" : ""}`} />
                 ))}
               </div>
               <textarea

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
-import { Search, X, TrendingUp, Clock } from "lucide-react";
+import { Search, X, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SearchResult } from "@/pages/api/miniapps/search";
 

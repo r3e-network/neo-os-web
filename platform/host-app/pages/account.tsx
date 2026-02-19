@@ -12,9 +12,9 @@ import { BadgeGrid } from "@/components/features/gamification";
 import { cn } from "@/lib/utils";
 
 export default function AccountPage() {
-  const { address, connected } = useWalletStore();
+  const { address } = useWalletStore();
   const { accounts, loading, linkAccount, unlinkAccount } = useOAuthStore();
-  const { stats, levelInfo, loading: statsLoading } = useGamification(address);
+  const { stats, levelInfo } = useGamification(address);
 
   return (
     <Layout>

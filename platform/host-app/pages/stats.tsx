@@ -89,7 +89,6 @@ export default function EnhancedStatsPage() {
 
   // Default values when loading or no data
   const totalUsers = stats?.totalUsers || 0;
-  const totalTransactions = stats?.totalTransactions || 0;
   const totalVolume = stats?.totalVolume || "0";
   const activeApps = stats?.activeApps || 62;
   const topApps = stats?.topApps || [];

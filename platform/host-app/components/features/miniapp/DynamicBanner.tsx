@@ -91,18 +91,6 @@ const CATEGORY_ELEMENTS: Record<string, string[]> = {
   other: ["✨", "🧩", "⚙️", "🌐", "🚀", "🔮", "🎯", "💫"],
 };
 
-// Category gradient colors (Neo Green palette - avoiding Claude orange)
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  gaming: "from-purple-600 via-indigo-600 to-purple-800",
-  defi: "from-blue-600 via-cyan-600 to-blue-800",
-  social: "from-pink-500 via-rose-500 to-pink-700",
-  governance: "from-emerald-600 via-teal-500 to-emerald-700",
-  utility: "from-slate-500 via-gray-500 to-slate-700",
-  nft: "from-emerald-500 via-teal-500 to-emerald-700",
-  data: "from-cyan-600 via-sky-500 to-blue-700",
-  other: "from-slate-600 via-zinc-500 to-gray-700",
-};
-
 // Unique gradient palette - 60+ distinct gradients for unique card backgrounds
 const UNIQUE_GRADIENTS = [
   // Purple/Violet family

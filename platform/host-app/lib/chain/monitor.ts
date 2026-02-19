@@ -1,5 +1,4 @@
 import { sendEmail, chainAlertEmail } from "../email";
-import { getPreferences } from "../notifications/supabase-service";
 import { supabase, isSupabaseConfigured } from "../supabase";
 
 // Alert thresholds (in seconds)
