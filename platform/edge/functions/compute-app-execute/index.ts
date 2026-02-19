@@ -61,7 +61,7 @@ async function loadAppScript(
 
     const manifest: Manifest = await manifestRes.json();
     const scriptInfo = manifest.tee_scripts?.[scriptName];
-    if (!scriptInfo || !scriptInfo.file || /\.\./.test(scriptInfo.file)) return null;
+    if (!scriptInfo || !scriptInfo.file || !/^[a-zA-Z0-9_.-]+$/.test(scriptInfo.file)) return null;
 
     const scriptUrl = `${SCRIPTS_BASE_URL}/apps/${appId}/${scriptInfo.file}`;
     const scriptRes = await fetch(scriptUrl, { signal: AbortSignal.timeout(10000) });
