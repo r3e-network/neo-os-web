@@ -764,6 +764,12 @@ spec:
               name: service-layer-config
               key: NEOCOMPUTE_RESULT_TTL
               optional: true
+        - name: SECRETS_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SECRETS_MASTER_KEY
+              optional: true
         volumeMounts:
         - name: marble-data
           mountPath: /marble
@@ -1128,6 +1134,12 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: ORACLE_MAX_SIZE
+              optional: true
+        - name: SECRETS_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: service-layer-secrets
+              key: SECRETS_MASTER_KEY
               optional: true
         volumeMounts:
         - name: marble-data

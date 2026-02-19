@@ -28,13 +28,14 @@ async function findUserByWallet(supabase: SupabaseClient<Database>, wallet: stri
   if (directWallet?.user_id) return directWallet.user_id as string;
 
   // Case-insensitive fallback to handle legacy rows with inconsistent casing.
-  const { data: ciUser } = await supabase.from("users").select("id").ilike("address", normalized).maybeSingle();
+  const escaped = normalized.replace(/[%_\\]/g, "\\$&");
+  const { data: ciUser } = await supabase.from("users").select("id").ilike("address", escaped).maybeSingle();
   if (ciUser?.id) return ciUser.id as string;
 
   const { data: ciWallet } = await supabase
     .from("user_wallets")
     .select("user_id")
-    .ilike("address", normalized)
+    .ilike("address", escaped)
     .maybeSingle();
   if (ciWallet?.user_id) return ciWallet.user_id as string;
 
