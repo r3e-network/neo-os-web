@@ -35,5 +35,6 @@ func main() {
 	<-sigCh
 
 	log.Info(context.Background(), "shutting down", nil)
+	cancel()
 	svc.Stop()
 }
