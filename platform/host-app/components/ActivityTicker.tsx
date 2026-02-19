@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { CSSProperties, FC } from "react";
 import type { OnChainActivity } from "./types";
 
 interface ActivityTickerProps {
@@ -39,13 +38,13 @@ function truncateHash(hash: string | undefined): string {
   return `${hash.slice(0, 8)}...${hash.slice(-6)}`;
 }
 
-export const ActivityTicker: FC<ActivityTickerProps> = ({
+export const ActivityTicker = ({
   activities,
   title = "Live Activity",
   maxItems = 50,
   scrollSpeed = 30,
   height = 200,
-}) => {
+}: ActivityTickerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<number>(0);
@@ -83,21 +82,22 @@ export const ActivityTicker: FC<ActivityTickerProps> = ({
   const displayActivities = activities.slice(0, maxItems);
 
   return (
-    <div style={tickerContainerStyle}>
-      <div style={tickerHeaderStyle}>
-        <span style={tickerTitleStyle}>
-          <span style={liveDotStyle}>●</span> {title}
+    <div className="bg-gray-100 dark:bg-black/40 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+      <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20">
+        <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <span className="text-emerald-500 text-[10px] animate-pulse">●</span> {title}
         </span>
-        <span style={tickerCountStyle}>{activities.length} events</span>
+        <span className="text-xs text-gray-500 dark:text-white/50">{activities.length} events</span>
       </div>
       <div
         ref={containerRef}
-        style={{ ...tickerContentStyle, height }}
+        className="overflow-y-hidden scroll-smooth"
+        style={{ height }}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
         {displayActivities.length === 0 ? (
-          <div style={emptyStateStyle}>No activity yet</div>
+          <div className="p-6 text-center text-gray-400 dark:text-white/40 text-sm">No activity yet</div>
         ) : (
           displayActivities.map((activity) => <ActivityItem key={activity.id} activity={activity} />)
         )}
@@ -106,24 +106,33 @@ export const ActivityTicker: FC<ActivityTickerProps> = ({
   );
 };
 
-const ActivityItem: FC<{ activity: OnChainActivity }> = React.memo(({ activity }) => {
+const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) => {
   const icon = ACTIVITY_ICONS[activity.type] || "📌";
   const statusColor = activity.status ? STATUS_COLORS[activity.status] : undefined;
 
   return (
-    <div style={activityItemStyle}>
-      <div style={activityIconStyle}>{activity.app_icon || icon}</div>
-      <div style={activityContentStyle}>
-        <div style={activityTitleRowStyle}>
-          <span style={activityTitleStyle}>{activity.title}</span>
-          <span style={activityTimeStyle}>{formatTimeAgo(activity.timestamp)}</span>
+    <div className="flex gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-white/5">
+      <div className="text-base w-6 text-center shrink-0">{activity.app_icon || icon}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center gap-2">
+          <span className="text-[13px] font-medium text-gray-900 dark:text-white truncate">{activity.title}</span>
+          <span className="text-[11px] text-gray-400 dark:text-white/40 shrink-0">
+            {formatTimeAgo(activity.timestamp)}
+          </span>
         </div>
-        <div style={activityDescStyle}>{activity.description}</div>
+        <div className="text-xs text-gray-500 dark:text-white/60 mt-0.5 truncate">{activity.description}</div>
         {activity.tx_hash && (
-          <div style={activityMetaStyle}>
-            <span style={txHashStyle}>TX: {truncateHash(activity.tx_hash)}</span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono">
+              TX: {truncateHash(activity.tx_hash)}
+            </span>
             {statusColor && (
-              <span style={{ ...statusBadgeStyle, backgroundColor: statusColor }}>{activity.status}</span>
+              <span
+                className="text-[9px] px-1.5 py-0.5 rounded text-white font-semibold uppercase"
+                style={{ backgroundColor: statusColor }}
+              >
+                {activity.status}
+              </span>
             )}
           </div>
         )}
@@ -131,126 +140,5 @@ const ActivityItem: FC<{ activity: OnChainActivity }> = React.memo(({ activity }
     </div>
   );
 });
-
-// Styles
-const tickerContainerStyle: CSSProperties = {
-  background: "rgba(0, 0, 0, 0.4)",
-  borderRadius: 12,
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  overflow: "hidden",
-};
-
-const tickerHeaderStyle: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "12px 16px",
-  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-  background: "rgba(0, 0, 0, 0.2)",
-};
-
-const tickerTitleStyle: CSSProperties = {
-  fontSize: 14,
-  fontWeight: 600,
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-};
-
-const liveDotStyle: CSSProperties = {
-  color: "#10b981",
-  fontSize: 10,
-  animation: "pulse 2s ease-in-out infinite",
-};
-
-const tickerCountStyle: CSSProperties = {
-  fontSize: 12,
-  color: "rgba(255, 255, 255, 0.5)",
-};
-
-const tickerContentStyle: CSSProperties = {
-  overflowY: "hidden",
-  scrollBehavior: "smooth",
-};
-
-const emptyStateStyle: CSSProperties = {
-  padding: 24,
-  textAlign: "center",
-  color: "rgba(255, 255, 255, 0.4)",
-  fontSize: 14,
-};
-
-const activityItemStyle: CSSProperties = {
-  display: "flex",
-  gap: 12,
-  padding: "10px 16px",
-  borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
-};
-
-const activityIconStyle: CSSProperties = {
-  fontSize: 16,
-  width: 24,
-  textAlign: "center",
-  flexShrink: 0,
-};
-
-const activityContentStyle: CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-};
-
-const activityTitleRowStyle: CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 8,
-};
-
-const activityTitleStyle: CSSProperties = {
-  fontSize: 13,
-  fontWeight: 500,
-  color: "#fff",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const activityTimeStyle: CSSProperties = {
-  fontSize: 11,
-  color: "rgba(255, 255, 255, 0.4)",
-  flexShrink: 0,
-};
-
-const activityDescStyle: CSSProperties = {
-  fontSize: 12,
-  color: "rgba(255, 255, 255, 0.6)",
-  marginTop: 2,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const activityMetaStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  marginTop: 4,
-};
-
-const txHashStyle: CSSProperties = {
-  fontSize: 10,
-  color: "rgba(255, 255, 255, 0.3)",
-  fontFamily: "monospace",
-};
-
-const statusBadgeStyle: CSSProperties = {
-  fontSize: 9,
-  padding: "2px 6px",
-  borderRadius: 4,
-  color: "#fff",
-  fontWeight: 600,
-  textTransform: "uppercase",
-};
 
 export default ActivityTicker;
