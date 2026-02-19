@@ -18,8 +18,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method === "GET") {
       const { wallet } = req.query;
-      if (!wallet || typeof wallet !== "string") {
-        return apiError.badRequest(res, "Wallet address required");
+      if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+        return apiError.badRequest(res, "Invalid wallet address");
       }
 
       const prefs = await getPreferences(wallet);
