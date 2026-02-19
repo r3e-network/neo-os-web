@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { SocialRating, SocialComment, VoteType } from "@/components/types";
+import { logger } from "@/lib/logger";
 
 interface UseReviewsOptions {
   appId: string;
@@ -23,8 +24,8 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         const data = await res.json();
         setRating(data.rating);
       }
-    } catch {
-      // Silent fail
+    } catch (err) {
+      logger.warn("Failed to fetch rating:", err);
     }
   }, [appId, walletAddress]);
 
@@ -143,8 +144,8 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
           const data = await res.json();
           return data.comments;
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        logger.warn("Failed to load replies:", err);
       }
       return [];
     },

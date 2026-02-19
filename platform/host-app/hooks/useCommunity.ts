@@ -278,5 +278,3 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
     setComments,
   };
 }
-
-export default useCommunity;
