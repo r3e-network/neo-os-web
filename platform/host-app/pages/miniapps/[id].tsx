@@ -239,7 +239,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             {activeTab === "news" && showNews && <AppNewsList notifications={notifications} />}
             {activeTab === "secrets" && showSecrets && <AppSecretsTab appId={app.app_id} appName={app.name} />}
             {!showNews && activeTab === "news" && (
-              <p className="mt-4 text-[13px] text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
+              <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
             )}
           </div>
         </section>
@@ -324,15 +324,15 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
       <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Contract Details</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
-          App ID: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[13px] font-mono text-neo break-all">{app.app_id}</code>
+          App ID: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo break-all">{app.app_id}</code>
         </p>
         {app.contract_hash && (
           <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
-            Contract Hash: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[13px] font-mono text-neo break-all">{app.contract_hash}</code>
+            Contract Hash: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo break-all">{app.contract_hash}</code>
           </p>
         )}
         <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
-          Entry URL: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[13px] font-mono text-neo break-all">{app.entry_url}</code>
+          Entry URL: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo break-all">{app.entry_url}</code>
         </p>
       </div>
     </div>
