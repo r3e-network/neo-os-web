@@ -33,7 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Clear state cookie to prevent replay
-  res.setHeader("Set-Cookie", "oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+  const secureSuffix = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader("Set-Cookie", `oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secureSuffix}`);
 
   if (!code) {
     return sendError(res, "Missing authorization code");

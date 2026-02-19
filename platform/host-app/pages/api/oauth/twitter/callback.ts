@@ -32,9 +32,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Clear state and PKCE cookies to prevent replay
+  const secureSuffix = process.env.NODE_ENV === "production" ? "; Secure" : "";
   res.setHeader("Set-Cookie", [
-    "oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
-    "code_verifier=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax",
+    `oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secureSuffix}`,
+    `code_verifier=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secureSuffix}`,
   ]);
 
   if (!code || !codeVerifier) {
