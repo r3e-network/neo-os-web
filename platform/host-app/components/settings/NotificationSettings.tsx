@@ -30,12 +30,12 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
 
   return (
     <div className="space-y-6 p-4">
-      <h2 className="text-xl font-bold">Notification Settings</h2>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notification Settings</h2>
 
       {error && (
-        <div className="bg-red-100 p-3 rounded text-red-700">
+        <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded text-red-700 dark:text-red-400">
           {error}
-          <button onClick={clearError} className="ml-2 underline">
+          <button type="button" onClick={clearError} className="ml-2 underline">
             Dismiss
           </button>
         </div>
@@ -74,15 +74,15 @@ function EmailSection({
   bindEmail: (email: string) => Promise<void>;
 }) {
   return (
-    <div className="border rounded p-4">
-      <h3 className="font-semibold mb-2">Email Notifications</h3>
+    <div className="border border-gray-200 dark:border-gray-700 rounded p-4">
+      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Email Notifications</h3>
       {preferences.email ? (
         <div className="flex items-center gap-2">
           <span>{preferences.email}</span>
           {preferences.emailVerified ? (
-            <span className="text-green-600 text-sm">Verified</span>
+            <span className="text-green-600 dark:text-green-400 text-sm">Verified</span>
           ) : (
-            <span className="text-yellow-600 text-sm">Pending</span>
+            <span className="text-yellow-600 dark:text-yellow-400 text-sm">Pending</span>
           )}
         </div>
       ) : showEmailInput ? (
@@ -92,14 +92,14 @@ function EmailSection({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter email"
-            className="border rounded px-2 py-1 flex-1"
+            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded px-2 py-1 flex-1 focus:outline-none focus:ring-2 focus:ring-neo/50"
           />
-          <button onClick={() => bindEmail(email)} className="bg-blue-500 text-white px-3 py-1 rounded">
+          <button type="button" onClick={() => bindEmail(email)} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors">
             Bind
           </button>
         </div>
       ) : (
-        <button onClick={() => setShowEmailInput(true)} className="text-blue-500 underline">
+        <button type="button" onClick={() => setShowEmailInput(true)} className="text-blue-500 dark:text-blue-400 underline">
           Add email
         </button>
       )}
@@ -126,8 +126,8 @@ function ToggleSection({
   ];
 
   return (
-    <div className="border rounded p-4 space-y-3">
-      <h3 className="font-semibold">Notification Types</h3>
+    <div className="border border-gray-200 dark:border-gray-700 rounded p-4 space-y-3">
+      <h3 className="font-semibold text-gray-900 dark:text-white">Notification Types</h3>
       {toggles.map((t) => (
         <Toggle
           key={t.key}
@@ -156,8 +156,8 @@ function Toggle({
   return (
     <label className="flex items-center justify-between">
       <div>
-        <div className="font-medium">{label}</div>
-        <div className="text-sm text-gray-500">{desc}</div>
+        <div className="font-medium text-gray-900 dark:text-white">{label}</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">{desc}</div>
       </div>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="w-5 h-5" />
     </label>

@@ -79,7 +79,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My API Token"
-            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neo/50"
           />
         </div>
         <div>
@@ -90,7 +90,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
               value={secretValue}
               onChange={(e) => setSecretValue(e.target.value)}
               placeholder="Enter your secret value"
-              className="w-full rounded border border-gray-200 bg-white px-3 py-2 pr-10 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              className="w-full rounded border border-gray-200 bg-white px-3 py-2 pr-10 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neo/50"
             />
             <button
               type="button"
@@ -109,7 +109,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
             value={appId}
             onChange={(e) => setAppId(e.target.value)}
             placeholder="Leave empty for global access"
-            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neo/50"
           />
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Restrict to specific MiniApp or leave empty for all apps
