@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
 import { LaunchDock } from "../../components/LaunchDock";
@@ -207,6 +208,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
   return (
     <div style={containerStyle}>
+      <Head><title>{app.name} - NeoHub</title></Head>
       <LaunchDock
         appName={app.name}
         appId={app.app_id}

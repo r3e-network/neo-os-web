@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { GetServerSideProps } from "next";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import {
   MiniAppInfo,
@@ -137,6 +138,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
   return (
     <div style={containerStyle}>
+      <Head><title>{app.name} - NeoHub</title></Head>
       <AppDetailHeader app={app} stats={stats || undefined} onBack={handleBack} />
 
       <main style={mainStyle}>
