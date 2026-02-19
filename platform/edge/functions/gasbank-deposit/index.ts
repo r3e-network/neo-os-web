@@ -32,15 +32,15 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid JSON body", "BAD_JSON", req);
   }
 
-  const fromAddress = String(body.from_address ?? "").trim();
+  const fromAddress = String(body.from_address ?? "").trim().slice(0, 64);
   if (!fromAddress) return error(400, "from_address required", "FROM_ADDRESS_REQUIRED", req);
+
+  const txHash = String(body.tx_hash ?? "").trim().slice(0, 66) || null;
 
   const rawAmount = String(body.amount ?? "").trim();
   if (!/^\d+$/.test(rawAmount)) return error(400, "amount must be an integer string", "AMOUNT_INVALID", req);
   const amount = BigInt(rawAmount);
   if (amount <= 0n) return error(400, "amount must be > 0", "AMOUNT_INVALID", req);
-
-  const txHash = String(body.tx_hash ?? "").trim() || null;
 
   const ensured = await ensureUserRow(auth, {}, req);
   if (ensured instanceof Response) return ensured;
@@ -69,7 +69,7 @@ export async function handler(req: Request): Promise<Response> {
       required_confirmations: 1,
       expires_at: expiresAt,
     })
-    .select("*")
+    .select("id,user_id,account_id,amount,tx_hash,from_address,status,required_confirmations,expires_at,created_at")
     .maybeSingle();
 
   if (depErr) return error(500, "failed to create deposit request", "DB_ERROR", req);

@@ -71,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const submissionStatus = status === "rejected" ? "rejected" : "pending";
     let query = supabase
       .from("miniapp_submissions")
-      .select("*")
+      .select("app_id,name,description,icon,category,entry_url,contract_hash,status,developer_name,developer_address,permissions")
       .eq("source", "community")
       .eq("status", submissionStatus);
 
