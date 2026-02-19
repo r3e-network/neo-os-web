@@ -190,7 +190,7 @@ export default function MiniAppsPage() {
                     onClick={() => setShowSortMenu(!showSortMenu)}
                     aria-haspopup="listbox"
                     aria-expanded={showSortMenu}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <currentSort.icon size={14} />
                     {currentSort.label}

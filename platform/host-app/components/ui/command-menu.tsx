@@ -54,7 +54,7 @@ export function CommandMenu() {
               <Command.Item
                 key={cmd.id}
                 onSelect={() => runCommand(cmd.href)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 cursor-pointer hover:bg-white/5"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 cursor-pointer hover:bg-white/5 transition-colors"
               >
                 <cmd.icon size={16} />
                 {cmd.label}
