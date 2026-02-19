@@ -8,6 +8,7 @@ export async function handler(req: Request): Promise<Response> {
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
+  try {
   const body = await req.json().catch(() => null);
   if (!body) return error(400, "invalid JSON", "INVALID_INPUT", req);
 
@@ -126,6 +127,9 @@ export async function handler(req: Request): Promise<Response> {
   const accessToken = verifyData.session.access_token;
 
   return json({ access_token: accessToken, user: { id: accountId, address } }, {}, req);
+  } catch {
+    return error(500, "internal error", "INTERNAL", req);
+  }
 }
 
 if (import.meta.main) {

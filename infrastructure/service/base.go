@@ -257,6 +257,11 @@ func (b *BaseService) Start(ctx context.Context) error {
 		b.wg.Add(1)
 		go func() {
 			defer b.wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					b.logger.WithField("panic", fmt.Sprintf("%v", r)).Error("panic in worker goroutine")
+				}
+			}()
 			worker(ctx)
 		}()
 	}
