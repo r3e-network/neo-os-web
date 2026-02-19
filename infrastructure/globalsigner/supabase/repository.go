@@ -172,7 +172,7 @@ func (r *repository) ListKeyVersions(ctx context.Context, statuses []types.KeySt
 	if len(statuses) > 0 {
 		values := make([]string, 0, len(statuses))
 		for _, st := range statuses {
-			values = append(values, string(st))
+			values = append(values, url.QueryEscape(string(st)))
 		}
 		query = "status=in.(" + strings.Join(values, ",") + ")&" + query
 	}

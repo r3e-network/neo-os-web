@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
 import { apiError } from "@/lib/api-response";
+import { strictLimit } from "@/lib/rate-limit";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (strictLimit(req, res)) return;
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
   const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
