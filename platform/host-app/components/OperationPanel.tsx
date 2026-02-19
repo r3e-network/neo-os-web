@@ -34,7 +34,7 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
   };
 
   const btnClass = op.button_style === "danger" ? "bg-red-500 hover:bg-red-600"
-    : op.button_style === "success" ? "bg-green-500 hover:bg-green-600"
+    : op.button_style === "success" ? "bg-emerald-500 hover:bg-emerald-600"
     : op.button_style === "secondary" ? "bg-gray-500 hover:bg-gray-600"
     : "bg-neo hover:bg-neo/90";
 
