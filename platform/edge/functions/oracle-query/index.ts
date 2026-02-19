@@ -58,6 +58,14 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "private/internal URLs not allowed", "INVALID_URL_HOST", req);
   }
 
+  const secretNameRe = /^[a-zA-Z0-9_-]{1,128}$/;
+  if (body.secret_name && !secretNameRe.test(body.secret_name)) {
+    return error(400, "invalid secret_name", "INVALID_SECRET_NAME", req);
+  }
+  if (body.secret_as_key && !secretNameRe.test(body.secret_as_key)) {
+    return error(400, "invalid secret_as_key", "INVALID_SECRET_AS_KEY", req);
+  }
+
   const neooracleURL = mustGetEnv("NEOORACLE_URL").replace(/\/$/, "");
   const result = await postJSON(
     `${neooracleURL}/query`,

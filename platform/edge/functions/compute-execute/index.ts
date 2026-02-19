@@ -43,6 +43,11 @@ export async function handler(req: Request): Promise<Response> {
   if (script.length > 1024 * 1024) return error(400, "script too large (max 1MB)", "SCRIPT_TOO_LARGE", req);
   const timeout = Math.min(Math.max(Number(body.timeout) || 30, 1), 60);
 
+  const secretRefs = Array.isArray(body.secret_refs) ? body.secret_refs.slice(0, 20) : undefined;
+  if (secretRefs && !secretRefs.every((r: unknown) => typeof r === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(r))) {
+    return error(400, "invalid secret_refs", "INVALID_SECRET_REFS", req);
+  }
+
   const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
   const result = await postJSON(
     `${neocomputeURL}/execute`,
@@ -50,7 +55,7 @@ export async function handler(req: Request): Promise<Response> {
       script,
       entry_point: body.entry_point,
       input: body.input,
-      secret_refs: body.secret_refs,
+      secret_refs: secretRefs,
       timeout,
     },
     { "X-User-ID": auth.userId },

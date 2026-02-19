@@ -112,6 +112,11 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "script_name required (alphanumeric, dash, underscore only)", "SCRIPT_NAME_REQUIRED", req);
   }
 
+  const secretRefs = Array.isArray(body.secret_refs) ? body.secret_refs.slice(0, 20) : undefined;
+  if (secretRefs && !secretRefs.every((r: unknown) => typeof r === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(r))) {
+    return error(400, "invalid secret_refs", "INVALID_SECRET_REFS", req);
+  }
+
   // Load script from app manifest
   const loaded = await loadAppScript(appId, scriptName);
   if (!loaded) {
@@ -126,7 +131,7 @@ export async function handler(req: Request): Promise<Response> {
       script: loaded.script,
       entry_point: loaded.entryPoint,
       input: body.input,
-      secret_refs: body.secret_refs,
+      secret_refs: secretRefs,
       timeout: body.timeout,
       app_id: appId,
       script_name: scriptName,
