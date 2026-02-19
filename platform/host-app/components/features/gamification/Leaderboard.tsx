@@ -83,7 +83,7 @@ const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser
     if (entry.rank === 1) return <Crown size={16} className="text-amber-400" aria-label="1st place" />;
     if (entry.rank === 2) return <Medal size={16} className="text-gray-400" aria-label="2nd place" />;
     if (entry.rank === 3) return <Medal size={16} className="text-amber-600" aria-label="3rd place" />;
-    return <span className="text-xs text-gray-500">#{entry.rank}</span>;
+    return <span className="text-xs text-gray-500 dark:text-gray-400">#{entry.rank}</span>;
   };
 
   return (
@@ -102,7 +102,7 @@ const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser
       </div>
       <div className="text-right">
         <div className="font-bold text-gray-900 dark:text-white">{entry.xp.toLocaleString()}</div>
-        <div className="text-xs text-gray-500">XP</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">XP</div>
       </div>
     </div>
   );

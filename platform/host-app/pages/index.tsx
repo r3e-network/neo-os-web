@@ -241,7 +241,7 @@ export default function LandingPage() {
                         <span
                           className={cn(
                             "text-xs px-2 py-0.5 rounded-full",
-                            isActive ? "bg-neo/20 text-neo" : "bg-gray-200 dark:bg-white/10 text-gray-500",
+                            isActive ? "bg-neo/20 text-neo" : "bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-gray-400",
                           )}
                         >
                           {cat.count}
@@ -348,7 +348,7 @@ export default function LandingPage() {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="col-span-full text-center py-12 text-gray-500" role="status" aria-live="polite">No apps found in this category</div>
+                  <div className="col-span-full text-center py-12 text-gray-500 dark:text-gray-400" role="status" aria-live="polite">No apps found in this category</div>
                 )}
               </div>
             </div>
