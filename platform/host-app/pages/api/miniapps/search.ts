@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 import { loadMiniAppCatalog } from "@/lib/miniapp-catalog";
 
@@ -47,7 +48,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       query,
       suggestions,
     });
-  } catch {
+  } catch (err) {
+    logger.error("Failed to search miniapps:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res);
   }
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Trophy, Medal, Crown } from "lucide-react";
 import type { LeaderboardEntry } from "./types";
 import { LEVELS } from "./constants";
+import { logger } from "@/lib/logger";
 
 interface LeaderboardProps {
   currentWallet?: string;
@@ -20,8 +21,8 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
         const data = await res.json();
         setEntries(data.entries);
       }
-    } catch {
-      // Silent fail
+    } catch (err) {
+      logger.warn("Failed to fetch leaderboard:", err);
     } finally {
       setLoading(false);
     }

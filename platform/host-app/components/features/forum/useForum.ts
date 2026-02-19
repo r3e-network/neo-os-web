@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { ForumThread, ForumReply } from "./types";
+import { logger } from "@/lib/logger";
 
 interface UseForumOptions {
   appId: string;
@@ -24,8 +25,8 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           setThreads(data.threads);
           setHasMore(data.hasMore);
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        logger.warn("Failed to fetch forum threads:", err);
       } finally {
         setLoading(false);
       }
@@ -48,8 +49,8 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           setThreads((prev) => [data.thread, ...prev]);
           return data.thread;
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        logger.warn("Failed to create forum thread:", err);
       }
       return null;
     },
@@ -66,8 +67,8 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           const data = await res.json();
           return data.replies;
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        logger.warn("Failed to fetch forum replies:", err);
       }
       return [];
     },
@@ -88,8 +89,8 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           const data = await res.json();
           return data.reply;
         }
-      } catch {
-        // Silent fail
+      } catch (err) {
+        logger.warn("Failed to create forum reply:", err);
       }
       return null;
     },

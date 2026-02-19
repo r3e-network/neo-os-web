@@ -101,8 +101,8 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
         }),
         signal: AbortSignal.timeout(30000),
       });
-    } catch {
-      // Silent fail - message already shown optimistically
+    } catch (err) {
+      logger.warn("Failed to send chat message:", err);
     }
   };
 

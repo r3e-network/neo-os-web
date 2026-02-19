@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 interface Tweet {
   id: string;
@@ -19,7 +20,7 @@ export function TwitterFeed() {
         setTweets(data.tweets || []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => { logger.warn("Failed to fetch tweets:", err); setLoading(false); });
   }, []);
 
   const formatTime = (dateStr: string) => {

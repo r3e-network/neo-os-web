@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 
 interface StakingStats {
   apy: string;
@@ -19,7 +20,7 @@ export function StakingCard({ onStake }: StakingCardProps) {
     fetch("/api/neoburger-stats", { signal: AbortSignal.timeout(30000) })
       .then((res) => res.json())
       .then((data) => setStats(data))
-      .catch(() => { /* keep default stats on fetch failure */ });
+      .catch((err) => { logger.warn("Failed to fetch staking stats:", err); });
   }, []);
 
   const userBalance = "100";
