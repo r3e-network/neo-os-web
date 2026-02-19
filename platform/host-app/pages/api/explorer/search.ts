@@ -75,8 +75,12 @@ async function supabaseQuery(url: string, key: string, table: string, params: st
     signal: AbortSignal.timeout(10000),
   });
   if (!response.ok) return [];
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
+  try {
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 }
 
 async function searchTransaction(url: string, key: string, hash: string) {
