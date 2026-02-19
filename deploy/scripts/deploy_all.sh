@@ -46,7 +46,7 @@ resolve_neoxp() {
 NEOXP="$(resolve_neoxp)"
 
 # Check if contracts are built
-if [ ! -d "$BUILD_DIR" ] || [ -z "$(ls -A $BUILD_DIR/*.nef 2>/dev/null)" ]; then
+if [ ! -d "$BUILD_DIR" ] || [ -z "$(ls -A "$BUILD_DIR"/*.nef 2>/dev/null)" ]; then
     echo "Error: No built contracts found in $BUILD_DIR"
     echo "Run setup_neoexpress.sh first to build contracts"
     exit 1
