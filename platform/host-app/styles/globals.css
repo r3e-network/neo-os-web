@@ -30,20 +30,8 @@
 }
 
 @layer components {
-  .glass {
-    @apply bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-2xl border border-gray-200 dark:border-white/5 shadow-lg dark:shadow-2xl;
-  }
-
   .glass-card {
     @apply bg-white dark:bg-white/[0.05] backdrop-blur-xl border border-gray-200 dark:border-white/5 hover:border-neo/30 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-500 shadow-md dark:shadow-2xl;
-  }
-
-  .neo-glow {
-    box-shadow: 0 0 20px rgba(0, 229, 153, 0.3);
-  }
-
-  .purple-glow {
-    box-shadow: 0 0 20px rgba(112, 0, 255, 0.3);
   }
 
   .neo-gradient-text {

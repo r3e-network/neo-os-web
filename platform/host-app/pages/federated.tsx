@@ -51,13 +51,13 @@ export default function FederatedMiniApp() {
         <title>Federated MiniApp Host</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      <main style={{ padding: 24, fontFamily: "system-ui, sans-serif", maxWidth: 960 }}>
-        <h1 style={{ margin: "0 0 12px" }}>Federated MiniApp Host</h1>
-        <p style={{ margin: "0 0 12px", fontSize: 14 }}>
+      <main className="p-6 font-sans max-w-[960px]">
+        <h1 className="mb-3">Federated MiniApp Host</h1>
+        <p className="mb-3 text-sm">
           Built-in MiniApps can be served as Module Federation remotes. This page loads the <code>builtin/App</code>{" "}
           module from the configured remote.
         </p>
-        <div style={{ marginBottom: 12, fontSize: 12 }}>
+        <div className="mb-3 text-xs">
           <div>
             <strong>Expected remote:</strong> <code>{remote || "builtin"}</code> exposing <code>./App</code>
           </div>
