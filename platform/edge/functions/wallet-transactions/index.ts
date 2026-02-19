@@ -81,7 +81,7 @@ export async function handler(req: Request): Promise<Response> {
     transactions.push({
       tx_hash: tx.txhash,
       block: tx.blockindex,
-      timestamp: new Date(tx.timestamp * 1000).toISOString(),
+      timestamp: Number.isFinite(tx.timestamp) ? new Date(tx.timestamp * 1000).toISOString() : new Date(0).toISOString(),
       asset: getAssetSymbol(tx.assethash),
       amount: formatAmount(tx.amount, tx.assethash),
       direction: "out",
@@ -94,7 +94,7 @@ export async function handler(req: Request): Promise<Response> {
     transactions.push({
       tx_hash: tx.txhash,
       block: tx.blockindex,
-      timestamp: new Date(tx.timestamp * 1000).toISOString(),
+      timestamp: Number.isFinite(tx.timestamp) ? new Date(tx.timestamp * 1000).toISOString() : new Date(0).toISOString(),
       asset: getAssetSymbol(tx.assethash),
       amount: formatAmount(tx.amount, tx.assethash),
       direction: "in",
