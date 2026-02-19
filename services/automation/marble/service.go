@@ -203,8 +203,9 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 	return s, nil
 }
 
-// Stop waits for all in-flight trigger and anchored-task goroutines, then
-// delegates to the embedded BaseService.Stop.
+// Stop delegates to the embedded BaseService.Stop (which closes stopCh and
+// drains base workers so no new goroutines are spawned), then waits for all
+// in-flight trigger and anchored-task goroutines.
 func (s *Service) Stop() error {
 	err := s.BaseService.Stop()
 	s.wg.Wait()
