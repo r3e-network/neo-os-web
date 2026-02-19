@@ -38,9 +38,9 @@ class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: E
     if (!this.state.error) return this.props.children;
 
     return (
-      <div style={errorStyle} role="alert">
-        <div style={errorTitleStyle}>Failed to load federated MiniApp</div>
-        <div style={errorTextStyle}>{this.state.error.message}</div>
+      <div className="p-3 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 max-w-md" role="alert">
+        <div className="font-semibold text-gray-900 dark:text-white mb-1.5">Failed to load federated MiniApp</div>
+        <div className="text-xs text-red-700 dark:text-red-400">{this.state.error.message}</div>
       </div>
     );
   }
@@ -48,9 +48,9 @@ class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: E
 
 function NotConfiguredMessage() {
   return (
-    <div style={noticeStyle}>
-      <h3 style={noticeTitleStyle}>Module Federation Not Configured</h3>
-      <p style={noticeTextStyle}>
+    <div className="p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-center max-w-md">
+      <h3 className="m-0 mb-3 text-gray-600 dark:text-gray-300">Module Federation Not Configured</h3>
+      <p className="m-0 text-sm text-gray-500 dark:text-gray-400">
         Set <code>NEXT_PUBLIC_MF_REMOTES</code> to enable federated MiniApps.
       </p>
     </div>
@@ -102,17 +102,17 @@ function FederatedLoader({ remote, appId, view }: Props) {
     };
   }, [remote]);
 
-  if (loading) return <p style={loadingStyle} aria-busy="true">Loading federated MiniApp…</p>;
+  if (loading) return <p className="text-sm text-gray-400" aria-busy="true">Loading federated MiniApp…</p>;
   if (error) {
     return (
-      <div style={errorStyle} role="alert">
-        <div style={errorTitleStyle}>Failed to load federated MiniApp</div>
-        <div style={errorTextStyle}>{error}</div>
+      <div className="p-3 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 max-w-md" role="alert">
+        <div className="font-semibold text-gray-900 dark:text-white mb-1.5">Failed to load federated MiniApp</div>
+        <div className="text-xs text-red-700 dark:text-red-400">{error}</div>
       </div>
     );
   }
 
-  if (!LoadedComponent) return <p style={loadingStyle}>Module not available</p>;
+  if (!LoadedComponent) return <p className="text-sm text-gray-400">Module not available</p>;
   return <LoadedComponent appId={appId} view={view} remote={remote} />;
 }
 
@@ -125,48 +125,6 @@ export function FederatedMiniApp(props: Props) {
   );
 }
 
-const errorStyle: React.CSSProperties = {
-  padding: 12,
-  border: "1px solid #f2c6c6",
-  borderRadius: 8,
-  background: "#fff6f6",
-  maxWidth: 480,
-};
-
-const errorTitleStyle: React.CSSProperties = {
-  fontWeight: 600,
-  marginBottom: 6,
-};
-
-const errorTextStyle: React.CSSProperties = {
-  fontSize: 12,
-  color: "#8a2c2c",
-};
-
-const noticeStyle: React.CSSProperties = {
-  padding: 24,
-  border: "1px solid #e0e0e0",
-  borderRadius: 8,
-  background: "#f5f5f5",
-  textAlign: "center",
-  maxWidth: 480,
-};
-
-const noticeTitleStyle: React.CSSProperties = {
-  margin: "0 0 12px",
-  color: "#666",
-};
-
-const noticeTextStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 14,
-  color: "#888",
-};
-
-const loadingStyle: React.CSSProperties = {
-  fontSize: 14,
-  color: "#ccc",
-};
 
 function resolveRemote(remoteName: string): RemoteConfig | null {
   const remotes = parseRemotes(process.env.NEXT_PUBLIC_MF_REMOTES || "");
