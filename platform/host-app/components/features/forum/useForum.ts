@@ -17,7 +17,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
     async (category?: string) => {
       setLoading(true);
       try {
-        const url = `/api/miniapps/${appId}/forum/threads${category ? `?category=${category}` : ""}`;
+        const url = `/api/miniapps/${encodeURIComponent(appId)}/forum/threads${category ? `?category=${encodeURIComponent(category)}` : ""}`;
         const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
         if (res.ok) {
           const data = await res.json();

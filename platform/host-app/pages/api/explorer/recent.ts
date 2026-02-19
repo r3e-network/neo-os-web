@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const response = await fetch(
-      `${indexerUrl}/rest/v1/indexer_transactions?network=eq.${network}&order=block_time.desc&limit=${limit}`,
+      `${indexerUrl}/rest/v1/indexer_transactions?network=eq.${encodeURIComponent(network)}&order=block_time.desc&limit=${limit}`,
       {
         headers: {
           apikey: indexerKey,

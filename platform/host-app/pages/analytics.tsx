@@ -36,7 +36,7 @@ export default function AnalyticsPage() {
   const fetchAnalytics = async (wallet: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/analytics/user?wallet=${wallet}`);
+      const res = await fetch(`/api/analytics/user?wallet=${encodeURIComponent(wallet)}`);
       if (res.ok) {
         const data = await res.json();
         setAnalytics(data);

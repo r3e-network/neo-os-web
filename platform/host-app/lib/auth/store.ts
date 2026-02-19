@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   loginSocial: (provider: string) => {
     if (get().loading) return;
     set({ loading: true, error: null });
-    window.location.href = `/api/auth/login-social?provider=${provider}`;
+    window.location.href = `/api/auth/login-social?provider=${encodeURIComponent(provider)}`;
   },
 
   loginWallet: async (provider: WalletProvider) => {

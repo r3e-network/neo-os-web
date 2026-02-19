@@ -17,7 +17,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
 
   const fetchRating = useCallback(async () => {
     try {
-      const url = `/api/miniapps/${appId}/reviews/ratings${walletAddress ? `?wallet=${walletAddress}` : ""}`;
+      const url = `/api/miniapps/${encodeURIComponent(appId)}/reviews/ratings${walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : ""}`;
       const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
       if (res.ok) {
         const data = await res.json();
@@ -136,7 +136,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
   const loadReplies = useCallback(
     async (parentId: string): Promise<SocialComment[]> => {
       try {
-        const res = await fetch(`/api/miniapps/${appId}/reviews/comments?parent_id=${parentId}`, {
+        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?parent_id=${encodeURIComponent(parentId)}`, {
           signal: AbortSignal.timeout(30000),
         });
         if (res.ok) {

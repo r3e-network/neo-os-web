@@ -44,7 +44,7 @@ export const useNotificationStore = create<NotificationStore>()(
       loadPreferences: async (walletAddress: string) => {
         set({ loading: true, error: null });
         try {
-          const res = await fetch(`/api/notifications/preferences?wallet=${walletAddress}`, {
+          const res = await fetch(`/api/notifications/preferences?wallet=${encodeURIComponent(walletAddress)}`, {
             signal: AbortSignal.timeout(30000),
           });
           if (!res.ok) throw new Error("Failed to load preferences");
@@ -115,7 +115,7 @@ export const useNotificationStore = create<NotificationStore>()(
         const { preferences } = get();
         if (!preferences) return;
         try {
-          const res = await fetch(`/api/notifications/events?wallet=${preferences.walletAddress}`, {
+          const res = await fetch(`/api/notifications/events?wallet=${encodeURIComponent(preferences.walletAddress)}`, {
             signal: AbortSignal.timeout(30000),
           });
           if (!res.ok) return;

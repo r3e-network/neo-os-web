@@ -51,7 +51,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
     const fetchNotifications = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/notifications/events?wallet=${walletAddress}&limit=10`);
+        const res = await fetch(`/api/notifications/events?wallet=${encodeURIComponent(walletAddress)}&limit=10`);
         if (res.ok && active) {
           const data = await res.json();
           setNotifications(data.events || []);
@@ -80,7 +80,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
   const markAllAsRead = async () => {
     if (!walletAddress) return;
     try {
-      await fetch(`/api/notifications/events/read-all?wallet=${walletAddress}`, { method: "POST" });
+      await fetch(`/api/notifications/events/read-all?wallet=${encodeURIComponent(walletAddress)}`, { method: "POST" });
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (err) {

@@ -44,7 +44,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       setError(null);
       try {
         const res = await fetch(
-          `${API_BASE}/social-comments?app_id=${appId}&limit=20&offset=${offset}&parent_id=null`,
+          `${API_BASE}/social-comments?app_id=${encodeURIComponent(appId)}&limit=20&offset=${offset}&parent_id=null`,
           { headers, signal: AbortSignal.timeout(30000) },
         );
         if (!res.ok) {
@@ -71,7 +71,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
   const fetchRating = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/social-ratings?app_id=${appId}`, { headers, signal: AbortSignal.timeout(30000) });
+      const res = await fetch(`${API_BASE}/social-ratings?app_id=${encodeURIComponent(appId)}`, { headers, signal: AbortSignal.timeout(30000) });
       if (!res.ok) {
         setError(await handleApiError(res));
         return;
@@ -209,7 +209,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
     async (parentId: string): Promise<SocialComment[]> => {
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/social-comments?app_id=${appId}&parent_id=${parentId}&limit=50`, {
+        const res = await fetch(`${API_BASE}/social-comments?app_id=${encodeURIComponent(appId)}&parent_id=${encodeURIComponent(parentId)}&limit=50`, {
           headers,
           signal: AbortSignal.timeout(30000),
         });
