@@ -110,7 +110,6 @@ cat > enclave.json <<JSON
         {"name": "GASBANK_DEPOSIT_ADDRESS", "fromHost": true},
         {"name": "TOPUP_ENABLED", "fromHost": true},
         {"name": "TXPROXY_TIMEOUT", "fromHost": true},
-        {"name": "BINANCE_API_KEY", "fromHost": true},
         {"name": "COORD_MASTER_SEED", "fromHost": true},
         {"name": "POOL_ENCRYPTION_KEY", "fromHost": true},
         {"name": "GLOBALSIGNER_MASTER_SEED", "fromHost": true},

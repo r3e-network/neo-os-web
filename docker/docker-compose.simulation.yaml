@@ -50,7 +50,6 @@ services:
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
       - ARBITRUM_RPC
-      - BINANCE_API_KEY
       - CONTRACT_PRICEFEED_HASH
       - GASBANK_URL=${GASBANK_URL:-https://neogasbank:8091}
       # NeoFeeds delegates all on-chain writes to txproxy (single allowlist gate).

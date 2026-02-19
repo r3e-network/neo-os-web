@@ -59,7 +59,6 @@ services:
       - NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY
       - NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS
       - ARBITRUM_RPC
-      - BINANCE_API_KEY
       - CONTRACT_PRICEFEED_HASH
       - GASBANK_URL=${GASBANK_URL:-https://neogasbank:8091}
       # NeoFeeds delegates all on-chain writes to txproxy (single allowlist gate).
