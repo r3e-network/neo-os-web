@@ -195,6 +195,7 @@ func (s *Service) handleDeleteTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusNoContent)
 }
 

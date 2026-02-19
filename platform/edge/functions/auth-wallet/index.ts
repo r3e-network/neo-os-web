@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { verifyNeoSignature } from "../_shared/neo.ts";
@@ -8,8 +9,9 @@ export async function handler(req: Request): Promise<Response> {
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
-  const body = await req.json().catch(() => null);
-  if (!body) return error(400, "invalid JSON", "INVALID_INPUT", req);
+  const bodyOrErr = await readJsonBody(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
 
   const { address, public_key, signature, message } = body as {
     address: string; public_key: string; signature: string; message: string;
