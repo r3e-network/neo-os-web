@@ -15,14 +15,14 @@ import (
 type Config struct {
 	// Supabase configuration (ISOLATED - uses INDEXER_ prefix)
 	SupabaseURL        string
-	SupabaseServiceKey string
+	SupabaseServiceKey string `json:"-"`
 
 	// PostgreSQL direct connection (ISOLATED)
 	PostgresHost     string
 	PostgresPort     int
 	PostgresDB       string
 	PostgresUser     string
-	PostgresPassword string
+	PostgresPassword string `json:"-"`
 	PostgresSSLMode  string
 
 	// Neo RPC endpoints
