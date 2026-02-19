@@ -128,7 +128,7 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
             {thread.is_locked && <Lock size={12} className="text-gray-400" />}
             <h4 className="font-medium text-gray-900 dark:text-white truncate">{thread.title}</h4>
           </div>
-          <p className="text-sm text-gray-500 truncate mt-1">{thread.content}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">{thread.content}</p>
           <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
             <span>{thread.author_name}</span>
             <span>{thread.reply_count} replies</span>

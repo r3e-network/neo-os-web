@@ -742,7 +742,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
             <input type="checkbox" checked={p.required} onChange={e => update(i, "required", e.target.checked)} className="rounded" />
             Req
           </label>
-          <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0">×</button>
+          <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0" aria-label="Remove parameter">×</button>
         </div>
       ))}
     </div>
