@@ -31,11 +31,11 @@
 
 @layer components {
   .glass {
-    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/5 shadow-2xl;
+    @apply bg-gray-50/80 dark:bg-white/[0.03] backdrop-blur-2xl border border-gray-200 dark:border-white/5 shadow-lg dark:shadow-2xl;
   }
 
   .glass-card {
-    @apply bg-white/[0.05] backdrop-blur-xl border border-white/5 hover:border-neo/30 hover:bg-white/[0.08] transition-all duration-500 shadow-2xl;
+    @apply bg-white dark:bg-white/[0.05] backdrop-blur-xl border border-gray-200 dark:border-white/5 hover:border-neo/30 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-500 shadow-md dark:shadow-2xl;
   }
 
   .neo-glow {
@@ -61,7 +61,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  @apply bg-gray-300 dark:bg-white/10 rounded-full hover:bg-gray-400 dark:hover:bg-white/20 transition-colors;
 }
 
 @media (prefers-reduced-motion: reduce) {
