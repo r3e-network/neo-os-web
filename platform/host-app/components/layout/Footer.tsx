@@ -26,7 +26,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-500">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neo">
                 <span className="text-lg font-bold text-white">N</span>
               </div>
               <span className="text-xl font-bold text-gray-900 dark:text-white">Neo MiniApps</span>

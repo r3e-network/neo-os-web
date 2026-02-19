@@ -221,7 +221,7 @@ export default function DeveloperPage() {
             <div
               className={`rounded-xl p-4 shadow-2xl backdrop-blur-xl ${
                 result.success
-                  ? "bg-green-500/20 border border-green-500/30 text-green-400"
+                  ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
                   : "bg-red-500/20 border border-red-500/30 text-red-400"
               }`}
             >

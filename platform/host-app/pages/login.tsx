@@ -34,7 +34,7 @@ export default function LoginPage() {
 
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-            <span className="text-xs text-gray-400 dark:text-gray-500">or connect wallet</span>
+            <span className="text-xs text-gray-400 dark:text-gray-400">or connect wallet</span>
             <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
           </div>
 

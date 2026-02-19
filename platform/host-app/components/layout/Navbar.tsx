@@ -89,7 +89,7 @@ export function Navbar() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("actions.search")}
               aria-label={t("actions.search")}
-              className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-transparent"
+              className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-transparent"
             />
           </div>
         </form>
@@ -99,7 +99,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Toggle theme"
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -112,7 +112,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setLocale(locale === "en" ? "zh" : "en")}
-            className="p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
+            className="p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
             aria-label="Switch language"
           >
             <Globe size={18} />
@@ -125,7 +125,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="md:hidden p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -149,7 +149,7 @@ export function Navbar() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("actions.search")}
                 aria-label={t("actions.search")}
-                className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-transparent"
+                className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-transparent"
               />
             </div>
           </form>
