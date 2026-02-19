@@ -268,7 +268,7 @@ function ThreadDetail({
       </button>
 
       <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{thread.title}</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">{thread.title}</h2>
         <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
           <span>{thread.author_name}</span>
           <span>•</span>
