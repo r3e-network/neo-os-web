@@ -170,18 +170,21 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
         <section style={tabsContainerStyle}>
           <div style={tabsHeaderStyle}>
             <button
+              aria-pressed={activeTab === "overview"}
               style={activeTab === "overview" ? tabButtonActiveStyle : tabButtonStyle}
               onClick={() => setActiveTab("overview")}
             >
               Overview
             </button>
             <button
+              aria-pressed={activeTab === "reviews"}
               style={activeTab === "reviews" ? tabButtonActiveStyle : tabButtonStyle}
               onClick={() => setActiveTab("reviews")}
             >
               ⭐ Reviews
             </button>
             <button
+              aria-pressed={activeTab === "forum"}
               style={activeTab === "forum" ? tabButtonActiveStyle : tabButtonStyle}
               onClick={() => setActiveTab("forum")}
             >
@@ -189,6 +192,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             </button>
             {showNews && (
               <button
+                aria-pressed={activeTab === "news"}
                 style={activeTab === "news" ? tabButtonActiveStyle : tabButtonStyle}
                 onClick={() => setActiveTab("news")}
               >
@@ -197,6 +201,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             )}
             {showSecrets && (
               <button
+                aria-pressed={activeTab === "secrets"}
                 style={activeTab === "secrets" ? tabButtonActiveStyle : tabButtonStyle}
                 onClick={() => setActiveTab("secrets")}
               >

@@ -117,6 +117,9 @@ function ToggleItem({
         <p className="text-xs text-gray-500">{description}</p>
       </div>
       <button
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         className={`relative w-10 h-6 rounded-full transition-colors ${checked ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`}
       >
@@ -206,6 +209,7 @@ function FrequencySelector({ value, onChange }: { value: DigestFrequency; onChan
       {options.map((opt) => (
         <button
           key={opt.value}
+          aria-pressed={value === opt.value}
           onClick={() => onChange(opt.value)}
           className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors ${
             value === opt.value

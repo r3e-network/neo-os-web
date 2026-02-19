@@ -10,21 +10,21 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
   return (
     <div className="space-y-3">
       {tokens.map((token) => (
-        <div key={token.id} className="flex items-center justify-between rounded-lg border p-4">
+        <div key={token.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-medium">{token.name}</span>
+              <span className="font-medium text-gray-900 dark:text-white">{token.name}</span>
               <StatusBadge status={token.status} />
             </div>
-            <div className="mt-1 text-sm text-gray-500">App: {token.appName || token.appId}</div>
-            <div className="text-xs text-gray-400">
+            <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">App: {token.appName || token.appId}</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500">
               Created: {formatDate(token.createdAt)}
               {token.lastUsed && ` • Last used: ${formatDate(token.lastUsed)}`}
             </div>
           </div>
 
           {token.status === "active" && (
-            <button onClick={() => onRevoke(token.id)} className="text-sm text-red-600 hover:underline">
+            <button onClick={() => onRevoke(token.id)} className="text-sm text-red-600 dark:text-red-400 hover:underline">
               Revoke
             </button>
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Award } from "lucide-react";
 import type { Badge } from "./types";
 import { BADGES } from "./constants";
@@ -10,10 +10,10 @@ interface BadgeGridProps {
 }
 
 const rarityColors = {
-  common: "bg-gray-100 border-gray-300",
-  rare: "bg-blue-50 border-blue-300",
-  epic: "bg-purple-50 border-purple-300",
-  legendary: "bg-amber-50 border-amber-300",
+  common: "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600",
+  rare: "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700",
+  epic: "bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700",
+  legendary: "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-600",
 };
 
 export function BadgeGrid({ earnedBadges }: BadgeGridProps) {
@@ -56,8 +56,26 @@ function BadgeItem({ badge, earned, onClick }: { badge: Badge; earned: boolean; 
 }
 
 function BadgeModal({ badge, earned, onClose }: { badge: Badge; earned: boolean; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={badge.name + " badge details"}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+      tabIndex={-1}
+    >
       <div
         className="bg-white dark:bg-gray-900 rounded-xl p-6 max-w-sm mx-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}

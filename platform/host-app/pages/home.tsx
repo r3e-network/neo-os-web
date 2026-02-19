@@ -104,17 +104,17 @@ export default function HomePage() {
       <StatsBar stats={platformStats} />
 
       {/* Staking & Twitter Section */}
-      <section className="py-12 bg-gray-50">
+      <section className="py-12 bg-gray-50 dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4">
           <div className="grid gap-8 md:grid-cols-2">
             {/* Staking Card */}
             <div>
-              <h2 className="mb-4 text-xl font-bold text-gray-900">Earn Passive Income</h2>
+              <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">Earn Passive Income</h2>
               <StakingCard />
             </div>
             {/* Twitter Feed */}
             <div>
-              <h2 className="mb-4 text-xl font-bold text-gray-900">Latest from Neo</h2>
+              <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">Latest from Neo</h2>
               <TwitterFeed />
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function HomePage() {
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               {t("categories.all")} {tc("navigation.miniapps")}
             </h2>
             <Button variant="outline">{tc("actions.viewAll")}</Button>
@@ -135,9 +135,9 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="bg-gray-50 py-16">
+      <section className="bg-gray-50 py-16 dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4">
-          <h2 className="mb-12 text-center text-2xl font-bold text-gray-900">{t("features.title")}</h2>
+          <h2 className="mb-12 text-center text-2xl font-bold text-gray-900 dark:text-white">{t("features.title")}</h2>
           <div className="grid gap-8 md:grid-cols-4">
             {[
               { icon: "🔒", title: t("features.secureCompute"), desc: t("features.secureComputeDesc") },
@@ -145,10 +145,10 @@ export default function HomePage() {
               { icon: "📈", title: t("features.realTimeData"), desc: t("features.realTimeDataDesc") },
               { icon: "⚡", title: t("features.automatedTasks"), desc: t("features.automatedTasksDesc") },
             ].map((feature, i) => (
-              <div key={i} className="rounded-xl bg-white p-6 text-center shadow-sm">
+              <div key={i} className="rounded-xl bg-white p-6 text-center shadow-sm dark:bg-gray-800">
                 <div className="text-4xl">{feature.icon}</div>
                 <h3 className="mt-4 font-semibold">{feature.title}</h3>
-                <p className="mt-2 text-sm text-gray-600">{feature.desc}</p>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{feature.desc}</p>
               </div>
             ))}
           </div>

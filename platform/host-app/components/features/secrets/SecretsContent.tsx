@@ -38,9 +38,9 @@ export default function SecretsContent() {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <p className="text-sm text-red-600">{error}</p>
-          <button onClick={clearError} className="mt-1 text-xs text-red-500 underline">
+        <div role="alert" className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <button onClick={clearError} className="mt-1 text-xs text-red-500 dark:text-red-400 underline">
             Dismiss
           </button>
         </div>
@@ -56,11 +56,11 @@ export default function SecretsContent() {
         <CardContent>
           {/* MiniApp Filter */}
           <div className="mb-4">
-            <label className="block text-sm text-gray-600 mb-2">Filter by MiniApp</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">Filter by MiniApp</label>
             <select
               value={selectedApp}
               onChange={(e) => setSelectedApp(e.target.value)}
-              className="w-full rounded border px-3 py-2"
+              className="w-full rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2"
             >
               <option value="all">All Apps</option>
               <option value="global">Global Secrets Only</option>
@@ -79,9 +79,9 @@ export default function SecretsContent() {
             />
           )}
 
-          {loading && <p className="text-gray-500">Loading...</p>}
+          {loading && <p className="text-gray-500 dark:text-gray-400">Loading...</p>}
 
-          {!loading && filteredTokens.length === 0 && <p className="text-gray-500 py-4">No tokens created yet</p>}
+          {!loading && filteredTokens.length === 0 && <p className="text-gray-500 dark:text-gray-400 py-4">No tokens created yet</p>}
 
           {filteredTokens.length > 0 && <TokenList tokens={filteredTokens} onRevoke={revokeToken} />}
         </CardContent>
