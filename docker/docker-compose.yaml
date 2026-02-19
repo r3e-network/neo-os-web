@@ -63,6 +63,8 @@ services:
       - CONTRACT_PRICEFEED_HASH
       - GASBANK_URL=${GASBANK_URL:-https://neogasbank:8091}
       # NeoFeeds delegates all on-chain writes to txproxy (single allowlist gate).
+      - NEOFEEDS_ALLOW_PRIVATE_NETWORKS
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
     volumes:
@@ -116,6 +118,7 @@ services:
       # NeoFlow delegates all on-chain writes to txproxy (single allowlist gate).
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -159,7 +162,9 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
+      - POOL_MASTER_KEY
       - POOL_ENCRYPTION_KEY
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -206,6 +211,11 @@ services:
       - GASBANK_DEPOSIT_ADDRESS
       - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
       - TOPUP_ENABLED
+      - SIMULATION_ENABLED
+      - SIMULATION_MINIAPPS
+      - SIMULATION_TX_INTERVAL_MIN_MS
+      - SIMULATION_TX_INTERVAL_MAX_MS
+      - SIMULATION_WORKERS_PER_APP
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -253,6 +263,7 @@ services:
       - NEO_NETWORK_MAGIC
       - SECRETS_MASTER_KEY
       - NEOCOMPUTE_RESULT_TTL
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -296,6 +307,7 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -343,6 +355,7 @@ services:
       - ORACLE_HTTP_ALLOWLIST
       - ORACLE_TIMEOUT
       - ORACLE_MAX_SIZE
+      - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     volumes:
       - /var/run/aesmd:/var/run/aesmd
       - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
@@ -396,6 +409,11 @@ services:
       - NEOREQUESTS_TX_WAIT
       - NEOREQUESTS_ENFORCE_APPREGISTRY
       - NEOREQUESTS_APPREGISTRY_CACHE_SECONDS
+      - CONTRACT_APPREGISTRY_HASH
+      - NEOREQUESTS_ONCHAIN_USAGE
+      - NEOREQUESTS_TX_USAGE
+      - NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT
+      - NEOREQUESTS_STATS_ROLLUP_INTERVAL
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
     volumes:

@@ -758,6 +758,12 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: GLOBALSIGNER_SERVICE_URL
+        - name: NEOCOMPUTE_RESULT_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOCOMPUTE_RESULT_TTL
+              optional: true
         volumeMounts:
         - name: marble-data
           mountPath: /marble
