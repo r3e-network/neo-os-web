@@ -3,7 +3,7 @@
 # MarbleRun + EGo + Supabase + Vercel Architecture
 # =============================================================================
 
-.PHONY: all build test clean docker frontend deploy help contracts-build test-contracts export-miniapps export-supabase-functions check-git
+.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts export-miniapps export-supabase-functions check-git
 .PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
 .PHONY: edge-check edge-dev
 
@@ -80,6 +80,9 @@ test-integration: ## Run integration tests
 test-e2e: ## Run end-to-end tests
 	@echo "Running e2e tests..."
 	go test -v -tags=e2e ./test/e2e/...
+
+test-race: ## Run tests with race detector
+	go test -race ./...
 
 test-watch: ## Run tests in watch mode
 	@echo "Running tests in watch mode..."
