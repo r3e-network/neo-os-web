@@ -42,7 +42,7 @@ export async function handler(req: Request): Promise<Response> {
 
   // Parse query params
   const url = new URL(req.url);
-  const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get("limit") || "20") || 20));
+  const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get("limit") || "20", 10) || 20));
 
   // Query transaction history via RPC
   const rpcUrl = getNeoRpcUrl();
