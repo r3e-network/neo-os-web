@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -1183,7 +1184,7 @@ func (s *Service) loadTeeScript(ctx context.Context, appID, scriptName string) (
 
 	// Fetch manifest
 	baseURL := strings.TrimSuffix(s.scriptsURL, "/")
-	manifestURL := fmt.Sprintf("%s/apps/%s/manifest.json", baseURL, appID)
+	manifestURL := fmt.Sprintf("%s/apps/%s/manifest.json", baseURL, url.PathEscape(appID))
 	manifestResp, err := s.httpClient.Get(manifestURL)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to fetch manifest: %w", err)
@@ -1216,7 +1217,7 @@ func (s *Service) loadTeeScript(ctx context.Context, appID, scriptName string) (
 	}
 
 	// Fetch script content
-	scriptURL := fmt.Sprintf("%s/apps/%s/%s", baseURL, appID, cleanFile)
+	scriptURL := fmt.Sprintf("%s/apps/%s/%s", baseURL, url.PathEscape(appID), cleanFile)
 	scriptResp, err := s.httpClient.Get(scriptURL)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to fetch script: %w", err)
