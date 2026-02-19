@@ -205,4 +205,76 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
+  # TxProxy SGX patch
+  - target:
+      kind: Deployment
+      name: txproxy
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
+      - op: add
+        path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
+        value: "1"
+      - op: add
+        path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
+        value: "1"
+
+  # NeoGasBank SGX patch
+  - target:
+      kind: Deployment
+      name: neogasbank
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
+      - op: add
+        path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
+        value: "1"
+      - op: add
+        path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
+        value: "1"
+
+  # NeoSimulation SGX patch
+  - target:
+      kind: Deployment
+      name: neosimulation
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: aesmd-socket
+          hostPath:
+            path: /var/run/aesmd
+            type: Directory
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: aesmd-socket
+          mountPath: /var/run/aesmd
+      - op: add
+        path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1enclave
+        value: "1"
+      - op: add
+        path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
+        value: "1"
+
   # Production overlay already sets COORDINATOR_MESH_ADDR; no extra patch needed here.
