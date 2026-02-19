@@ -30,10 +30,14 @@ export async function handler(req: Request): Promise<Response> {
 
   let totalSupply = "0";
   if (supplyRes.ok) {
-    const data = await supplyRes.json();
-    if (data.result?.stack?.[0]?.value) {
-      const raw = BigInt(data.result.stack[0].value);
-      totalSupply = (raw / 100000000n).toString();
+    try {
+      const data = await supplyRes.json();
+      if (data.result?.stack?.[0]?.value) {
+        const raw = BigInt(data.result.stack[0].value);
+        totalSupply = (raw / 100000000n).toString();
+      }
+    } catch {
+      // RPC returned 200 with invalid JSON; fall through with default
     }
   }
 

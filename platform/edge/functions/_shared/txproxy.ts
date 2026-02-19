@@ -76,5 +76,9 @@ export async function transferGas(requestId: string, toAddress: string, amount: 
     throw new Error(`TxProxy error: ${res.status} - ${text}`);
   }
 
-  return await res.json();
+  try {
+    return await res.json();
+  } catch {
+    throw new Error("TxProxy returned invalid JSON");
+  }
 }
