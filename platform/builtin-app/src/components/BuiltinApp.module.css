@@ -107,6 +107,10 @@
   color: #fff;
 }
 
+.navButton:hover {
+  background: rgba(51, 92, 255, 0.1);
+}
+
 .navButton:focus-visible,
 .navButtonActive:focus-visible {
   outline: none;
@@ -212,6 +216,13 @@
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.buttonPrimary:disabled,
+.buttonSecondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .buttonPrimary {
@@ -220,10 +231,18 @@
   color: #fff;
 }
 
+.buttonPrimary:hover:not(:disabled) {
+  background: #4a6fff;
+}
+
 .buttonSecondary {
   border: 1px solid #335cff;
   background: transparent;
   color: #bcd0ff;
+}
+
+.buttonSecondary:hover:not(:disabled) {
+  background: rgba(51, 92, 255, 0.1);
 }
 
 .buttonPrimary:focus-visible,
@@ -253,6 +272,10 @@
   background: rgba(51, 92, 255, 0.2);
   border-color: #335cff;
   color: #fff;
+}
+
+.quickButton:hover {
+  background: rgba(51, 92, 255, 0.1);
 }
 
 .quickButton:focus-visible,
@@ -305,6 +328,10 @@
   background: rgba(51, 92, 255, 0.25);
   border-color: #335cff;
   color: #fff;
+}
+
+.choiceButton:hover {
+  background: rgba(51, 92, 255, 0.1);
 }
 
 .choiceButton:focus-visible,
