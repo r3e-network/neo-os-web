@@ -39,8 +39,8 @@
     const data = event.data;
     if (!data || typeof data !== "object") return;
     if (data.type !== TYPES.response) return;
-    if (parentOrigin && event.origin !== parentOrigin) return;
-    if (!parentOrigin) parentOrigin = event.origin; // trust-on-first-use
+    if (!parentOrigin) return; // refuse messages when origin unknown
+    if (event.origin !== parentOrigin) return;
 
     const id = String(data.id || "").trim();
     if (!id) return;
@@ -61,10 +61,16 @@
     return new Promise((resolve, reject) => {
       pending.set(id, { resolve, reject });
 
+      if (!parentOrigin) {
+        pending.delete(id);
+        reject(new Error("parent origin unknown"));
+        return;
+      }
+
       try {
         window.parent.postMessage(
           { type: TYPES.request, id, method, params },
-          parentOrigin || "*",
+          parentOrigin,
         );
       } catch (err) {
         pending.delete(id);
