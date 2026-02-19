@@ -103,7 +103,7 @@ export default function EnhancedStatsPage() {
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Platform Analytics</h1>
+            <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white">Platform Analytics</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">Real-time performance metrics for the Neo MiniApp ecosystem</p>
           </div>
           <Badge className="bg-neo/10 text-neo border-neo/20 h-8 px-4 flex items-center gap-2">
@@ -193,7 +193,7 @@ export default function EnhancedStatsPage() {
                 events.map((event, i) => (
                   <div
                     key={event.id || i}
-                    className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-gray-700"
+                    className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-gray-700 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-lg bg-neo/10 flex items-center justify-center text-neo">

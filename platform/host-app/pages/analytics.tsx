@@ -12,11 +12,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const ActivityChart = dynamic(
   () => import("@/components/features/analytics/ActivityChart").then((m) => ({ default: m.ActivityChart })),
-  { ssr: false, loading: () => <div className="h-[220px]" /> },
+  { ssr: false, loading: () => <Skeleton className="h-[220px] w-full rounded-lg" /> },
 );
 const AppUsageChart = dynamic(
   () => import("@/components/features/analytics/AppUsageChart").then((m) => ({ default: m.AppUsageChart })),
-  { ssr: false, loading: () => <div className="h-[180px]" /> },
+  { ssr: false, loading: () => <Skeleton className="h-[180px] w-full rounded-lg" /> },
 );
 import type { UserAnalytics } from "@/pages/api/analytics/user";
 
@@ -106,7 +106,7 @@ function AnalyticsDashboard({ analytics }: { analytics: UserAnalytics }) {
   return (
     <div className="space-y-8">
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard title="Total Transactions" value={summary.totalTx} change={12} icon={<Activity size={16} />} />
         <StatCard title="Total Volume" value={`${summary.totalVolume} GAS`} change={8} icon={<Wallet size={16} />} />
         <StatCard title="Apps Used" value={summary.appsUsed} icon={<LayoutGrid size={16} />} />
@@ -183,7 +183,7 @@ function AppBreakdownTable({
         </thead>
         <tbody>
           {apps.map((app) => (
-            <tr key={app.appId} className="border-b border-gray-100 dark:border-gray-800">
+            <tr key={app.appId} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
               <td className="py-3 text-gray-900 dark:text-white">{app.appName}</td>
               <td className="py-3 text-right text-gray-600 dark:text-gray-400">{app.txCount}</td>
               <td className="py-3 text-right text-gray-600 dark:text-gray-400">{app.volume} GAS</td>

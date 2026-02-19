@@ -38,7 +38,7 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
     <div className="relative group rounded-xl bg-gray-900 dark:bg-black/50 border border-gray-800 dark:border-gray-700 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 dark:border-gray-700 bg-gray-800/50">
         <span className="text-xs text-gray-400 font-mono">{language}</span>
-        <button type="button" onClick={handleCopy} aria-label="Copy code" className="p-1.5 rounded-md hover:bg-white/10 transition-colors">
+        <button type="button" onClick={handleCopy} aria-label="Copy code" className="p-1.5 rounded-md hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo">
           {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-gray-400" />}
         </button>
       </div>
@@ -110,7 +110,7 @@ export default function DocsPage() {
                       key={section.id}
                       onClick={() => setActiveSection(section.id)}
                       aria-current={isActive ? "page" : undefined}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                         isActive
                           ? "bg-neo/10 text-neo font-medium"
                           : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"

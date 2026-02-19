@@ -25,7 +25,7 @@ export default function LoginPage() {
                 key={p.id}
                 onClick={() => loginSocial(p.id)}
                 disabled={loading}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${p.bg} ${p.text}`}
+                className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo ${p.bg} ${p.text}`}
               >
                 Continue with {p.name}
               </button>
@@ -45,7 +45,7 @@ export default function LoginPage() {
                 key={w.id}
                 onClick={() => loginWallet(w.id as WalletProvider)}
                 disabled={loading}
-                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
               >
                 <img src={w.icon} alt={w.name} className="h-5 w-5 rounded" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 {w.name}
@@ -57,7 +57,7 @@ export default function LoginPage() {
           {error && (
             <div role="alert" className="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">
               {error}
-              <button type="button" onClick={clearError} className="ml-2 underline">dismiss</button>
+              <button type="button" onClick={clearError} className="ml-2 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded">dismiss</button>
             </div>
           )}
         </div>

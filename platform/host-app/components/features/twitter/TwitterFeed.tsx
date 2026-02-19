@@ -55,15 +55,15 @@ export function TwitterFeed() {
           href={tweet.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 transition hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm"
+          className="block rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 transition hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded-xl"
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500 text-white">N</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white">N</div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-900 dark:text-white">{tweet.author}</span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">@Neo_Blockchain</span>
-                <span className="text-sm text-gray-400">· {formatTime(tweet.created_at)}</span>
+                <span className="text-sm text-gray-400 dark:text-gray-500">· {formatTime(tweet.created_at)}</span>
               </div>
               <p className="mt-1 text-gray-700 dark:text-gray-300">{tweet.text}</p>
             </div>

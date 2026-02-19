@@ -148,7 +148,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => setIsEditing(true)} className="text-emerald-600 dark:text-emerald-400 text-sm transition-colors hover:text-emerald-700 dark:hover:text-emerald-300">
+            <button type="button" onClick={() => setIsEditing(true)} className="text-emerald-600 dark:text-emerald-400 text-sm transition-colors hover:text-emerald-700 dark:hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded">
               {rating.user_rating ? "Edit your rating" : "Rate this app"}
             </button>
           )}

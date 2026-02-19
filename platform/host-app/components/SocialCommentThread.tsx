@@ -66,7 +66,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
                 setLocalError(null);
                 onClearError?.();
               }}
-              className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-sm transition-colors"
+              className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded"
             >
               Dismiss
             </button>
@@ -90,7 +90,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={submitting || !newComment.trim()}
-            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           >
             {submitting ? "Posting..." : "Post Comment"}
           </button>
@@ -113,7 +113,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
           </div>
           {hasMore && (
             <div className="p-4 text-center">
-              <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded">
                 {loading ? "Loading..." : "Load more comments"}
               </button>
             </div>
