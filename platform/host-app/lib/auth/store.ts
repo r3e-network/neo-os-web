@@ -94,6 +94,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     const { method } = get();
     useWalletStore.getState().disconnect();
     sessionStorage.removeItem("sb-access-token");
+    try { localStorage.removeItem("neo_miniapp_auth_jwt"); } catch { /* SSR guard */ }
     set({
       authenticated: false,
       userId: "",
