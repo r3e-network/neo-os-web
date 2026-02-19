@@ -277,15 +277,12 @@ func (s *Service) checkAndExecuteAnchoredPriceTask(ctx context.Context, task *an
 		return
 	}
 
-	// Only evaluate each round once.
+	// Only evaluate each round once (atomic check-and-set to avoid TOCTOU race).
 	task.mu.Lock()
-	lastRoundID := task.lastRoundID
-	task.mu.Unlock()
-
-	if lastRoundID != nil && record.RoundID.Cmp(lastRoundID) <= 0 {
+	if task.lastRoundID != nil && record.RoundID.Cmp(task.lastRoundID) <= 0 {
+		task.mu.Unlock()
 		return
 	}
-	task.mu.Lock()
 	task.lastRoundID = new(big.Int).Set(record.RoundID)
 	task.mu.Unlock()
 
