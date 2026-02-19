@@ -1,6 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { json } from "../_shared/response.ts";
+import { error, json } from "../_shared/response.ts";
 import { getNeoRpcUrl } from "../_shared/k8s-config.ts";
 
 // NeoBurger bNEO contract hash
@@ -9,6 +9,8 @@ const BNEO_CONTRACT = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
+
+  if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
   const rl = await requireRateLimit(req, "neoburger-stats");
   if (rl) return rl;
