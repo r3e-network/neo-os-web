@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getPreferences, upsertPreferences } from "@/lib/notifications/supabase-service";
 import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
+import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
 const DEFAULT_PREFERENCES = {
@@ -57,7 +58,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     return apiError.methodNotAllowed(res);
-  } catch {
+  } catch (err) {
+    logger.error("Preferences error:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Failed to process preferences");
   }
 }
