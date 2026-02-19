@@ -91,7 +91,7 @@ export const ActivityTicker = ({
       </div>
       <div
         ref={containerRef}
-        className="overflow-y-hidden scroll-smooth"
+        className="overflow-y-hidden"
         style={{ height }}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
