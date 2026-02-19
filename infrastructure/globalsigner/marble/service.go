@@ -744,9 +744,7 @@ func matchesDomainPrefix(domain, prefix string) bool {
 	if prefix == "*" {
 		return true
 	}
-	if strings.HasSuffix(prefix, "*") {
-		prefix = strings.TrimSuffix(prefix, "*")
-	}
+	prefix = strings.TrimSuffix(prefix, "*")
 	return strings.HasPrefix(domain, prefix)
 }
 

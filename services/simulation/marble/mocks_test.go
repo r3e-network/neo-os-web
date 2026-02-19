@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	neoaccountsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/client"
 )
@@ -210,40 +209,16 @@ func (m *mockPoolClient) getReleaseAccountsCalls() []releaseAccountsCall {
 	return append([]releaseAccountsCall{}, m.releaseAccountsCalls...)
 }
 
-func (m *mockPoolClient) getInvokeContractCalls() []invokeContractCall {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return append([]invokeContractCall{}, m.invokeContractCalls...)
-}
-
 func (m *mockPoolClient) getInvokeMasterCalls() []invokeMasterCall {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return append([]invokeMasterCall{}, m.invokeMasterCalls...)
 }
 
-func (m *mockPoolClient) getFundAccountCalls() []fundAccountCall {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return append([]fundAccountCall{}, m.fundAccountCalls...)
-}
-
 func (m *mockPoolClient) getTransferWithDataCalls() []transferWithDataCall {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return append([]transferWithDataCall{}, m.transferWithDataCalls...)
-}
-
-func (m *mockPoolClient) reset() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.requestAccountsCalls = nil
-	m.releaseAccountsCalls = nil
-	m.invokeContractCalls = nil
-	m.invokeMasterCalls = nil
-	m.fundAccountCalls = nil
-	m.transferCalls = nil
-	m.transferWithDataCalls = nil
 }
 
 // =============================================================================
@@ -438,12 +413,6 @@ func (m *mockContractInvoker) InvokeMiniAppContract(ctx context.Context, appID, 
 }
 
 // Helper methods for test assertions
-func (m *mockContractInvoker) getUpdatePriceFeedCalls() []updatePriceFeedCall {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return append([]updatePriceFeedCall{}, m.updatePriceFeedCalls...)
-}
-
 func (m *mockContractInvoker) getRecordRandomnessCalls() []recordRandomnessCall {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -460,45 +429,6 @@ func (m *mockContractInvoker) getInvokeMiniAppCalls() []invokeMiniAppCall {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return append([]invokeMiniAppCall{}, m.invokeMiniAppCalls...)
-}
-
-func (m *mockContractInvoker) reset() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.updatePriceFeedCalls = nil
-	m.recordRandomnessCalls = nil
-	m.payToAppCalls = nil
-	m.payoutToUserCalls = nil
-	m.invokeMiniAppCalls = nil
-	m.stats = map[string]interface{}{
-		"price_feed_updates": int64(0),
-		"randomness_records": int64(0),
-		"payment_hub_pays":   int64(0),
-		"callback_payouts":   int64(0),
-		"contract_errors":    int64(0),
-		"locked_accounts":    0,
-	}
-}
-
-// =============================================================================
-// Test Helpers
-// =============================================================================
-
-// testClock provides a controllable clock for testing time-dependent code.
-type testClock struct {
-	now time.Time
-}
-
-func newTestClock(t time.Time) *testClock {
-	return &testClock{now: t}
-}
-
-func (c *testClock) Now() time.Time {
-	return c.now
-}
-
-func (c *testClock) Advance(d time.Duration) {
-	c.now = c.now.Add(d)
 }
 
 // Verify interface compliance

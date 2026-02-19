@@ -446,11 +446,9 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 		Wait:         s.txWait,
 	})
 	if err != nil {
-		if chainTx != nil {
-			chainTx.Status = "failed"
-			chainTx.ErrorMessage = sanitizeError(err.Error(), s.maxErrorLen)
-			_ = s.updateChainTx(ctx, chainTx)
-		}
+		chainTx.Status = "failed"
+		chainTx.ErrorMessage = sanitizeError(err.Error(), s.maxErrorLen)
+		_ = s.updateChainTx(ctx, chainTx)
 		s.updateServiceRequest(ctx, serviceReq, nil, "failed", result.AuditJSON, err.Error())
 		return err
 	}
@@ -464,14 +462,12 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 		}
 	}
 
-	if chainTx != nil {
-		chainTx.TxHash = resp.TxHash
-		chainTx.Status = status
-		if resp.Exception != "" && status == "failed" {
-			chainTx.ErrorMessage = sanitizeError(resp.Exception, s.maxErrorLen)
-		}
-		_ = s.updateChainTx(ctx, chainTx)
+	chainTx.TxHash = resp.TxHash
+	chainTx.Status = status
+	if resp.Exception != "" && status == "failed" {
+		chainTx.ErrorMessage = sanitizeError(resp.Exception, s.maxErrorLen)
 	}
+	_ = s.updateChainTx(ctx, chainTx)
 
 	finalStatus := "completed"
 	if !success || status == "failed" {
@@ -916,11 +912,6 @@ func truncateString(value string, limit int) string {
 
 func ptrTime(t time.Time) *time.Time {
 	return &t
-}
-
-func (s *Service) fulfillFailure(ctx context.Context, req *chain.ServiceRequestedEvent, userID string, err error) error {
-	result := serviceResult{}
-	return s.fulfillRequest(ctx, req, userID, result, err, nil)
 }
 
 func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.ContractEvent) error {

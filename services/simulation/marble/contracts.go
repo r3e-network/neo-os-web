@@ -318,22 +318,6 @@ func (inv *ContractInvoker) getOrRequestAccount(ctx context.Context, purpose str
 	return account.ID, nil
 }
 
-// releaseAccount releases an account back to the pool.
-func (inv *ContractInvoker) releaseAccount(ctx context.Context, purpose string) {
-	inv.mu.Lock()
-	accountID, ok := inv.lockedAccounts[purpose]
-	if ok {
-		delete(inv.lockedAccounts, purpose)
-		delete(inv.accountAddresses, accountID)
-		delete(inv.accountBalances, accountID)
-	}
-	inv.mu.Unlock()
-
-	if ok {
-		_, _ = inv.poolClient.ReleaseAccounts(ctx, []string{accountID})
-	}
-}
-
 // UpdatePriceFeed updates a price feed with simulated data using the master wallet.
 // PriceFeed requires the caller to be a registered TEE signer in AppRegistry.
 func (inv *ContractInvoker) UpdatePriceFeed(ctx context.Context, symbol string) (string, error) {
@@ -410,9 +394,6 @@ func (inv *ContractInvoker) RecordRandomness(ctx context.Context) (string, error
 	atomic.AddInt64(&inv.randomnessRecords, 1)
 	return resp.TxHash, nil
 }
-
-// Neo N3 Testnet GAS contract hash (native contract)
-const gasContractHash = "d2a4cff31913016155e38e474a2c06d08be276cf"
 
 // PayToApp makes a payment to a MiniApp via direct GAS.Transfer with data.
 // This simulates real user behavior where users pay from their own wallets.

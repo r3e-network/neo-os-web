@@ -38,12 +38,6 @@ type runningJobCounter struct {
 	counts map[string]int
 }
 
-func (c *runningJobCounter) increment(userID string) {
-	c.mu.Lock()
-	c.counts[userID]++
-	c.mu.Unlock()
-}
-
 func (c *runningJobCounter) decrement(userID string) {
 	c.mu.Lock()
 	if c.counts[userID] > 0 {
@@ -53,13 +47,6 @@ func (c *runningJobCounter) decrement(userID string) {
 		delete(c.counts, userID)
 	}
 	c.mu.Unlock()
-}
-
-func (c *runningJobCounter) get(userID string) int {
-	c.mu.Lock()
-	n := c.counts[userID]
-	c.mu.Unlock()
-	return n
 }
 
 func (c *runningJobCounter) tryIncrement(userID string, max int) bool {
@@ -320,27 +307,6 @@ func (s *Service) listJobs(userID string) []*ExecuteResponse {
 		return true
 	})
 	return jobs
-}
-
-// countRunningJobs counts the number of running jobs for a user.
-func (s *Service) countRunningJobs(userID string) int {
-	count := 0
-	now := time.Now()
-	s.jobs.Range(func(key, value interface{}) bool {
-		entry, ok := value.(jobEntry)
-		if !ok {
-			return true
-		}
-		if s.isJobExpired(entry, now) {
-			s.jobs.Delete(key)
-			return true
-		}
-		if entry.UserID == userID && entry.Response.Status == "running" {
-			count++
-		}
-		return true
-	})
-	return count
 }
 
 func (s *Service) purgeExpiredJobs() {
