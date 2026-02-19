@@ -42,7 +42,7 @@ export async function handler(req: Request): Promise<Response> {
   // Build query
   let query = supabase
     .from("social_comments")
-    .select("*", { count: "exact" })
+    .select("id,app_id,parent_id,author_user_id,content,is_developer_reply,created_at,updated_at", { count: "exact" })
     .eq("app_id", appId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })

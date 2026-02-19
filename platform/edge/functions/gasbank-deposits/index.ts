@@ -25,7 +25,7 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = supabaseServiceClient();
   const { data, error: listErr } = await supabase
     .from("deposit_requests")
-    .select("*")
+    .select("id,user_id,account_id,amount,tx_hash,from_address,status,required_confirmations,expires_at,created_at")
     .eq("user_id", auth.userId)
     .order("created_at", { ascending: false })
     .limit(50);

@@ -27,7 +27,7 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = supabaseClient();
   let query = supabase
     .from("miniapp_notifications")
-    .select("*")
+    .select("id,app_id,title,content,is_pinned,priority,created_at")
     .order("is_pinned", { ascending: false })
     .order("priority", { ascending: false })
     .order("created_at", { ascending: false })

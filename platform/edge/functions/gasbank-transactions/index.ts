@@ -36,7 +36,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const { data, error: listErr } = await supabase
     .from("gasbank_transactions")
-    .select("*")
+    .select("id,account_id,type,amount,tx_hash,status,created_at")
     .eq("account_id", accountId)
     .order("created_at", { ascending: false })
     .limit(50);
