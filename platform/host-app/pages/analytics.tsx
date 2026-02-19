@@ -59,7 +59,7 @@ export default function AnalyticsPage() {
         </Head>
         <div className="mx-auto max-w-4xl px-4 py-12 text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Connect Wallet</h1>
-          <p className="text-gray-500">Connect your wallet to view your analytics</p>
+          <p className="text-gray-500 dark:text-gray-400">Connect your wallet to view your analytics</p>
         </div>
       </Layout>
     );
@@ -162,10 +162,10 @@ function AppBreakdownTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-700">
-            <th className="text-left py-2 text-gray-500 font-medium">App</th>
-            <th className="text-right py-2 text-gray-500 font-medium">Transactions</th>
-            <th className="text-right py-2 text-gray-500 font-medium">Volume</th>
-            <th className="text-right py-2 text-gray-500 font-medium">Last Used</th>
+            <th className="text-left py-2 text-gray-500 dark:text-gray-400 font-medium">App</th>
+            <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Transactions</th>
+            <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Volume</th>
+            <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Last Used</th>
           </tr>
         </thead>
         <tbody>
@@ -174,7 +174,7 @@ function AppBreakdownTable({
               <td className="py-3 text-gray-900 dark:text-white">{app.appName}</td>
               <td className="py-3 text-right text-gray-600 dark:text-gray-400">{app.txCount}</td>
               <td className="py-3 text-right text-gray-600 dark:text-gray-400">{app.volume} GAS</td>
-              <td className="py-3 text-right text-gray-500 text-xs">{new Date(app.lastUsed).toLocaleDateString()}</td>
+              <td className="py-3 text-right text-gray-500 dark:text-gray-400 text-xs">{new Date(app.lastUsed).toLocaleDateString()}</td>
             </tr>
           ))}
         </tbody>
