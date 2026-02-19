@@ -14,6 +14,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
   const [replyContent, setReplyContent] = useState("");
   const [replies, setReplies] = useState<SocialComment[]>([]);
   const [loadingReplies, setLoadingReplies] = useState(false);
+  const [submittingReply, setSubmittingReply] = useState(false);
 
   const handleLoadReplies = async () => {
     if (!onLoadReplies || loadingReplies) return;
@@ -24,10 +25,12 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
   };
 
   const handleSubmitReply = async () => {
-    if (!replyContent.trim()) return;
+    if (!replyContent.trim() || submittingReply) return;
+    setSubmittingReply(true);
     await onReply(comment.id, replyContent);
     setReplyContent("");
     setShowReplyForm(false);
+    setSubmittingReply(false);
     if (onLoadReplies) handleLoadReplies();
   };
 
@@ -97,8 +100,8 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             maxLength={2000}
           />
           <div className="flex gap-2 mt-2">
-            <button type="button" onClick={handleSubmitReply} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm transition-colors">
-              Submit
+            <button type="button" onClick={handleSubmitReply} disabled={submittingReply || !replyContent.trim()} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              {submittingReply ? "Submitting..." : "Submit"}
             </button>
             <button
               type="button"
