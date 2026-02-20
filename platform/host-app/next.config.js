@@ -1,5 +1,6 @@
 const path = require("path");
-const { withSentryConfig } = require("@sentry/nextjs");
+let withSentryConfig;
+try { withSentryConfig = require("@sentry/nextjs").withSentryConfig; } catch {};
 
 const MINIAPP_CORS_ORIGIN = "https://neomini.app";
 
@@ -125,6 +126,6 @@ const sentryOptions = {
   disableLogger: true,
 };
 
-module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
+module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN && withSentryConfig
   ? withSentryConfig(nextConfig, sentryWebpackPluginOptions, sentryOptions)
   : nextConfig;

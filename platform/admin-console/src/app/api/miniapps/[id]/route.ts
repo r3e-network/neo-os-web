@@ -7,7 +7,7 @@ import { miniAppConfigSchema } from "@/lib/schemas";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const authError = requireAdminAuth(_req);
   if (authError) return authError;
 
@@ -15,7 +15,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     return jsonError("Supabase service role not configured");
   }
 
-  const appId = String(params.id || "").trim();
+  const { id } = await params;
+  const appId = String(id || "").trim();
   if (!APP_ID_PATTERN.test(appId)) {
     return jsonError("Invalid app_id format", 400);
   }
@@ -44,7 +45,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
@@ -65,7 +66,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return jsonError(partial.error.errors[0]?.message || "Invalid input", 400);
   }
 
-  const appId = String(params.id || "").trim();
+  const { id } = await params;
+  const appId = String(id || "").trim();
   if (!APP_ID_PATTERN.test(appId)) {
     return jsonError("Invalid app_id format", 400);
   }
