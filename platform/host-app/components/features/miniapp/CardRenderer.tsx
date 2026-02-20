@@ -84,7 +84,7 @@ function MultiplierCard({ data, className }: { data: MultiplierData; className: 
     >
       <div className="mb-2">
         <span className="text-3xl font-bold block">{data.currentMultiplier.toFixed(2)}x</span>
-        <span className="text-xs bg-black/20 px-2 py-0.5 rounded">{statusText[data.status]}</span>
+        <span className="text-xs bg-black/20 px-2 py-0.5 rounded-md">{statusText[data.status]}</span>
       </div>
       <div className="flex justify-around text-xs opacity-90">
         <span>{data.playersCount} players</span>
@@ -162,11 +162,11 @@ function VotingCard({ data, className }: { data: VotingData; className: string }
     >
       <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mb-2" title={data.proposalTitle}>{data.proposalTitle}</p>
       <div className="space-y-1 mb-2">
-        <div className="relative h-4 bg-black/20 rounded overflow-hidden">
+        <div className="relative h-4 bg-black/20 rounded-md overflow-hidden">
           <div className="absolute h-full bg-emerald-500" style={{ width: `${yesPercent}%` }} />
           <span className="absolute left-2 top-0 text-xs font-semibold">Yes {yesPercent}%</span>
         </div>
-        <div className="relative h-4 bg-black/20 rounded overflow-hidden">
+        <div className="relative h-4 bg-black/20 rounded-md overflow-hidden">
           <div className="absolute h-full bg-red-500" style={{ width: `${noPercent}%` }} />
           <span className="absolute left-2 top-0 text-xs font-semibold">No {noPercent}%</span>
         </div>
@@ -194,7 +194,7 @@ function PriceCard({ data, className }: { data: PriceData; className: string }) 
       <div className="flex justify-between items-center mb-1">
         <span className="text-xs font-semibold opacity-90">{data.symbol}</span>
         <span
-          className={`text-xs px-1.5 py-0.5 rounded ${isUp ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
+          className={`text-xs px-1.5 py-0.5 rounded-md ${isUp ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
         >
           {isUp ? "+" : ""}
           {data.change24h.toFixed(2)}%

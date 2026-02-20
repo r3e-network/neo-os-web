@@ -136,7 +136,7 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
             </span>
             {statusColor && (
               <span
-                className={`text-xs px-1.5 py-0.5 rounded text-white font-semibold uppercase ${statusColor}`}
+                className={`text-xs px-1.5 py-0.5 rounded-md text-white font-semibold uppercase ${statusColor}`}
               >
                 {activity.status}
               </span>

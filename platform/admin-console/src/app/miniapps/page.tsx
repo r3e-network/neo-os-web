@@ -682,7 +682,7 @@ function CreateFormPanel({
           <div className="space-y-3">
             <p className="text-xs text-gray-500 dark:text-gray-400">Paste or upload a full MiniApp manifest JSON. This will replace the form fields.</p>
             <div className="flex gap-2 items-center">
-              <input type="file" accept=".json" onChange={onFileUpload} className="text-sm dark:text-gray-100 file:mr-2 file:rounded-md file:border-0 file:bg-primary-600 file:px-3 file:py-1.5 file:text-sm file:text-white file:cursor-pointer hover:file:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded" aria-label="Upload JSON manifest" />
+              <input type="file" accept=".json" onChange={onFileUpload} className="text-sm dark:text-gray-100 file:mr-2 file:rounded-md file:border-0 file:bg-primary-600 file:px-3 file:py-1.5 file:text-sm file:text-white file:cursor-pointer hover:file:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md" aria-label="Upload JSON manifest" />
             </div>
             <textarea
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-3 font-mono text-xs transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -744,7 +744,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
             <input type="checkbox" checked={p.required} onChange={e => update(i, "required", e.target.checked)} className="rounded accent-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" />
             Req
           </label>
-          <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded" aria-label="Remove parameter">×</button>
+          <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg" aria-label="Remove parameter">×</button>
         </div>
       ))}
     </div>

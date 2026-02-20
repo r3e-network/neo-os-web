@@ -68,7 +68,7 @@ export function Navbar() {
                   href={link.href}
                   aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
                   className={cn(
-                    "px-3 py-1.5 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
+                    "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
                     router.pathname.startsWith(link.href)
                       ? "text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50",
@@ -165,7 +165,7 @@ export function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
                   className={cn(
-                    "block px-3 py-2 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
+                    "block px-3 py-2 text-sm font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
                     router.pathname.startsWith(link.href)
                       ? "text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50",
