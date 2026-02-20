@@ -179,8 +179,10 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             <button
               type="button"
               role="tab"
+              id="tab-overview"
               aria-selected={activeTab === "overview"}
               aria-controls="tabpanel-overview"
+              tabIndex={activeTab === "overview" ? 0 : -1}
               className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "overview" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
@@ -191,8 +193,10 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             <button
               type="button"
               role="tab"
+              id="tab-reviews"
               aria-selected={activeTab === "reviews"}
               aria-controls="tabpanel-reviews"
+              tabIndex={activeTab === "reviews" ? 0 : -1}
               className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "reviews" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
@@ -203,8 +207,10 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             <button
               type="button"
               role="tab"
+              id="tab-forum"
               aria-selected={activeTab === "forum"}
               aria-controls="tabpanel-forum"
+              tabIndex={activeTab === "forum" ? 0 : -1}
               className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "forum" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
@@ -216,8 +222,10 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               <button
                 type="button"
                 role="tab"
+                id="tab-news"
                 aria-selected={activeTab === "news"}
                 aria-controls="tabpanel-news"
+                tabIndex={activeTab === "news" ? 0 : -1}
                 className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                   activeTab === "news" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
                 }`}
@@ -230,8 +238,10 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               <button
                 type="button"
                 role="tab"
+                id="tab-secrets"
                 aria-selected={activeTab === "secrets"}
                 aria-controls="tabpanel-secrets"
+                tabIndex={activeTab === "secrets" ? 0 : -1}
                 className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                   activeTab === "secrets" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
                 }`}
@@ -244,32 +254,32 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
           <div className="min-h-[200px]">
             {activeTab === "overview" && (
-              <div id="tabpanel-overview" role="tabpanel">
+              <div id="tabpanel-overview" role="tabpanel" aria-labelledby="tab-overview">
                 <OverviewTab app={app} />
               </div>
             )}
             {activeTab === "reviews" && (
-              <div id="tabpanel-reviews" role="tabpanel">
+              <div id="tabpanel-reviews" role="tabpanel" aria-labelledby="tab-reviews">
                 <ReviewsTab appId={app.app_id} />
               </div>
             )}
             {activeTab === "forum" && (
-              <div id="tabpanel-forum" role="tabpanel">
+              <div id="tabpanel-forum" role="tabpanel" aria-labelledby="tab-forum">
                 <ForumTab appId={app.app_id} />
               </div>
             )}
             {activeTab === "news" && showNews && (
-              <div id="tabpanel-news" role="tabpanel">
+              <div id="tabpanel-news" role="tabpanel" aria-labelledby="tab-news">
                 <AppNewsList notifications={notifications} />
               </div>
             )}
             {activeTab === "secrets" && showSecrets && (
-              <div id="tabpanel-secrets" role="tabpanel">
+              <div id="tabpanel-secrets" role="tabpanel" aria-labelledby="tab-secrets">
                 <AppSecretsTab appId={app.app_id} appName={app.name} />
               </div>
             )}
             {!showNews && activeTab === "news" && (
-              <div id="tabpanel-news" role="tabpanel">
+              <div id="tabpanel-news" role="tabpanel" aria-labelledby="tab-news">
                 <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
               </div>
             )}

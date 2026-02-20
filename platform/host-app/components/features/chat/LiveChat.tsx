@@ -40,11 +40,15 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Focus input when opened
+  // Focus input when opened; close on Escape
   useEffect(() => {
-    if (isOpen) {
-      inputRef.current?.focus();
-    }
+    if (!isOpen) return;
+    inputRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, [isOpen]);
 
   // Fetch messages
@@ -136,6 +140,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
         <div
           className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[480px] flex flex-col rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden"
           role="dialog"
+          aria-modal="true"
           aria-label="Live chat"
         >
           {/* Header */}
