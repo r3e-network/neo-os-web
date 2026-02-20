@@ -217,7 +217,7 @@ export default function MiniAppsPage() {
           {isLoading ? (
             <Spinner />
           ) : error ? (
-            <div className="text-center text-danger-600">Failed to load MiniApps</div>
+            <div className="text-center text-danger-600 dark:text-danger-400">Failed to load MiniApps</div>
           ) : !miniapps?.length ? (
             <p className="text-center text-gray-500 dark:text-gray-400 py-8">No MiniApps registered yet</p>
           ) : (

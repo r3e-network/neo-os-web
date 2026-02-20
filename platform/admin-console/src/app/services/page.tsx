@@ -29,7 +29,7 @@ export default function ServicesPage() {
           {isLoading ? (
             <Spinner />
           ) : error ? (
-            <div className="text-center text-danger-600">Failed to load services</div>
+            <div className="text-center text-danger-600 dark:text-danger-400">Failed to load services</div>
           ) : (
             <Table>
               <TableHeader>
@@ -62,7 +62,7 @@ export default function ServicesPage() {
                     <TableCell className="text-xs text-gray-500 dark:text-gray-400">{service.url}</TableCell>
                     <TableCell>{service.version || "N/A"}</TableCell>
                     <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(service.lastCheck)}</TableCell>
-                    <TableCell className="text-sm text-danger-600">{service.error || "-"}</TableCell>
+                    <TableCell className="text-sm text-danger-600 dark:text-danger-400">{service.error || "-"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
