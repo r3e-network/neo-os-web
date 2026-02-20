@@ -22,10 +22,20 @@ type auditEvent struct {
 }
 
 var (
-	auditLogger = sllogging.NewFromEnv("gateway")
-	auditOnce   sync.Once
-	auditQueue  chan *auditEvent
+	auditLogger   = sllogging.NewFromEnv("gateway")
+	auditOnce     sync.Once
+	auditQueue    chan *auditEvent
+	auditStopOnce sync.Once
 )
+
+// StopAuditLogger closes the audit queue so the background goroutine can exit.
+func StopAuditLogger() {
+	auditStopOnce.Do(func() {
+		if auditQueue != nil {
+			close(auditQueue)
+		}
+	})
+}
 
 func enqueueAudit(event *auditEvent) {
 	if event == nil {
