@@ -171,6 +171,10 @@ const createContent = async () => {
     background: rgba($color-error, 0.15);
     color: $color-error;
   }
+  &.loading {
+    background: rgba($color-info, 0.15);
+    color: $color-info;
+  }
 }
 .card {
   background: $color-bg-card;

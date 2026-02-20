@@ -231,8 +231,8 @@ const showRules = () => {
     color: $color-error;
   }
   &.loading {
-    background: rgba($color-gaming, 0.15);
-    color: $color-gaming;
+    background: rgba($color-info, 0.15);
+    color: $color-info;
   }
 }
 
