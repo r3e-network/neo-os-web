@@ -52,6 +52,7 @@ type Service struct {
 	// Simulation state
 	running     bool
 	stopCh      chan struct{}
+	wg          sync.WaitGroup
 	startedAt   *time.Time
 	txCounts    map[string]int64
 	lastTxTimes map[string]time.Time
@@ -319,17 +320,17 @@ func (s *Service) Start(ctx context.Context) error {
 	// Start contract invocation workers if contract invoker is available
 	if s.contractInvoker != nil {
 		if s.contractInvoker.HasPriceFeed() {
-			// PriceFeed updater (every 5 seconds per symbol)
-			go s.runPriceFeedUpdater()
+			s.wg.Add(1)
+			go func() { defer s.wg.Done(); s.runPriceFeedUpdater() }()
 		}
 
 		if s.contractInvoker.HasRandomnessLog() {
-			// RandomnessLog recorder (every 10 seconds)
-			go s.runRandomnessRecorder()
+			s.wg.Add(1)
+			go func() { defer s.wg.Done(); s.runRandomnessRecorder() }()
 		}
 
-		// Auto top-up worker for pool accounts with low GAS balance (every 30 seconds)
-		go s.runAutoTopUp()
+		s.wg.Add(1)
+		go func() { defer s.wg.Done(); s.runAutoTopUp() }()
 
 		s.Logger().WithContext(ctx).Info("contract invocation workers started")
 	}
@@ -342,7 +343,8 @@ func (s *Service) Start(ctx context.Context) error {
 
 	// Start automation task auto top-up worker if chain client is available
 	if s.chainClient != nil && s.poolClient != nil {
-		go s.runAutomationTaskTopUp()
+		s.wg.Add(1)
+		go func() { defer s.wg.Done(); s.runAutomationTaskTopUp() }()
 	}
 
 	s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
@@ -369,6 +371,8 @@ func (s *Service) Stop() error {
 	s.startedAt = nil
 	contractInvoker := s.contractInvoker
 	s.mu.Unlock()
+
+	s.wg.Wait()
 
 	if contractInvoker != nil {
 		contractInvoker.Close()
@@ -663,7 +667,11 @@ func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 			continue
 		}
 		for workerID := 0; workerID < s.workersPerApp; workerID++ {
-			go s.runMiniAppWorkflow(normalizedID, workerID, workflow)
+			s.wg.Add(1)
+			go func(id string, wid int, wf func(context.Context) error) {
+				defer s.wg.Done()
+				s.runMiniAppWorkflow(id, wid, wf)
+			}(normalizedID, workerID, workflow)
 			started++
 		}
 	}
