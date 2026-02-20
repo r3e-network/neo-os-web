@@ -30,7 +30,7 @@ export default function SecretsContent() {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-gray-500">Connect your wallet to manage secret tokens</p>
+          <p className="text-gray-500 dark:text-gray-400">Connect your wallet to manage secret tokens</p>
         </CardContent>
       </Card>
     );
