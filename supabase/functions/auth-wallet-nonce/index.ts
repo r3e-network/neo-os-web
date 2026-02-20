@@ -25,22 +25,24 @@ export async function handler(req: Request): Promise<Response> {
   const message = `Sign this message to log in with your Neo N3 wallet.\n\nAddress: ${address}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
 
   // Find or create account by wallet address
-  const { data: wallet } = await supabase
+  const { data: wallet, error: walletErr } = await supabase
     .from("linked_neo_accounts")
     .select("neohub_account_id")
     .eq("address", address)
     .maybeSingle();
+  if (walletErr) return error(500, "failed to query wallet", "DB_ERROR", req);
 
   let accountId: string;
   if (wallet?.neohub_account_id) {
     accountId = wallet.neohub_account_id;
   } else {
     // Check users table by address
-    const { data: byAddr } = await supabase
+    const { data: byAddr, error: byAddrErr } = await supabase
       .from("users")
       .select("id")
       .eq("address", address)
       .maybeSingle();
+    if (byAddrErr) return error(500, "failed to query user", "DB_ERROR", req);
 
     if (byAddr?.id) {
       // User exists but no neohub_accounts yet - create one

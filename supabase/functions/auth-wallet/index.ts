@@ -34,22 +34,24 @@ export async function handler(req: Request): Promise<Response> {
 
   // Find account by wallet
   let accountId: string | null = null;
-  const { data: wallet } = await supabase
+  const { data: wallet, error: walletErr } = await supabase
     .from("linked_neo_accounts")
     .select("neohub_account_id")
     .eq("address", address)
     .maybeSingle();
+  if (walletErr) return error(500, "failed to query wallet", "DB_ERROR", req);
 
   if (wallet?.neohub_account_id) {
     accountId = wallet.neohub_account_id;
   }
 
   // Verify nonce from users table (by address)
-  const { data: userRow } = await supabase
+  const { data: userRow, error: userRowErr } = await supabase
     .from("users")
     .select("id,nonce")
     .eq("address", address)
     .maybeSingle();
+  if (userRowErr) return error(500, "failed to query user", "DB_ERROR", req);
 
   const nonceMatch = message.match(/Nonce: ([a-f0-9-]+)/);
   const encoder = new TextEncoder();

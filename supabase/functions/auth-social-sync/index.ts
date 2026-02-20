@@ -43,12 +43,13 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = supabaseServiceClient();
 
   // Check existing linked_identities
-  const { data: existing } = await supabase
+  const { data: existing, error: existingErr } = await supabase
     .from("linked_identities")
     .select("neohub_account_id")
     .eq("provider", provider)
     .eq("provider_user_id", providerUserId)
     .maybeSingle();
+  if (existingErr) return error(500, "failed to query identities", "DB_ERROR", req);
 
   if (existing?.neohub_account_id) {
     return json({ user_id: existing.neohub_account_id, is_new: false }, {}, req);
@@ -57,12 +58,13 @@ export async function handler(req: Request): Promise<Response> {
   // Check if another identity with same email exists (merge case)
   let accountId: string | null = null;
   if (email) {
-    const { data: byEmail } = await supabase
+    const { data: byEmail, error: byEmailErr } = await supabase
       .from("linked_identities")
       .select("neohub_account_id")
       .eq("email", email)
       .limit(1)
       .maybeSingle();
+    if (byEmailErr) return error(500, "failed to query identities", "DB_ERROR", req);
     if (byEmail?.neohub_account_id) accountId = byEmail.neohub_account_id;
   }
 
