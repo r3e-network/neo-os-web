@@ -58,7 +58,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
 
       {/* Error Display */}
       {displayError && (
-        <div role="alert" className="p-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+        <div role="alert" className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
           <div className="flex items-center justify-between">
             <span className="text-red-600 dark:text-red-400 text-sm break-words">{displayError}</span>
             <button

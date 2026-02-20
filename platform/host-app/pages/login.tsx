@@ -47,7 +47,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="flex w-full items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
               >
-                <img src={w.icon} alt={w.name} className="h-5 w-5 rounded-full" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                <img src={w.icon} alt={w.name} width={20} height={20} className="h-5 w-5 rounded-full" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 {w.name}
               </button>
             ))}
