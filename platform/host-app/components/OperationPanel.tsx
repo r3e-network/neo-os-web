@@ -79,7 +79,7 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
         <label htmlFor={inputId} className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
         <select
           id={inputId}
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-transparent text-gray-900 dark:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-transparent text-gray-900 dark:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           value={value}
           onChange={e => onChange(e.target.value)}
         >
