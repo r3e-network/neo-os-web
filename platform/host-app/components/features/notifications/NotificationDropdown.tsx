@@ -137,7 +137,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           </div>
 
           {/* Notification List */}
-          <div className="max-h-80 overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" tabIndex={0}
+          <div className="max-h-80 overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" tabIndex={0}>
             {loading ? (
               <div className="p-2">
                 {Array.from({ length: 3 }, (_, i) => (
