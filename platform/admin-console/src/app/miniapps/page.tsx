@@ -311,7 +311,7 @@ export default function MiniAppsPage() {
                   {contracts.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Contracts</h4>
-                      <div className="rounded border border-gray-200 dark:border-gray-700 divide-y dark:divide-gray-700">
+                      <div className="rounded-lg border border-gray-200 dark:border-gray-700 divide-y dark:divide-gray-700">
                         {contracts.map((c, i) => (
                           <div key={i} className="flex justify-between px-3 py-2 text-sm">
                             <span className="font-medium">{c.name}</span>
@@ -324,7 +324,7 @@ export default function MiniAppsPage() {
                   {operations.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Operations</h4>
-                      <div className="rounded border border-gray-200 dark:border-gray-700 divide-y dark:divide-gray-700">
+                      <div className="rounded-lg border border-gray-200 dark:border-gray-700 divide-y dark:divide-gray-700">
                         {operations.map((o, i) => (
                           <div key={i} className="flex items-center gap-4 px-3 py-2 text-sm">
                             <span className="font-medium w-32">{o.name}</span>
@@ -350,7 +350,7 @@ export default function MiniAppsPage() {
               );
             })()}
 
-            <div><h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Full Manifest</h4><pre className="rounded bg-gray-50 dark:bg-gray-800 p-3 text-xs overflow-auto max-h-64">{JSON.stringify(selectedApp.manifest || {}, null, 2)}</pre></div>
+            <div><h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Full Manifest</h4><pre className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3 text-xs overflow-auto max-h-64">{JSON.stringify(selectedApp.manifest || {}, null, 2)}</pre></div>
           </CardContent>
         </Card>
       )}
@@ -602,7 +602,7 @@ function CreateFormPanel({
                 <button type="button" onClick={addOperation} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Operation</button>
               </div>
               {form.operations.map((o, i) => (
-                <div key={i} className="rounded border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
+                <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
                   <div className="flex gap-2">
                     <Input placeholder="Name" value={o.name} onChange={e => updateOperation(i, "name", e.target.value)} />
                     <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} />
