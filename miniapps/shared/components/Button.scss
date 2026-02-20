@@ -8,7 +8,7 @@
   transition: all 0.2s ease;
 
   &-primary {
-    background: linear-gradient(135deg, $color-accent 0%, #00a8cc 100%);
+    background: linear-gradient(135deg, $color-accent 0%, $color-accent-dark 100%);
     color: $color-text-primary;
     &:hover:not(:disabled) {
       opacity: 0.9;
@@ -16,11 +16,11 @@
   }
 
   &-secondary {
-    background: rgba(255, 255, 255, 0.1);
+    background: $color-bg-subtle;
     color: $color-text-primary;
     border: 1px solid $color-border-light;
     &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.15);
+      background: $color-bg-subtle-hover;
     }
   }
 
