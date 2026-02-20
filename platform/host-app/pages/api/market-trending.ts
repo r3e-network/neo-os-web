@@ -30,9 +30,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.gatewayError(res, "invalid upstream response");
   }
 
-  if (upstream.ok) {
-    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+  if (!upstream.ok) {
+    return apiError.gatewayError(res, "upstream request failed");
   }
-  const status = upstream.ok ? upstream.status : 502;
-  res.status(status).json(payload);
+  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+  res.status(200).json(payload);
 }

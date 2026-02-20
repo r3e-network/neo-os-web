@@ -112,6 +112,15 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func requireTriggerID(w http.ResponseWriter, r *http.Request) (string, bool) {
+	id := mux.Vars(r)["id"]
+	if _, err := uuid.Parse(id); err != nil {
+		httputil.BadRequest(w, "invalid trigger id format")
+		return "", false
+	}
+	return id, true
+}
+
 func (s *Service) handleGetTrigger(w http.ResponseWriter, r *http.Request) {
 	userID, ok := httputil.RequireUserID(w, r)
 	if !ok {
@@ -121,7 +130,10 @@ func (s *Service) handleGetTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
-	id := mux.Vars(r)["id"]
+	id, ok := requireTriggerID(w, r)
+	if !ok {
+		return
+	}
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil {
 		s.Logger().WithError(err).WithField("trigger_id", id).Warn("get trigger")
@@ -140,7 +152,10 @@ func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
-	id := mux.Vars(r)["id"]
+	id, idOk := requireTriggerID(w, r)
+	if !idOk {
+		return
+	}
 
 	var req TriggerRequest
 	if !httputil.DecodeJSON(w, r, &req) {
@@ -189,7 +204,10 @@ func (s *Service) handleDeleteTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
-	id := mux.Vars(r)["id"]
+	id, idOk := requireTriggerID(w, r)
+	if !idOk {
+		return
+	}
 	if err := s.repo.DeleteTrigger(r.Context(), id, userID); err != nil {
 		s.Logger().WithError(err).WithField("trigger_id", id).Warn("delete trigger")
 		httputil.NotFound(w, "trigger not found")
@@ -208,7 +226,10 @@ func (s *Service) handleEnableTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
-	id := mux.Vars(r)["id"]
+	id, idOk := requireTriggerID(w, r)
+	if !idOk {
+		return
+	}
 	if err := s.repo.SetTriggerEnabled(r.Context(), id, userID, true); err != nil {
 		s.Logger().WithError(err).WithField("trigger_id", id).Warn("enable trigger")
 		httputil.NotFound(w, "trigger not found")
@@ -226,7 +247,10 @@ func (s *Service) handleDisableTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
-	id := mux.Vars(r)["id"]
+	id, idOk := requireTriggerID(w, r)
+	if !idOk {
+		return
+	}
 	if err := s.repo.SetTriggerEnabled(r.Context(), id, userID, false); err != nil {
 		s.Logger().WithError(err).WithField("trigger_id", id).Warn("disable trigger")
 		httputil.NotFound(w, "trigger not found")
@@ -244,7 +268,10 @@ func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request) {
 		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
-	id := mux.Vars(r)["id"]
+	id, idOk := requireTriggerID(w, r)
+	if !idOk {
+		return
+	}
 	// Ensure trigger belongs to user
 	if _, err := s.repo.GetTrigger(r.Context(), id, userID); err != nil {
 		s.Logger().WithError(err).WithField("trigger_id", id).Warn("get trigger for executions")
@@ -274,7 +301,10 @@ func (s *Service) handleResumeTrigger(w http.ResponseWriter, r *http.Request) {
 		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
-	id := mux.Vars(r)["id"]
+	id, idOk := requireTriggerID(w, r)
+	if !idOk {
+		return
+	}
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil || trigger == nil {
 		httputil.NotFound(w, "trigger not found")

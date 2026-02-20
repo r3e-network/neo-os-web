@@ -50,9 +50,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       signal: AbortSignal.timeout(15000),
     });
 
+    if (!upstream.ok) {
+      return apiError.internal(res, "Upstream request failed");
+    }
     const data = await upstream.json();
     res.setHeader("Cache-Control", "no-store, private");
-    res.status(upstream.status).json(data);
+    res.status(200).json(data);
   } catch (err) {
     logger.error("Failed to fetch transactions:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Failed to fetch transactions");

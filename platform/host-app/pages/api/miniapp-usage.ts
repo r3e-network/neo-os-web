@@ -27,7 +27,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.gatewayError(res, "invalid upstream response");
   }
 
+  if (!upstream.ok) {
+    return apiError.gatewayError(res, "upstream request failed");
+  }
   res.setHeader("Cache-Control", "no-store, private");
-  const status = upstream.ok ? upstream.status : 502;
-  res.status(status).json(payload);
+  res.status(200).json(payload);
 }
