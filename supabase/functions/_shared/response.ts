@@ -4,6 +4,9 @@ export function json(data: unknown, init: ResponseInit = {}, req?: Request): Res
   const headers = withCors(init.headers, req);
   headers.set("Content-Type", "application/json; charset=utf-8");
   headers.set("X-Content-Type-Options", "nosniff");
+  if (!headers.has("Cache-Control")) {
+    headers.set("Cache-Control", "no-store");
+  }
   return new Response(JSON.stringify(data), { ...init, headers });
 }
 

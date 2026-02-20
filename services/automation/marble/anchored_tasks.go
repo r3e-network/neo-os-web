@@ -118,7 +118,9 @@ func (s *Service) setupAutomationAnchorListener() {
 		if err != nil {
 			return err
 		}
-		return s.loadAndRegisterTask(context.Background(), parsed.TaskID)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		return s.loadAndRegisterTask(ctx, parsed.TaskID)
 	})
 }
 
