@@ -150,6 +150,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(manifestHash != null && manifestHash.Length > 0, "manifest hash required");
             ExecutionEngine.Assert(entryUrl != null && entryUrl.Length > 0, "entry url required");
             ExecutionEngine.Assert(developerPubKey != null && developerPubKey.Length > 0, "developer pubkey required");
+            ExecutionEngine.Assert(appId.Length <= 64, "appId too long");
+            ExecutionEngine.Assert(entryUrl.Length <= 512, "entryUrl too long");
 
             ECPoint pubKey = (ECPoint)(byte[])developerPubKey;
             ExecutionEngine.Assert(pubKey.IsValid, "invalid developer pubkey");
@@ -178,6 +180,11 @@ namespace NeoMiniAppPlatform.Contracts
                 ContractHash = NormalizeContractHash(contractHash)
             };
 
+            ExecutionEngine.Assert((name ?? "").Length <= 128, "name too long");
+            ExecutionEngine.Assert((description ?? "").Length <= 1024, "description too long");
+            ExecutionEngine.Assert((icon ?? "").Length <= 256, "icon too long");
+            ExecutionEngine.Assert((banner ?? "").Length <= 256, "banner too long");
+            ExecutionEngine.Assert((category ?? "").Length <= 64, "category too long");
             AppMap().Put(key, StdLib.Serialize(info));
             OnAppRegistered(appId, info.Developer, name ?? "", category ?? "");
             if (contractHash != null && contractHash.Length > 0)

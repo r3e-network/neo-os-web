@@ -245,6 +245,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(gasLimit > 0, "gasLimit must be > 0");
             ExecutionEngine.Assert(triggerType == "cron" || triggerType == "interval", "triggerType must be 'cron' or 'interval'");
             ExecutionEngine.Assert(schedule != null && schedule.Length > 0, "schedule required");
+            ExecutionEngine.Assert(schedule.Length <= 128, "schedule too long");
 
             // Generate unique task ID
             BigInteger taskId = GetNextPeriodicTaskId();
