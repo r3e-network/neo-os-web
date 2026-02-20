@@ -45,7 +45,7 @@ export function CommandMenu() {
             <Search className="mr-2 h-4 w-4 text-gray-400 dark:text-gray-400" />
             <Command.Input
               placeholder="Search..."
-              className="h-12 w-full bg-transparent text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:outline-none"
+              className="h-12 w-full bg-transparent text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus-visible:outline-none"
             />
           </div>
           <Command.List className="max-h-80 overflow-y-auto p-2">

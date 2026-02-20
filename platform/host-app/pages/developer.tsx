@@ -285,7 +285,7 @@ export default function DeveloperPage() {
                     type="text"
                     required
                     placeholder="My Awesome MiniApp"
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
@@ -301,7 +301,7 @@ export default function DeveloperPage() {
                     required
                     rows={3}
                     placeholder="Describe what your app does..."
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all resize-none"
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                   />
@@ -315,7 +315,7 @@ export default function DeveloperPage() {
                       id="submit-app-icon"
                       type="text"
                       placeholder="📦"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-center text-2xl placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-center text-2xl placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
                       value={form.icon}
                       onChange={(e) => setForm({ ...form, icon: e.target.value })}
                     />
@@ -324,7 +324,7 @@ export default function DeveloperPage() {
                     <label htmlFor="submit-app-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
                     <select
                       id="submit-app-category"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all appearance-none cursor-pointer"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all appearance-none cursor-pointer"
                       value={form.category}
                       onChange={(e) => setForm({ ...form, category: e.target.value as FormData["category"] })}
                     >
@@ -347,7 +347,7 @@ export default function DeveloperPage() {
                     type="url"
                     required
                     placeholder="https://your-app.com/miniapp"
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
                     value={form.entry_url}
                     onChange={(e) => setForm({ ...form, entry_url: e.target.value })}
                   />
@@ -360,7 +360,7 @@ export default function DeveloperPage() {
                     id="submit-contract-hash"
                     type="text"
                     placeholder="0x... (optional)"
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all font-mono text-sm"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all font-mono text-sm"
                     value={form.contract_hash}
                     onChange={(e) => setForm({ ...form, contract_hash: e.target.value })}
                   />
@@ -376,7 +376,7 @@ export default function DeveloperPage() {
                         id="submit-dev-name"
                         type="text"
                         placeholder="Your name or team"
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
                         value={form.developer_name}
                         onChange={(e) => setForm({ ...form, developer_name: e.target.value })}
                       />
@@ -390,7 +390,7 @@ export default function DeveloperPage() {
                         type="text"
                         required
                         placeholder="NXxx..."
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all font-mono text-sm"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all font-mono text-sm"
                         value={form.developer_address}
                         onChange={(e) => setForm({ ...form, developer_address: e.target.value })}
                       />
