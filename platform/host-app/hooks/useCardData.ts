@@ -147,7 +147,8 @@ export function useCardData(appId: string) {
   // Initial fetch
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appId, cardType]);
 
   // Auto-refresh interval
   useEffect(() => {

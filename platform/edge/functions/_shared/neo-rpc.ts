@@ -71,6 +71,8 @@ async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
 export async function getGasBalance(address: string): Promise<string> {
   const result = await rpcCall<Nep17BalancesResult>("getnep17balances", [address]);
 
+  if (!result || !Array.isArray(result.balance)) return "0";
+
   const gasBalance = result.balance.find((b) => b.assethash.toLowerCase() === GAS_CONTRACT_HASH.toLowerCase());
 
   if (!gasBalance) {
