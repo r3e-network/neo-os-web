@@ -96,7 +96,7 @@ const vote = (yes: boolean) => {
 .proposal-item {
   padding: 14px;
   background: rgba($color-governance, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 10px;
   &:active {
     filter: brightness(0.85);

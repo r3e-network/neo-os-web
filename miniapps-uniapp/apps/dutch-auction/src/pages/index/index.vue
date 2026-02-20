@@ -151,7 +151,7 @@ const placeBid = async (): Promise<void> => {
   justify-content: space-between;
   padding: 12px;
   background: rgba($color-defi, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 8px;
 }
 .v {
@@ -162,7 +162,7 @@ const placeBid = async (): Promise<void> => {
   text-align: center;
   padding: 12px;
   background: rgba($color-defi, 0.15);
-  border-radius: 10px;
+  border-radius: 8px;
   margin: 12px 0;
   font-size: 1.1em;
   font-weight: bold;

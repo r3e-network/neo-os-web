@@ -126,7 +126,7 @@ const claim = async (env: any) => {
   align-items: center;
   padding: 12px;
   background: rgba($color-social, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 8px;
   &:active {
     filter: brightness(0.85);

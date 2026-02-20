@@ -276,7 +276,7 @@ const harvestAll = () => {
   align-items: center;
   padding: 12px;
   background: rgba($color-nft, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   &:active {
     filter: brightness(0.85);
   }
@@ -336,7 +336,7 @@ const harvestAll = () => {
   text-align: center;
   padding: 12px;
   background: rgba($color-nft, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 .stat-value {
   display: block;

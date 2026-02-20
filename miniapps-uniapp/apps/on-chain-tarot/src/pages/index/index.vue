@@ -166,7 +166,7 @@ const getReading = () => {
   height: 140px;
   background: rgba($color-nft, 0.1);
   border: 2px solid $color-nft;
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;

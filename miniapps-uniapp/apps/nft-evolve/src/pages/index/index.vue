@@ -115,7 +115,7 @@ const evolve = async () => {
   align-items: center;
   padding: 12px;
   background: rgba($color-nft, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 10px;
   &:active {
     filter: brightness(0.85);
@@ -172,7 +172,7 @@ const evolve = async () => {
   flex: 1;
   padding: 12px;
   background: $color-bg-subtle;
-  border-radius: 10px;
+  border-radius: 8px;
   text-align: center;
   &:active {
     filter: brightness(0.85);
@@ -182,7 +182,7 @@ const evolve = async () => {
   flex: 1;
   padding: 12px;
   background: $color-nft;
-  border-radius: 10px;
+  border-radius: 8px;
   text-align: center;
   font-weight: bold;
   &:active {

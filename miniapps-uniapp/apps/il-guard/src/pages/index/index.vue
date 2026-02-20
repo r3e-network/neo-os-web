@@ -139,7 +139,7 @@ const activateProtection = async (): Promise<void> => {
   justify-content: space-between;
   padding: 12px;
   background: rgba($color-defi, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 8px;
 }
 .v {

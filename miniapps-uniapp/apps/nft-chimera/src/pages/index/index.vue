@@ -223,7 +223,7 @@ const fuse = async () => {
 }
 .nft-card {
   background: rgba($color-nft, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 12px;
   text-align: center;
   &:active {

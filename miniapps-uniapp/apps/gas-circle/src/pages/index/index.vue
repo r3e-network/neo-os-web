@@ -75,7 +75,7 @@ const join = async (): Promise<void> => {
 }
 .card { background: $color-bg-card; border: 1px solid $color-border; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
 .card-title { color: $color-defi; font-size: 1.1em; font-weight: bold; display: block; margin-bottom: 12px; }
-.row { display: flex; justify-content: space-between; padding: 12px; background: rgba($color-defi, 0.1); border-radius: 10px; margin-bottom: 8px; }
+.row { display: flex; justify-content: space-between; padding: 12px; background: rgba($color-defi, 0.1); border-radius: 8px; margin-bottom: 8px; }
 .v { color: $color-defi; font-weight: bold; }
 .action-btn {
   background: linear-gradient(135deg, $color-defi 0%, darken($color-defi, 10%) 100%);

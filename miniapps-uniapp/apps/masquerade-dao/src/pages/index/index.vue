@@ -279,7 +279,7 @@ const vote = async (id: number, support: boolean) => {
 .vote-btn {
   flex: 1;
   padding: 10px;
-  border-radius: 6px;
+  border-radius: 8px;
   text-align: center;
   font-size: 0.9em;
   &.yes {

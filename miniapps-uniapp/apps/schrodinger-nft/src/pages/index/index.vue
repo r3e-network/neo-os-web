@@ -198,7 +198,7 @@ const buyBox = async () => {
   align-items: center;
   padding: 12px;
   background: rgba($color-nft, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 .reward-icon {
   font-size: 1.5em;

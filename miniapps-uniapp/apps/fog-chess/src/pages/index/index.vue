@@ -370,7 +370,7 @@ const showRules = () => {
   gap: 8px;
   padding: 8px 12px;
   background: rgba($color-gaming, 0.1);
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .move-number {

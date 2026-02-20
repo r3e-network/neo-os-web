@@ -260,7 +260,7 @@ onUnmounted(() => clearInterval(battleTimer));
 .health-bar {
   height: 12px;
   background: rgba($color-gaming, 0.2);
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   margin-bottom: 8px;
 }
@@ -366,7 +366,7 @@ onUnmounted(() => clearInterval(battleTimer));
 .log-item {
   padding: 8px 12px;
   background: rgba($color-gaming, 0.1);
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .log-text {
