@@ -27,7 +27,7 @@
       <uni-easyinput v-model="swapAmount" type="number" placeholder="Amount to swap" />
       <view class="detail-row">
         <text>You receive</text>
-        <text class="receive">{{ fmt(parseFloat(swapAmount || "0") * route.rate, 4) }} {{ route.toToken }}</text>
+        <text class="receive">{{ formatNum(parseFloat(swapAmount || "0") * route.rate, 4) }} {{ route.toToken }}</text>
       </view>
       <view class="detail-row">
         <text>Bridge fee (0.3%)</text>
@@ -66,7 +66,7 @@ const route = ref<Route>({ fromChain: "Neo N3", fromToken: "GAS", toChain: "Ethe
 const swap = ref<Swap>({ timeLock: "24 hours" });
 const swapAmount = ref<string>("");
 const status = ref<Status | null>(null);
-const fmt = (n: number, d = 2) => formatNumber(n, d);
+const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const initiateSwap = async (): Promise<void> => {
   if (isLoading.value) return;
@@ -75,9 +75,9 @@ const initiateSwap = async (): Promise<void> => {
   const fee = (amount * 0.003).toFixed(4);
   try {
     await payGAS(fee, `qswap:${route.value.fromChain}:${route.value.toChain}:${amount}`);
-    const received = fmt(amount * route.value.rate, 4);
+    const received = formatNum(amount * route.value.rate, 4);
     status.value = {
-      msg: `Swap initiated: ${fmt(amount, 2)} ${route.value.fromToken} → ${received} ${route.value.toToken}`,
+      msg: `Swap initiated: ${formatNum(amount, 2)} ${route.value.fromToken} → ${received} ${route.value.toToken}`,
       type: "success",
     };
   } catch (e: any) {

@@ -10,7 +10,7 @@
     <view class="card">
       <text class="card-title">Market</text>
       <view class="row"><text>Pair</text><text class="v">{{ market.pair }}</text></view>
-      <view class="row"><text>Last price</text><text class="v">{{ fmt(market.lastPrice, 3) }}</text></view>
+      <view class="row"><text>Last price</text><text class="v">{{ formatNum(market.lastPrice, 3) }}</text></view>
       <view class="row"><text>Volatility</text><text class="v">{{ market.volatility }}%</text></view>
     </view>
 
@@ -18,7 +18,7 @@
       <text class="card-title">Bot Snapshot</text>
       <view class="row"><text>Range</text><text class="v">{{ priceLow || "10" }}–{{ priceHigh || "14" }}</text></view>
       <view class="row"><text>Grids</text><text class="v">{{ gridLevels || "20" }}</text></view>
-      <view class="row"><text>Est. daily</text><text class="v">{{ fmt(bot.estDaily, 2) }} GAS</text></view>
+      <view class="row"><text>Est. daily</text><text class="v">{{ formatNum(bot.estDaily, 2) }} GAS</text></view>
     </view>
 
     <view class="card">
@@ -52,7 +52,7 @@ const priceHigh = ref<string>("14");
 const gridLevels = ref<string>("20");
 const setupFee = "0.020";
 const status = ref<Status | null>(null);
-const fmt = (n: number, d = 2) => formatNumber(n, d);
+const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const startBot = async (): Promise<void> => {
   if (isLoading.value) return;

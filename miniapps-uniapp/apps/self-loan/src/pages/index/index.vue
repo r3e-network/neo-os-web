@@ -12,7 +12,7 @@
     <view class="card">
       <text class="card-title">Loan Terms</text>
       <view class="row"
-        ><text>Max borrow</text><text class="v">{{ fmt(terms.maxBorrow, 0) }} GAS</text></view
+        ><text>Max borrow</text><text class="v">{{ formatNum(terms.maxBorrow, 0) }} GAS</text></view
       >
       <view class="row"
         ><text>Interest rate</text><text class="v">{{ terms.interestRate }}% APR</text></view
@@ -25,14 +25,14 @@
     <view class="card">
       <text class="card-title">Your Loan</text>
       <view class="row"
-        ><text>Borrowed</text><text class="v">{{ fmt(loan.borrowed, 2) }} GAS</text></view
+        ><text>Borrowed</text><text class="v">{{ formatNum(loan.borrowed, 2) }} GAS</text></view
       >
       <view class="row"
-        ><text>Collateral locked</text><text class="v">{{ fmt(loan.collateralLocked, 2) }} GAS</text></view
+        ><text>Collateral locked</text><text class="v">{{ formatNum(loan.collateralLocked, 2) }} GAS</text></view
       >
       <view class="row"
         ><text>Next payment</text
-        ><text class="v">{{ fmt(loan.nextPayment, 2) }} GAS in {{ loan.nextPaymentDue }}</text></view
+        ><text class="v">{{ formatNum(loan.nextPayment, 2) }} GAS in {{ loan.nextPaymentDue }}</text></view
       >
     </view>
 
@@ -41,11 +41,11 @@
       <uni-easyinput v-model="loanAmount" type="number" placeholder="Amount to borrow" />
       <view class="detail-row">
         <text>Collateral required (150%)</text>
-        <text class="collateral">{{ fmt(parseFloat(loanAmount || "0") * 1.5, 2) }} GAS</text>
+        <text class="collateral">{{ formatNum(parseFloat(loanAmount || "0") * 1.5, 2) }} GAS</text>
       </view>
       <view class="detail-row">
         <text>Monthly payment</text>
-        <text class="payment">{{ fmt(parseFloat(loanAmount || "0") * 0.085, 3) }} GAS</text>
+        <text class="payment">{{ formatNum(parseFloat(loanAmount || "0") * 0.085, 3) }} GAS</text>
       </view>
       <view class="action-btn" @click="takeLoan"
         ><text>{{ isLoading ? "Processing..." : "Borrow Now" }}</text></view
@@ -72,7 +72,7 @@ const terms = ref<Terms>({ maxBorrow: 5000, interestRate: 8.5, repaymentSchedule
 const loan = ref<Loan>({ borrowed: 0, collateralLocked: 0, nextPayment: 0, nextPaymentDue: "N/A" });
 const loanAmount = ref<string>("");
 const status = ref<Status | null>(null);
-const fmt = (n: number, d = 2) => formatNumber(n, d);
+const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const takeLoan = async (): Promise<void> => {
   if (isLoading.value) return;
@@ -84,7 +84,7 @@ const takeLoan = async (): Promise<void> => {
   const fee = "0.015";
   try {
     await payGAS(fee, `selfloan:borrow:${amount}:collateral:${collateral}`);
-    status.value = { msg: `Loan approved: ${fmt(amount, 2)} GAS borrowed`, type: "success" };
+    status.value = { msg: `Loan approved: ${formatNum(amount, 2)} GAS borrowed`, type: "success" };
   } catch (e: any) {
     status.value = { msg: e.message || "Payment failed", type: "error" };
   }

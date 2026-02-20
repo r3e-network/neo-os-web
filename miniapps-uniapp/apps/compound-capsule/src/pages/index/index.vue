@@ -10,15 +10,15 @@
     <view class="card">
       <text class="card-title">Vault Stats</text>
       <view class="row"><text>APY</text><text class="v">{{ vault.apy }}%</text></view>
-      <view class="row"><text>TVL</text><text class="v">{{ fmt(vault.tvl, 0) }} GAS</text></view>
+      <view class="row"><text>TVL</text><text class="v">{{ formatNum(vault.tvl, 0) }} GAS</text></view>
       <view class="row"><text>Compound freq</text><text class="v">{{ vault.compoundFreq }}</text></view>
     </view>
 
     <view class="card">
       <text class="card-title">Your Position</text>
-      <view class="row"><text>Deposited</text><text class="v">{{ fmt(position.deposited, 2) }} GAS</text></view>
-      <view class="row"><text>Earned</text><text class="v">+{{ fmt(position.earned, 4) }} GAS</text></view>
-      <view class="row"><text>Est. 30d</text><text class="v">{{ fmt(position.est30d, 2) }} GAS</text></view>
+      <view class="row"><text>Deposited</text><text class="v">{{ formatNum(position.deposited, 2) }} GAS</text></view>
+      <view class="row"><text>Earned</text><text class="v">+{{ formatNum(position.earned, 4) }} GAS</text></view>
+      <view class="row"><text>Est. 30d</text><text class="v">{{ formatNum(position.est30d, 2) }} GAS</text></view>
     </view>
 
     <view class="card">
@@ -48,7 +48,7 @@ const position = ref<Position>({ deposited: 100, earned: 1.2345, est30d: 1.54 })
 const amount = ref<string>("");
 const depositFee = "0.010";
 const status = ref<Status | null>(null);
-const fmt = (n: number, d = 2) => formatNumber(n, d);
+const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const deposit = async (): Promise<void> => {
   if (isLoading.value) return;

@@ -12,10 +12,10 @@
     <view class="card">
       <text class="card-title">Active Auction</text>
       <view class="row"
-        ><text>Current price</text><text class="v">{{ fmt(auction.currentPrice, 3) }} GAS</text></view
+        ><text>Current price</text><text class="v">{{ formatNum(auction.currentPrice, 3) }} GAS</text></view
       >
       <view class="row"
-        ><text>Start price</text><text class="v">{{ fmt(auction.startPrice, 3) }} GAS</text></view
+        ><text>Start price</text><text class="v">{{ formatNum(auction.startPrice, 3) }} GAS</text></view
       >
       <view class="row"
         ><text>Time left</text><text class="v">{{ auction.timeLeft }}</text></view
@@ -39,7 +39,7 @@
       <text class="card-title">Bid Now</text>
       <uni-easyinput v-model="bidQuantity" type="number" placeholder="Quantity to buy" />
       <view class="price-display">
-        <text>Total: {{ fmt(parseFloat(bidQuantity || "0") * auction.currentPrice, 3) }} GAS</text>
+        <text>Total: {{ formatNum(parseFloat(bidQuantity || "0") * auction.currentPrice, 3) }} GAS</text>
       </view>
       <view class="action-btn" @click="placeBid"
         ><text>{{ isLoading ? "Processing..." : "Accept Current Price" }}</text></view
@@ -79,7 +79,7 @@ const auction = ref<Auction>({
 const bidQuantity = ref<string>("");
 const auctionFee = "0.008";
 const status = ref<Status | null>(null);
-const fmt = (n: number, d = 2) => formatNumber(n, d);
+const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const placeBid = async (): Promise<void> => {
   if (isLoading.value) return;
@@ -89,7 +89,7 @@ const placeBid = async (): Promise<void> => {
   const total = (qty * auction.value.currentPrice + parseFloat(auctionFee)).toFixed(3);
   try {
     await payGAS(total, `auction:${auction.value.item}:${qty}:${auction.value.currentPrice}`);
-    status.value = { msg: `Bid accepted: ${qty} @ ${fmt(auction.value.currentPrice, 3)} GAS`, type: "success" };
+    status.value = { msg: `Bid accepted: ${qty} @ ${formatNum(auction.value.currentPrice, 3)} GAS`, type: "success" };
   } catch (e: any) {
     status.value = { msg: e.message || "Payment failed", type: "error" };
   }

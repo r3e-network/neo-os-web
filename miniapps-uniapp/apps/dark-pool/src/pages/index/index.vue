@@ -9,8 +9,8 @@
 
     <view class="card">
       <text class="card-title">Pool Stats</text>
-      <view class="row"><text>24h volume</text><text class="v">{{ fmt(pool.volume24h, 0) }} GAS</text></view>
-      <view class="row"><text>Avg. block size</text><text class="v">{{ fmt(pool.avgBlockSize, 0) }} GAS</text></view>
+      <view class="row"><text>24h volume</text><text class="v">{{ formatNum(pool.volume24h, 0) }} GAS</text></view>
+      <view class="row"><text>Avg. block size</text><text class="v">{{ formatNum(pool.avgBlockSize, 0) }} GAS</text></view>
       <view class="row"><text>Privacy level</text><text class="v">{{ pool.privacyLevel }}</text></view>
     </view>
 
@@ -50,7 +50,7 @@ const amount = ref<string>("");
 const slippage = ref<string>("0.5");
 const privacyFee = "0.050";
 const status = ref<Status | null>(null);
-const fmt = (n: number, d = 2) => formatNumber(n, d);
+const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const placeOrder = async (): Promise<void> => {
   if (isLoading.value) return;
