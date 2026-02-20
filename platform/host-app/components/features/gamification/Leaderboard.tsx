@@ -63,7 +63,7 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="px-4 py-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-gray-200 dark:border-gray-700">
         <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <Trophy size={18} className="text-amber-500" />
+          <Trophy size={18} className="text-amber-500" aria-hidden="true" />
           Leaderboard
         </h3>
       </div>

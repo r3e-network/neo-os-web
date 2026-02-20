@@ -81,7 +81,7 @@ export default function DocsPage() {
               </p>
               {/* Search */}
               <div className="relative max-w-xl mx-auto">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} aria-hidden="true" />
                 <input
                   type="text"
                   aria-label="Search documentation"
@@ -116,7 +116,7 @@ export default function DocsPage() {
                           : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
                       }`}
                     >
-                      <Icon size={18} />
+                      <Icon size={18} aria-hidden="true" />
                       {section.title}
                     </button>
                   );
@@ -130,9 +130,9 @@ export default function DocsPage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
-                    <Github size={18} />
+                    <Github size={18} aria-hidden="true" />
                     GitHub
-                    <ExternalLink size={14} className="ml-auto" />
+                    <ExternalLink size={14} className="ml-auto" aria-hidden="true" />
                   </a>
                   <a
                     href="https://discord.gg/neo"
@@ -140,9 +140,9 @@ export default function DocsPage() {
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
-                    <MessageCircle size={18} />
+                    <MessageCircle size={18} aria-hidden="true" />
                     Discord
-                    <ExternalLink size={14} className="ml-auto" />
+                    <ExternalLink size={14} className="ml-auto" aria-hidden="true" />
                   </a>
                 </div>
               </nav>
@@ -171,7 +171,7 @@ function GettingStartedContent() {
       <div className="not-prose mb-8 p-6 rounded-2xl bg-neo/5 border border-neo/20">
         <div className="flex items-start gap-4">
           <div className="p-3 rounded-xl bg-neo/10">
-            <Rocket className="text-neo" size={24} />
+            <Rocket className="text-neo" size={24} aria-hidden="true" />
           </div>
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Quick Start</h3>
@@ -222,13 +222,13 @@ console.log('TX Hash:', result.txid);`}
       <div className="not-prose mt-8 flex gap-4">
         <Link href="/developer">
           <Button className="bg-neo hover:bg-neo/90 text-gray-900">
-            <Play size={16} className="mr-2" />
+            <Play size={16} className="mr-2" aria-hidden="true" />
             Try It Now
           </Button>
         </Link>
         <a href="https://github.com/neo-project/neo-miniapp-template" target="_blank" rel="noopener noreferrer">
           <Button variant="outline" className="border-gray-300 dark:border-gray-600">
-            <Github size={16} className="mr-2" />
+            <Github size={16} className="mr-2" aria-hidden="true" />
             View Template
           </Button>
         </a>
@@ -255,13 +255,13 @@ function SDKReferenceContent() {
             className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 transition-colors"
           >
             <div className="p-2 rounded-lg bg-neo/10">
-              <item.icon className="text-neo" size={20} />
+              <item.icon className="text-neo" size={20} aria-hidden="true" />
             </div>
             <div>
               <h4 className="font-medium text-gray-900 dark:text-white">{item.title}</h4>
               <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
             </div>
-            <ChevronRight className="ml-auto text-gray-400" size={16} />
+            <ChevronRight className="ml-auto text-gray-400" size={16} aria-hidden="true" />
           </div>
         ))}
       </div>
@@ -409,7 +409,7 @@ function PlatformServicesContent() {
             <div
               className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4`}
             >
-              <item.icon className="text-white" size={24} />
+              <item.icon className="text-white" size={24} aria-hidden="true" />
             </div>
             <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{item.title}</h4>
             <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>

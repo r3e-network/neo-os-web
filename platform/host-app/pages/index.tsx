@@ -173,7 +173,7 @@ export default function LandingPage() {
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/miniapps">
                 <Button size="lg" className="bg-neo hover:bg-neo/90 text-dark-950 font-bold px-8 h-14 rounded-2xl">
-                  Explore Apps <Rocket className="ml-2" size={18} />
+                  Explore Apps <Rocket className="ml-2" size={18} aria-hidden="true" />
                 </Button>
               </Link>
               <Link href="/developer">
@@ -182,7 +182,7 @@ export default function LandingPage() {
                   variant="outline"
                   className="border-gray-300 dark:border-gray-700 bg-white/80 dark:bg-transparent text-gray-900 dark:text-white font-bold px-8 h-14 rounded-2xl hover:bg-gray-100 dark:hover:bg-white/5"
                 >
-                  Developer SDK <Code2 className="ml-2" width={18} height={18} />
+                  Developer SDK <Code2 className="ml-2" width={18} height={18} aria-hidden="true" />
                 </Button>
               </Link>
             </div>
@@ -214,7 +214,7 @@ export default function LandingPage() {
             <aside className="hidden lg:block w-72 shrink-0 space-y-8">
               <div>
                 <h2 className="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-4 px-2">
-                  <Filter size={18} />
+                  <Filter size={18} aria-hidden="true" />
                   Categories
                 </h2>
                 <div className="space-y-1">
@@ -235,7 +235,7 @@ export default function LandingPage() {
                         )}
                       >
                         <span className="flex items-center gap-2">
-                          <Icon size={18} />
+                          <Icon size={18} aria-hidden="true" />
                           {cat.label}
                         </span>
                         <span
@@ -397,7 +397,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-5xl">
           <div className="relative rounded-[2.5rem] bg-neo-purple-grad p-6 md:p-12 overflow-hidden shadow-2xl shadow-neo/20">
             <div className="absolute top-0 right-0 p-12 opacity-10">
-              <Code2 width={240} height={240} />
+              <Code2 width={240} height={240} aria-hidden="true" />
             </div>
             <div className="relative z-10 max-w-2xl">
               <h2 className="text-4xl font-bold text-dark-950">Ready to build the future?</h2>
@@ -428,7 +428,7 @@ function FeatureItem({ icon: Icon, title, desc }: { icon: React.ComponentType<{ 
   return (
     <Card className="glass-card p-8 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/20 text-left hover:bg-gray-50 dark:hover:bg-gray-900/40 transform hover:-translate-y-1 transition-all">
       <div className="w-12 h-12 rounded-xl bg-neo/10 flex items-center justify-center text-neo mb-6">
-        <Icon size={24} />
+        <Icon size={24} aria-hidden="true" />
       </div>
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{title}</h3>
       <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{desc}</p>

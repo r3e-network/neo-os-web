@@ -29,7 +29,7 @@ export function StatsBar({ stats, className }: StatsBarProps) {
                 <div className="flex flex-col md:flex-row items-center gap-4">
                   {Icon && (
                     <div className="h-10 w-10 rounded-xl bg-neo/10 flex items-center justify-center text-neo group-hover:bg-neo group-hover:text-gray-900 transition-colors duration-300">
-                      <Icon size={20} />
+                      <Icon size={20} aria-hidden="true" />
                     </div>
                   )}
                   <div>

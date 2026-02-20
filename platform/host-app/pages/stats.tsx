@@ -184,20 +184,20 @@ export default function EnhancedStatsPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <ul className="space-y-4">
               {loading ? (
-                <div className="flex items-center justify-center py-8">
+                <li className="flex items-center justify-center py-8">
                   <Loader2 className="animate-spin text-neo" size={32} />
-                </div>
+                </li>
               ) : events.length > 0 ? (
                 events.map((event, i) => (
-                  <div
+                  <li
                     key={event.id || i}
                     className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-gray-700 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-lg bg-neo/10 flex items-center justify-center text-neo">
-                        <TrendingUp size={18} />
+                        <TrendingUp size={18} aria-hidden="true" />
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -213,12 +213,12 @@ export default function EnhancedStatsPage() {
                       <p className="text-sm font-mono text-gray-500 dark:text-gray-300">{event.gasUsed || "0"} GAS</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(event.timestamp)}</p>
                     </div>
-                  </div>
+                  </li>
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">No recent events</div>
+                <li className="text-center py-8 text-gray-500 dark:text-gray-400">No recent events</li>
               )}
-            </div>
+            </ul>
           </CardContent>
         </Card>
       </div>
@@ -246,7 +246,7 @@ function StatSummaryCard({ title, value, icon: Icon, color, loading }: StatSumma
             </h3>
           </div>
           <div className={cn("p-3 rounded-xl bg-gray-100 dark:bg-white/5", color)}>
-            <Icon size={24} />
+            <Icon size={24} aria-hidden="true" />
           </div>
         </div>
       </CardContent>

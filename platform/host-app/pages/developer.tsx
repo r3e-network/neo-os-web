@@ -96,7 +96,7 @@ export default function DeveloperPage() {
             className="text-center"
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neo/10 border border-neo/20 text-neo text-sm font-medium mb-6">
-              <Rocket size={16} />
+              <Rocket size={16} aria-hidden="true" />
               Build on Neo N3
             </div>
             <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
@@ -123,7 +123,7 @@ export default function DeveloperPage() {
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neo to-emerald-600 flex items-center justify-center">
-                  <Code2 className="text-white" size={24} />
+                  <Code2 className="text-white" size={24} aria-hidden="true" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quick Start</h2>
@@ -139,7 +139,7 @@ export default function DeveloperPage() {
               <Link href="/docs">
                 <Button className="mt-6 bg-neo hover:bg-neo/90 text-gray-900 font-semibold">
                   Read Documentation
-                  <ChevronRight size={16} className="ml-1" />
+                  <ChevronRight size={16} className="ml-1" aria-hidden="true" />
                 </Button>
               </Link>
             </motion.div>
@@ -153,7 +153,7 @@ export default function DeveloperPage() {
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                  <Rocket className="text-white" size={24} />
+                  <Rocket className="text-white" size={24} aria-hidden="true" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">Submit Your App</h2>
@@ -176,7 +176,7 @@ export default function DeveloperPage() {
                 className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold"
               >
                 Submit MiniApp
-                <ExternalLink size={16} className="ml-2" />
+                <ExternalLink size={16} className="ml-2" aria-hidden="true" />
               </Button>
             </motion.div>
           </div>
@@ -199,7 +199,7 @@ export default function DeveloperPage() {
                 <div
                   className={`w-12 h-12 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
                 >
-                  <f.icon className="text-white" size={24} />
+                  <f.icon className="text-white" size={24} aria-hidden="true" />
                 </div>
                 <h3 className="font-bold text-gray-900 dark:text-white mb-1">{f.title}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">{f.desc}</p>

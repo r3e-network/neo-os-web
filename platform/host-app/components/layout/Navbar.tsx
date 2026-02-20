@@ -117,7 +117,7 @@ export function Navbar() {
             className="p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
             aria-label="Switch language"
           >
-            <Globe size={18} />
+            <Globe size={18} aria-hidden="true" />
             <span className="text-xs font-medium">{locale === "en" ? "EN" : "中"}</span>
           </button>
 
