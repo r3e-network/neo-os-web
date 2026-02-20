@@ -472,18 +472,18 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
           </div>
 
           {history.length > 0 ? (
-            <div className={styles.historyList}>
+            <ul className={styles.historyList}>
               {history.map((item, index) => (
-                <div key={`${item.timestamp}-${index}`} className={styles.historyItem}>
+                <li key={`${item.timestamp}-${index}`} className={styles.historyItem}>
                   <span>
                     {item.timestamp} • {item.choice} → {item.result}
                   </span>
                   <span className={item.win ? styles.badgeWin : styles.badgeLoss}>
                     {item.win ? "Win" : "Loss"}
                   </span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : (
             <div className={styles.emptyState}>No rounds played yet.</div>
           )}
