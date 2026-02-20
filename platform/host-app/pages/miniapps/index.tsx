@@ -214,13 +214,13 @@ export default function MiniAppsPage() {
                             setShowSortMenu(false);
                           }}
                           className={cn(
-                            "flex items-center gap-2 w-full px-3 py-2 text-sm text-left",
+                            "flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors",
                             sortBy === option.value
                               ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
                               : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800",
                           )}
                         >
-                          <option.icon size={14} />
+                          <option.icon size={14} aria-hidden="true" />
                           {option.label}
                         </button>
                       ))}
