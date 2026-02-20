@@ -55,6 +55,14 @@ namespace NeoMiniAppPlatform.Contracts
         public static event TrustExecutedHandler OnTrustExecuted;
         #endregion
 
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            if (Runtime.CallingScriptHash != NEO.Hash && Runtime.CallingScriptHash != GAS.Hash)
+                throw new Exception("Only NEO/GAS accepted");
+            if (from == Runtime.ExecutingScriptHash) return;
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+        }
+
         #region Getters
         [Safe]
         public static BigInteger TotalTrusts() =>
