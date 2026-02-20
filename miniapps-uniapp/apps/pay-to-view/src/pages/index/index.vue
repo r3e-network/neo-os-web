@@ -189,7 +189,7 @@ const createContent = async () => {
 .content-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 .content-item {
   display: flex;

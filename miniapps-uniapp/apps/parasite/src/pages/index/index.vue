@@ -239,7 +239,7 @@ const attachTo = async (host: Host) => {
 .hosts-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 .host-item {
   display: flex;

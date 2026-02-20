@@ -158,7 +158,7 @@ const mintCanvas = async () => {
 }
 .color-palette {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
 }
 .color-btn {
@@ -194,7 +194,7 @@ const mintCanvas = async () => {
 .artworks-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 .artwork-item {
   display: flex;

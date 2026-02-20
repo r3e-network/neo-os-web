@@ -266,7 +266,7 @@ const harvestAll = () => {
 .seeds-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 .seed-item {
   display: flex;

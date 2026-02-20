@@ -185,7 +185,7 @@ const buyBox = async () => {
 .rewards-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 .reward-item {
   display: flex;
