@@ -262,10 +262,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            if (Runtime.CallingScriptHash == GAS.Hash)
-            {
-                // Accept GAS deposits for rewards
-            }
+            if (Runtime.CallingScriptHash != GAS.Hash) throw new Exception("Only GAS accepted");
+            if (from == Runtime.ExecutingScriptHash) return;
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
         }
     }
 }
