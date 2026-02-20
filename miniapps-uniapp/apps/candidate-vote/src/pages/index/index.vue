@@ -78,7 +78,7 @@ const status = ref<{ msg: string; type: string } | null>(null);
 const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 const formatVotes = (v: string) => parseInt(v).toLocaleString();
 
-const showStatus = (msg: string, type: string) => {
+const showStatus = (msg: string, type: "success" | "error") => {
   status.value = { msg, type };
   setTimeout(() => (status.value = null), 5000);
 };
