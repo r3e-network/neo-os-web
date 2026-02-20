@@ -47,7 +47,7 @@ export default function ContractsPage() {
               >
                 <div>
                   <div className="font-medium text-gray-900 dark:text-white">{contract.name}</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Hash: {contract.hash}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 truncate" title={contract.hash}>Hash: {contract.hash}</div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">Network: {network}</div>
                 </div>
                 <div className="flex items-center gap-3">

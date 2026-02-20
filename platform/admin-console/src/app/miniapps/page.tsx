@@ -315,7 +315,7 @@ export default function MiniAppsPage() {
                         {contracts.map((c, i) => (
                           <div key={i} className="flex justify-between px-3 py-2 text-sm">
                             <span className="font-medium">{c.name}</span>
-                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{c.hash}</span>
+                            <span className="font-mono text-xs text-gray-500 dark:text-gray-400 truncate ml-2" title={c.hash}>{c.hash}</span>
                           </div>
                         ))}
                       </div>
