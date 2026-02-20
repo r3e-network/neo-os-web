@@ -69,7 +69,7 @@ const join = async (): Promise<void> => {
 .header { text-align: center; margin-bottom: 24px; }
 .title { font-size: 1.8em; font-weight: 800; color: $color-defi; }
 .subtitle { color: $color-text-secondary; font-size: 0.9em; margin-top: 8px; }
-.status-msg { text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 16px;
+.status-msg { text-align: center; padding: 12px; border-radius: 8px; margin-bottom: 16px;
   &.success { background: rgba($color-success, 0.15); color: $color-success; }
   &.error { background: rgba($color-error, 0.15); color: $color-error; }
 }

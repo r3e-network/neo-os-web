@@ -116,7 +116,7 @@ const takeLoan = async (): Promise<void> => {
 .status-msg {
   text-align: center;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 16px;
   &.success {
     background: rgba($color-success, 0.15);
