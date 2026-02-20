@@ -65,7 +65,7 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
   if (param.type === "boolean") {
     return (
       <label className="flex items-center gap-2 text-sm mb-2.5 text-gray-900 dark:text-white">
-        <input type="checkbox" checked={value === "true"} onChange={e => onChange(String(e.target.checked))} />
+        <input type="checkbox" checked={value === "true"} onChange={e => onChange(String(e.target.checked))} className="accent-neo rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" />
         {label}
       </label>
     );

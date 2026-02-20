@@ -81,7 +81,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary-500 to-primary-700 py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 text-center">
-          <h1 className="text-4xl font-bold md:text-6xl">{t("hero.title")}</h1>
+          <h1 className="text-4xl font-extrabold md:text-6xl">{t("hero.title")}</h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-primary-100">{t("hero.subtitle")}</p>
           <div className="mt-8 flex justify-center gap-4">
             <Button size="lg" className="bg-white text-primary-600 hover:bg-gray-100 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800">
@@ -141,7 +141,7 @@ export default function HomePage() {
             ].map((feature, i) => (
               <div key={i} className="rounded-xl bg-white p-6 text-center shadow-sm dark:bg-gray-800">
                 <div className="text-4xl">{feature.icon}</div>
-                <h3 className="mt-4 font-semibold">{feature.title}</h3>
+                <h3 className="mt-4 font-semibold text-gray-900 dark:text-white">{feature.title}</h3>
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{feature.desc}</p>
               </div>
             ))}

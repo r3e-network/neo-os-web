@@ -189,7 +189,7 @@ function Toggle({
         <div className="font-medium text-gray-900 dark:text-white">{label}</div>
         <div className="text-sm text-gray-500 dark:text-gray-400">{desc}</div>
       </div>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="w-5 h-5" />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="w-5 h-5 accent-neo rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" />
     </label>
   );
 }

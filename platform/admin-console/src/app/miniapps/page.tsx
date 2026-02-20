@@ -548,7 +548,7 @@ function CreateFormPanel({
               <Input label="Developer Pubkey (hex)" placeholder="03f35d..." value={form.developer_pubkey} onChange={e => update("developer_pubkey", e.target.value)} />
               <div className="flex items-end">
                 <label className="flex items-center gap-2 text-sm pb-2">
-                  <input type="checkbox" checked={form.attestation_required} onChange={e => update("attestation_required", e.target.checked)} className="rounded" />
+                  <input type="checkbox" checked={form.attestation_required} onChange={e => update("attestation_required", e.target.checked)} className="rounded accent-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" />
                   Attestation Required
                 </label>
               </div>
@@ -657,7 +657,7 @@ function CreateFormPanel({
               <div className="flex flex-wrap gap-3">
                 {PERMISSION_KEYS.map(key => (
                   <label key={key} className="flex items-center gap-1.5 text-sm">
-                    <input type="checkbox" checked={!!form.permissions[key]} onChange={() => togglePerm(key)} className="rounded" />
+                    <input type="checkbox" checked={!!form.permissions[key]} onChange={() => togglePerm(key)} className="rounded accent-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" />
                     {key}
                   </label>
                 ))}
@@ -739,7 +739,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
           <Input placeholder="Label" value={p.label} onChange={e => update(i, "label", e.target.value)} />
           <Input placeholder="Placeholder" value={p.placeholder} onChange={e => update(i, "placeholder", e.target.value)} />
           <label className="flex items-center gap-1 text-xs shrink-0">
-            <input type="checkbox" checked={p.required} onChange={e => update(i, "required", e.target.checked)} className="rounded" />
+            <input type="checkbox" checked={p.required} onChange={e => update(i, "required", e.target.checked)} className="rounded accent-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" />
             Req
           </label>
           <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded" aria-label="Remove parameter">×</button>
