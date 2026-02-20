@@ -83,7 +83,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write a comment..."
             aria-label="Write a comment"
-            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white dark:placeholder-gray-400 rounded-lg p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors resize-none placeholder-gray-500 dark:placeholder-gray-400 rounded-lg p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             rows={3}
             maxLength={2000}
           />
