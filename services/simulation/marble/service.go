@@ -504,6 +504,11 @@ func (s *Service) recordTransaction(ctx context.Context, tx *SimulationTx) error
 // runPriceFeedUpdater runs the PriceFeed update loop.
 func (s *Service) runPriceFeedUpdater() {
 	ctx := context.Background()
+	defer func() {
+		if r := recover(); r != nil {
+			s.Logger().WithField("panic", r).Error("worker panicked")
+		}
+	}()
 	logger := s.Logger().WithFields(map[string]interface{}{"worker": "pricefeed"})
 
 	ticker := time.NewTicker(5 * time.Second)
@@ -534,6 +539,11 @@ func (s *Service) runPriceFeedUpdater() {
 // runRandomnessRecorder runs the RandomnessLog record loop.
 func (s *Service) runRandomnessRecorder() {
 	ctx := context.Background()
+	defer func() {
+		if r := recover(); r != nil {
+			s.Logger().WithField("panic", r).Error("worker panicked")
+		}
+	}()
 	logger := s.Logger().WithFields(map[string]interface{}{"worker": "randomness"})
 
 	ticker := time.NewTicker(10 * time.Second)
@@ -727,6 +737,11 @@ func shortHash(hash string) string {
 // This ensures pool accounts have enough GAS to pay for transaction fees.
 func (s *Service) runAutoTopUp() {
 	ctx := context.Background()
+	defer func() {
+		if r := recover(); r != nil {
+			s.Logger().WithField("panic", r).Error("worker panicked")
+		}
+	}()
 	logger := s.Logger().WithFields(map[string]interface{}{"worker": "auto-topup"})
 
 	// Wait for initial setup
@@ -791,6 +806,11 @@ func (s *Service) runAutoTopUp() {
 // Task IDs are configured via SIMULATION_AUTOMATION_TASK_IDS environment variable (comma-separated list of task IDs).
 func (s *Service) runAutomationTaskTopUp() {
 	ctx := context.Background()
+	defer func() {
+		if r := recover(); r != nil {
+			s.Logger().WithField("panic", r).Error("worker panicked")
+		}
+	}()
 	logger := s.Logger().WithFields(map[string]interface{}{"worker": "automation-topup"})
 
 	// Get AutomationAnchor contract hash from environment

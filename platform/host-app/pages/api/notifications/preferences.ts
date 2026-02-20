@@ -4,6 +4,7 @@ import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 const DEFAULT_PREFERENCES = {
   email: null,
@@ -22,6 +23,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const { wallet } = req.query;
       if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
         return apiError.badRequest(res, "Invalid wallet address");
+      }
+
+      const authedWallet = await requireWalletAuth(req, res);
+      if (!authedWallet) return;
+      if (wallet !== authedWallet) {
+        return apiError.forbidden(res, "Wallet mismatch");
       }
 
       const prefs = await getPreferences(wallet);
@@ -47,6 +54,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const validFrequencies = ["instant", "daily", "weekly"];
       if (prefs.digestFrequency && !validFrequencies.includes(prefs.digestFrequency)) {
         return apiError.badRequest(res, "Invalid digest frequency");
+      }
+
+      const authedWallet = await requireWalletAuth(req, res);
+      if (!authedWallet) return;
+      if (prefs.walletAddress !== authedWallet) {
+        return apiError.forbidden(res, "Wallet mismatch");
       }
 
       const success = await upsertPreferences(prefs);

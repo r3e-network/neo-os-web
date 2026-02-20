@@ -4,6 +4,7 @@ import { verifyCode } from "@/lib/notifications/verification-service";
 import { withCsrfProtection } from "@/lib/csrf";
 import { apiError } from "@/lib/api-response";
 import { strictLimit } from "@/lib/rate-limit";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -20,6 +21,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Basic format validation
   if (!/^N[A-Za-z0-9]{33}$/.test(wallet) || !/^\d{6}$/.test(code)) {
     return apiError.badRequest(res, "Invalid wallet or code format");
+  }
+
+  const authedWallet = await requireWalletAuth(req, res);
+  if (!authedWallet) return;
+  if (wallet !== authedWallet) {
+    return apiError.forbidden(res, "Wallet mismatch");
   }
 
   // Verify code matches stored verification code

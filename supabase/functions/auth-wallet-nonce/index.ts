@@ -37,38 +37,37 @@ export async function handler(req: Request): Promise<Response> {
   if (wallet?.neohub_account_id) {
     accountId = wallet.neohub_account_id;
   } else {
-    // Check users table by address
-    const { data: byAddr, error: byAddrErr } = await supabase
-      .from("users")
+    // Create account + link to minimize race window for duplicate accounts
+    const { data: newAcct, error: acctErr } = await supabase
+      .from("neohub_accounts")
+      .insert({ password_hash: crypto.randomUUID(), password_salt: crypto.randomUUID() })
       .select("id")
-      .eq("address", address)
-      .maybeSingle();
-    if (byAddrErr) return error(500, "failed to query user", "DB_ERROR", req);
-
-    if (byAddr?.id) {
-      // User exists but no neohub_accounts yet - create one
-      const { data: newAcct, error: acctErr } = await supabase
-        .from("neohub_accounts")
-        .insert({ password_hash: crypto.randomUUID(), password_salt: crypto.randomUUID() })
-        .select("id")
-        .single();
-      if (acctErr || !newAcct) {
-        return error(500, "failed to create account", "DB_ERROR", req);
-      }
-      accountId = newAcct.id;
-    } else {
-      // Create both neohub_accounts and users
-      const { data: newAcct, error: acctErr } = await supabase
-        .from("neohub_accounts")
-        .insert({ password_hash: crypto.randomUUID(), password_salt: crypto.randomUUID() })
-        .select("id")
-        .single();
-      if (acctErr || !newAcct) {
-        return error(500, "failed to create account", "DB_ERROR", req);
-      }
-      accountId = newAcct.id;
-      await supabase.from("users").upsert({ address, wallet_type: "external" }, { onConflict: "address" });
+      .single();
+    if (acctErr || !newAcct) {
+      return error(500, "failed to create account", "DB_ERROR", req);
     }
+
+    // Link wallet to account (composite key: neohub_account_id,address)
+    await supabase.from("linked_neo_accounts").upsert({
+      neohub_account_id: newAcct.id, address,
+      public_key: "", is_primary: true, linked_at: new Date().toISOString(),
+    }, { onConflict: "neohub_account_id,address" });
+
+    // Re-query to get the earliest linked account (handles concurrent creation)
+    const { data: linked, error: linkErr } = await supabase
+      .from("linked_neo_accounts")
+      .select("neohub_account_id")
+      .eq("address", address)
+      .order("linked_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (linkErr || !linked) {
+      return error(500, "failed to link wallet", "DB_ERROR", req);
+    }
+    accountId = linked.neohub_account_id;
+
+    // Ensure users row exists
+    await supabase.from("users").upsert({ address, wallet_type: "external" }, { onConflict: "address" });
   }
 
   // Store nonce - use upsert directly to avoid race condition

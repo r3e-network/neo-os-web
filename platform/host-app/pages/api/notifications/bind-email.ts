@@ -7,6 +7,7 @@ import { withCsrfProtection } from "@/lib/csrf";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { strictLimit } from "@/lib/rate-limit";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -23,6 +24,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Sanitize inputs
   const sanitizedEmail = sanitizeInput(email).toLowerCase();
   const sanitizedWallet = sanitizeInput(wallet);
+
+  const authedWallet = await requireWalletAuth(req, res);
+  if (!authedWallet) return;
+  if (sanitizedWallet !== authedWallet) {
+    return apiError.forbidden(res, "Wallet mismatch");
+  }
 
   // Validate email format with strict RFC 5322 compliant regex
   if (!isValidEmail(sanitizedEmail)) {

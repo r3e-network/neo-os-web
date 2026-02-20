@@ -3,6 +3,7 @@ import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
 import { isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { loadMiniAppCatalog } from "@/lib/miniapp-catalog";
 
@@ -44,6 +45,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { wallet } = req.query;
   if (!wallet || typeof wallet !== "string" || !isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Wallet address required");
+  }
+
+  const authedWallet = await requireWalletAuth(req, res);
+  if (!authedWallet) return;
+  if (wallet !== authedWallet) {
+    return apiError.forbidden(res, "Wallet mismatch");
   }
 
   if (!hasServiceRoleSupabase()) {

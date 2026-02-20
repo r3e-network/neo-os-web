@@ -233,7 +233,7 @@ func (inv *ContractInvoker) InvokeMiniAppContract(ctx context.Context, appID, me
 		return "", fmt.Errorf("miniapp contract execution failed: %s", resp.Exception)
 	}
 
-	log.Printf("neosimulation: miniapp contract invoked - app=%s, method=%s, tx=%s",
+	log.Printf("neosimulation: miniapp contract invoked - app=%q, method=%q, tx=%q",
 		appID, method, resp.TxHash)
 	return resp.TxHash, nil
 }
@@ -260,7 +260,7 @@ func (inv *ContractInvoker) getOrRequestAccount(ctx context.Context, purpose str
 		// Check if existing account needs funding
 		if balance, hasBalance := inv.accountBalances[accountID]; hasBalance && balance < minGASBalanceForWorkflow {
 			if addr, hasAddr := inv.accountAddresses[accountID]; hasAddr {
-				log.Printf("neosimulation: funding existing account %s (balance: %d) for purpose %s", accountID, balance, purpose)
+				log.Printf("neosimulation: funding existing account %q (balance: %d) for purpose %q", accountID, balance, purpose)
 				_, err := inv.poolClient.FundAccount(ctx, addr, fundAmountForWorkflow)
 				if err == nil {
 					inv.accountBalances[accountID] = balance + fundAmountForWorkflow
@@ -296,7 +296,7 @@ func (inv *ContractInvoker) getOrRequestAccount(ctx context.Context, purpose str
 	}
 	inv.accountBalances[account.ID] = gasBalance
 
-	log.Printf("neosimulation: requested new account %s (address: %s, balance: %d) for purpose %s",
+	log.Printf("neosimulation: requested new account %q (address: %q, balance: %d) for purpose %q",
 		account.ID, account.Address, gasBalance, purpose)
 
 	// Fund the account if it has insufficient GAS for MiniApp workflows
@@ -464,7 +464,7 @@ func (inv *ContractInvoker) PayoutToUser(ctx context.Context, appID string, user
 	inv.mu.Unlock()
 
 	atomic.AddInt64(&inv.callbackPayouts, 1)
-	log.Printf("neosimulation: callback payout sent - app=%s, to=%s, amount=%d, tx=%s, memo=%s",
+	log.Printf("neosimulation: callback payout sent - app=%q, to=%q, amount=%d, tx=%q, memo=%q",
 		appID, userAddress, amount, resp.TxHash, memo)
 	return resp.TxHash, nil
 }
