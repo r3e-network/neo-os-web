@@ -193,7 +193,7 @@ onUnmounted(() => {
 .scream-icon {
   text-align: center;
   font-size: 4em;
-  margin: 20px 0;
+  margin: 16px 0;
 }
 .scream-btn {
   background: linear-gradient(135deg, $color-gaming 0%, darken($color-gaming, 10%) 100%);
