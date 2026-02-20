@@ -123,7 +123,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
         className={cn(
           "fixed bottom-6 right-6 z-50 flex items-center justify-center",
           "w-14 h-14 rounded-full shadow-lg transition-all duration-300",
-          "bg-emerald-500 hover:bg-emerald-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50",
+          "bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50",
           isOpen && "rotate-90",
         )}
         aria-label="Toggle chat"
@@ -188,14 +188,14 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                   placeholder="Type a message..."
                   aria-label="Type a message"
                   maxLength={500}
-                  className="flex-1 h-10 px-4 text-sm rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  className="flex-1 h-10 px-4 text-sm rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
                 />
                 <button
                   type="button"
                   onClick={sendMessage}
                   disabled={!inputValue.trim()}
                   aria-label="Send message"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
                 >
                   <Send size={16} />
                 </button>
