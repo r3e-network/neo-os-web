@@ -223,7 +223,7 @@ onUnmounted(() => clearInterval(battleTimer));
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .battle-title {

@@ -118,7 +118,7 @@ const addToChain = async () => {
   padding: 14px;
   background: rgba($color-social, 0.1);
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   border-left: 3px solid $color-social;
 }
 .chain-header {

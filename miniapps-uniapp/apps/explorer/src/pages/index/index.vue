@@ -325,7 +325,7 @@ onUnmounted(() => {
 .stats-grid {
   display: flex;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .network-card {
@@ -348,7 +348,7 @@ onUnmounted(() => {
   font-size: 0.75em;
   font-weight: bold;
   text-transform: uppercase;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   display: block;
 }
 
@@ -383,7 +383,7 @@ onUnmounted(() => {
 }
 
 .search-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .search-box {
@@ -547,7 +547,7 @@ onUnmounted(() => {
 .list-title {
   font-size: 0.9em;
   color: $color-text-secondary;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   display: block;
 }
 

@@ -97,7 +97,7 @@ const vote = (yes: boolean) => {
   padding: 14px;
   background: rgba($color-governance, 0.1);
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   &:active {
     filter: brightness(0.85);
   }
@@ -105,7 +105,7 @@ const vote = (yes: boolean) => {
 .proposal-title {
   font-weight: bold;
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .vote-bar {
   height: 8px;

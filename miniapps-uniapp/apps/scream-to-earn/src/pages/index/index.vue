@@ -169,7 +169,7 @@ onUnmounted(() => {
   font-size: 0.8em;
 }
 .meter-display {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 .meter-bar {
   height: 40px;

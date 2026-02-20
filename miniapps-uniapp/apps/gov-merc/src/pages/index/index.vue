@@ -281,7 +281,7 @@ const rentVotes = async (id: number) => {
   display: flex;
   justify-content: space-between;
   font-size: 0.85em;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .rental-duration {
   color: $color-text-secondary;

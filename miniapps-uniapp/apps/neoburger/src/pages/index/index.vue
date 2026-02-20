@@ -275,7 +275,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 16px;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .apy-label {

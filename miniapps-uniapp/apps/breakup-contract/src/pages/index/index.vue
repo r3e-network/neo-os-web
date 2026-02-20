@@ -129,13 +129,13 @@ const claimReward = async (contract: any) => {
   padding: 14px;
   background: rgba($color-social, 0.1);
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .contract-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .contract-partner {
   font-weight: bold;
@@ -149,7 +149,7 @@ const claimReward = async (contract: any) => {
   background: $color-bg-subtle;
   border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .progress-bar {
   height: 100%;

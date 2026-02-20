@@ -142,7 +142,7 @@ const open = (cap: Capsule) => {
   padding: 12px;
   background: rgba($color-nft, 0.1);
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .capsule-icon {
   font-size: 1.5em;

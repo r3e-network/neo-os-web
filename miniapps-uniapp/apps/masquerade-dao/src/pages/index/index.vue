@@ -270,7 +270,7 @@ const vote = async (id: number, support: boolean) => {
   color: $color-text-primary;
   font-weight: bold;
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .vote-options {
   display: flex;

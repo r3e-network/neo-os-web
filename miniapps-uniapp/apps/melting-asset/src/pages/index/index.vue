@@ -163,7 +163,7 @@ onUnmounted(() => clearInterval(timer));
   padding: 12px;
   background: rgba($color-nft, 0.1);
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 .nft-icon {
   font-size: 2em;

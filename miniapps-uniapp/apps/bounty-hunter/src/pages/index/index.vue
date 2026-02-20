@@ -137,7 +137,7 @@ const submitSolution = async () => {
   padding: 14px;
   background: rgba($color-social, 0.1);
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   &:active {
     filter: brightness(0.85);
   }
