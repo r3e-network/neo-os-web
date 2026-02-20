@@ -559,7 +559,7 @@ function CreateFormPanel({
         {/* Tab: Content */}
         {tab === "content" && (
           <div className="space-y-4">
-            <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} aria-label="App description" />
+            <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} aria-label="App description" />
             <div className="grid grid-cols-3 gap-4">
               <Input label="Icon URL" placeholder="https://..." value={form.content_icon_url} onChange={e => update("content_icon_url", e.target.value)} />
               <Input label="Logo URL" placeholder="https://..." value={form.content_logo_url} onChange={e => update("content_logo_url", e.target.value)} />
@@ -680,10 +680,10 @@ function CreateFormPanel({
           <div className="space-y-3">
             <p className="text-xs text-gray-500 dark:text-gray-400">Paste or upload a full MiniApp manifest JSON. This will replace the form fields.</p>
             <div className="flex gap-2 items-center">
-              <input type="file" accept=".json" onChange={onFileUpload} className="text-sm" aria-label="Upload JSON manifest" />
+              <input type="file" accept=".json" onChange={onFileUpload} className="text-sm dark:text-gray-100 file:mr-2 file:rounded-md file:border-0 file:bg-primary-600 file:px-3 file:py-1.5 file:text-sm file:text-white file:cursor-pointer hover:file:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded" aria-label="Upload JSON manifest" />
             </div>
             <textarea
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-3 font-mono text-xs dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-3 font-mono text-xs dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
               rows={16}
               value={jsonText}
               onChange={e => setJsonText(e.target.value)}
