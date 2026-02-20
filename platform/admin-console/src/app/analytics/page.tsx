@@ -129,9 +129,9 @@ export default function AnalyticsPage() {
           {analyticsLoading ? (
             <Spinner />
           ) : (
-            <div className="space-y-3">
+            <ul className="space-y-3">
               {analytics?.usageByApp?.slice(0, 10).map((app) => (
-                <div key={app.app_id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                <li key={app.app_id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
                   <div>
                     <div className="font-medium text-gray-900 dark:text-white">{app.app_id}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">{app.user_count} users</div>
@@ -140,9 +140,9 @@ export default function AnalyticsPage() {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">GAS: {formatNumber(app.total_gas)}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">GOV: {formatNumber(app.total_governance)}</div>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </CardContent>
       </Card>
