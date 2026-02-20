@@ -48,6 +48,7 @@ export default function UsersPage() {
           ) : error ? (
             <div role="alert" className="text-center text-danger-600 dark:text-danger-400">Failed to load users</div>
           ) : (
+            <div className="overflow-x-auto">
             <Table aria-label="Users list">
               <TableHeader>
                 <TableRow>
@@ -70,6 +71,7 @@ export default function UsersPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
 
           {!isLoading && users?.length === 0 && (

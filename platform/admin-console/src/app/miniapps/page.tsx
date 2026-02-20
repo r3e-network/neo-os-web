@@ -221,6 +221,7 @@ export default function MiniAppsPage() {
           ) : !miniapps?.length ? (
             <p className="text-center text-gray-500 dark:text-gray-400 py-8">No MiniApps registered yet</p>
           ) : (
+            <div className="overflow-x-auto">
             <Table aria-label="MiniApps list">
               <TableHeader>
                 <TableRow>
@@ -274,6 +275,7 @@ export default function MiniAppsPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

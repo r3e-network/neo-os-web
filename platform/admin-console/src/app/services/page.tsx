@@ -31,6 +31,7 @@ export default function ServicesPage() {
           ) : error ? (
             <div role="alert" className="text-center text-danger-600 dark:text-danger-400">Failed to load services</div>
           ) : (
+            <div className="overflow-x-auto">
             <Table aria-label="Services status">
               <TableHeader>
                 <TableRow>
@@ -67,6 +68,7 @@ export default function ServicesPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
