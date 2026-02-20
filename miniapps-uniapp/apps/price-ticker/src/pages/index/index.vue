@@ -118,6 +118,8 @@ onUnmounted(() => clearInterval(timer));
   color: $color-utility;
   font-size: 1.1em;
   font-weight: bold;
+  display: block;
+  margin-bottom: 12px;
 }
 .refresh-btn {
   width: 36px;

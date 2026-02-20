@@ -185,7 +185,7 @@ const attachTo = async (host: Host) => {
   font-size: 1.1em;
   font-weight: bold;
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .parasite-item {
   display: flex;

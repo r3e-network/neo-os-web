@@ -117,7 +117,7 @@ const roll = async () => {
   font-size: 1.1em;
   font-weight: bold;
   display: block;
-  margin: 16px 0 12px;
+  margin-bottom: 12px;
 }
 .dice-display {
   text-align: center;
