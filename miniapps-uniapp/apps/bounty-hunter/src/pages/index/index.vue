@@ -170,7 +170,7 @@ const submitSolution = async () => {
   font-size: 0.75em;
   font-weight: bold;
   &.critical {
-    background: rgba(220, 38, 38, 0.2);
+    background: rgba($color-error, 0.2);
     color: $color-error;
   }
   &.high {

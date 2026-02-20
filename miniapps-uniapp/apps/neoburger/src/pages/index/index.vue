@@ -418,12 +418,12 @@ onMounted(() => {
 }
 
 .status.success {
-  background: rgba(0, 212, 170, 0.2);
+  background: rgba($color-brand, 0.2);
   color: $color-brand;
 }
 
 .status.error {
-  background: rgba(255, 107, 107, 0.2);
+  background: rgba($color-brand-negative, 0.2);
   color: $color-brand-negative;
 }
 </style>
