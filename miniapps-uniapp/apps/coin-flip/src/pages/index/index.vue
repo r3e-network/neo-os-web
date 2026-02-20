@@ -152,6 +152,7 @@ const flip = async () => {
 .stats-row {
   display: flex;
   gap: 12px;
+  margin-bottom: 16px;
 }
 .stat {
   flex: 1;
