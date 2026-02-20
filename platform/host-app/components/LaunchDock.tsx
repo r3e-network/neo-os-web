@@ -63,7 +63,7 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
         <button
           type="button"
           onClick={onExit}
-          className="bg-transparent border-none text-red-500 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-red-400 hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          className="bg-transparent border-none text-red-500 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-red-400 hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
           title="Exit (ESC)"
           aria-label="Exit"
         >

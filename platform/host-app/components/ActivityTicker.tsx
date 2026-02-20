@@ -123,7 +123,7 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{activity.description}</div>
         {activity.tx_hash && (
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
               TX: {truncateHash(activity.tx_hash)}
             </span>
             {statusColor && (
