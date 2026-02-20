@@ -3,6 +3,8 @@ import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
 import { SERVICE_ROLE_KEY, SUPABASE_URL } from "@/lib/constants";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function normalizeSearchParam(value: string | null): string | null {
   const trimmed = String(value ?? "").trim();
   return trimmed ? trimmed : null;
@@ -19,6 +21,10 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const userId = normalizeSearchParam(url.searchParams.get("id"));
   const search = normalizeSearchParam(url.searchParams.get("search"));
+
+  if (userId && !UUID_PATTERN.test(userId)) {
+    return jsonError("Invalid user ID format", 400);
+  }
 
   const params = new URLSearchParams();
   params.set("select", "*");

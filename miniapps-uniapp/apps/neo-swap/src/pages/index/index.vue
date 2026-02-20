@@ -125,9 +125,11 @@ const swapButtonText = computed(() => {
 // Methods
 const formatNum = (n: number) => formatNumber(n, 4);
 
+let statusTimer: ReturnType<typeof setTimeout> | null = null;
 const showStatus = (msg: string, type: "success" | "error") => {
+  if (statusTimer) clearTimeout(statusTimer);
   status.value = { msg, type };
-  setTimeout(() => (status.value = null), 5000);
+  statusTimer = setTimeout(() => (status.value = null), 5000);
 }
 
 const loadBalances = async () => {
@@ -139,6 +141,7 @@ const loadBalances = async () => {
     fromToken.value = { ...TOKENS[0] };
     toToken.value = { ...TOKENS[1] };
   } catch (e: any) {
+    console.warn("[neo-swap] loadBalances failed:", e);
   }
 }
 

@@ -130,9 +130,11 @@ const resetTime = computed(() => {
 const shortenAddress = (addr: string) => (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "Not connected");
 const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
 
+let statusTimer: ReturnType<typeof setTimeout> | null = null;
 const showStatus = (msg: string, type: "success" | "error") => {
+  if (statusTimer) clearTimeout(statusTimer);
   status.value = { msg, type };
-  setTimeout(() => (status.value = null), 5000);
+  statusTimer = setTimeout(() => (status.value = null), 5000);
 };
 
 const loadUserData = async () => {

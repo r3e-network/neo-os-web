@@ -128,9 +128,11 @@ const estimatedNeo = computed(() => {
 // Methods
 const formatNum = (n: number) => formatNumber(n, 2);
 
+let statusTimer: ReturnType<typeof setTimeout> | null = null;
 const showStatus = (msg: string, type: "success" | "error") => {
+  if (statusTimer) clearTimeout(statusTimer);
   status.value = { msg, type };
-  setTimeout(() => (status.value = null), 5000);
+  statusTimer = setTimeout(() => (status.value = null), 5000);
 }
 
 const loadBalances = async () => {
@@ -143,6 +145,7 @@ const loadBalances = async () => {
     neoBalance.value = neo || 0;
     bNeoBalance.value = bneo || 0;
   } catch (e: any) {
+    console.warn("[neoburger] loadBalances failed:", e);
   }
 }
 
