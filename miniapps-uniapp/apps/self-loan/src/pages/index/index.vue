@@ -136,7 +136,7 @@ const takeLoan = async (): Promise<void> => {
 }
 .card-title {
   color: $color-defi;
-  font-size: 1.05em;
+  font-size: 1.1em;
   font-weight: bold;
   display: block;
   margin-bottom: 10px;

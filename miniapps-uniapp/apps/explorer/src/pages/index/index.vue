@@ -307,11 +307,11 @@ onUnmounted(() => {
 
 .header {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .title {
-  font-size: 1.6em;
+  font-size: 1.8em;
   font-weight: bold;
   color: $color-explorer;
 }
@@ -319,7 +319,7 @@ onUnmounted(() => {
 .subtitle {
   color: $color-text-secondary;
   font-size: 0.85em;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .stats-grid {

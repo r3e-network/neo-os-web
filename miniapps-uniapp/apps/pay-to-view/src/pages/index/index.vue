@@ -246,7 +246,7 @@ const createContent = async () => {
   border-radius: 8px;
   padding: 12px;
   color: $color-text-primary;
-  font-size: 0.95em;
+  font-size: 0.9em;
 }
 .textarea-field {
   background: $color-bg-card;
@@ -254,7 +254,7 @@ const createContent = async () => {
   border-radius: 8px;
   padding: 12px;
   color: $color-text-primary;
-  font-size: 0.95em;
+  font-size: 0.9em;
   min-height: 80px;
 }
 .btn-primary {
