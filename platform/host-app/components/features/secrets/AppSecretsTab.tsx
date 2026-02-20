@@ -66,6 +66,7 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
 }
 
 function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: string) => void }) {
+  const [revoking, setRevoking] = useState(false);
   const typeIcons: Record<string, React.ComponentType<{ size?: number | string; className?: string }>> = {
     api_key: Key,
     encryption_key: Lock,
@@ -98,10 +99,11 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
         {token.status === "active" && (
           <button
             type="button"
-            className="px-2 py-1 text-xs border border-red-500 dark:border-red-400 text-red-500 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
-            onClick={() => onRevoke(token.id)}
+            disabled={revoking}
+            className="px-2 py-1 text-xs border border-red-500 dark:border-red-400 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+            onClick={() => { setRevoking(true); onRevoke(token.id); }}
           >
-            Revoke
+            {revoking ? "Revoking..." : "Revoke"}
           </button>
         )}
       </div>
