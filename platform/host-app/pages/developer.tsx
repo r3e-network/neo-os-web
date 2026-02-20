@@ -253,7 +253,7 @@ export default function DeveloperPage() {
               role="dialog"
               aria-modal="true"
               aria-label="Submit MiniApp"
-              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-white dark:bg-gray-900/95 backdrop-blur-xl border-l border-gray-200 dark:border-gray-700 shadow-2xl overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-white dark:bg-gray-900/95 backdrop-blur-xl border-l border-gray-200 dark:border-gray-700 shadow-2xl overflow-y-auto" tabIndex={-1}
             >
               {/* Panel Header */}
               <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 px-6 py-4">
