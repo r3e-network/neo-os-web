@@ -411,20 +411,19 @@ onMounted(() => {
 }
 
 .status-msg {
-  margin-top: 16px;
+  text-align: center;
   padding: 12px;
   border-radius: 8px;
-  text-align: center;
-  font-size: 0.85em;
-}
+  margin-bottom: 16px;
 
-.status-msg.success {
-  background: rgba($color-brand, 0.2);
-  color: $color-brand;
-}
+  &.success {
+    background: rgba($color-success, 0.15);
+    color: $color-success;
+  }
 
-.status-msg.error {
-  background: rgba($color-brand-negative, 0.2);
-  color: $color-brand-negative;
+  &.error {
+    background: rgba($color-error, 0.15);
+    color: $color-error;
+  }
 }
 </style>
