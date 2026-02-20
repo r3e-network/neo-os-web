@@ -216,7 +216,7 @@ function NewThreadForm({
             type="button"
             onClick={handleSubmit}
             disabled={submitting || !title.trim() || !content.trim()}
-            className="px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-600 transition-colors"
+            className="px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           >
             {submitting ? "Posting..." : "Post"}
           </button>
