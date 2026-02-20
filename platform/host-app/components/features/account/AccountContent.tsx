@@ -44,7 +44,7 @@ export default function AccountContent() {
           ) : (
             <div className="text-center py-8">
               <p className="text-gray-500 dark:text-gray-400 mb-4">No wallet connected</p>
-              <p className="text-sm text-gray-400">Connect your wallet using the button in the navigation bar</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Connect your wallet using the button in the navigation bar</p>
             </div>
           )}
         </CardContent>
