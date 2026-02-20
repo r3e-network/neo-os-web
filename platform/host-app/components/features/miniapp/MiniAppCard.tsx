@@ -1,20 +1,21 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Users, BarChart3, Coins as CoinsIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CardRenderer } from "./CardRenderer";
-import { DynamicBanner } from "./DynamicBanner";
+import { buildMiniAppBannerSources } from "@/lib/miniapp-media";
 import { MiniAppLogo } from "./MiniAppLogo";
-import type { AnyCardData } from "@/types/card-display";
 
 export interface MiniAppInfo {
   app_id: string;
   name: string;
   description: string;
   icon: string;
+  entry_url?: string;
+  logo_url?: string | null;
+  banner_url?: string | null;
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
   source?: "builtin" | "community" | "verified";
   stats?: {
@@ -22,7 +23,6 @@ export interface MiniAppInfo {
     transactions?: number;
     volume?: string;
   };
-  cardData?: AnyCardData;
 }
 
 const categoryColors = {
@@ -53,22 +53,46 @@ function formatNumber(num?: number): string {
 
 export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo }) {
   const showSourceBadge = app.source && app.source !== "builtin";
+  const bannerSources = useMemo(
+    () =>
+      buildMiniAppBannerSources({
+        appID: app.app_id,
+        entryURL: app.entry_url,
+        bannerURL: app.banner_url,
+      }),
+    [app.app_id, app.banner_url, app.entry_url],
+  );
+  const [bannerIndex, setBannerIndex] = useState(0);
+
+  useEffect(() => {
+    setBannerIndex(0);
+  }, [bannerSources]);
+
+  const bannerSource = bannerSources[bannerIndex];
 
   return (
     <Link href={`/miniapps/${app.app_id}`} aria-label={`View ${app.name}`} className="relative block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50">
       <Card className="group cursor-pointer transition-all duration-300 ease-out hover:shadow-xl hover:-translate-y-1 hover:z-10 overflow-hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-md relative">
-        {app.cardData ? (
-          <div className="w-full h-48">
-            <CardRenderer data={app.cardData} className="h-full" />
-          </div>
-        ) : (
-          <div className="w-full h-48">
-            <DynamicBanner category={app.category} icon={app.icon} appId={app.app_id} />
-          </div>
-        )}
+        <div className="w-full h-48 bg-gray-100 dark:bg-gray-800">
+          {bannerSource ? (
+            <img
+              src={bannerSource}
+              alt={`${app.name} banner`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={() => {
+                setBannerIndex((prev) => (prev + 1 < bannerSources.length ? prev + 1 : bannerSources.length));
+              }}
+            />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center px-4 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">
+              {app.name}
+            </div>
+          )}
+        </div>
         <CardContent className="p-5 bg-white dark:bg-gray-900">
           <div className="flex items-center gap-3 mb-2">
-            <MiniAppLogo appId={app.app_id} category={app.category} size="md" />
+            <MiniAppLogo appId={app.app_id} category={app.category} entryUrl={app.entry_url} logoUrl={app.logo_url} size="md" />
             <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate flex-1 min-w-0" title={app.name}>{app.name}</h3>
             <Badge className={categoryColors[app.category]} variant="secondary">
               {app.category}

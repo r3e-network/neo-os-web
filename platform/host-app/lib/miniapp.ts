@@ -1,4 +1,5 @@
 import type { MiniAppCategory, MiniAppInfo } from "../components/types";
+import { withMiniAppCardAssets } from "./miniapp-media";
 
 function asObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -95,7 +96,7 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   const bannerUrl = toString(obj.banner_url ?? fallback?.banner_url ?? "").trim() || null;
   const docsUrl = toString(obj.docs_url ?? fallback?.docs_url ?? "").trim() || null;
 
-  return {
+  const app: MiniAppInfo = {
     app_id: appId,
     name,
     description,
@@ -112,6 +113,8 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     news_integration: newsIntegration ?? null,
     stats_display: statsDisplay ?? null,
   };
+
+  return withMiniAppCardAssets(app);
 }
 
 export type FederatedEntry = {

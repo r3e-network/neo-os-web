@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import {
   Ticket,
   Coins,
@@ -60,6 +61,7 @@ import {
   Award,
   type LucideIcon,
 } from "lucide-react";
+import { buildMiniAppLogoSources } from "@/lib/miniapp-media";
 
 // Map app_id to professional Lucide icons
 const APP_ICONS: Record<string, LucideIcon> = {
@@ -165,11 +167,13 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
 interface MiniAppLogoProps {
   appId: string;
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
+  entryUrl?: string | null;
+  logoUrl?: string | null;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export function MiniAppLogo({ appId, category, size = "md", className = "" }: MiniAppLogoProps) {
+export function MiniAppLogo({ appId, category, entryUrl, logoUrl, size = "md", className = "" }: MiniAppLogoProps) {
   const Icon = APP_ICONS[appId] || CATEGORY_ICONS[category] || Puzzle;
   const gradient = CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.utility;
 
@@ -184,6 +188,39 @@ export function MiniAppLogo({ appId, category, size = "md", className = "" }: Mi
     md: 20,
     lg: 24,
   };
+
+  const logoSources = useMemo(
+    () =>
+      buildMiniAppLogoSources({
+        appID: appId,
+        entryURL: entryUrl,
+        logoURL: logoUrl,
+      }),
+    [appId, entryUrl, logoUrl],
+  );
+
+  const [logoIndex, setLogoIndex] = useState(0);
+
+  useEffect(() => {
+    setLogoIndex(0);
+  }, [logoSources]);
+
+  const logoSource = logoSources[logoIndex];
+  if (logoSource) {
+    return (
+      <div className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 ${className}`}>
+        <img
+          src={logoSource}
+          alt={appId}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onError={() => {
+            setLogoIndex((prev) => (prev + 1 < logoSources.length ? prev + 1 : logoSources.length));
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

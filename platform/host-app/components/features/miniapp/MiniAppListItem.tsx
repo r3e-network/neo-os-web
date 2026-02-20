@@ -28,7 +28,7 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
       <div className="flex items-center gap-4 px-4 py-3">
         {/* Logo */}
         <div className="shrink-0">
-          <MiniAppLogo appId={app.app_id} category={app.category} size="sm" />
+          <MiniAppLogo appId={app.app_id} category={app.category} entryUrl={app.entry_url} logoUrl={app.logo_url} size="sm" />
         </div>
 
         {/* Content Grid */}

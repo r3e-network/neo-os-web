@@ -1,4 +1,5 @@
 import type { MiniAppInfo } from "../components/types";
+import { withMiniAppCardAssets } from "./miniapp-media";
 
 /**
  * Built-in MiniApp catalog - all 62 uni-app MiniApps
@@ -678,7 +679,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
 ];
 
 // Combined list of all apps
-export const BUILTIN_APPS: MiniAppInfo[] = [
+const BUILTIN_APPS_RAW: MiniAppInfo[] = [
   ...GAMING_APPS,
   ...DEFI_APPS,
   ...SOCIAL_APPS,
@@ -686,6 +687,8 @@ export const BUILTIN_APPS: MiniAppInfo[] = [
   ...GOVERNANCE_APPS,
   ...UTILITY_APPS,
 ];
+
+export const BUILTIN_APPS: MiniAppInfo[] = BUILTIN_APPS_RAW.map((app) => withMiniAppCardAssets(app));
 
 // Lookup map by app_id
 export const BUILTIN_APPS_MAP: Record<string, MiniAppInfo> = Object.fromEntries(
@@ -696,5 +699,4 @@ export const BUILTIN_APPS_MAP: Record<string, MiniAppInfo> = Object.fromEntries(
 export function getBuiltinApp(appId: string): MiniAppInfo | undefined {
   return BUILTIN_APPS_MAP[appId];
 }
-
 

@@ -4,7 +4,6 @@ import { useRouter } from "next/router";
 import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@/components/features/miniapp";
-import { getCardData } from "@/hooks/useCardData";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -71,7 +70,7 @@ export default function MiniAppsPage() {
     ]).then(([catalogData, statsData, communityData]) => {
       if (!catalogData && !communityData) setFetchError(true);
       const list = Array.isArray(catalogData?.apps) ? catalogData.apps : [];
-      setApps(list.map((app: MiniAppInfo) => ({ ...app, cardData: getCardData(app.app_id) })));
+      setApps(list);
 
       const statsList = Array.isArray(statsData?.stats) ? statsData.stats : Array.isArray(statsData) ? statsData : [];
       const map: StatsMap = {};

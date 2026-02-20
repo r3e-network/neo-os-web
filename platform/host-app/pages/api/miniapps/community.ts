@@ -10,6 +10,8 @@ type CommunityApp = {
   name: string;
   description: string;
   icon: string;
+  logo_url?: string | null;
+  banner_url?: string | null;
   category: string;
   entry_url: string;
   contract_hash?: string | null;
@@ -51,6 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           name: app.name,
           description: app.description,
           icon: app.icon,
+          logo_url: app.logo_url ?? null,
+          banner_url: app.banner_url ?? null,
           category: app.category,
           entry_url: app.entry_url,
           contract_hash: app.contract_hash,
@@ -90,6 +94,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       name: row.name,
       description: row.description,
       icon: row.icon,
+      logo_url: null,
+      banner_url: null,
       category: row.category,
       entry_url: row.entry_url,
       contract_hash: row.contract_hash,
