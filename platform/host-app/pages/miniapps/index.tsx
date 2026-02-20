@@ -268,7 +268,7 @@ export default function MiniAppsPage() {
           {/* Apps List/Grid */}
           <div className="p-6">
             {fetchError && (
-              <p className="mb-4 text-sm text-red-600 dark:text-red-400">
+              <p role="alert" className="mb-4 text-sm text-red-600 dark:text-red-400">
                 Failed to load apps. Please try again later.
               </p>
             )}

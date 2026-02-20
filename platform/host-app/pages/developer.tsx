@@ -219,6 +219,7 @@ export default function DeveloperPage() {
             className="fixed bottom-6 right-6 z-50"
           >
             <div
+              role="alert"
               className={`rounded-xl p-4 shadow-2xl backdrop-blur-xl ${
                 result.success
                   ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
@@ -401,6 +402,7 @@ export default function DeveloperPage() {
                 {/* Result in panel */}
                 {result && (
                   <div
+                    role="alert"
                     className={`rounded-xl p-4 ${
                       result.success
                         ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
