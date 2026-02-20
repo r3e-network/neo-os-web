@@ -79,7 +79,7 @@ export async function handler(req: Request): Promise<Response> {
     return error(500, "failed to store nonce", "DB_ERROR", req);
   }
 
-  return json({ nonce, message, account_id: accountId }, {}, req);
+  return json({ nonce, message }, {}, req);
   } catch {
     return error(500, "internal error", "INTERNAL", req);
   }
