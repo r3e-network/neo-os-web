@@ -46,7 +46,9 @@ func enqueueAudit(event *auditEvent) {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					// Silently absorb panic so the process stays alive.
+					auditLogger.WithFields(map[string]interface{}{
+						"panic": r,
+					}).Error("Header gate audit logger panicked")
 				}
 			}()
 			for auditEvent := range auditQueue {

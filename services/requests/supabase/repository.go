@@ -346,12 +346,13 @@ func (r *Repository) MarkProcessedEvent(ctx context.Context, event *ProcessedEve
 }
 
 // LatestProcessedBlock returns the highest processed block height for a chain.
-func (r *Repository) LatestProcessedBlock(ctx context.Context, chainID string) (uint64, bool, error) {
+func (r *Repository) LatestProcessedBlock(ctx context.Context, chainID string) (blockHeight uint64, found bool, err error) {
 	if r == nil || r.base == nil {
-		return 0, false, fmt.Errorf("repository not configured")
+		err = fmt.Errorf("repository not configured")
+		return
 	}
 	if strings.TrimSpace(chainID) == "" {
-		return 0, false, nil
+		return
 	}
 
 	query := database.NewQuery().
@@ -362,12 +363,14 @@ func (r *Repository) LatestProcessedBlock(ctx context.Context, chainID string) (
 
 	rows, err := database.GenericListWithQuery[ProcessedEvent](r.base, ctx, processedEventsTable, query)
 	if err != nil {
-		return 0, false, err
+		return
 	}
 	if len(rows) == 0 {
-		return 0, false, nil
+		return
 	}
-	return rows[0].BlockHeight, true, nil
+	blockHeight = rows[0].BlockHeight
+	found = true
+	return
 }
 
 // MarshalParams marshals params to JSON.

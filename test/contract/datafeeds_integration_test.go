@@ -143,6 +143,7 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 
 	t.Run("feeds endpoint", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/feeds", nil)
+		req.Header.Set("X-Service-ID", "gateway")
 		w := httptest.NewRecorder()
 		svc.Router().ServeHTTP(w, req)
 
@@ -154,6 +155,7 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 	t.Run("price endpoint", func(t *testing.T) {
 		// Canonical symbols use BTC-USD, but legacy BTC/USD requests are accepted.
 		req := httptest.NewRequest("GET", "/price/BTC%2FUSD", nil)
+		req.Header.Set("X-Service-ID", "gateway")
 		w := httptest.NewRecorder()
 		svc.Router().ServeHTTP(w, req)
 

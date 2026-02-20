@@ -13,7 +13,7 @@ import (
 
 const defaultHTTPBodyLimit = 1 << 20 // 1 MiB
 
-func (s *Service) postJSON(ctx context.Context, url string, userID string, body any) ([]byte, error) {
+func (s *Service) postJSON(ctx context.Context, url, userID string, body any) ([]byte, error) {
 	if s == nil || s.httpClient == nil {
 		return nil, fmt.Errorf("http client not configured")
 	}

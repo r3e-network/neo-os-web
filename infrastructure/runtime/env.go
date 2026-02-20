@@ -71,7 +71,7 @@ func ParseEnvInt(key string) (int, bool) {
 }
 
 // ParseEnvBool interprets a raw string as a boolean.
-// Recognises "1", "true", "yes", "y", "on" (case-insensitive) as true;
+// Recognizes "1", "true", "yes", "y", "on" (case-insensitive) as true;
 // everything else (including empty) is false.
 func ParseEnvBool(raw string) bool {
 	raw = strings.TrimSpace(raw)
@@ -87,7 +87,7 @@ func ParseEnvBool(raw string) bool {
 }
 
 // ParseEnvBoolKey returns the boolean value of the named environment variable.
-// Returns false when the variable is empty or not a recognised truthy value.
+// Returns false when the variable is empty or not a recognized truthy value.
 func ParseEnvBoolKey(key string) bool {
 	return ParseEnvBool(os.Getenv(key))
 }

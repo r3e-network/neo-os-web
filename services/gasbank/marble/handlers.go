@@ -154,7 +154,8 @@ func (s *Service) handleGetTransactions(w http.ResponseWriter, r *http.Request) 
 
 	// Convert to response format
 	result := make([]TransactionInfo, 0, len(txs))
-	for _, tx := range txs {
+	for i := range txs {
+		tx := &txs[i]
 		result = append(result, TransactionInfo{
 			ID:           tx.ID,
 			TxType:       TransactionType(tx.TxType),
@@ -185,7 +186,8 @@ func (s *Service) handleGetDeposits(w http.ResponseWriter, r *http.Request) {
 
 	// Convert to response format
 	result := make([]DepositInfo, 0, len(deposits))
-	for _, d := range deposits {
+	for i := range deposits {
+		d := &deposits[i]
 		info := DepositInfo{
 			ID:            d.ID,
 			Amount:        d.Amount,

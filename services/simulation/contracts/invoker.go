@@ -92,7 +92,7 @@ func parseContractHash(hashStr string) (util.Uint160, error) {
 
 // UpdatePriceFeed updates a price feed with new data.
 // Returns the transaction hash on success.
-func (inv *Invoker) UpdatePriceFeed(ctx context.Context, symbol string, roundID int64, price int64, timestamp uint64) (string, error) {
+func (inv *Invoker) UpdatePriceFeed(ctx context.Context, symbol string, roundID, price int64, timestamp uint64) (string, error) {
 	contractHash, err := parseContractHash(inv.addresses.PriceFeed)
 	if err != nil {
 		return "", fmt.Errorf("parse contract hash: %w", err)
@@ -100,7 +100,9 @@ func (inv *Invoker) UpdatePriceFeed(ctx context.Context, symbol string, roundID 
 
 	// Generate attestation hash (32 bytes)
 	attestationHash := make([]byte, 32)
-	rand.Read(attestationHash)
+	if _, readErr := rand.Read(attestationHash); readErr != nil {
+		return "", fmt.Errorf("generate attestation hash: %w", readErr)
+	}
 
 	sourceSetID := int64(1) // Default source set
 
@@ -132,13 +134,21 @@ func (inv *Invoker) RecordRandomness(ctx context.Context, requestID string) (str
 
 	// Generate random bytes (32 bytes)
 	randomness := make([]byte, 32)
-	rand.Read(randomness)
+	if _, readErr := rand.Read(randomness); readErr != nil {
+		return "", fmt.Errorf("generate randomness: %w", readErr)
+	}
 
 	// Generate attestation hash (32 bytes)
 	attestationHash := make([]byte, 32)
-	rand.Read(attestationHash)
+	if _, readErr := rand.Read(attestationHash); readErr != nil {
+		return "", fmt.Errorf("generate attestation hash: %w", readErr)
+	}
 
-	timestamp := uint64(time.Now().Unix())
+	nowUnix := time.Now().Unix()
+	if nowUnix < 0 {
+		return "", fmt.Errorf("system clock before unix epoch")
+	}
+	timestamp := uint64(nowUnix)
 
 	// Call Record(requestId, randomness, attestationHash, timestamp)
 	txHash, _, err := inv.actor.SendCall(
@@ -207,7 +217,9 @@ func (inv *Invoker) GetPriceFeedLatest(ctx context.Context, symbol string) (map[
 // GenerateRequestID generates a unique request ID for randomness.
 func GenerateRequestID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("fallback-%d", time.Now().UnixNano())
+	}
 	return hex.EncodeToString(b)
 }
 

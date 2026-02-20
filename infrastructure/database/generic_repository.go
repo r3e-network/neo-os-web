@@ -15,11 +15,10 @@ var validFieldName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_.]*$`)
 
 // validateField panics if field contains characters that could inject PostgREST operators.
 // Panic is appropriate because invalid field names are always programmer errors.
-func validateField(field string) string {
+func validateField(field string) {
 	if !validFieldName.MatchString(field) {
 		panic(fmt.Sprintf("invalid field name: %q", field))
 	}
-	return field
 }
 
 // =============================================================================

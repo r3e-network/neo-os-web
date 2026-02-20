@@ -28,7 +28,7 @@ var (
 		},
 		{
 			Name:    "Bearer Token",
-			Pattern: regexp.MustCompile(`(?i)bearer\s+[A-Za-z0-9_\-\.]{20,}`),
+			Pattern: regexp.MustCompile(`(?i)bearer\s+[A-Za-z0-9_\-.]{20,}`),
 			Mask:    "Bearer [REDACTED_TOKEN]",
 		},
 		{

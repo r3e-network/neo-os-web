@@ -72,6 +72,8 @@ var (
 )
 
 // NewContractInvoker creates a new contract invoker using pool accounts.
+//
+//nolint:gocritic // Config is passed by value intentionally for ergonomic call sites and immutable setup.
 func NewContractInvoker(cfg ContractInvokerConfig) (*ContractInvoker, error) {
 	if cfg.PoolClient == nil {
 		return nil, fmt.Errorf("pool client is required")
@@ -332,7 +334,7 @@ func (inv *ContractInvoker) UpdatePriceFeed(ctx context.Context, symbol string) 
 
 	// Generate price with 2% variance
 	price := generatePrice(basePrice, 2)
-	timestamp := uint64(time.Now().UnixMilli())
+	timestamp := currentUnixMilliUint64()
 	attestationHash := generateRandomBytes(32)
 	sourceSetID := int64(1)
 
@@ -372,7 +374,7 @@ func (inv *ContractInvoker) RecordRandomness(ctx context.Context) (string, error
 	requestID := generateRequestID()
 	randomness := generateRandomBytes(32)
 	attestationHash := generateRandomBytes(32)
-	timestamp := uint64(time.Now().UnixMilli())
+	timestamp := currentUnixMilliUint64()
 
 	// Invoke contract via pool client using master wallet (TEE signer)
 	// RandomnessLog requires the caller to be registered in AppRegistry
@@ -440,7 +442,7 @@ func (inv *ContractInvoker) PayToApp(ctx context.Context, appID string, amount i
 // PayoutToUser sends a callback payout from a MiniApp's pool account to a user address.
 // This simulates the platform paying out winnings to users who won games.
 // The pool account must have sufficient GAS for the payout + transaction fees.
-func (inv *ContractInvoker) PayoutToUser(ctx context.Context, appID string, userAddress string, amount int64, memo string) (string, error) {
+func (inv *ContractInvoker) PayoutToUser(ctx context.Context, appID, userAddress string, amount int64, memo string) (string, error) {
 	// Get or request a pool account for this MiniApp's payouts
 	accountID, err := inv.getOrRequestAccount(ctx, "payout-"+appID)
 	if err != nil {
@@ -517,7 +519,9 @@ func (inv *ContractInvoker) ReleaseAllAccounts(ctx context.Context) {
 	inv.mu.Unlock()
 
 	if len(accountIDs) > 0 {
-		_, _ = inv.poolClient.ReleaseAccounts(ctx, accountIDs)
+		if _, err := inv.poolClient.ReleaseAccounts(ctx, accountIDs); err != nil {
+			log.Printf("neosimulation: failed to release accounts: %v", err)
+		}
 	}
 }
 
@@ -537,14 +541,26 @@ func generatePrice(basePrice int64, variancePercent int) int64 {
 
 func generateRandomBytes(n int) []byte {
 	b := make([]byte, n)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		return make([]byte, n)
+	}
 	return b
 }
 
 func generateRequestID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("fallback-%d", time.Now().UnixNano())
+	}
 	return hex.EncodeToString(b)
+}
+
+func currentUnixMilliUint64() uint64 {
+	nowMillis := time.Now().UnixMilli()
+	if nowMillis < 0 {
+		return 0
+	}
+	return uint64(nowMillis)
 }
 
 // NewContractInvokerFromEnv creates a contract invoker from environment variables.

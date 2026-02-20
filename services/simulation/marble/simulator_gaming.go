@@ -470,7 +470,8 @@ func (s *MiniAppSimulator) SimulateSchrodingerNFT(ctx context.Context) error {
 	// Randomly decide action: adopt (30%), observe (50%), trade (20%)
 	action := randomInt(1, 10)
 
-	if action <= 3 {
+	switch {
+	case action <= 3:
 		// Adopt a new quantum pet box
 		memo := fmt.Sprintf("schrodinger:adopt:%d", time.Now().UnixNano())
 		_, err := s.invoker.PayToApp(ctx, appID, adoptFee, memo)
@@ -493,7 +494,7 @@ func (s *MiniAppSimulator) SimulateSchrodingerNFT(ctx context.Context) error {
 				return fmt.Errorf("adopt contract: %w", err)
 			}
 		}
-	} else if action <= 8 {
+	case action <= 8:
 		// Observe pet state (may cause collapse)
 		memo := fmt.Sprintf("schrodinger:observe:%d", time.Now().UnixNano())
 		_, err := s.invoker.PayToApp(ctx, appID, observeFee, memo)
@@ -518,7 +519,7 @@ func (s *MiniAppSimulator) SimulateSchrodingerNFT(ctx context.Context) error {
 				return fmt.Errorf("observe contract: %w", err)
 			}
 		}
-	} else {
+	default:
 		// Trade blind box
 		tradePrice := int64(randomInt(30, 100)) * 10000000
 		memo := fmt.Sprintf("schrodinger:trade:%d", time.Now().UnixNano())

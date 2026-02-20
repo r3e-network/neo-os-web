@@ -49,9 +49,9 @@ func (c *runningJobCounter) decrement(userID string) {
 	c.mu.Unlock()
 }
 
-func (c *runningJobCounter) tryIncrement(userID string, max int) bool {
+func (c *runningJobCounter) tryIncrement(userID string, limit int) bool {
 	c.mu.Lock()
-	if c.counts[userID] >= max {
+	if c.counts[userID] >= limit {
 		c.mu.Unlock()
 		return false
 	}

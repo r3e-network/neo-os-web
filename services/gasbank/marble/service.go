@@ -278,7 +278,8 @@ func (s *Service) processDepositVerification(ctx context.Context) {
 	}
 
 	now := time.Now()
-	for _, deposit := range deposits {
+	for i := range deposits {
+		deposit := &deposits[i]
 		if !deposit.ExpiresAt.IsZero() && now.After(deposit.ExpiresAt) {
 			if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusExpired), deposit.Confirmations); err != nil {
 				s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
@@ -294,8 +295,8 @@ func (s *Service) processDepositVerification(ctx context.Context) {
 		confirmed, confirmations, err := s.verifyTransaction(ctx, deposit.TxHash, deposit.FromAddress, deposit.Amount)
 		if err != nil {
 			if errors.Is(err, errDepositMismatch) {
-				if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusFailed), confirmations); err != nil {
-					s.Logger().WithContext(ctx).WithError(err).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
+				if updateErr := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusFailed), confirmations); updateErr != nil {
+					s.Logger().WithContext(ctx).WithError(updateErr).WithField("deposit_id", deposit.ID).Warn("failed to update deposit status")
 				}
 				continue
 			}
@@ -304,7 +305,7 @@ func (s *Service) processDepositVerification(ctx context.Context) {
 		}
 
 		if confirmed {
-			s.confirmDeposit(ctx, &deposit)
+			s.confirmDeposit(ctx, deposit)
 		} else if confirmations > 0 {
 			// Update confirmation count
 			if err := s.db.UpdateDepositStatus(ctx, deposit.ID, string(DepositStatusConfirming), confirmations); err != nil {
@@ -323,7 +324,7 @@ func (s *Service) getPendingDeposits(ctx context.Context) ([]database.DepositReq
 }
 
 // verifyTransaction checks if a GAS transfer transaction is confirmed.
-func (s *Service) verifyTransaction(ctx context.Context, txHash, fromAddress string, expectedAmount int64) (bool, int, error) {
+func (s *Service) verifyTransaction(ctx context.Context, txHash, fromAddress string, expectedAmount int64) (confirmed bool, confirmations int, err error) {
 	if s.chainClient == nil {
 		return false, 0, fmt.Errorf("chain client not configured")
 	}
@@ -354,7 +355,7 @@ func (s *Service) verifyTransaction(ctx context.Context, txHash, fromAddress str
 		return false, 0, errDepositMismatch
 	}
 
-	confirmations, err := s.getTransactionConfirmations(ctx, txHash)
+	confirmations, err = s.getTransactionConfirmations(ctx, txHash)
 	if err != nil {
 		return false, 0, err
 	}
@@ -428,8 +429,8 @@ func (s *Service) getTransactionConfirmations(ctx context.Context, txHash string
 		Confirmations int    `json:"confirmations"`
 		BlockHash     string `json:"blockhash"`
 	}
-	if err := json.Unmarshal(result, &meta); err != nil {
-		return 0, err
+	if unmarshalErr := json.Unmarshal(result, &meta); unmarshalErr != nil {
+		return 0, unmarshalErr
 	}
 	if meta.Confirmations > 0 {
 		return meta.Confirmations, nil
@@ -449,7 +450,14 @@ func (s *Service) getTransactionConfirmations(ctx context.Context, txHash string
 	if currentHeight <= block.Index {
 		return 0, nil
 	}
-	return int(currentHeight - block.Index), nil
+	confirmations := currentHeight - block.Index
+	maxIntUint64 := uint64(^uint(0) >> 1)
+	if confirmations > maxIntUint64 {
+		// #nosec G115 -- bounded to platform int max above.
+		return int(maxIntUint64), nil
+	}
+	// #nosec G115 -- bounded by maxIntUint64 check above.
+	return int(confirmations), nil
 }
 
 func addressFromScriptHash(hash []byte) string {
@@ -505,7 +513,8 @@ func (s *Service) cleanupExpiredDeposits(ctx context.Context) {
 	}
 
 	now := time.Now()
-	for _, deposit := range deposits {
+	for i := range deposits {
+		deposit := &deposits[i]
 		if deposit.ExpiresAt.IsZero() || now.Before(deposit.ExpiresAt) {
 			continue
 		}

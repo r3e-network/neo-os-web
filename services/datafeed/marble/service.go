@@ -104,6 +104,8 @@ type Config struct {
 }
 
 // New creates a new NeoFeeds service.
+//
+//nolint:gocritic // Config is passed by value intentionally for ergonomic call sites and immutable setup.
 func New(cfg Config) (*Service, error) {
 	if cfg.Marble == nil {
 		return nil, fmt.Errorf("marble is required")

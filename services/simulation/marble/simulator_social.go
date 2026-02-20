@@ -414,7 +414,8 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 	// Randomly decide action: bury (40%), fish (40%), reveal (20%)
 	action := randomInt(1, 10)
 
-	if action <= 4 {
+	switch {
+	case action <= 4:
 		// Bury a new time capsule
 		memo := fmt.Sprintf("capsule:bury:%d", time.Now().UnixNano())
 		_, err := s.invoker.PayToApp(ctx, appID, buryFee, memo)
@@ -443,7 +444,7 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 				return fmt.Errorf("bury contract: %w", err)
 			}
 		}
-	} else if action <= 8 {
+	case action <= 8:
 		// Fish for a random public capsule
 		memo := fmt.Sprintf("capsule:fish:%d", time.Now().UnixNano())
 		_, err := s.invoker.PayToApp(ctx, appID, fishFee, memo)
@@ -452,7 +453,7 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 			return fmt.Errorf("time capsule fish: %w", err)
 		}
 		atomic.AddInt64(&s.timeCapsuleFishes, 1)
-	} else {
+	default:
 		// Reveal an unlocked capsule
 		atomic.AddInt64(&s.timeCapsuleReveals, 1)
 	}

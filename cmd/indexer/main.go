@@ -17,8 +17,8 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("load config")
 	}
-	if err := cfg.Validate(); err != nil {
-		log.WithError(err).Fatal("validate config")
+	if validateErr := cfg.Validate(); validateErr != nil {
+		log.WithError(validateErr).Fatal("validate config")
 	}
 
 	svc, err := indexer.NewService(cfg)
@@ -39,5 +39,7 @@ func main() {
 
 	log.Info(context.Background(), "shutting down", nil)
 	cancel()
-	svc.Stop()
+	if stopErr := svc.Stop(); stopErr != nil {
+		log.WithError(stopErr).Error("stop service")
+	}
 }

@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"log"
 	"math"
 	"net/http"
 	"sort"
@@ -214,7 +215,13 @@ func (rl *RateLimiter) StartCleanup(interval time.Duration) (stop func()) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				// Silently absorb panic so the process stays alive.
+				if rl.logger != nil {
+					rl.logger.WithFields(map[string]interface{}{
+						"panic": r,
+					}).Error("Rate limiter cleanup worker panicked")
+					return
+				}
+				log.Printf("rate limiter cleanup worker recovered from panic: %v", r)
 			}
 		}()
 		for {

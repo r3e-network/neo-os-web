@@ -304,7 +304,11 @@ func (m *ServiceAuthMiddleware) startBackgroundCleanup() {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					// Silently absorb panic so the process stays alive.
+					if m.logger != nil {
+						m.logger.WithFields(map[string]interface{}{
+							"panic": r,
+						}).Error("Service auth token cache cleanup panicked")
+					}
 				}
 			}()
 			ticker := time.NewTicker(2 * time.Minute)

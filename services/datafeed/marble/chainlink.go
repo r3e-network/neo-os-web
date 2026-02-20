@@ -203,8 +203,8 @@ func (c *ChainlinkClient) GetPrice(ctx context.Context, feedID string) (priceFlo
 	answer := new(big.Int).SetBytes(answerBytes)
 	// int256: if high bit is set, the value is negative (two's complement).
 	if len(answerBytes) == 32 && answerBytes[0] >= 0x80 {
-		max := new(big.Int).Lsh(big.NewInt(1), 256)
-		answer.Sub(answer, max)
+		maxValue := new(big.Int).Lsh(big.NewInt(1), 256)
+		answer.Sub(answer, maxValue)
 	}
 
 	// Convert to float with decimals

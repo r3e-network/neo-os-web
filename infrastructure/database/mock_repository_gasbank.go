@@ -207,15 +207,16 @@ func (m *MockRepository) DeductFeeAtomic(ctx context.Context, userID string, amo
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, account := range m.gasBankAccounts {
-		if account.UserID == userID {
-			available := account.Balance - account.Reserved
-			if available < amount {
-				return &AtomicDeductResult{Success: false, NewBalance: account.Balance, Error: "insufficient balance"}, nil
-			}
-			account.Balance -= amount
-			account.UpdatedAt = time.Now()
-			return &AtomicDeductResult{Success: true, NewBalance: account.Balance, TransactionID: uuid.New().String()}, nil
+		if account.UserID != userID {
+			continue
 		}
+		available := account.Balance - account.Reserved
+		if available < amount {
+			return &AtomicDeductResult{Success: false, NewBalance: account.Balance, Error: "insufficient balance"}, nil
+		}
+		account.Balance -= amount
+		account.UpdatedAt = time.Now()
+		return &AtomicDeductResult{Success: true, NewBalance: account.Balance, TransactionID: uuid.New().String()}, nil
 	}
 	return &AtomicDeductResult{Success: false, Error: "account not found"}, nil
 }
@@ -243,15 +244,16 @@ func (m *MockRepository) ReserveFundsAtomic(ctx context.Context, userID string, 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, account := range m.gasBankAccounts {
-		if account.UserID == userID {
-			available := account.Balance - account.Reserved
-			if available < amount {
-				return &AtomicReserveResult{Success: false, NewBalance: account.Balance, NewReserved: account.Reserved, Error: "insufficient available balance"}, nil
-			}
-			account.Reserved += amount
-			account.UpdatedAt = time.Now()
-			return &AtomicReserveResult{Success: true, NewBalance: account.Balance, NewReserved: account.Reserved}, nil
+		if account.UserID != userID {
+			continue
 		}
+		available := account.Balance - account.Reserved
+		if available < amount {
+			return &AtomicReserveResult{Success: false, NewBalance: account.Balance, NewReserved: account.Reserved, Error: "insufficient available balance"}, nil
+		}
+		account.Reserved += amount
+		account.UpdatedAt = time.Now()
+		return &AtomicReserveResult{Success: true, NewBalance: account.Balance, NewReserved: account.Reserved}, nil
 	}
 	return &AtomicReserveResult{Success: false, Error: "account not found"}, nil
 }
@@ -263,17 +265,18 @@ func (m *MockRepository) ReleaseFundsAtomic(ctx context.Context, userID string, 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, account := range m.gasBankAccounts {
-		if account.UserID == userID {
-			if account.Reserved < amount {
-				return &AtomicReleaseResult{Success: false, NewBalance: account.Balance, NewReserved: account.Reserved, Error: "insufficient reserved"}, nil
-			}
-			account.Reserved -= amount
-			if commit {
-				account.Balance -= amount
-			}
-			account.UpdatedAt = time.Now()
-			return &AtomicReleaseResult{Success: true, NewBalance: account.Balance, NewReserved: account.Reserved}, nil
+		if account.UserID != userID {
+			continue
 		}
+		if account.Reserved < amount {
+			return &AtomicReleaseResult{Success: false, NewBalance: account.Balance, NewReserved: account.Reserved, Error: "insufficient reserved"}, nil
+		}
+		account.Reserved -= amount
+		if commit {
+			account.Balance -= amount
+		}
+		account.UpdatedAt = time.Now()
+		return &AtomicReleaseResult{Success: true, NewBalance: account.Balance, NewReserved: account.Reserved}, nil
 	}
 	return &AtomicReleaseResult{Success: false, Error: "account not found"}, nil
 }

@@ -61,6 +61,8 @@ type Service struct {
 }
 
 // New creates a new simulation service.
+//
+//nolint:gocritic // Config is passed by value intentionally for ergonomic call sites and immutable setup.
 func New(cfg Config) (*Service, error) {
 	if cfg.Marble == nil {
 		return nil, fmt.Errorf("neosimulation: marble is required")
@@ -182,7 +184,11 @@ func New(cfg Config) (*Service, error) {
 
 	var chainClient *chain.Client
 	if cfg.ChainClient != nil {
-		chainClient = cfg.ChainClient.(*chain.Client)
+		var ok bool
+		chainClient, ok = cfg.ChainClient.(*chain.Client)
+		if !ok {
+			return nil, fmt.Errorf("neosimulation: chain client must be *chain.Client")
+		}
 	}
 
 	// Initialize contract invoker for smart contract calls using pool accounts
@@ -306,16 +312,8 @@ func (s *Service) Start(ctx context.Context) error {
 	now := time.Now()
 	s.startedAt = &now
 
-	// NOTE: Simple GAS transfer workers disabled - using MiniApp workflow simulators instead
-	// These workers just send GAS to random addresses, not following the correct MiniApp workflow
-	// The correct workflow is: User → PayToApp → Platform → MiniApp Contract → Payout
-	/*
-		for _, appID := range s.miniApps {
-			for workerID := 0; workerID < s.workersPerApp; workerID++ {
-				go s.simulateApp(appID, workerID)
-			}
-		}
-	*/
+	// NOTE: direct random GAS transfer workers are intentionally disabled.
+	// Simulation now runs only through MiniApp workflow simulators to match production flow.
 
 	// Start contract invocation workers if contract invoker is available
 	if s.contractInvoker != nil {
@@ -783,7 +781,8 @@ func (s *Service) runAutoTopUp() {
 			logger.WithContext(ctx).WithField("count", len(accounts)).Info("found accounts with low GAS balance")
 
 			// Fund each account
-			for _, acc := range accounts {
+			for i := range accounts {
+				acc := &accounts[i]
 				_, err := s.poolClient.FundAccount(ctx, acc.Address, fundAmount)
 				if err != nil {
 					logger.WithError(err).WithFields(map[string]interface{}{
@@ -933,7 +932,7 @@ func (s *Service) runAutomationTaskTopUp() {
 }
 
 // fundAutomationTask funds an automation task by transferring GAS to AutomationAnchor with taskId as data.
-func (s *Service) fundAutomationTask(ctx context.Context, contractHash string, taskID int64, amount int64) error {
+func (s *Service) fundAutomationTask(ctx context.Context, contractHash string, taskID, amount int64) error {
 	// Use poolClient.TransferWithData to send GAS to AutomationAnchor contract
 	// The taskId is passed as data, which triggers OnNEP17Payment callback
 
@@ -950,7 +949,9 @@ func (s *Service) fundAutomationTask(ctx context.Context, contractHash string, t
 	account := resp.Accounts[0]
 	defer func() {
 		// Release account back to pool
-		_, _ = s.poolClient.ReleaseAccounts(ctx, []string{account.ID})
+		if _, releaseErr := s.poolClient.ReleaseAccounts(ctx, []string{account.ID}); releaseErr != nil {
+			s.Logger().WithContext(ctx).WithError(releaseErr).WithField("account_id", account.ID).Warn("failed to release automation funding account")
+		}
 	}()
 
 	// Check if account has sufficient balance
@@ -962,9 +963,9 @@ func (s *Service) fundAutomationTask(ctx context.Context, contractHash string, t
 	// Fund account if needed (need amount + tx fee)
 	const minBalanceNeeded = int64(1100000000) // 11 GAS (10 for transfer + 1 for fee)
 	if gasBalance < minBalanceNeeded {
-		_, err := s.poolClient.FundAccount(ctx, account.Address, minBalanceNeeded)
-		if err != nil {
-			return fmt.Errorf("fund account: %w", err)
+		_, fundErr := s.poolClient.FundAccount(ctx, account.Address, minBalanceNeeded)
+		if fundErr != nil {
+			return fmt.Errorf("fund account: %w", fundErr)
 		}
 		// Wait for funding to confirm
 		time.Sleep(5 * time.Second)

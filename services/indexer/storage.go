@@ -149,6 +149,7 @@ func (s *Storage) SaveOpcodeTraces(ctx context.Context, traces []*OpcodeTrace) e
 		args = append(args, t.TxHash, t.StepIndex, t.Opcode, t.OpcodeHex, t.GasConsumed,
 			t.StackSize, t.ContractHash, t.InstructionPtr)
 	}
+	// #nosec G202 -- placeholders are generated internally; values are bound via Exec args.
 	query := `INSERT INTO indexer_opcode_traces (
 		tx_hash, step_index, opcode, opcode_hex, gas_consumed,
 		stack_size, contract_hash, instruction_ptr
@@ -203,6 +204,7 @@ func (s *Storage) SaveContractCalls(ctx context.Context, calls []*ContractCall) 
 		args = append(args, c.TxHash, c.CallIndex, c.ContractHash, c.Method, c.ArgsJSON,
 			c.GasConsumed, c.Success, c.ParentCallID)
 	}
+	// #nosec G202 -- placeholders are generated internally; values are bound via Exec args.
 	query := `INSERT INTO indexer_contract_calls (
 		tx_hash, call_index, contract_hash, method, args_json,
 		gas_consumed, success, parent_call_id
@@ -257,6 +259,7 @@ func (s *Storage) SaveSyscalls(ctx context.Context, syscalls []*Syscall) error {
 		args = append(args, sc.TxHash, sc.CallIndex, sc.SyscallName, sc.ArgsJSON,
 			sc.ResultJSON, sc.GasConsumed, sc.ContractHash)
 	}
+	// #nosec G202 -- placeholders are generated internally; values are bound via Exec args.
 	query := `INSERT INTO indexer_syscalls (
 		tx_hash, call_index, syscall_name, args_json,
 		result_json, gas_consumed, contract_hash
@@ -310,6 +313,7 @@ func (s *Storage) SaveAddressTxs(ctx context.Context, addrTxs []*AddressTx) erro
 			base+1, base+2, base+3, base+4, base+5))
 		args = append(args, at.Address, at.TxHash, at.Role, at.Network, at.BlockTime)
 	}
+	// #nosec G202 -- placeholders are generated internally; values are bound via Exec args.
 	query := `INSERT INTO indexer_address_txs (address, tx_hash, role, network, block_time)
 	VALUES ` + strings.Join(valueStrings, ",") + `
 	ON CONFLICT (address, tx_hash, role) DO NOTHING`

@@ -69,8 +69,8 @@ func main() {
 	}
 
 	var m manifest.Manifest
-	if err := json.Unmarshal(manifestData, &m); err != nil {
-		log.Fatalf("Failed to parse manifest: %v", err)
+	if unmarshalErr := json.Unmarshal(manifestData, &m); unmarshalErr != nil {
+		log.Fatalf("Failed to parse manifest: %v", unmarshalErr)
 	}
 
 	// Calculate expected contract hash
@@ -124,9 +124,9 @@ func main() {
 	// Wait for confirmation
 	log.Println("Waiting for confirmation...")
 	waitCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
 
 	appLog, err := client.WaitForApplicationLog(waitCtx, txHashString, 2*time.Second)
+	cancel()
 	if err != nil {
 		log.Fatalf("Failed to get application log: %v", err)
 	}

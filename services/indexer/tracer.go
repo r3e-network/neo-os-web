@@ -19,7 +19,7 @@ func NewTracer(storage *Storage) *Tracer {
 }
 
 // ParseScript parses a transaction script into opcode traces.
-func (t *Tracer) ParseScript(txHash string, scriptHex string) ([]*OpcodeTrace, error) {
+func (t *Tracer) ParseScript(txHash, scriptHex string) ([]*OpcodeTrace, error) {
 	script, err := hex.DecodeString(scriptHex)
 	if err != nil {
 		return nil, fmt.Errorf("decode script: %w", err)

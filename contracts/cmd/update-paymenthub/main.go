@@ -96,9 +96,8 @@ func main() {
 
 	log.Println("Waiting for confirmation...")
 	waitCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
-
 	appLog, err := client.WaitForApplicationLog(waitCtx, txHashString, 2*time.Second)
+	cancel()
 	if err != nil {
 		log.Fatalf("Failed to get application log: %v", err)
 	}

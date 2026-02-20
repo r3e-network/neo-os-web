@@ -72,8 +72,13 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 }
 
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
+	if substr == "" {
+		return true
+	}
+	if len(s) < len(substr) {
+		return false
+	}
+	return s == substr || findSubstring(s, substr)
 }
 
 func findSubstring(s, substr string) bool {

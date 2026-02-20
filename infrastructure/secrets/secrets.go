@@ -106,7 +106,7 @@ type ServiceProvider struct {
 // then decrypts and returns it.
 func (sp ServiceProvider) GetSecret(ctx context.Context, userID, secretName string) (string, error) {
 	if sp.Manager == nil {
-		return "", fmt.Errorf("secrets: manager not initialised")
+		return "", fmt.Errorf("secrets: manager not initialized")
 	}
 
 	// Enforce policy: check if this service is allowed to read the secret.
@@ -115,45 +115,51 @@ func (sp ServiceProvider) GetSecret(ctx context.Context, userID, secretName stri
 		return "", fmt.Errorf("secrets: check policy for %q: %w", secretName, err)
 	}
 
-	authorised := false
+	authorized := false
 	for _, svc := range allowed {
 		if svc == sp.ServiceID {
-			authorised = true
+			authorized = true
 			break
 		}
 	}
-	if !authorised {
-		_ = sp.Manager.repo.CreateAuditLog(ctx, &supabase.AuditLog{
+	if !authorized {
+		if auditErr := sp.Manager.repo.CreateAuditLog(ctx, &supabase.AuditLog{
 			UserID:       userID,
 			SecretName:   secretName,
 			Action:       "read",
 			ServiceID:    sp.ServiceID,
 			Success:      false,
 			ErrorMessage: "service not in allowlist",
-		})
-		return "", fmt.Errorf("secrets: service %q not authorised for %q", sp.ServiceID, secretName)
+		}); auditErr != nil {
+			return "", fmt.Errorf("secrets: service %q not authorized for %q (audit log failed: %w)", sp.ServiceID, secretName, auditErr)
+		}
+		return "", fmt.Errorf("secrets: service %q not authorized for %q", sp.ServiceID, secretName)
 	}
 
 	plaintext, err := sp.Manager.GetSecret(ctx, userID, secretName)
 	if err != nil {
-		_ = sp.Manager.repo.CreateAuditLog(ctx, &supabase.AuditLog{
+		if auditErr := sp.Manager.repo.CreateAuditLog(ctx, &supabase.AuditLog{
 			UserID:       userID,
 			SecretName:   secretName,
 			Action:       "read",
 			ServiceID:    sp.ServiceID,
 			Success:      false,
 			ErrorMessage: err.Error(),
-		})
+		}); auditErr != nil {
+			return "", fmt.Errorf("%w (audit log failed: %v)", err, auditErr)
+		}
 		return "", err
 	}
 
-	_ = sp.Manager.repo.CreateAuditLog(ctx, &supabase.AuditLog{
+	if auditErr := sp.Manager.repo.CreateAuditLog(ctx, &supabase.AuditLog{
 		UserID:     userID,
 		SecretName: secretName,
 		Action:     "read",
 		ServiceID:  sp.ServiceID,
 		Success:    true,
-	})
+	}); auditErr != nil {
+		return "", fmt.Errorf("secrets: audit log write failed: %w", auditErr)
+	}
 
 	return plaintext, nil
 }

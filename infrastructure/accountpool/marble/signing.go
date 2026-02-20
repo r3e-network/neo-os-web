@@ -282,7 +282,7 @@ func (s *Service) TransferWithData(ctx context.Context, serviceID, accountID, to
 	// Support both Neo N3 addresses (starting with 'N') and script hashes (0x... or hex)
 	toAddress = strings.TrimSpace(toAddress)
 	var toU160 util.Uint160
-	if len(toAddress) > 0 && toAddress[0] == 'N' {
+	if toAddress != "" && toAddress[0] == 'N' {
 		// Neo N3 address format
 		toU160, err = address.StringToUint160(toAddress)
 		if err != nil {
@@ -803,7 +803,7 @@ func convertToChainParam(p ContractParam) chain.ContractParam {
 	case "hash160":
 		if s, ok := p.Value.(string); ok {
 			// If it looks like a Neo address (starts with N), convert to script hash
-			if len(s) > 0 && s[0] == 'N' {
+			if s != "" && s[0] == 'N' {
 				u160, err := address.StringToUint160(s)
 				if err == nil {
 					// Return as 0x-prefixed little-endian hex string

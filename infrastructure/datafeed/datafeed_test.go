@@ -25,7 +25,7 @@ func TestFetchSinglePrice(t *testing.T) {
 		Decimals: 8,
 	}
 
-	price, err := client.FetchPrice(ctx, feed)
+	price, err := client.FetchPrice(ctx, &feed)
 	if err != nil {
 		t.Fatalf("fetch price: %v", err)
 	}

@@ -51,15 +51,17 @@ func (s *Service) handleAppRegistryEvent(ctx context.Context, event *chain.Contr
 		return nil
 	}
 
-	_ = s.storeContractEvent(ctx, event, &appID, neorequestsupabase.MarshalParams(map[string]interface{}{
+	if storeErr := s.storeContractEvent(ctx, event, &appID, neorequestsupabase.MarshalParams(map[string]interface{}{
 		"app_id": appID,
-	}))
+	})); storeErr != nil {
+		logger.WithContext(ctx).WithError(storeErr).Warn("failed to store AppRegistry contract event")
+	}
 
-	if _, err := s.loadMiniApp(ctx, appID); err != nil {
-		if database.IsNotFound(err) {
+	if _, loadErr := s.loadMiniApp(ctx, appID); loadErr != nil {
+		if database.IsNotFound(loadErr) {
 			return nil
 		}
-		logger.WithContext(ctx).WithError(err).Warn("failed to load miniapp manifest")
+		logger.WithContext(ctx).WithError(loadErr).Warn("failed to load miniapp manifest")
 		return nil
 	}
 

@@ -16,7 +16,7 @@ var privateRanges []*net.IPNet
 
 func init() {
 	for _, cidr := range []string{
-		"0.0.0.0/8",      // "This network" (unspecified)
+		"0.0.0.0/8",      // This network (unspecified)
 		"10.0.0.0/8",     // RFC 1918
 		"100.64.0.0/10",  // Carrier-grade NAT / cloud internal
 		"127.0.0.0/8",    // Loopback

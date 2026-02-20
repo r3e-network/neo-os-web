@@ -39,6 +39,8 @@ type Config struct {
 }
 
 // New creates a new NeoOracle service.
+//
+//nolint:gocritic // Config is passed by value intentionally for ergonomic call sites and immutable setup.
 func New(cfg Config) (*Service, error) {
 	base := commonservice.NewBase(&commonservice.BaseConfig{
 		ID:      ServiceID,

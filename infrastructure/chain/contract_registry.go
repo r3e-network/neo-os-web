@@ -151,7 +151,8 @@ func (r *ContractRegistry) SaveToFile(filename string) error {
 		return fmt.Errorf("create dir: %w", err)
 	}
 
-	if err := os.WriteFile(filename, data, 0o644); err != nil {
+	// Registry snapshots may contain deployment metadata used by privileged tooling.
+	if err := os.WriteFile(filename, data, 0o600); err != nil {
 		return fmt.Errorf("write file: %w", err)
 	}
 
@@ -305,7 +306,9 @@ func DefaultRegistry(network string) *ContractRegistry {
 
 	// Try to load from config file
 	configFile := filepath.Join(configDir, network+"_contracts.json")
-	_ = r.LoadFromFile(configFile)
+	if err := r.LoadFromFile(configFile); err != nil && !os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "contract registry: failed to load %s: %v\n", configFile, err)
+	}
 
 	return r
 }

@@ -52,7 +52,8 @@ func main() {
 
 	act, err := actor.NewSimple(client, account)
 	if err != nil {
-		log.Fatalf("Actor: %v", err)
+		log.Printf("Actor: %v", err)
+		return
 	}
 
 	mgmt := management.New(act)
@@ -103,8 +104,8 @@ func deployContract(
 	}
 
 	var m manifest.Manifest
-	if err := json.Unmarshal(manifestBytes, &m); err != nil {
-		return "", fmt.Errorf("parse manifest: %w", err)
+	if unmarshalErr := json.Unmarshal(manifestBytes, &m); unmarshalErr != nil {
+		return "", fmt.Errorf("parse manifest: %w", unmarshalErr)
 	}
 
 	// Calculate expected hash

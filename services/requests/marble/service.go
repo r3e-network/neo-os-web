@@ -471,7 +471,7 @@ func (s *Service) runEventListener(ctx context.Context) {
 		s.Logger().WithContext(s.listenerCtx).WithError(err).Warn("failed to start event listener")
 		return
 	}
-	// Block until parent context is cancelled (service shutdown)
+	// Block until parent context is canceled (service shutdown)
 	<-ctx.Done()
 	s.eventListener.Stop()
 }

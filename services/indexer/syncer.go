@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -158,7 +159,16 @@ func (s *Syncer) syncBlocksForNetwork(ctx context.Context, network Network) {
 		return // Already synced
 	}
 
-	endBlock := startBlock + uint64(s.cfg.BatchSize)
+	batchSize, ok := nonNegativeIntToUint64(s.cfg.BatchSize)
+	if !ok {
+		s.log.WithField("batch_size", s.cfg.BatchSize).Warn("invalid negative batch size")
+		return
+	}
+
+	endBlock := chainHeight
+	if batchSize <= ^uint64(0)-startBlock {
+		endBlock = startBlock + batchSize
+	}
 	if endBlock > chainHeight {
 		endBlock = chainHeight
 	}
@@ -211,17 +221,33 @@ func (s *Syncer) syncBlockForNetwork(ctx context.Context, network Network, clien
 		return 0, fmt.Errorf("get block: %w", err)
 	}
 
-	blockTime := time.Unix(int64(block.Time/1000), 0)
+	blockTime := unixMillisToTime(block.Time)
 	var count int64
 
-	for _, chainTx := range block.Tx {
-		if err := s.indexTransactionForNetwork(ctx, network, client, &chainTx, blockIdx, blockTime); err != nil {
+	for i := range block.Tx {
+		chainTx := &block.Tx[i]
+		if err := s.indexTransactionForNetwork(ctx, network, client, chainTx, blockIdx, blockTime); err != nil {
 			s.log.WithError(err).WithField("tx", chainTx.Hash).Warn("index tx")
 			continue
 		}
 		count++
 	}
 	return count, nil
+}
+
+func nonNegativeIntToUint64(v int) (uint64, bool) {
+	if v < 0 {
+		return 0, false
+	}
+	return uint64(v), true
+}
+
+func unixMillisToTime(ms uint64) time.Time {
+	sec := ms / 1000
+	if sec > math.MaxInt64 {
+		return time.Time{}
+	}
+	return time.Unix(int64(sec), 0).UTC()
 }
 
 func (s *Syncer) indexTransactionForNetwork(ctx context.Context, network Network, client *chain.Client, chainTx *chain.Transaction, blockIdx uint64, blockTime time.Time) error {

@@ -419,7 +419,7 @@ func (s *Service) executeAnchoredTask(ctx context.Context, task *anchoredTaskSta
 	taskKey := anchoredTaskKey(task.task.TaskID)
 
 	// For interval-based triggers, check balance and use ExecutePeriodicTask
-	if strings.ToLower(task.trigger.Type) == "interval" {
+	if strings.EqualFold(task.trigger.Type, "interval") {
 		// Try to parse TaskID as BigInteger for periodic tasks
 		taskIDInt := new(big.Int).SetBytes(task.task.TaskID)
 

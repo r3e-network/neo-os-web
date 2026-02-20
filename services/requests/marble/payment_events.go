@@ -31,9 +31,9 @@ func (s *Service) handlePaymentReceivedEvent(ctx context.Context, event *chain.C
 	})
 
 	if s.repo != nil {
-		processed, err := s.markPaymentProcessed(ctx, event, parsed)
-		if err != nil {
-			logger.WithContext(ctx).WithError(err).Warn("failed to mark payment event processed")
+		processed, markErr := s.markPaymentProcessed(ctx, event, parsed)
+		if markErr != nil {
+			logger.WithContext(ctx).WithError(markErr).Warn("failed to mark payment event processed")
 		}
 		if !processed {
 			return nil
@@ -41,28 +41,31 @@ func (s *Service) handlePaymentReceivedEvent(ctx context.Context, event *chain.C
 	}
 
 	if s.repo != nil {
-		app, err := s.loadMiniApp(ctx, parsed.AppID)
-		if err != nil {
-			if database.IsNotFound(err) {
+		app, appErr := s.loadMiniApp(ctx, parsed.AppID)
+		switch {
+		case appErr != nil:
+			if database.IsNotFound(appErr) {
 				return nil
 			}
-			logger.WithContext(ctx).WithError(err).Warn("failed to load miniapp manifest")
-		} else if app != nil {
+			logger.WithContext(ctx).WithError(appErr).Warn("failed to load miniapp manifest")
+		case app != nil:
 			if !isAppActive(app.Status) {
 				return nil
 			}
 			if s.enforceAppRegistry {
-				if err := s.validateAppRegistry(ctx, app); err != nil {
-					logger.WithContext(ctx).WithError(err).Warn("app registry validation failed")
+				if validateErr := s.validateAppRegistry(ctx, app); validateErr != nil {
+					logger.WithContext(ctx).WithError(validateErr).Warn("app registry validation failed")
 					return nil
 				}
 			}
-		} else {
+		default:
 			return nil
 		}
 	}
 
-	_ = s.storeContractEvent(ctx, event, &parsed.AppID, buildPaymentReceivedState(parsed))
+	if storeErr := s.storeContractEvent(ctx, event, &parsed.AppID, buildPaymentReceivedState(parsed)); storeErr != nil {
+		logger.WithContext(ctx).WithError(storeErr).Warn("failed to store payment received contract event")
+	}
 
 	s.trackMiniAppTx(ctx, parsed.AppID, parsed.SenderAddress, event)
 

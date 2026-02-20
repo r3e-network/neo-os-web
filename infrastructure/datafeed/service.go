@@ -87,7 +87,11 @@ func (s *Service) GetAllPrices(ctx context.Context) (*BatchPriceData, error) {
 		return nil, err
 	}
 
-	return v.(*BatchPriceData), nil
+	data, ok := v.(*BatchPriceData)
+	if !ok {
+		return nil, fmt.Errorf("unexpected price batch type %T", v)
+	}
+	return data, nil
 }
 
 // BatchUpdateParams holds parameters for PriceFeed.BatchUpdate.
@@ -120,11 +124,16 @@ func (s *Service) PrepareForBatchUpdate(ctx context.Context) (*BatchUpdateParams
 
 	// Build batch attestation hash from all prices
 	hashData := ""
-	for i, p := range data.Prices {
+	for i := range data.Prices {
+		p := &data.Prices[i]
 		params.Symbols[i] = p.Symbol
 		params.RoundIDs[i] = p.RoundID.Int64()
 		params.Prices[i] = p.Price.Int64()
-		params.Timestamps[i] = uint64(p.Timestamp.Unix())
+		unixTS := p.Timestamp.Unix()
+		if unixTS < 0 {
+			return nil, fmt.Errorf("invalid negative timestamp for %s", p.Symbol)
+		}
+		params.Timestamps[i] = uint64(unixTS)
 		params.SourceSetIDs[i] = 1 // Chainlink source
 
 		// Individual attestation hash

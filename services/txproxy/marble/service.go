@@ -61,6 +61,7 @@ type Config struct {
 
 const defaultGASContractHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 
+//nolint:gocritic // Config is passed by value intentionally for ergonomic call sites and immutable setup.
 func New(cfg Config) (*Service, error) {
 	if cfg.Marble == nil {
 		return nil, fmt.Errorf("txproxy: marble is required")

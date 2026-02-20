@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"math/big"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 // DefaultArbitrumRPC is the default Arbitrum One RPC endpoint.
@@ -26,7 +27,7 @@ type Client struct {
 }
 
 // NewClient creates a new Chainlink datafeed client.
-func NewClient(rpcURL string, network string) (*Client, error) {
+func NewClient(rpcURL, network string) (*Client, error) {
 	if rpcURL == "" {
 		rpcURL = DefaultArbitrumRPC
 	}
@@ -67,7 +68,7 @@ type jsonRPCError struct {
 const latestRoundDataSelector = "0xfeaf968c"
 
 // ethCall makes an eth_call to the given address with the given data.
-func (c *Client) ethCall(ctx context.Context, to string, data string) (string, error) {
+func (c *Client) ethCall(ctx context.Context, to, data string) (string, error) {
 	req := jsonRPCRequest{
 		JSONRPC: "2.0",
 		Method:  "eth_call",
@@ -118,7 +119,11 @@ func (c *Client) ethCall(ctx context.Context, to string, data string) (string, e
 }
 
 // FetchPrice fetches the latest price for a single feed.
-func (c *Client) FetchPrice(ctx context.Context, feed FeedConfig) (*PriceData, error) {
+func (c *Client) FetchPrice(ctx context.Context, feed *FeedConfig) (*PriceData, error) {
+	if feed == nil {
+		return nil, fmt.Errorf("feed config is nil")
+	}
+
 	result, err := c.ethCall(ctx, feed.Address, latestRoundDataSelector)
 	if err != nil {
 		return nil, fmt.Errorf("fetch %s: %w", feed.Symbol, err)
@@ -172,14 +177,15 @@ func (c *Client) FetchAllPrices(ctx context.Context) (*BatchPriceData, error) {
 
 	sem := make(chan struct{}, 10) // Max 10 concurrent
 
-	for _, feed := range feeds {
+	for i := range feeds {
+		feed := feeds[i]
 		wg.Add(1)
 		go func(f FeedConfig) {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			price, err := c.FetchPrice(ctx, f)
+			price, err := c.FetchPrice(ctx, &f)
 			mu.Lock()
 			if err == nil {
 				results = append(results, *price)

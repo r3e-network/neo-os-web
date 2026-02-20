@@ -1299,14 +1299,15 @@ func TestHandleCreateTriggerNonCronWithMock(t *testing.T) {
 func TestHandleGetTriggerWithMock(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
-	mockRepo.triggers["trigger-123"] = &neoflowsupabase.Trigger{
-		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron",
+	const triggerID = "123e4567-e89b-12d3-a456-426614174000"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Test", TriggerType: "cron",
 	}
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	req := httptest.NewRequest("GET", "/triggers/trigger-123", nil)
+	req := httptest.NewRequest("GET", "/triggers/"+triggerID, nil)
 	req.Header.Set("X-User-ID", "user-123")
-	req = mux.SetURLVars(req, map[string]string{"id": "trigger-123"})
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
 	svc.handleGetTrigger(rr, req)
@@ -1320,9 +1321,11 @@ func TestHandleGetTriggerNotFound(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
+	const triggerID = "123e4567-e89b-12d3-a456-426614174001"
 
-	req := httptest.NewRequest("GET", "/triggers/nonexistent", nil)
+	req := httptest.NewRequest("GET", "/triggers/"+triggerID, nil)
 	req.Header.Set("X-User-ID", "user-123")
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
 	svc.handleGetTrigger(rr, req)
@@ -1335,8 +1338,9 @@ func TestHandleGetTriggerNotFound(t *testing.T) {
 func TestHandleUpdateTriggerWithMock(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
-	mockRepo.triggers["trigger-123"] = &neoflowsupabase.Trigger{
-		ID: "trigger-123", UserID: "user-123", Name: "Old Name", TriggerType: "cron", Schedule: "0 * * * *",
+	const triggerID = "123e4567-e89b-12d3-a456-426614174002"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Old Name", TriggerType: "cron", Schedule: "0 * * * *",
 	}
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
@@ -1346,10 +1350,10 @@ func TestHandleUpdateTriggerWithMock(t *testing.T) {
 		Schedule:    "30 * * * *",
 	})
 
-	req := httptest.NewRequest("PUT", "/triggers/trigger-123", bytes.NewReader(reqBody))
+	req := httptest.NewRequest("PUT", "/triggers/"+triggerID, bytes.NewReader(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", "user-123")
-	req = mux.SetURLVars(req, map[string]string{"id": "trigger-123"})
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
 	svc.handleUpdateTrigger(rr, req)
@@ -1362,14 +1366,15 @@ func TestHandleUpdateTriggerWithMock(t *testing.T) {
 func TestHandleDeleteTriggerWithMock(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
-	mockRepo.triggers["trigger-123"] = &neoflowsupabase.Trigger{
-		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron",
+	const triggerID = "123e4567-e89b-12d3-a456-426614174003"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Test", TriggerType: "cron",
 	}
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	req := httptest.NewRequest("DELETE", "/triggers/trigger-123", nil)
+	req := httptest.NewRequest("DELETE", "/triggers/"+triggerID, nil)
 	req.Header.Set("X-User-ID", "user-123")
-	req = mux.SetURLVars(req, map[string]string{"id": "trigger-123"})
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
 	svc.handleDeleteTrigger(rr, req)
@@ -1379,7 +1384,7 @@ func TestHandleDeleteTriggerWithMock(t *testing.T) {
 	}
 
 	// Verify trigger was deleted
-	if _, ok := mockRepo.triggers["trigger-123"]; ok {
+	if _, ok := mockRepo.triggers[triggerID]; ok {
 		t.Error("trigger should be deleted")
 	}
 }
@@ -1387,36 +1392,37 @@ func TestHandleDeleteTriggerWithMock(t *testing.T) {
 func TestHandleEnableDisableTriggerWithMock(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
-	mockRepo.triggers["trigger-123"] = &neoflowsupabase.Trigger{
-		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron", Enabled: true,
+	const triggerID = "123e4567-e89b-12d3-a456-426614174004"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Test", TriggerType: "cron", Enabled: true,
 	}
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	// Disable - handler expects /triggers/{id} format
-	req := httptest.NewRequest("POST", "/triggers/trigger-123", nil)
+	// Disable
+	req := httptest.NewRequest("POST", "/triggers/"+triggerID+"/disable", nil)
 	req.Header.Set("X-User-ID", "user-123")
-	req = mux.SetURLVars(req, map[string]string{"id": "trigger-123"})
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 	svc.handleDisableTrigger(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("disable status = %d, want %d", rr.Code, http.StatusOK)
 	}
-	if mockRepo.triggers["trigger-123"].Enabled {
+	if mockRepo.triggers[triggerID].Enabled {
 		t.Error("trigger should be disabled")
 	}
 
 	// Enable
-	req = httptest.NewRequest("POST", "/triggers/trigger-123", nil)
+	req = httptest.NewRequest("POST", "/triggers/"+triggerID+"/enable", nil)
 	req.Header.Set("X-User-ID", "user-123")
-	req = mux.SetURLVars(req, map[string]string{"id": "trigger-123"})
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr = httptest.NewRecorder()
 	svc.handleEnableTrigger(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("enable status = %d, want %d", rr.Code, http.StatusOK)
 	}
-	if !mockRepo.triggers["trigger-123"].Enabled {
+	if !mockRepo.triggers[triggerID].Enabled {
 		t.Error("trigger should be enabled")
 	}
 }
@@ -1424,19 +1430,19 @@ func TestHandleEnableDisableTriggerWithMock(t *testing.T) {
 func TestHandleListExecutionsWithMock(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
-	mockRepo.triggers["trigger-123"] = &neoflowsupabase.Trigger{
-		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron",
+	const triggerID = "123e4567-e89b-12d3-a456-426614174005"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Test", TriggerType: "cron",
 	}
-	mockRepo.executions["trigger-123"] = []neoflowsupabase.Execution{
-		{ID: "exec-1", TriggerID: "trigger-123", Success: true},
-		{ID: "exec-2", TriggerID: "trigger-123", Success: false},
+	mockRepo.executions[triggerID] = []neoflowsupabase.Execution{
+		{ID: "exec-1", TriggerID: triggerID, Success: true},
+		{ID: "exec-2", TriggerID: triggerID, Success: false},
 	}
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	// Handler expects /triggers/{id} format
-	req := httptest.NewRequest("GET", "/triggers/trigger-123", nil)
+	req := httptest.NewRequest("GET", "/triggers/"+triggerID+"/executions", nil)
 	req.Header.Set("X-User-ID", "user-123")
-	req = mux.SetURLVars(req, map[string]string{"id": "trigger-123"})
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
 	svc.handleListExecutions(rr, req)
@@ -1449,15 +1455,15 @@ func TestHandleListExecutionsWithMock(t *testing.T) {
 func TestHandleResumeTriggerWithMock(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
-	mockRepo.triggers["trigger-123"] = &neoflowsupabase.Trigger{
-		ID: "trigger-123", UserID: "user-123", Name: "Test", TriggerType: "cron",
+	const triggerID = "123e4567-e89b-12d3-a456-426614174006"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Test", TriggerType: "cron",
 	}
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	// Handler expects /triggers/{id} format
-	req := httptest.NewRequest("POST", "/triggers/trigger-123", nil)
+	req := httptest.NewRequest("POST", "/triggers/"+triggerID+"/resume", nil)
 	req.Header.Set("X-User-ID", "user-123")
-	req = mux.SetURLVars(req, map[string]string{"id": "trigger-123"})
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
 	svc.handleResumeTrigger(rr, req)
@@ -1468,7 +1474,7 @@ func TestHandleResumeTriggerWithMock(t *testing.T) {
 
 	// Verify trigger was added to scheduler
 	svc.scheduler.mu.RLock()
-	if _, ok := svc.scheduler.triggers["trigger-123"]; !ok {
+	if _, ok := svc.scheduler.triggers[triggerID]; !ok {
 		t.Error("trigger should be in scheduler")
 	}
 	svc.scheduler.mu.RUnlock()

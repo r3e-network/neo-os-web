@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -230,10 +231,10 @@ func (l *EventListener) processNewBlocks(ctx context.Context) {
 			break
 		}
 
-		blockTime := time.Unix(int64(block.Time), 0).UTC()
+		blockTime := uint64ToUnixTime(block.Time)
 		// Process each transaction in the block
 		for i := range block.Tx {
-			l.processTransaction(ctx, block.Tx[i], blockIndex, block.Hash, blockTime)
+			l.processTransaction(ctx, &block.Tx[i], blockIndex, block.Hash, blockTime)
 		}
 
 		l.mu.Lock()
@@ -242,14 +243,25 @@ func (l *EventListener) processNewBlocks(ctx context.Context) {
 	}
 }
 
+func uint64ToUnixTime(v uint64) time.Time {
+	if v > math.MaxInt64 {
+		return time.Time{}
+	}
+	return time.Unix(int64(v), 0).UTC()
+}
+
 // processTransaction processes a transaction for events.
 func (l *EventListener) processTransaction(
 	ctx context.Context,
-	tx Transaction,
+	tx *Transaction,
 	blockIndex uint64,
 	blockHash string,
 	blockTime time.Time,
 ) {
+	if tx == nil {
+		return
+	}
+
 	txHash := tx.Hash
 	appLog, err := l.client.GetApplicationLog(ctx, txHash)
 	if err != nil {

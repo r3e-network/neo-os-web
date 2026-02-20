@@ -285,9 +285,9 @@ func main() {
 				log.Printf("Warning: invalid NEO_EVENT_START_BLOCK %q: %v", raw, parseErr)
 			}
 		} else if serviceType == "neorequests" && neorequestsRepo != nil && chainID != "" {
-			latest, ok, err := neorequestsRepo.LatestProcessedBlock(ctx, chainID)
-			if err != nil {
-				log.Printf("Warning: failed to read processed event cursor: %v", err)
+			latest, ok, latestErr := neorequestsRepo.LatestProcessedBlock(ctx, chainID)
+			if latestErr != nil {
+				log.Printf("Warning: failed to read processed event cursor: %v", latestErr)
 			} else if ok {
 				startBlock = latest
 				startBlockSet = true
@@ -296,7 +296,6 @@ func main() {
 		if !startBlockSet {
 			if height, heightErr := chainClient.GetBlockCount(ctx); heightErr == nil && height > 0 {
 				startBlock = height - 1
-				startBlockSet = true
 			}
 		}
 

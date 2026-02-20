@@ -124,7 +124,7 @@ type GetAccountResponse struct {
 
 // GetAccount retrieves a user's gas bank account.
 func (c *Client) GetAccount(ctx context.Context, userID string) (*GetAccountResponse, error) {
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/account", nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/account", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -154,7 +154,7 @@ func (c *Client) GetAccount(ctx context.Context, userID string) (*GetAccountResp
 }
 
 // CheckBalance checks if a user has sufficient balance for a given amount.
-func (c *Client) CheckBalance(ctx context.Context, userID string, requiredAmount int64) (bool, int64, error) {
+func (c *Client) CheckBalance(ctx context.Context, userID string, requiredAmount int64) (hasSufficient bool, available int64, err error) {
 	account, err := c.GetAccount(ctx, userID)
 	if err != nil {
 		return false, 0, err

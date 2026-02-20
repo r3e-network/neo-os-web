@@ -95,18 +95,23 @@ func AllMiniApps() []MiniAppConfig {
 }
 
 // Helper function to generate random int in range [min, max]
-func randomInt(min, max int) int {
-	if min >= max {
-		return min
+func randomInt(minVal, maxVal int) int {
+	if minVal >= maxVal {
+		return minVal
 	}
-	n, _ := rand.Int(rand.Reader, big.NewInt(int64(max-min+1)))
-	return min + int(n.Int64())
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(maxVal-minVal+1)))
+	if err != nil {
+		return minVal
+	}
+	return minVal + int(n.Int64())
 }
 
 // generateGameID generates a unique game ID
 func generateGameID() string {
 	b := make([]byte, 8)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
 	return hex.EncodeToString(b)
 }
 

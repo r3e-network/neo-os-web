@@ -81,7 +81,11 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 		if result.Err != nil {
 			return nil, result.Err
 		}
-		return result.Val.(*PriceResponse), nil
+		resp, ok := result.Val.(*PriceResponse)
+		if !ok {
+			return nil, fmt.Errorf("unexpected price response type %T", result.Val)
+		}
+		return resp, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
@@ -115,7 +119,7 @@ func (s *Service) fetchAndCachePrice(ctx context.Context, normalizedPair, origin
 
 	for _, srcConfig := range sourcesToUse {
 		if !s.acquireSourceSlot(ctx) {
-			break // context cancelled, stop launching goroutines
+			break // context canceled, stop launching goroutines
 		}
 		wg.Add(1)
 		go func(src *SourceConfig) {

@@ -97,6 +97,8 @@ const (
 // =============================================================================
 
 // New creates a new GlobalSigner service.
+//
+//nolint:gocritic // Config is passed by value intentionally for ergonomic call sites and immutable setup.
 func New(cfg Config) (*Service, error) {
 	if cfg.RotationConfig == nil {
 		cfg.RotationConfig = DefaultRotationConfig()
@@ -520,8 +522,8 @@ func (s *Service) Sign(ctx context.Context, req *SignRequest) (*SignResponse, er
 	if pubKeyHex == "" {
 		return nil, fmt.Errorf("key version missing public key: %s", version)
 	}
-	if err := validateKeyStatus(version, status, overlapEndsAt); err != nil {
-		return nil, err
+	if validateErr := validateKeyStatus(version, status, overlapEndsAt); validateErr != nil {
+		return nil, validateErr
 	}
 
 	// Domain-separated signing: sign over sha256(domain || 0x00 || data).
@@ -604,8 +606,8 @@ func (s *Service) SignRaw(ctx context.Context, req *SignRawRequest) (*SignRespon
 	if pubKeyHex == "" {
 		return nil, fmt.Errorf("key version missing public key: %s", version)
 	}
-	if err := validateKeyStatus(version, status, overlapEndsAt); err != nil {
-		return nil, err
+	if validateErr := validateKeyStatus(version, status, overlapEndsAt); validateErr != nil {
+		return nil, validateErr
 	}
 
 	sig, err := crypto.Sign(privateKey, data)
