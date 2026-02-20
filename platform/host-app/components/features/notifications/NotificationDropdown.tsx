@@ -128,7 +128,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
               <button
                 type="button"
                 onClick={markAllAsRead}
-                className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
+                className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
               >
                 Mark all read
               </button>
@@ -161,7 +161,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
                   role="button"
                   tabIndex={0}
                   className={cn(
-                    "flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50",
+                    "flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
                     !n.read && "bg-emerald-50/50 dark:bg-emerald-900/10",
                   )}
                   onClick={() => !n.read && markAsRead(n.id)}

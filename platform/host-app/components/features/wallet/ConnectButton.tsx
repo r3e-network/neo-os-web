@@ -80,7 +80,7 @@ export function ConnectButton() {
         disabled={wallet.loading}
         aria-haspopup="true"
         aria-expanded={showMenu}
-        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
       >
         {wallet.loading ? "Connecting..." : "Connect Wallet"}
       </Button>
@@ -94,7 +94,7 @@ export function ConnectButton() {
               role="menuitem"
               key={w.id}
               onClick={() => handleConnect(w.id)}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-3 text-left text-sm hover:bg-gray-100 transition-colors dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-3 text-left text-sm hover:bg-gray-100 transition-colors dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             >
               <img src={w.icon} alt={w.name} className="w-6 h-6 rounded" onError={(e) => { e.currentTarget.src = "/wallet-default.svg"; }} />
               <span className="font-medium text-gray-800 dark:text-white">{w.name}</span>

@@ -122,7 +122,7 @@ export default function AccountPage() {
                 <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                   <Link
                     href="/leaderboard"
-                    className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-emerald-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
+                    className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-emerald-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
                   >
                     <TrendingUp size={12} />
                     <span>Rank #{stats?.rank || "-"}</span>

@@ -82,7 +82,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write a comment..."
             aria-label="Write a comment"
-            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white dark:placeholder-gray-400 rounded p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white dark:placeholder-gray-400 rounded p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             rows={3}
             maxLength={2000}
           />
@@ -90,7 +90,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={submitting || !newComment.trim()}
-            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           >
             {submitting ? "Posting..." : "Post Comment"}
           </button>
@@ -113,7 +113,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
           </div>
           {hasMore && (
             <div className="p-4 text-center">
-              <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:text-emerald-700 dark:hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded">
+              <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:text-emerald-700 dark:hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded">
                 {loading ? "Loading..." : "Load more comments"}
               </button>
             </div>

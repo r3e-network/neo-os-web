@@ -56,7 +56,7 @@ export function ForumTab({ appId }: ForumTabProps) {
           <button
             type="button"
             onClick={() => setShowNewThread(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           >
             <Plus size={16} />
             New Thread
@@ -76,7 +76,7 @@ export function ForumTab({ appId }: ForumTabProps) {
               filter === cat
                 ? "bg-emerald-500 text-white"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-            } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50`}
+            } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50`}
           >
             {cat}
           </button>
@@ -184,7 +184,7 @@ function NewThreadForm({
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Thread title..."
         aria-label="Thread title"
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         maxLength={200}
       />
       <textarea
@@ -192,7 +192,7 @@ function NewThreadForm({
         onChange={(e) => setContent(e.target.value)}
         placeholder="What's on your mind?"
         aria-label="Thread content"
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         rows={4}
         maxLength={5000}
       />
@@ -201,7 +201,7 @@ function NewThreadForm({
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           aria-label="Thread category"
-          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         >
           <option value="general">General</option>
           <option value="bug">Bug Report</option>
@@ -262,7 +262,7 @@ function ThreadDetail({
       <button
         type="button"
         onClick={onBack}
-        className="text-sm text-emerald-500 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded"
+        className="text-sm text-emerald-500 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
       >
         ← Back to discussions
       </button>
@@ -299,14 +299,14 @@ function ThreadDetail({
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."
             aria-label="Reply"
-            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             maxLength={2000}
           />
           <button
             type="button"
             onClick={handleReply}
             disabled={submitting || !replyContent.trim()}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           >
             Reply
           </button>
