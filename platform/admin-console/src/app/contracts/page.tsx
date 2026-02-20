@@ -39,11 +39,11 @@ export default function ContractsPage() {
           <CardTitle>Deployed Contracts</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <ul className="space-y-4">
             {contracts.map((contract) => (
-              <div
+              <li
                 key={contract.name}
-                className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 <div>
                   <div className="font-medium text-gray-900 dark:text-white">{contract.name}</div>
@@ -58,9 +58,9 @@ export default function ContractsPage() {
                     View
                   </Button>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </CardContent>
       </Card>
 
