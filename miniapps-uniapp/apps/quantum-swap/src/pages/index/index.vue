@@ -176,7 +176,7 @@ const initiateSwap = async (): Promise<void> => {
 }
 .note {
   display: block;
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 0.85em;
   color: $color-text-secondary;
 }

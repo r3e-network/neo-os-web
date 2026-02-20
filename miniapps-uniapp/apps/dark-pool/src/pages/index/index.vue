@@ -82,5 +82,5 @@ const placeOrder = async (): Promise<void> => {
 .action-btn { background: linear-gradient(135deg, $color-defi 0%, darken($color-defi, 10%) 100%); padding: 14px; border-radius: 12px; text-align: center; font-weight: bold; margin-top: 12px;
   &:active { filter: brightness(0.85); }
 }
-.note { display: block; margin-top: 10px; font-size: 0.85em; color: $color-text-secondary; }
+.note { display: block; margin-top: 8px; font-size: 0.85em; color: $color-text-secondary; }
 </style>
