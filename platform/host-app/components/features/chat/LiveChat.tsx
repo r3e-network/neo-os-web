@@ -156,7 +156,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" aria-live="polite" tabIndex={0}
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" aria-live="polite" tabIndex={0}>
             {loading && messages.length === 0 ? (
               <div className="space-y-3 py-4">
                 {Array.from({ length: 4 }, (_, i) => (
