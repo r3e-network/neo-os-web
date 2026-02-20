@@ -38,6 +38,7 @@ func (s *Service) handleStart(w http.ResponseWriter, r *http.Request) {
 
 	err := s.Start(r.Context())
 	if err != nil {
+		s.Logger().Error(r.Context(), "failed to start simulation", err, nil)
 		httputil.WriteJSON(w, http.StatusBadRequest, StartSimulationResponse{
 			Success: false,
 			Message: "failed to start simulation",
@@ -62,6 +63,7 @@ func (s *Service) handleStop(w http.ResponseWriter, r *http.Request) {
 
 	err := s.Stop()
 	if err != nil {
+		s.Logger().Error(r.Context(), "failed to stop simulation", err, nil)
 		httputil.WriteJSON(w, http.StatusBadRequest, StopSimulationResponse{
 			Success: false,
 			Message: "failed to stop simulation",

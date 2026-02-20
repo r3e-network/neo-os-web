@@ -13,6 +13,7 @@ interface SlidingWindowEntry {
 }
 
 const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const MAX_STORE_SIZE = 50_000;
 
 function getClientIp(req: NextApiRequest): string {
   const forwarded = req.headers["x-forwarded-for"];
@@ -59,6 +60,10 @@ export function rateLimit(config?: RateLimitConfig) {
 
     let entry = store.get(key);
     if (!entry) {
+      if (store.size >= MAX_STORE_SIZE) {
+        const oldest = store.keys().next().value;
+        if (oldest !== undefined) store.delete(oldest);
+      }
       entry = { timestamps: [] };
       store.set(key, entry);
     }

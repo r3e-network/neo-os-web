@@ -102,12 +102,12 @@ export function resolveInternalBaseUrl(req?: RequestLike): string {
   const envBase = String(process.env.NEXT_PUBLIC_API_URL || "").trim();
   if (envBase) return envBase;
 
-  const host = req?.headers?.host;
-  if (host) {
+  const rawHost = Array.isArray(req?.headers?.host) ? req?.headers?.host[0] : req?.headers?.host;
+  if (rawHost && /^[a-zA-Z0-9._-]+(:\d+)?$/.test(rawHost)) {
     const protoHeader = req?.headers?.["x-forwarded-proto"];
     const rawProto = Array.isArray(protoHeader) ? protoHeader[0] : protoHeader;
     const proto = rawProto === "https" ? "https" : "http";
-    return `${proto}://${host}`;
+    return `${proto}://${rawHost}`;
   }
 
   // In production, this should never be reached as host header is always present
