@@ -15,7 +15,7 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
     <ul className="space-y-3">
       {tokens.map((token) => (
         <li key={token.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900 dark:text-white truncate" title={token.name}>{token.name}</span>
               <StatusBadge status={token.status} />

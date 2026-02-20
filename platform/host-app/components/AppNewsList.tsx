@@ -83,7 +83,7 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
           <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate" title={notification.title}>
             {notification.title}
           </h4>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
             {getTimeAgo(notification.created_at)}
           </span>
         </div>

@@ -28,7 +28,7 @@ export function OAuthLinks() {
 
           return (
             <li key={provider.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <span className="text-2xl">{provider.icon}</span>
                 <div>
                   <div className="font-medium text-gray-900 dark:text-white">{provider.name}</div>

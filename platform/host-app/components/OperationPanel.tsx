@@ -41,8 +41,8 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
   return (
     <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700">
       <div className="flex justify-between items-center mb-2">
-        <span className="font-semibold text-sm text-gray-900 dark:text-white">{op.name}</span>
-        {op.gas_cost && <span className="text-xs text-neo bg-neo/10 px-2 py-0.5 rounded-md">{op.gas_cost} GAS</span>}
+        <span className="font-semibold text-sm text-gray-900 dark:text-white truncate">{op.name}</span>
+        {op.gas_cost && <span className="text-xs text-neo bg-neo/10 px-2 py-0.5 rounded-md shrink-0">{op.gas_cost} GAS</span>}
       </div>
       {op.description && <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{op.description}</p>}
       {(op.params ?? []).map((p) => (

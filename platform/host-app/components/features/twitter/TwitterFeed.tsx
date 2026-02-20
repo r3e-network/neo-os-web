@@ -65,7 +65,7 @@ export function TwitterFeed() {
           >
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white">N</div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-gray-900 dark:text-white">{tweet.author}</span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">@Neo_Blockchain</span>
