@@ -74,7 +74,7 @@ const deploy = async (): Promise<void> => {
   &.error { background: rgba($color-error, 0.15); color: $color-error; }
 }
 .card { background: $color-bg-card; border: 1px solid $color-border; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
-.card-title { color: $color-defi; font-size: 1.1em; font-weight: bold; display: block; margin-bottom: 10px; }
+.card-title { color: $color-defi; font-size: 1.1em; font-weight: bold; display: block; margin-bottom: 12px; }
 .row { display: flex; justify-content: space-between; padding: 12px; background: rgba($color-defi, 0.1); border-radius: 10px; margin-bottom: 8px; }
 .v { color: $color-defi; font-weight: bold; }
 .action-btn { background: linear-gradient(135deg, $color-defi 0%, darken($color-defi, 10%) 100%); padding: 14px; border-radius: 12px; text-align: center; font-weight: bold; margin-top: 12px; }
