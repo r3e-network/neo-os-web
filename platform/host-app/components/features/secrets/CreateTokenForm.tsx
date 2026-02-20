@@ -98,7 +98,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
               type="button"
               onClick={() => setShowValue(!showValue)}
               aria-label={showValue ? "Hide secret" : "Show secret"}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 dark:text-gray-400 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
             >
               {showValue ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
