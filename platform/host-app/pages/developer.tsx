@@ -268,7 +268,7 @@ export default function DeveloperPage() {
                     aria-label="Close panel"
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
                   >
-                    <X className="text-gray-400" size={20} />
+                    <X className="text-gray-500 dark:text-gray-400" size={20} />
                   </button>
                 </div>
               </div>

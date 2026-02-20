@@ -50,14 +50,14 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
           {/* Stats */}
           <div className="hidden sm:flex items-center gap-6 text-xs text-gray-500 dark:text-gray-400 font-mono">
             <div className="flex items-center gap-1.5" title="Users">
-              <Globe size={14} className="text-gray-400" aria-hidden="true" />
+              <Globe size={14} className="text-gray-500 dark:text-gray-400" aria-hidden="true" />
               <span>{formatNumber(app.stats?.users)}</span>
             </div>
             <div className="flex items-center gap-1.5" title="Transactions">
-              <Zap size={14} className="text-gray-400" aria-hidden="true" />
+              <Zap size={14} className="text-gray-500 dark:text-gray-400" aria-hidden="true" />
               <span>{formatNumber(app.stats?.transactions)}</span>
             </div>
-            <div className="flex items-center gap-1 w-20 justify-end text-gray-400" title="Updated">
+            <div className="flex items-center gap-1 w-20 justify-end text-gray-500 dark:text-gray-400" title="Updated">
               <span>Recently</span>
             </div>
           </div>

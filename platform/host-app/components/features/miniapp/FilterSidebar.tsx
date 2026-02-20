@@ -48,9 +48,9 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
             >
               {section.label}
               {expanded[section.id] ? (
-                <ChevronDown size={16} className="text-gray-400" aria-hidden="true" />
+                <ChevronDown size={16} className="text-gray-500 dark:text-gray-400" aria-hidden="true" />
               ) : (
-                <ChevronRight size={16} className="text-gray-400" aria-hidden="true" />
+                <ChevronRight size={16} className="text-gray-500 dark:text-gray-400" aria-hidden="true" />
               )}
             </button>
 

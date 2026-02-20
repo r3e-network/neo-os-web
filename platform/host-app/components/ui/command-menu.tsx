@@ -42,7 +42,7 @@ export function CommandMenu() {
       <div className="fixed left-1/2 top-1/4 -translate-x-1/2 w-full max-w-lg cursor-default" onClick={(e) => e.stopPropagation()}>
         <Command className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl">
           <div className="flex items-center border-b border-gray-200 dark:border-gray-700 px-3">
-            <Search className="mr-2 h-4 w-4 text-gray-400 dark:text-gray-400" />
+            <Search className="mr-2 h-4 w-4 text-gray-500 dark:text-gray-400" />
             <Command.Input
               placeholder="Search..."
               className="h-12 w-full bg-transparent text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus-visible:outline-none"
