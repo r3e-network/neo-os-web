@@ -133,7 +133,7 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+      className="w-full text-left p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${categoryColors[thread.category]}`}>

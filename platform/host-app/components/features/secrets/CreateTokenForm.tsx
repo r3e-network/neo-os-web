@@ -60,7 +60,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
                 type="button"
                 aria-pressed={secretType === type.value}
                 onClick={() => setSecretType(type.value)}
-                className={`rounded border p-2 text-left text-sm text-gray-900 dark:text-white transition-colors ${
+                className={`rounded border p-2 text-left text-sm text-gray-900 dark:text-white cursor-pointer transition-colors ${
                   secretType === type.value
                     ? "border-neo bg-neo/10 dark:bg-neo/20"
                     : "border-gray-200 dark:border-gray-700 dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
@@ -80,7 +80,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My API Token"
-            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neo/50"
+            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           />
         </div>
         <div>
@@ -92,7 +92,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
               value={secretValue}
               onChange={(e) => setSecretValue(e.target.value)}
               placeholder="Enter your secret value"
-              className="w-full rounded border border-gray-200 bg-white px-3 py-2 pr-10 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neo/50"
+              className="w-full rounded border border-gray-200 bg-white px-3 py-2 pr-10 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             />
             <button
               type="button"
@@ -112,7 +112,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
             value={appId}
             onChange={(e) => setAppId(e.target.value)}
             placeholder="Leave empty for global access"
-            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-neo/50"
+            className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           />
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Restrict to specific MiniApp or leave empty for all apps

@@ -89,7 +89,7 @@ export function Navbar() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("actions.search")}
               aria-label={t("actions.search")}
-              className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-transparent"
+              className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus:border-transparent"
             />
           </div>
         </form>
@@ -149,7 +149,7 @@ export function Navbar() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("actions.search")}
                 aria-label={t("actions.search")}
-                className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-transparent"
+                className="w-full h-9 pl-9 pr-4 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus:border-transparent"
               />
             </div>
           </form>
