@@ -23,6 +23,10 @@ const DEPLOYED_APPS = [
 ];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "GET" && req.method !== "POST") {
+    return apiError.methodNotAllowed(res);
+  }
+
   // Verify cron secret (timing-safe to prevent oracle attacks)
   const cronSecret = String(process.env.CRON_SECRET || "");
   const authHeader = String(req.headers.authorization || "");

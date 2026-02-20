@@ -35,8 +35,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (upstream.ok) {
       res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
     }
-    const status = upstream.ok ? upstream.status : 502;
-    res.status(status).json(payload);
+    if (!upstream.ok) {
+      return apiError.internal(res, "Upstream request failed");
+    }
+    res.status(upstream.status).json(payload);
   } catch {
     return apiError.internal(res, "Failed to fetch news");
   }

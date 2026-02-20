@@ -1,4 +1,5 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
@@ -9,6 +10,9 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+
+  const rl = await requireRateLimit(req, "auth-social-sync");
+  if (rl) return rl;
 
   // Service-to-service auth (timing-safe comparison)
   const serviceKey = req.headers.get("X-Service-Key")?.trim() ?? "";
