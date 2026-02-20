@@ -113,10 +113,12 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Delete(Storage.CurrentContext, principalKey);
             Storage.Delete(Storage.CurrentContext, compoundKey);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, owner, principal);
+            bool transferred = NEO.Transfer(Runtime.ExecutingScriptHash, owner, principal);
+            ExecutionEngine.Assert(transferred, "principal return failed");
             if (compound > fee)
             {
-                GAS.Transfer(Runtime.ExecutingScriptHash, owner, compound - fee);
+                bool compoundTransferred = GAS.Transfer(Runtime.ExecutingScriptHash, owner, compound - fee);
+                ExecutionEngine.Assert(compoundTransferred, "compound transfer failed");
             }
 
             OnCapsuleUnlocked(capsuleId, owner, payout);

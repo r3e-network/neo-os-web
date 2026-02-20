@@ -105,7 +105,8 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, createdKey, Runtime.Time);
 
             // Transfer loan to borrower
-            GAS.Transfer(Runtime.ExecutingScriptHash, borrower, loanAmount);
+            bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, borrower, loanAmount);
+            ExecutionEngine.Assert(transferred, "loan transfer failed");
 
             OnLoanCreated(loanId, borrower, neoAmount, loanAmount);
         }
@@ -148,7 +149,8 @@ namespace NeoMiniAppPlatform.Contracts
             byte[] activeKey = Helper.Concat(PREFIX_LOAN_ACTIVE, (ByteString)loanId.ToByteArray());
             Storage.Put(Storage.CurrentContext, activeKey, 0);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, borrower, collateral);
+            bool transferred = NEO.Transfer(Runtime.ExecutingScriptHash, borrower, collateral);
+            ExecutionEngine.Assert(transferred, "collateral return failed");
 
             OnLoanClosed(loanId, borrower);
         }

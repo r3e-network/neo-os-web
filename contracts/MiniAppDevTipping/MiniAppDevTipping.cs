@@ -246,7 +246,8 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, balanceKey, 0);
 
             // Transfer GAS to developer
-            GAS.Transfer(Runtime.ExecutingScriptHash, devWallet, balance);
+            bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, devWallet, balance);
+            ExecutionEngine.Assert(transferred, "withdraw transfer failed");
 
             OnTipWithdrawn(devId, devWallet, balance);
         }

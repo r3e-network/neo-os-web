@@ -122,7 +122,8 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger total = TotalPool();
             Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_POOL, total - amount);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, depositor, amount);
+            bool transferred = NEO.Transfer(Runtime.ExecutingScriptHash, depositor, amount);
+            ExecutionEngine.Assert(transferred, "withdraw transfer failed");
         }
 
         #endregion

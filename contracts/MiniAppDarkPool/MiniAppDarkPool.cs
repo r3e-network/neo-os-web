@@ -113,7 +113,8 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger totalPooled = TotalPooled();
             Storage.Put(Storage.CurrentContext, PREFIX_POOL_TOTAL, totalPooled - neoAmount);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, depositor, neoAmount);
+            bool transferred = NEO.Transfer(Runtime.ExecutingScriptHash, depositor, neoAmount);
+            ExecutionEngine.Assert(transferred, "withdraw transfer failed");
         }
 
         /// <summary>

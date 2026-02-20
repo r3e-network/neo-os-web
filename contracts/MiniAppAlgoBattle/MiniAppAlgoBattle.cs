@@ -209,7 +209,8 @@ namespace NeoMiniAppPlatform.Contracts
                 BigInteger reward = MATCH_FEE * (100 - PLATFORM_FEE_PERCENT) / 100;
                 if (winnerOwner != null && winnerOwner.IsValid && reward > 0)
                 {
-                    GAS.Transfer(Runtime.ExecutingScriptHash, winnerOwner, reward);
+                    bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, winnerOwner, reward);
+                    ExecutionEngine.Assert(transferred, "reward transfer failed");
                 }
             }
             else if (winner == script2)
@@ -223,7 +224,8 @@ namespace NeoMiniAppPlatform.Contracts
                 BigInteger reward = MATCH_FEE * (100 - PLATFORM_FEE_PERCENT) / 100;
                 if (winnerOwner != null && winnerOwner.IsValid && reward > 0)
                 {
-                    GAS.Transfer(Runtime.ExecutingScriptHash, winnerOwner, reward);
+                    bool transferred2 = GAS.Transfer(Runtime.ExecutingScriptHash, winnerOwner, reward);
+                    ExecutionEngine.Assert(transferred2, "reward transfer failed");
                 }
             }
 

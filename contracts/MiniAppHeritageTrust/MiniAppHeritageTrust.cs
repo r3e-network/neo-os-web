@@ -144,7 +144,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(yield > 0, "no yield");
 
             Storage.Put(Storage.CurrentContext, yieldKey, 0);
-            GAS.Transfer(Runtime.ExecutingScriptHash, owner, yield);
+            bool yieldTransferred = GAS.Transfer(Runtime.ExecutingScriptHash, owner, yield);
+            ExecutionEngine.Assert(yieldTransferred, "yield transfer failed");
 
             OnYieldClaimed(trustId, owner, yield);
         }
@@ -166,7 +167,8 @@ namespace NeoMiniAppPlatform.Contracts
             byte[] activeKey = Helper.Concat(PREFIX_TRUST_ACTIVE, (ByteString)trustId.ToByteArray());
             Storage.Put(Storage.CurrentContext, activeKey, 0);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, heir, principal);
+            bool transferred = NEO.Transfer(Runtime.ExecutingScriptHash, heir, principal);
+            ExecutionEngine.Assert(transferred, "trust transfer failed");
 
             OnTrustExecuted(trustId, heir, principal);
         }

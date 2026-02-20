@@ -195,7 +195,8 @@ namespace NeoMiniAppPlatform.Contracts
             // Transfer to heir
             if (balance > 0)
             {
-                GAS.Transfer(Runtime.ExecutingScriptHash, heir, balance);
+                bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, heir, balance);
+                ExecutionEngine.Assert(transferred, "transfer failed");
             }
 
             OnSwitchTriggered(switchId, heir, balance);
