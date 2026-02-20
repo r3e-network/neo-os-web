@@ -305,7 +305,7 @@ $color-testnet: #ffa500;
 .app-container {
   min-height: 100vh;
   background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 16px;
 }
 
@@ -377,7 +377,7 @@ $color-testnet: #ffa500;
 .stat-value {
   font-size: 1.1em;
   font-weight: bold;
-  color: #fff;
+  color: $color-text-primary;
   display: block;
 }
 
@@ -402,7 +402,7 @@ $color-testnet: #ffa500;
   border: 1px solid $color-border;
   border-radius: 8px;
   padding: 12px;
-  color: #fff;
+  color: $color-text-primary;
   font-size: 0.9em;
 }
 

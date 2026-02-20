@@ -236,7 +236,7 @@ const rentVotes = async (id: number) => {
 
 .list-btn {
   background: linear-gradient(135deg, $color-governance 0%, darken($color-governance, 10%) 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;
   text-align: center;

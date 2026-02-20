@@ -266,10 +266,10 @@ const showRules = () => {
   font-weight: bold;
   font-size: 1.1em;
   &.white {
-    color: #fff;
+    color: $color-text-primary;
   }
   &.black {
-    color: #888;
+    color: $color-text-secondary;
   }
 }
 
@@ -335,7 +335,7 @@ const showRules = () => {
 .action-btn {
   flex: 1;
   background: linear-gradient(135deg, $color-gaming 0%, darken($color-gaming, 10%) 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;
   text-align: center;

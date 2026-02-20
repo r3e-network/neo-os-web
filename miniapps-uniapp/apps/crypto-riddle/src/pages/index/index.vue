@@ -162,7 +162,7 @@ const nextRiddle = () => {
 .app-container {
   min-height: 100vh;
   background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 20px;
 }
 .header {
@@ -261,7 +261,7 @@ const nextRiddle = () => {
 .riddle-text {
   font-size: 1.1em;
   line-height: 1.6;
-  color: #fff;
+  color: $color-text-primary;
 }
 .hint-section {
   background: rgba(#f59e0b, 0.1);
@@ -285,7 +285,7 @@ const nextRiddle = () => {
 }
 .submit-btn {
   background: linear-gradient(135deg, $color-gaming 0%, darken($color-gaming, 10%) 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;
   text-align: center;
@@ -325,7 +325,7 @@ const nextRiddle = () => {
 }
 .next-btn {
   background: $color-gaming;
-  color: #fff;
+  color: $color-text-primary;
   padding: 12px 24px;
   border-radius: 8px;
   display: inline-block;

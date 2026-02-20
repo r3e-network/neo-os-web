@@ -65,7 +65,7 @@ const deploy = async (): Promise<void> => {
 
 <style lang="scss">
 @import "@/shared/styles/theme.scss";
-.app-container { min-height: 100vh; background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%); color: #fff; padding: 20px; }
+.app-container { min-height: 100vh; background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%); color: $color-text-primary; padding: 20px; }
 .header { text-align: center; margin-bottom: 24px; }
 .title { font-size: 1.8em; font-weight: 800; color: $color-defi; }
 .subtitle { color: $color-text-secondary; font-size: 0.9em; margin-top: 8px; }

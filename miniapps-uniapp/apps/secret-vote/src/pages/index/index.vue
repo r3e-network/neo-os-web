@@ -53,7 +53,7 @@ const vote = (yes: boolean) => {
 .app-container {
   min-height: 100vh;
   background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 20px;
 }
 .header {

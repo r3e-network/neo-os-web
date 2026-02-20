@@ -235,7 +235,7 @@ onMounted(() => {
 .subtitle {
   display: block;
   font-size: 14px;
-  color: #888;
+  color: $color-text-secondary;
   margin-top: 4px;
 }
 
@@ -256,7 +256,7 @@ onMounted(() => {
 .stat-label {
   display: block;
   font-size: 12px;
-  color: #888;
+  color: $color-text-secondary;
   margin-bottom: 4px;
 }
 
@@ -264,7 +264,7 @@ onMounted(() => {
   display: block;
   font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: $color-text-primary;
 }
 
 .apy-card {
@@ -303,7 +303,7 @@ onMounted(() => {
   padding: 12px;
   text-align: center;
   border-radius: 8px;
-  color: #888;
+  color: $color-text-secondary;
   transition: all 0.2s;
 }
 
@@ -326,7 +326,7 @@ onMounted(() => {
 .input-label {
   display: block;
   font-size: 14px;
-  color: #888;
+  color: $color-text-secondary;
   margin-bottom: 8px;
 }
 
@@ -343,20 +343,20 @@ onMounted(() => {
   background: transparent;
   border: none;
   font-size: 24px;
-  color: #fff;
+  color: $color-text-primary;
   outline: none;
 }
 
 .token-label {
   font-size: 16px;
-  color: #888;
+  color: $color-text-secondary;
   margin-left: 8px;
 }
 
 .balance-hint {
   display: block;
   font-size: 12px;
-  color: #666;
+  color: $color-text-muted;
   margin-top: 8px;
 }
 
@@ -372,7 +372,7 @@ onMounted(() => {
 
 .receive-label {
   font-size: 14px;
-  color: #888;
+  color: $color-text-secondary;
 }
 
 .receive-value {
@@ -399,7 +399,7 @@ onMounted(() => {
 
 .unstake-btn {
   background: #ff6b6b;
-  color: #fff;
+  color: $color-text-primary;
 }
 
 .action-btn:disabled {

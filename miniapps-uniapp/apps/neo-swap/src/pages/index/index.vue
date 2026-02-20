@@ -256,7 +256,7 @@ $color-border: rgba(255, 255, 255, 0.1);
 .subtitle {
   display: block;
   font-size: 14px;
-  color: #888;
+  color: $color-text-secondary;
   margin-top: 4px;
 }
 
@@ -275,7 +275,7 @@ $color-border: rgba(255, 255, 255, 0.1);
 .section-label {
   display: block;
   font-size: 12px;
-  color: #888;
+  color: $color-text-secondary;
   margin-bottom: 8px;
 }
 
@@ -302,12 +302,12 @@ $color-border: rgba(255, 255, 255, 0.1);
 .token-symbol {
   font-size: 16px;
   font-weight: 600;
-  color: #fff;
+  color: $color-text-primary;
 }
 
 .dropdown-arrow {
   font-size: 10px;
-  color: #888;
+  color: $color-text-secondary;
 }
 
 .amount-input {
@@ -315,7 +315,7 @@ $color-border: rgba(255, 255, 255, 0.1);
   background: transparent;
   border: none;
   font-size: 24px;
-  color: #fff;
+  color: $color-text-primary;
   text-align: right;
   outline: none;
 }
@@ -323,7 +323,7 @@ $color-border: rgba(255, 255, 255, 0.1);
 .balance-text {
   display: block;
   font-size: 12px;
-  color: #666;
+  color: $color-text-muted;
   margin-top: 8px;
 }
 
@@ -353,12 +353,12 @@ $color-border: rgba(255, 255, 255, 0.1);
 
 .price-label {
   font-size: 13px;
-  color: #888;
+  color: $color-text-secondary;
 }
 
 .price-value {
   font-size: 13px;
-  color: #fff;
+  color: $color-text-primary;
 }
 
 .swap-btn {
@@ -369,7 +369,7 @@ $color-border: rgba(255, 255, 255, 0.1);
   font-size: 16px;
   font-weight: 600;
   background: $color-flamingo;
-  color: #fff;
+  color: $color-text-primary;
   cursor: pointer;
 }
 
@@ -419,7 +419,7 @@ $color-border: rgba(255, 255, 255, 0.1);
   display: block;
   font-size: 16px;
   font-weight: 600;
-  color: #fff;
+  color: $color-text-primary;
   margin-bottom: 16px;
 }
 
@@ -443,12 +443,12 @@ $color-border: rgba(255, 255, 255, 0.1);
 .token-name {
   display: block;
   font-size: 14px;
-  color: #fff;
+  color: $color-text-primary;
 }
 
 .token-balance {
   display: block;
   font-size: 12px;
-  color: #888;
+  color: $color-text-secondary;
 }
 </style>

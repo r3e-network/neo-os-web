@@ -123,7 +123,7 @@ const startMining = async () => {
 .app-container {
   min-height: 100vh;
   background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 20px;
 }
 .header {
@@ -210,7 +210,7 @@ const startMining = async () => {
 }
 .mine-btn {
   background: linear-gradient(135deg, $color-gaming 0%, darken($color-gaming, 10%) 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;
   text-align: center;

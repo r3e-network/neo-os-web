@@ -88,7 +88,7 @@ const submitSolution = async () => {
 .app-container {
   min-height: 100vh;
   background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 20px;
 }
 .header {
@@ -171,7 +171,7 @@ const submitSolution = async () => {
   font-weight: bold;
   &.critical {
     background: rgba(220, 38, 38, 0.2);
-    color: #ef4444;
+    color: $color-error;
   }
   &.high {
     background: rgba(249, 115, 22, 0.2);
@@ -188,7 +188,7 @@ const submitSolution = async () => {
 }
 .action-btn {
   background: linear-gradient(135deg, $color-social 0%, #c13584 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;
   text-align: center;

@@ -167,7 +167,7 @@ onUnmounted(() => clearInterval(timer));
 }
 .action-btn {
   background: linear-gradient(135deg, $color-utility 0%, darken($color-utility, 10%) 100%);
-  color: #fff;
+  color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;
   text-align: center;
