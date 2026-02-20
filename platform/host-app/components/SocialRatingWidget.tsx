@@ -64,7 +64,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
       {displayError && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg" role="alert">
           <div className="flex items-center justify-between">
-            <span className="text-red-700 dark:text-red-400 text-sm">{displayError}</span>
+            <span className="text-red-600 dark:text-red-400 text-sm">{displayError}</span>
             <button
               type="button"
               onClick={() => {
@@ -72,7 +72,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 onClearError?.();
               }}
               aria-label="Dismiss error"
-              className="p-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+              className="p-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
             >
               ×
             </button>
