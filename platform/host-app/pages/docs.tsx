@@ -100,7 +100,7 @@ export default function DocsPage() {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar Navigation */}
             <aside className="lg:w-64 shrink-0">
-              <nav className="sticky top-24 space-y-1">
+              <nav aria-label="Documentation sections" className="sticky top-24 space-y-1">
                 {sections.map((section) => {
                   const Icon = section.icon;
                   const isActive = activeSection === section.id;
