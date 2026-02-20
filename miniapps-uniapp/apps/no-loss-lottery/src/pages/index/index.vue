@@ -97,7 +97,7 @@ const joinLottery = async (): Promise<void> => {
 }
 .title {
   font-size: 1.8em;
-  font-weight: 800;
+  font-weight: bold;
   color: $color-defi;
 }
 .subtitle {
@@ -129,7 +129,7 @@ const joinLottery = async (): Promise<void> => {
 .card-title {
   color: $color-defi;
   font-size: 1.05em;
-  font-weight: 800;
+  font-weight: bold;
   display: block;
   margin-bottom: 10px;
 }
@@ -143,7 +143,7 @@ const joinLottery = async (): Promise<void> => {
 }
 .v {
   color: $color-defi;
-  font-weight: 800;
+  font-weight: bold;
 }
 .info-row {
   display: flex;
@@ -153,14 +153,14 @@ const joinLottery = async (): Promise<void> => {
 }
 .tickets {
   color: $color-success;
-  font-weight: 800;
+  font-weight: bold;
 }
 .action-btn {
   background: linear-gradient(135deg, $color-defi 0%, darken($color-defi, 10%) 100%);
   padding: 14px;
   border-radius: 12px;
   text-align: center;
-  font-weight: 800;
+  font-weight: bold;
 }
 .note {
   display: block;

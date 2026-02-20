@@ -100,7 +100,7 @@ const initiateSwap = async (): Promise<void> => {
 }
 .title {
   font-size: 1.8em;
-  font-weight: 800;
+  font-weight: bold;
   color: $color-defi;
 }
 .subtitle {
@@ -132,7 +132,7 @@ const initiateSwap = async (): Promise<void> => {
 .card-title {
   color: $color-defi;
   font-size: 1.05em;
-  font-weight: 800;
+  font-weight: bold;
   display: block;
   margin-bottom: 10px;
 }
@@ -146,7 +146,7 @@ const initiateSwap = async (): Promise<void> => {
 }
 .v {
   color: $color-defi;
-  font-weight: 800;
+  font-weight: bold;
 }
 .detail-row {
   display: flex;
@@ -156,7 +156,7 @@ const initiateSwap = async (): Promise<void> => {
 }
 .receive {
   color: $color-success;
-  font-weight: 800;
+  font-weight: bold;
 }
 .fee {
   color: $color-defi;
@@ -169,7 +169,7 @@ const initiateSwap = async (): Promise<void> => {
   padding: 14px;
   border-radius: 12px;
   text-align: center;
-  font-weight: 800;
+  font-weight: bold;
 }
 .note {
   display: block;

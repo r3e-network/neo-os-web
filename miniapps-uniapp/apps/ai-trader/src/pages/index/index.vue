@@ -67,16 +67,16 @@ const deploy = async (): Promise<void> => {
 @import "@/shared/styles/theme.scss";
 .app-container { min-height: 100vh; background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%); color: $color-text-primary; padding: 20px; }
 .header { text-align: center; margin-bottom: 24px; }
-.title { font-size: 1.8em; font-weight: 800; color: $color-defi; }
+.title { font-size: 1.8em; font-weight: bold; color: $color-defi; }
 .subtitle { color: $color-text-secondary; font-size: 0.9em; margin-top: 8px; }
 .status-msg { text-align: center; padding: 12px; border-radius: 8px; margin-bottom: 16px;
   &.success { background: rgba($color-success, 0.15); color: $color-success; }
   &.error { background: rgba($color-error, 0.15); color: $color-error; }
 }
-.card { background: $color-bg-card; border: 1px solid $color-border; border-radius: 16px; padding: 18px; margin-bottom: 16px; }
-.card-title { color: $color-defi; font-size: 1.05em; font-weight: 800; display: block; margin-bottom: 10px; }
+.card { background: $color-bg-card; border: 1px solid $color-border; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+.card-title { color: $color-defi; font-size: 1.1em; font-weight: bold; display: block; margin-bottom: 10px; }
 .row { display: flex; justify-content: space-between; padding: 12px; background: rgba($color-defi, 0.1); border-radius: 10px; margin-bottom: 8px; }
-.v { color: $color-defi; font-weight: 800; }
-.action-btn { background: linear-gradient(135deg, $color-defi 0%, darken($color-defi, 10%) 100%); padding: 14px; border-radius: 12px; text-align: center; font-weight: 800; margin-top: 12px; }
+.v { color: $color-defi; font-weight: bold; }
+.action-btn { background: linear-gradient(135deg, $color-defi 0%, darken($color-defi, 10%) 100%); padding: 14px; border-radius: 12px; text-align: center; font-weight: bold; margin-top: 12px; }
 .note { display: block; margin-top: 10px; font-size: 0.85em; color: $color-text-secondary; }
 </style>

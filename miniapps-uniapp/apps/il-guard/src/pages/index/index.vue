@@ -98,7 +98,7 @@ const activateProtection = async (): Promise<void> => {
 }
 .title {
   font-size: 1.8em;
-  font-weight: 800;
+  font-weight: bold;
   color: $color-defi;
 }
 .subtitle {
@@ -130,7 +130,7 @@ const activateProtection = async (): Promise<void> => {
 .card-title {
   color: $color-defi;
   font-size: 1.05em;
-  font-weight: 800;
+  font-weight: bold;
   display: block;
   margin-bottom: 10px;
 }
@@ -144,7 +144,7 @@ const activateProtection = async (): Promise<void> => {
 }
 .v {
   color: $color-defi;
-  font-weight: 800;
+  font-weight: bold;
 }
 .risk {
   color: $color-warning;
@@ -166,7 +166,7 @@ const activateProtection = async (): Promise<void> => {
   padding: 14px;
   border-radius: 12px;
   text-align: center;
-  font-weight: 800;
+  font-weight: bold;
 }
 .note {
   display: block;
