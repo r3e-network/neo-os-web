@@ -252,6 +252,7 @@ function PriceTickerPanel({ sdk }: PanelProps) {
               className={styles.buttonPrimary}
               onClick={refreshPrice}
               disabled={isLoading || !sdk?.datafeed?.getPrice}
+              aria-label="Refresh price feed"
             >
               Refresh
             </button>
@@ -429,7 +430,13 @@ function RandomGamePanel({ sdk, appId, config }: PanelProps & { config: GameConf
             />
           </div>
           <div className={styles.buttonRow}>
-            <button type="button" className={styles.buttonPrimary} onClick={handlePlay} disabled={isBusy}>
+            <button
+              type="button"
+              className={styles.buttonPrimary}
+              onClick={handlePlay}
+              disabled={isBusy}
+              aria-label={`Play ${config.name}`}
+            >
               {isBusy ? "Playing…" : "Play"}
             </button>
             <button

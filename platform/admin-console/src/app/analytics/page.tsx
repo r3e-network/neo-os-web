@@ -108,6 +108,7 @@ export default function AnalyticsPage() {
                         className="w-full rounded-t bg-emerald-500"
                         style={{ height: `${heightPercent}%` }}
                         title={`${point.date}: ${formatNumber(point.gas)}`}
+                        aria-label={`Gas usage on ${point.date}: ${formatNumber(point.gas)}`}
                       />
                       <span className="w-full truncate text-center text-[10px] text-gray-500 dark:text-gray-400">{point.date.slice(5)}</span>
                     </div>

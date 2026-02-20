@@ -180,6 +180,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               type="button"
               role="tab"
               aria-selected={activeTab === "overview"}
+              aria-controls="tabpanel-overview"
               className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "overview" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
@@ -191,6 +192,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               type="button"
               role="tab"
               aria-selected={activeTab === "reviews"}
+              aria-controls="tabpanel-reviews"
               className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "reviews" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
@@ -202,6 +204,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
               type="button"
               role="tab"
               aria-selected={activeTab === "forum"}
+              aria-controls="tabpanel-forum"
               className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "forum" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
@@ -214,6 +217,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
                 type="button"
                 role="tab"
                 aria-selected={activeTab === "news"}
+                aria-controls="tabpanel-news"
                 className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                   activeTab === "news" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
                 }`}
@@ -227,6 +231,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
                 type="button"
                 role="tab"
                 aria-selected={activeTab === "secrets"}
+                aria-controls="tabpanel-secrets"
                 className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                   activeTab === "secrets" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
                 }`}
@@ -238,13 +243,35 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           </div>
 
           <div className="min-h-[200px]">
-            {activeTab === "overview" && <OverviewTab app={app} />}
-            {activeTab === "reviews" && <ReviewsTab appId={app.app_id} />}
-            {activeTab === "forum" && <ForumTab appId={app.app_id} />}
-            {activeTab === "news" && showNews && <AppNewsList notifications={notifications} />}
-            {activeTab === "secrets" && showSecrets && <AppSecretsTab appId={app.app_id} appName={app.name} />}
+            {activeTab === "overview" && (
+              <div id="tabpanel-overview" role="tabpanel">
+                <OverviewTab app={app} />
+              </div>
+            )}
+            {activeTab === "reviews" && (
+              <div id="tabpanel-reviews" role="tabpanel">
+                <ReviewsTab appId={app.app_id} />
+              </div>
+            )}
+            {activeTab === "forum" && (
+              <div id="tabpanel-forum" role="tabpanel">
+                <ForumTab appId={app.app_id} />
+              </div>
+            )}
+            {activeTab === "news" && showNews && (
+              <div id="tabpanel-news" role="tabpanel">
+                <AppNewsList notifications={notifications} />
+              </div>
+            )}
+            {activeTab === "secrets" && showSecrets && (
+              <div id="tabpanel-secrets" role="tabpanel">
+                <AppSecretsTab appId={app.app_id} appName={app.name} />
+              </div>
+            )}
             {!showNews && activeTab === "news" && (
-              <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
+              <div id="tabpanel-news" role="tabpanel">
+                <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
+              </div>
             )}
           </div>
         </section>

@@ -38,13 +38,15 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
       <div className="flex items-center gap-4">
         {/* Wallet Status */}
         <div className="flex items-center gap-1.5">
-          <div className={`w-2 h-2 rounded-full ${walletDotBg}`} />
+          <div className={`w-2 h-2 rounded-full ${walletDotBg}`} aria-hidden="true" />
+          <span className="sr-only">Wallet status: {wallet.connected ? "connected" : "disconnected"}</span>
           <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">{walletDisplay}</span>
         </div>
 
         {/* Network Indicator */}
         <div className="flex items-center gap-1.5">
-          <div className={`w-2 h-2 rounded-full ${networkStatus.bg}`} />
+          <div className={`w-2 h-2 rounded-full ${networkStatus.bg}`} aria-hidden="true" />
+          <span className="sr-only">Network status: {networkStatus.label}</span>
           <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">{networkLatency !== null ? `${networkLatency}ms` : networkStatus.label}</span>
         </div>
 
