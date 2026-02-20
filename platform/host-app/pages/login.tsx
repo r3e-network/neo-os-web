@@ -55,7 +55,7 @@ export default function LoginPage() {
 
           {loading && <p className="text-center text-sm text-gray-500 dark:text-gray-400">Connecting...</p>}
           {error && (
-            <div role="alert" className="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">
+            <div role="alert" className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-600 dark:text-red-400">
               {error}
               <button type="button" onClick={clearError} className="ml-2 underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">dismiss</button>
             </div>
