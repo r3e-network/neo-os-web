@@ -103,7 +103,11 @@ export const ActivityTicker = ({
         {displayActivities.length === 0 ? (
           <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">No activity yet</div>
         ) : (
-          displayActivities.map((activity) => <ActivityItem key={activity.id} activity={activity} />)
+          <ul>
+            {displayActivities.map((activity) => (
+              <ActivityItem key={activity.id} activity={activity} />
+            ))}
+          </ul>
         )}
       </div>
     </div>
@@ -115,7 +119,7 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
   const statusColor = activity.status ? STATUS_COLORS[activity.status] : undefined;
 
   return (
-    <div className="flex gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
+    <li className="flex gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
       <div className="text-base w-6 text-center shrink-0">{activity.app_icon || icon}</div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center gap-2">
@@ -140,6 +144,6 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
           </div>
         )}
       </div>
-    </div>
+    </li>
   );
 });

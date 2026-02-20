@@ -213,10 +213,10 @@ export default function LandingPage() {
             {/* Sidebar Filters */}
             <aside className="hidden lg:block w-72 shrink-0 space-y-8">
               <div>
-                <h3 className="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-4 px-2">
+                <h2 className="flex items-center gap-2 font-bold text-gray-900 dark:text-white mb-4 px-2">
                   <Filter size={18} />
                   Categories
-                </h3>
+                </h2>
                 <div className="space-y-1">
                   {categories.map((cat) => {
                     const Icon = cat.icon;

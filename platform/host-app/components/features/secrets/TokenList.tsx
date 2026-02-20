@@ -12,9 +12,9 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <ul className="space-y-3">
       {tokens.map((token) => (
-        <div key={token.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <li key={token.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900 dark:text-white">{token.name}</span>
@@ -32,9 +32,9 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
               Revoke
             </button>
           )}
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 

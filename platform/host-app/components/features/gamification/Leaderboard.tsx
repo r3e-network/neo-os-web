@@ -67,11 +67,11 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
           Leaderboard
         </h3>
       </div>
-      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+      <ol className="divide-y divide-gray-100 dark:divide-gray-800">
         {entries.map((entry) => (
           <LeaderboardRow key={entry.rank} entry={entry} isCurrentUser={entry.wallet === currentWallet} />
         ))}
-      </div>
+      </ol>
     </div>
   );
 }
@@ -87,7 +87,7 @@ const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser
   };
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 transition-colors ${isCurrentUser ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
+    <li className={`flex items-center gap-3 px-4 py-3 transition-colors ${isCurrentUser ? "bg-emerald-50 dark:bg-emerald-900/20" : ""}`}>
       <div className="w-8 flex justify-center">{getRankIcon()}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -104,6 +104,6 @@ const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser
         <div className="font-bold text-gray-900 dark:text-white">{entry.xp.toLocaleString()}</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">XP</div>
       </div>
-    </div>
+    </li>
   );
 })

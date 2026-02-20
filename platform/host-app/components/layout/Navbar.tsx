@@ -61,23 +61,24 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-1">
+          <ul className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
-                className={cn(
-                  "px-3 py-1.5 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
-                  router.pathname.startsWith(link.href)
-                    ? "text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50",
-                )}
-              >
-                {t(link.labelKey)}
-              </Link>
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
+                  className={cn(
+                    "px-3 py-1.5 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
+                    router.pathname.startsWith(link.href)
+                      ? "text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                  )}
+                >
+                  {t(link.labelKey)}
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
 
         {/* Search Bar */}
@@ -155,24 +156,25 @@ export function Navbar() {
               />
             </div>
           </form>
-          <div className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-1">
             {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
-                className={cn(
-                  "px-3 py-2 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
-                  router.pathname.startsWith(link.href)
-                    ? "text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50",
-                )}
-              >
-                {t(link.labelKey)}
-              </Link>
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
+                  className={cn(
+                    "block px-3 py-2 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
+                    router.pathname.startsWith(link.href)
+                      ? "text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                  )}
+                >
+                  {t(link.labelKey)}
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
     </nav>

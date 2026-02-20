@@ -20,14 +20,14 @@ export function OAuthLinks() {
         </div>
       )}
 
-      <div className="space-y-2">
+      <ul className="space-y-2">
         {oauthProviders.map((provider) => {
           const linked = isLinked(provider.id);
           const account = getAccount(provider.id);
           const isLoading = loading === provider.id;
 
           return (
-            <div key={provider.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <li key={provider.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{provider.icon}</span>
                 <div>
@@ -58,10 +58,10 @@ export function OAuthLinks() {
                   {isLoading ? "Linking..." : "Link"}
                 </button>
               )}
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }

@@ -104,13 +104,13 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
         <div className="p-8 text-center text-gray-500 dark:text-gray-400">No comments yet</div>
       ) : (
         <>
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
             {comments.map((comment) => (
-              <div key={comment.id} className="px-4">
+              <li key={comment.id} className="px-4">
                 <CommentItem comment={comment} onVote={onVote} onReply={onReply} onLoadReplies={onLoadReplies} />
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
           {hasMore && (
             <div className="p-4 text-center">
               <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 dark:text-emerald-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:text-emerald-700 dark:hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded">

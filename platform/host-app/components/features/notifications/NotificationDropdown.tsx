@@ -155,27 +155,29 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
                 <p>No notifications yet</p>
               </div>
             ) : (
-              notifications.map((n) => (
-                <div
-                  key={n.id}
-                  role="button"
-                  tabIndex={0}
-                  className={cn(
-                    "flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
-                    !n.read && "bg-emerald-50/50 dark:bg-emerald-900/10",
-                  )}
-                  onClick={() => !n.read && markAsRead(n.id)}
-                  onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !n.read) { e.preventDefault(); markAsRead(n.id); } }}
-                >
-                  <span className="text-xl">{typeIcons[n.type] || "📬"}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{n.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{n.content}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
-                  </div>
-                  {!n.read && <span className="h-2 w-2 rounded-full bg-emerald-500 mt-2" />}
-                </div>
-              ))
+              <ul>
+                {notifications.map((n) => (
+                  <li
+                    key={n.id}
+                    role="button"
+                    tabIndex={0}
+                    className={cn(
+                      "flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
+                      !n.read && "bg-emerald-50/50 dark:bg-emerald-900/10",
+                    )}
+                    onClick={() => !n.read && markAsRead(n.id)}
+                    onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !n.read) { e.preventDefault(); markAsRead(n.id); } }}
+                  >
+                    <span className="text-xl">{typeIcons[n.type] || "📬"}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{n.title}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{n.content}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
+                    </div>
+                    {!n.read && <span className="h-2 w-2 rounded-full bg-emerald-500 mt-2" />}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>
