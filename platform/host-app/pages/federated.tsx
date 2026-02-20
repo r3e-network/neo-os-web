@@ -11,8 +11,6 @@ export default function FederatedMiniApp() {
   const appId = typeof router.query.app === "string" ? router.query.app : undefined;
   const view = typeof router.query.view === "string" ? router.query.view : undefined;
   const remote = typeof router.query.remote === "string" ? router.query.remote : undefined;
-  const remotes = process.env.NEXT_PUBLIC_MF_REMOTES || "";
-
   useEffect(() => {
     if (!appId) return;
     let mounted = true;
@@ -60,9 +58,6 @@ export default function FederatedMiniApp() {
         <div className="mb-3 text-xs">
           <div>
             <strong>Expected remote:</strong> <code>{remote || "builtin"}</code> exposing <code>./App</code>
-          </div>
-          <div>
-            <strong>NEXT_PUBLIC_MF_REMOTES:</strong> <code>{remotes || "not set"}</code>
           </div>
         </div>
         <FederatedMiniAppRenderer appId={appId} view={view} remote={remote} />

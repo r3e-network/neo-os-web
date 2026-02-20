@@ -590,12 +590,12 @@ func main() {
 		log.Fatalf("Failed to create service: %v", err)
 	}
 
-	// Standard middleware applied to all services.
+	// Standard middleware applied to all services (outermost first).
+	// - Recovery: outermost to catch panics from any middleware or handler.
 	// - Logging: ensures X-Trace-ID is present and logs structured request entries.
-	// - Recovery: prevents panics from crashing the process.
 	logger := sllogging.NewFromEnv(serviceType)
-	svc.Router().Use(slmiddleware.LoggingMiddleware(logger))
 	svc.Router().Use(slmiddleware.NewRecoveryMiddleware(logger).Handler)
+	svc.Router().Use(slmiddleware.LoggingMiddleware(logger))
 	if slmetrics.Enabled() {
 		metricsCollector := slmetrics.Init(serviceType)
 		svc.Router().Use(slmiddleware.MetricsMiddleware(serviceType, metricsCollector))
