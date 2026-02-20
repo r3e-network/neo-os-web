@@ -209,7 +209,7 @@ onMounted(() => {
 .app-container {
   padding: 20px;
   min-height: 100vh;
-  background: linear-gradient(180deg, $color-bg-secondary 0%, $color-bg-dark 100%);
+  background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
 }
 
 .header {
