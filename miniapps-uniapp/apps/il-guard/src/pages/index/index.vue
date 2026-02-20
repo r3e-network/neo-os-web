@@ -147,7 +147,7 @@ const activateProtection = async (): Promise<void> => {
   font-weight: 800;
 }
 .risk {
-  color: #f59e0b;
+  color: $color-warning;
 }
 .loss {
   color: $color-error;

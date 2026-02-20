@@ -162,7 +162,7 @@ const initiateSwap = async (): Promise<void> => {
   color: $color-defi;
 }
 .lock {
-  color: #f59e0b;
+  color: $color-warning;
 }
 .action-btn {
   background: linear-gradient(135deg, $color-defi 0%, darken($color-defi, 10%) 100%);

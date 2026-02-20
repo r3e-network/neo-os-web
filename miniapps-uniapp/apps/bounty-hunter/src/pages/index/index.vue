@@ -174,12 +174,12 @@ const submitSolution = async () => {
     color: $color-error;
   }
   &.high {
-    background: rgba(249, 115, 22, 0.2);
-    color: #f97316;
+    background: rgba($color-severity-high, 0.2);
+    color: $color-severity-high;
   }
   &.medium {
-    background: rgba(234, 179, 8, 0.2);
-    color: #eab308;
+    background: rgba($color-severity-medium, 0.2);
+    color: $color-severity-medium;
   }
 }
 .bounty-time {
@@ -187,7 +187,7 @@ const submitSolution = async () => {
   color: $color-text-secondary;
 }
 .action-btn {
-  background: linear-gradient(135deg, $color-social 0%, #c13584 100%);
+  background: linear-gradient(135deg, $color-social 0%, $color-social-dark 100%);
   color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;

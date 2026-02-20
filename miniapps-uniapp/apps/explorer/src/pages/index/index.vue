@@ -298,10 +298,6 @@ onUnmounted(() => {
 <style lang="scss">
 @import "@/shared/styles/theme.scss";
 
-$color-explorer: #00e599;
-$color-mainnet: #00d4aa;
-$color-testnet: #ffa500;
-
 .app-container {
   min-height: 100vh;
   background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
@@ -408,7 +404,7 @@ $color-testnet: #ffa500;
 
 .search-btn {
   background: $color-explorer;
-  color: #000;
+  color: $color-text-on-brand;
   padding: 12px 20px;
   border-radius: 8px;
   font-weight: bold;

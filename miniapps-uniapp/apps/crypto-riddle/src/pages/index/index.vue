@@ -244,8 +244,8 @@ const nextRiddle = () => {
     color: $color-success;
   }
   &.medium {
-    background: rgba(#f59e0b, 0.2);
-    color: #f59e0b;
+    background: rgba($color-warning, 0.2);
+    color: $color-warning;
   }
   &.hard {
     background: rgba($color-error, 0.2);
@@ -264,13 +264,13 @@ const nextRiddle = () => {
   color: $color-text-primary;
 }
 .hint-section {
-  background: rgba(#f59e0b, 0.1);
+  background: rgba($color-warning, 0.1);
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 12px;
 }
 .hint-label {
-  color: #f59e0b;
+  color: $color-warning;
   font-weight: bold;
   margin-right: 8px;
 }
