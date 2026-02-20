@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect } from "react";
 import type { AppProps } from "next/app";
 import { UserProvider, useUser } from "@auth0/nextjs-auth0/client";
+import { MotionConfig } from "framer-motion";
 import { QueryProvider } from "@/lib/query";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n/react";
@@ -18,17 +19,19 @@ function AuthSync({ children }: { children: ReactNode }) {
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <ErrorBoundary>
-      <UserProvider>
-        <AuthSync>
-          <I18nProvider>
-            <QueryProvider>
-              <ThemeProvider>
-                <Component {...pageProps} />
-              </ThemeProvider>
-            </QueryProvider>
-          </I18nProvider>
-        </AuthSync>
-      </UserProvider>
+      <MotionConfig reducedMotion="user">
+        <UserProvider>
+          <AuthSync>
+            <I18nProvider>
+              <QueryProvider>
+                <ThemeProvider>
+                  <Component {...pageProps} />
+                </ThemeProvider>
+              </QueryProvider>
+            </I18nProvider>
+          </AuthSync>
+        </UserProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

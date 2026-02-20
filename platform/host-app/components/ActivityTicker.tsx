@@ -49,9 +49,10 @@ export const ActivityTicker = ({
   const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<number>(0);
 
-  // Auto-scroll effect
+  // Auto-scroll effect (respects prefers-reduced-motion)
   useEffect(() => {
     if (!containerRef.current || activities.length === 0) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const container = containerRef.current;
     let animationId: number;
@@ -64,7 +65,6 @@ export const ActivityTicker = ({
           scrollRef.current += scrollSpeed / 1000;
           container.scrollTop = scrollRef.current;
 
-          // Reset scroll when reaching bottom
           if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
             scrollRef.current = 0;
             container.scrollTop = 0;
