@@ -4,6 +4,7 @@ import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { withCsrfProtection } from "@/lib/csrf";
 import { standardLimit } from "@/lib/rate-limit";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (standardLimit(req, res)) return;
@@ -13,6 +14,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   if (!wallet || typeof wallet !== "string") {
     return apiError.badRequest(res, "Wallet address required");
+  }
+
+  const authedWallet = await requireWalletAuth(req, res);
+  if (!authedWallet) return;
+  if (wallet !== authedWallet) {
+    return apiError.forbidden(res, "Wallet mismatch");
   }
 
   try {
