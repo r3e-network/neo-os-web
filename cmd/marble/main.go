@@ -659,8 +659,15 @@ func main() {
 		log.Printf("Shutdown error: %v", err)
 	}
 
-	if err := svc.Stop(); err != nil {
-		log.Printf("Service stop error: %v", err)
+	stopDone := make(chan error, 1)
+	go func() { stopDone <- svc.Stop() }()
+	select {
+	case err := <-stopDone:
+		if err != nil {
+			log.Printf("Service stop error: %v", err)
+		}
+	case <-shutdownCtx.Done():
+		log.Println("Service stop timed out")
 	}
 
 	log.Println("Service stopped")
