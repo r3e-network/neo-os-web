@@ -99,6 +99,7 @@
   background: transparent;
   color: #b7c4e6;
   cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .navButtonActive {
@@ -239,6 +240,7 @@
   border: 1px solid #335cff;
   background: transparent;
   color: #bcd0ff;
+  transition: background 0.15s, color 0.15s;
 }
 
 .buttonSecondary:hover:not(:disabled) {
@@ -265,6 +267,7 @@
   background: transparent;
   color: #9aa4c4;
   cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   font-size: 12px;
 }
 
@@ -321,6 +324,7 @@
   color: #c4d0f4;
   cursor: pointer;
   font-size: 13px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   text-transform: capitalize;
 }
 
