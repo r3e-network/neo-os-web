@@ -51,7 +51,7 @@ export function Navbar() {
       <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-4">
         {/* Logo */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
               <span className="text-sm font-bold text-white">N</span>
             </div>
