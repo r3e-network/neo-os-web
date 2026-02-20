@@ -29,7 +29,7 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
   return (
     <div className="fixed top-0 inset-x-0 h-12 bg-[rgba(10,10,10,0.95)] backdrop-blur-sm flex items-center px-4 gap-4 z-50 border-b border-white/[0.08]">
       {/* Left: App Name */}
-      <div className="text-base font-semibold text-gray-100 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">{appName}</div>
+      <div className="text-base font-semibold text-gray-100 truncate max-w-[200px]">{appName}</div>
 
       {/* Spacer */}
       <div className="flex-1" />
