@@ -191,8 +191,8 @@ onUnmounted(() => clearInterval(timer));
 .health-fill {
   height: 100%;
   transition:
-    width 0.3s,
-    background 0.3s;
+    width 0.3s ease,
+    background 0.3s ease;
 }
 .restore-btn {
   width: 36px;

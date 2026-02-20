@@ -306,7 +306,7 @@ onMounted(() => {
   text-align: center;
   border-radius: 8px;
   color: $color-text-secondary;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   &:active {
     filter: brightness(0.85);
   }
@@ -394,7 +394,7 @@ onMounted(() => {
   font-size: 1em;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   &:active {
     filter: brightness(0.85);
   }

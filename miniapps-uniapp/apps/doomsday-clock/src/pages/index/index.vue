@@ -227,7 +227,7 @@ onUnmounted(() => clearInterval(timer));
 .progress-bar {
   height: 100%;
   background: $color-governance;
-  transition: width 0.3s;
+  transition: width 0.3s ease;
 }
 
 .card-title {

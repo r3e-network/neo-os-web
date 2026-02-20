@@ -181,7 +181,7 @@ onUnmounted(() => {
 .meter-fill {
   height: 100%;
   background: linear-gradient(90deg, $color-gaming 0%, lighten($color-gaming, 15%) 100%);
-  transition: width 0.2s ease;
+  transition: width 0.3s ease;
 }
 .decibel-text {
   text-align: center;

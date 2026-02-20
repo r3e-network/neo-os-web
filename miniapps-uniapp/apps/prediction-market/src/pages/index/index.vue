@@ -210,7 +210,7 @@ const placeBet = async (marketId: number, isYes: boolean, index: number) => {
 .odds-yes {
   height: 100%;
   background: $color-success;
-  transition: width 0.3s;
+  transition: width 0.3s ease;
 }
 .odds-labels {
   display: flex;
