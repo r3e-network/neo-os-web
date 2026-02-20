@@ -32,7 +32,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.internal(res, "Database not configured");
   }
 
-  const body = req.body as SubmitMiniAppRequest;
+  const body = req.body as SubmitMiniAppRequest | undefined;
+  if (!body || typeof body !== "object") {
+    return apiError.badRequest(res, "Missing request body");
+  }
 
   // Validate required fields
   if (!body.name || !body.description || !body.entry_url || !body.developer_address) {
