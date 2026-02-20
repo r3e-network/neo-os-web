@@ -245,8 +245,8 @@ onMounted(() => {
 .stat-card {
   flex: 1;
   background: $color-bg-card;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 12px;
   text-align: center;
 }
 

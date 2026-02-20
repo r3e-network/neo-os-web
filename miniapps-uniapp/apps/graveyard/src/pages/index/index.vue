@@ -147,7 +147,7 @@ const destroyAsset = () => {
   text-align: center;
   background: rgba($color-utility, 0.1);
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
 }
 .stat-value {
   color: $color-utility;
