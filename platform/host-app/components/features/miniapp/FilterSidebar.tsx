@@ -32,7 +32,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
   };
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-y-auto" tabIndex={0}>
+    <aside className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" tabIndex={0}>
       <div className="p-4">
         <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
           Filters

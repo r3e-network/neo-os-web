@@ -89,7 +89,7 @@ export const ActivityTicker = ({
     >
       <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/20">
         <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <span className="text-emerald-500 text-xs animate-pulse">●</span> {title}
+          <span className="text-emerald-500 text-xs animate-pulse" aria-hidden="true">●</span><span className="sr-only">Live:</span> {title}
         </span>
         <span className="text-xs text-gray-500 dark:text-gray-400">{activities.length} events</span>
       </div>

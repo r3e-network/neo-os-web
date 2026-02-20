@@ -171,7 +171,7 @@ function AppBreakdownTable({
   apps: { appId: string; appName: string; txCount: number; volume: string; lastUsed: string }[];
 }) {
   return (
-    <div className="overflow-x-auto" tabIndex={0}>
+    <div className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg" tabIndex={0}>
       <table className="w-full text-sm" aria-label="App usage breakdown">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-700">

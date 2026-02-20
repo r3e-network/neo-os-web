@@ -137,7 +137,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           </div>
 
           {/* Notification List */}
-          <div className="max-h-80 overflow-y-auto" tabIndex={0}
+          <div className="max-h-80 overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" tabIndex={0}
             {loading ? (
               <div className="p-2">
                 {Array.from({ length: 3 }, (_, i) => (
@@ -175,7 +175,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={n.content}>{n.content}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
                     </div>
-                    {!n.read && <span className="h-2 w-2 rounded-full bg-emerald-500 mt-2" />}
+                    {!n.read && <span className="h-2 w-2 rounded-full bg-emerald-500 mt-2" aria-label="Unread" role="status" />}
                   </li>
                 ))}
               </ul>
