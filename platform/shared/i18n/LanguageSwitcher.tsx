@@ -24,7 +24,7 @@ export function LanguageSwitcher({ className = "", showLabel = true }: LanguageS
             setLocale(value as Locale);
           }
         }}
-        className="px-2 py-1 text-sm border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+        className="px-2 py-1 text-sm border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-400/50"
       >
         {locales.map((loc) => (
           <option key={loc} value={loc}>
@@ -49,7 +49,7 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      className={`px-3 py-1 text-sm border border-gray-200 dark:border-gray-700 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${className}`}
+      className={`px-3 py-1 text-sm border border-gray-200 dark:border-gray-700 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400/50 ${className}`}
       title="Switch Language"
     >
       {localeNames[locale]}
