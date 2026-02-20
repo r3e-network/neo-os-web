@@ -79,7 +79,7 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
               </Badge>
             )}
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 group-hover:line-clamp-none leading-relaxed mb-3 transition-all duration-300">
+          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 group-hover:line-clamp-none leading-relaxed mb-3 transition-all duration-300" title={app.description}>
             {app.description}
           </p>
 

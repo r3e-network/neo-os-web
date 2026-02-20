@@ -213,7 +213,7 @@ function NewThreadForm({
           <option value="help">Help</option>
         </select>
         <div className="flex gap-2">
-          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
             Cancel
           </button>
           <button

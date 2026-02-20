@@ -27,9 +27,9 @@ export default function ServicesPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <Spinner />
+            <div className="flex justify-center py-8"><Spinner /></div>
           ) : error ? (
-            <div className="text-center text-danger-600 dark:text-danger-400">Failed to load services</div>
+            <div role="alert" className="text-center text-danger-600 dark:text-danger-400">Failed to load services</div>
           ) : (
             <Table aria-label="Services status">
               <TableHeader>

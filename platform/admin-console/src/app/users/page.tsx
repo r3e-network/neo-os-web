@@ -46,7 +46,7 @@ export default function UsersPage() {
           {isLoading ? (
             <div className="flex justify-center py-8"><Spinner /></div>
           ) : error ? (
-            <div role="alert" className="text-center text-red-500 dark:text-red-400">Failed to load users</div>
+            <div role="alert" className="text-center text-danger-600 dark:text-danger-400">Failed to load users</div>
           ) : (
             <Table aria-label="Users list">
               <TableHeader>
