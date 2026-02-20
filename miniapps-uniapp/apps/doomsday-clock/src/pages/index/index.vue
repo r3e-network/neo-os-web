@@ -278,6 +278,9 @@ onUnmounted(() => clearInterval(timer));
     border-color: $color-governance;
     background: rgba($color-governance, 0.2);
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .outcome-name {
   color: $color-text-primary;
@@ -294,6 +297,9 @@ onUnmounted(() => clearInterval(timer));
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .history-list {

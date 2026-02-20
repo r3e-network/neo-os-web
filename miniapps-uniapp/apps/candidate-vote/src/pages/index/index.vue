@@ -206,6 +206,9 @@ onMounted(() => {
     border-color: $color-governance;
     background: rgba($color-governance, 0.15);
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .candidate-name {
@@ -253,5 +256,8 @@ onMounted(() => {
   text-align: center;
   font-weight: bold;
   margin-top: 16px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

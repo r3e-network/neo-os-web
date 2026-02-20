@@ -215,6 +215,9 @@ const playNote = (note: { key: string; freq: number }) => {
       background: linear-gradient(180deg, $color-gaming 0%, darken($color-gaming, 20%) 100%);
     }
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .note-label {
   color: $color-text-on-light;

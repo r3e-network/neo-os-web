@@ -120,6 +120,9 @@ const broadcast = async () => {
   background: rgba($color-social, 0.1);
   border-radius: 10px;
   margin-bottom: 8px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .station-icon {
   font-size: 2em;
@@ -150,5 +153,8 @@ const broadcast = async () => {
   text-align: center;
   font-weight: bold;
   margin-top: 12px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

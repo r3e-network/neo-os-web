@@ -203,6 +203,9 @@ onUnmounted(() => clearInterval(timer));
   align-items: center;
   justify-content: center;
   font-size: 1.2em;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .info-text {
   display: block;
@@ -218,5 +221,8 @@ onUnmounted(() => clearInterval(timer));
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

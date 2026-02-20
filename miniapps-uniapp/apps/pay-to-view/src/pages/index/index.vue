@@ -197,6 +197,9 @@ const createContent = async () => {
   padding: 12px;
   background: rgba($color-nft, 0.1);
   border-radius: 10px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .content-icon {
   font-size: 1.8em;
@@ -261,6 +264,9 @@ const createContent = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .stats-grid {
   display: grid;

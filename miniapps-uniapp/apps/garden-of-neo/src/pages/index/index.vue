@@ -243,6 +243,9 @@ const harvestAll = () => {
     border-style: dashed;
     opacity: 0.5;
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .plant-icon {
   font-size: 2.5em;
@@ -274,6 +277,9 @@ const harvestAll = () => {
   padding: 12px;
   background: rgba($color-nft, 0.1);
   border-radius: 10px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .seed-icon {
   font-size: 1.8em;
@@ -306,6 +312,9 @@ const harvestAll = () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .btn-secondary {
   flex: 1;
@@ -314,6 +323,9 @@ const harvestAll = () => {
   padding: 14px;
   border-radius: 12px;
   text-align: center;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .stats-grid {
   display: grid;

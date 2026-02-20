@@ -235,6 +235,9 @@ const attachTo = async (host: Host) => {
   text-align: center;
   font-weight: bold;
   margin-top: 12px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .hosts-list {
   display: flex;
@@ -247,6 +250,9 @@ const attachTo = async (host: Host) => {
   padding: 12px;
   background: rgba($color-nft, 0.1);
   border-radius: 10px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .host-icon {
   font-size: 1.8em;

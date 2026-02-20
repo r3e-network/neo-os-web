@@ -167,6 +167,9 @@ const fuse = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .slot-icon {
   font-size: 3em;
@@ -209,6 +212,9 @@ const fuse = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .nft-grid {
   display: grid;
@@ -220,6 +226,9 @@ const fuse = async () => {
   border-radius: 10px;
   padding: 12px;
   text-align: center;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .nft-icon {
   display: block;

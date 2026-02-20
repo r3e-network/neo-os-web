@@ -305,6 +305,9 @@ onUnmounted(() => clearInterval(battleTimer));
     border-color: $color-gaming;
     background: rgba($color-gaming, 0.2);
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .algo-name {
@@ -342,6 +345,9 @@ onUnmounted(() => clearInterval(battleTimer));
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .log-list {

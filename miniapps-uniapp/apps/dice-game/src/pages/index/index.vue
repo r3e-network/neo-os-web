@@ -144,6 +144,9 @@ const roll = async () => {
   &.active {
     border-color: $color-gaming;
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .roll-btn {
   background: linear-gradient(135deg, $color-gaming 0%, darken($color-gaming, 10%) 100%);
@@ -153,5 +156,8 @@ const roll = async () => {
   text-align: center;
   font-weight: bold;
   margin-top: 16px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

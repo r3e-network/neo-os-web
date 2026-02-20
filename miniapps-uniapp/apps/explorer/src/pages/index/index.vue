@@ -408,6 +408,9 @@ onUnmounted(() => {
   padding: 12px 20px;
   border-radius: 8px;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .network-toggle {
@@ -427,6 +430,9 @@ onUnmounted(() => {
   &.active {
     border-color: $color-explorer;
     color: $color-explorer;
+  }
+  &:active {
+    filter: brightness(0.85);
   }
 }
 
@@ -554,6 +560,9 @@ onUnmounted(() => {
   border: 1px solid $color-border;
   border-radius: 8px;
   margin-bottom: 8px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .tx-info {

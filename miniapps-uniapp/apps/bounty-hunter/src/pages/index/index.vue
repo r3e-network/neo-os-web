@@ -138,6 +138,9 @@ const submitSolution = async () => {
   background: rgba($color-social, 0.1);
   border-radius: 10px;
   margin-bottom: 10px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .bounty-header {
   display: flex;
@@ -194,5 +197,8 @@ const submitSolution = async () => {
   text-align: center;
   font-weight: bold;
   margin-top: 12px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

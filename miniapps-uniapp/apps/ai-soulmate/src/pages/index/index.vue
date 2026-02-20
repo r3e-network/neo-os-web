@@ -145,5 +145,8 @@ const sendMessage = async () => {
   text-align: center;
   font-weight: bold;
   margin-top: 12px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

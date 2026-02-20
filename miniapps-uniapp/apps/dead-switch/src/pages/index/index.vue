@@ -176,6 +176,9 @@ const create = async () => {
   color: $color-nft;
   font-size: 1.2em;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .input-field {
   margin-bottom: 12px;
@@ -203,5 +206,8 @@ const create = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

@@ -177,5 +177,8 @@ const monitorTx = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

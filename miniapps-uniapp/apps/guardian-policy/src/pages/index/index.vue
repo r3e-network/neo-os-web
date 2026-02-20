@@ -166,6 +166,9 @@ const createPolicy = () => {
     background: rgba($color-success, 0.3);
     color: $color-success;
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .input {
   margin-bottom: 12px;
@@ -177,5 +180,8 @@ const createPolicy = () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

@@ -223,6 +223,9 @@ const vote = async (id: number, support: boolean) => {
     border-color: $color-governance;
     background: rgba($color-governance, 0.2);
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .mask-icon {
   font-size: 2em;
@@ -248,6 +251,9 @@ const vote = async (id: number, support: boolean) => {
   border-radius: 8px;
   text-align: center;
   border: 1px dashed $color-governance;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .proposals-list {
@@ -279,10 +285,19 @@ const vote = async (id: number, support: boolean) => {
   &.yes {
     background: rgba($color-success, 0.2);
     color: $color-success;
+    &:active {
+      filter: brightness(0.85);
+    }
   }
   &.no {
     background: rgba($color-error, 0.2);
     color: $color-error;
+    &:active {
+      filter: brightness(0.85);
+    }
+  }
+  &:active {
+    filter: brightness(0.85);
   }
 }
 </style>

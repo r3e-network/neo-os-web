@@ -234,6 +234,9 @@ const reveal = async () => {
     border: none;
     font-weight: bold;
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .stats-grid {
   display: flex;

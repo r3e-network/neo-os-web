@@ -171,6 +171,9 @@ const getReading = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .card-back {
   width: 100%;
@@ -200,6 +203,9 @@ const getReading = () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .reset-btn {
   background: rgba($color-nft, 0.2);
@@ -208,6 +214,9 @@ const getReading = () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .reading-text {
   color: $color-text-primary;

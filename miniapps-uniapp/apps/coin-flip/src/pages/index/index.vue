@@ -186,6 +186,9 @@ const flip = async () => {
     border-color: $color-gaming;
     background: rgba($color-gaming, 0.2);
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .flip-btn {
   background: linear-gradient(135deg, $color-gaming 0%, darken($color-gaming, 10%) 100%);
@@ -194,6 +197,9 @@ const flip = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .result-card {
   background: rgba($color-gaming, 0.15);

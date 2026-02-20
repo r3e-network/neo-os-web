@@ -158,6 +158,9 @@ const buyBox = async () => {
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .box-mystery {
   text-align: center;
@@ -181,6 +184,9 @@ const buyBox = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .rewards-list {
   display: flex;

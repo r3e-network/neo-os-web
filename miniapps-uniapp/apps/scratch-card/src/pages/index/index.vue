@@ -132,6 +132,9 @@ const scratch = async () => {
   padding: 60px 20px;
   text-align: center;
   margin-bottom: 16px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .scratch-text {
   font-size: 1.5em;
@@ -148,6 +151,9 @@ const scratch = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .stats-row {
   display: flex;

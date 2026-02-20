@@ -231,6 +231,9 @@ onUnmounted(() => clearInterval(timer));
   justify-content: center;
   color: $color-gaming;
   font-size: 1.5em;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .ticket-input {
   flex: 1;
@@ -256,6 +259,9 @@ onUnmounted(() => clearInterval(timer));
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .winners-list {

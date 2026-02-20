@@ -242,5 +242,8 @@ const placeBet = async (marketId: number, isYes: boolean, index: number) => {
     background: rgba($color-error, 0.2);
     color: $color-error;
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

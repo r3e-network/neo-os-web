@@ -303,6 +303,9 @@ onUnmounted(() => clearInterval(gameTimer));
   justify-content: center;
   color: $color-gaming;
   font-size: 1.3em;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .bet-input,
@@ -320,6 +323,9 @@ onUnmounted(() => clearInterval(gameTimer));
   margin-top: 8px;
   &.crashed {
     background: rgba($color-text-secondary, 0.3);
+  }
+  &:active {
+    filter: brightness(0.85);
   }
 }
 

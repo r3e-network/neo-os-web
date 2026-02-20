@@ -249,6 +249,9 @@ onMounted(() => {
       background: rgba($color-error, 0.2);
     }
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .submit-btn {
   background: linear-gradient(135deg, $color-gaming 0%, darken($color-gaming, 10%) 100%);
@@ -257,6 +260,9 @@ onMounted(() => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .stats-grid {
   display: flex;

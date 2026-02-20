@@ -98,6 +98,9 @@ const vote = (yes: boolean) => {
   background: rgba($color-governance, 0.1);
   border-radius: 10px;
   margin-bottom: 10px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .proposal-title {
   font-weight: bold;
@@ -148,6 +151,9 @@ const vote = (yes: boolean) => {
   }
   &.no {
     background: $color-bg-subtle;
+  }
+  &:active {
+    filter: brightness(0.85);
   }
 }
 </style>

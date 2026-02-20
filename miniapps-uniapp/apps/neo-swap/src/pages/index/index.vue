@@ -290,6 +290,9 @@ onMounted(() => {
   padding: 10px 14px;
   border-radius: 12px;
   cursor: pointer;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .token-icon {
@@ -328,6 +331,9 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   margin: 12px 0;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .swap-icon {
@@ -368,6 +374,9 @@ onMounted(() => {
   background: $color-flamingo;
   color: $color-text-primary;
   cursor: pointer;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .swap-btn:disabled {
@@ -427,6 +436,9 @@ onMounted(() => {
   padding: 12px;
   border-radius: 8px;
   cursor: pointer;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .token-option:hover {

@@ -202,6 +202,9 @@ onUnmounted(() => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .reward-card {
   background: rgba($color-gaming, 0.15);

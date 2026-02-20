@@ -155,6 +155,9 @@ const mintCanvas = async () => {
 .pixel {
   aspect-ratio: 1;
   border-radius: 2px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .color-palette {
   display: flex;
@@ -169,6 +172,9 @@ const mintCanvas = async () => {
   &.active {
     border-color: $color-nft;
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .action-btns {
   display: flex;
@@ -182,6 +188,9 @@ const mintCanvas = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .btn-secondary {
   flex: 1;
@@ -190,6 +199,9 @@ const mintCanvas = async () => {
   padding: 14px;
   border-radius: 12px;
   text-align: center;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .artworks-list {
   display: flex;

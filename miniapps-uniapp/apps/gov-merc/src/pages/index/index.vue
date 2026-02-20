@@ -232,6 +232,9 @@ const rentVotes = async (id: number) => {
     border-color: $color-governance;
     background: rgba($color-governance, 0.2);
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .list-btn {
@@ -241,6 +244,9 @@ const rentVotes = async (id: number) => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .rentals-list {
@@ -290,5 +296,8 @@ const rentVotes = async (id: number) => {
   border-radius: 8px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

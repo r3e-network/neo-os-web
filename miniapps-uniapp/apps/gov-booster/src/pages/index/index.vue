@@ -219,6 +219,9 @@ const voteOnProposal = async (id: number) => {
     border-color: $color-governance;
     background: rgba($color-governance, 0.2);
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .duration-label {
   display: block;
@@ -239,6 +242,9 @@ const voteOnProposal = async (id: number) => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .proposals-list {
@@ -254,6 +260,9 @@ const voteOnProposal = async (id: number) => {
   padding: 12px;
   background: rgba($color-governance, 0.1);
   border-radius: 8px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .proposal-title {
   color: $color-text-primary;

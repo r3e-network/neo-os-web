@@ -188,6 +188,12 @@ const destroyAsset = () => {
   font-weight: bold;
   &.danger {
     background: linear-gradient(135deg, $color-error 0%, darken($color-error, 10%) 100%);
+    &:active {
+      filter: brightness(0.85);
+    }
+  }
+  &:active {
+    filter: brightness(0.85);
   }
 }
 .history-list {

@@ -291,6 +291,9 @@ const nextRiddle = () => {
   text-align: center;
   font-weight: bold;
   margin-top: 16px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .result-card {
   border-radius: 16px;
@@ -331,5 +334,8 @@ const nextRiddle = () => {
   display: inline-block;
   margin-top: 12px;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

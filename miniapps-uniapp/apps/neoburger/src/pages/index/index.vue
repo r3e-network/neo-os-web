@@ -307,6 +307,9 @@ onMounted(() => {
   border-radius: 8px;
   color: $color-text-secondary;
   transition: all 0.2s;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .tab.active {
@@ -392,6 +395,9 @@ onMounted(() => {
   font-weight: bold;
   cursor: pointer;
   transition: all 0.2s;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .stake-btn {

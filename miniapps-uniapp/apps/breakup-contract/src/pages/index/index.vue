@@ -170,6 +170,9 @@ const claimReward = async (contract: any) => {
   border-radius: 8px;
   font-size: 0.85em;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .action-btn {
   background: linear-gradient(135deg, $color-social 0%, darken($color-social, 10%) 100%);
@@ -179,5 +182,8 @@ const claimReward = async (contract: any) => {
   text-align: center;
   font-weight: bold;
   margin-top: 12px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

@@ -182,5 +182,8 @@ const withdraw = () => {
   &.secondary {
     background: rgba($color-utility, 0.3);
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

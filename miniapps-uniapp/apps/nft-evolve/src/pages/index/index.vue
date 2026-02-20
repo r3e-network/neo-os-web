@@ -117,6 +117,9 @@ const evolve = async () => {
   background: rgba($color-nft, 0.1);
   border-radius: 10px;
   margin-bottom: 10px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .nft-icon {
   font-size: 2em;
@@ -171,6 +174,9 @@ const evolve = async () => {
   background: $color-bg-subtle;
   border-radius: 10px;
   text-align: center;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .evolve-btn {
   flex: 1;
@@ -179,5 +185,8 @@ const evolve = async () => {
   border-radius: 10px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

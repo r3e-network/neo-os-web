@@ -129,6 +129,9 @@ onUnmounted(() => clearInterval(timer));
   align-items: center;
   justify-content: center;
   font-size: 1.2em;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .price-row {
   display: flex;
@@ -172,5 +175,8 @@ onUnmounted(() => clearInterval(timer));
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

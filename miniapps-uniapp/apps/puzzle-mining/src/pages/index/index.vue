@@ -207,6 +207,9 @@ const startMining = async () => {
     background: rgba($color-gaming, 0.2);
     border-color: $color-gaming;
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .mine-btn {
   background: linear-gradient(135deg, $color-gaming 0%, darken($color-gaming, 10%) 100%);
@@ -215,6 +218,9 @@ const startMining = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .stats-grid {
   display: flex;

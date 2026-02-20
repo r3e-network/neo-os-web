@@ -352,6 +352,9 @@ const startGame = async () => {
       background: rgba($color-warning, 0.2);
     }
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .cell-icon {
@@ -394,6 +397,9 @@ const startGame = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .legend-list {

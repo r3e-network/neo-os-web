@@ -308,6 +308,9 @@ const showRules = () => {
   &.fog {
     background: rgba(#000, 0.7) !important;
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 
 .piece {
@@ -343,6 +346,9 @@ const showRules = () => {
   &.secondary {
     background: rgba($color-gaming, 0.2);
     color: $color-gaming;
+  }
+  &:active {
+    filter: brightness(0.85);
   }
 }
 

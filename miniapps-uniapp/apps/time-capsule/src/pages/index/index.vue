@@ -165,6 +165,9 @@ const open = (cap: Capsule) => {
   border-radius: 8px;
   color: $color-text-primary;
   font-size: 0.9em;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .input-field {
   margin-bottom: 12px;
@@ -196,5 +199,8 @@ const open = (cap: Capsule) => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 </style>

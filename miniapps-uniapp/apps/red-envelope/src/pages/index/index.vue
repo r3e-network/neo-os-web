@@ -117,6 +117,9 @@ const claim = async (env: any) => {
   text-align: center;
   font-weight: bold;
   margin-top: 12px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .envelope-item {
   display: flex;
@@ -125,6 +128,9 @@ const claim = async (env: any) => {
   background: rgba($color-social, 0.1);
   border-radius: 10px;
   margin-bottom: 8px;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .envelope-icon {
   font-size: 2em;

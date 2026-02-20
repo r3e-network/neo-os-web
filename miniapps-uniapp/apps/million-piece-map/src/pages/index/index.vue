@@ -180,6 +180,9 @@ const purchaseTile = async () => {
     border: 2px solid $color-gaming;
     box-shadow: 0 0 8px rgba($color-gaming, 0.5);
   }
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .tile-info {
   padding: 16px;
@@ -204,6 +207,9 @@ const purchaseTile = async () => {
   border-radius: 12px;
   text-align: center;
   font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
 }
 .stats-grid {
   display: flex;
