@@ -95,7 +95,7 @@ function ParamInput({ param, value, onChange }: { param: OperationParam; value: 
       <label htmlFor={inputId} className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}{param.required && " *"}</label>
       <input
         id={inputId}
-        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-transparent text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 dark:placeholder-gray-400"
+        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-transparent text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 placeholder-gray-500 dark:placeholder-gray-400"
         type={param.type === "integer" || param.type === "amount" ? "number" : "text"}
         placeholder={param.placeholder || label}
         value={value}

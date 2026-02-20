@@ -118,7 +118,7 @@ function EmailSection({
             onChange={(e) => setEmail(e.target.value)}
             aria-label="Email address"
             placeholder="Enter email"
-            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded px-2 py-1 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded px-2 py-1 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           />
           <button type="button" onClick={() => bindEmail(email)} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
             Bind
