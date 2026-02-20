@@ -214,7 +214,6 @@ const fetchStats = async () => {
       stats.value = res.data as typeof stats.value;
     }
   } catch (e: any) {
-    console.error("Failed to fetch stats:", e);
   }
 };
 
@@ -229,7 +228,6 @@ const fetchRecentTxs = async () => {
       recentTxs.value = ((res.data as Record<string, unknown>)?.transactions as TxSummary[]) || [];
     }
   } catch (e: any) {
-    console.error("Failed to fetch recent txs:", e);
   }
 };
 

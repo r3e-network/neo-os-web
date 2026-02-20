@@ -139,7 +139,6 @@ const loadBalances = async () => {
     fromToken.value = { ...TOKENS[0] };
     toToken.value = { ...TOKENS[1] };
   } catch (e: any) {
-    console.error("Failed to load balances:", e);
   }
 }
 

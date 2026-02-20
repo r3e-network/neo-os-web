@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { usePayments, useRNG } from "@neo/uniapp-sdk";
 
 const APP_ID = "miniapp-candlewars";
@@ -76,6 +76,7 @@ const battles = ref(0);
 const wins = ref(0);
 const isPredicting = ref(false);
 const status = ref<{ msg: string; type: string } | null>(null);
+let timer: ReturnType<typeof setInterval>;
 
 const candles = ref([
   { type: "up", height: 60 },
@@ -124,12 +125,14 @@ const submitPrediction = async () => {
 };
 
 onMounted(() => {
-  setInterval(() => {
+  timer = setInterval(() => {
     const change = (Math.random() * 2 - 1).toFixed(2);
     priceChange.value = parseFloat(change);
     currentPrice.value = Math.round(currentPrice.value * (1 + priceChange.value / 100));
   }, 3000);
 });
+
+onUnmounted(() => clearInterval(timer));
 </script>
 
 <style lang="scss">

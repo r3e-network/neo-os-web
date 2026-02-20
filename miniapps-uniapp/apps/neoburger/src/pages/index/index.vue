@@ -143,7 +143,6 @@ const loadBalances = async () => {
     neoBalance.value = neo || 0;
     bNeoBalance.value = bneo || 0;
   } catch (e: any) {
-    console.error("Failed to load balances:", e);
   }
 }
 
