@@ -332,7 +332,7 @@ export default function MiniAppsPage() {
                             <span className="font-medium w-32">{o.name}</span>
                             <span className="font-mono text-xs">{o.method}</span>
                             {o.gas_cost && <span className="text-xs text-gray-500 dark:text-gray-400">{o.gas_cost} GAS</span>}
-                            {o.description && <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{o.description}</span>}
+                            {o.description && <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto truncate min-w-0" title={o.description}>{o.description}</span>}
                           </div>
                         ))}
                       </div>

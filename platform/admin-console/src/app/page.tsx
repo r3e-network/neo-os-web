@@ -115,8 +115,8 @@ export default function DashboardPage() {
             <ul className="space-y-3">
               {miniapps?.slice(0, 5).map((app) => (
                 <li key={app.app_id} className="flex items-center justify-between rounded-lg border-b border-gray-100 dark:border-gray-800 pb-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-white">{app.app_id}</div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900 dark:text-white truncate" title={app.app_id}>{app.app_id}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(app.created_at)}</div>
                   </div>
                   <Badge
