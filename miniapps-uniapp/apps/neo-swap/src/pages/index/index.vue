@@ -243,16 +243,14 @@ onMounted(() => {
 }
 
 .title {
-  display: block;
   font-size: 1.8em;
   font-weight: bold;
   color: $color-flamingo;
 }
 
 .subtitle {
-  display: block;
-  font-size: 0.85em;
   color: $color-text-secondary;
+  font-size: 0.9em;
   margin-top: 8px;
 }
 

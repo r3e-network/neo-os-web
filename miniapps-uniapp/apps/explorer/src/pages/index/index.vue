@@ -318,7 +318,7 @@ onUnmounted(() => {
 
 .subtitle {
   color: $color-text-secondary;
-  font-size: 0.85em;
+  font-size: 0.9em;
   margin-top: 8px;
 }
 
