@@ -237,7 +237,7 @@ export default function MiniAppsPage() {
                     onClick={() => setViewMode("list")}
                     aria-pressed={viewMode === "list"}
                     className={cn(
-                      "p-2 transition-colors cursor-pointer",
+                      "p-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
                       viewMode === "list"
                         ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                         : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
@@ -251,7 +251,7 @@ export default function MiniAppsPage() {
                     onClick={() => setViewMode("grid")}
                     aria-pressed={viewMode === "grid"}
                     className={cn(
-                      "p-2 transition-colors cursor-pointer",
+                      "p-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
                       viewMode === "grid"
                         ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                         : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",

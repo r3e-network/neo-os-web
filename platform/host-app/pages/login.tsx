@@ -3,7 +3,7 @@ import { WalletProvider, walletOptions } from "@/lib/wallet/store";
 import Head from "next/head";
 
 const socialProviders = [
-  { id: "google", name: "Google", bg: "bg-white border hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors", text: "text-gray-800 dark:text-white" },
+  { id: "google", name: "Google", bg: "bg-white border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors", text: "text-gray-800 dark:text-white" },
   { id: "twitter", name: "Twitter", bg: "bg-sky-500 hover:bg-sky-600 transition-colors", text: "text-white" },
   { id: "github", name: "GitHub", bg: "bg-gray-900 hover:bg-gray-800 transition-colors", text: "text-white" },
 ];
