@@ -102,7 +102,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [handleExit]);
 
   useEffect(() => {
     if (federated) return;
