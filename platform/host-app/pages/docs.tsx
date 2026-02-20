@@ -81,7 +81,7 @@ export default function DocsPage() {
               </p>
               {/* Search */}
               <div className="relative max-w-xl mx-auto">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} aria-hidden="true" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" size={20} aria-hidden="true" />
                 <input
                   type="text"
                   aria-label="Search documentation"
@@ -261,7 +261,7 @@ function SDKReferenceContent() {
               <h4 className="font-medium text-gray-900 dark:text-white">{item.title}</h4>
               <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
             </div>
-            <ChevronRight className="ml-auto text-gray-400" size={16} aria-hidden="true" />
+            <ChevronRight className="ml-auto text-gray-500 dark:text-gray-400" size={16} aria-hidden="true" />
           </div>
         ))}
       </div>

@@ -95,7 +95,7 @@ function BadgeModal({ badge, earned, onClose }: { badge: Badge; earned: boolean;
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <span className="text-amber-500 font-bold">+{badge.points} XP</span>
           </div>
-          {!earned && <p className="mt-2 text-xs text-gray-400">Not yet earned</p>}
+          {!earned && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Not yet earned</p>}
         </div>
       </div>
     </div>

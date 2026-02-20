@@ -14,7 +14,7 @@ export default function LoginPage() {
   return (
     <>
       <Head><title>Log In</title></Head>
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
+      <main className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
         <div className="w-full max-w-sm space-y-6 rounded-2xl bg-white dark:bg-gray-900 p-8 shadow-lg dark:shadow-none dark:border dark:border-gray-800">
           <h1 className="text-center text-2xl font-extrabold text-gray-900 dark:text-white">Log in</h1>
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </>
   );
 }
