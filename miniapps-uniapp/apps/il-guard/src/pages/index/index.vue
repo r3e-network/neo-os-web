@@ -79,7 +79,7 @@ const activateProtection = async (): Promise<void> => {
     await payGAS(fee, `ilguard:${pool.value.pair}:${amount}`);
     status.value = { msg: `IL protection activated for ${fmt(amount, 2)} GAS`, type: "success" };
   } catch (e: any) {
-    status.value = { msg: e?.message || "Payment failed", type: "error" };
+    status.value = { msg: e.message || "Payment failed", type: "error" };
   }
 };
 </script>

@@ -60,7 +60,7 @@ const placeOrder = async (): Promise<void> => {
     await payGAS(privacyFee, `darkpool:${orderType.value}:${amt}:${slip}`);
     status.value = { msg: `Dark order placed: ${orderType.value} ${amt} GAS`, type: "success" };
   } catch (e: any) {
-    status.value = { msg: e?.message || "Payment failed", type: "error" };
+    status.value = { msg: e.message || "Payment failed", type: "error" };
   }
 };
 </script>

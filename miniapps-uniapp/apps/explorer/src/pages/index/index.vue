@@ -213,7 +213,7 @@ const fetchStats = async () => {
     if (res.statusCode === 200 && res.data) {
       stats.value = res.data as typeof stats.value;
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to fetch stats:", e);
   }
 };
@@ -228,7 +228,7 @@ const fetchRecentTxs = async () => {
     if (res.statusCode === 200 && res.data) {
       recentTxs.value = ((res.data as Record<string, unknown>)?.transactions as TxSummary[]) || [];
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to fetch recent txs:", e);
   }
 };
@@ -265,8 +265,8 @@ const search = async () => {
     } else {
       status.value = { msg: "No results found", type: "error" };
     }
-  } catch (e: unknown) {
-    status.value = { msg: e instanceof Error ? e.message : "Search failed", type: "error" };
+  } catch (e: any) {
+    status.value = { msg: e.message || "Search failed", type: "error" };
   } finally {
     isLoading.value = false;
   }

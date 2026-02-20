@@ -91,7 +91,7 @@ const placeBid = async (): Promise<void> => {
     await payGAS(total, `auction:${auction.value.item}:${qty}:${auction.value.currentPrice}`);
     status.value = { msg: `Bid accepted: ${qty} @ ${fmt(auction.value.currentPrice, 3)} GAS`, type: "success" };
   } catch (e: any) {
-    status.value = { msg: e?.message || "Payment failed", type: "error" };
+    status.value = { msg: e.message || "Payment failed", type: "error" };
   }
 };
 </script>

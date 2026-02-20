@@ -58,7 +58,7 @@ const deploy = async (): Promise<void> => {
     await payGAS(computeFee, `ai:${strategy.value}:${risk.value}:${amount}`);
     status.value = { msg: `Deployed: ${strategy.value} (${risk.value})`, type: "success" };
   } catch (e: any) {
-    status.value = { msg: e?.message || "Payment failed", type: "error" };
+    status.value = { msg: e.message || "Payment failed", type: "error" };
   }
 };
 </script>

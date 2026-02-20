@@ -78,7 +78,7 @@ const joinLottery = async (): Promise<void> => {
     const tickets = Math.floor(amount / 10);
     status.value = { msg: `Deposited ${fmt(amount, 2)} GAS, earned ${tickets} tickets`, type: "success" };
   } catch (e: any) {
-    status.value = { msg: e?.message || "Payment failed", type: "error" };
+    status.value = { msg: e.message || "Payment failed", type: "error" };
   }
 };
 </script>

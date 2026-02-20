@@ -62,7 +62,7 @@ const startBot = async (): Promise<void> => {
     await payGAS(setupFee, `gridbot:${market.value.pair}:${low}-${high}:${grids}`);
     status.value = { msg: `Grid bot started (${grids} grids)`, type: "success" };
   } catch (e: any) {
-    status.value = { msg: e?.message || "Payment failed", type: "error" };
+    status.value = { msg: e.message || "Payment failed", type: "error" };
   }
 };
 </script>

@@ -139,7 +139,7 @@ async function loadBalances() {
     TOKENS[1].balance = gas || 0;
     fromToken.value = { ...TOKENS[0] };
     toToken.value = { ...TOKENS[1] };
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to load balances:", e);
   }
 }

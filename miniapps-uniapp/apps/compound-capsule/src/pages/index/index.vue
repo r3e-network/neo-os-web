@@ -59,7 +59,7 @@ const deposit = async (): Promise<void> => {
     position.value.deposited += amt;
     status.value = { msg: `Deposited ${amt} GAS`, type: "success" };
   } catch (e: any) {
-    status.value = { msg: e?.message || "Payment failed", type: "error" };
+    status.value = { msg: e.message || "Payment failed", type: "error" };
   }
 };
 </script>

@@ -58,7 +58,7 @@ const join = async (): Promise<void> => {
     await payGAS(setupFee, `circle:join:${contrib}:${dur}`);
     status.value = { msg: `Joined circle (${contrib} GAS/month)`, type: "success" };
   } catch (e: any) {
-    status.value = { msg: e?.message || "Payment failed", type: "error" };
+    status.value = { msg: e.message || "Payment failed", type: "error" };
   }
 };
 </script>

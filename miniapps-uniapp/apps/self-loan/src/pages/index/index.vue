@@ -86,7 +86,7 @@ const takeLoan = async (): Promise<void> => {
     await payGAS(fee, `selfloan:borrow:${amount}:collateral:${collateral}`);
     status.value = { msg: `Loan approved: ${fmt(amount, 2)} GAS borrowed`, type: "success" };
   } catch (e: any) {
-    status.value = { msg: e?.message || "Payment failed", type: "error" };
+    status.value = { msg: e.message || "Payment failed", type: "error" };
   }
 };
 </script>
