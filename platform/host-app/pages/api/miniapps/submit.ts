@@ -4,6 +4,7 @@ import { withCsrfProtection } from "../../../lib/csrf";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { strictLimit } from "@/lib/rate-limit";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 export interface SubmitMiniAppRequest {
   name: string;
@@ -31,6 +32,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!isSupabaseConfigured) {
     return apiError.internal(res, "Database not configured");
   }
+
+  const authedWallet = await requireWalletAuth(req, res);
+  if (!authedWallet) return;
 
   const body = req.body as SubmitMiniAppRequest | undefined;
   if (!body || typeof body !== "object") {
@@ -66,6 +70,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Neo N3 address format
   if (!/^N[A-Za-z0-9]{33}$/.test(body.developer_address)) {
     return apiError.badRequest(res, "Invalid developer_address format");
+  }
+  if (body.developer_address !== authedWallet) {
+    return apiError.forbidden(res, "developer_address must match authenticated wallet");
   }
 
   // Contract hash format (optional)
