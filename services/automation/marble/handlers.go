@@ -181,9 +181,12 @@ func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 	trigger.Action = req.Action
 
 	if trigger.TriggerType == "cron" && trigger.Schedule != "" {
-		if next, err := s.parseNextCronExecution(trigger.Schedule); err == nil {
-			trigger.NextExecution = next
+		next, err := s.parseNextCronExecution(trigger.Schedule)
+		if err != nil {
+			httputil.BadRequest(w, "invalid cron schedule")
+			return
 		}
+		trigger.NextExecution = next
 	}
 
 	if err := s.repo.UpdateTrigger(r.Context(), trigger); err != nil {
