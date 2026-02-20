@@ -102,6 +102,7 @@ const evolve = async () => {
   border: 1px solid $color-border;
   border-radius: 16px;
   padding: 20px;
+  margin-bottom: 16px;
 }
 .card-title {
   color: $color-nft;

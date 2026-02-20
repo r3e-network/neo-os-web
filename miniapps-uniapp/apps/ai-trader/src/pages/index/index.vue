@@ -127,6 +127,7 @@ const deploy = async (): Promise<void> => {
 }
 .action-btn {
   background: linear-gradient(135deg, $color-defi 0%, darken($color-defi, 10%) 100%);
+  color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;
   text-align: center;

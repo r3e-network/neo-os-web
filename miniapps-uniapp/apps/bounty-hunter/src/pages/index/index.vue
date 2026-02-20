@@ -190,7 +190,7 @@ const submitSolution = async () => {
   color: $color-text-secondary;
 }
 .action-btn {
-  background: linear-gradient(135deg, $color-social 0%, $color-social-dark 100%);
+  background: linear-gradient(135deg, $color-social 0%, darken($color-social, 10%) 100%);
   color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;
