@@ -528,7 +528,10 @@ func (inv *ContractInvoker) Close() {
 
 func generatePrice(basePrice int64, variancePercent int) int64 {
 	variance := basePrice * int64(variancePercent) / 100
-	n, _ := rand.Int(rand.Reader, big.NewInt(variance*2))
+	n, err := rand.Int(rand.Reader, big.NewInt(variance*2))
+	if err != nil {
+		return basePrice
+	}
 	return basePrice - variance + n.Int64()
 }
 
