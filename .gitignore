@@ -43,6 +43,7 @@ sdk/rust/devpack/target/
 # Build outputs
 bin/
 appserver
+cmd/marble/marble
 *.exe
 .next/
 .vercel/

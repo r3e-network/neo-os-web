@@ -149,6 +149,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             int count = symbols.Length;
             ExecutionEngine.Assert(count > 0, "empty batch");
+            ExecutionEngine.Assert(count <= 100, "batch too large");
             ExecutionEngine.Assert(roundIds.Length == count, "roundIds length mismatch");
             ExecutionEngine.Assert(prices.Length == count, "prices length mismatch");
             ExecutionEngine.Assert(timestamps.Length == count, "timestamps length mismatch");
