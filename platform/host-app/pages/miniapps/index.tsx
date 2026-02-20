@@ -6,6 +6,7 @@ import { Layout } from "@/components/layout";
 import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@/components/features/miniapp";
 import { getCardData } from "@/hooks/useCardData";
 import { cn, sanitizeInput } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SortOption = "trending" | "users" | "transactions" | "recent";
 type ViewMode = "grid" | "list";
@@ -59,6 +60,7 @@ export default function MiniAppsPage() {
   const [apps, setApps] = useState<MiniAppInfo[]>([]);
   const [statsMap, setStatsMap] = useState<StatsMap>({});
   const [fetchError, setFetchError] = useState(false);
+  const [loading, setLoading] = useState(true);
   const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function MiniAppsPage() {
       setStatsMap(map);
 
       setCommunityApps(communityData?.apps || []);
-    });
+    }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -276,7 +278,17 @@ export default function MiniAppsPage() {
               </p>
             )}
 
-            {viewMode === "list" ? (
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4 space-y-3">
+                    <Skeleton className="h-40 w-full rounded-lg" />
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : viewMode === "list" ? (
               <ul className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
                 {filteredAndSortedApps.map((app) => (
                   <li key={app.app_id}>
