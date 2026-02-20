@@ -141,12 +141,12 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${categoryColors[thread.category]}`}>
-          <Icon size={16} />
+          <Icon size={16} aria-hidden="true" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            {thread.is_pinned && <Pin size={12} className="text-amber-500" />}
-            {thread.is_locked && <Lock size={12} className="text-gray-400" />}
+            {thread.is_pinned && <Pin size={12} className="text-amber-500" aria-hidden="true" />}
+            {thread.is_locked && <Lock size={12} className="text-gray-400" aria-hidden="true" />}
             <h4 className="font-semibold text-gray-900 dark:text-white truncate">{thread.title}</h4>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">{thread.content}</p>

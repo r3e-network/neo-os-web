@@ -21,7 +21,7 @@ export function StatCard({ title, value, change, icon }: StatCardProps) {
       <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
       {change !== undefined && (
         <div className={`flex items-center gap-1 mt-1 text-xs ${isPositive ? "text-emerald-500" : "text-red-600"}`}>
-          {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+          {isPositive ? <TrendingUp size={12} aria-hidden="true" /> : <TrendingDown size={12} aria-hidden="true" />}
           <span>{Math.abs(change)}% vs last week</span>
         </div>
       )}
