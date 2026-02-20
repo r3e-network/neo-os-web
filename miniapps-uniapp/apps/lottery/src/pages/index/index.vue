@@ -276,7 +276,7 @@ onUnmounted(() => clearInterval(timer));
 .winner-item {
   display: flex;
   justify-content: space-between;
-  padding: 10px;
+  padding: 12px;
   background: rgba($color-gaming, 0.1);
   border-radius: 8px;
 }

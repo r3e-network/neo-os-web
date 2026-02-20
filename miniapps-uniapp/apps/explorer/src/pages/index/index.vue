@@ -438,7 +438,7 @@ onUnmounted(() => {
 
 .status-msg {
   text-align: center;
-  padding: 10px;
+  padding: 12px;
   border-radius: 8px;
   margin-bottom: 16px;
 
@@ -555,7 +555,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
+  padding: 12px;
   background: $color-bg-card;
   border: 1px solid $color-border;
   border-radius: 8px;

@@ -124,7 +124,7 @@ const activateProtection = async (): Promise<void> => {
   background: $color-bg-card;
   border: 1px solid $color-border;
   border-radius: 16px;
-  padding: 18px;
+  padding: 20px;
   margin-bottom: 16px;
 }
 .card-title {

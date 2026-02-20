@@ -204,7 +204,7 @@ const destroyAsset = () => {
 .history-item {
   display: flex;
   justify-content: space-between;
-  padding: 10px;
+  padding: 12px;
   background: rgba($color-utility, 0.1);
   border-radius: 8px;
 }

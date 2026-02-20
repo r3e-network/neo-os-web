@@ -234,7 +234,7 @@ const playNote = (note: { key: string; freq: number }) => {
 .activity-item {
   display: flex;
   gap: 8px;
-  padding: 10px;
+  padding: 12px;
   background: rgba($color-gaming, 0.05);
   border-radius: 8px;
   margin-bottom: 8px;
