@@ -697,4 +697,4 @@ export function getBuiltinApp(appId: string): MiniAppInfo | undefined {
   return BUILTIN_APPS_MAP[appId];
 }
 
-export { GAMING_APPS, DEFI_APPS, SOCIAL_APPS, NFT_APPS, GOVERNANCE_APPS, UTILITY_APPS };
+
