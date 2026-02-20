@@ -230,7 +230,7 @@ onMounted(() => {
 .title {
   display: block;
   font-size: 1.5em;
-  font-weight: 700;
+  font-weight: bold;
   color: $color-brand;
 }
 
@@ -265,7 +265,7 @@ onMounted(() => {
 .stat-value {
   display: block;
   font-size: 1.25em;
-  font-weight: 600;
+  font-weight: bold;
   color: $color-text-primary;
 }
 
@@ -288,7 +288,7 @@ onMounted(() => {
 .apy-value {
   display: block;
   font-size: 1.75em;
-  font-weight: 700;
+  font-weight: bold;
   color: $color-brand;
 }
 
@@ -312,7 +312,7 @@ onMounted(() => {
 .tab.active {
   background: $color-brand;
   color: $color-bg-dark;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .panel {
@@ -379,7 +379,7 @@ onMounted(() => {
 
 .receive-value {
   font-size: 1em;
-  font-weight: 600;
+  font-weight: bold;
   color: $color-brand;
 }
 
@@ -389,7 +389,7 @@ onMounted(() => {
   border-radius: 12px;
   border: none;
   font-size: 1em;
-  font-weight: 600;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.2s;
 }

@@ -246,7 +246,7 @@ onMounted(() => {
 .title {
   display: block;
   font-size: 1.5em;
-  font-weight: 700;
+  font-weight: bold;
   color: $color-flamingo;
 }
 
@@ -298,7 +298,7 @@ onMounted(() => {
 
 .token-symbol {
   font-size: 1em;
-  font-weight: 600;
+  font-weight: bold;
   color: $color-text-primary;
 }
 
@@ -364,7 +364,7 @@ onMounted(() => {
   border-radius: 12px;
   border: none;
   font-size: 1em;
-  font-weight: 600;
+  font-weight: bold;
   background: $color-flamingo;
   color: $color-text-primary;
   cursor: pointer;
@@ -415,7 +415,7 @@ onMounted(() => {
 .modal-title {
   display: block;
   font-size: 1em;
-  font-weight: 600;
+  font-weight: bold;
   color: $color-text-primary;
   margin-bottom: 16px;
 }
