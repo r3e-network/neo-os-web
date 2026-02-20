@@ -125,12 +125,12 @@ const swapButtonText = computed(() => {
 // Methods
 const formatNum = (n: number) => formatNumber(n, 4);
 
-function showStatus(msg: string, type: "success" | "error") {
+const showStatus = (msg: string, type: "success" | "error") => {
   status.value = { msg, type };
   setTimeout(() => (status.value = null), 5000);
 }
 
-async function loadBalances() {
+const loadBalances = async () => {
   try {
     const neo = await getBalance("NEO");
     const gas = await getBalance("GAS");
@@ -143,19 +143,19 @@ async function loadBalances() {
   }
 }
 
-async function fetchExchangeRate() {
+const fetchExchangeRate = async () => {
   // Simplified rate - in production would call Flamingo API
   const rate = fromToken.value.symbol === "NEO" ? "8.5" : "0.118";
   exchangeRate.value = rate;
 }
 
-function onFromAmountChange() {
+const onFromAmountChange = () => {
   const amount = parseFloat(fromAmount.value) || 0;
   const rate = parseFloat(exchangeRate.value) || 0;
   toAmount.value = (amount * rate).toFixed(4);
 }
 
-function swapTokens() {
+const swapTokens = () => {
   const temp = fromToken.value;
   fromToken.value = toToken.value;
   toToken.value = temp;
@@ -164,21 +164,21 @@ function swapTokens() {
   fetchExchangeRate();
 }
 
-function openFromSelector() {
+const openFromSelector = () => {
   selectorTarget.value = "from";
   showSelector.value = true;
 }
 
-function openToSelector() {
+const openToSelector = () => {
   selectorTarget.value = "to";
   showSelector.value = true;
 }
 
-function closeSelector() {
+const closeSelector = () => {
   showSelector.value = false;
 }
 
-function selectToken(token: Token) {
+const selectToken = (token: Token) => {
   if (selectorTarget.value === "from") {
     if (token.symbol === toToken.value.symbol) swapTokens();
     else fromToken.value = { ...token };
@@ -190,7 +190,7 @@ function selectToken(token: Token) {
   fetchExchangeRate();
 }
 
-async function executeSwap() {
+const executeSwap = async () => {
   if (!canSwap.value || isLoading.value) return;
 
   isLoading.value = true;

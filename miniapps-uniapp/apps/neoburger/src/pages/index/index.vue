@@ -128,12 +128,12 @@ const estimatedNeo = computed(() => {
 // Methods
 const formatNum = (n: number) => formatNumber(n, 2);
 
-function showStatus(msg: string, type: "success" | "error") {
+const showStatus = (msg: string, type: "success" | "error") => {
   status.value = { msg, type };
   setTimeout(() => (status.value = null), 5000);
 }
 
-async function loadBalances() {
+const loadBalances = async () => {
   try {
     const address = await getAddress();
     if (!address) return;
@@ -147,7 +147,7 @@ async function loadBalances() {
   }
 }
 
-async function handleStake() {
+const handleStake = async () => {
   if (!canStake.value || isLoading.value) return;
 
   isLoading.value = true;
@@ -173,7 +173,7 @@ async function handleStake() {
   }
 }
 
-async function handleUnstake() {
+const handleUnstake = async () => {
   if (!canUnstake.value || isLoading.value) return;
 
   isLoading.value = true;
