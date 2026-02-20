@@ -28,7 +28,7 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
           </div>
 
           {token.status === "active" && (
-            <button type="button" onClick={() => onRevoke(token.id)} className="text-sm text-red-600 dark:text-red-400 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">
+            <button type="button" onClick={() => onRevoke(token.id)} className="text-sm text-red-600 dark:text-red-400 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">
               Revoke
             </button>
           )}

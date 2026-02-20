@@ -221,7 +221,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
           <CardContent>
             <ul className="space-y-2">
               {data.contract_calls.map((c) => (
-                <li key={`${c.contract_hash}-${c.method}`} className="p-2 border border-gray-200 dark:border-gray-700 rounded text-sm">
+                <li key={`${c.contract_hash}-${c.method}`} className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm">
                   <div className="flex justify-between">
                     <span className="font-medium">{c.method}</span>
                     <Badge variant={c.success ? "default" : "destructive"}>{c.success ? "Success" : "Failed"}</Badge>
@@ -246,7 +246,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
           <CardContent>
             <ul className="space-y-1">
               {data.syscalls.map((s) => (
-                <li key={`${s.contract_hash}-${s.syscall_name}`} className="flex justify-between text-sm p-2 border border-gray-200 dark:border-gray-700 rounded">
+                <li key={`${s.contract_hash}-${s.syscall_name}`} className="flex justify-between text-sm p-2 border border-gray-200 dark:border-gray-700 rounded-lg">
                   <span className="font-mono">{s.syscall_name}</span>
                   <span className="text-gray-500 dark:text-gray-400">{s.gas_consumed} GAS</span>
                 </li>
@@ -269,7 +269,7 @@ function AddressResult({ result }: { result: SearchResult }) {
         <p className="mb-4">Total Transactions: {result.tx_count}</p>
         <ul className="space-y-2">
           {result.transactions?.map((tx) => (
-            <li key={tx.tx_hash} className="flex justify-between p-2 border border-gray-200 dark:border-gray-700 rounded text-sm">
+            <li key={tx.tx_hash} className="flex justify-between p-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm">
               <span className="font-mono text-xs">{tx.tx_hash}</span>
               <Badge variant="outline">{tx.role}</Badge>
             </li>
@@ -290,7 +290,7 @@ function ContractResult({ result }: { result: SearchResult }) {
         <p className="mb-4">Total Calls: {result.call_count}</p>
         <ul className="space-y-2">
           {result.calls?.map((c) => (
-            <li key={`${c.contract_hash}-${c.method}`} className="flex justify-between p-2 border border-gray-200 dark:border-gray-700 rounded text-sm">
+            <li key={`${c.contract_hash}-${c.method}`} className="flex justify-between p-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm">
               <span className="font-medium">{c.method}</span>
               <Badge variant={c.success ? "default" : "destructive"}>{c.success ? "Success" : "Failed"}</Badge>
             </li>

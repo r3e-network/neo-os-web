@@ -42,7 +42,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
+                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
                   >
                     {link.label}
                   </Link>
@@ -59,7 +59,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
+                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
                   >
                     {link.label}
                   </Link>
@@ -78,7 +78,7 @@ export function Footer() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
+                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-neo transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
                   >
                     {link.label}
                     <span className="sr-only"> (opens in new tab)</span>

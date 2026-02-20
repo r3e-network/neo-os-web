@@ -348,7 +348,7 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
             href={app.docs_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-neo no-underline text-sm font-medium transition-colors hover:text-neo/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
+            className="text-neo no-underline text-sm font-medium transition-colors hover:text-neo/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
           >
             📄 View Documentation →
           </a>

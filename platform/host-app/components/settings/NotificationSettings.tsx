@@ -25,11 +25,11 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
     return (
       <div className="space-y-6 p-4">
         <Skeleton className="h-7 w-48" />
-        <div className="border border-gray-200 dark:border-gray-700 rounded p-4 space-y-3">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
           <Skeleton className="h-5 w-36" />
           <Skeleton className="h-4 w-48" />
         </div>
-        <div className="border border-gray-200 dark:border-gray-700 rounded p-4 space-y-4">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4">
           <Skeleton className="h-5 w-36" />
           {Array.from({ length: 3 }, (_, i) => (
             <div key={i} className="flex items-center justify-between">
@@ -37,7 +37,7 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
                 <Skeleton className="h-4 w-28" />
                 <Skeleton className="h-3 w-20" />
               </div>
-              <Skeleton className="h-5 w-5 rounded" />
+              <Skeleton className="h-5 w-5 rounded-lg" />
             </div>
           ))}
         </div>
@@ -59,7 +59,7 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
           <button
             type="button"
             onClick={clearError}
-            className="ml-2 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded"
+            className="ml-2 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
           >
             Dismiss
           </button>
@@ -99,7 +99,7 @@ function EmailSection({
   bindEmail: (email: string) => Promise<void>;
 }) {
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded p-4">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
       <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Email Notifications</h3>
       {preferences.email ? (
         <div className="flex items-center gap-2">
@@ -118,9 +118,9 @@ function EmailSection({
             onChange={(e) => setEmail(e.target.value)}
             aria-label="Email address"
             placeholder="Enter email"
-            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded px-2 py-1 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg px-2 py-1 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           />
-          <button type="button" onClick={() => bindEmail(email)} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
+          <button type="button" onClick={() => bindEmail(email)} className="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
             Bind
           </button>
         </div>
@@ -128,7 +128,7 @@ function EmailSection({
         <button
           type="button"
           onClick={() => setShowEmailInput(true)}
-          className="text-blue-500 dark:text-blue-400 underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded"
+          className="text-blue-500 dark:text-blue-400 underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-lg"
         >
           Add email
         </button>
@@ -156,7 +156,7 @@ function ToggleSection({
   ];
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded p-4 space-y-3">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
       <h3 className="font-semibold text-gray-900 dark:text-white">Notification Types</h3>
       {toggles.map((t) => (
         <Toggle
@@ -189,7 +189,7 @@ function Toggle({
         <div className="font-medium text-gray-900 dark:text-white">{label}</div>
         <div className="text-sm text-gray-500 dark:text-gray-400">{desc}</div>
       </div>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="w-5 h-5 accent-neo rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="w-5 h-5 accent-neo rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" />
     </label>
   );
 }

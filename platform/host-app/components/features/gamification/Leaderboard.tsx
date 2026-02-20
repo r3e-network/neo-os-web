@@ -42,7 +42,7 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="flex items-center gap-3 px-4 py-3">
-              <Skeleton className="h-6 w-8 rounded" />
+              <Skeleton className="h-6 w-8 rounded-full" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-40" />
                 <Skeleton className="h-3 w-24" />

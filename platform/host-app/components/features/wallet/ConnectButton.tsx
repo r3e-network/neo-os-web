@@ -96,7 +96,7 @@ export function ConnectButton() {
               onClick={() => handleConnect(w.id)}
               className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-3 text-left text-sm hover:bg-gray-100 transition-colors dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             >
-              <img src={w.icon} alt={w.name} className="w-6 h-6 rounded" onError={(e) => { e.currentTarget.src = "/wallet-default.svg"; }} />
+              <img src={w.icon} alt={w.name} className="w-6 h-6 rounded-full" onError={(e) => { e.currentTarget.src = "/wallet-default.svg"; }} />
               <span className="font-medium text-gray-800 dark:text-white">{w.name}</span>
             </button>
           ))}
@@ -109,7 +109,7 @@ export function ConnectButton() {
           <button
             type="button"
             onClick={wallet.clearError}
-            className="mt-2 cursor-pointer text-xs text-red-500 underline dark:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded"
+            className="mt-2 cursor-pointer text-xs text-red-500 underline dark:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
           >
             Dismiss
           </button>

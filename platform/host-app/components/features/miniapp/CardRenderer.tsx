@@ -54,11 +54,11 @@ function CountdownCard({ data, className }: { data: CountdownData; className: st
       className={`h-full flex flex-col justify-center p-4 text-white text-center bg-gradient-to-br from-emerald-500 to-emerald-700 ${className}`}
     >
       <div className="flex justify-center items-center gap-1 mb-2">
-        <span className="text-2xl font-bold bg-black/20 px-2 py-1 rounded">{hours}</span>
+        <span className="text-2xl font-bold bg-black/20 px-2 py-1 rounded-lg">{hours}</span>
         <span className="text-xl">:</span>
-        <span className="text-2xl font-bold bg-black/20 px-2 py-1 rounded">{minutes}</span>
+        <span className="text-2xl font-bold bg-black/20 px-2 py-1 rounded-lg">{minutes}</span>
         <span className="text-xl">:</span>
-        <span className="text-2xl font-bold bg-black/20 px-2 py-1 rounded">{seconds}</span>
+        <span className="text-2xl font-bold bg-black/20 px-2 py-1 rounded-lg">{seconds}</span>
       </div>
       <div className="mb-1">
         <span className="text-xs opacity-80 block">Jackpot</span>

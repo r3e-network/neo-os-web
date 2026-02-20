@@ -129,7 +129,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
               <button
                 type="button"
                 onClick={markAllAsRead}
-                className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
+                className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
               >
                 Mark all read
               </button>
@@ -142,7 +142,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
               <div className="p-2">
                 {Array.from({ length: 3 }, (_, i) => (
                   <div key={i} className="flex items-start gap-3 px-4 py-3">
-                    <Skeleton className="h-6 w-6 rounded" />
+                    <Skeleton className="h-6 w-6 rounded-full" />
                     <div className="flex-1 space-y-2">
                       <Skeleton className="h-4 w-3/4" />
                       <Skeleton className="h-3 w-1/2" />

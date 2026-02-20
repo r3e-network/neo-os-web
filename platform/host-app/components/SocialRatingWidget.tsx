@@ -24,7 +24,7 @@ const StarSvg: React.FC<{ filled: boolean }> = ({ filled }) => (
 const StarIcon: React.FC<{ filled: boolean; onClick?: () => void; label?: string }> = ({ filled, onClick, label }) => {
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} aria-label={label} className="bg-transparent border-none p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo rounded">
+      <button type="button" onClick={onClick} aria-label={label} className="bg-transparent border-none p-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo rounded-lg">
         <StarSvg filled={filled} />
       </button>
     );
@@ -72,7 +72,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 onClearError?.();
               }}
               aria-label="Dismiss error"
-              className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded"
+              className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
             >
               ×
             </button>
@@ -101,8 +101,8 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
           return (
             <div key={star} className="flex items-center gap-2 text-sm">
               <span className="w-3">{star}</span>
-              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded h-2">
-                <div className="bg-yellow-400 h-2 rounded" style={{ width: `${pct}%` }} />
+              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${pct}%` }} />
               </div>
               <span className="w-8 text-gray-500 dark:text-gray-400">{count}</span>
             </div>
@@ -125,7 +125,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 onChange={(e) => setReviewText(e.target.value)}
                 placeholder="Write a review (optional)"
                 aria-label="Write a review"
-                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded p-2 text-sm dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg p-2 text-sm dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                 rows={3}
                 maxLength={1000}
               />
@@ -134,21 +134,21 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                   type="button"
                   onClick={handleSubmit}
                   disabled={loading || selectedValue === 0}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                 >
                   {loading ? "Submitting..." : "Submit"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                 >
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => setIsEditing(true)} className="text-emerald-600 dark:text-emerald-400 text-sm transition-colors hover:text-emerald-700 dark:hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded">
+            <button type="button" onClick={() => setIsEditing(true)} className="text-emerald-600 dark:text-emerald-400 text-sm transition-colors hover:text-emerald-700 dark:hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
               {rating.user_rating ? "Edit your rating" : "Rate this app"}
             </button>
           )}

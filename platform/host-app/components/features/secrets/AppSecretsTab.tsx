@@ -87,7 +87,7 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
       <div className="flex items-center gap-2">
         <span
           className={cn(
-            "text-xs px-2 py-0.5 rounded",
+            "text-xs px-2 py-0.5 rounded-full",
             token.status === "active"
               ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400"
               : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400"

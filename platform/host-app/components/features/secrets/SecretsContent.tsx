@@ -44,7 +44,7 @@ export default function SecretsContent() {
           <button
             type="button"
             onClick={clearError}
-            className="mt-1 text-xs text-red-500 dark:text-red-400 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded"
+            className="mt-1 text-xs text-red-500 dark:text-red-400 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg"
           >
             Dismiss
           </button>
