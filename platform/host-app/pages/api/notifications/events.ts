@@ -39,7 +39,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return apiError.badRequest(res, "Valid event ID required");
       }
 
-      const success = await markAsRead(eventId);
+      const success = await markAsRead(eventId, wallet);
       if (!success) return apiError.internal(res, "Failed to mark as read");
       return res.status(200).json({ success });
     }

@@ -569,6 +569,11 @@ func (s *Service) runRandomnessRecorder() {
 
 // runMiniAppWorkflow runs a MiniApp workflow simulation loop.
 func (s *Service) runMiniAppWorkflow(appID string, workerID int, workflowFn func(context.Context) error) {
+	defer func() {
+		if r := recover(); r != nil {
+			s.Logger().WithField("panic", r).Error("miniapp workflow worker panicked")
+		}
+	}()
 	ctx := context.Background()
 	logger := s.Logger().WithFields(map[string]interface{}{
 		"worker":    "miniapp",

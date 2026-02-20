@@ -100,6 +100,11 @@ func (s *Syncer) Stop() {
 }
 
 func (s *Syncer) syncLoop(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			s.log.Error(ctx, "syncLoop panicked", fmt.Errorf("%v", r), nil)
+		}
+	}()
 	ticker := time.NewTicker(s.cfg.SyncInterval)
 	defer ticker.Stop()
 

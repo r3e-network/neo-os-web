@@ -117,10 +117,10 @@ export async function getEvents(wallet: string, limit = 50, unreadOnly = false):
 }
 
 /** Mark event as read */
-export async function markAsRead(eventId: string): Promise<boolean> {
+export async function markAsRead(eventId: string, wallet: string): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
 
-  const { error } = await supabase.from(EVENTS_TABLE).update({ read: true }).eq("id", eventId);
+  const { error } = await supabase.from(EVENTS_TABLE).update({ read: true }).eq("id", eventId).eq("wallet_address", wallet);
 
   return !error;
 }
