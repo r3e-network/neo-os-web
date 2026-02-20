@@ -64,7 +64,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
                   secretType === type.value
                     ? "border-neo bg-neo/10 dark:bg-neo/20"
                     : "border-gray-200 dark:border-gray-700 dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
-                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo`}
+                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50`}
               >
                 <type.icon size={18} />
                 <div className="font-medium">{type.label}</div>
