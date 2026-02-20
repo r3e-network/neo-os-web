@@ -59,7 +59,7 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
           <button
             type="button"
             onClick={clearError}
-            className="ml-2 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded"
+            className="ml-2 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded"
           >
             Dismiss
           </button>
