@@ -277,14 +277,16 @@ export default function MiniAppsPage() {
             )}
 
             {viewMode === "list" ? (
-              <div className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <ul className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
                 {filteredAndSortedApps.map((app) => (
-                  <MiniAppListItem key={app.app_id} app={app} />
+                  <li key={app.app_id}>
+                    <MiniAppListItem app={app} />
+                  </li>
                 ))}
                 {filteredAndSortedApps.length === 0 && (
-                  <div className="py-12 text-center text-gray-500 dark:text-gray-400">No MiniApps found</div>
+                  <li className="py-12 text-center text-gray-500 dark:text-gray-400">No MiniApps found</li>
                 )}
-              </div>
+              </ul>
             ) : (
               <MiniAppGrid apps={filteredAndSortedApps} columns={3} />
             )}
