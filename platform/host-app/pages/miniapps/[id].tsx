@@ -115,7 +115,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-24">
         <div className="flex flex-col items-center justify-center min-h-screen p-8">
-          <h1 className="text-[32px] font-bold text-gray-900 dark:text-white mb-4">App Not Found</h1>
+          <h1 className="text-[32px] font-extrabold text-gray-900 dark:text-white mb-4">App Not Found</h1>
           <p className="text-base text-gray-500 dark:text-gray-400 mb-6">
             {error || "The requested MiniApp does not exist."}
           </p>
@@ -178,7 +178,8 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
             <button
               type="button"
-              aria-pressed={activeTab === "overview"}
+              role="tab"
+              aria-selected={activeTab === "overview"}
               className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "overview" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
@@ -188,7 +189,8 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             </button>
             <button
               type="button"
-              aria-pressed={activeTab === "reviews"}
+              role="tab"
+              aria-selected={activeTab === "reviews"}
               className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "reviews" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
@@ -198,7 +200,8 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             </button>
             <button
               type="button"
-              aria-pressed={activeTab === "forum"}
+              role="tab"
+              aria-selected={activeTab === "forum"}
               className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 activeTab === "forum" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
               }`}
@@ -209,7 +212,8 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             {showNews && (
               <button
                 type="button"
-                aria-pressed={activeTab === "news"}
+                role="tab"
+                aria-selected={activeTab === "news"}
                 className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                   activeTab === "news" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
                 }`}
@@ -221,7 +225,8 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             {showSecrets && (
               <button
                 type="button"
-                aria-pressed={activeTab === "secrets"}
+                role="tab"
+                aria-selected={activeTab === "secrets"}
                 className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                   activeTab === "secrets" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
                 }`}

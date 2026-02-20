@@ -24,7 +24,7 @@ export default function AccountPage() {
 
       <div className="mx-auto max-w-4xl px-4 py-12">
         <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Profile Settings</h1>
+          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">Profile Settings</h1>
           <p className="mt-2 text-gray-500 dark:text-gray-400">Manage your Neo identity and social connections</p>
         </div>
 

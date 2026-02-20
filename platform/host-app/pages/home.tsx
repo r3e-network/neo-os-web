@@ -84,7 +84,7 @@ export default function HomePage() {
           <h1 className="text-4xl font-bold md:text-6xl">{t("hero.title")}</h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-primary-100">{t("hero.subtitle")}</p>
           <div className="mt-8 flex justify-center gap-4">
-            <Button size="lg" className="bg-white text-primary-600 hover:bg-gray-100">
+            <Button size="lg" className="bg-white text-primary-600 hover:bg-gray-100 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800">
               {t("hero.exploreApps")}
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">

@@ -228,7 +228,7 @@ export default function LandingPage() {
                         onClick={() => setSelectedCategory(cat.id)}
                         aria-pressed={isActive}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg cursor-pointer transition-all",
+                          "w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
                           isActive
                             ? "bg-neo/10 text-neo font-medium"
                             : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/5",

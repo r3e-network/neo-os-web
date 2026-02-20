@@ -75,7 +75,7 @@ export default function DocsPage() {
           </div>
           <div className="mx-auto max-w-7xl px-4">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">Documentation</h1>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4">Documentation</h1>
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
                 Everything you need to build powerful MiniApps on Neo N3
               </p>
@@ -88,7 +88,7 @@ export default function DocsPage() {
                   placeholder="Search documentation..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-12 pl-12 pr-4 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
+                  className="w-full h-12 pl-12 pr-4 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-neo/50 focus:ring-1 focus:ring-neo/50 transition-all"
                 />
               </div>
             </motion.div>

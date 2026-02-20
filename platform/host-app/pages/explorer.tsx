@@ -94,7 +94,7 @@ export default function ExplorerPage() {
 
       <div className="container mx-auto px-4 py-4 sm:py-8 max-w-6xl">
         <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Neo N3 Explorer</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Neo N3 Explorer</h1>
           <p className="text-gray-500 dark:text-gray-400">Search transactions, addresses, and contracts with execution traces</p>
         </div>
 
