@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
 import { isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 type RatingRow = {
   app_id: string;
@@ -126,10 +127,16 @@ async function submitRating(appId: string, req: NextApiRequest, res: NextApiResp
     return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for rating writes");
   }
 
+  const authedWallet = await requireWalletAuth(req, res);
+  if (!authedWallet) return;
+
   const { wallet, value, review } = req.body;
 
   if (!isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
+  }
+  if (wallet !== authedWallet) {
+    return apiError.forbidden(res, "Wallet mismatch");
   }
   if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 5) {
     return apiError.badRequest(res, "Invalid rating value");
