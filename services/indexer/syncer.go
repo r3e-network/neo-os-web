@@ -166,6 +166,7 @@ func (s *Syncer) syncBlocksForNetwork(ctx context.Context, network Network) {
 	})
 
 	var totalTx int64
+	lastSuccessBlock := startBlock - 1
 	for blockIdx := startBlock; blockIdx < endBlock; blockIdx++ {
 		count, err := s.syncBlockForNetwork(ctx, network, client, blockIdx)
 		if err != nil {
@@ -175,13 +176,18 @@ func (s *Syncer) syncBlocksForNetwork(ctx context.Context, network Network) {
 			}).Error("sync block")
 			break
 		}
+		lastSuccessBlock = blockIdx
 		totalTx += count
+	}
+
+	if lastSuccessBlock < startBlock {
+		return // No blocks were successfully synced
 	}
 
 	// Update sync state
 	newState := &SyncState{
 		Network:        network,
-		LastBlockIndex: endBlock - 1,
+		LastBlockIndex: lastSuccessBlock,
 		LastBlockTime:  time.Now().UTC(),
 		TotalTxIndexed: totalTx,
 		LastSyncAt:     time.Now().UTC(),
@@ -229,7 +235,11 @@ func (s *Syncer) indexTransactionForNetwork(ctx context.Context, network Network
 		exception = appLog.Executions[0].Exception
 	}
 
-	signersJSON, _ := json.Marshal(chainTx.Signers)
+	signersJSON, err2 := json.Marshal(chainTx.Signers)
+	if err2 != nil {
+		s.log.WithError(err2).WithField("tx", chainTx.Hash).Warn("marshal signers")
+		signersJSON = []byte("[]")
+	}
 
 	tx := &Transaction{
 		Hash:            chainTx.Hash,

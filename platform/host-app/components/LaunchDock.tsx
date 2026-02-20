@@ -20,8 +20,9 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
 
   const networkStatus = getNetworkStatus();
 
-  const walletDisplay = wallet.connected
-    ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
+  const addr = wallet?.address || "";
+  const walletDisplay = wallet?.connected && addr.length >= 10
+    ? `${addr.slice(0, 6)}...${addr.slice(-4)}`
     : "Connect Wallet";
 
   const walletDotBg = wallet.connected ? "bg-emerald-500" : "bg-red-500";
