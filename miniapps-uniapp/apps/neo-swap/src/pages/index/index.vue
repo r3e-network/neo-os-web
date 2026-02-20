@@ -229,7 +229,7 @@ onMounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 @import "@/shared/styles/theme.scss";
 
 .container {
@@ -245,14 +245,14 @@ onMounted(() => {
 
 .title {
   display: block;
-  font-size: 24px;
+  font-size: 1.5em;
   font-weight: 700;
   color: $color-flamingo;
 }
 
 .subtitle {
   display: block;
-  font-size: 14px;
+  font-size: 0.85em;
   color: $color-text-secondary;
   margin-top: 4px;
 }
@@ -271,7 +271,7 @@ onMounted(() => {
 
 .section-label {
   display: block;
-  font-size: 12px;
+  font-size: 0.75em;
   color: $color-text-secondary;
   margin-bottom: 8px;
 }
@@ -293,17 +293,17 @@ onMounted(() => {
 }
 
 .token-icon {
-  font-size: 20px;
+  font-size: 1.25em;
 }
 
 .token-symbol {
-  font-size: 16px;
+  font-size: 1em;
   font-weight: 600;
   color: $color-text-primary;
 }
 
 .dropdown-arrow {
-  font-size: 10px;
+  font-size: 0.65em;
   color: $color-text-secondary;
 }
 
@@ -311,7 +311,7 @@ onMounted(() => {
   flex: 1;
   background: transparent;
   border: none;
-  font-size: 24px;
+  font-size: 1.5em;
   color: $color-text-primary;
   text-align: right;
   outline: none;
@@ -319,7 +319,7 @@ onMounted(() => {
 
 .balance-text {
   display: block;
-  font-size: 12px;
+  font-size: 0.75em;
   color: $color-text-muted;
   margin-top: 8px;
 }
@@ -331,7 +331,7 @@ onMounted(() => {
 }
 
 .swap-icon {
-  font-size: 20px;
+  font-size: 1.25em;
   color: $color-flamingo;
   cursor: pointer;
   padding: 8px;
@@ -349,12 +349,12 @@ onMounted(() => {
 }
 
 .price-label {
-  font-size: 13px;
+  font-size: 0.8em;
   color: $color-text-secondary;
 }
 
 .price-value {
-  font-size: 13px;
+  font-size: 0.8em;
   color: $color-text-primary;
 }
 
@@ -363,7 +363,7 @@ onMounted(() => {
   padding: 16px;
   border-radius: 12px;
   border: none;
-  font-size: 16px;
+  font-size: 1em;
   font-weight: 600;
   background: $color-flamingo;
   color: $color-text-primary;
@@ -414,7 +414,7 @@ onMounted(() => {
 
 .modal-title {
   display: block;
-  font-size: 16px;
+  font-size: 1em;
   font-weight: 600;
   color: $color-text-primary;
   margin-bottom: 16px;
@@ -439,13 +439,13 @@ onMounted(() => {
 
 .token-name {
   display: block;
-  font-size: 14px;
+  font-size: 0.85em;
   color: $color-text-primary;
 }
 
 .token-balance {
   display: block;
-  font-size: 12px;
+  font-size: 0.75em;
   color: $color-text-secondary;
 }
 </style>

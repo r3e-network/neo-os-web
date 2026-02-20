@@ -84,7 +84,7 @@ const submitSolution = async () => {
 </script>
 
 <style lang="scss">
-@use "@/shared/styles/theme.scss" as *;
+@import "@/shared/styles/theme.scss";
 .app-container {
   min-height: 100vh;
   background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);

@@ -207,7 +207,7 @@ onMounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 @import "@/shared/styles/theme.scss";
 
 .container {
@@ -229,14 +229,14 @@ onMounted(() => {
 
 .title {
   display: block;
-  font-size: 24px;
+  font-size: 1.5em;
   font-weight: 700;
   color: $color-brand;
 }
 
 .subtitle {
   display: block;
-  font-size: 14px;
+  font-size: 0.85em;
   color: $color-text-secondary;
   margin-top: 4px;
 }
@@ -257,14 +257,14 @@ onMounted(() => {
 
 .stat-label {
   display: block;
-  font-size: 12px;
+  font-size: 0.75em;
   color: $color-text-secondary;
   margin-bottom: 4px;
 }
 
 .stat-value {
   display: block;
-  font-size: 20px;
+  font-size: 1.25em;
   font-weight: 600;
   color: $color-text-primary;
 }
@@ -280,14 +280,14 @@ onMounted(() => {
 
 .apy-label {
   display: block;
-  font-size: 12px;
+  font-size: 0.75em;
   color: $color-brand;
   margin-bottom: 4px;
 }
 
 .apy-value {
   display: block;
-  font-size: 28px;
+  font-size: 1.75em;
   font-weight: 700;
   color: $color-brand;
 }
@@ -327,7 +327,7 @@ onMounted(() => {
 
 .input-label {
   display: block;
-  font-size: 14px;
+  font-size: 0.85em;
   color: $color-text-secondary;
   margin-bottom: 8px;
 }
@@ -344,20 +344,20 @@ onMounted(() => {
   flex: 1;
   background: transparent;
   border: none;
-  font-size: 24px;
+  font-size: 1.5em;
   color: $color-text-primary;
   outline: none;
 }
 
 .token-label {
-  font-size: 16px;
+  font-size: 1em;
   color: $color-text-secondary;
   margin-left: 8px;
 }
 
 .balance-hint {
   display: block;
-  font-size: 12px;
+  font-size: 0.75em;
   color: $color-text-muted;
   margin-top: 8px;
 }
@@ -373,12 +373,12 @@ onMounted(() => {
 }
 
 .receive-label {
-  font-size: 14px;
+  font-size: 0.85em;
   color: $color-text-secondary;
 }
 
 .receive-value {
-  font-size: 16px;
+  font-size: 1em;
   font-weight: 600;
   color: $color-brand;
 }
@@ -388,7 +388,7 @@ onMounted(() => {
   padding: 16px;
   border-radius: 12px;
   border: none;
-  font-size: 16px;
+  font-size: 1em;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -414,7 +414,7 @@ onMounted(() => {
   padding: 12px;
   border-radius: 8px;
   text-align: center;
-  font-size: 14px;
+  font-size: 0.85em;
 }
 
 .status.success {
