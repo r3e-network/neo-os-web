@@ -14,7 +14,7 @@ export function OAuthLinks() {
       {error && (
         <div role="alert" className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-          <button type="button" onClick={clearError} className="mt-1 text-xs text-red-500 dark:text-red-400 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">
+          <button type="button" onClick={clearError} className="mt-1 text-xs text-red-500 dark:text-red-400 underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">
             Dismiss
           </button>
         </div>
@@ -44,7 +44,7 @@ export function OAuthLinks() {
                   onClick={() => unlinkAccount(provider.id)}
                   disabled={isLoading}
                   aria-label={`Unlink ${provider.name}`}
-                  className="rounded-md border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                  className="rounded-md border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
                 >
                   {isLoading ? "Unlinking..." : "Unlink"}
                 </button>
@@ -54,7 +54,7 @@ export function OAuthLinks() {
                   onClick={() => linkAccount(provider.id)}
                   disabled={isLoading}
                   aria-label={`Link ${provider.name}`}
-                  className="rounded-md bg-gray-900 dark:bg-gray-100 px-3 py-1.5 text-sm text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                  className="rounded-md bg-gray-900 dark:bg-gray-100 px-3 py-1.5 text-sm text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                 >
                   {isLoading ? "Linking..." : "Link"}
                 </button>

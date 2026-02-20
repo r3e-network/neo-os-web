@@ -67,7 +67,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
                 setLocalError(null);
                 onClearError?.();
               }}
-              className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+              className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 text-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
             >
               Dismiss
             </button>

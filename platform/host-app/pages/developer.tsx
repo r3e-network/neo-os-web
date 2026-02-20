@@ -267,7 +267,7 @@ export default function DeveloperPage() {
                     type="button"
                     onClick={() => setShowForm(false)}
                     aria-label="Close panel"
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
                     <X className="text-gray-500 dark:text-gray-400" size={20} />
                   </button>

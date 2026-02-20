@@ -216,7 +216,7 @@ function FrequencySelector({ value, onChange }: { value: DigestFrequency; onChan
           key={opt.value}
           aria-pressed={value === opt.value}
           onClick={() => onChange(opt.value)}
-          className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors ${
+          className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
             value === opt.value
               ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
               : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"

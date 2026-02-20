@@ -103,7 +103,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        className="relative p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
         aria-haspopup="true"
         aria-expanded={isOpen}
@@ -129,7 +129,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
               <button
                 type="button"
                 onClick={markAllAsRead}
-                className="py-1 px-2 text-xs text-emerald-500 hover:text-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+                className="py-1 px-2 text-xs text-emerald-500 hover:text-emerald-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
               >
                 Mark all read
               </button>

@@ -193,7 +193,7 @@ export default function MiniAppsPage() {
                     aria-haspopup="listbox"
                     aria-expanded={showSortMenu}
                     aria-label="Sort options"
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
                     <currentSort.icon size={14} />
                     {currentSort.label}
@@ -216,7 +216,7 @@ export default function MiniAppsPage() {
                             setShowSortMenu(false);
                           }}
                           className={cn(
-                            "flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors",
+                            "flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer",
                             sortBy === option.value
                               ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
                               : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800",
@@ -237,7 +237,7 @@ export default function MiniAppsPage() {
                     onClick={() => setViewMode("list")}
                     aria-pressed={viewMode === "list"}
                     className={cn(
-                      "p-2 transition-colors",
+                      "p-2 transition-colors cursor-pointer",
                       viewMode === "list"
                         ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                         : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
@@ -251,7 +251,7 @@ export default function MiniAppsPage() {
                     onClick={() => setViewMode("grid")}
                     aria-pressed={viewMode === "grid"}
                     className={cn(
-                      "p-2 transition-colors",
+                      "p-2 transition-colors cursor-pointer",
                       viewMode === "grid"
                         ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
                         : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",

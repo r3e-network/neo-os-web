@@ -56,7 +56,7 @@ export function ForumTab({ appId }: ForumTabProps) {
           <button
             type="button"
             onClick={() => setShowNewThread(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           >
             <Plus size={16} />
             New Thread
@@ -72,7 +72,7 @@ export function ForumTab({ appId }: ForumTabProps) {
             key={cat}
             onClick={() => setFilter(cat)}
             aria-pressed={filter === cat}
-            className={`px-3 py-1 text-xs rounded-full capitalize transition-colors ${
+            className={`px-3 py-1 text-xs rounded-full capitalize transition-colors cursor-pointer ${
               filter === cat
                 ? "bg-emerald-500 text-white"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -213,7 +213,7 @@ function NewThreadForm({
           <option value="help">Help</option>
         </select>
         <div className="flex gap-2">
-          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
+          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
             Cancel
           </button>
           <button
@@ -266,7 +266,7 @@ function ThreadDetail({
       <button
         type="button"
         onClick={onBack}
-        className="text-sm text-emerald-500 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+        className="text-sm text-emerald-500 hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
       >
         ← Back to discussions
       </button>
@@ -319,7 +319,7 @@ function ThreadDetail({
             type="button"
             onClick={handleReply}
             disabled={submitting || !replyContent.trim()}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           >
             Reply
           </button>

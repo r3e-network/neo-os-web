@@ -303,7 +303,7 @@ export default function LandingPage() {
                       aria-label="Grid view"
                       aria-pressed={viewMode === "grid"}
                       className={cn(
-                        "p-1.5 rounded-md transition-all",
+                        "p-1.5 rounded-md transition-all cursor-pointer",
                         viewMode === "grid"
                           ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
                           : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",
@@ -317,7 +317,7 @@ export default function LandingPage() {
                       aria-label="List view"
                       aria-pressed={viewMode === "list"}
                       className={cn(
-                        "p-1.5 rounded-md transition-all",
+                        "p-1.5 rounded-md transition-all cursor-pointer",
                         viewMode === "list"
                           ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
                           : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",

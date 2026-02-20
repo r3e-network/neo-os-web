@@ -59,7 +59,7 @@ export function NotificationSettings({ walletAddress }: NotificationSettingsProp
           <button
             type="button"
             onClick={clearError}
-            className="ml-2 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+            className="ml-2 underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
           >
             Dismiss
           </button>
@@ -120,7 +120,7 @@ function EmailSection({
             placeholder="Enter email"
             className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg px-2 py-1 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           />
-          <button type="button" onClick={() => bindEmail(email)} className="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
+          <button type="button" onClick={() => bindEmail(email)} className="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50">
             Bind
           </button>
         </div>
@@ -128,7 +128,7 @@ function EmailSection({
         <button
           type="button"
           onClick={() => setShowEmailInput(true)}
-          className="text-blue-500 dark:text-blue-400 underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-lg"
+          className="text-blue-500 dark:text-blue-400 underline transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-lg"
         >
           Add email
         </button>

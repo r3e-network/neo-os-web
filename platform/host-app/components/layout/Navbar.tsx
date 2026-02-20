@@ -101,7 +101,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
             aria-label="Toggle theme"
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -114,7 +114,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setLocale(locale === "en" ? "zh" : "en")}
-            className="p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
+            className="p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer flex items-center gap-1"
             aria-label="Switch language"
           >
             <Globe size={18} aria-hidden="true" />
@@ -127,7 +127,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="md:hidden p-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
             aria-label="Toggle navigation menu"
             aria-haspopup="true"
             aria-expanded={mobileMenuOpen}

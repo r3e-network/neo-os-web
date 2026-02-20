@@ -26,7 +26,7 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
         type="button"
         onClick={onBack}
         aria-label="Go back"
-        className="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent px-4 py-2 text-sm text-gray-900 dark:text-white transition-all hover:bg-gray-100 dark:hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        className="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent px-4 py-2 text-sm text-gray-900 dark:text-white transition-all cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
       >
         ← Back
       </button>
