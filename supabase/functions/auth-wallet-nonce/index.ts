@@ -5,6 +5,7 @@ import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 
 export async function handler(req: Request): Promise<Response> {
+  try {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
@@ -80,6 +81,9 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   return json({ nonce, message, account_id: accountId }, {}, req);
+  } catch {
+    return error(500, "internal error", "INTERNAL", req);
+  }
 }
 
 if (import.meta.main) {

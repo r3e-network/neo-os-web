@@ -6,6 +6,7 @@ import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { verifyNeoSignature } from "../_shared/neo.ts";
 
 export async function handler(req: Request): Promise<Response> {
+  try {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
@@ -128,6 +129,9 @@ export async function handler(req: Request): Promise<Response> {
   const accessToken = verifyData.session.access_token;
 
   return json({ access_token: accessToken, user: { id: accountId, address } }, {}, req);
+  } catch {
+    return error(500, "internal error", "INTERNAL", req);
+  }
 }
 
 if (import.meta.main) {
