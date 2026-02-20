@@ -208,10 +208,12 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@import "@/shared/styles/theme.scss";
+
 .container {
   padding: 20px;
   min-height: 100vh;
-  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+  background: linear-gradient(180deg, $color-bg-secondary 0%, $color-bg-dark 100%);
 }
 
 .header {
@@ -229,7 +231,7 @@ onMounted(() => {
   display: block;
   font-size: 24px;
   font-weight: 700;
-  color: #00d4aa;
+  color: $color-brand;
 }
 
 .subtitle {
@@ -268,8 +270,8 @@ onMounted(() => {
 }
 
 .apy-card {
-  background: linear-gradient(135deg, #00d4aa20 0%, #00d4aa10 100%);
-  border: 1px solid #00d4aa40;
+  background: linear-gradient(135deg, rgba($color-brand, 0.12) 0%, rgba($color-brand, 0.06) 100%);
+  border: 1px solid rgba($color-brand, 0.25);
   border-radius: 12px;
   padding: 16px;
   text-align: center;
@@ -279,7 +281,7 @@ onMounted(() => {
 .apy-label {
   display: block;
   font-size: 12px;
-  color: #00d4aa;
+  color: $color-brand;
   margin-bottom: 4px;
 }
 
@@ -287,7 +289,7 @@ onMounted(() => {
   display: block;
   font-size: 28px;
   font-weight: 700;
-  color: #00d4aa;
+  color: $color-brand;
 }
 
 .tabs {
@@ -308,8 +310,8 @@ onMounted(() => {
 }
 
 .tab.active {
-  background: #00d4aa;
-  color: #0f0f1a;
+  background: $color-brand;
+  color: $color-bg-dark;
   font-weight: 600;
 }
 
@@ -361,7 +363,7 @@ onMounted(() => {
 }
 
 .receive-info {
-  background: rgba(0, 212, 170, 0.1);
+  background: rgba($color-brand, 0.1);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 16px;
@@ -378,7 +380,7 @@ onMounted(() => {
 .receive-value {
   font-size: 16px;
   font-weight: 600;
-  color: #00d4aa;
+  color: $color-brand;
 }
 
 .action-btn {
@@ -393,12 +395,12 @@ onMounted(() => {
 }
 
 .stake-btn {
-  background: #00d4aa;
-  color: #0f0f1a;
+  background: $color-brand;
+  color: $color-bg-dark;
 }
 
 .unstake-btn {
-  background: #ff6b6b;
+  background: $color-brand-negative;
   color: $color-text-primary;
 }
 
@@ -417,11 +419,11 @@ onMounted(() => {
 
 .status.success {
   background: rgba(0, 212, 170, 0.2);
-  color: #00d4aa;
+  color: $color-brand;
 }
 
 .status.error {
   background: rgba(255, 107, 107, 0.2);
-  color: #ff6b6b;
+  color: $color-brand-negative;
 }
 </style>

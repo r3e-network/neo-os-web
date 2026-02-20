@@ -230,15 +230,12 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-$color-flamingo: #ff6b9d;
-$color-bg: #0d1117;
-$color-card: rgba(255, 255, 255, 0.05);
-$color-border: rgba(255, 255, 255, 0.1);
+@import "@/shared/styles/theme.scss";
 
 .container {
   padding: 20px;
   min-height: 100vh;
-  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+  background: linear-gradient(180deg, $color-bg-secondary 0%, $color-bg-dark 100%);
 }
 
 .header {
@@ -261,7 +258,7 @@ $color-border: rgba(255, 255, 255, 0.1);
 }
 
 .swap-card {
-  background: $color-card;
+  background: $color-bg-card;
   border: 1px solid $color-border;
   border-radius: 16px;
   padding: 20px;
@@ -343,7 +340,7 @@ $color-border: rgba(255, 255, 255, 0.1);
 }
 
 .price-info {
-  background: $color-card;
+  background: $color-bg-card;
   border-radius: 12px;
   padding: 12px 16px;
   margin-bottom: 16px;
@@ -386,13 +383,13 @@ $color-border: rgba(255, 255, 255, 0.1);
 }
 
 .status-msg.success {
-  background: rgba(0, 212, 170, 0.2);
-  color: #00d4aa;
+  background: rgba($color-brand, 0.2);
+  color: $color-brand;
 }
 
 .status-msg.error {
-  background: rgba(255, 107, 107, 0.2);
-  color: #ff6b6b;
+  background: rgba($color-brand-negative, 0.2);
+  color: $color-brand-negative;
 }
 
 .modal-overlay {
@@ -409,7 +406,7 @@ $color-border: rgba(255, 255, 255, 0.1);
 }
 
 .modal-content {
-  background: #1a1a2e;
+  background: $color-bg-secondary;
   border-radius: 16px;
   padding: 20px;
   width: 280px;

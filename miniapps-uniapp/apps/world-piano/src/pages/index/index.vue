@@ -217,7 +217,7 @@ const playNote = (note: { key: string; freq: number }) => {
   }
 }
 .note-label {
-  color: #333;
+  color: $color-text-on-light;
   font-size: 0.9em;
   font-weight: bold;
 }

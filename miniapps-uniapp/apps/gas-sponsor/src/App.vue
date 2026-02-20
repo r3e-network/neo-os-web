@@ -15,7 +15,10 @@ onHide(() => {
 </script>
 
 <style>
+@import "@/shared/styles/theme.scss";
+
 page {
-  background-color: #0f0f1a;
+  background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
+  min-height: 100vh;
 }
 </style>

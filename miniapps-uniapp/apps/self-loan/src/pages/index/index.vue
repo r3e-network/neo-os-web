@@ -160,7 +160,7 @@ const takeLoan = async (): Promise<void> => {
   color: $color-text-secondary;
 }
 .collateral {
-  color: #f59e0b;
+  color: $color-warning;
   font-weight: 800;
 }
 .payment {
