@@ -62,6 +62,14 @@ export async function handler(req: Request): Promise<Response> {
     return error(401, "nonce mismatch or wallet not registered", "AUTH_INVALID", req);
   }
 
+  // Enforce 5-minute TTL on the signed message timestamp
+  const tsMatch = message.match(/Timestamp: (\d+)/);
+  const msgTimestamp = tsMatch ? Number(tsMatch[1]) : 0;
+  const now = Math.floor(Date.now() / 1000);
+  if (!msgTimestamp || Math.abs(now - msgTimestamp) > 300) {
+    return error(401, "nonce expired", "AUTH_INVALID", req);
+  }
+
   // Clear nonce immediately (single-use, prevent replay on verification failure)
   await supabase.from("users").update({ nonce: null }).eq("address", address);
   // Note: nonce cleared before any further processing to prevent retry attacks
