@@ -51,11 +51,11 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
       {!loading && appTokens.length === 0 && <p className="text-center text-gray-500 dark:text-gray-400 py-6">No secrets configured for this app</p>}
 
       {appTokens.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-3">
           {appTokens.map((token) => (
             <SecretItem key={token.id} token={token} onRevoke={revokeToken} />
           ))}
-        </div>
+        </ul>
       )}
 
       <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-800 dark:text-blue-300">
@@ -74,7 +74,7 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
   const Icon = typeIcons[token.secretType] || FileText;
 
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+    <li className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
       <div className="flex items-center gap-3">
         <Icon size={20} className="text-gray-500 dark:text-gray-400" />
         <div>
@@ -105,6 +105,6 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
           </button>
         )}
       </div>
-    </div>
+    </li>
   );
 }
