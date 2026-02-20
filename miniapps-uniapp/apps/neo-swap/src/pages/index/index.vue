@@ -253,7 +253,7 @@ onMounted(() => {
   display: block;
   font-size: 0.85em;
   color: $color-text-secondary;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .swap-card {
