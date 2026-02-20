@@ -55,8 +55,6 @@ import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 import { formatNumber } from "@/shared/utils/format";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Pool = { totalDeposits: number; prizePool: number; nextDraw: string };
 type User = { deposit: number; tickets: number; yieldSacrificed: number };
 
@@ -66,7 +64,7 @@ const { payGAS, isLoading } = usePayments(APP_ID);
 const pool = ref<Pool>({ totalDeposits: 850000, prizePool: 127.5, nextDraw: "2d 14h" });
 const user = ref<User>({ deposit: 500, tickets: 50, yieldSacrificed: 0.875 });
 const depositAmount = ref<string>("");
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const joinLottery = async (): Promise<void> => {

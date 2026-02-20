@@ -35,8 +35,6 @@
 import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Circle = { members: number; maxMembers: number; contribution: number; nextPayout: string };
 type UserStatus = { position: number; contributed: number; received: boolean };
 
@@ -48,7 +46,7 @@ const userStatus = ref<UserStatus>({ position: 5, contributed: 50, received: fal
 const contribution = ref<string>("50");
 const duration = ref<string>("12");
 const setupFee = "0.005";
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 
 const join = async (): Promise<void> => {
   if (isLoading.value) return;

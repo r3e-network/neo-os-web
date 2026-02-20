@@ -37,8 +37,6 @@ import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 import { formatNumber } from "@/shared/utils/format";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Pool = { volume24h: number; avgBlockSize: number; privacyLevel: string };
 
 const APP_ID = "miniapp-dark-pool";
@@ -49,7 +47,7 @@ const orderType = ref<string>("Buy");
 const amount = ref<string>("");
 const slippage = ref<string>("0.5");
 const privacyFee = "0.050";
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const placeOrder = async (): Promise<void> => {

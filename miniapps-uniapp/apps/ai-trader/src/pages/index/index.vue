@@ -36,8 +36,6 @@
 import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Performance = { winRate: number; roi30d: number; maxDD: number; refreshMins: number };
 
 const APP_ID = "miniapp-ai-trader";
@@ -48,7 +46,7 @@ const strategy = ref<string>("Mean Reversion");
 const risk = ref<string>("Medium");
 const allocation = ref<string>("50");
 const computeFee = "0.015";
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 
 const deploy = async (): Promise<void> => {
   if (isLoading.value) return;

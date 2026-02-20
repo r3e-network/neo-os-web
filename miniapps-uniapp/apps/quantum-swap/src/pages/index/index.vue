@@ -54,8 +54,6 @@ import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 import { formatNumber } from "@/shared/utils/format";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Route = { fromChain: string; fromToken: string; toChain: string; toToken: string; rate: number };
 type Swap = { timeLock: string };
 
@@ -65,7 +63,7 @@ const { payGAS, isLoading } = usePayments(APP_ID);
 const route = ref<Route>({ fromChain: "Neo N3", fromToken: "GAS", toChain: "Ethereum", toToken: "ETH", rate: 0.00042 });
 const swap = ref<Swap>({ timeLock: "24 hours" });
 const swapAmount = ref<string>("");
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const initiateSwap = async (): Promise<void> => {

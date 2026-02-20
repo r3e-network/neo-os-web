@@ -35,8 +35,6 @@ import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 import { formatNumber } from "@/shared/utils/format";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Vault = { apy: number; tvl: number; compoundFreq: string };
 type Position = { deposited: number; earned: number; est30d: number };
 
@@ -47,7 +45,7 @@ const vault = ref<Vault>({ apy: 18.5, tvl: 125000, compoundFreq: "Every 6h" });
 const position = ref<Position>({ deposited: 100, earned: 1.2345, est30d: 1.54 });
 const amount = ref<string>("");
 const depositFee = "0.010";
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const deposit = async (): Promise<void> => {

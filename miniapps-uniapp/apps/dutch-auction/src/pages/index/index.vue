@@ -54,8 +54,6 @@ import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 import { formatNumber } from "@/shared/utils/format";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Auction = {
   currentPrice: number;
   startPrice: number;
@@ -78,7 +76,7 @@ const auction = ref<Auction>({
 });
 const bidQuantity = ref<string>("");
 const auctionFee = "0.008";
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const placeBid = async (): Promise<void> => {

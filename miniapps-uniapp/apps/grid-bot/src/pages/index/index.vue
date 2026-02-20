@@ -37,8 +37,6 @@ import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 import { formatNumber } from "@/shared/utils/format";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Market = { pair: string; lastPrice: number; volatility: number };
 type Bot = { estDaily: number };
 
@@ -51,7 +49,7 @@ const priceLow = ref<string>("10");
 const priceHigh = ref<string>("14");
 const gridLevels = ref<string>("20");
 const setupFee = "0.020";
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const startBot = async (): Promise<void> => {

@@ -60,8 +60,6 @@ import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 import { formatNumber } from "@/shared/utils/format";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Terms = { maxBorrow: number; interestRate: number; repaymentSchedule: string };
 type Loan = { borrowed: number; collateralLocked: number; nextPayment: number; nextPaymentDue: string };
 
@@ -71,7 +69,7 @@ const { payGAS, isLoading } = usePayments(APP_ID);
 const terms = ref<Terms>({ maxBorrow: 5000, interestRate: 8.5, repaymentSchedule: "Monthly" });
 const loan = ref<Loan>({ borrowed: 0, collateralLocked: 0, nextPayment: 0, nextPaymentDue: "N/A" });
 const loanAmount = ref<string>("");
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const takeLoan = async (): Promise<void> => {

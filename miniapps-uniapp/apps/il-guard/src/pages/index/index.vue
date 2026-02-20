@@ -55,8 +55,6 @@ import { ref } from "vue";
 import { usePayments } from "@neo/uniapp-sdk";
 import { formatNumber } from "@/shared/utils/format";
 
-type StatusType = "success" | "error";
-type Status = { msg: string; type: StatusType };
 type Pool = { pair: string; tvl: number; ilRisk: number };
 type Position = { deposited: number; currentValue: number; ilAmount: number };
 
@@ -66,7 +64,7 @@ const { payGAS, isLoading } = usePayments(APP_ID);
 const pool = ref<Pool>({ pair: "NEO/GAS", tvl: 125000, ilRisk: 8.3 });
 const position = ref<Position>({ deposited: 1000, currentValue: 917, ilAmount: 83 });
 const protectionAmount = ref<string>("");
-const status = ref<Status | null>(null);
+const status = ref<{ msg: string; type: string } | null>(null);
 const formatNum = (n: number, d = 2) => formatNumber(n, d);
 
 const activateProtection = async (): Promise<void> => {
