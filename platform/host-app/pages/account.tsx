@@ -210,7 +210,7 @@ function OAuthBindingItem({
         className={cn(
           "h-8 text-xs",
           isConnected
-            ? "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-red-400 hover:border-red-400/30"
+            ? "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-red-400 hover:border-red-400/30 transition-colors"
             : "bg-neo hover:bg-neo/90",
         )}
       >

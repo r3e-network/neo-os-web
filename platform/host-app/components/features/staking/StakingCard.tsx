@@ -82,7 +82,7 @@ export function StakingCard({ onStake }: StakingCardProps) {
       <Button
         onClick={handleStake}
         disabled={loading || !amount}
-        className="w-full bg-white text-emerald-600 hover:bg-emerald-50"
+        className="w-full bg-white text-emerald-600 hover:bg-emerald-50 transition-colors"
       >
         {loading ? "Processing..." : "Stake Now"}
       </Button>

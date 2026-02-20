@@ -417,7 +417,7 @@ export default function DeveloperPage() {
                     type="button"
                     variant="outline"
                     onClick={() => setShowForm(false)}
-                    className="flex-1 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
+                    className="flex-1 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                   >
                     Cancel
                   </Button>

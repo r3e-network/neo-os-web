@@ -62,7 +62,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
                     <label
                       key={option.value}
                       className={cn(
-                        "flex items-center justify-between gap-2 px-3 py-2 rounded-md cursor-pointer text-sm transition-all group",
+                        "flex items-center justify-between gap-2 px-3 py-2 rounded-md cursor-pointer text-sm transition-all transition-colors group",
                         isSelected
                           ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
                           : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white",
