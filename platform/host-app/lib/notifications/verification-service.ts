@@ -33,7 +33,7 @@ export async function verifyCode(wallet: string, code: string): Promise<boolean>
     .from(TABLE_NAME)
     .select("code, expires_at")
     .eq("wallet_address", wallet)
-    .single();
+    .maybeSingle();
 
   if (error || !data) return false;
 

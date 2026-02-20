@@ -37,13 +37,10 @@ function toEventType(row: NotificationEventRow): NotificationEvent {
 export async function getPreferences(wallet: string): Promise<NotificationPreferences | null> {
   if (!isSupabaseConfigured) return null;
 
-  const { data, error } = await supabase.from(PREFS_TABLE).select("wallet_address,email,email_verified,notify_miniapp_results,notify_balance_changes,notify_chain_alerts,digest_frequency").eq("wallet_address", wallet).single();
+  const { data, error } = await supabase.from(PREFS_TABLE).select("wallet_address,email,email_verified,notify_miniapp_results,notify_balance_changes,notify_chain_alerts,digest_frequency").eq("wallet_address", wallet).maybeSingle();
 
   if (error) {
-    // PGRST116 = row not found, which is expected
-    if (error.code !== "PGRST116") {
-      logger.error("Failed to get notification preferences:", error.message);
-    }
+    logger.error("Failed to get notification preferences:", error.message);
     return null;
   }
   return data ? toAppType(data as NotificationPreferencesRow) : null;
