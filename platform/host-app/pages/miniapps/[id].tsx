@@ -149,7 +149,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Hero Section */}
         <section className="mb-8">
-          <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed">{app.description}</p>
+          <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed break-words">{app.description}</p>
         </section>
 
         {/* Stats Grid */}

@@ -87,7 +87,7 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
             {getTimeAgo(notification.created_at)}
           </span>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed break-words">
           {notification.content}
         </p>
         {notification.tx_hash && (
