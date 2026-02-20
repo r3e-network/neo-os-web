@@ -56,7 +56,7 @@ export function ConnectButton() {
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 dark:bg-gray-800">
           <div className="h-2 w-2 rounded-full bg-emerald-500" />
-          <span className="text-sm font-medium dark:text-white">
+          <span className="text-sm font-medium dark:text-white" title={wallet.address}>
             {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
           </span>
           {wallet.balance && <span className="text-xs text-gray-500 dark:text-gray-400">{wallet.balance.gas} GAS</span>}
