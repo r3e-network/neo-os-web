@@ -107,7 +107,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         status: "pending",
         submitted_at: new Date().toISOString(),
       })
-      .select()
+      .select("app_id,name,description,icon,category,entry_url,contract_hash,developer_address,developer_name,permissions,source,status,submitted_at")
       .single();
 
     if (error) throw error;
