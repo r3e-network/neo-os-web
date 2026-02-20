@@ -283,18 +283,25 @@ function ThreadDetail({
 
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400">{replies.length} Replies</h3>
-        <ul className="space-y-3">
-          {replies.map((reply) => (
-            <li key={reply.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2">
-                <span className="font-medium text-gray-700 dark:text-gray-300">{reply.author_name}</span>
-                <span>•</span>
-                <span>{formatTimeAgo(reply.created_at)}</span>
-              </div>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{reply.content}</p>
-            </li>
-          ))}
-        </ul>
+        {replies.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
+            <p>No replies yet</p>
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {replies.map((reply) => (
+              <li key={reply.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">{reply.author_name}</span>
+                  <span>•</span>
+                  <span>{formatTimeAgo(reply.created_at)}</span>
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{reply.content}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {walletAddress && !thread.is_locked && (

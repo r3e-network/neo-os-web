@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Twitter } from "lucide-react";
 import { logger } from "@/lib/logger";
 
 interface Tweet {
@@ -44,7 +45,12 @@ export function TwitterFeed() {
   }
 
   if (tweets.length === 0) {
-    return <div className="py-8 text-center text-gray-500 dark:text-gray-400">No tweets available</div>;
+    return (
+      <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+        <Twitter className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
+        <p>No tweets available</p>
+      </div>
+    );
   }
 
   return (

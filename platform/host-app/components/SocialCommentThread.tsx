@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { MessageSquare } from "lucide-react";
 import type { SocialComment, VoteType } from "./types";
 import CommentItem from "./SocialCommentItem";
 
@@ -101,7 +102,10 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
 
       {/* Comments List */}
       {comments.length === 0 ? (
-        <div className="p-8 text-center text-gray-500 dark:text-gray-400">No comments yet</div>
+        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+          <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
+          <p>No comments yet</p>
+        </div>
       ) : (
         <>
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">

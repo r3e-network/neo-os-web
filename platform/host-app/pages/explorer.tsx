@@ -113,7 +113,7 @@ export default function ExplorerPage() {
           </Button>
         </div>
 
-        {error && <div role="alert" className="text-center text-red-500 dark:text-red-400 mb-4">{error}</div>}
+        {error && <div role="alert" className="text-center text-red-600 dark:text-red-400 mb-4">{error}</div>}
 
         <div aria-live="polite">
           {result && <SearchResults result={result} />}
