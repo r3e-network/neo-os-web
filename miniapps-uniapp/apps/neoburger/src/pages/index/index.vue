@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="app-container">
     <!-- Header -->
     <view class="header">
       <image class="logo" src="/static/logo.png" mode="aspectFit" />
@@ -11,11 +11,11 @@
     <view class="stats-row">
       <view class="stat-card">
         <text class="stat-label">Your bNEO</text>
-        <text class="stat-value">{{ formatAmount(bNeoBalance) }}</text>
+        <text class="stat-value">{{ formatNum(bNeoBalance) }}</text>
       </view>
       <view class="stat-card">
         <text class="stat-label">Your NEO</text>
-        <text class="stat-value">{{ formatAmount(neoBalance) }}</text>
+        <text class="stat-value">{{ formatNum(neoBalance) }}</text>
       </view>
     </view>
 
@@ -43,7 +43,7 @@
           <input v-model="stakeAmount" type="digit" placeholder="0" class="amount-input" />
           <text class="token-label">NEO</text>
         </view>
-        <text class="balance-hint">Balance: {{ formatAmount(neoBalance) }} NEO</text>
+        <text class="balance-hint">Balance: {{ formatNum(neoBalance) }} NEO</text>
       </view>
 
       <view class="receive-info">
@@ -64,7 +64,7 @@
           <input v-model="unstakeAmount" type="digit" placeholder="0" class="amount-input" />
           <text class="token-label">bNEO</text>
         </view>
-        <text class="balance-hint">Balance: {{ formatAmount(bNeoBalance) }} bNEO</text>
+        <text class="balance-hint">Balance: {{ formatNum(bNeoBalance) }} bNEO</text>
       </view>
 
       <view class="receive-info">
@@ -78,8 +78,8 @@
     </view>
 
     <!-- Status Message -->
-    <view v-if="statusMessage" class="status" :class="statusType">
-      <text>{{ statusMessage }}</text>
+    <view v-if="status" :class="['status-msg', status.type]">
+      <text>{{ status.msg }}</text>
     </view>
   </view>
 </template>
@@ -87,6 +87,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
+import { formatNumber } from "@/shared/utils/format";
 
 const APP_ID = "miniapp-neoburger";
 const BNEO_CONTRACT = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
@@ -100,8 +101,7 @@ const unstakeAmount = ref("");
 const neoBalance = ref(0);
 const bNeoBalance = ref(0);
 const loading = ref(false);
-const statusMessage = ref("");
-const statusType = ref<"success" | "error">("success");
+const status = ref<{ msg: string; type: string } | null>(null);
 const apy = ref("5.2");
 
 // Computed
@@ -126,14 +126,11 @@ const estimatedNeo = computed(() => {
 });
 
 // Methods
-function formatAmount(amount: number): string {
-  return amount.toFixed(2);
-}
+const formatNum = (n: number) => formatNumber(n, 2);
 
-function showStatus(message: string, type: "success" | "error") {
-  statusMessage.value = message;
-  statusType.value = type;
-  setTimeout(() => (statusMessage.value = ""), 5000);
+function showStatus(msg: string, type: "success" | "error") {
+  status.value = { msg, type };
+  setTimeout(() => (status.value = null), 5000);
 }
 
 async function loadBalances() {
@@ -210,7 +207,7 @@ onMounted(() => {
 <style lang="scss">
 @import "@/shared/styles/theme.scss";
 
-.container {
+.app-container {
   padding: 20px;
   min-height: 100vh;
   background: linear-gradient(180deg, $color-bg-secondary 0%, $color-bg-dark 100%);
@@ -415,7 +412,7 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-.status {
+.status-msg {
   margin-top: 16px;
   padding: 12px;
   border-radius: 8px;
@@ -423,12 +420,12 @@ onMounted(() => {
   font-size: 0.85em;
 }
 
-.status.success {
+.status-msg.success {
   background: rgba($color-brand, 0.2);
   color: $color-brand;
 }
 
-.status.error {
+.status-msg.error {
   background: rgba($color-brand-negative, 0.2);
   color: $color-brand-negative;
 }

@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="app-container">
     <!-- Header -->
     <view class="header">
       <text class="title">Flamingo Swap</text>
@@ -19,7 +19,7 @@
           </view>
           <input v-model="fromAmount" type="digit" placeholder="0.0" class="amount-input" @input="onFromAmountChange" />
         </view>
-        <text class="balance-text">Balance: {{ formatAmount(fromToken.balance) }}</text>
+        <text class="balance-text">Balance: {{ formatNum(fromToken.balance) }}</text>
       </view>
 
       <!-- Swap Direction Button -->
@@ -38,7 +38,7 @@
           </view>
           <input v-model="toAmount" type="digit" placeholder="0.0" class="amount-input" disabled />
         </view>
-        <text class="balance-text">Balance: {{ formatAmount(toToken.balance) }}</text>
+        <text class="balance-text">Balance: {{ formatNum(toToken.balance) }}</text>
       </view>
     </view>
 
@@ -66,7 +66,7 @@
           <text class="token-icon">{{ token.icon }}</text>
           <view class="token-info">
             <text class="token-name">{{ token.symbol }}</text>
-            <text class="token-balance">{{ formatAmount(token.balance) }}</text>
+            <text class="token-balance">{{ formatNum(token.balance) }}</text>
           </view>
         </view>
       </view>
@@ -77,6 +77,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@neo/uniapp-sdk";
+import { formatNumber } from "@/shared/utils/format";
 
 const APP_ID = "miniapp-neo-swap";
 const SWAP_ROUTER = "0xf970f4ccecd765b63732b821775dc38c25d74f23";
@@ -122,9 +123,7 @@ const swapButtonText = computed(() => {
 });
 
 // Methods
-function formatAmount(amount: number): string {
-  return amount.toFixed(4);
-}
+const formatNum = (n: number) => formatNumber(n, 4);
 
 function showStatus(msg: string, type: "success" | "error") {
   status.value = { msg, type };
@@ -232,7 +231,7 @@ onMounted(() => {
 <style lang="scss">
 @import "@/shared/styles/theme.scss";
 
-.container {
+.app-container {
   padding: 20px;
   min-height: 100vh;
   background: linear-gradient(180deg, $color-bg-secondary 0%, $color-bg-dark 100%);
