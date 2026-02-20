@@ -146,7 +146,7 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
             <h4 className="font-semibold text-gray-900 dark:text-white truncate">{thread.title}</h4>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">{thread.content}</p>
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
             <span>{thread.author_name}</span>
             <span>{thread.reply_count} replies</span>
             <span>{formatTimeAgo(thread.created_at)}</span>
@@ -269,7 +269,7 @@ function ThreadDetail({
 
       <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">{thread.title}</h2>
-        <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-400">
           <span>{thread.author_name}</span>
           <span>•</span>
           <span>{formatTimeAgo(thread.created_at)}</span>
@@ -281,7 +281,7 @@ function ThreadDetail({
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400">{replies.length} Replies</h3>
         {replies.map((reply) => (
           <div key={reply.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2">
               <span className="font-medium text-gray-700 dark:text-gray-300">{reply.author_name}</span>
               <span>•</span>
               <span>{formatTimeAgo(reply.created_at)}</span>
