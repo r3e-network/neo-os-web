@@ -102,6 +102,11 @@ export function resolveInternalBaseUrl(req?: RequestLike): string {
   const envBase = String(process.env.NEXT_PUBLIC_API_URL || "").trim();
   if (envBase) return envBase;
 
+  // In production, require explicit env var to prevent Host header cache poisoning
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("NEXT_PUBLIC_API_URL must be set in production");
+  }
+
   const rawHost = Array.isArray(req?.headers?.host) ? req?.headers?.host[0] : req?.headers?.host;
   if (rawHost && /^[a-zA-Z0-9._-]+(:\d+)?$/.test(rawHost)) {
     const protoHeader = req?.headers?.["x-forwarded-proto"];
@@ -110,7 +115,5 @@ export function resolveInternalBaseUrl(req?: RequestLike): string {
     return `${proto}://${rawHost}`;
   }
 
-  // In production, this should never be reached as host header is always present
-  // Throw error instead of silently using localhost
   throw new Error("Unable to resolve base URL: no NEXT_PUBLIC_API_URL env and no host header");
 }
