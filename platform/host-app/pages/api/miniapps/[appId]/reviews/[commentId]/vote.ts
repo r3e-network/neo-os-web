@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
 import { isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 const VALID_VOTE_TYPES = new Set(["upvote", "downvote"]);
 
@@ -29,10 +30,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for voting");
   }
 
+  const authedWallet = await requireWalletAuth(req, res);
+  if (!authedWallet) return;
+
   const { wallet, vote_type } = req.body;
 
   if (!isValidWalletAddress(wallet) || typeof vote_type !== "string" || !VALID_VOTE_TYPES.has(vote_type)) {
     return apiError.badRequest(res, "Invalid vote data");
+  }
+  if (wallet !== authedWallet) {
+    return apiError.forbidden(res, "Wallet mismatch");
   }
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });

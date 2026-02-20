@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -245,6 +246,11 @@ func (s *Service) executeScript(ctx context.Context, script, entryPoint string, 
 
 	done := make(chan struct{})
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("confcompute: timeout goroutine panicked: %v", r)
+			}
+		}()
 		select {
 		case <-time.After(timeout):
 			vm.Interrupt("execution timeout")

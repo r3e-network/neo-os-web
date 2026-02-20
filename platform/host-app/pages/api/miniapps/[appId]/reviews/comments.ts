@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
 import { isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 type SocialCommentRow = {
   id: string;
@@ -145,10 +146,16 @@ async function createComment(appId: string, req: NextApiRequest, res: NextApiRes
     return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for comment writes");
   }
 
+  const authedWallet = await requireWalletAuth(req, res);
+  if (!authedWallet) return;
+
   const { wallet, content, parent_id } = req.body;
 
   if (!isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
+  }
+  if (wallet !== authedWallet) {
+    return apiError.forbidden(res, "Wallet mismatch");
   }
   if (!content?.trim() || typeof content !== "string") {
     return apiError.badRequest(res, "Missing content");
