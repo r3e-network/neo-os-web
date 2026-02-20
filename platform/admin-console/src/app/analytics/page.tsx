@@ -132,8 +132,8 @@ export default function AnalyticsPage() {
             <ul className="space-y-3">
               {analytics?.usageByApp?.slice(0, 10).map((app) => (
                 <li key={app.app_id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-white">{app.app_id}</div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900 dark:text-white truncate" title={app.app_id}>{app.app_id}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">{app.user_count} users</div>
                   </div>
                   <div className="text-right">
