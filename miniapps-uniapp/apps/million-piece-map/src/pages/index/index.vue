@@ -160,7 +160,7 @@ const purchaseTile = async () => {
   grid-template-columns: repeat(8, 1fr);
   gap: 4px;
   padding: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(#000, 0.2);
   border-radius: 8px;
 }
 .tile {

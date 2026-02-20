@@ -170,7 +170,7 @@ const startMining = async () => {
 }
 .progress-bar {
   height: 24px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(#000, 0.3);
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -190,7 +190,7 @@ const startMining = async () => {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   padding: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(#000, 0.2);
   border-radius: 8px;
   margin-bottom: 16px;
 }

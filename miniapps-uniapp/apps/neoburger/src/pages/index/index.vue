@@ -335,7 +335,7 @@ onMounted(() => {
 .input-row {
   display: flex;
   align-items: center;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(#000, 0.3);
   border-radius: 8px;
   padding: 12px;
 }

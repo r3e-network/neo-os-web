@@ -286,7 +286,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(#000, 0.3);
   padding: 10px 14px;
   border-radius: 12px;
   cursor: pointer;
@@ -398,7 +398,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(#000, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;

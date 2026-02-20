@@ -211,7 +211,7 @@ onMounted(() => {
   align-items: flex-end;
   height: 120px;
   padding: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(#000, 0.2);
   border-radius: 8px;
 }
 .candle {

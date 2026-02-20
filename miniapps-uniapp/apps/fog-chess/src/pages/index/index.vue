@@ -300,13 +300,13 @@ const showRules = () => {
     background: $color-bg-subtle;
   }
   &.dark {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(#000, 0.3);
   }
   &.selected {
     background: rgba($color-gaming, 0.4) !important;
   }
   &.fog {
-    background: rgba(0, 0, 0, 0.7) !important;
+    background: rgba(#000, 0.7) !important;
   }
 }
 
