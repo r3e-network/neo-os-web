@@ -105,6 +105,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         aria-label="Notifications"
+        aria-haspopup="true"
         aria-expanded={isOpen}
       >
         <Bell size={18} />
