@@ -150,7 +150,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileCode className="h-5 w-5" />
+            <FileCode className="h-5 w-5" aria-hidden="true" />
             Transaction Details
           </CardTitle>
         </CardHeader>
@@ -181,7 +181,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Code className="h-5 w-5" />
+              <Code className="h-5 w-5" aria-hidden="true" />
               Opcode Execution Trace ({data.opcode_traces.length} steps)
             </CardTitle>
           </CardHeader>
@@ -239,7 +239,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Cpu className="h-5 w-5" />
+              <Cpu className="h-5 w-5" aria-hidden="true" />
               System Calls ({data.syscalls.length})
             </CardTitle>
           </CardHeader>
