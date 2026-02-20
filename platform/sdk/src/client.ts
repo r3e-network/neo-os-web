@@ -67,10 +67,12 @@ async function getInjectedWalletAddress(): Promise<string> {
     throw new Error("wallet.getAddress must be called in a browser context");
   }
 
+  if (!("NEOLineN3" in window)) {
+    throw new Error("neo wallet not detected (install NeoLine N3) or host must bridge wallet.getAddress");
+  }
   const g = window as unknown as WindowWithNeoLine;
 
-  // NeoLine N3 (common browser wallet).
-  const neoline = g?.NEOLineN3;
+  const neoline = g.NEOLineN3;
   if (neoline && typeof neoline.Init === "function") {
     const inst = new neoline.Init();
     if (inst && typeof inst.getAccount === "function") {
@@ -88,8 +90,11 @@ function getNeoLineN3Instance(): NeoLineN3Instance {
     throw new Error("wallet invocation must be called in a browser context");
   }
 
+  if (!("NEOLineN3" in window)) {
+    throw new Error("NeoLine N3 not detected (install the NeoLine extension)");
+  }
   const g = window as unknown as WindowWithNeoLine;
-  const neoline = g?.NEOLineN3;
+  const neoline = g.NEOLineN3;
   if (!neoline || typeof neoline.Init !== "function") {
     throw new Error("NeoLine N3 not detected (install the NeoLine extension)");
   }
@@ -179,9 +184,14 @@ async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Request
   const text = await resp.text();
   if (!resp.ok) throw new Error(text || `request failed (${resp.status})`);
   try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error(`invalid JSON response from ${path}`);
+    const parsed: unknown = JSON.parse(text);
+    if (typeof parsed !== "object" || parsed === null) {
+      throw new Error(`unexpected non-object response from ${path}`);
+    }
+    return parsed as T;
+  } catch (err) {
+    if (err instanceof SyntaxError) throw new Error(`invalid JSON response from ${path}`);
+    throw err;
   }
 }
 
@@ -202,9 +212,14 @@ async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Req
   const text = await resp.text();
   if (!resp.ok) throw new Error(text || `request failed (${resp.status})`);
   try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error(`invalid JSON response from ${path}`);
+    const parsed: unknown = JSON.parse(text);
+    if (typeof parsed !== "object" || parsed === null) {
+      throw new Error(`unexpected non-object response from ${path}`);
+    }
+    return parsed as T;
+  } catch (err) {
+    if (err instanceof SyntaxError) throw new Error(`invalid JSON response from ${path}`);
+    throw err;
   }
 }
 
@@ -276,6 +291,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
     },
     datafeed: {
       async getPrice(symbol: string): Promise<PriceResponse> {
+        if (!symbol || typeof symbol !== "string" || !symbol.trim()) throw new Error("symbol is required");
         return requestJSON<PriceResponse>(cfg, `/datafeed-price?symbol=${encodeURIComponent(symbol)}`, {
           method: "GET",
         });
@@ -379,6 +395,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
         return requestHostJSON<ComputeJob[]>(cfg, "/compute-jobs", { method: "GET" });
       },
       async getJob(id: string): Promise<ComputeJob> {
+        if (!id || typeof id !== "string" || !id.trim()) throw new Error("id is required for getJob");
         return requestHostJSON<ComputeJob>(cfg, `/compute-job?id=${encodeURIComponent(id)}`, { method: "GET" });
       },
     },
@@ -393,6 +410,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
         });
       },
       async getTrigger(id: string): Promise<AutomationTrigger> {
+        if (!id || typeof id !== "string" || !id.trim()) throw new Error("id is required for getTrigger");
         return requestHostJSON<AutomationTrigger>(cfg, `/automation-trigger?id=${encodeURIComponent(id)}`, {
           method: "GET",
         });
@@ -440,6 +458,7 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
         return requestHostJSON<SecretsListResponse>(cfg, "/secrets-list", { method: "GET" });
       },
       async get(name: string): Promise<SecretsGetResponse> {
+        if (!name || typeof name !== "string" || !name.trim()) throw new Error("name is required for secrets.get");
         return requestHostJSON<SecretsGetResponse>(cfg, `/secrets-get?name=${encodeURIComponent(name)}`, {
           method: "GET",
         });

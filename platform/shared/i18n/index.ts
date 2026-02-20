@@ -28,7 +28,8 @@ export function getStoredLocale(): Locale {
     if (stored && locales.includes(stored as Locale)) {
       return stored as Locale;
     }
-  } catch {
+  } catch (e) {
+    console.warn("[i18n] Failed to read localStorage:", e);
     return defaultLocale;
   }
 

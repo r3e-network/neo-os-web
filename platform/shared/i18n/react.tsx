@@ -42,7 +42,7 @@ function resolveTranslation(locale: Locale, key: string, ns: TranslationNamespac
   const keys = key.split(".");
   let value: unknown = translations[locale][ns];
   for (const k of keys) {
-    if (value && typeof value === "object") {
+    if (value != null && typeof value === "object") {
       value = (value as Record<string, unknown>)[k];
     } else {
       return key;

@@ -22,6 +22,8 @@ export function Input({ value, onChange, type = "text", placeholder, label, min,
         value={String(value)}
         placeholder={placeholder}
         disabled={disabled}
+        min={min}
+        max={max}
         onInput={(e) => onChange(e.detail.value)}
       />
     </View>

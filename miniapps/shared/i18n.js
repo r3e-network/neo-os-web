@@ -22,7 +22,9 @@ const MiniAppI18n = {
       if (stored && this.translations[stored]) return stored;
       const lang = navigator.language.split("-")[0];
       if (lang === "zh" && this.translations.zh) return "zh";
-    } catch (e) {}
+    } catch (e) {
+      console.warn("[i18n] Failed to read localStorage:", e);
+    }
     return "en";
   },
 
