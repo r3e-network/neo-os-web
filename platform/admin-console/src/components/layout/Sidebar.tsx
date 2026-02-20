@@ -50,7 +50,7 @@ export function Sidebar() {
         })}
       </nav>
       <div className="border-t border-gray-800 p-4">
-        <p className="text-xs text-gray-400">Neo MiniApp Platform</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Neo MiniApp Platform</p>
         <p className="text-xs text-gray-500">v0.1.0</p>
       </div>
     </div>

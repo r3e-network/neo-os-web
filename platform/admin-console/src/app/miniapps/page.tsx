@@ -329,7 +329,7 @@ export default function MiniAppsPage() {
                           <div key={i} className="flex items-center gap-4 px-3 py-2 text-sm">
                             <span className="font-medium w-32">{o.name}</span>
                             <span className="font-mono text-xs">{o.method}</span>
-                            {o.gas_cost && <span className="text-xs text-gray-400">{o.gas_cost} GAS</span>}
+                            {o.gas_cost && <span className="text-xs text-gray-500 dark:text-gray-400">{o.gas_cost} GAS</span>}
                             {o.description && <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">{o.description}</span>}
                           </div>
                         ))}
@@ -340,9 +340,9 @@ export default function MiniAppsPage() {
                     <div>
                       <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Content</h4>
                       <dl className="grid grid-cols-2 gap-2 text-sm">
-                        {!!content.description && <div className="col-span-2"><dt className="font-medium text-gray-400">Description</dt><dd>{String(content.description)}</dd></div>}
-                        {!!content.category && <div><dt className="font-medium text-gray-400">Category</dt><dd>{String(content.category)}</dd></div>}
-                        {Array.isArray(content.tags) && content.tags.length > 0 && <div><dt className="font-medium text-gray-400">Tags</dt><dd>{(content.tags as string[]).join(", ")}</dd></div>}
+                        {!!content.description && <div className="col-span-2"><dt className="font-medium text-gray-500 dark:text-gray-400">Description</dt><dd>{String(content.description)}</dd></div>}
+                        {!!content.category && <div><dt className="font-medium text-gray-500 dark:text-gray-400">Category</dt><dd>{String(content.category)}</dd></div>}
+                        {Array.isArray(content.tags) && content.tags.length > 0 && <div><dt className="font-medium text-gray-500 dark:text-gray-400">Tags</dt><dd>{(content.tags as string[]).join(", ")}</dd></div>}
                       </dl>
                     </div>
                   )}
@@ -524,7 +524,7 @@ function CreateFormPanel({
           <div className="flex gap-2">
             {Object.entries(TEMPLATES).map(([key, t]) => (
               <button key={key} type="button" onClick={() => applyTemplate(key)}
-                className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-left hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors">
+                className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-left hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50">
                 <div className="text-sm font-medium">{t.label}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">{t.desc}</div>
               </button>
@@ -585,21 +585,21 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contracts</label>
-                <button type="button" onClick={addContract} className="text-xs text-primary-600 hover:underline">+ Add Contract</button>
+                <button type="button" onClick={addContract} className="text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Contract</button>
               </div>
               {form.contracts.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <Input placeholder="Contract name" value={c.name} onChange={e => updateContract(i, "name", e.target.value)} />
                   <Input placeholder="0x..." value={c.hash} onChange={e => updateContract(i, "hash", e.target.value)} />
-                  <button type="button" onClick={() => removeContract(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0">Remove</button>
+                  <button type="button" onClick={() => removeContract(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
                 </div>
               ))}
-              {!form.contracts.length && <p className="text-xs text-gray-400">No contracts added</p>}
+              {!form.contracts.length && <p className="text-xs text-gray-500 dark:text-gray-400">No contracts added</p>}
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Operations</label>
-                <button type="button" onClick={addOperation} className="text-xs text-primary-600 hover:underline">+ Add Operation</button>
+                <button type="button" onClick={addOperation} className="text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Operation</button>
               </div>
               {form.operations.map((o, i) => (
                 <div key={i} className="rounded border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
@@ -608,7 +608,7 @@ function CreateFormPanel({
                     <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} />
                     <Input placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} />
                     <Input placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} />
-                    <button type="button" onClick={() => removeOperation(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0">Remove</button>
+                    <button type="button" onClick={() => removeOperation(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
                   </div>
                   <div className="flex gap-2">
                     <div className="w-40">
@@ -625,22 +625,22 @@ function CreateFormPanel({
                   <OperationParamsEditor params={o.params} onChange={params => { const next = [...form.operations]; next[i] = { ...next[i], params }; setForm({ ...form, operations: next }); }} />
                 </div>
               ))}
-              {!form.operations.length && <p className="text-xs text-gray-400">No operations added</p>}
+              {!form.operations.length && <p className="text-xs text-gray-500 dark:text-gray-400">No operations added</p>}
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Components</label>
-                <button type="button" onClick={addComponent} className="text-xs text-primary-600 hover:underline">+ Add Component</button>
+                <button type="button" onClick={addComponent} className="text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Component</button>
               </div>
               {form.components.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <Input placeholder="live_voting" value={c.type} onChange={e => updateComponent(i, "type", e.target.value)} />
                   <Input placeholder="card" value={c.display} onChange={e => updateComponent(i, "display", e.target.value)} />
                   <Input placeholder='{"key":"value"}' value={c.props} onChange={e => updateComponent(i, "props", e.target.value)} />
-                  <button type="button" onClick={() => removeComponent(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0">Remove</button>
+                  <button type="button" onClick={() => removeComponent(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
                 </div>
               ))}
-              {!form.components.length && <p className="text-xs text-gray-400">No components added</p>}
+              {!form.components.length && <p className="text-xs text-gray-500 dark:text-gray-400">No components added</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input label="Callback Contract" placeholder="0x..." value={form.callback_contract} onChange={e => update("callback_contract", e.target.value)} />
@@ -728,7 +728,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
     <div className="pl-4 border-l-2 border-gray-100 dark:border-gray-800">
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-gray-500 dark:text-gray-400">Parameters</span>
-        <button type="button" onClick={add} className="text-xs text-primary-600 hover:underline">+ Add Param</button>
+        <button type="button" onClick={add} className="text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Param</button>
       </div>
       {params.map((p, i) => (
         <div key={i} className="flex gap-1.5 mb-1.5 items-center">
@@ -742,7 +742,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
             <input type="checkbox" checked={p.required} onChange={e => update(i, "required", e.target.checked)} className="rounded" />
             Req
           </label>
-          <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0" aria-label="Remove parameter">×</button>
+          <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded" aria-label="Remove parameter">×</button>
         </div>
       ))}
     </div>
