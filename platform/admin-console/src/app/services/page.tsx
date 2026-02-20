@@ -31,7 +31,7 @@ export default function ServicesPage() {
           ) : error ? (
             <div className="text-center text-danger-600 dark:text-danger-400">Failed to load services</div>
           ) : (
-            <Table>
+            <Table aria-label="Services status">
               <TableHeader>
                 <TableRow>
                   <TableHead>Service Name</TableHead>
