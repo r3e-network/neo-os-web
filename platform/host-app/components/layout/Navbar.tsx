@@ -138,6 +138,7 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div
           className="md:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 py-3"
+          role="navigation"
           aria-label="Mobile navigation"
         >
           <form onSubmit={handleSearch} role="search" className="mb-3">

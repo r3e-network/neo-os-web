@@ -83,7 +83,7 @@ export default function DashboardPage() {
               {services?.map((service) => (
                 <div
                   key={service.name}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <div>
                     <div className="font-medium text-gray-900 dark:text-white">{service.name}</div>
@@ -114,7 +114,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {miniapps?.slice(0, 5).map((app) => (
-                <div key={app.app_id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                <div key={app.app_id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
                   <div>
                     <div className="font-medium text-gray-900 dark:text-white">{app.app_id}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(app.created_at)}</div>

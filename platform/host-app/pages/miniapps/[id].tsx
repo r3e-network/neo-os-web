@@ -175,7 +175,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
         {/* Tabs */}
         <section className="mb-8">
-          <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
+          <div role="tablist" className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
             <button
               type="button"
               role="tab"
