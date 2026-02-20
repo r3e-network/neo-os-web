@@ -76,11 +76,11 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
 
   return (
     <li className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-      <div className="flex items-center gap-3">
-        <Icon size={20} className="text-gray-500 dark:text-gray-400" />
-        <div>
-          <div className="font-semibold text-gray-900 dark:text-white">{token.name}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+      <div className="flex items-center gap-3 min-w-0">
+        <Icon size={20} className="text-gray-500 dark:text-gray-400 shrink-0" />
+        <div className="min-w-0">
+          <div className="font-semibold text-gray-900 dark:text-white truncate" title={token.name}>{token.name}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
             {token.appId === "global" ? "Global" : token.appId} • {token.secretType}
           </div>
         </div>
