@@ -92,7 +92,7 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent>
           {usageLoading ? (
-            <Spinner />
+            <div className="flex justify-center py-8"><Spinner /></div>
           ) : chartData.length === 0 ? (
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-8 text-center">
               <p className="text-gray-600 dark:text-gray-400">No usage data available yet.</p>
@@ -127,7 +127,7 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent>
           {analyticsLoading ? (
-            <Spinner />
+            <div className="flex justify-center py-8"><Spinner /></div>
           ) : (
             <ul className="space-y-3">
               {analytics?.usageByApp?.slice(0, 10).map((app) => (
