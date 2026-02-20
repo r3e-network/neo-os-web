@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
 import { formatWalletDisplayName, isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 interface ChatMessage {
   id: string;
@@ -107,10 +108,16 @@ async function postMessage(appId: string, req: NextApiRequest, res: NextApiRespo
     return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for chat writes");
   }
 
+  const authedWallet = await requireWalletAuth(req, res);
+  if (!authedWallet) return;
+
   const { wallet, content } = req.body;
 
   if (!isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
+  }
+  if (wallet !== authedWallet) {
+    return apiError.forbidden(res, "Wallet mismatch");
   }
   if (!content || typeof content !== "string" || !content.trim()) {
     return apiError.badRequest(res, "Missing or empty content");
