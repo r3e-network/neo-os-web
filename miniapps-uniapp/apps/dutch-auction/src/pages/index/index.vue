@@ -144,7 +144,7 @@ const placeBid = async (): Promise<void> => {
   font-size: 1.1em;
   font-weight: bold;
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .row {
   display: flex;
