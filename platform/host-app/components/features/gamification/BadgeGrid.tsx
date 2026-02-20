@@ -46,7 +46,7 @@ function BadgeItem({ badge, earned, onClick }: { badge: Badge; earned: boolean; 
       type="button"
       onClick={onClick}
       aria-label={`${badge.name} badge${earned ? "" : " (not earned)"}`}
-      className={`p-3 rounded-lg border-2 text-center transition-all ${
+      className={`p-3 rounded-lg border-2 text-center transition-all cursor-pointer ${
         earned
           ? rarityColors[badge.rarity]
           : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-40"

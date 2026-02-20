@@ -524,7 +524,7 @@ function CreateFormPanel({
           <div className="flex gap-2">
             {Object.entries(TEMPLATES).map(([key, t]) => (
               <button key={key} type="button" onClick={() => applyTemplate(key)}
-                className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-left hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50">
+                className="flex-1 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-left hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50">
                 <div className="text-sm font-medium">{t.label}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">{t.desc}</div>
               </button>
@@ -559,7 +559,7 @@ function CreateFormPanel({
         {/* Tab: Content */}
         {tab === "content" && (
           <div className="space-y-4">
-            <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus:border-primary-500 focus:ring-primary-500 focus:outline-none" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} aria-label="App description" />
+            <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} aria-label="App description" />
             <div className="grid grid-cols-3 gap-4">
               <Input label="Icon URL" placeholder="https://..." value={form.content_icon_url} onChange={e => update("content_icon_url", e.target.value)} />
               <Input label="Logo URL" placeholder="https://..." value={form.content_logo_url} onChange={e => update("content_logo_url", e.target.value)} />
@@ -569,7 +569,7 @@ function CreateFormPanel({
               <Input label="Docs URL" placeholder="https://docs.example.com" value={form.content_docs_url} onChange={e => update("content_docs_url", e.target.value)} />
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
-                <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus:border-primary-500 focus:ring-primary-500 focus:outline-none" value={form.content_category} onChange={e => update("content_category", e.target.value)} aria-label="Category">
+                <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={form.content_category} onChange={e => update("content_category", e.target.value)} aria-label="Category">
                   <option value="">Select...</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -585,13 +585,13 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contracts</label>
-                <button type="button" onClick={addContract} className="text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Contract</button>
+                <button type="button" onClick={addContract} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Contract</button>
               </div>
               {form.contracts.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <Input placeholder="Contract name" value={c.name} onChange={e => updateContract(i, "name", e.target.value)} />
                   <Input placeholder="0x..." value={c.hash} onChange={e => updateContract(i, "hash", e.target.value)} />
-                  <button type="button" onClick={() => removeContract(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
+                  <button type="button" onClick={() => removeContract(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
                 </div>
               ))}
               {!form.contracts.length && <p className="text-xs text-gray-500 dark:text-gray-400">No contracts added</p>}
@@ -599,7 +599,7 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Operations</label>
-                <button type="button" onClick={addOperation} className="text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Operation</button>
+                <button type="button" onClick={addOperation} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Operation</button>
               </div>
               {form.operations.map((o, i) => (
                 <div key={i} className="rounded border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
@@ -608,11 +608,11 @@ function CreateFormPanel({
                     <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} />
                     <Input placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} />
                     <Input placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} />
-                    <button type="button" onClick={() => removeOperation(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
+                    <button type="button" onClick={() => removeOperation(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
                   </div>
                   <div className="flex gap-2">
                     <div className="w-40">
-                      <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs dark:bg-gray-800 dark:text-gray-100 focus:border-primary-500 focus:ring-primary-500 focus:outline-none" value={o.button_style} onChange={e => updateOperation(i, "button_style", e.target.value)} aria-label="Button style">
+                      <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={o.button_style} onChange={e => updateOperation(i, "button_style", e.target.value)} aria-label="Button style">
                         <option value="">Button Style</option>
                         <option value="primary">Primary</option>
                         <option value="secondary">Secondary</option>
@@ -630,14 +630,14 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Components</label>
-                <button type="button" onClick={addComponent} className="text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Component</button>
+                <button type="button" onClick={addComponent} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Component</button>
               </div>
               {form.components.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <Input placeholder="live_voting" value={c.type} onChange={e => updateComponent(i, "type", e.target.value)} />
                   <Input placeholder="card" value={c.display} onChange={e => updateComponent(i, "display", e.target.value)} />
                   <Input placeholder='{"key":"value"}' value={c.props} onChange={e => updateComponent(i, "props", e.target.value)} />
-                  <button type="button" onClick={() => removeComponent(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
+                  <button type="button" onClick={() => removeComponent(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
                 </div>
               ))}
               {!form.components.length && <p className="text-xs text-gray-500 dark:text-gray-400">No components added</p>}
@@ -683,7 +683,7 @@ function CreateFormPanel({
               <input type="file" accept=".json" onChange={onFileUpload} className="text-sm" aria-label="Upload JSON manifest" />
             </div>
             <textarea
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-3 font-mono text-xs dark:bg-gray-800 dark:text-gray-100"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-3 font-mono text-xs dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={16}
               value={jsonText}
               onChange={e => setJsonText(e.target.value)}
@@ -728,12 +728,12 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
     <div className="pl-4 border-l-2 border-gray-100 dark:border-gray-800">
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-gray-500 dark:text-gray-400">Parameters</span>
-        <button type="button" onClick={add} className="text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Param</button>
+        <button type="button" onClick={add} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Param</button>
       </div>
       {params.map((p, i) => (
         <div key={i} className="flex gap-1.5 mb-1.5 items-center">
           <Input placeholder="name" value={p.name} onChange={e => update(i, "name", e.target.value)} />
-          <select className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs dark:bg-gray-800 dark:text-gray-100 w-28 shrink-0 focus:border-primary-500 focus:ring-primary-500 focus:outline-none" value={p.type} onChange={e => update(i, "type", e.target.value)} aria-label="Parameter type">
+          <select className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs dark:bg-gray-800 dark:text-gray-100 w-28 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={p.type} onChange={e => update(i, "type", e.target.value)} aria-label="Parameter type">
             {PARAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <Input placeholder="Label" value={p.label} onChange={e => update(i, "label", e.target.value)} />
@@ -742,7 +742,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
             <input type="checkbox" checked={p.required} onChange={e => update(i, "required", e.target.checked)} className="rounded" />
             Req
           </label>
-          <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded" aria-label="Remove parameter">×</button>
+          <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded" aria-label="Remove parameter">×</button>
         </div>
       ))}
     </div>
