@@ -54,7 +54,7 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
         <button
           type="button"
           onClick={onShare}
-          className="bg-transparent border-none text-gray-400 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-gray-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
+          className="bg-transparent border-none text-gray-400 cursor-pointer p-2 flex items-center justify-center rounded-md transition-all hover:text-gray-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           title="Copy share link"
           aria-label="Copy share link"
         >

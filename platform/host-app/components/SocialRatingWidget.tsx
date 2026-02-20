@@ -24,7 +24,7 @@ const StarSvg: React.FC<{ filled: boolean }> = ({ filled }) => (
 const StarIcon: React.FC<{ filled: boolean; onClick?: () => void; label?: string }> = ({ filled, onClick, label }) => {
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} aria-label={label} className="bg-transparent border-none p-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo rounded-lg">
+      <button type="button" onClick={onClick} aria-label={label} className="bg-transparent border-none p-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
         <StarSvg filled={filled} />
       </button>
     );

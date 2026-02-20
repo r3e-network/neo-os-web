@@ -38,7 +38,7 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
     <div className="relative group rounded-xl bg-gray-900 dark:bg-black/50 border border-gray-800 dark:border-gray-700 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 dark:border-gray-700 bg-gray-800/50">
         <span className="text-xs text-gray-400 font-mono">{language}</span>
-        <button type="button" onClick={handleCopy} aria-label="Copy code" className="p-1.5 rounded-md hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo">
+        <button type="button" onClick={handleCopy} aria-label="Copy code" className="p-1.5 rounded-md hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50">
           {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-gray-400" />}
         </button>
       </div>
