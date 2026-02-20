@@ -236,7 +236,7 @@ export default function MiniAppsPage() {
                 {miniapps.map((app) => (
                   <TableRow key={app.app_id}>
                     <TableCell className="font-medium">{app.app_id}</TableCell>
-                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">{truncate(app.entry_url, 35)}</TableCell>
+                    <TableCell className="text-sm text-gray-500 dark:text-gray-400" title={app.entry_url}>{truncate(app.entry_url, 35)}</TableCell>
                     <TableCell>
                       <Badge variant={app.status === "active" ? "success" : app.status === "pending" ? "warning" : "danger"}>
                         {app.status}

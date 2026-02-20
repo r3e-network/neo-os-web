@@ -61,7 +61,7 @@ export default function UsersPage() {
               <TableBody>
                 {users?.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{truncate(user.id, 12)}</TableCell>
+                    <TableCell className="font-medium" title={user.id}>{truncate(user.id, 12)}</TableCell>
                     <TableCell className="font-mono text-sm">{user.address}</TableCell>
                     <TableCell className="text-sm text-gray-500 dark:text-gray-400">{user.email || "N/A"}</TableCell>
                     <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatDate(user.created_at)}</TableCell>
