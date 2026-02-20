@@ -266,7 +266,7 @@ function ThreadDetail({
       <button
         type="button"
         onClick={onBack}
-        className="text-sm text-emerald-500 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
+        className="text-sm text-emerald-500 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
       >
         ← Back to discussions
       </button>

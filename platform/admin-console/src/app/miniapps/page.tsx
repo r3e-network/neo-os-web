@@ -585,13 +585,13 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contracts</label>
-                <button type="button" onClick={addContract} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Contract</button>
+                <button type="button" onClick={addContract} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Contract</button>
               </div>
               {form.contracts.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <Input placeholder="Contract name" value={c.name} onChange={e => updateContract(i, "name", e.target.value)} />
                   <Input placeholder="0x..." value={c.hash} onChange={e => updateContract(i, "hash", e.target.value)} />
-                  <button type="button" onClick={() => removeContract(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
+                  <button type="button" onClick={() => removeContract(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
                 </div>
               ))}
               {!form.contracts.length && <p className="text-xs text-gray-500 dark:text-gray-400">No contracts added</p>}
@@ -599,7 +599,7 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Operations</label>
-                <button type="button" onClick={addOperation} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Operation</button>
+                <button type="button" onClick={addOperation} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Operation</button>
               </div>
               {form.operations.map((o, i) => (
                 <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
@@ -608,7 +608,7 @@ function CreateFormPanel({
                     <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} />
                     <Input placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} />
                     <Input placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} />
-                    <button type="button" onClick={() => removeOperation(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
+                    <button type="button" onClick={() => removeOperation(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
                   </div>
                   <div className="flex gap-2">
                     <div className="w-40">
@@ -630,14 +630,14 @@ function CreateFormPanel({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Components</label>
-                <button type="button" onClick={addComponent} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Component</button>
+                <button type="button" onClick={addComponent} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Component</button>
               </div>
               {form.components.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <Input placeholder="live_voting" value={c.type} onChange={e => updateComponent(i, "type", e.target.value)} />
                   <Input placeholder="card" value={c.display} onChange={e => updateComponent(i, "display", e.target.value)} />
                   <Input placeholder='{"key":"value"}' value={c.props} onChange={e => updateComponent(i, "props", e.target.value)} />
-                  <button type="button" onClick={() => removeComponent(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded">Remove</button>
+                  <button type="button" onClick={() => removeComponent(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
                 </div>
               ))}
               {!form.components.length && <p className="text-xs text-gray-500 dark:text-gray-400">No components added</p>}
@@ -728,7 +728,7 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
     <div className="pl-4 border-l-2 border-gray-100 dark:border-gray-800">
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-gray-500 dark:text-gray-400">Parameters</span>
-        <button type="button" onClick={add} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded">+ Add Param</button>
+        <button type="button" onClick={add} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Param</button>
       </div>
       {params.map((p, i) => (
         <div key={i} className="flex gap-1.5 mb-1.5 items-center">
