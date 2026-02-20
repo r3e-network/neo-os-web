@@ -299,7 +299,7 @@ export default function MiniAppsPage() {
               <div><dt className="font-medium text-gray-500 dark:text-gray-400">Developer Pubkey</dt><dd className="font-mono text-xs break-all">{selectedApp.developer_pubkey || "—"}</dd></div>
               <div><dt className="font-medium text-gray-500 dark:text-gray-400">Assets Allowed</dt><dd>{selectedApp.assets_allowed?.join(", ") || "—"}</dd></div>
               <div><dt className="font-medium text-gray-500 dark:text-gray-400">Permissions</dt><dd>{Object.entries(selectedApp.permissions || {}).filter(([, v]) => v).map(([k]) => k).join(", ") || "—"}</dd></div>
-              <div><dt className="font-medium text-gray-500 dark:text-gray-400">Limits</dt><dd><pre className="text-xs">{JSON.stringify(selectedApp.limits, null, 2)}</pre></dd></div>
+              <div><dt className="font-medium text-gray-500 dark:text-gray-400">Limits</dt><dd><pre className="text-xs overflow-auto">{JSON.stringify(selectedApp.limits, null, 2)}</pre></dd></div>
             </dl>
 
             {/* Contracts */}

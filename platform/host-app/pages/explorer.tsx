@@ -162,7 +162,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
             </div>
             <div>
               <span className="text-gray-500 dark:text-gray-400">Sender:</span>
-              <p className="font-mono text-xs">{data.sender}</p>
+              <p className="font-mono text-xs break-all">{data.sender}</p>
             </div>
             <div>
               <span className="text-gray-500 dark:text-gray-400">Status:</span>
@@ -226,7 +226,7 @@ function TransactionResult({ data }: { data: TransactionData }) {
                     <span className="font-medium">{c.method}</span>
                     <Badge variant={c.success ? "default" : "destructive"}>{c.success ? "Success" : "Failed"}</Badge>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{c.contract_hash}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">{c.contract_hash}</p>
                 </li>
               ))}
             </ul>
@@ -270,7 +270,7 @@ function AddressResult({ result }: { result: SearchResult }) {
         <ul className="space-y-2">
           {result.transactions?.map((tx) => (
             <li key={tx.tx_hash} className="flex justify-between p-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm">
-              <span className="font-mono text-xs">{tx.tx_hash}</span>
+              <span className="font-mono text-xs break-all">{tx.tx_hash}</span>
               <Badge variant="outline">{tx.role}</Badge>
             </li>
           ))}
