@@ -83,7 +83,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(neoAmount > 0, "invalid amount");
             ExecutionEngine.Assert(Runtime.CheckWitness(depositor), "unauthorized");
 
-            NEO.Transfer(depositor, Runtime.ExecutingScriptHash, neoAmount);
+            bool deposited = NEO.Transfer(depositor, Runtime.ExecutingScriptHash, neoAmount);
+            ExecutionEngine.Assert(deposited, "NEO deposit failed");
 
             byte[] shareKey = Helper.Concat(PREFIX_USER_SHARE, depositor);
             BigInteger currentShare = (BigInteger)Storage.Get(Storage.CurrentContext, shareKey);

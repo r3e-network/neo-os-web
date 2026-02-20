@@ -88,7 +88,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(neoAmount > 0, "invalid amount");
             ExecutionEngine.Assert(Runtime.CheckWitness(borrower), "unauthorized");
 
-            NEO.Transfer(borrower, Runtime.ExecutingScriptHash, neoAmount);
+            bool deposited = NEO.Transfer(borrower, Runtime.ExecutingScriptHash, neoAmount);
+            ExecutionEngine.Assert(deposited, "NEO deposit failed");
 
             BigInteger loanId = TotalLoans() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_LOAN_ID, loanId);

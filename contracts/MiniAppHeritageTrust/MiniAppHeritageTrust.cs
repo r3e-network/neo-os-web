@@ -102,7 +102,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
 
             // Transfer NEO to contract
-            NEO.Transfer(owner, Runtime.ExecutingScriptHash, neoAmount);
+            bool deposited = NEO.Transfer(owner, Runtime.ExecutingScriptHash, neoAmount);
+            ExecutionEngine.Assert(deposited, "NEO deposit failed");
 
             BigInteger trustId = TotalTrusts() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_TRUST_ID, trustId);

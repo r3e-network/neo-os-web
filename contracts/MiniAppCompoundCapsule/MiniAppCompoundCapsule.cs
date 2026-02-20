@@ -78,7 +78,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(unlockTime >= Runtime.Time + MIN_LOCK_DURATION, "min 7 day lock required");
             ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
 
-            NEO.Transfer(owner, Runtime.ExecutingScriptHash, neoAmount);
+            bool deposited = NEO.Transfer(owner, Runtime.ExecutingScriptHash, neoAmount);
+            ExecutionEngine.Assert(deposited, "NEO deposit failed");
 
             BigInteger capsuleId = TotalCapsules() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_CAPSULE_ID, capsuleId);
