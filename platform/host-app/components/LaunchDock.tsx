@@ -14,7 +14,7 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
   const getNetworkStatus = (): { bg: string; label: string } => {
     if (networkLatency === null) return { bg: "bg-red-500", label: "Offline" };
     if (networkLatency < 100) return { bg: "bg-emerald-500", label: "Good" };
-    if (networkLatency < 500) return { bg: "bg-yellow-500", label: "Fair" };
+    if (networkLatency < 500) return { bg: "bg-amber-500", label: "Fair" };
     return { bg: "bg-red-500", label: "Slow" };
   };
 

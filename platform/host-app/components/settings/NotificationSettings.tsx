@@ -107,7 +107,7 @@ function EmailSection({
           {preferences.emailVerified ? (
             <span className="text-emerald-600 dark:text-emerald-400 text-sm">Verified</span>
           ) : (
-            <span className="text-yellow-600 dark:text-yellow-400 text-sm">Pending</span>
+            <span className="text-amber-600 dark:text-amber-400 text-sm">Pending</span>
           )}
         </div>
       ) : showEmailInput ? (
