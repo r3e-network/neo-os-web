@@ -473,6 +473,7 @@ func (s *Service) runEventListener(ctx context.Context) {
 	}
 	// Block until parent context is cancelled (service shutdown)
 	<-ctx.Done()
+	s.eventListener.Stop()
 }
 
 func resolveChainID() string {

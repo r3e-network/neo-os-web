@@ -380,7 +380,7 @@ func (s *Service) Stop() error {
 
 	s.Logger().WithContext(context.Background()).Info("simulation stopped")
 
-	return nil
+	return s.BaseService.Stop()
 }
 
 // GetStatus returns the current simulation status.
