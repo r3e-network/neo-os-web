@@ -51,8 +51,8 @@
         <text class="receive-value">~{{ estimatedBneo }} bNEO</text>
       </view>
 
-      <button class="action-btn stake-btn" :disabled="!canStake || loading" @click="handleStake">
-        <text>{{ loading ? "Processing..." : "Stake NEO" }}</text>
+      <button class="action-btn stake-btn" :disabled="!canStake || isLoading" @click="handleStake">
+        <text>{{ isLoading ? "Processing..." : "Stake NEO" }}</text>
       </button>
     </view>
 
@@ -72,8 +72,8 @@
         <text class="receive-value">~{{ estimatedNeo }} NEO</text>
       </view>
 
-      <button class="action-btn unstake-btn" :disabled="!canUnstake || loading" @click="handleUnstake">
-        <text>{{ loading ? "Processing..." : "Unstake bNEO" }}</text>
+      <button class="action-btn unstake-btn" :disabled="!canUnstake || isLoading" @click="handleUnstake">
+        <text>{{ isLoading ? "Processing..." : "Unstake bNEO" }}</text>
       </button>
     </view>
 
@@ -100,7 +100,7 @@ const stakeAmount = ref("");
 const unstakeAmount = ref("");
 const neoBalance = ref(0);
 const bNeoBalance = ref(0);
-const loading = ref(false);
+const isLoading = ref(false);
 const status = ref<{ msg: string; type: string } | null>(null);
 const apy = ref("5.2");
 
@@ -148,9 +148,9 @@ async function loadBalances() {
 }
 
 async function handleStake() {
-  if (!canStake.value || loading.value) return;
+  if (!canStake.value || isLoading.value) return;
 
-  loading.value = true;
+  isLoading.value = true;
   try {
     const amount = parseFloat(stakeAmount.value);
     await invokeContract({
@@ -169,14 +169,14 @@ async function handleStake() {
   } catch (e: any) {
     showStatus(e.message || "Stake failed", "error");
   } finally {
-    loading.value = false;
+    isLoading.value = false;
   }
 }
 
 async function handleUnstake() {
-  if (!canUnstake.value || loading.value) return;
+  if (!canUnstake.value || isLoading.value) return;
 
-  loading.value = true;
+  isLoading.value = true;
   try {
     const amount = parseFloat(unstakeAmount.value);
     await invokeContract({
@@ -195,7 +195,7 @@ async function handleUnstake() {
   } catch (e: any) {
     showStatus(e.message || "Unstake failed", "error");
   } finally {
-    loading.value = false;
+    isLoading.value = false;
   }
 }
 
@@ -226,7 +226,7 @@ onMounted(() => {
 
 .title {
   display: block;
-  font-size: 1.5em;
+  font-size: 1.8em;
   font-weight: bold;
   color: $color-brand;
 }

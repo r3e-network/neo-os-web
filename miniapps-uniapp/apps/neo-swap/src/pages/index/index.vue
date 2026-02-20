@@ -49,7 +49,7 @@
     </view>
 
     <!-- Swap Button -->
-    <button class="swap-btn" :disabled="!canSwap || loading" @click="executeSwap">
+    <button class="swap-btn" :disabled="!canSwap || isLoading" @click="executeSwap">
       <text>{{ swapButtonText }}</text>
     </button>
 
@@ -103,7 +103,7 @@ const toToken = ref<Token>({ ...TOKENS[1] });
 const fromAmount = ref("");
 const toAmount = ref("");
 const exchangeRate = ref("");
-const loading = ref(false);
+const isLoading = ref(false);
 const status = ref<{ msg: string; type: string } | null>(null);
 const showSelector = ref(false);
 const selectorTarget = ref<"from" | "to">("from");
@@ -116,7 +116,7 @@ const canSwap = computed(() => {
 });
 
 const swapButtonText = computed(() => {
-  if (loading.value) return "Swapping...";
+  if (isLoading.value) return "Swapping...";
   if (!fromAmount.value) return "Enter amount";
   if (parseFloat(fromAmount.value) > fromToken.value.balance) return "Insufficient balance";
   return `Swap ${fromToken.value.symbol} → ${toToken.value.symbol}`;
@@ -191,9 +191,9 @@ function selectToken(token: Token) {
 }
 
 async function executeSwap() {
-  if (!canSwap.value || loading.value) return;
+  if (!canSwap.value || isLoading.value) return;
 
-  loading.value = true;
+  isLoading.value = true;
   try {
     const amount = parseFloat(fromAmount.value);
     const decimals = fromToken.value.decimals;
@@ -218,7 +218,7 @@ async function executeSwap() {
   } catch (e: any) {
     showStatus(e.message || "Swap failed", "error");
   } finally {
-    loading.value = false;
+    isLoading.value = false;
   }
 }
 
@@ -244,7 +244,7 @@ onMounted(() => {
 
 .title {
   display: block;
-  font-size: 1.5em;
+  font-size: 1.8em;
   font-weight: bold;
   color: $color-flamingo;
 }
