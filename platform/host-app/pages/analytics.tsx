@@ -59,7 +59,7 @@ export default function AnalyticsPage() {
           <title>Analytics - NeoHub</title>
         </Head>
         <div className="mx-auto max-w-4xl px-4 py-12 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Connect Wallet</h1>
+          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-4">Connect Wallet</h1>
           <p className="text-gray-500 dark:text-gray-400">Connect your wallet to view your analytics</p>
         </div>
       </Layout>
@@ -72,7 +72,7 @@ export default function AnalyticsPage() {
         <title>Analytics - NeoHub</title>
       </Head>
       <div className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Your Analytics</h1>
+        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-8">Your Analytics</h1>
 
         {loading ? (
           <div className="space-y-8">
