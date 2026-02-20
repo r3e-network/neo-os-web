@@ -37,14 +37,14 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
           {/* Main Info */}
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-              <h3 className="font-bold text-gray-900 dark:text-white truncate group-hover:text-neo dark:group-hover:text-neo transition-colors">
+              <h3 className="font-bold text-gray-900 dark:text-white truncate group-hover:text-neo dark:group-hover:text-neo transition-colors" title={app.name}>
                 {app.name}
               </h3>
               <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
                 {app.category}
               </Badge>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{app.description}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 truncate" title={app.description}>{app.description}</p>
           </div>
 
           {/* Stats */}

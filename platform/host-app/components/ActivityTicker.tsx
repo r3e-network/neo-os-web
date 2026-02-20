@@ -123,12 +123,12 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
       <div className="text-base w-6 text-center shrink-0">{activity.app_icon || icon}</div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center gap-2">
-          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{activity.title}</span>
+          <span className="text-sm font-medium text-gray-900 dark:text-white truncate" title={activity.title}>{activity.title}</span>
           <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
             {formatTimeAgo(activity.timestamp)}
           </span>
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{activity.description}</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate" title={activity.description}>{activity.description}</div>
         {activity.tx_hash && (
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">

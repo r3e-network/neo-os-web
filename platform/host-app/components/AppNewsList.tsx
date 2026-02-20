@@ -80,7 +80,7 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate" title={notification.title}>
             {notification.title}
           </h4>
           <span className="text-xs text-gray-500 dark:text-gray-400">

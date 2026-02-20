@@ -35,7 +35,7 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
           {app.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="mb-2 text-xl sm:text-2xl md:text-[28px] font-bold text-gray-900 dark:text-white truncate">{app.name}</h1>
+          <h1 className="mb-2 text-xl sm:text-2xl md:text-[28px] font-bold text-gray-900 dark:text-white truncate" title={app.name}>{app.name}</h1>
           <div className="flex items-center gap-3">
             <span className="rounded-md bg-neo/15 px-3 py-1 text-xs font-semibold uppercase text-neo">
               {app.category}

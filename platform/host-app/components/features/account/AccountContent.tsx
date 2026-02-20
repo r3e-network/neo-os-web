@@ -19,7 +19,7 @@ export default function AccountContent() {
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="text-sm text-gray-500 dark:text-gray-400">Connected via {provider}</div>
-                  <div className="font-mono text-lg text-gray-900 dark:text-white truncate">{address}</div>
+                  <div className="font-mono text-lg text-gray-900 dark:text-white truncate" title={address}>{address}</div>
                 </div>
                 <div className="h-3 w-3 rounded-full bg-emerald-500" />
               </div>
