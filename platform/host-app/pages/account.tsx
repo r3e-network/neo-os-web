@@ -47,7 +47,7 @@ export default function AccountPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neo/20">
-                    <Wallet className="text-neo" size={24} />
+                    <Wallet className="text-neo" size={24} aria-hidden="true" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Wallet Address</p>
@@ -92,7 +92,7 @@ export default function AccountPage() {
               <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Trophy size={16} className="text-emerald-500" />
+                    <Trophy size={16} className="text-emerald-500" aria-hidden="true" />
                     Reputation
                   </CardTitle>
                   <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
@@ -124,11 +124,11 @@ export default function AccountPage() {
                     href="/leaderboard"
                     className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-emerald-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded"
                   >
-                    <TrendingUp size={12} />
+                    <TrendingUp size={12} aria-hidden="true" />
                     <span>Rank #{stats?.rank || "-"}</span>
                   </Link>
                   <div className="flex items-center gap-1 text-xs text-amber-400">
-                    <Flame size={12} />
+                    <Flame size={12} aria-hidden="true" />
                     <span>{stats?.streak || 0} day streak</span>
                   </div>
                 </div>
@@ -139,7 +139,7 @@ export default function AccountPage() {
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Zap size={16} className="text-amber-500" />
+                  <Zap size={16} className="text-amber-500" aria-hidden="true" />
                   Activity
                 </CardTitle>
               </CardHeader>
@@ -160,7 +160,7 @@ export default function AccountPage() {
 
             <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-gray-200 dark:border-gray-700">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <Shield size={16} className="text-indigo-400" />
+                <Shield size={16} className="text-indigo-400" aria-hidden="true" />
                 Security Tip
               </h3>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
