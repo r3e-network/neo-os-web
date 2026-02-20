@@ -68,7 +68,6 @@ const refreshPrices = () => {
 
 const setAlert = () => {
   if (!alertSymbol.value || !alertPrice.value) return;
-  console.log(`Alert set: ${alertSymbol.value} @ $${alertPrice.value}`);
   alertSymbol.value = "";
   alertPrice.value = "";
 };

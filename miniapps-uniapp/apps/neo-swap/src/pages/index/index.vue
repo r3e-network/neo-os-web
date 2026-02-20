@@ -286,7 +286,6 @@ onMounted(() => {
   background: rgba(#000, 0.3);
   padding: 10px 14px;
   border-radius: 12px;
-  cursor: pointer;
   &:active {
     filter: brightness(0.85);
   }
@@ -336,7 +335,6 @@ onMounted(() => {
 .swap-icon {
   font-size: 1.25em;
   color: $color-flamingo;
-  cursor: pointer;
   padding: 8px;
   background: rgba($color-flamingo, 0.1);
   border-radius: 50%;
@@ -370,7 +368,6 @@ onMounted(() => {
   font-weight: bold;
   background: $color-flamingo;
   color: $color-text-primary;
-  cursor: pointer;
   &:active {
     filter: brightness(0.85);
   }
@@ -378,7 +375,6 @@ onMounted(() => {
 
 .swap-btn:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .status-msg {
@@ -432,14 +428,9 @@ onMounted(() => {
   gap: 12px;
   padding: 12px;
   border-radius: 8px;
-  cursor: pointer;
   &:active {
     filter: brightness(0.85);
   }
-}
-
-.token-option:hover {
-  background: $color-bg-card;
 }
 
 .token-info {

@@ -301,7 +301,6 @@ onMounted(() => {
   text-align: center;
   border-radius: 8px;
   color: $color-text-secondary;
-  transition: all 0.2s ease;
   &:active {
     filter: brightness(0.85);
   }
@@ -388,8 +387,6 @@ onMounted(() => {
   border: none;
   font-size: 1em;
   font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
   &:active {
     filter: brightness(0.85);
   }
@@ -407,7 +404,6 @@ onMounted(() => {
 
 .action-btn:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .status-msg {

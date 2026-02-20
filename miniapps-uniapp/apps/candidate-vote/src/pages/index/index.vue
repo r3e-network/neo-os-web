@@ -201,7 +201,6 @@ onMounted(() => {
   background: rgba($color-governance, 0.05);
   border: 2px solid transparent;
   border-radius: 8px;
-  cursor: pointer;
   &.selected {
     border-color: $color-governance;
     background: rgba($color-governance, 0.15);
