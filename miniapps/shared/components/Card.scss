@@ -1,13 +1,15 @@
+@import "../styles/theme.scss";
+
 .neo-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: $color-bg-card;
+  border: 1px solid $color-border;
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 20px;
   backdrop-filter: blur(10px);
 
   &-title {
-    color: #00d9ff;
+    color: $color-accent;
     font-size: 1.3em;
     font-weight: bold;
     margin-bottom: 20px;

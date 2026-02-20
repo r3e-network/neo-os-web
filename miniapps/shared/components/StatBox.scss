@@ -1,5 +1,7 @@
+@import "../styles/theme.scss";
+
 .neo-stat-box {
-  background: rgba(0, 217, 255, 0.1);
+  background: rgba($color-accent, 0.1);
   border-radius: 12px;
   padding: 15px;
   text-align: center;
@@ -17,10 +19,10 @@
 .neo-stat-value {
   font-size: 1.8em;
   font-weight: bold;
-  color: #00d9ff;
+  color: $color-accent;
 }
 
 .neo-stat-label {
   font-size: 0.85em;
-  color: #888;
+  color: $color-text-secondary;
 }
