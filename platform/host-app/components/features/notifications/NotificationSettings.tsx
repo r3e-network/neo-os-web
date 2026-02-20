@@ -32,7 +32,7 @@ export function NotificationSettings() {
   return (
     <div className="space-y-6">
       {/* Email Section */}
-      <SettingsSection title="Email Notifications" icon={<Mail size={18} />}>
+      <SettingsSection title="Email Notifications" icon={<Mail size={18} aria-hidden="true" />}>
         {preferences.email && preferences.emailVerified ? (
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600 dark:text-gray-400">{preferences.email}</span>
@@ -46,7 +46,7 @@ export function NotificationSettings() {
       </SettingsSection>
 
       {/* Notification Types */}
-      <SettingsSection title="Notification Types" icon={<Bell size={18} />}>
+      <SettingsSection title="Notification Types" icon={<Bell size={18} aria-hidden="true" />}>
         <ToggleItem
           label="MiniApp Results"
           description="Wins, losses, and game outcomes"
@@ -68,7 +68,7 @@ export function NotificationSettings() {
       </SettingsSection>
 
       {/* Digest Frequency */}
-      <SettingsSection title="Digest Frequency" icon={<Clock size={18} />}>
+      <SettingsSection title="Digest Frequency" icon={<Clock size={18} aria-hidden="true" />}>
         <FrequencySelector
           value={preferences.digestFrequency}
           onChange={(v) => updatePreferences({ digestFrequency: v })}

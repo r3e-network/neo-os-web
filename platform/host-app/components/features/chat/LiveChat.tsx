@@ -146,11 +146,11 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-emerald-500 text-white">
             <div className="flex items-center gap-2">
-              <MessageCircle size={18} />
+              <MessageCircle size={18} aria-hidden="true" />
               <span className="font-semibold">Live Chat</span>
             </div>
             <div className="flex items-center gap-1 text-sm opacity-90">
-              <Users size={14} />
+              <Users size={14} aria-hidden="true" />
               <span>{participantCount}</span>
             </div>
           </div>
@@ -170,7 +170,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
               </div>
             ) : messages.length === 0 ? (
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
+                <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
                 <p>No messages yet</p>
                 <p className="text-xs mt-1">Be the first to say hi!</p>
               </div>
@@ -223,7 +223,7 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
   if (message.type === "tip") {
     return (
       <div className="flex items-center justify-center gap-2 text-xs text-amber-600 dark:text-amber-400 py-1">
-        <Gift size={12} />
+        <Gift size={12} aria-hidden="true" />
         <span>
           {message.userName} tipped {message.tipAmount}
         </span>

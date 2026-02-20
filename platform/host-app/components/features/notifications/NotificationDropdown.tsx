@@ -152,7 +152,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                <Bell className="mx-auto mb-2 h-8 w-8 opacity-50" />
+                <Bell className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
                 <p>No notifications yet</p>
               </div>
             ) : (
