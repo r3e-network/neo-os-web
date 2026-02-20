@@ -126,7 +126,7 @@ const sendMessage = async () => {
     margin-left: auto;
   }
   &.ai {
-    background: rgba(255, 255, 255, 0.1);
+    background: $color-bg-subtle;
   }
 }
 .msg-text {

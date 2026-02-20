@@ -211,7 +211,7 @@ const attachTo = async (host: Host) => {
 .energy-bar {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: $color-bg-subtle;
   border-radius: 2px;
   overflow: hidden;
   margin-top: 4px;
@@ -276,7 +276,7 @@ const attachTo = async (host: Host) => {
   color: $color-text-secondary;
   font-size: 0.9em;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: $color-bg-card;
   border-radius: 8px;
 }
 </style>

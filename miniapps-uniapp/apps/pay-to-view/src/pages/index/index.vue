@@ -238,7 +238,7 @@ const createContent = async () => {
   gap: 12px;
 }
 .input-field {
-  background: rgba(255, 255, 255, 0.05);
+  background: $color-bg-card;
   border: 1px solid $color-border;
   border-radius: 8px;
   padding: 12px;
@@ -246,7 +246,7 @@ const createContent = async () => {
   font-size: 0.95em;
 }
 .textarea-field {
-  background: rgba(255, 255, 255, 0.05);
+  background: $color-bg-card;
   border: 1px solid $color-border;
   border-radius: 8px;
   padding: 12px;

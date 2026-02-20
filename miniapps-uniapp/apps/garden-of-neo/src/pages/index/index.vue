@@ -255,7 +255,7 @@ const harvestAll = () => {
 .growth-bar {
   width: 80%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: $color-bg-subtle;
   border-radius: 2px;
   overflow: hidden;
 }
@@ -309,7 +309,7 @@ const harvestAll = () => {
 }
 .btn-secondary {
   flex: 1;
-  background: rgba(255, 255, 255, 0.1);
+  background: $color-bg-subtle;
   color: $color-text-primary;
   padding: 14px;
   border-radius: 12px;

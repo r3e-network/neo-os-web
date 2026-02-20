@@ -196,7 +196,7 @@ const startMining = async () => {
 }
 .puzzle-piece {
   aspect-ratio: 1;
-  background: rgba(255, 255, 255, 0.05);
+  background: $color-bg-card;
   border: 2px solid $color-border;
   border-radius: 8px;
   display: flex;

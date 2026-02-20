@@ -106,7 +106,7 @@ const vote = (yes: boolean) => {
 }
 .vote-bar {
   height: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: $color-bg-subtle;
   border-radius: 4px;
   overflow: hidden;
 }
@@ -147,7 +147,7 @@ const vote = (yes: boolean) => {
     background: $color-governance;
   }
   &.no {
-    background: rgba(255, 255, 255, 0.1);
+    background: $color-bg-subtle;
   }
 }
 </style>

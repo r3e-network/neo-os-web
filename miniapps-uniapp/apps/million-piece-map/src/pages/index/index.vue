@@ -165,7 +165,7 @@ const purchaseTile = async () => {
 }
 .tile {
   aspect-ratio: 1;
-  background: rgba(255, 255, 255, 0.05);
+  background: $color-bg-card;
   border: 1px solid $color-border;
   border-radius: 4px;
   display: flex;

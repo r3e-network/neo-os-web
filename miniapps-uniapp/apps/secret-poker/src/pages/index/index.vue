@@ -191,7 +191,7 @@ const reveal = async () => {
 .poker-card {
   flex: 1;
   aspect-ratio: 2/3;
-  background: rgba(255, 255, 255, 0.1);
+  background: $color-bg-subtle;
   border: 2px solid $color-border;
   border-radius: 8px;
   display: flex;

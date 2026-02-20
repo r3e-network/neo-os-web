@@ -249,7 +249,7 @@ onMounted(() => {
 
 .stat-card {
   flex: 1;
-  background: rgba(255, 255, 255, 0.05);
+  background: $color-bg-card;
   border-radius: 12px;
   padding: 16px;
   text-align: center;
@@ -294,7 +294,7 @@ onMounted(() => {
 
 .tabs {
   display: flex;
-  background: rgba(255, 255, 255, 0.05);
+  background: $color-bg-card;
   border-radius: 12px;
   padding: 4px;
   margin-bottom: 16px;
@@ -316,7 +316,7 @@ onMounted(() => {
 }
 
 .panel {
-  background: rgba(255, 255, 255, 0.05);
+  background: $color-bg-card;
   border-radius: 12px;
   padding: 20px;
 }

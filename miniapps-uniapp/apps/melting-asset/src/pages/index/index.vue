@@ -183,7 +183,7 @@ onUnmounted(() => clearInterval(timer));
 .health-bar {
   width: 80px;
   height: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: $color-bg-subtle;
   border-radius: 4px;
   overflow: hidden;
   margin-right: 12px;

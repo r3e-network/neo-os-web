@@ -430,7 +430,7 @@ onMounted(() => {
 }
 
 .token-option:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: $color-bg-card;
 }
 
 .token-info {

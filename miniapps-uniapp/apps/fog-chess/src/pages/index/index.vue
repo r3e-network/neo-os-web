@@ -297,7 +297,7 @@ const showRules = () => {
   justify-content: center;
   position: relative;
   &.light {
-    background: rgba(255, 255, 255, 0.1);
+    background: $color-bg-subtle;
   }
   &.dark {
     background: rgba(0, 0, 0, 0.3);

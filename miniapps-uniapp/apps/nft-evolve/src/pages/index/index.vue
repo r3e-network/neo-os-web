@@ -136,7 +136,7 @@ const evolve = async () => {
 .xp-bar {
   width: 60px;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: $color-bg-subtle;
   border-radius: 3px;
   overflow: hidden;
 }
@@ -168,7 +168,7 @@ const evolve = async () => {
 .cancel-btn {
   flex: 1;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.1);
+  background: $color-bg-subtle;
   border-radius: 10px;
   text-align: center;
 }

@@ -340,7 +340,7 @@ const startGame = async () => {
     border: 1px solid $color-border;
   }
   &.revealed {
-    background: rgba(255, 255, 255, 0.05);
+    background: $color-bg-card;
     border: 1px solid $color-border;
     &.treasure {
       background: rgba($color-success, 0.2);

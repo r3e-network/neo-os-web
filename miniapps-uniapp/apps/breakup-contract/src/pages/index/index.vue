@@ -146,7 +146,7 @@ const claimReward = async (contract: any) => {
 }
 .contract-progress {
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: $color-bg-subtle;
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 10px;
