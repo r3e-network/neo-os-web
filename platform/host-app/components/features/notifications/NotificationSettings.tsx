@@ -121,7 +121,7 @@ function ToggleItem({
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative w-10 h-6 rounded-full transition-colors ${checked ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`}
+        className={`relative w-10 h-6 cursor-pointer rounded-full transition-colors ${checked ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`}
       >
         <span
           className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${checked ? "translate-x-4" : ""}`}
@@ -150,7 +150,7 @@ function EmailBindInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Enter email address"
         aria-label="Email address"
-        className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+        className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
       />
       <button
         type="button"
@@ -186,7 +186,7 @@ function VerifyCodeInput({
           placeholder="6-digit code"
           aria-label="Verification code"
           maxLength={6}
-          className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
         />
         <button
           type="button"
