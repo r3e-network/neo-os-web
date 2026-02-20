@@ -187,13 +187,13 @@ function TransactionResult({ data }: { data: TransactionData }) {
           </CardHeader>
           <CardContent>
             <div className="max-h-96 overflow-auto">
-              <table className="w-full text-xs font-mono">
+              <table className="w-full text-xs font-mono" aria-label="Opcode execution trace">
                 <thead className="sticky top-0 bg-white dark:bg-gray-900">
                   <tr className="border-b">
-                    <th className="p-2 text-left">Step</th>
-                    <th className="p-2 text-left">Opcode</th>
-                    <th className="p-2 text-left">Hex</th>
-                    <th className="p-2 text-left">IP</th>
+                    <th scope="col" className="p-2 text-left">Step</th>
+                    <th scope="col" className="p-2 text-left">Opcode</th>
+                    <th scope="col" className="p-2 text-left">Hex</th>
+                    <th scope="col" className="p-2 text-left">IP</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -172,13 +172,13 @@ function AppBreakdownTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm" aria-label="App usage breakdown">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-700">
-            <th className="text-left py-2 text-gray-500 dark:text-gray-400 font-medium">App</th>
-            <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Transactions</th>
-            <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Volume</th>
-            <th className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Last Used</th>
+            <th scope="col" className="text-left py-2 text-gray-500 dark:text-gray-400 font-medium">App</th>
+            <th scope="col" className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Transactions</th>
+            <th scope="col" className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Volume</th>
+            <th scope="col" className="text-right py-2 text-gray-500 dark:text-gray-400 font-medium">Last Used</th>
           </tr>
         </thead>
         <tbody>

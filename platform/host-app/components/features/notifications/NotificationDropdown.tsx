@@ -129,7 +129,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
               <button
                 type="button"
                 onClick={markAllAsRead}
-                className="text-xs text-emerald-500 hover:text-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+                className="py-1 px-2 text-xs text-emerald-500 hover:text-emerald-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
               >
                 Mark all read
               </button>
