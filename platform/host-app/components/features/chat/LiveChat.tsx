@@ -238,14 +238,14 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
       </div>
       <div className={cn("max-w-[70%]", isOwn && "text-right")}>
         <div className="flex items-center gap-2 mb-0.5">
-          <span className={cn("text-xs font-medium text-gray-700 dark:text-gray-300", isOwn && "order-2")}>
+          <span className={cn("text-xs font-medium text-gray-700 dark:text-gray-300 truncate", isOwn && "order-2")}>
             {message.userName}
           </span>
           <span className={cn("text-xs text-gray-500 dark:text-gray-400", isOwn && "order-1")}>{timeAgo(message.timestamp)}</span>
         </div>
         <div
           className={cn(
-            "inline-block px-3 py-2 rounded-2xl text-sm",
+            "inline-block px-3 py-2 rounded-2xl text-sm break-words",
             isOwn
               ? "bg-emerald-500 text-white rounded-tr-sm"
               : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-tl-sm",

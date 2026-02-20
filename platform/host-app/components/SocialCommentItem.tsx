@@ -50,7 +50,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
         </div>
 
         {/* Content */}
-        <p className="text-gray-800 dark:text-gray-200 mb-2">{comment.content}</p>
+        <p className="text-gray-800 dark:text-gray-200 mb-2 break-words">{comment.content}</p>
 
         {/* Actions */}
         <div className="flex items-center gap-4 text-sm">
