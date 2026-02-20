@@ -64,7 +64,7 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Platform Status</div>
-            <div className="mt-2 text-3xl font-semibold text-success-600">Online</div>
+            <div className="mt-2 text-3xl font-semibold text-success-600 dark:text-success-400">Online</div>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">All systems operational</p>
           </CardContent>
         </Card>
@@ -79,11 +79,11 @@ export default function DashboardPage() {
           {servicesLoading ? (
             <Spinner />
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {services?.map((service) => (
-                <div
+                <li
                   key={service.name}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <div>
                     <div className="font-medium text-gray-900 dark:text-white">{service.name}</div>
@@ -96,9 +96,9 @@ export default function DashboardPage() {
                   >
                     {service.status}
                   </Badge>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </CardContent>
       </Card>
@@ -112,9 +112,9 @@ export default function DashboardPage() {
           {miniappsLoading ? (
             <Spinner />
           ) : (
-            <div className="space-y-3">
+            <ul className="space-y-3">
               {miniapps?.slice(0, 5).map((app) => (
-                <div key={app.app_id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
+                <li key={app.app_id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
                   <div>
                     <div className="font-medium text-gray-900 dark:text-white">{app.app_id}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(app.created_at)}</div>
@@ -124,9 +124,9 @@ export default function DashboardPage() {
                   >
                     {app.status}
                   </Badge>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </CardContent>
       </Card>
