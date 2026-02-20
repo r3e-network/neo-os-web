@@ -234,6 +234,7 @@ onMounted(() => {
   padding: 20px;
   min-height: 100vh;
   background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
+  color: $color-text-primary;
 }
 
 .header {
