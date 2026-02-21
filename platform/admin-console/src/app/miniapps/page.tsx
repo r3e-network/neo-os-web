@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
-import { useMiniApps, useCreateMiniApp, useUpdateMiniAppStatus, useUpdateMiniApp } from "@/lib/hooks/useMiniApps";
+import { useMiniApps, useCreateMiniApp, useUpdateMiniAppStatus, useUpdateMiniApp, useDeleteMiniApp } from "@/lib/hooks/useMiniApps";
 import { miniAppConfigSchema } from "@/lib/schemas";
 import { formatDate, truncate } from "@/lib/utils";
 import type { MiniApp } from "@/types";
@@ -22,42 +22,68 @@ type Panel = "none" | "create" | "edit" | "detail";
 const PERMISSION_KEYS = ["rng", "oracle", "compute", "datafeed", "automation", "gasbank", "wallet", "payments", "governance", "storage", "secrets"];
 const CATEGORIES = ["gaming", "defi", "social", "utility", "nft", "governance", "data", "other"];
 
-const TEMPLATES: Record<string, { label: string; desc: string; overrides: Partial<typeof EMPTY_FORM> }> = {
+const BLUEPRINTS: Record<string, { label: string; desc: string; overrides: Partial<typeof EMPTY_FORM> }> = {
+  default: {
+    label: "Default", desc: "General miniapp with overview/reviews/forum/news",
+    overrides: { blueprint: "default", permissions: { payments: true }, daily_gas_cap_per_user: "100", max_gas_per_tx: "10", assets_allowed: "GAS" },
+  },
+  prediction: {
+    label: "Prediction", desc: "Polymarket-style with market info + trade panel",
+    overrides: { blueprint: "prediction", permissions: { payments: true, datafeed: true }, daily_gas_cap_per_user: "100", max_gas_per_tx: "10", assets_allowed: "GAS" },
+  },
   gaming: {
     label: "Gaming", desc: "RNG, compute, gasbank pre-configured",
-    overrides: { permissions: { rng: true, compute: true, gasbank: true }, content_category: "gaming", daily_gas_cap_per_user: "50", max_gas_per_tx: "10", assets_allowed: "GAS" },
+    overrides: { blueprint: "gaming", permissions: { rng: true, compute: true, gasbank: true }, content_category: "gaming", daily_gas_cap_per_user: "50", max_gas_per_tx: "10", assets_allowed: "GAS" },
   },
   defi: {
     label: "DeFi", desc: "Oracle, datafeed, wallet, gasbank",
-    overrides: { permissions: { oracle: true, datafeed: true, wallet: true, gasbank: true }, content_category: "defi", daily_gas_cap_per_user: "100", max_gas_per_tx: "20", assets_allowed: "GAS", governance_assets_allowed: "BNEO" },
-  },
-  social: {
-    label: "Social", desc: "Storage, wallet, light gas limits",
-    overrides: { permissions: { storage: true, wallet: true }, content_category: "social", daily_gas_cap_per_user: "20", max_gas_per_tx: "5", assets_allowed: "GAS" },
-  },
-  utility: {
-    label: "Utility", desc: "Compute, storage, moderate limits",
-    overrides: { permissions: { compute: true, storage: true }, content_category: "utility", daily_gas_cap_per_user: "30", max_gas_per_tx: "10", assets_allowed: "GAS" },
+    overrides: { blueprint: "defi", permissions: { oracle: true, datafeed: true, wallet: true, gasbank: true }, content_category: "defi", daily_gas_cap_per_user: "100", max_gas_per_tx: "20", assets_allowed: "GAS", governance_assets_allowed: "BNEO" },
   },
 };
 
 const CREATE_TABS = [
   { label: "Basic Info", value: "basic" },
   { label: "Content", value: "content" },
+  { label: "Page Layout", value: "layout" },
   { label: "Contracts & Ops", value: "contracts" },
   { label: "Permissions & Limits", value: "perms" },
   { label: "JSON", value: "json" },
 ];
+
+const BLUEPRINT_TEMPLATES: Record<string, DetailTemplate> = {
+  default: { layout: "default", tabs: [{id:"overview",label:"Overview",type:"content"},{id:"reviews",label:"Reviews",type:"reviews"},{id:"forum",label:"Forum",type:"forum"},{id:"news",label:"News",type:"news"}], operation_panel: {title:"Operations",subtitle:"Configure parameters and submit.",cta_label:"Launch App"} },
+  prediction: { layout: "prediction", hero: {eyebrow:"Prediction Market",disclaimer:"Probabilities are market-implied."}, tabs: [{id:"market-info",label:"Market Info",type:"content"},{id:"reviews",label:"Reviews",type:"reviews"},{id:"forum",label:"Comments",type:"forum"},{id:"news",label:"Activity",type:"news"}], operation_panel: {title:"Trade Position",subtitle:"Choose side, set amount, submit on-chain.",cta_label:"Open Full Experience"} },
+  gaming: { layout: "default", tabs: [{id:"overview",label:"Overview",type:"content"},{id:"leaderboard",label:"Leaderboard",type:"content"},{id:"reviews",label:"Reviews",type:"reviews"},{id:"news",label:"News",type:"news"}], operation_panel: {title:"Play",subtitle:"Configure game parameters and start playing.",cta_label:"Launch Game"} },
+  defi: { layout: "default", tabs: [{id:"pool-info",label:"Pool Info",type:"content"},{id:"positions",label:"Positions",type:"content"},{id:"reviews",label:"Reviews",type:"reviews"},{id:"news",label:"Activity",type:"news"}], operation_panel: {title:"Manage Position",subtitle:"Deposit, withdraw, or claim rewards.",cta_label:"Open DeFi App"} },
+};
 
 interface ContractEntry { name: string; hash: string }
 interface OperationParam { name: string; type: string; label: string; required: boolean; default_value: string; placeholder: string; options: string }
 interface OperationEntry { name: string; method: string; description: string; gas_cost: string; button_style: string; confirm_message: string; params: OperationParam[] }
 interface ComponentEntry { type: string; display: string; props: string }
 
+interface ContentBlock {
+  type: string;
+  title?: string;
+  content?: string;
+  items?: string[];
+  tone?: string;
+  entries?: Array<{ key: string; value: string }>;
+  links?: Array<{ label: string; href: string }>;
+}
+
+interface DetailTemplate {
+  layout?: string;
+  hero?: Record<string, string>;
+  tabs?: Array<{ id: string; label: string; type: string; blocks?: ContentBlock[] }>;
+  operation_panel?: Record<string, string>;
+}
+
 const EMPTY_FORM = {
   app_id: "", name: "", entry_url: "", version: "1.0.0",
   developer_user_id: "",
   developer_pubkey: "", callback_contract: "", callback_method: "",
+  blueprint: "default" as string, detail_template: null as DetailTemplate | null,
   assets_allowed: "GAS", governance_assets_allowed: "BNEO",
   daily_gas_cap_per_user: "", governance_cap: "", max_gas_per_tx: "",
   attestation_required: false,
@@ -73,6 +99,7 @@ export default function MiniAppsPage() {
   const createMutation = useCreateMiniApp();
   const updateMutation = useUpdateMiniApp();
   const statusMutation = useUpdateMiniAppStatus();
+  const deleteMutation = useDeleteMiniApp();
 
   const [panel, setPanel] = useState<Panel>("none");
   const [selectedApp, setSelectedApp] = useState<MiniApp | null>(null);
@@ -139,6 +166,11 @@ export default function MiniAppsPage() {
     a.download = `${app.app_id}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleDelete = (app: MiniApp) => {
+    if (!window.confirm(`Delete "${app.app_id}"? This cannot be undone.`)) return;
+    deleteMutation.mutate(app.app_id);
   };
 
   const handleToggleStatus = (app: MiniApp) => {
@@ -269,6 +301,15 @@ export default function MiniAppsPage() {
                         >
                           {app.status === "active" ? "Disable" : "Enable"}
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(app)}
+                          disabled={deleteMutation.isPending}
+                          className="text-danger-600 dark:text-danger-400"
+                        >
+                          Delete
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -367,6 +408,8 @@ function formToConfig(form: typeof EMPTY_FORM) {
     version: form.version || "1.0.0", developer_pubkey: form.developer_pubkey,
     callback_contract: form.callback_contract || undefined,
     callback_method: form.callback_method || undefined,
+    blueprint: form.blueprint || undefined,
+    detail_template: form.detail_template || undefined,
     attestation_required: form.attestation_required,
     permissions: form.permissions,
     limits: {
@@ -431,6 +474,8 @@ function appToForm(app: MiniApp): typeof EMPTY_FORM {
     developer_pubkey: app.developer_pubkey || "",
     callback_contract: String(m.callback_contract || ""),
     callback_method: String(m.callback_method || ""),
+    blueprint: String(m.blueprint || (m.admin as Record<string, unknown>)?.blueprint || "default"),
+    detail_template: (m.detail_template || m.page_template || null) as DetailTemplate | null,
     assets_allowed: (app.assets_allowed || []).join(", "),
     governance_assets_allowed: (app.governance_assets_allowed || []).join(", "),
     daily_gas_cap_per_user: String(app.limits?.daily_gas_cap_per_user || ""),
@@ -477,6 +522,12 @@ function CreateFormPanel({
   const update = (key: string, value: string | boolean) => setForm({ ...form, [key]: value });
   const togglePerm = (key: string) => setForm({ ...form, permissions: { ...form.permissions, [key]: !form.permissions[key] } });
 
+  const dt = (form.detail_template || {}) as DetailTemplate;
+  const updateDT = (updates: Partial<DetailTemplate>) => setForm({ ...form, detail_template: { ...dt, ...updates } });
+  const dtTabs: Array<{id:string;label:string;type:string;blocks?:ContentBlock[]}> = Array.isArray(dt.tabs) ? dt.tabs : [];
+  const dtHero = (dt.hero || {}) as Record<string, string>;
+  const dtOp = (dt.operation_panel || {}) as Record<string, string>;
+
   const addContract = () => setForm({ ...form, contracts: [...form.contracts, { name: "", hash: "" }] });
   const removeContract = (i: number) => setForm({ ...form, contracts: form.contracts.filter((_, idx) => idx !== i) });
   const updateContract = (i: number, field: "name" | "hash", val: string) => {
@@ -502,9 +553,9 @@ function CreateFormPanel({
   };
 
   const applyTemplate = (key: string) => {
-    const t = TEMPLATES[key];
+    const t = BLUEPRINTS[key];
     if (!t) return;
-    setForm({ ...EMPTY_FORM, ...t.overrides, permissions: { ...t.overrides.permissions } });
+    setForm({ ...EMPTY_FORM, ...t.overrides, permissions: { ...t.overrides.permissions }, detail_template: BLUEPRINT_TEMPLATES[key] || null });
   };
 
   // Sync form → JSON when switching to JSON tab
@@ -522,9 +573,9 @@ function CreateFormPanel({
       <CardContent className="space-y-4">
         {/* Template Selector */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Quick Start — choose a template</label>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Quick Start — choose a blueprint</label>
           <div className="flex gap-2">
-            {Object.entries(TEMPLATES).map(([key, t]) => (
+            {Object.entries(BLUEPRINTS).map(([key, t]) => (
               <button key={key} type="button" onClick={() => applyTemplate(key)}
                 className="flex-1 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-left hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50">
                 <div className="text-sm font-medium">{t.label}</div>
@@ -577,6 +628,55 @@ function CreateFormPanel({
                 </select>
               </div>
               <Input label="Tags (comma-separated)" placeholder="game,defi" value={form.content_tags} onChange={e => update("content_tags", e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Page Layout */}
+        {tab === "layout" && (
+          <div className="space-y-6">
+            {/* Hero */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hero</label>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Eyebrow" placeholder="e.g. Prediction Market" value={dtHero.eyebrow || ""} onChange={e => updateDT({ hero: { ...dtHero, eyebrow: e.target.value } })} />
+                <Input label="Disclaimer" placeholder="e.g. Probabilities are market-implied." value={dtHero.disclaimer || ""} onChange={e => updateDT({ hero: { ...dtHero, disclaimer: e.target.value } })} />
+              </div>
+            </div>
+
+            {/* Tabs editor */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tabs</label>
+                <button type="button" onClick={() => updateDT({ tabs: [...dtTabs, { id: `tab-${dtTabs.length}`, label: "New Tab", type: "content", blocks: [] }] })} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Tab</button>
+              </div>
+              {dtTabs.map((t, i) => (
+                <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <Input placeholder="ID" value={t.id} onChange={e => { const next = [...dtTabs]; next[i] = { ...next[i], id: e.target.value }; updateDT({ tabs: next }); }} />
+                    <Input placeholder="Label" value={t.label} onChange={e => { const next = [...dtTabs]; next[i] = { ...next[i], label: e.target.value }; updateDT({ tabs: next }); }} />
+                    <select className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer dark:bg-gray-800 dark:text-gray-100 w-32 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={t.type} onChange={e => { const next = [...dtTabs]; next[i] = { ...next[i], type: e.target.value }; updateDT({ tabs: next }); }} aria-label="Tab type">
+                      {["content","reviews","forum","news","secrets"].map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                    <button type="button" onClick={() => updateDT({ tabs: dtTabs.filter((_, idx) => idx !== i) })} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
+                  </div>
+                  {/* Content blocks for content-type tabs */}
+                  {t.type === "content" && (
+                    <ContentBlocksEditor blocks={t.blocks || []} onChange={blocks => { const next = [...dtTabs]; next[i] = { ...next[i], blocks }; updateDT({ tabs: next }); }} />
+                  )}
+                </div>
+              ))}
+              {!dtTabs.length && <p className="text-xs text-gray-500 dark:text-gray-400">No tabs added</p>}
+            </div>
+
+            {/* Operation Panel */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Operation Panel</label>
+              <div className="grid grid-cols-3 gap-4">
+                <Input label="Title" placeholder="Operations" value={dtOp.title || ""} onChange={e => updateDT({ operation_panel: { ...dtOp, title: e.target.value } })} />
+                <Input label="Subtitle" placeholder="Configure and submit." value={dtOp.subtitle || ""} onChange={e => updateDT({ operation_panel: { ...dtOp, subtitle: e.target.value } })} />
+                <Input label="CTA Label" placeholder="Launch App" value={dtOp.cta_label || ""} onChange={e => updateDT({ operation_panel: { ...dtOp, cta_label: e.target.value } })} />
+              </div>
             </div>
           </div>
         )}
@@ -747,6 +847,84 @@ function OperationParamsEditor({ params, onChange }: { params: OperationParam[];
           <button type="button" onClick={() => remove(i)} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg" aria-label="Remove parameter">×</button>
         </div>
       ))}
+    </div>
+  );
+}
+
+const BLOCK_TYPES = ["markdown", "bullet_list", "key_value", "notice", "links"] as const;
+
+function ContentBlocksEditor({ blocks, onChange }: { blocks: ContentBlock[]; onChange: (b: ContentBlock[]) => void }) {
+  const updateBlock = (i: number, updates: Partial<ContentBlock>) => {
+    const next = [...blocks];
+    next[i] = { ...next[i], ...updates };
+    onChange(next);
+  };
+  return (
+    <div className="pl-4 border-l-2 border-gray-100 dark:border-gray-800">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-gray-500 dark:text-gray-400">Content Blocks</span>
+        <select className="text-xs cursor-pointer text-primary-600 border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md" defaultValue="" onChange={e => { if (e.target.value) { onChange([...blocks, { type: e.target.value, title: "" }]); e.target.value = ""; } }} aria-label="Add block type">
+          <option value="" disabled>+ Add Block</option>
+          {BLOCK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+      {blocks.map((b, i) => (
+        <div key={i} className="rounded border border-gray-100 dark:border-gray-700 p-2 mb-2 space-y-1">
+          <div className="flex gap-2 items-center">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-20 shrink-0">{b.type}</span>
+            <Input placeholder="Title" value={b.title || ""} onChange={e => updateBlock(i, { title: e.target.value })} />
+            <button type="button" onClick={() => onChange(blocks.filter((_, idx) => idx !== i))} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg">×</button>
+          </div>
+          <BlockFields block={b} onChange={updates => updateBlock(i, updates)} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BlockFields({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
+  const t = block.type;
+  if (t === "markdown") return <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" rows={3} placeholder="Markdown content" value={block.content || ""} onChange={e => onChange({ content: e.target.value })} />;
+  if (t === "bullet_list") return <Input placeholder="Items (comma-separated)" value={(block.items || []).join(", ")} onChange={e => onChange({ items: e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean) })} />;
+  if (t === "notice") return (
+    <div className="flex gap-2">
+      <select className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer dark:bg-gray-800 dark:text-gray-100 w-28 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={block.tone || "info"} onChange={e => onChange({ tone: e.target.value })} aria-label="Notice tone">
+        {["info","success","warning"].map(v => <option key={v} value={v}>{v}</option>)}
+      </select>
+      <Input placeholder="Content" value={block.content || ""} onChange={e => onChange({ content: e.target.value })} />
+    </div>
+  );
+  if (t === "key_value") return <KVEditor entries={block.entries || []} onChange={entries => onChange({ entries })} />;
+  if (t === "links") return <LinksEditor links={block.links || []} onChange={links => onChange({ links })} />;
+  return null;
+}
+
+function KVEditor({ entries, onChange }: { entries: Array<{key:string;value:string}>; onChange: (e: Array<{key:string;value:string}>) => void }) {
+  return (
+    <div>
+      {entries.map((e, i) => (
+        <div key={i} className="flex gap-1.5 mb-1">
+          <Input placeholder="Key" value={e.key} onChange={ev => { const n = [...entries]; n[i] = { ...n[i], key: ev.target.value }; onChange(n); }} />
+          <Input placeholder="Value" value={e.value} onChange={ev => { const n = [...entries]; n[i] = { ...n[i], value: ev.target.value }; onChange(n); }} />
+          <button type="button" onClick={() => onChange(entries.filter((_, idx) => idx !== i))} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg">×</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...entries, { key: "", value: "" }])} className="text-xs cursor-pointer text-primary-600 hover:underline rounded-md">+ Add pair</button>
+    </div>
+  );
+}
+
+function LinksEditor({ links, onChange }: { links: Array<{label:string;href:string}>; onChange: (l: Array<{label:string;href:string}>) => void }) {
+  return (
+    <div>
+      {links.map((l, i) => (
+        <div key={i} className="flex gap-1.5 mb-1">
+          <Input placeholder="Label" value={l.label} onChange={e => { const n = [...links]; n[i] = { ...n[i], label: e.target.value }; onChange(n); }} />
+          <Input placeholder="https://..." value={l.href} onChange={e => { const n = [...links]; n[i] = { ...n[i], href: e.target.value }; onChange(n); }} />
+          <button type="button" onClick={() => onChange(links.filter((_, idx) => idx !== i))} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg">×</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...links, { label: "", href: "" }])} className="text-xs cursor-pointer text-primary-600 hover:underline rounded-md">+ Add link</button>
     </div>
   );
 }

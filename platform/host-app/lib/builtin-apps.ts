@@ -1,5 +1,6 @@
 import type { MiniAppInfo } from "../components/types";
 import { withMiniAppCardAssets } from "./miniapp-media";
+import { BUILTIN_APP_TEMPLATES } from "./templates/builtin-app-templates";
 
 /**
  * Built-in MiniApp catalog - all 62 uni-app MiniApps
@@ -831,7 +832,18 @@ const BUILTIN_APPS_RAW: MiniAppInfo[] = [
   ...UTILITY_APPS,
 ];
 
-export const BUILTIN_APPS: MiniAppInfo[] = BUILTIN_APPS_RAW.map((app) => withMiniAppCardAssets(app));
+function applyTemplate(app: MiniAppInfo): MiniAppInfo {
+  if (app.detail_template && app.operations) return app;
+  const tpl = BUILTIN_APP_TEMPLATES[app.app_id];
+  if (!tpl) return app;
+  return {
+    ...app,
+    detail_template: app.detail_template ?? tpl.detail_template,
+    operations: app.operations ?? tpl.operations,
+  };
+}
+
+export const BUILTIN_APPS: MiniAppInfo[] = BUILTIN_APPS_RAW.map((app) => withMiniAppCardAssets(applyTemplate(app)));
 
 // Lookup map by app_id
 export const BUILTIN_APPS_MAP: Record<string, MiniAppInfo> = Object.fromEntries(

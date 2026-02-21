@@ -45,6 +45,46 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const authError = requireAdminAuth(req);
+  if (authError) return authError;
+
+  if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
+    return jsonError("Supabase service role not configured");
+  }
+
+  const { id } = await params;
+  const appId = String(id || "").trim();
+  if (!APP_ID_PATTERN.test(appId)) {
+    return jsonError("Invalid app_id format", 400);
+  }
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/miniapps?app_id=eq.${encodeURIComponent(appId)}`,
+      {
+        method: "DELETE",
+        headers: {
+          apikey: SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          Prefer: "return=representation",
+        },
+        signal: AbortSignal.timeout(15000),
+      },
+    );
+    if (!response.ok) {
+      return jsonError("Failed to delete", response.status);
+    }
+    const data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      return jsonError("Not found", 404);
+    }
+    return NextResponse.json({ success: true });
+  } catch {
+    return jsonError("Failed to connect to database", 502);
+  }
+}
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;

@@ -132,6 +132,31 @@ export function useCreateMiniApp() {
 }
 
 /**
+ * Hook to delete a MiniApp
+ */
+export function useDeleteMiniApp() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (appId: string) => {
+      const response = await fetch(`/api/miniapps/${encodeURIComponent(appId)}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Delete failed" }));
+        throw new Error(err.error || "Failed to delete MiniApp");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["miniapps"] });
+    },
+  });
+}
+
+/**
  * Hook to update a MiniApp config
  */
 export function useUpdateMiniApp() {

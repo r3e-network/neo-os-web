@@ -80,6 +80,8 @@ export const miniAppConfigSchema = z.object({
   operations: z.array(operationEntrySchema).default([]),
   components: z.array(componentEntrySchema).default([]),
   content: contentSchema,
+  blueprint: z.string().optional(),
+  detail_template: z.unknown().optional(),
 });
 
 export type MiniAppConfig = z.infer<typeof miniAppConfigSchema>;

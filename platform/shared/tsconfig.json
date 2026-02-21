@@ -15,9 +15,8 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "react": ["../host-app/node_modules/react"],
-      "react-dom": ["../host-app/node_modules/react-dom"],
-      "@types/react": ["../host-app/node_modules/@types/react"]
+      "react": ["../host-app/node_modules/@types/react"],
+      "react-dom": ["../host-app/node_modules/@types/react-dom"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],
