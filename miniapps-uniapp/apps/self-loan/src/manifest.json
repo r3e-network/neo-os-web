@@ -1,0 +1,63 @@
+{
+  "name": "Self Loan",
+  "appid": "miniapp-self-loan",
+  "description": "Alchemix-style self-repaying loans - borrow now, repay with yield",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Self Loan",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "NEO 借贷：利息抵扣",
+  "description_zh": "Alchemix 模式自动还款，白捡流动性不用掏腰包",
+  "category": "defi",
+  "tags": [
+    "lending",
+    "self-repaying",
+    "defi"
+  ],
+  "permissions": {
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x5ed7d8c85f24f4aa16b328aca776e09be5241296",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_status",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "tvl",
+          "apy",
+          "volume_24h"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "hero": {
+    "title": "Neo ミニアプリプラットフォーム",
+    "subtitle": "TEEセキュリティで分散型アプリケーションを構築・デプロイ",
+    "exploreApps": "アプリを探す",
+    "launchApp": "アプリを起動"
+  },
+  "features": {
+    "title": "機能",
+    "secureCompute": "セキュアコンピュート",
+    "secureComputeDesc": "機密操作のためのTEE搭載機密コンピューティング",
+    "verifiableRandom": "検証可能な乱数",
+    "verifiableRandomDesc": "ゲームや宝くじのための証明可能な公平性",
+    "realTimeData": "リアルタイムデータ",
+    "realTimeDataDesc": "信頼できるソースからのライブ価格フィード",
+    "automatedTasks": "自動タスク",
+    "automatedTasksDesc": "オンチェーン操作のスケジュールと自動化"
+  },
+  "stats": {
+    "totalApps": "総アプリ数",
+    "totalUsers": "総ユーザー数",
+    "totalTransactions": "トランザクション",
+    "totalVolume": "総取引量"
+  },
+  "categories": {
+    "all": "すべて",
+    "gaming": "ゲーム",
+    "defi": "DeFi",
+    "social": "ソーシャル",
+    "utility": "ユーティリティ",
+    "nft": "NFT",
+    "governance": "ガバナンス"
+  },
+  "activity": {
+    "recent": "最近のアクティビティ",
+    "noActivity": "最近のアクティビティはありません",
+    "viewAll": "すべて表示"
+  },
+  "account": {
+    "title": "マイアカウント",
+    "profile": "プロフィール",
+    "transactions": "トランザクション",
+    "favorites": "お気に入り"
+  }
+}

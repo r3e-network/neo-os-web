@@ -1,0 +1,45 @@
+// =============================================================================
+// Input Component - Form input with label
+// =============================================================================
+
+import React, { InputHTMLAttributes, forwardRef, useId } from "react";
+import { cn } from "@/lib/utils";
+
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, label, error, id, ...props }, ref) => {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+
+  return (
+    <div className="w-full">
+      {label && (
+        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          {label}
+        </label>
+      )}
+      <input
+        ref={ref}
+        id={inputId}
+        className={cn(
+          "block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 shadow-sm focus-visible:border-primary-500 focus-visible:ring-primary-500 sm:text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors",
+          error && "border-danger-500 focus-visible:border-danger-500 focus-visible:ring-danger-500",
+          className,
+        )}
+        aria-invalid={error ? "true" : "false"}
+        aria-describedby={error ? `${inputId}-error` : undefined}
+        {...props}
+      />
+      {error && (
+        <p id={`${inputId}-error`} className="mt-1 text-sm text-danger-600 dark:text-danger-400">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+});
+
+Input.displayName = "Input";

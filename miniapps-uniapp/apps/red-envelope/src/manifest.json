@@ -1,0 +1,64 @@
+{
+  "name": "Red Envelope",
+  "appid": "miniapp-redenvelope",
+  "description": "Send lucky GAS gifts to friends",
+  "versionName": "2.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Red Envelope",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "红包",
+  "description_zh": "发送 GAS 红包给好友",
+  "category": "social",
+  "tags": [
+    "red-envelope",
+    "social",
+    "gift",
+    "lucky"
+  ],
+  "permissions": [
+    "wallet",
+    "payments",
+    "rng",
+    "automation"
+  ],
+  "assets_allowed": [
+    "GAS"
+  ],
+  "limits": {
+    "max_gas_per_tx": "100",
+    "daily_gas_cap_per_user": "500"
+  },
+  "contracts_needed": [
+    "PaymentHub",
+    "RandomnessLog"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_stats",
+      "banner": "/static/banner.svg",
+      "live_status": null
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

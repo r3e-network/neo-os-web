@@ -1,0 +1,63 @@
+{
+  "name": "Burn League",
+  "appid": "miniapp-burn-league",
+  "description": "Burn-to-earn league - destroy GAS for platform equity",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Burn League",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "GAS 燃烧排位赛",
+  "description_zh": "通缩挖矿，烧掉 GAS 换取更值钱的平台权益",
+  "category": "defi",
+  "tags": [
+    "burn",
+    "deflationary",
+    "rewards"
+  ],
+  "permissions": {
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0xf1aa73e2fb00664e8ef100dac083fc42be6aaf85",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_status",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "tvl",
+          "apy",
+          "volume_24h"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

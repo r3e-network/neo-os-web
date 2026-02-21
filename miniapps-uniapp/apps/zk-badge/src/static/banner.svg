@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1"/>
+      <stop offset="100%" style="stop-color:#4F46E5"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="200" fill="url(#bg)"/>
+  <text x="400" y="90" font-size="48" fill="#fff" font-weight="bold" text-anchor="middle" font-family="system-ui">ZK Badge</text>
+  <text x="400" y="130" font-size="20" fill="#C7D2FE" text-anchor="middle" font-family="system-ui">Zero-Knowledge Proof Credentials</text>
+</svg>

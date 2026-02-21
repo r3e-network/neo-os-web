@@ -1,0 +1,454 @@
+<template>
+  <view class="app-container">
+    <!-- Header -->
+    <view class="header">
+      <text class="title">Flamingo Swap</text>
+      <text class="subtitle">Swap NEO ↔ GAS instantly</text>
+    </view>
+
+    <!-- Swap Card -->
+    <view class="swap-card">
+      <!-- From Token -->
+      <view class="token-section">
+        <text class="section-label">From</text>
+        <view class="token-row">
+          <view class="token-select" @click="openFromSelector">
+            <text class="token-icon">{{ fromToken.icon }}</text>
+            <text class="token-symbol">{{ fromToken.symbol }}</text>
+            <text class="dropdown-arrow">▼</text>
+          </view>
+          <input v-model="fromAmount" type="digit" placeholder="0.0" class="amount-input" @input="onFromAmountChange" />
+        </view>
+        <text class="balance-text">Balance: {{ formatNum(fromToken.balance) }}</text>
+      </view>
+
+      <!-- Swap Direction Button -->
+      <view class="swap-direction" @click="swapTokens">
+        <text class="swap-icon">⇅</text>
+      </view>
+
+      <!-- To Token -->
+      <view class="token-section">
+        <text class="section-label">To</text>
+        <view class="token-row">
+          <view class="token-select" @click="openToSelector">
+            <text class="token-icon">{{ toToken.icon }}</text>
+            <text class="token-symbol">{{ toToken.symbol }}</text>
+            <text class="dropdown-arrow">▼</text>
+          </view>
+          <input v-model="toAmount" type="digit" placeholder="0.0" class="amount-input" disabled />
+        </view>
+        <text class="balance-text">Balance: {{ formatNum(toToken.balance) }}</text>
+      </view>
+    </view>
+
+    <!-- Price Info -->
+    <view class="price-info" v-if="exchangeRate">
+      <text class="price-label">Exchange Rate</text>
+      <text class="price-value">1 {{ fromToken.symbol }} ≈ {{ exchangeRate }} {{ toToken.symbol }}</text>
+    </view>
+
+    <!-- Swap Button -->
+    <button class="swap-btn" :disabled="!canSwap || isLoading" @click="executeSwap">
+      <text>{{ swapButtonText }}</text>
+    </button>
+
+    <!-- Status -->
+    <view v-if="status" :class="['status-msg', status.type]">
+      <text>{{ status.msg }}</text>
+    </view>
+
+    <!-- Token Selector Modal -->
+    <view v-if="showSelector" class="modal-overlay" @click="closeSelector">
+      <view class="modal-content" @click.stop>
+        <text class="modal-title">Select Token</text>
+        <view v-for="token in availableTokens" :key="token.symbol" class="token-option" @click="selectToken(token)">
+          <text class="token-icon">{{ token.icon }}</text>
+          <view class="token-info">
+            <text class="token-name">{{ token.symbol }}</text>
+            <text class="token-balance">{{ formatNum(token.balance) }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from "vue";
+import { useWallet } from "@neo/uniapp-sdk";
+import { formatNumber } from "@/shared/utils/format";
+
+const APP_ID = "miniapp-neo-swap";
+const SWAP_ROUTER = "0xf970f4ccecd765b63732b821775dc38c25d74f23";
+
+const { getAddress, invokeContract, getBalance } = useWallet(APP_ID);
+
+interface Token {
+  symbol: string;
+  icon: string;
+  hash: string;
+  balance: number;
+  decimals: number;
+}
+
+const TOKENS: Token[] = [
+  { symbol: "NEO", icon: "💚", hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", balance: 0, decimals: 0 },
+  { symbol: "GAS", icon: "⛽", hash: "0xd2a4cff31913016155e38e474a2c06d08be276cf", balance: 0, decimals: 8 },
+];
+
+// State
+const fromToken = ref<Token>({ ...TOKENS[0] });
+const toToken = ref<Token>({ ...TOKENS[1] });
+const fromAmount = ref("");
+const toAmount = ref("");
+const exchangeRate = ref("");
+const isLoading = ref(false);
+const status = ref<{ msg: string; type: string } | null>(null);
+const showSelector = ref(false);
+const selectorTarget = ref<"from" | "to">("from");
+
+const availableTokens = computed(() => TOKENS);
+
+const canSwap = computed(() => {
+  const amount = parseFloat(fromAmount.value);
+  return amount > 0 && amount <= fromToken.value.balance;
+});
+
+const swapButtonText = computed(() => {
+  if (isLoading.value) return "Swapping...";
+  if (!fromAmount.value) return "Enter amount";
+  if (parseFloat(fromAmount.value) > fromToken.value.balance) return "Insufficient balance";
+  return `Swap ${fromToken.value.symbol} → ${toToken.value.symbol}`;
+});
+
+// Methods
+const formatNum = (n: number) => formatNumber(n, 4);
+
+let statusTimer: ReturnType<typeof setTimeout> | null = null;
+const showStatus = (msg: string, type: "success" | "error") => {
+  if (statusTimer) clearTimeout(statusTimer);
+  status.value = { msg, type };
+  statusTimer = setTimeout(() => (status.value = null), 5000);
+}
+
+const loadBalances = async () => {
+  try {
+    const neo = await getBalance("NEO");
+    const gas = await getBalance("GAS");
+    TOKENS[0].balance = neo || 0;
+    TOKENS[1].balance = gas || 0;
+    fromToken.value = { ...TOKENS[0] };
+    toToken.value = { ...TOKENS[1] };
+  } catch (e: any) {
+    console.warn("[neo-swap] loadBalances failed:", e);
+  }
+}
+
+const fetchExchangeRate = async () => {
+  // Simplified rate - in production would call Flamingo API
+  const rate = fromToken.value.symbol === "NEO" ? "8.5" : "0.118";
+  exchangeRate.value = rate;
+}
+
+const onFromAmountChange = () => {
+  const amount = parseFloat(fromAmount.value) || 0;
+  const rate = parseFloat(exchangeRate.value) || 0;
+  toAmount.value = (amount * rate).toFixed(4);
+}
+
+const swapTokens = () => {
+  const temp = fromToken.value;
+  fromToken.value = toToken.value;
+  toToken.value = temp;
+  fromAmount.value = "";
+  toAmount.value = "";
+  fetchExchangeRate();
+}
+
+const openFromSelector = () => {
+  selectorTarget.value = "from";
+  showSelector.value = true;
+}
+
+const openToSelector = () => {
+  selectorTarget.value = "to";
+  showSelector.value = true;
+}
+
+const closeSelector = () => {
+  showSelector.value = false;
+}
+
+const selectToken = (token: Token) => {
+  if (selectorTarget.value === "from") {
+    if (token.symbol === toToken.value.symbol) swapTokens();
+    else fromToken.value = { ...token };
+  } else {
+    if (token.symbol === fromToken.value.symbol) swapTokens();
+    else toToken.value = { ...token };
+  }
+  closeSelector();
+  fetchExchangeRate();
+}
+
+const executeSwap = async () => {
+  if (!canSwap.value || isLoading.value) return;
+
+  isLoading.value = true;
+  try {
+    const amount = parseFloat(fromAmount.value);
+    const decimals = fromToken.value.decimals;
+    const amountInt = Math.floor(amount * Math.pow(10, decimals));
+
+    await invokeContract({
+      scriptHash: SWAP_ROUTER,
+      operation: "swap",
+      args: [
+        { type: "Hash160", value: await getAddress() },
+        { type: "Hash160", value: fromToken.value.hash },
+        { type: "Hash160", value: toToken.value.hash },
+        { type: "Integer", value: amountInt },
+        { type: "Integer", value: 0 },
+      ],
+    });
+
+    showStatus(`Swapped ${amount} ${fromToken.value.symbol}!`, "success");
+    fromAmount.value = "";
+    toAmount.value = "";
+    await loadBalances();
+  } catch (e: any) {
+    showStatus(e.message || "Swap failed", "error");
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  loadBalances();
+  fetchExchangeRate();
+});
+</script>
+
+<style lang="scss">
+@import "@/shared/styles/theme.scss";
+
+.app-container {
+  padding: 20px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
+  color: $color-text-primary;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: $color-flamingo;
+}
+
+.subtitle {
+  color: $color-text-secondary;
+  font-size: 0.9em;
+  margin-top: 8px;
+}
+
+.swap-card {
+  background: $color-bg-card;
+  border: 1px solid $color-border;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.token-section {
+  margin-bottom: 8px;
+}
+
+.section-label {
+  display: block;
+  font-size: 0.75em;
+  color: $color-text-secondary;
+  margin-bottom: 8px;
+}
+
+.token-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.token-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(#000, 0.3);
+  padding: 10px 14px;
+  border-radius: 12px;
+  &:active {
+    filter: brightness(0.85);
+  }
+}
+
+.token-icon {
+  font-size: 1.25em;
+}
+
+.token-symbol {
+  font-size: 1em;
+  font-weight: bold;
+  color: $color-text-primary;
+}
+
+.dropdown-arrow {
+  font-size: 0.65em;
+  color: $color-text-secondary;
+}
+
+.amount-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 1.5em;
+  color: $color-text-primary;
+  text-align: right;
+  outline: none;
+}
+
+.balance-text {
+  display: block;
+  font-size: 0.75em;
+  color: $color-text-muted;
+  margin-top: 8px;
+}
+
+.swap-direction {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+  &:active {
+    filter: brightness(0.85);
+  }
+}
+
+.swap-icon {
+  font-size: 1.25em;
+  color: $color-flamingo;
+  padding: 8px;
+  background: rgba($color-flamingo, 0.1);
+  border-radius: 50%;
+}
+
+.price-info {
+  background: $color-bg-card;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.price-label {
+  font-size: 0.8em;
+  color: $color-text-secondary;
+}
+
+.price-value {
+  font-size: 0.8em;
+  color: $color-text-primary;
+}
+
+.swap-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
+  font-size: 1em;
+  font-weight: bold;
+  background: $color-flamingo;
+  color: $color-text-primary;
+  &:active {
+    filter: brightness(0.85);
+  }
+}
+
+.swap-btn:disabled {
+  opacity: 0.5;
+}
+
+.status-msg {
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+
+  &.success {
+    background: rgba($color-success, 0.15);
+    color: $color-success;
+  }
+
+  &.error {
+    background: rgba($color-error, 0.15);
+    color: $color-error;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(#000, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-content {
+  background: $color-bg-secondary;
+  border-radius: 16px;
+  padding: 20px;
+  width: 280px;
+}
+
+.modal-title {
+  display: block;
+  font-size: 1em;
+  font-weight: bold;
+  color: $color-text-primary;
+  margin-bottom: 16px;
+}
+
+.token-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  &:active {
+    filter: brightness(0.85);
+  }
+}
+
+.token-info {
+  flex: 1;
+}
+
+.token-name {
+  display: block;
+  font-size: 0.85em;
+  color: $color-text-primary;
+}
+
+.token-balance {
+  display: block;
+  font-size: 0.75em;
+  color: $color-text-secondary;
+}
+</style>

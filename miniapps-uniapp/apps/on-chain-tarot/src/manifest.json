@@ -1,0 +1,68 @@
+{
+  "name": "On-Chain Tarot",
+  "appid": "miniapp-onchaintarot",
+  "description": "Blockchain fortune telling with verifiable randomness",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "On-Chain Tarot",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "链上塔罗牌",
+  "description_zh": "区块链算命，可验证随机性",
+  "category": "gaming",
+  "tags": [
+    "tarot",
+    "fortune",
+    "divination"
+  ],
+  "permissions": {
+    "wallet": [
+      "read-address"
+    ],
+    "payments": true,
+    "rng": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub",
+    "RandomnessLog"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0xc2bb26d21f357f125a0e49cbca7718b6aa5c3b1e",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_status",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "jackpot",
+          "players_online",
+          "next_draw"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "name": "Quantum Swap",
+  "appid": "miniapp-quantumswap",
+  "description": "Blind box exchange - swap without knowing what you'll get",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Quantum Swap",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "量子盲盒交换机",
+  "description_zh": "盲盒交换 - 不知道会换到什么",
+  "category": "defi",
+  "tags": [
+    "blind-box",
+    "swap",
+    "mystery"
+  ],
+  "permissions": {
+    "wallet": [
+      "read-address"
+    ],
+    "payments": true,
+    "rng": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub",
+    "RandomnessLog"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x99fd1213d1d73181b84270ec3458bb46b9c4aab3",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_price",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "tvl",
+          "apy",
+          "volume_24h"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

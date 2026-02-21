@@ -1,0 +1,16 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Gov Booster"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Gov Booster",
+    "navigationBarBackgroundColor": "#0d1117",
+    "backgroundColor": "#0d1117"
+  }
+}

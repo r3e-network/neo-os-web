@@ -1,0 +1,49 @@
+{
+  "name": "Guardian Policy",
+  "appid": "miniapp-guardianpolicy",
+  "description": "Automated portfolio protection policies",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Guardian Policy",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "守护策略",
+  "description_zh": "自动化投资组合保护策略",
+  "category": "governance",
+  "tags": ["security", "guardian", "policy"],
+  "permissions": ["payments", "datafeed"],
+  "assets_allowed": ["GAS"],
+  "contracts_needed": ["PaymentHub"],
+  "network": {
+    "contracts": {
+      "testnet": "0x893a774957244b83a0efed1d42771fe1e424cfec",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_status",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": ["active_proposals", "total_votes", "quorum"]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

@@ -1,0 +1,320 @@
+// Package neofeeds provides configurable price feed aggregation service.
+package neofeeds
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"gopkg.in/yaml.v3"
+)
+
+// DataType defines the type of data a feed provides.
+type DataType string
+
+const (
+	DataTypePrice  DataType = "price"  // Cryptocurrency/forex prices
+	DataTypeNumber DataType = "number" // Generic numeric data
+	DataTypeString DataType = "string" // Text data
+)
+
+// SourceConfig defines a data source configuration.
+type SourceConfig struct {
+	ID       string            `json:"id" yaml:"id"`
+	Name     string            `json:"name" yaml:"name"`
+	URL      string            `json:"url" yaml:"url"`             // URL template with {pair}, {base}, {quote} placeholders
+	JSONPath string            `json:"json_path" yaml:"json_path"` // JSONPath to extract value
+	Weight   int               `json:"weight" yaml:"weight"`       // Weight for aggregation (default: 1)
+	Headers  map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Timeout  time.Duration     `json:"timeout,omitempty" yaml:"timeout,omitempty"` // Request timeout (default: 10s)
+
+	// PairTemplate optionally defines how to construct the {pair} token
+	// from the feed base/quote (after applying overrides below).
+	// Example: "{base}{quote}" (Binance), "{base}-{quote}" (OKX).
+	PairTemplate string `json:"pair_template,omitempty" yaml:"pair_template,omitempty"`
+	// BaseOverride and QuoteOverride optionally override the feed base/quote symbols
+	// for this particular source (e.g., USD -> USDT on exchanges).
+	BaseOverride  string `json:"base_override,omitempty" yaml:"base_override,omitempty"`
+	QuoteOverride string `json:"quote_override,omitempty" yaml:"quote_override,omitempty"`
+}
+
+// FeedConfig defines a data feed configuration.
+type FeedConfig struct {
+	ID             string        `json:"id" yaml:"id"`                                               // Feed identifier (e.g., "BTC-USD")
+	Name           string        `json:"name,omitempty" yaml:"name,omitempty"`                       // Human-readable name
+	DataType       DataType      `json:"data_type" yaml:"data_type"`                                 // Type of data
+	Pair           string        `json:"pair,omitempty" yaml:"pair,omitempty"`                       // Trading pair for price feeds (e.g., "BTCUSDT")
+	Base           string        `json:"base,omitempty" yaml:"base,omitempty"`                       // Base asset (e.g., "BTC")
+	Quote          string        `json:"quote,omitempty" yaml:"quote,omitempty"`                     // Quote asset (e.g., "USD")
+	Decimals       int           `json:"decimals" yaml:"decimals"`                                   // Decimal precision (default: 8)
+	Sources        []string      `json:"sources" yaml:"sources"`                                     // Source IDs to use
+	UpdateInterval time.Duration `json:"update_interval,omitempty" yaml:"update_interval,omitempty"` // Per-feed update interval
+	Enabled        bool          `json:"enabled" yaml:"enabled"`                                     // Whether feed is active
+}
+
+// PublishPolicyConfig controls when prices are anchored on-chain.
+// Values are expressed in basis points (bps): 1 bps = 0.01%.
+type PublishPolicyConfig struct {
+	// ThresholdBps is the minimum relative change required to consider publishing.
+	// Default: 10 bps = 0.10%.
+	ThresholdBps int `json:"threshold_bps,omitempty" yaml:"threshold_bps,omitempty"`
+	// HysteresisBps is used as a confirmation threshold after a spike is detected.
+	// Default: 8 bps = 0.08%.
+	HysteresisBps int `json:"hysteresis_bps,omitempty" yaml:"hysteresis_bps,omitempty"`
+	// MinInterval is the minimum time between publishes per symbol.
+	// Default: 5s (matches the platform blueprint throttle).
+	MinInterval time.Duration `json:"min_interval,omitempty" yaml:"min_interval,omitempty"`
+	// MaxPerMinute caps publish frequency per symbol (soft cap; enforced in-process).
+	// Default: 30.
+	MaxPerMinute int `json:"max_per_minute,omitempty" yaml:"max_per_minute,omitempty"`
+}
+
+// FeedsConfig is the root configuration for the neofeeds service.
+type FeedsConfig struct {
+	Version        string              `json:"version" yaml:"version"`
+	Sources        []SourceConfig      `json:"sources" yaml:"sources"`
+	Feeds          []FeedConfig        `json:"feeds" yaml:"feeds"`
+	DefaultSources []string            `json:"default_sources,omitempty" yaml:"default_sources,omitempty"` // Default sources for feeds that don't specify
+	UpdateInterval time.Duration       `json:"update_interval,omitempty" yaml:"update_interval,omitempty"` // Global update interval
+	PublishPolicy  PublishPolicyConfig `json:"publish_policy,omitempty" yaml:"publish_policy,omitempty"`
+}
+
+// NeoFeedsConfig is kept for backward compatibility.
+//
+//revive:disable-next-line:exported
+type NeoFeedsConfig = FeedsConfig
+
+// LoadConfigFromFile loads configuration from a JSON or YAML file.
+func LoadConfigFromFile(path string) (*FeedsConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read config file: %w", err)
+	}
+
+	var cfg FeedsConfig
+
+	// Try YAML first (also handles JSON)
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		// Try JSON explicitly
+		if err := json.Unmarshal(data, &cfg); err != nil {
+			return nil, fmt.Errorf("parse config: %w", err)
+		}
+	}
+
+	// Validate and set defaults
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
+}
+
+// Validate validates the configuration and sets defaults.
+func (c *FeedsConfig) Validate() error {
+	if len(c.Sources) == 0 {
+		return fmt.Errorf("at least one source required")
+	}
+
+	sourceMap := make(map[string]bool)
+	for i := range c.Sources {
+		src := &c.Sources[i]
+		if src.ID == "" {
+			return fmt.Errorf("source[%d]: id required", i)
+		}
+		if src.URL == "" {
+			return fmt.Errorf("source[%d]: url required", i)
+		}
+		if src.JSONPath == "" {
+			return fmt.Errorf("source[%d]: json_path required", i)
+		}
+		if src.Weight <= 0 {
+			src.Weight = 1
+		}
+		if src.Timeout <= 0 {
+			src.Timeout = 10 * time.Second
+		}
+		sourceMap[src.ID] = true
+	}
+
+	for i := range c.Feeds {
+		feed := &c.Feeds[i]
+		if feed.ID == "" {
+			return fmt.Errorf("feed[%d]: id required", i)
+		}
+		feed.ID = normalizePair(feed.ID)
+		if feed.ID == "" {
+			return fmt.Errorf("feed[%d]: id required", i)
+		}
+
+		if strings.TrimSpace(feed.Base) == "" || strings.TrimSpace(feed.Quote) == "" {
+			base, quote := parseBaseQuoteFromPair(feed.ID)
+			if base != "" {
+				feed.Base = strings.ToUpper(base)
+			}
+			if quote != "" {
+				feed.Quote = strings.ToUpper(quote)
+			}
+		}
+
+		feed.Pair = strings.ToUpper(strings.TrimSpace(feed.Pair))
+		if feed.DataType == "" {
+			feed.DataType = DataTypePrice
+		}
+		if feed.Decimals <= 0 {
+			feed.Decimals = 8
+		}
+		if len(feed.Sources) == 0 {
+			feed.Sources = c.DefaultSources
+		}
+		// Validate source references
+		for _, srcID := range feed.Sources {
+			if !sourceMap[srcID] {
+				return fmt.Errorf("feed[%d]: unknown source %q", i, srcID)
+			}
+		}
+	}
+
+	if c.UpdateInterval <= 0 {
+		// High-frequency evaluation interval to support the
+		// "≥0.1% change push" requirement.
+		c.UpdateInterval = 1 * time.Second
+	}
+
+	if c.PublishPolicy.ThresholdBps <= 0 {
+		c.PublishPolicy.ThresholdBps = 10
+	}
+	if c.PublishPolicy.HysteresisBps <= 0 {
+		c.PublishPolicy.HysteresisBps = 8
+	}
+	if c.PublishPolicy.MinInterval <= 0 {
+		c.PublishPolicy.MinInterval = 5 * time.Second
+	}
+	if c.PublishPolicy.MaxPerMinute <= 0 {
+		c.PublishPolicy.MaxPerMinute = 30
+	}
+
+	return nil
+}
+
+// GetSource returns a source by ID.
+func (c *FeedsConfig) GetSource(id string) *SourceConfig {
+	for i := range c.Sources {
+		if c.Sources[i].ID == id {
+			return &c.Sources[i]
+		}
+	}
+	return nil
+}
+
+// GetFeed returns a feed by ID.
+func (c *FeedsConfig) GetFeed(id string) *FeedConfig {
+	for i := range c.Feeds {
+		if c.Feeds[i].ID == id {
+			return &c.Feeds[i]
+		}
+	}
+	return nil
+}
+
+// GetEnabledFeeds returns all enabled feeds.
+func (c *FeedsConfig) GetEnabledFeeds() []FeedConfig {
+	var feeds []FeedConfig
+	for i := range c.Feeds {
+		feed := &c.Feeds[i]
+		if feed.Enabled {
+			feeds = append(feeds, *feed)
+		}
+	}
+	return feeds
+}
+
+// DefaultConfig returns the default configuration.
+//
+// By default this is aligned with the MiniApp platform blueprint:
+// - 3 HTTP sources (binance, coinbase, okx)
+// - 1s evaluation interval
+// - 0.10% publish threshold with 0.08% hysteresis
+// - 5s minimum publish interval per symbol
+//
+// Some feed IDs are also present in the optional Chainlink map (Arbitrum), but
+// Chainlink is disabled unless explicitly configured.
+func DefaultConfig() *FeedsConfig {
+	return &FeedsConfig{
+		Version: "1.0",
+		Sources: []SourceConfig{
+			{
+				ID:       "binance",
+				Name:     "Binance",
+				URL:      "https://api.binance.com/api/v3/ticker/price?symbol={pair}",
+				JSONPath: "price",
+				Weight:   1,
+				Timeout:  5 * time.Second,
+				// Binance uses USDT pairs; we map USD -> USDT by default.
+				PairTemplate:  "{base}{quote}",
+				QuoteOverride: "USDT",
+			},
+			{
+				ID:       "coinbase",
+				Name:     "Coinbase",
+				URL:      "https://api.coinbase.com/v2/prices/{base}-{quote}/spot",
+				JSONPath: "data.amount",
+				Weight:   1,
+				Timeout:  5 * time.Second,
+			},
+			{
+				ID:            "okx",
+				Name:          "OKX",
+				URL:           "https://www.okx.com/api/v5/market/ticker?instId={pair}",
+				JSONPath:      "data.0.last",
+				Weight:        1,
+				Timeout:       5 * time.Second,
+				PairTemplate:  "{base}-{quote}",
+				QuoteOverride: "USDT",
+			},
+		},
+		Feeds: []FeedConfig{
+			// Common feeds (Chainlink optional; HTTP sources always queried).
+			{ID: "BTC-USD", Name: "Bitcoin", DataType: DataTypePrice, Pair: "BTCUSDT", Decimals: 8, Enabled: true},
+			{ID: "ETH-USD", Name: "Ethereum", DataType: DataTypePrice, Pair: "ETHUSDT", Decimals: 8, Enabled: true},
+			{ID: "XRP-USD", Name: "Ripple", DataType: DataTypePrice, Pair: "XRPUSDT", Decimals: 8, Enabled: true},
+			{ID: "BNB-USD", Name: "BNB", DataType: DataTypePrice, Pair: "BNBUSDT", Decimals: 8, Enabled: true},
+			{ID: "SOL-USD", Name: "Solana", DataType: DataTypePrice, Pair: "SOLUSDT", Decimals: 8, Enabled: true},
+			{ID: "DOGE-USD", Name: "Dogecoin", DataType: DataTypePrice, Pair: "DOGEUSDT", Decimals: 8, Enabled: true},
+			{ID: "ADA-USD", Name: "Cardano", DataType: DataTypePrice, Pair: "ADAUSDT", Decimals: 8, Enabled: true},
+			{ID: "LINK-USD", Name: "Chainlink", DataType: DataTypePrice, Pair: "LINKUSDT", Decimals: 8, Enabled: true},
+			{ID: "LTC-USD", Name: "Litecoin", DataType: DataTypePrice, Pair: "LTCUSDT", Decimals: 8, Enabled: true},
+			{ID: "AVAX-USD", Name: "Avalanche", DataType: DataTypePrice, Pair: "AVAXUSDT", Decimals: 8, Enabled: true},
+			{ID: "UNI-USD", Name: "Uniswap", DataType: DataTypePrice, Pair: "UNIUSDT", Decimals: 8, Enabled: true},
+			// Neo ecosystem / other feeds.
+			{ID: "NEO-USD", Name: "Neo", DataType: DataTypePrice, Pair: "NEOUSDT", Decimals: 8, Enabled: true},
+			{ID: "GAS-USD", Name: "Gas", DataType: DataTypePrice, Pair: "GASUSDT", Decimals: 8, Enabled: true},
+			{ID: "TRX-USD", Name: "Tron", DataType: DataTypePrice, Pair: "TRXUSDT", Decimals: 8, Enabled: true},
+			{ID: "HYPE-USD", Name: "Hyperliquid", DataType: DataTypePrice, Pair: "HYPEUSDT", Decimals: 8, Enabled: true},
+			{ID: "XMR-USD", Name: "Monero", DataType: DataTypePrice, Pair: "XMRUSDT", Decimals: 8, Enabled: true},
+			{ID: "ZEC-USD", Name: "Zcash", DataType: DataTypePrice, Pair: "ZECUSDT", Decimals: 8, Enabled: true},
+			{ID: "SUI-USD", Name: "Sui", DataType: DataTypePrice, Pair: "SUIUSDT", Decimals: 8, Enabled: true},
+			{ID: "BCH-USD", Name: "Bitcoin Cash", DataType: DataTypePrice, Pair: "BCHUSDT", Decimals: 8, Enabled: true},
+			{ID: "ASTR-USD", Name: "Astar", DataType: DataTypePrice, Pair: "ASTRUSDT", Decimals: 8, Enabled: true},
+		},
+		DefaultSources: []string{"binance", "coinbase", "okx"},
+		UpdateInterval: 1 * time.Second,
+		PublishPolicy: PublishPolicyConfig{
+			ThresholdBps:  10,
+			HysteresisBps: 8,
+			MinInterval:   5 * time.Second,
+			MaxPerMinute:  30,
+		},
+	}
+}
+
+// ToJSON serializes config to JSON.
+func (c *FeedsConfig) ToJSON() ([]byte, error) {
+	return json.MarshalIndent(c, "", "  ")
+}
+
+// ToYAML serializes config to YAML.
+func (c *FeedsConfig) ToYAML() ([]byte, error) {
+	return yaml.Marshal(c)
+}

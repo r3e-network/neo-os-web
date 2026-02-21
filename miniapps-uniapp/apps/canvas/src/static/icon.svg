@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="canvas-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6"/>
+      <stop offset="100%" style="stop-color:#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#canvas-bg)"/>
+  <rect x="10" y="14" width="44" height="36" rx="2" fill="#fff"/>
+  <rect x="14" y="18" width="8" height="8" fill="#EF4444"/>
+  <rect x="22" y="18" width="8" height="8" fill="#F97316"/>
+  <rect x="30" y="18" width="8" height="8" fill="#FBBF24"/>
+  <rect x="38" y="18" width="8" height="8" fill="#10B981"/>
+  <rect x="14" y="26" width="8" height="8" fill="#3B82F6"/>
+  <rect x="22" y="26" width="8" height="8" fill="#8B5CF6"/>
+  <rect x="30" y="26" width="8" height="8" fill="#EC4899"/>
+  <rect x="38" y="26" width="8" height="8" fill="#06B6D4"/>
+  <rect x="14" y="34" width="32" height="12" fill="#F3F4F6"/>
+  <path d="M18 40l6-4 4 2 8-6 6 8" stroke="#6B7280" stroke-width="1.5" fill="none"/>
+</svg>

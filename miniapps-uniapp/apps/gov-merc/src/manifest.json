@@ -1,0 +1,65 @@
+{
+  "name": "Gov Merc",
+  "appid": "miniapp-gov-merc",
+  "description": "Governance mercenary - vote rental marketplace like Curve War",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Gov Merc",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "众筹算力",
+  "description_zh": "出租投票权，NEO 版 Curve War，投票权明码标价",
+  "category": "governance",
+  "tags": [
+    "governance",
+    "voting",
+    "marketplace"
+  ],
+  "permissions": {
+    "payments": true,
+    "governance": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub",
+    "Governance"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x05d4ed2e60141043d6d20f5cde274704bd42c0dc",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_voting",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "active_proposals",
+          "total_votes",
+          "quorum"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

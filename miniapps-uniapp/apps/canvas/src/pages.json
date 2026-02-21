@@ -1,0 +1,16 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Canvas"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Canvas",
+    "navigationBarBackgroundColor": "#0d1117",
+    "backgroundColor": "#0d1117"
+  }
+}

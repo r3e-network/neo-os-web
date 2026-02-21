@@ -1,0 +1,16 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Red Envelope"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Red Envelope",
+    "navigationBarBackgroundColor": "#0d1117",
+    "backgroundColor": "#0d1117"
+  }
+}

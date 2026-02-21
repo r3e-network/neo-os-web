@@ -1,0 +1,60 @@
+{
+  "name": "NFT Chimera",
+  "appid": "miniapp-nftchimera",
+  "description": "Fuse two NFTs to create hybrid offspring",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "NFT Chimera",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "NFT 融合进化论",
+  "description_zh": "融合两个 NFT 创造混血后代",
+  "category": "nft",
+  "tags": [
+    "nft",
+    "fusion",
+    "evolution"
+  ],
+  "permissions": {
+    "wallet": [
+      "read-address"
+    ],
+    "payments": true,
+    "rng": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub",
+    "RandomnessLog"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x200996e599a2e3dba781438826a4f3622560dddd",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "image",
+      "banner": "/static/banner.svg",
+      "live_status": null
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

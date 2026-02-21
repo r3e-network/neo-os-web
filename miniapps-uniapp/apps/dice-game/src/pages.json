@@ -1,0 +1,16 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Dice Game"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Dice Game",
+    "navigationBarBackgroundColor": "#0d1117",
+    "backgroundColor": "#0d1117"
+  }
+}

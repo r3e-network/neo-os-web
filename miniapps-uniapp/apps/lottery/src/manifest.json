@@ -1,0 +1,72 @@
+{
+  "name": "Neo Lottery",
+  "appid": "miniapp-lottery",
+  "description": "Decentralized lottery with provably fair randomness",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Neo Lottery",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "Neo 彩票",
+  "description_zh": "去中心化彩票，采用可验证公平随机数",
+  "category": "gaming",
+  "tags": [
+    "lottery",
+    "gaming",
+    "randomness",
+    "prizes"
+  ],
+  "permissions": [
+    "wallet",
+    "payments",
+    "rng",
+    "automation"
+  ],
+  "assets_allowed": [
+    "GAS"
+  ],
+  "limits": {
+    "max_gas_per_tx": "100",
+    "daily_gas_cap_per_user": "1000"
+  },
+  "contracts_needed": [
+    "PaymentHub",
+    "RandomnessLog"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_countdown",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "jackpot",
+          "players_online",
+          "next_draw"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

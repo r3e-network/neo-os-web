@@ -1,0 +1,31 @@
+{
+  "app_id": "miniapp-time-capsule",
+  "name": "Time Capsule",
+  "name_zh": "时间胶囊",
+  "description": "Encrypted messages unlocked by time or price",
+  "description_zh": "按时间或价格解锁的加密消息",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-time-capsule",
+  "permissions": [
+    "payments",
+    "confidential"
+  ],
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub",
+    "PriceFeed"
+  ],
+  "category": "creative",
+  "tags": [
+    "time-lock",
+    "encryption",
+    "messages"
+  ],
+  "card": {
+    "display": {
+      "type": "live_countdown"
+    }
+  }
+}

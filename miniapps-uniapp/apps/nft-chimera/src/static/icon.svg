@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="chimera-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#EC4899"/>
+      <stop offset="100%" style="stop-color:#DB2777"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#chimera-bg)"/>
+  <circle cx="24" cy="28" r="10" fill="#fff" opacity="0.9"/>
+  <circle cx="40" cy="28" r="10" fill="#fff" opacity="0.9"/>
+  <path d="M24 38c0 6 3.6 12 8 12s8-6 8-12" fill="#fff" opacity="0.7"/>
+  <circle cx="24" cy="26" r="3" fill="#DB2777"/>
+  <circle cx="40" cy="26" r="3" fill="#3B82F6"/>
+</svg>

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" fill="none">
+  <defs>
+    <linearGradient id="neo-green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00E599"/>
+      <stop offset="100%" style="stop-color:#00B377"/>
+    </linearGradient>
+    <linearGradient id="cyan-accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00D9FF"/>
+      <stop offset="100%" style="stop-color:#00E599"/>
+    </linearGradient>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0D1117"/>
+      <stop offset="100%" style="stop-color:#161B22"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#21262D" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="300" fill="url(#bg-gradient)"/>
+  <rect width="1200" height="300" fill="url(#grid)" opacity="0.5"/>
+
+  <!-- Decorative Circuit Lines -->
+  <path d="M0 150 L100 150 L120 130 L200 130" stroke="#00E599" stroke-width="2" opacity="0.3"/>
+  <path d="M0 200 L80 200 L100 180 L180 180" stroke="#00D9FF" stroke-width="2" opacity="0.2"/>
+  <path d="M1200 100 L1100 100 L1080 120 L1000 120" stroke="#00E599" stroke-width="2" opacity="0.3"/>
+  <path d="M1200 180 L1120 180 L1100 160 L1020 160" stroke="#00D9FF" stroke-width="2" opacity="0.2"/>
+
+  <!-- Neo N3 Logo (Left Side) -->
+  <g transform="translate(60, 100)">
+    <!-- Neo "N" Shape -->
+    <path d="M0 0 L0 80 L20 80 L20 30 L50 80 L70 80 L70 0 L50 0 L50 50 L20 0 Z"
+          fill="url(#neo-green)"/>
+    <text x="0" y="105" font-size="14" fill="#8B949E" font-family="system-ui">Neo N3</text>
+  </g>
+
+  <!-- Center Content -->
+  <g transform="translate(600, 150)">
+    <!-- Main Title -->
+    <text x="0" y="-30" font-size="48" fill="#FFFFFF" font-weight="bold"
+          font-family="system-ui" text-anchor="middle">MiniApp Platform</text>
+    <!-- Subtitle -->
+    <text x="0" y="20" font-size="20" fill="#8B949E"
+          font-family="system-ui" text-anchor="middle">TEE-Powered Decentralized Applications on Neo N3</text>
+    <!-- Accent Line -->
+    <rect x="-150" y="40" width="300" height="3" rx="1.5" fill="url(#cyan-accent)"/>
+  </g>
+
+  <!-- R3E Network Logo (Right Side) -->
+  <g transform="translate(1020, 100)">
+    <!-- R3E Hexagon -->
+    <path d="M60 0 L110 25 L110 75 L60 100 L10 75 L10 25 Z"
+          fill="none" stroke="url(#neo-green)" stroke-width="3"/>
+    <text x="60" y="58" font-size="24" fill="#00E599" font-weight="bold"
+          font-family="system-ui" text-anchor="middle">R3E</text>
+    <text x="60" y="120" font-size="12" fill="#8B949E"
+          font-family="system-ui" text-anchor="middle">Network</text>
+  </g>
+
+  <!-- MiniApp Icons (Floating) -->
+  <g opacity="0.6">
+    <!-- Gaming Icon -->
+    <rect x="250" y="60" width="40" height="40" rx="8" fill="#1F2937" stroke="#00E599" stroke-width="1"/>
+    <text x="270" y="87" font-size="20" fill="#00E599" text-anchor="middle">🎮</text>
+
+    <!-- DeFi Icon -->
+    <rect x="320" y="200" width="40" height="40" rx="8" fill="#1F2937" stroke="#00D9FF" stroke-width="1"/>
+    <text x="340" y="227" font-size="20" fill="#00D9FF" text-anchor="middle">💰</text>
+
+    <!-- Social Icon -->
+    <rect x="840" y="50" width="40" height="40" rx="8" fill="#1F2937" stroke="#00E599" stroke-width="1"/>
+    <text x="860" y="77" font-size="20" fill="#00E599" text-anchor="middle">👥</text>
+
+    <!-- NFT Icon -->
+    <rect x="900" y="210" width="40" height="40" rx="8" fill="#1F2937" stroke="#00D9FF" stroke-width="1"/>
+    <text x="920" y="237" font-size="20" fill="#00D9FF" text-anchor="middle">🎨</text>
+  </g>
+
+  <!-- Stats Bar -->
+  <g transform="translate(400, 250)">
+    <text x="0" y="0" font-size="14" fill="#00E599" font-family="system-ui">60+ MiniApps</text>
+    <text x="150" y="0" font-size="14" fill="#6B7280" font-family="system-ui">•</text>
+    <text x="170" y="0" font-size="14" fill="#00D9FF" font-family="system-ui">TEE Secured</text>
+    <text x="300" y="0" font-size="14" fill="#6B7280" font-family="system-ui">•</text>
+    <text x="320" y="0" font-size="14" fill="#00E599" font-family="system-ui">Testnet Live</text>
+  </g>
+</svg>

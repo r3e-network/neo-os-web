@@ -1,0 +1,53 @@
+{
+  "name": "NFT Evolve",
+  "appid": "miniapp-nftevolve",
+  "description": "Evolving NFTs that grow over time",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "NFT Evolve",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "NFT 进化",
+  "description_zh": "随时间成长进化的 NFT",
+  "category": "nft",
+  "tags": [
+    "nft",
+    "gaming",
+    "evolution"
+  ],
+  "permissions": {
+    "payments": true,
+    "rng": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0xadd18a719d14d59c064244833cd2c812c79d6015",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "image",
+      "banner": "/static/banner.svg",
+      "live_status": null
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

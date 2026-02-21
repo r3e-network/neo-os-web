@@ -1,0 +1,53 @@
+{
+  "name": "Scratch Card",
+  "appid": "miniapp-scratchcard",
+  "description": "Instant win scratch cards with GAS prizes",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Scratch Card",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "刮刮卡",
+  "description_zh": "即开即中刮刮卡，赢取 GAS 奖励",
+  "category": "gaming",
+  "tags": ["scratch", "instant-win", "lottery"],
+  "permissions": ["payments", "rng", "automation"],
+  "assets_allowed": ["GAS"],
+  "limits": {
+    "max_gas_per_tx": "10",
+    "daily_gas_cap_per_user": "100"
+  },
+  "contracts_needed": ["PaymentHub", "RandomnessLog"],
+  "network": {
+    "contracts": {
+      "testnet": "0x2674ef3b4d8c006201d1e7e473316592f6cde5f2",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_status",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": ["jackpot", "players_online", "next_draw"]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

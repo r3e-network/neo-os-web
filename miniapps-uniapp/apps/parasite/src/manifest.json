@@ -1,0 +1,55 @@
+{
+  "name": "The Parasite",
+  "appid": "miniapp-parasite",
+  "description": "DeFi staking with PvP attack mechanics",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Parasite",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "寄生者",
+  "description_zh": "带有 PvP 攻击机制的 DeFi 质押",
+  "category": "nft",
+  "tags": [
+    "pvp",
+    "staking",
+    "attack"
+  ],
+  "permissions": {
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0xe1726fbc4b6a5862eb2336ff32494be9f117563b",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "image",
+      "banner": "/static/banner.svg",
+      "live_status": null
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

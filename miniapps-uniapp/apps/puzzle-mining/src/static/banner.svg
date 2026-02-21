@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6"/>
+      <stop offset="100%" style="stop-color:#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="200" fill="url(#bg)"/>
+  <text x="400" y="90" font-size="48" fill="#fff" font-weight="bold" text-anchor="middle" font-family="system-ui">Puzzle Mining</text>
+  <text x="400" y="130" font-size="20" fill="#DDD6FE" text-anchor="middle" font-family="system-ui">Solve Puzzles to Mine Rewards</text>
+</svg>

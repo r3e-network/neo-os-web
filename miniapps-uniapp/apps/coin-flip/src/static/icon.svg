@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="coin-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBF24"/>
+      <stop offset="100%" style="stop-color:#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#coin-bg)"/>
+  <ellipse cx="32" cy="32" rx="20" ry="20" fill="#FEF3C7" stroke="#D97706" stroke-width="3"/>
+  <ellipse cx="32" cy="32" rx="14" ry="14" fill="#FBBF24"/>
+  <text x="32" y="38" font-size="18" fill="#92400E" text-anchor="middle" font-weight="bold">N</text>
+  <path d="M12 52c4-8 12-8 16 0" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <path d="M36 52c4-8 12-8 16 0" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+</svg>

@@ -1,0 +1,63 @@
+{
+  "name": "Compound Capsule",
+  "appid": "miniapp-compound-capsule",
+  "description": "Forced lock + auto-compound savings with penalty for early withdrawal",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Compound Capsule",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "时间胶囊复利机",
+  "description_zh": "强制锁仓 + 自动复利，提前取款只能取回本金",
+  "category": "defi",
+  "tags": [
+    "savings",
+    "compound",
+    "time-lock"
+  ],
+  "permissions": {
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0xba302bebace6c2bd0f610228b56bd3d3de07dbd7",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_status",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": [
+          "tvl",
+          "apy",
+          "volume_24h"
+        ]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

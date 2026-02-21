@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" fill="none">
+  <rect width="400" height="120" rx="12" fill="#1a1a2e"/>
+  <circle cx="60" cy="60" r="35" fill="#00d4aa" opacity="0.2"/>
+  <path d="M60 35v50M48 55l12-12 12 12M48 65l12 12 12-12" stroke="#00d4aa" stroke-width="4" stroke-linecap="round"/>
+  <text x="120" y="55" fill="#ffffff" font-family="Arial" font-size="24" font-weight="bold">Gas Sponsor</text>
+  <text x="120" y="80" fill="#888888" font-family="Arial" font-size="14">Free gas for new users</text>
+</svg>

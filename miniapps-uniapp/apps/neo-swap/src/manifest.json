@@ -1,0 +1,37 @@
+{
+  "app_id": "miniapp-neo-swap",
+  "name": "Neo Swap",
+  "name_zh": "Neo 兑换",
+  "description": "Swap NEO and GAS instantly via Flamingo DEX",
+  "description_zh": "通过 Flamingo DEX 即时兑换 NEO 和 GAS",
+  "version": "1.0.0",
+  "entry_url": "/miniapps/neo-swap/",
+  "permissions": ["wallet", "payments"],
+  "assets_allowed": ["NEO", "GAS"],
+  "category": "defi",
+  "tags": ["swap", "dex", "neo", "gas", "exchange"],
+  "external_contracts": {
+    "FlamingoSwapRouter": "0xf970f4ccecd765b63732b821775dc38c25d74f23",
+    "fUSDT": "0xcd48b160c1bbc9d74997b803b9a7ad50a4bef020",
+    "FLM": "0xf0151f528127558851b39c2cd8aa47da7418ab28"
+  },
+  "card": {
+    "display": {
+      "type": "live_status",
+      "banner": "/static/banner.svg",
+      "live_status": {
+        "enabled": true,
+        "refresh_interval": 30,
+        "fields": ["neo_price", "gas_price", "volume_24h"]
+      }
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

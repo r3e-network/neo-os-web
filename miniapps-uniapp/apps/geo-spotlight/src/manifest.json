@@ -1,0 +1,58 @@
+{
+  "name": "Geo Spotlight",
+  "appid": "miniapp-geospotlight",
+  "description": "Pay to highlight locations on a global map",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Geo Spotlight",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "地球放大镜",
+  "description_zh": "付费在全球地图上高亮位置",
+  "category": "social",
+  "tags": [
+    "geo",
+    "map",
+    "spotlight"
+  ],
+  "permissions": {
+    "wallet": [
+      "read-address"
+    ],
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x925959dc2360bd2fed7dd52ac3d29b76ff24c5dd",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "image",
+      "banner": "/static/banner.svg",
+      "live_status": null
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "scriptId": "364",
+  "url": "file:///home/neo/git/service_layer/platform/edge/functions/_shared/response.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [
+        {
+          "startOffset": 0,
+          "endOffset": 429,
+          "count": 1
+        }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "json",
+      "ranges": [
+        {
+          "startOffset": 45,
+          "endOffset": 274,
+          "count": 19
+        }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "error",
+      "ranges": [
+        {
+          "startOffset": 282,
+          "endOffset": 428,
+          "count": 6
+        }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "app_id": "miniapp-secretvote",
+  "name": "Secret Vote",
+  "name_zh": "秘密投票",
+  "description": "Private on-chain voting with TEE encryption",
+  "description_zh": "TEE 加密的链上隐私投票",
+  "version": "1.0.0",
+  "entry_url": "mf://builtin?app=miniapp-secretvote",
+  "permissions": [
+    "wallet",
+    "payments",
+    "governance",
+    "confidential",
+    "automation"
+  ],
+  "assets_allowed": [
+    "GAS",
+    "NEO"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "category": "governance",
+  "tags": [
+    "voting",
+    "privacy",
+    "governance"
+  ],
+  "card": {
+    "display": {
+      "type": "live_voting"
+    }
+  }
+}

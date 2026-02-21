@@ -1,0 +1,55 @@
+{
+  "name": "Doomsday Clock",
+  "appid": "miniapp-doomsday-clock",
+  "description": "FOMO3D style - last buyer wins the pot",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Doomsday Clock",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5173
+    }
+  },
+  "name_zh": "末日时钟",
+  "description_zh": "FOMO3D 风格 - 最后买家赢得奖池",
+  "category": "security",
+  "tags": [
+    "fomo",
+    "timer",
+    "jackpot"
+  ],
+  "permissions": {
+    "payments": true
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "contracts_needed": [
+    "PaymentHub"
+  ],
+  "network": {
+    "contracts": {
+      "testnet": "0x4f527dd46e013e3443877be123352acde3334805",
+      "mainnet": null
+    }
+  },
+  "card": {
+    "display": {
+      "type": "live_countdown",
+      "banner": "/static/banner.svg",
+      "live_status": null
+    },
+    "info": {
+      "logo": "/static/icon.svg",
+      "owner": {
+        "name": "R3E Network",
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "verified": true
+      }
+    }
+  }
+}

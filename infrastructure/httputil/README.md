@@ -1,0 +1,168 @@
+# HTTPUtil Module
+
+The `httputil` module provides HTTP utility functions for the Service Layer.
+
+## Overview
+
+This module provides common HTTP handling utilities including:
+
+- JSON request/response helpers
+- Error response formatting
+- Authentication helpers
+- Path parameter extraction
+- Outbound helpers (base URL normalization, safe transports)
+
+## Functions
+
+### JSON Helpers
+
+```go
+// Write JSON response
+httputil.WriteJSON(w, http.StatusOK, data)
+
+// Decode JSON request body
+var input MyInput
+if !httputil.DecodeJSON(w, r, &input) {
+    return // Error already written
+}
+```
+
+### Error Responses
+
+```go
+// 400 Bad Request
+httputil.BadRequest(w, "invalid input")
+
+// 401 Unauthorized
+httputil.Unauthorized(w, "authentication required")
+
+// 403 Forbidden
+httputil.Forbidden(w, "access denied")
+
+// 404 Not Found
+httputil.NotFound(w, "resource not found")
+
+// 500 Internal Server Error
+httputil.InternalError(w, "something went wrong")
+```
+
+### Authentication Helpers
+
+```go
+// Require user ID from header
+userID, ok := httputil.RequireUserID(w, r)
+if !ok {
+    return // 401 already written
+}
+
+// Get optional user ID
+userID := httputil.GetUserID(r)
+
+// Get calling service identity (derived from verified mTLS in strict environments)
+serviceID := httputil.GetServiceID(r)
+```
+
+### Path Parameters
+
+```go
+// Extract path parameter
+// For path "/request/123/status", extract "123"
+id := httputil.PathParam(r.URL.Path, "/request/", "/status")
+```
+
+### Outbound Helpers
+
+```go
+// Normalize a base URL (trims trailing slashes, validates scheme/host, enforces
+// https in strict identity mode).
+baseURL, _, err := httputil.NormalizeServiceBaseURL("https://gateway:8080/")
+if err != nil {
+    // handle invalid URL
+}
+
+// Reuse a safe default transport for outbound HTTPS calls.
+client := &http.Client{
+    Timeout:   15 * time.Second,
+    Transport: httputil.DefaultTransportWithMinTLS12(),
+}
+_ = baseURL
+_ = client
+```
+
+## Response Format
+
+All error responses follow a consistent format:
+
+```json
+{
+    "code": "HTTP_400",
+    "message": "error message here",
+    "details": {},
+    "trace_id": "trace-id-here"
+}
+```
+
+Success responses return the data directly:
+
+```json
+{
+    "id": "123",
+    "status": "success",
+    ...
+}
+```
+
+## Usage Example
+
+```go
+func (s *Service) handleCreateRequest(w http.ResponseWriter, r *http.Request) {
+    // Require authentication
+    userID, ok := httputil.RequireUserID(w, r)
+    if !ok {
+        return
+    }
+
+    // Decode request body
+    var input CreateRequestInput
+    if !httputil.DecodeJSON(w, r, &input) {
+        return
+    }
+
+    // Validate input
+    if input.Amount <= 0 {
+        httputil.BadRequest(w, "amount must be positive")
+        return
+    }
+
+    // Process request...
+    result, err := s.processRequest(r.Context(), userID, input)
+    if err != nil {
+        httputil.InternalError(w, "failed to process request")
+        return
+    }
+
+    // Return success response
+    httputil.WriteJSON(w, http.StatusCreated, result)
+}
+```
+
+## Headers
+
+| Header | Purpose |
+|--------|---------|
+| `X-User-ID` | User identifier (set by gateway after auth) |
+| `X-Service-ID` | Optional service identity hint (dev fallback; production uses verified mTLS identity) |
+| `Content-Type` | Must be `application/json` for POST/PUT |
+| `Authorization` | Bearer token for gateway authentication (not forwarded to internal services) |
+
+## Trust Model
+
+- In strict environments (production, SGX hardware, or when MarbleRun injects TLS credentials), `GetUserID`, `GetUserRole`, and `GetServiceID` only trust identity that is protected by verified mTLS.
+- User identity (`X-User-ID`) is set by the gateway after authentication and forwarded to internal services over the MarbleRun mesh.
+- Service identity is derived from the MarbleRun-issued mTLS certificate to prevent header spoofing.
+
+## Testing
+
+```bash
+go test ./infrastructure/httputil/... -v
+```

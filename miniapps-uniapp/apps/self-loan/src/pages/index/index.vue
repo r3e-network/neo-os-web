@@ -1,0 +1,185 @@
+<template>
+  <view class="app-container">
+    <view class="header">
+      <text class="title">Self Loan</text>
+      <text class="subtitle">Borrow against future deposits</text>
+    </view>
+
+    <view v-if="status" :class="['status-msg', status.type]"
+      ><text>{{ status.msg }}</text></view
+    >
+
+    <view class="card">
+      <text class="card-title">Loan Terms</text>
+      <view class="row"
+        ><text>Max borrow</text><text class="v">{{ formatNum(terms.maxBorrow, 0) }} GAS</text></view
+      >
+      <view class="row"
+        ><text>Interest rate</text><text class="v">{{ terms.interestRate }}% APR</text></view
+      >
+      <view class="row"
+        ><text>Repayment</text><text class="v">{{ terms.repaymentSchedule }}</text></view
+      >
+    </view>
+
+    <view class="card">
+      <text class="card-title">Your Loan</text>
+      <view class="row"
+        ><text>Borrowed</text><text class="v">{{ formatNum(loan.borrowed, 2) }} GAS</text></view
+      >
+      <view class="row"
+        ><text>Collateral locked</text><text class="v">{{ formatNum(loan.collateralLocked, 2) }} GAS</text></view
+      >
+      <view class="row"
+        ><text>Next payment</text
+        ><text class="v">{{ formatNum(loan.nextPayment, 2) }} GAS in {{ loan.nextPaymentDue }}</text></view
+      >
+    </view>
+
+    <view class="card">
+      <text class="card-title">Take Self-Loan</text>
+      <uni-easyinput v-model="loanAmount" type="number" placeholder="Amount to borrow" />
+      <view class="detail-row">
+        <text>Collateral required (150%)</text>
+        <text class="collateral">{{ formatNum(parseFloat(loanAmount || "0") * 1.5, 2) }} GAS</text>
+      </view>
+      <view class="detail-row">
+        <text>Monthly payment</text>
+        <text class="payment">{{ formatNum(parseFloat(loanAmount || "0") * 0.085, 3) }} GAS</text>
+      </view>
+      <view class="action-btn" @click="takeLoan"
+        ><text>{{ isLoading ? "Processing..." : "Borrow Now" }}</text></view
+      >
+      <text class="note">12-month term. Auto-deduct from future deposits.</text>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref } from "vue";
+import { usePayments } from "@neo/uniapp-sdk";
+import { formatNumber } from "@/shared/utils/format";
+
+type Terms = { maxBorrow: number; interestRate: number; repaymentSchedule: string };
+type Loan = { borrowed: number; collateralLocked: number; nextPayment: number; nextPaymentDue: string };
+
+const APP_ID = "miniapp-self-loan";
+const { payGAS, isLoading } = usePayments(APP_ID);
+
+const terms = ref<Terms>({ maxBorrow: 5000, interestRate: 8.5, repaymentSchedule: "Monthly" });
+const loan = ref<Loan>({ borrowed: 0, collateralLocked: 0, nextPayment: 0, nextPaymentDue: "N/A" });
+const loanAmount = ref<string>("");
+const status = ref<{ msg: string; type: string } | null>(null);
+const formatNum = (n: number, d = 2) => formatNumber(n, d);
+
+const takeLoan = async (): Promise<void> => {
+  if (isLoading.value) return;
+  const amount = parseFloat(loanAmount.value);
+  if (!(amount > 0 && amount <= terms.value.maxBorrow)) {
+    return void (status.value = { msg: `Enter 1-${terms.value.maxBorrow}`, type: "error" });
+  }
+  const collateral = (amount * 1.5).toFixed(2);
+  const fee = "0.015";
+  try {
+    await payGAS(fee, `selfloan:borrow:${amount}:collateral:${collateral}`);
+    status.value = { msg: `Loan approved: ${formatNum(amount, 2)} GAS borrowed`, type: "success" };
+  } catch (e: any) {
+    status.value = { msg: e.message || "Payment failed", type: "error" };
+  }
+};
+</script>
+
+<style lang="scss">
+@import "@/shared/styles/theme.scss";
+.app-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, $color-bg-primary 0%, $color-bg-secondary 100%);
+  color: $color-text-primary;
+  padding: 20px;
+}
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.title {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: $color-defi;
+}
+.subtitle {
+  color: $color-text-secondary;
+  font-size: 0.9em;
+  margin-top: 8px;
+}
+.status-msg {
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  &.success {
+    background: rgba($color-success, 0.15);
+    color: $color-success;
+  }
+  &.error {
+    background: rgba($color-error, 0.15);
+    color: $color-error;
+  }
+}
+.card {
+  background: $color-bg-card;
+  border: 1px solid $color-border;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card-title {
+  color: $color-defi;
+  font-size: 1.1em;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 12px;
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba($color-defi, 0.1);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.v {
+  color: $color-defi;
+  font-weight: bold;
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 12px 0;
+  color: $color-text-secondary;
+}
+.collateral {
+  color: $color-warning;
+  font-weight: bold;
+}
+.payment {
+  color: $color-defi;
+  font-weight: bold;
+}
+.action-btn {
+  background: linear-gradient(135deg, $color-defi 0%, darken($color-defi, 10%) 100%);
+  color: $color-text-primary;
+  padding: 14px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: bold;
+  &:active {
+    filter: brightness(0.85);
+  }
+}
+.note {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85em;
+  color: $color-text-secondary;
+}
+</style>
