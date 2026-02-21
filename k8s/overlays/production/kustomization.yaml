@@ -1,0 +1,48 @@
+# Production overlay for MarbleRun + EGo with SGX hardware
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: service-layer
+
+resources:
+  - ../../base
+  - pdb.yaml
+  - networkpolicy.yaml
+  - networkpolicy-egress.yaml
+
+patches:
+  # Spread replicas across nodes for higher availability.
+  - target:
+      kind: Deployment
+      name: neooracle
+    patch: |-
+      - op: add
+        path: /spec/template/spec/topologySpreadConstraints
+        value:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                app: neooracle
+
+# Production replicas
+replicas:
+  - name: neooracle
+    count: 2
+
+# Production resource limits
+configMapGenerator:
+  - name: service-layer-config
+    behavior: merge
+    literals:
+      - COORDINATOR_MESH_ADDR=coordinator-mesh-api.marblerun.svc.cluster.local:2001
+      - COORDINATOR_CLIENT_ADDR=coordinator-client-api.marblerun.svc.cluster.local:4433
+      - OE_SIMULATION=0
+      - MARBLE_ENV=production
+      - METRICS_ENABLED=true
+      # Neo N3 network (MainNet)
+      - NEO_RPC_URL=https://mainnet1.neo.coz.io:443
+      - NEO_NETWORK_MAGIC=860833102
+      # External allowlist (required in production/SGX mode)
+      - ORACLE_HTTP_ALLOWLIST=https://api.binance.com,https://api.coinbase.com

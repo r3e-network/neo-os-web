@@ -1,0 +1,143 @@
+import React, { useState } from "react";
+import type { SocialComment, VoteType } from "./types";
+
+interface CommentItemProps {
+  comment: SocialComment;
+  onVote: (commentId: string, voteType: VoteType) => Promise<boolean | void>;
+  onReply: (parentId: string, content: string) => Promise<boolean | void>;
+  onLoadReplies?: (parentId: string) => Promise<SocialComment[]>;
+  depth?: number;
+}
+
+const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onLoadReplies, depth = 0 }) => {
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+  const [replies, setReplies] = useState<SocialComment[]>([]);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  const [submittingReply, setSubmittingReply] = useState(false);
+
+  const handleLoadReplies = async () => {
+    if (!onLoadReplies || loadingReplies) return;
+    setLoadingReplies(true);
+    const data = await onLoadReplies(comment.id);
+    setReplies(data);
+    setLoadingReplies(false);
+  };
+
+  const handleSubmitReply = async () => {
+    if (!replyContent.trim() || submittingReply) return;
+    setSubmittingReply(true);
+    await onReply(comment.id, replyContent);
+    setReplyContent("");
+    setShowReplyForm(false);
+    setSubmittingReply(false);
+    if (onLoadReplies) handleLoadReplies();
+  };
+
+  const maxDepth = 3;
+
+  return (
+    <div className={`${depth > 0 ? "ml-6 border-l-2 border-gray-200 dark:border-gray-700 pl-4" : ""}`}>
+      <div className="py-3">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-1">
+          {comment.is_developer_reply && (
+            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded-full">
+              Developer
+            </span>
+          )}
+          <span className="text-sm text-gray-500 dark:text-gray-400">{new Date(comment.created_at).toLocaleDateString()}</span>
+        </div>
+
+        {/* Content */}
+        <p className="text-gray-800 dark:text-gray-200 mb-2 break-words">{comment.content}</p>
+
+        {/* Actions */}
+        <div className="flex items-center gap-4 text-sm">
+          <button
+            type="button"
+            onClick={() => onVote(comment.id, "upvote")}
+            aria-label={`Upvote (${comment.upvotes})`}
+            className="flex items-center gap-1 py-1 px-2 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+          >
+            ▲ {comment.upvotes}
+          </button>
+          <button
+            type="button"
+            onClick={() => onVote(comment.id, "downvote")}
+            aria-label={`Downvote (${comment.downvotes})`}
+            className="flex items-center gap-1 py-1 px-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+          >
+            ▼ {comment.downvotes}
+          </button>
+          {depth < maxDepth && (
+            <button
+              type="button"
+              onClick={() => setShowReplyForm(!showReplyForm)}
+              aria-expanded={showReplyForm}
+              className="py-1 px-2 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+            >
+              Reply
+            </button>
+          )}
+          {comment.reply_count > 0 && replies.length === 0 && (
+            <button
+              type="button"
+              onClick={handleLoadReplies}
+              className="py-1 px-2 text-emerald-600 dark:text-emerald-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+              disabled={loadingReplies}
+            >
+              {loadingReplies ? "Loading..." : `${comment.reply_count} replies`}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Reply Form */}
+      {showReplyForm && (
+        <div className="ml-6 mb-3">
+          <textarea
+            value={replyContent}
+            onChange={(e) => setReplyContent(e.target.value)}
+            placeholder="Write a reply..."
+            aria-label="Write a reply"
+            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors resize-none placeholder-gray-500 dark:placeholder-gray-400 rounded-lg p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            rows={2}
+            maxLength={2000}
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={handleSubmitReply}
+              disabled={submittingReply || !replyContent.trim()}
+              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            >
+              {submittingReply ? "Submitting..." : "Submit"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowReplyForm(false)}
+              className="px-3 py-1 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Nested Replies */}
+      {replies.map((reply) => (
+        <CommentItem
+          key={reply.id}
+          comment={reply}
+          onVote={onVote}
+          onReply={onReply}
+          onLoadReplies={onLoadReplies}
+          depth={depth + 1}
+        />
+      ))}
+    </div>
+  );
+};
+
+export default CommentItem;

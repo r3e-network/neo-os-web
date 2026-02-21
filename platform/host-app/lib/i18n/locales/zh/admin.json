@@ -1,0 +1,38 @@
+{
+  "dashboard": {
+    "title": "管理后台",
+    "overview": "概览",
+    "systemHealth": "系统健康",
+    "serviceStatus": "服务状态"
+  },
+  "services": {
+    "title": "服务",
+    "all": "所有服务",
+    "running": "运行中",
+    "stopped": "已停止",
+    "restart": "重启服务",
+    "viewLogs": "查看日志",
+    "lastCheck": "上次检查"
+  },
+  "users": {
+    "title": "用户管理",
+    "total": "用户总数",
+    "active": "活跃用户",
+    "new": "新用户",
+    "manage": "管理用户"
+  },
+  "analytics": {
+    "title": "数据分析",
+    "pageViews": "页面浏览量",
+    "uniqueVisitors": "独立访客",
+    "avgSession": "平均会话时长",
+    "bounceRate": "跳出率"
+  },
+  "miniapps": {
+    "title": "小程序管理",
+    "registered": "已注册应用",
+    "pending": "待审核",
+    "approve": "批准",
+    "reject": "拒绝"
+  }
+}

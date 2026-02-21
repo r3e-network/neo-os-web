@@ -1,0 +1,1317 @@
+package neorequests
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"math"
+	"math/big"
+	"net/http"
+	"net/url"
+	"path"
+	"strings"
+	"time"
+
+	"github.com/tidwall/gjson"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
+	neorequestsupabase "github.com/r3e-network/neo-miniapp-platform/services/requests/supabase"
+)
+
+type serviceResult struct {
+	ResultBytes []byte
+	AuditJSON   json.RawMessage
+}
+
+const (
+	maxTEEManifestBytes = 1 << 20
+	maxTEEScriptBytes   = 1 << 20
+)
+
+func (s *Service) handleServiceRequested(ctx context.Context, event *chain.ContractEvent) error {
+	if event == nil {
+		return nil
+	}
+	if s.serviceGatewayHash != "" && normalizeContractHash(event.Contract) != s.serviceGatewayHash {
+		return nil
+	}
+
+	parsed, err := chain.ParseServiceRequestedEvent(event)
+	if err != nil {
+		return err
+	}
+
+	requestID := strings.TrimSpace(parsed.RequestID)
+	appID := strings.TrimSpace(parsed.AppID)
+	serviceType := normalizeServiceType(parsed.ServiceType)
+	if requestID == "" || appID == "" || serviceType == "" {
+		return fmt.Errorf("missing required request fields")
+	}
+
+	logger := s.Logger().WithFields(map[string]interface{}{
+		"request_id":   requestID,
+		"app_id":       appID,
+		"service_type": serviceType,
+	})
+
+	if s.repo != nil {
+		processed, markErr := s.markEventProcessed(ctx, event, parsed)
+		if markErr != nil {
+			logger.WithError(markErr).Warn("failed to mark event processed")
+		}
+		if !processed {
+			return nil
+		}
+	}
+
+	s.storeRequestIndex(requestID, appID)
+	if storeErr := s.storeContractEvent(ctx, event, &appID, buildServiceRequestedState(parsed)); storeErr != nil {
+		logger.WithError(storeErr).Warn("failed to store service requested contract event")
+	}
+
+	app, err := s.loadMiniApp(ctx, appID)
+	if err != nil {
+		logger.WithError(err).Warn("miniapp not found")
+		return nil
+	}
+	if !isAppActive(app.Status) {
+		logger.WithError(nil).Warn("miniapp disabled")
+		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
+		s.updateServiceRequest(ctx, serviceReq, nil, "miniapp is not active")
+		return nil
+	}
+
+	if validateErr := s.validateAppRegistry(ctx, app); validateErr != nil {
+		logger.WithError(validateErr).Warn("app registry validation failed")
+		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
+		s.updateServiceRequest(ctx, serviceReq, nil, sanitizeError(validateErr.Error(), s.maxErrorLen))
+		return nil
+	}
+
+	s.trackMiniAppTx(ctx, appID, "", event)
+
+	manifestInfo, err := parseManifestInfo(app.Manifest)
+	if err != nil {
+		logger.WithError(err).Warn("invalid manifest")
+		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
+		s.updateServiceRequest(ctx, serviceReq, nil, "invalid miniapp manifest")
+		return nil
+	}
+
+	if !permissionEnabled(manifestInfo.Permissions, serviceTypePermission(serviceType)) {
+		logger.WithError(nil).Warn("permission denied")
+		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
+		s.updateServiceRequest(ctx, serviceReq, nil, "service permission not granted")
+		return nil
+	}
+
+	if manifestInfo.CallbackContract != "" || manifestInfo.CallbackMethod != "" {
+		if !callbackMatches(manifestInfo, parsed.CallbackContract, parsed.CallbackMethod) {
+			logger.WithFields(map[string]interface{}{
+				"manifest_callback_contract": manifestInfo.CallbackContract,
+				"manifest_callback_method":   manifestInfo.CallbackMethod,
+				"request_callback_contract":  parsed.CallbackContract,
+				"request_callback_method":    parsed.CallbackMethod,
+			}).Warn("callback target mismatch; skipping fulfillment")
+			serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
+			s.updateServiceRequest(ctx, serviceReq, nil, "callback target mismatch")
+			return nil
+		}
+	}
+
+	serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
+
+	result, execErr := s.executeService(ctx, app.DeveloperUserID, appID, requestID, serviceType, parsed.Payload)
+	if execErr == nil && len(result.ResultBytes) > s.maxResult {
+		execErr = fmt.Errorf("result exceeds max size")
+	}
+
+	success := execErr == nil
+	fulfillErr := s.fulfillRequest(ctx, parsed, result, execErr, serviceReq)
+	if fulfillErr != nil {
+		logger.WithError(fulfillErr).Warn("callback fulfillment failed")
+	}
+
+	if !success {
+		logger.WithError(execErr).Warn("service execution failed")
+	}
+
+	return nil
+}
+
+func (s *Service) handleServiceFulfilled(ctx context.Context, event *chain.ContractEvent) error {
+	if event == nil {
+		return nil
+	}
+	if s.serviceGatewayHash != "" && normalizeContractHash(event.Contract) != s.serviceGatewayHash {
+		return nil
+	}
+
+	parsed, err := chain.ParseServiceFulfilledEvent(event)
+	if err != nil {
+		return err
+	}
+
+	if s.repo != nil {
+		processed, markErr := s.markGenericProcessed(ctx, event, map[string]interface{}{
+			"request_id": parsed.RequestID,
+		})
+		if markErr != nil {
+			s.Logger().WithContext(ctx).WithError(markErr).Warn("failed to mark service fulfilled event processed")
+		}
+		if !processed {
+			return nil
+		}
+	}
+
+	appID := s.lookupRequestIndex(parsed.RequestID)
+	s.deleteRequestIndex(parsed.RequestID)
+
+	var appPtr *string
+	if appID != "" {
+		appPtr = &appID
+	}
+	if storeErr := s.storeContractEvent(ctx, event, appPtr, buildServiceFulfilledState(parsed)); storeErr != nil {
+		s.Logger().WithContext(ctx).WithError(storeErr).Warn("failed to store service fulfilled contract event")
+	}
+
+	return nil
+}
+
+func (s *Service) executeService(ctx context.Context, userID, appID, requestID, serviceType string, payload []byte) (serviceResult, error) {
+	// SECURITY: Validate payload size to prevent OOM attacks
+	const maxPayloadSize = 1 << 20 // 1MB
+	if len(payload) > maxPayloadSize {
+		return serviceResult{}, fmt.Errorf("payload too large: %d bytes (max %d)", len(payload), maxPayloadSize)
+	}
+
+	switch serviceType {
+	case "rng":
+		return s.executeRNG(ctx, userID, appID, requestID, payload)
+	case "oracle":
+		return s.executeOracle(ctx, userID, payload)
+	case "compute":
+		return s.executeCompute(ctx, userID, appID, payload)
+	default:
+		return serviceResult{}, fmt.Errorf("unsupported service type: %s", serviceType)
+	}
+}
+
+func (s *Service) executeRNG(ctx context.Context, userID, appID, requestID string, payload []byte) (serviceResult, error) {
+	if s.vrfURL == "" {
+		return serviceResult{}, fmt.Errorf("neovrf URL not configured")
+	}
+
+	var req rngPayload
+	if len(payload) > 0 {
+		if err := json.Unmarshal(payload, &req); err != nil {
+			return serviceResult{}, fmt.Errorf("invalid rng payload")
+		}
+	}
+	vrfRequestID := strings.TrimSpace(req.RequestID)
+	if vrfRequestID == "" {
+		vrfRequestID = fmt.Sprintf("%s:%s", appID, requestID)
+	}
+
+	respBytes, err := s.postJSON(ctx, joinURL(s.vrfURL, "/random"), userID, rngPayload{RequestID: vrfRequestID})
+	if err != nil {
+		return serviceResult{}, err
+	}
+
+	var resp rngResponse
+	if unmarshalErr := json.Unmarshal(respBytes, &resp); unmarshalErr != nil {
+		return serviceResult{}, fmt.Errorf("invalid rng response")
+	}
+
+	audit := neorequestsupabase.MarshalParams(resp)
+	if s.rngMode == "json" {
+		return serviceResult{ResultBytes: respBytes, AuditJSON: audit}, nil
+	}
+
+	randomnessHex := strings.TrimPrefix(strings.TrimSpace(resp.Randomness), "0x")
+	randomnessBytes, err := hex.DecodeString(randomnessHex)
+	if err != nil || len(randomnessBytes) == 0 {
+		return serviceResult{}, fmt.Errorf("invalid randomness payload")
+	}
+
+	return serviceResult{ResultBytes: randomnessBytes, AuditJSON: audit}, nil
+}
+
+func (s *Service) executeOracle(ctx context.Context, userID string, payload []byte) (serviceResult, error) {
+	if s.oracleURL == "" {
+		return serviceResult{}, fmt.Errorf("neooracle URL not configured")
+	}
+	if len(payload) == 0 {
+		return serviceResult{}, fmt.Errorf("oracle payload required")
+	}
+
+	var req oraclePayload
+	if err := json.Unmarshal(payload, &req); err != nil {
+		return serviceResult{}, fmt.Errorf("invalid oracle payload")
+	}
+	if strings.TrimSpace(req.URL) == "" {
+		return serviceResult{}, fmt.Errorf("oracle url required")
+	}
+
+	respBytes, err := s.postJSON(ctx, joinURL(s.oracleURL, "/query"), userID, req)
+	if err != nil {
+		return serviceResult{}, err
+	}
+
+	var resp oracleResponse
+	if unmarshalErr := json.Unmarshal(respBytes, &resp); unmarshalErr != nil {
+		return serviceResult{}, fmt.Errorf("invalid oracle response")
+	}
+
+	var value gjson.Result
+	if req.JSONPath != "" {
+		value = gjson.Get(resp.Body, req.JSONPath)
+		if !value.Exists() {
+			return serviceResult{}, fmt.Errorf("json_path not found")
+		}
+	}
+
+	result := map[string]interface{}{
+		"status_code": resp.StatusCode,
+		"headers":     resp.Headers,
+		"body":        resp.Body,
+	}
+	if req.JSONPath != "" {
+		result = map[string]interface{}{
+			"status_code": resp.StatusCode,
+			"json_path":   req.JSONPath,
+			"value":       value.Value(),
+		}
+	}
+
+	resultBytes, err := json.Marshal(result)
+	if err != nil {
+		return serviceResult{}, fmt.Errorf("failed to marshal oracle result")
+	}
+
+	if s.maxResult > 0 && len(resultBytes) > s.maxResult {
+		trimmed := map[string]interface{}{
+			"status_code": resp.StatusCode,
+		}
+		if req.JSONPath != "" {
+			trimmed["json_path"] = req.JSONPath
+			trimmed["value"] = value.Value()
+		} else if resp.Body != "" {
+			trimmed["body"] = truncateString(resp.Body, s.maxResult/2)
+		}
+		resultBytes, err = json.Marshal(trimmed)
+		if err != nil {
+			return serviceResult{}, fmt.Errorf("failed to marshal trimmed oracle result")
+		}
+		if s.maxResult > 0 && len(resultBytes) > s.maxResult {
+			return serviceResult{}, fmt.Errorf("oracle result exceeds max size")
+		}
+		result = trimmed
+	}
+
+	return serviceResult{ResultBytes: resultBytes, AuditJSON: neorequestsupabase.MarshalParams(result)}, nil
+}
+
+func (s *Service) executeCompute(ctx context.Context, userID, appID string, payload []byte) (serviceResult, error) {
+	if s.computeURL == "" {
+		return serviceResult{}, fmt.Errorf("neocompute URL not configured")
+	}
+	if len(payload) == 0 {
+		return serviceResult{}, fmt.Errorf("compute payload required")
+	}
+
+	var req computePayload
+	if err := json.Unmarshal(payload, &req); err != nil {
+		return serviceResult{}, fmt.Errorf("invalid compute payload")
+	}
+
+	// If script_name is provided, load script from app manifest
+	if scriptName := strings.TrimSpace(req.ScriptName); scriptName != "" {
+		script, entryPoint, err := s.loadTeeScript(ctx, appID, scriptName)
+		if err != nil {
+			return serviceResult{}, fmt.Errorf("failed to load TEE script: %w", err)
+		}
+		req.Script = script
+		if req.EntryPoint == "" {
+			req.EntryPoint = entryPoint
+		}
+	}
+
+	if strings.TrimSpace(req.Script) == "" {
+		return serviceResult{}, fmt.Errorf("compute script required (provide script_name or script)")
+	}
+	if strings.TrimSpace(req.EntryPoint) == "" {
+		req.EntryPoint = "main"
+	}
+
+	respBytes, err := s.postJSON(ctx, joinURL(s.computeURL, "/execute"), userID, req)
+	if err != nil {
+		return serviceResult{}, err
+	}
+
+	var resp computeResponse
+	if unmarshalErr := json.Unmarshal(respBytes, &resp); unmarshalErr != nil {
+		return serviceResult{}, fmt.Errorf("invalid compute response")
+	}
+
+	if !strings.EqualFold(resp.Status, "completed") {
+		if resp.Error != "" {
+			return serviceResult{}, errors.New(resp.Error)
+		}
+		return serviceResult{}, fmt.Errorf("compute failed")
+	}
+
+	result := map[string]interface{}{
+		"job_id": resp.JobID,
+		"status": resp.Status,
+		"output": resp.Output,
+	}
+	if resp.Error != "" {
+		result["error"] = resp.Error
+	}
+	if resp.OutputHash != "" {
+		result["output_hash"] = resp.OutputHash
+	}
+	if resp.Signature != "" {
+		result["signature"] = resp.Signature
+	}
+
+	resultBytes, err := json.Marshal(result)
+	if err != nil {
+		return serviceResult{}, fmt.Errorf("failed to marshal compute result")
+	}
+
+	if s.maxResult > 0 && len(resultBytes) > s.maxResult {
+		trimmed := map[string]interface{}{
+			"job_id": resp.JobID,
+			"status": resp.Status,
+		}
+		if resp.OutputHash != "" {
+			trimmed["output_hash"] = resp.OutputHash
+		}
+		if resp.Signature != "" {
+			trimmed["signature"] = resp.Signature
+		}
+		if resp.Error != "" {
+			trimmed["error"] = resp.Error
+		}
+		resultBytes, err = json.Marshal(trimmed)
+		if err != nil {
+			return serviceResult{}, fmt.Errorf("failed to marshal trimmed compute result")
+		}
+		if s.maxResult > 0 && len(resultBytes) > s.maxResult {
+			return serviceResult{}, fmt.Errorf("compute result exceeds max size")
+		}
+		result = trimmed
+	}
+
+	return serviceResult{ResultBytes: resultBytes, AuditJSON: neorequestsupabase.MarshalParams(result)}, nil
+}
+
+func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequestedEvent, result serviceResult, execErr error, serviceReq *neorequestsupabase.ServiceRequest) error {
+	if s.txProxy == nil {
+		return fmt.Errorf("txproxy not configured")
+	}
+
+	success := execErr == nil
+	errorMsg := ""
+	if execErr != nil {
+		errorMsg = sanitizeError(execErr.Error(), s.maxErrorLen)
+	}
+
+	params, _, err := buildFulfillParams(req.RequestID, success, result.ResultBytes, errorMsg)
+	if err != nil {
+		return err
+	}
+
+	requestKey := fmt.Sprintf("%s:%s:%s", ServiceID, req.AppID, req.RequestID)
+	chainTx := &neorequestsupabase.ChainTx{
+		RequestID:       requestKey,
+		FromService:     ServiceID,
+		TxType:          "service_callback",
+		ContractAddress: "0x" + s.serviceGatewayHash,
+		MethodName:      "fulfillRequest",
+		Params:          neorequestsupabase.MarshalParams(params),
+		Status:          "pending",
+	}
+
+	if s.repo != nil {
+		if createTxErr := s.repo.CreateChainTx(ctx, chainTx); createTxErr != nil {
+			s.Logger().WithContext(ctx).WithError(createTxErr).Warn("failed to create chain_txs row")
+		} else if serviceReq != nil {
+			serviceReq.ChainTxID = &chainTx.ID
+			if updateReqErr := s.repo.UpdateServiceRequest(ctx, serviceReq); updateReqErr != nil {
+				s.Logger().WithContext(ctx).WithError(updateReqErr).Warn("failed to update service request with chain tx id")
+			}
+		}
+	}
+
+	resp, err := s.txProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
+		RequestID:    requestKey,
+		ContractHash: "0x" + s.serviceGatewayHash,
+		Method:       "fulfillRequest",
+		Params:       params,
+		Wait:         s.txWait,
+	})
+	if err != nil {
+		chainTx.Status = "failed"
+		chainTx.ErrorMessage = sanitizeError(err.Error(), s.maxErrorLen)
+		if updateChainErr := s.updateChainTx(ctx, chainTx); updateChainErr != nil {
+			s.Logger().WithContext(ctx).WithError(updateChainErr).Warn("failed to update failed chain tx")
+		}
+		s.updateServiceRequest(ctx, serviceReq, result.AuditJSON, err.Error())
+		return err
+	}
+
+	status := "submitted"
+	if s.txWait {
+		if strings.EqualFold(resp.VMState, "HALT") {
+			status = "confirmed"
+		} else {
+			status = "failed"
+		}
+	}
+
+	chainTx.TxHash = resp.TxHash
+	chainTx.Status = status
+	if resp.Exception != "" && status == "failed" {
+		chainTx.ErrorMessage = sanitizeError(resp.Exception, s.maxErrorLen)
+	}
+	if updateChainErr := s.updateChainTx(ctx, chainTx); updateChainErr != nil {
+		s.Logger().WithContext(ctx).WithError(updateChainErr).Warn("failed to persist chain tx update")
+	}
+
+	finalStatus := "completed"
+	if !success || status == "failed" {
+		finalStatus = "failed"
+	}
+
+	completedAt := time.Now().UTC()
+	if serviceReq != nil {
+		serviceReq.Status = finalStatus
+		serviceReq.CompletedAt = &completedAt
+		serviceReq.Result = result.AuditJSON
+		if !success {
+			serviceReq.Error = errorMsg
+		}
+		if updateReqErr := s.repo.UpdateServiceRequest(ctx, serviceReq); updateReqErr != nil {
+			s.Logger().WithContext(ctx).WithError(updateReqErr).Warn("failed to finalize service request status")
+		}
+	}
+	return nil
+}
+
+func (s *Service) updateChainTx(ctx context.Context, chainTx *neorequestsupabase.ChainTx) error {
+	if s.repo == nil || chainTx == nil || chainTx.ID == 0 {
+		return nil
+	}
+	return s.repo.UpdateChainTx(ctx, chainTx)
+}
+
+func (s *Service) updateServiceRequest(ctx context.Context, req *neorequestsupabase.ServiceRequest, result json.RawMessage, errMsg string) {
+	if s.repo == nil || req == nil {
+		return
+	}
+	req.Status = "failed"
+	if len(result) > 0 {
+		req.Result = result
+	}
+	if errMsg != "" {
+		req.Error = sanitizeError(errMsg, s.maxErrorLen)
+	}
+	req.CompletedAt = ptrTime(time.Now().UTC())
+	if updateErr := s.repo.UpdateServiceRequest(ctx, req); updateErr != nil {
+		s.Logger().WithContext(ctx).WithError(updateErr).Warn("failed to update service request")
+	}
+}
+
+func (s *Service) createServiceRequest(ctx context.Context, app *neorequestsupabase.MiniApp, parsed *chain.ServiceRequestedEvent, serviceType string) *neorequestsupabase.ServiceRequest {
+	if s.repo == nil || app == nil {
+		return nil
+	}
+
+	payloadAudit := map[string]interface{}{
+		"request_id":        parsed.RequestID,
+		"app_id":            parsed.AppID,
+		"service_type":      serviceType,
+		"requester":         parsed.Requester,
+		"callback_contract": parsed.CallbackContract,
+		"callback_method":   parsed.CallbackMethod,
+		"payload":           decodePayload(parsed.Payload),
+	}
+
+	req := &neorequestsupabase.ServiceRequest{
+		UserID:      app.DeveloperUserID,
+		ServiceType: serviceType,
+		Status:      "processing",
+		Payload:     neorequestsupabase.MarshalParams(payloadAudit),
+	}
+
+	if err := s.repo.CreateServiceRequest(ctx, req); err != nil {
+		s.Logger().WithContext(ctx).WithError(err).Warn("failed to persist service request")
+		return nil
+	}
+	return req
+}
+
+func (s *Service) loadMiniApp(ctx context.Context, appID string) (*neorequestsupabase.MiniApp, error) {
+	if s.repo == nil {
+		return nil, fmt.Errorf("repository not configured")
+	}
+	appID = strings.TrimSpace(appID)
+	if appID == "" {
+		return nil, fmt.Errorf("app_id cannot be empty")
+	}
+	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("app:", appID)); ok {
+		if notFound {
+			return nil, miniAppNotFoundError(appID)
+		}
+		return app, nil
+	}
+
+	app, err := s.repo.GetMiniApp(ctx, appID)
+	if err != nil {
+		if database.IsNotFound(err) {
+			s.cacheMiniAppNotFound(appID, "")
+		}
+		return nil, err
+	}
+
+	contractHash := appContractHash(app)
+	s.cacheMiniApp(app, contractHash)
+	return app, nil
+}
+
+func (s *Service) loadMiniAppByContractHash(ctx context.Context, contractHash string) (*neorequestsupabase.MiniApp, error) {
+	if s.repo == nil {
+		return nil, fmt.Errorf("repository not configured")
+	}
+	normalized := normalizeContractHash(contractHash)
+	if normalized == "" {
+		return nil, fmt.Errorf("contract_hash cannot be empty")
+	}
+	if app, ok, notFound := s.getMiniAppCached(miniAppCacheKey("contract:", normalized)); ok {
+		if notFound {
+			return nil, miniAppNotFoundError(normalized)
+		}
+		return app, nil
+	}
+
+	app, err := s.repo.GetMiniAppByContractHash(ctx, normalized)
+	if err != nil {
+		if database.IsNotFound(err) {
+			s.cacheMiniAppNotFound("", normalized)
+		}
+		return nil, err
+	}
+
+	s.cacheMiniApp(app, normalized)
+	return app, nil
+}
+
+func (s *Service) markEventProcessed(ctx context.Context, event *chain.ContractEvent, parsed *chain.ServiceRequestedEvent) (bool, error) {
+	if s.repo == nil || event == nil || parsed == nil {
+		return true, nil
+	}
+
+	payload := map[string]interface{}{
+		"request_id":        parsed.RequestID,
+		"app_id":            parsed.AppID,
+		"service_type":      parsed.ServiceType,
+		"callback_contract": parsed.CallbackContract,
+		"callback_method":   parsed.CallbackMethod,
+	}
+
+	processed := &neorequestsupabase.ProcessedEvent{
+		ChainID:         s.chainID,
+		TxHash:          event.TxHash,
+		LogIndex:        event.LogIndex,
+		BlockHeight:     event.BlockIndex,
+		BlockHash:       event.BlockHash,
+		ContractAddress: event.Contract,
+		EventName:       event.EventName,
+		Payload:         neorequestsupabase.MarshalParams(payload),
+	}
+
+	return s.repo.MarkProcessedEvent(ctx, processed)
+}
+
+func (s *Service) storeContractEvent(ctx context.Context, event *chain.ContractEvent, appID *string, state json.RawMessage) error {
+	if s.repo == nil || event == nil {
+		return nil
+	}
+
+	record := &neorequestsupabase.ContractEvent{
+		TxHash:       event.TxHash,
+		BlockIndex:   event.BlockIndex,
+		ContractHash: event.Contract,
+		EventName:    event.EventName,
+		AppID:        appID,
+		State:        state,
+	}
+
+	return s.repo.CreateContractEvent(ctx, record)
+}
+
+func buildFulfillParams(requestID string, success bool, result []byte, errorMsg string) ([]chain.ContractParam, *big.Int, error) {
+	requestInt := new(big.Int)
+	if _, ok := requestInt.SetString(strings.TrimSpace(requestID), 10); !ok {
+		return nil, nil, fmt.Errorf("invalid request_id")
+	}
+
+	if result == nil {
+		result = []byte{}
+	}
+
+	params := []chain.ContractParam{
+		chain.NewIntegerParam(requestInt),
+		chain.NewBoolParam(success),
+		chain.NewByteArrayParam(result),
+		chain.NewStringParam(errorMsg),
+	}
+
+	return params, requestInt, nil
+}
+
+func buildServiceRequestedState(event *chain.ServiceRequestedEvent) json.RawMessage {
+	if event == nil {
+		return nil
+	}
+	state := map[string]interface{}{
+		"request_id":        event.RequestID,
+		"app_id":            event.AppID,
+		"service_type":      event.ServiceType,
+		"requester":         event.Requester,
+		"callback_contract": event.CallbackContract,
+		"callback_method":   event.CallbackMethod,
+		"payload":           decodePayload(event.Payload),
+	}
+	return neorequestsupabase.MarshalParams(state)
+}
+
+func buildServiceFulfilledState(event *chain.ServiceFulfilledEvent) json.RawMessage {
+	if event == nil {
+		return nil
+	}
+	state := map[string]interface{}{
+		"request_id": event.RequestID,
+		"success":    event.Success,
+		"result":     decodeResult(event.Result),
+		"error":      event.Error,
+	}
+	return neorequestsupabase.MarshalParams(state)
+}
+
+func buildNotificationState(event *chain.MiniAppNotificationEvent) json.RawMessage {
+	if event == nil {
+		return nil
+	}
+	state := map[string]interface{}{
+		"app_id":            event.AppID,
+		"title":             event.Title,
+		"content":           event.Content,
+		"notification_type": event.NotificationType,
+		"priority":          event.Priority,
+	}
+	return neorequestsupabase.MarshalParams(state)
+}
+
+func buildMetricState(event *chain.MiniAppMetricEvent) json.RawMessage {
+	if event == nil {
+		return nil
+	}
+	value := ""
+	if event.Value != nil {
+		value = event.Value.String()
+	}
+	state := map[string]interface{}{
+		"app_id":      event.AppID,
+		"metric_name": event.MetricName,
+		"value":       value,
+	}
+	return neorequestsupabase.MarshalParams(state)
+}
+
+func decodePayload(payload []byte) interface{} {
+	if len(payload) == 0 {
+		return nil
+	}
+	var parsed interface{}
+	if err := json.Unmarshal(payload, &parsed); err == nil {
+		return parsed
+	}
+	return map[string]string{"base64": base64.StdEncoding.EncodeToString(payload)}
+}
+
+func decodeResult(result []byte) interface{} {
+	if len(result) == 0 {
+		return nil
+	}
+	var parsed interface{}
+	if err := json.Unmarshal(result, &parsed); err == nil {
+		return parsed
+	}
+	return map[string]string{"hex": hex.EncodeToString(result)}
+}
+
+func serviceTypePermission(serviceType string) string {
+	switch serviceType {
+	case "rng":
+		return "rng"
+	case "oracle":
+		return "oracle"
+	case "compute":
+		return "compute"
+	default:
+		return serviceType
+	}
+}
+
+func normalizeServiceType(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "rng", "neovrf", "vrf":
+		return "rng"
+	case "oracle", "neooracle":
+		return "oracle"
+	case "compute", "neocompute", "confcompute":
+		return "compute"
+	default:
+		return strings.ToLower(strings.TrimSpace(raw))
+	}
+}
+
+type manifestInfo struct {
+	CallbackContract string
+	CallbackMethod   string
+	Permissions      map[string]interface{}
+	NewsIntegration  *bool
+}
+
+func parseManifestInfo(raw json.RawMessage) (manifestInfo, error) {
+	out := manifestInfo{Permissions: map[string]interface{}{}}
+	if len(raw) == 0 {
+		return out, nil
+	}
+
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return out, err
+	}
+
+	if val, ok := m["callback_contract"]; ok {
+		contract := strings.TrimSpace(fmt.Sprintf("%v", val))
+		if contract != "" {
+			normalized := normalizeContractHash(contract)
+			if normalized == "" {
+				return out, fmt.Errorf("invalid callback_contract")
+			}
+			out.CallbackContract = "0x" + normalized
+		}
+	}
+	if val, ok := m["callback_method"]; ok {
+		out.CallbackMethod = strings.TrimSpace(fmt.Sprintf("%v", val))
+	}
+
+	if perms, ok := m["permissions"]; ok {
+		switch v := perms.(type) {
+		case map[string]interface{}:
+			out.Permissions = v
+		case []interface{}:
+			for _, entry := range v {
+				key := strings.ToLower(strings.TrimSpace(fmt.Sprintf("%v", entry)))
+				if key != "" {
+					out.Permissions[key] = true
+				}
+			}
+		}
+	}
+
+	if val, ok := m["news_integration"]; ok {
+		if enabled, ok := val.(bool); ok {
+			out.NewsIntegration = &enabled
+		}
+	}
+
+	return out, nil
+}
+
+func manifestContractHash(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return ""
+	}
+
+	if val, ok := m["contract_hash"]; ok {
+		contract := strings.TrimSpace(fmt.Sprintf("%v", val))
+		if contract == "" {
+			return ""
+		}
+		return normalizeContractHash(contract)
+	}
+
+	return ""
+}
+
+func appContractHash(app *neorequestsupabase.MiniApp) string {
+	if app == nil {
+		return ""
+	}
+	if normalized := normalizeContractHash(app.ContractHash); normalized != "" {
+		return normalized
+	}
+	return manifestContractHash(app.Manifest)
+}
+
+func permissionEnabled(perms map[string]interface{}, key string) bool {
+	if len(perms) == 0 || key == "" {
+		return false
+	}
+	value, ok := perms[key]
+	if !ok {
+		return false
+	}
+	switch v := value.(type) {
+	case bool:
+		return v
+	case []interface{}:
+		return len(v) > 0
+	default:
+		return false
+	}
+}
+
+func callbackMatches(info manifestInfo, contract, method string) bool {
+	if info.CallbackContract == "" && info.CallbackMethod == "" {
+		return true
+	}
+	if info.CallbackMethod != "" && info.CallbackMethod != strings.TrimSpace(method) {
+		return false
+	}
+	if info.CallbackContract != "" {
+		if normalizeContractHash(info.CallbackContract) != normalizeContractHash(contract) {
+			return false
+		}
+	}
+	return true
+}
+
+func isAppActive(status string) bool {
+	return strings.EqualFold(strings.TrimSpace(status), "active")
+}
+
+func sanitizeError(msg string, limit int) string {
+	msg = strings.ReplaceAll(msg, "\n", " ")
+	msg = strings.TrimSpace(msg)
+	if limit <= 0 || len(msg) <= limit {
+		return msg
+	}
+	return msg[:limit]
+}
+
+func truncateString(value string, limit int) string {
+	if limit <= 0 || len(value) <= limit {
+		return value
+	}
+	return value[:limit]
+}
+
+func ptrTime(t time.Time) *time.Time {
+	return &t
+}
+
+func (s *Service) handleNotificationEvent(ctx context.Context, event *chain.ContractEvent) error {
+	if event == nil {
+		return nil
+	}
+
+	parsed, err := chain.ParseMiniAppNotificationEvent(event)
+	if err != nil {
+		return nil // Skip non-notification events
+	}
+
+	logger := s.Logger().WithFields(map[string]interface{}{
+		"app_id": parsed.AppID,
+		"title":  parsed.Title,
+	})
+
+	if s.repo != nil {
+		processed, markErr := s.markNotificationProcessed(ctx, event, parsed)
+		if markErr != nil {
+			logger.WithContext(ctx).WithError(markErr).Warn("failed to mark notification event processed")
+		}
+		if !processed {
+			return nil
+		}
+	}
+
+	if s.repo != nil {
+		var app *neorequestsupabase.MiniApp
+		var appErr error
+		if strings.TrimSpace(parsed.AppID) != "" {
+			app, appErr = s.loadMiniApp(ctx, parsed.AppID)
+		} else if strings.TrimSpace(event.Contract) != "" {
+			app, appErr = s.loadMiniAppByContractHash(ctx, event.Contract)
+			if appErr == nil && app != nil {
+				parsed.AppID = app.AppID
+				logger = s.Logger().WithFields(map[string]interface{}{
+					"app_id": parsed.AppID,
+					"title":  parsed.Title,
+				})
+			}
+		}
+
+		switch {
+		case appErr != nil:
+			if database.IsNotFound(appErr) {
+				return nil
+			}
+			logger.WithContext(ctx).WithError(appErr).Warn("failed to load miniapp manifest")
+		case app != nil:
+			if !isAppActive(app.Status) {
+				return nil
+			}
+			if s.enforceAppRegistry {
+				if err := s.validateAppRegistry(ctx, app); err != nil {
+					logger.WithContext(ctx).WithError(err).Warn("app registry validation failed")
+					return nil
+				}
+			}
+			info, parseErr := parseManifestInfo(app.Manifest)
+			if parseErr == nil && info.NewsIntegration != nil && !*info.NewsIntegration {
+				return nil
+			}
+			if contractHash := appContractHash(app); contractHash != "" {
+				if normalizeContractHash(event.Contract) != contractHash {
+					logger.WithContext(ctx).Warn("miniapp contract hash mismatch")
+					return nil
+				}
+			} else if s.requireManifestContract {
+				logger.WithContext(ctx).Warn("contract_hash missing; notification rejected")
+				return nil
+			}
+		default:
+			return nil
+		}
+	}
+
+	s.trackMiniAppTx(ctx, parsed.AppID, "", event)
+	if storeErr := s.storeContractEvent(ctx, event, &parsed.AppID, buildNotificationState(parsed)); storeErr != nil {
+		logger.WithError(storeErr).Warn("failed to store notification contract event")
+	}
+
+	// Store notification in database via repository
+	if s.repo != nil {
+		blockNumber := int64(math.MaxInt64)
+		if event.BlockIndex <= math.MaxInt64 {
+			blockNumber = int64(event.BlockIndex)
+		}
+		createErr := s.repo.CreateNotification(ctx, &neorequestsupabase.Notification{
+			AppID:            parsed.AppID,
+			Title:            parsed.Title,
+			Content:          parsed.Content,
+			NotificationType: parsed.NotificationType,
+			Source:           "contract",
+			TxHash:           event.TxHash,
+			BlockNumber:      blockNumber,
+			Priority:         parsed.Priority,
+		})
+		if createErr != nil {
+			logger.WithError(createErr).Error("failed to store notification")
+			return createErr
+		}
+	}
+
+	logger.Info("notification stored from contract event")
+	return nil
+}
+
+func (s *Service) handleMetricEvent(ctx context.Context, event *chain.ContractEvent) error {
+	if event == nil {
+		return nil
+	}
+
+	parsed, err := chain.ParseMiniAppMetricEvent(event)
+	if err != nil {
+		return nil
+	}
+
+	logger := s.Logger().WithFields(map[string]interface{}{
+		"app_id":      parsed.AppID,
+		"metric_name": parsed.MetricName,
+	})
+
+	if s.repo != nil {
+		processed, markErr := s.markMetricProcessed(ctx, event, parsed)
+		if markErr != nil {
+			logger.WithContext(ctx).WithError(markErr).Warn("failed to mark metric event processed")
+		}
+		if !processed {
+			return nil
+		}
+	}
+
+	if s.repo != nil {
+		var app *neorequestsupabase.MiniApp
+		var appErr error
+		if strings.TrimSpace(parsed.AppID) != "" {
+			app, appErr = s.loadMiniApp(ctx, parsed.AppID)
+		} else if strings.TrimSpace(event.Contract) != "" {
+			app, appErr = s.loadMiniAppByContractHash(ctx, event.Contract)
+			if appErr == nil && app != nil {
+				parsed.AppID = app.AppID
+				logger = s.Logger().WithFields(map[string]interface{}{
+					"app_id":      parsed.AppID,
+					"metric_name": parsed.MetricName,
+				})
+			}
+		}
+
+		switch {
+		case appErr != nil:
+			if database.IsNotFound(appErr) {
+				return nil
+			}
+			logger.WithContext(ctx).WithError(appErr).Warn("failed to load miniapp manifest")
+		case app != nil:
+			if !isAppActive(app.Status) {
+				return nil
+			}
+			if s.enforceAppRegistry {
+				if err := s.validateAppRegistry(ctx, app); err != nil {
+					logger.WithContext(ctx).WithError(err).Warn("app registry validation failed")
+					return nil
+				}
+			}
+			if contractHash := appContractHash(app); contractHash != "" {
+				if normalizeContractHash(event.Contract) != contractHash {
+					logger.WithContext(ctx).Warn("miniapp contract hash mismatch")
+					return nil
+				}
+			} else if s.requireManifestContract {
+				logger.WithContext(ctx).Warn("contract_hash missing; metric rejected")
+				return nil
+			}
+		default:
+			return nil
+		}
+		s.trackMiniAppTx(ctx, parsed.AppID, "", event)
+		if storeErr := s.storeContractEvent(ctx, event, &parsed.AppID, buildMetricState(parsed)); storeErr != nil {
+			logger.WithError(storeErr).Warn("failed to store metric contract event")
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) markNotificationProcessed(ctx context.Context, event *chain.ContractEvent, parsed *chain.MiniAppNotificationEvent) (bool, error) {
+	if s.repo == nil || event == nil || parsed == nil {
+		return true, nil
+	}
+
+	payload := map[string]interface{}{
+		"app_id":            parsed.AppID,
+		"title":             parsed.Title,
+		"content":           parsed.Content,
+		"notification_type": parsed.NotificationType,
+		"priority":          parsed.Priority,
+	}
+
+	processed := &neorequestsupabase.ProcessedEvent{
+		ChainID:         s.chainID,
+		TxHash:          event.TxHash,
+		LogIndex:        event.LogIndex,
+		BlockHeight:     event.BlockIndex,
+		BlockHash:       event.BlockHash,
+		ContractAddress: event.Contract,
+		EventName:       event.EventName,
+		Payload:         neorequestsupabase.MarshalParams(payload),
+	}
+
+	return s.repo.MarkProcessedEvent(ctx, processed)
+}
+
+func (s *Service) markGenericProcessed(ctx context.Context, event *chain.ContractEvent, payload map[string]interface{}) (bool, error) {
+	if s.repo == nil || event == nil {
+		return true, nil
+	}
+
+	processed := &neorequestsupabase.ProcessedEvent{
+		ChainID:         s.chainID,
+		TxHash:          event.TxHash,
+		LogIndex:        event.LogIndex,
+		BlockHeight:     event.BlockIndex,
+		BlockHash:       event.BlockHash,
+		ContractAddress: event.Contract,
+		EventName:       event.EventName,
+		Payload:         neorequestsupabase.MarshalParams(payload),
+	}
+
+	return s.repo.MarkProcessedEvent(ctx, processed)
+}
+
+func (s *Service) markMetricProcessed(ctx context.Context, event *chain.ContractEvent, parsed *chain.MiniAppMetricEvent) (bool, error) {
+	if s.repo == nil || event == nil || parsed == nil {
+		return true, nil
+	}
+
+	value := ""
+	if parsed.Value != nil {
+		value = parsed.Value.String()
+	}
+
+	payload := map[string]interface{}{
+		"app_id":      parsed.AppID,
+		"metric_name": parsed.MetricName,
+		"value":       value,
+	}
+
+	processed := &neorequestsupabase.ProcessedEvent{
+		ChainID:         s.chainID,
+		TxHash:          event.TxHash,
+		LogIndex:        event.LogIndex,
+		BlockHeight:     event.BlockIndex,
+		BlockHash:       event.BlockHash,
+		ContractAddress: event.Contract,
+		EventName:       event.EventName,
+		Payload:         neorequestsupabase.MarshalParams(payload),
+	}
+
+	return s.repo.MarkProcessedEvent(ctx, processed)
+}
+
+// teeScriptInfo represents a TEE script definition in the manifest.
+type teeScriptInfo struct {
+	File        string `json:"file"`
+	EntryPoint  string `json:"entry_point"`
+	Description string `json:"description,omitempty"`
+}
+
+type teeManifest struct {
+	TeeScripts map[string]teeScriptInfo `json:"tee_scripts"`
+}
+
+// loadTeeScript loads a TEE script from the app manifest by script name.
+func (s *Service) loadTeeScript(ctx context.Context, appID, scriptName string) (script, entryPoint string, err error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if s.scriptsURL == "" {
+		return "", "", fmt.Errorf("scripts base URL not configured")
+	}
+	if appID == "" {
+		return "", "", fmt.Errorf("app_id required")
+	}
+	if scriptName == "" {
+		return "", "", fmt.Errorf("script_name required")
+	}
+
+	// Fetch manifest
+	baseURL := strings.TrimSuffix(s.scriptsURL, "/")
+	manifestURL := teeAssetURL(baseURL, appID, "manifest.json")
+	manifestBody, err := s.fetchTeeAsset(ctx, manifestURL, maxTEEManifestBytes, "manifest")
+	if err != nil {
+		return "", "", err
+	}
+
+	var manifest teeManifest
+	if decodeErr := json.Unmarshal(manifestBody, &manifest); decodeErr != nil {
+		return "", "", fmt.Errorf("invalid manifest: %w", decodeErr)
+	}
+
+	scriptInfo, ok := manifest.TeeScripts[scriptName]
+	if !ok {
+		return "", "", fmt.Errorf("script %q not found in manifest", scriptName)
+	}
+	if scriptInfo.File == "" {
+		return "", "", fmt.Errorf("script %q has no file path", scriptName)
+	}
+
+	cleanFile, pathErr := sanitizeTEEScriptPath(scriptInfo.File)
+	if pathErr != nil {
+		return "", "", fmt.Errorf("script %q has invalid file path", scriptName)
+	}
+
+	// Fetch script content
+	scriptURL := teeAssetURL(baseURL, appID, cleanFile)
+	scriptBytes, err := s.fetchTeeAsset(ctx, scriptURL, maxTEEScriptBytes, "script")
+	if err != nil {
+		return "", "", err
+	}
+
+	entryPoint = scriptInfo.EntryPoint
+	if entryPoint == "" {
+		entryPoint = "main"
+	}
+
+	return string(scriptBytes), entryPoint, nil
+}
+
+func teeAssetURL(baseURL, appID, relPath string) string {
+	return fmt.Sprintf("%s/apps/%s/%s", baseURL, url.PathEscape(appID), strings.TrimPrefix(relPath, "/"))
+}
+
+func (s *Service) fetchTeeAsset(ctx context.Context, assetURL string, maxSize int64, assetType string) ([]byte, error) {
+	if s == nil || s.httpClient == nil {
+		return nil, fmt.Errorf("http client not configured")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create %s request: %w", assetType, err)
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch %s: %w", assetType, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s not found: %s", assetType, assetURL)
+	}
+
+	limitedReader := io.LimitReader(resp.Body, maxSize+1)
+	body, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %w", assetType, err)
+	}
+	if int64(len(body)) > maxSize {
+		return nil, fmt.Errorf("%s exceeds max size (%d bytes)", assetType, maxSize)
+	}
+
+	return body, nil
+}
+
+func sanitizeTEEScriptPath(raw string) (string, error) {
+	candidate := strings.TrimSpace(strings.ReplaceAll(raw, "\\", "/"))
+	switch {
+	case candidate == "":
+		return "", fmt.Errorf("path is empty")
+	case strings.ContainsRune(candidate, 0):
+		return "", fmt.Errorf("path contains null byte")
+	case strings.Contains(candidate, "%"):
+		return "", fmt.Errorf("path contains percent-encoding")
+	}
+
+	cleaned := path.Clean(candidate)
+	switch {
+	case cleaned == "." || cleaned == "..":
+		return "", fmt.Errorf("path resolves outside app directory")
+	case strings.HasPrefix(cleaned, "/"):
+		return "", fmt.Errorf("absolute paths are not allowed")
+	case strings.HasPrefix(cleaned, "../"):
+		return "", fmt.Errorf("path resolves outside app directory")
+	}
+
+	return cleaned, nil
+}

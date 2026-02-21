@@ -1,0 +1,61 @@
+# Docker build context ignore list.
+# Keeps enclave builds fast and avoids shipping local artifacts.
+
+.git
+.github
+.cache
+.Droid
+.vscode
+.idea
+
+# Local env / secrets
+.env
+.env.*
+secrets
+credentials
+keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# Build outputs
+bin
+dist
+dist-ssr
+coverage*
+*.out
+
+# Node / frontend artifacts (saves ~13 GB of build context)
+node_modules
+platform
+miniapps-uniapp
+miniapps
+frontend
+sdk
+examples
+pages
+
+# Documentation and reports
+docs
+reports
+
+# Local runtime artifacts
+/manifest-current.json
+/marble
+/gateway
+
+# Test and dev-only assets
+tmp
+snapshots
+test
+deploy/wallets
+
+# Tool / workspace state
+.claude
+.claude-flow
+.hive-mind
+.serena
+.trae
+.cursor

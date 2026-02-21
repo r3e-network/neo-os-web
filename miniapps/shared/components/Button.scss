@@ -1,0 +1,49 @@
+@import "../styles/theme.scss";
+
+.neo-btn {
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &-primary {
+    background: linear-gradient(135deg, $color-accent 0%, $color-accent-dark 100%);
+    color: $color-text-primary;
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+
+  &-secondary {
+    background: $color-bg-subtle;
+    color: $color-text-primary;
+    border: 1px solid $color-border-light;
+    &:hover:not(:disabled) {
+      background: $color-bg-subtle-hover;
+    }
+  }
+
+  &-danger {
+    background: linear-gradient(135deg, $color-danger 0%, $color-danger-dark 100%);
+    color: $color-text-primary;
+  }
+
+  &-small {
+    padding: 8px 16px;
+    font-size: 0.85em;
+  }
+  &-medium {
+    padding: 12px 24px;
+    font-size: 1em;
+  }
+  &-large {
+    padding: 16px 32px;
+    font-size: 1.1em;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

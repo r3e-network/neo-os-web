@@ -1,0 +1,101 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import type { ForumThread, ForumReply } from "./types";
+import { logger } from "@/lib/logger";
+
+interface UseForumOptions {
+  appId: string;
+  walletAddress?: string;
+}
+
+export function useForum({ appId, walletAddress }: UseForumOptions) {
+  const [threads, setThreads] = useState<ForumThread[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+
+  const fetchThreads = useCallback(
+    async (category?: string) => {
+      setLoading(true);
+      try {
+        const url = `/api/miniapps/${encodeURIComponent(appId)}/forum/threads${category ? `?category=${encodeURIComponent(category)}` : ""}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+        if (res.ok) {
+          const data = await res.json();
+          setThreads(data.threads);
+          setHasMore(data.hasMore);
+        }
+      } catch (err) {
+        logger.warn("Failed to fetch forum threads:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [appId],
+  );
+
+  const createThread = useCallback(
+    async (title: string, content: string, category: string): Promise<ForumThread | null> => {
+      if (!walletAddress) return null;
+      try {
+        const res = await fetch(`/api/miniapps/${appId}/forum/threads`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wallet: walletAddress, title, content, category }),
+          signal: AbortSignal.timeout(30000),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setThreads((prev) => [data.thread, ...prev]);
+          return data.thread;
+        }
+      } catch (err) {
+        logger.warn("Failed to create forum thread:", err);
+      }
+      return null;
+    },
+    [appId, walletAddress],
+  );
+
+  const fetchReplies = useCallback(
+    async (threadId: string): Promise<ForumReply[]> => {
+      try {
+        const res = await fetch(`/api/miniapps/${appId}/forum/${threadId}/replies`, {
+          signal: AbortSignal.timeout(30000),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return data.replies;
+        }
+      } catch (err) {
+        logger.warn("Failed to fetch forum replies:", err);
+      }
+      return [];
+    },
+    [appId],
+  );
+
+  const createReply = useCallback(
+    async (threadId: string, content: string): Promise<ForumReply | null> => {
+      if (!walletAddress) return null;
+      try {
+        const res = await fetch(`/api/miniapps/${appId}/forum/${threadId}/replies`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wallet: walletAddress, content }),
+          signal: AbortSignal.timeout(30000),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return data.reply;
+        }
+      } catch (err) {
+        logger.warn("Failed to create forum reply:", err);
+      }
+      return null;
+    },
+    [appId, walletAddress],
+  );
+
+  return { threads, loading, hasMore, fetchThreads, createThread, fetchReplies, createReply };
+}
