@@ -119,6 +119,11 @@ server
 marble-runner
 /marble
 /gateway
+/indexer
+/deploy-miniapps-live
+contracts/update-paymenthub
+coverage.html
+PLAN.md
 /manifest-current.json
 /enclave.json
 /enclave.*.json
