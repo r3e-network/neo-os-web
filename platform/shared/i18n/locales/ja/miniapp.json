@@ -1,0 +1,74 @@
+{
+  "common": {
+    "play": "プレイ",
+    "bet": "ベット",
+    "stake": "ステーク",
+    "unstake": "アンステーク",
+    "claim": "請求",
+    "withdraw": "出金",
+    "deposit": "入金",
+    "win": "勝利",
+    "lose": "敗北",
+    "draw": "引き分け",
+    "jackpot": "ジャックポット",
+    "prize": "賞金",
+    "pool": "プール",
+    "odds": "オッズ",
+    "multiplier": "倍率",
+    "round": "ラウンド",
+    "history": "履歴",
+    "leaderboard": "リーダーボード",
+    "rank": "ランク",
+    "player": "プレイヤー",
+    "reward": "報酬",
+    "yourBet": "あなたのベット",
+    "potentialWin": "予想勝利額",
+    "placeBet": "ベットする",
+    "cashOut": "キャッシュアウト",
+    "waiting": "結果を待っています...",
+    "gameOver": "ゲームオーバー",
+    "newGame": "新しいゲーム",
+    "rules": "ルール",
+    "howToPlay": "遊び方"
+  },
+  "coinFlip": {
+    "title": "コイントス",
+    "heads": "表",
+    "tails": "裏",
+    "flip": "コインを投げる",
+    "result": "結果"
+  },
+  "diceGame": {
+    "title": "サイコロゲーム",
+    "roll": "サイコロを振る",
+    "rollOver": "以上",
+    "rollUnder": "以下",
+    "target": "目標"
+  },
+  "lottery": {
+    "title": "宝くじ",
+    "buyTicket": "チケット購入",
+    "ticketNumber": "チケット番号",
+    "drawTime": "抽選時間",
+    "nextDraw": "次回抽選",
+    "prizePool": "賞金プール"
+  },
+  "scratchCard": {
+    "title": "スクラッチカード",
+    "scratch": "スクラッチ",
+    "reveal": "すべて表示",
+    "buyCard": "カード購入"
+  },
+  "tipping": {
+    "title": "開発者への投げ銭",
+    "tip": "チップ",
+    "tipAmount": "チップ金額",
+    "message": "メッセージ",
+    "tipperName": "お名前",
+    "anonymous": "匿名",
+    "topTippers": "トップサポーター",
+    "totalTips": "総チップ額",
+    "sendTip": "チップを送る",
+    "thankYou": "ご支援ありがとうございます！"
+  }
+}

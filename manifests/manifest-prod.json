@@ -1,0 +1,327 @@
+{
+  "Packages": {
+    "neofeeds": {
+      "SignerID": "d43ee04604c12cb85e39dddcbc90b0cf8371ea53c3f1610d5c814ab7d131decb",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    },
+    "neoflow": {
+      "SignerID": "30a57a3e36b781927ea518632d5b03049bdf7053941d00e1a1889932e4c23230",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    },
+    "neocompute": {
+      "SignerID": "111287bf5a32ef7dec5a7a834b10cd6b6555408e2389a68c64de093c8f7232b1",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    },
+    "neovrf": {
+      "SignerID": "a1fa1b5eca8cd8c85f88372da4cff2a9640ec0abd509dce21a9ea6b8b9c190cb",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    },
+    "neoaccounts": {
+      "SignerID": "cb02dc8075947abd9b5916924ed66f64a1c70f39eba21944b9a6b15c48d01d29",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    },
+    "neooracle": {
+      "SignerID": "763e623a6e6a86b1485698d2d67e0333c8fcfd34b697da3eeccd24c2f2b5c31a",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    },
+    "neorequests": {
+      "SignerID": "c0fe44ae4c33bd10377c4fd2ba02559bce786f5d037b3174d94ac5353433624a",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    },
+    "globalsigner": {
+      "SignerID": "7f15b361c53bd1518e34c4378dde6b353be8e39796935dfff542c0c3d0d5420d",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    },
+    "txproxy": {
+      "SignerID": "d54402d088568d201419f8b111b2bf1ee04742d47bdc7b96b28d8c527759bd36",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    },
+    "neogasbank": {
+      "SignerID": "2251fd761b43525c35968fe948956c972f298c4d0fe870912177d3ab6e3c8c4f",
+      "ProductID": 1,
+      "SecurityVersion": 1,
+      "Debug": false,
+      "AcceptedTCBStatuses": [
+        "UpToDate",
+        "SWHardeningNeeded"
+      ]
+    }
+  },
+  "Secrets": {
+    "POOL_MASTER_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "NEOFEEDS_SIGNING_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "NEOVRF_SIGNING_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "COMPUTE_MASTER_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "SECRETS_MASTER_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "TEE_PRIVATE_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "GLOBALSIGNER_MASTER_SEED": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    },
+    "POOL_ENCRYPTION_KEY": {
+      "Type": "symmetric-key",
+      "Size": 256,
+      "Shared": true
+    }
+  },
+  "Marbles": {
+    "neofeeds": {
+      "Package": "neofeeds",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neofeeds",
+          "SERVICE_TYPE": "neofeeds",
+          "NEOFEEDS_SIGNING_KEY": "{{ hex .Secrets.NEOFEEDS_SIGNING_KEY.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neoflow": {
+      "Package": "neoflow",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neoflow",
+          "SERVICE_TYPE": "neoflow",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neocompute": {
+      "Package": "neocompute",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neocompute",
+          "SERVICE_TYPE": "neocompute",
+          "COMPUTE_MASTER_KEY": "{{ hex .Secrets.COMPUTE_MASTER_KEY.Private }}",
+          "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neovrf": {
+      "Package": "neovrf",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neovrf",
+          "SERVICE_TYPE": "neovrf",
+          "NEOVRF_SIGNING_KEY": "{{ hex .Secrets.NEOVRF_SIGNING_KEY.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neoaccounts": {
+      "Package": "neoaccounts",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neoaccounts",
+          "SERVICE_TYPE": "neoaccounts",
+          "POOL_MASTER_KEY": "{{ hex .Secrets.POOL_MASTER_KEY.Private }}",
+          "POOL_ENCRYPTION_KEY": "{{ hex .Secrets.POOL_ENCRYPTION_KEY.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neooracle": {
+      "Package": "neooracle",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neooracle",
+          "SERVICE_TYPE": "neooracle",
+          "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
+          "ORACLE_HTTP_ALLOWLIST": "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neorequests": {
+      "Package": "neorequests",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neorequests",
+          "SERVICE_TYPE": "neorequests",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "globalsigner": {
+      "Package": "globalsigner",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "globalsigner",
+          "SERVICE_TYPE": "globalsigner",
+          "GLOBALSIGNER_MASTER_SEED": "{{ hex .Secrets.GLOBALSIGNER_MASTER_SEED.Private }}",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "txproxy": {
+      "Package": "txproxy",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "txproxy",
+          "SERVICE_TYPE": "txproxy",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    },
+    "neogasbank": {
+      "Package": "neogasbank",
+      "MaxActivations": 100,
+      "Parameters": {
+        "Argv": [
+          "./service"
+        ],
+        "Env": {
+          "EDG_MARBLE_TYPE": "neogasbank",
+          "SERVICE_TYPE": "neogasbank",
+          "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
+          "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
+          "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "MARBLE_EXTRA_CLIENT_CA": ""
+        }
+      }
+    }
+  }
+}

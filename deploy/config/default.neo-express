@@ -1,0 +1,93 @@
+{
+  "magic": 1987814503,
+  "address-version": 53,
+  "consensus-nodes": [
+    {
+      "tcp-port": 50013,
+      "rpc-port": 50012,
+      "wallet": {
+        "name": "node1",
+        "accounts": [
+          {
+            "private-key": "REDACTED_PRIVATE_KEY_PURGED_FROM_HISTORY",
+            "script-hash": "NMcirfMDP9g8QUUuJGE5wVahisbsyH9gs1",
+            "label": null,
+            "is-default": true,
+            "contract": {
+              "script": "0c2103e2bd1db0bfcce0a59b987f19fa02bd2ce35cd7c5fcc6897f5eecc31077c8cd184156e7b327",
+              "parameters": [
+                "Signature"
+              ]
+            }
+          },
+          {
+            "private-key": "REDACTED_PRIVATE_KEY_PURGED_FROM_HISTORY",
+            "script-hash": "NRUAWEFC7cStpruxfczDFwXvVHFzZYw9w9",
+            "label": "Consensus MultiSigContract",
+            "is-default": false,
+            "contract": {
+              "script": "110c2103e2bd1db0bfcce0a59b987f19fa02bd2ce35cd7c5fcc6897f5eecc31077c8cd1811419ed0dc3a",
+              "parameters": [
+                "Signature"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "wallets": [
+    {
+      "name": "owner",
+      "accounts": [
+        {
+          "private-key": "REDACTED_PRIVATE_KEY_PURGED_FROM_HISTORY",
+          "script-hash": "NVzj46vEpKCCvvb1UZdGv81j1UZfpiQGko",
+          "label": null,
+          "is-default": true,
+          "contract": {
+            "script": "0c2103b9d730300e576ed0f724846db84b600d84d549dc97a83ac1902f0d2d634e08ff4156e7b327",
+            "parameters": [
+              "Signature"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "tee",
+      "accounts": [
+        {
+          "private-key": "REDACTED_PRIVATE_KEY_PURGED_FROM_HISTORY",
+          "script-hash": "NWVqqqrGytj9siecJGZLXDzwnoyvMQLESr",
+          "label": null,
+          "is-default": true,
+          "contract": {
+            "script": "0c21031cd1cdf2ff5d1aafeacc709a4afdbb13cbf3615dda0f338e7db5b4c926bd81bd4156e7b327",
+            "parameters": [
+              "Signature"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "user",
+      "accounts": [
+        {
+          "private-key": "REDACTED_PRIVATE_KEY_PURGED_FROM_HISTORY",
+          "script-hash": "NYxaKTxQmjCUS3n97bShpba8D3ABb75CC4",
+          "label": null,
+          "is-default": true,
+          "contract": {
+            "script": "0c2103c37d0008a1486dae911ded1c3ff4f2b20af749ad0db4574a86739d4bb7219e334156e7b327",
+            "parameters": [
+              "Signature"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "settings": {}
+}

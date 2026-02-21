@@ -1,0 +1,54 @@
+import { Badge } from "@/components/ui/badge";
+import { SecretToken } from "@/lib/secrets";
+
+interface TokenListProps {
+  tokens: SecretToken[];
+  onRevoke: (id: string) => void;
+}
+
+export function TokenList({ tokens, onRevoke }: TokenListProps) {
+  if (tokens.length === 0) {
+    return <div className="py-6 text-center text-gray-500 dark:text-gray-400">No tokens created yet</div>;
+  }
+
+  return (
+    <ul className="space-y-3">
+      {tokens.map((token) => (
+        <li key={token.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-900 dark:text-white truncate" title={token.name}>{token.name}</span>
+              <StatusBadge status={token.status} />
+            </div>
+            <div className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate" title={`App: ${token.appName || token.appId}`}>App: {token.appName || token.appId}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Created: {formatDate(token.createdAt)}
+              {token.lastUsed && ` • Last used: ${formatDate(token.lastUsed)}`}
+            </div>
+          </div>
+
+          {token.status === "active" && (
+            <button type="button" onClick={() => onRevoke(token.id)} className="py-1 px-2 text-sm text-red-600 dark:text-red-400 hover:underline transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">
+              Revoke
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function StatusBadge({ status }: { status: SecretToken["status"] }) {
+  const variants: Record<SecretToken["status"], "default" | "secondary" | "destructive"> = {
+    active: "default",
+    expired: "secondary",
+    revoked: "destructive",
+  };
+
+  return <Badge variant={variants[status]}>{status}</Badge>;
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString();
+}

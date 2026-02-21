@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "check": "deno check --all functions/_shared/*.ts functions/*/index.ts",
+    "test": "deno test --allow-all functions/__tests__/*.ts"
+  }
+}

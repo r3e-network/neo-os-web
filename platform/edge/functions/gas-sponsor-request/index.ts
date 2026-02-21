@@ -1,0 +1,141 @@
+import { handleCorsPreflight } from "../_shared/cors.ts";
+import { readJsonBody } from "../_shared/request.ts";
+import { getEnv } from "../_shared/env.ts";
+import { error, json } from "../_shared/response.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
+import { requireScope } from "../_shared/scopes.ts";
+import { requireAuth, requirePrimaryWallet, supabaseServiceClient } from "../_shared/supabase.ts";
+import { getGasBalance } from "../_shared/neo-rpc.ts";
+import { transferGas } from "../_shared/txproxy.ts";
+
+const DAILY_LIMIT = parseFloat(getEnv("GAS_SPONSOR_DAILY_LIMIT") ?? "0.1");
+const MAX_PER_REQUEST = parseFloat(getEnv("GAS_SPONSOR_MAX_PER_REQUEST") ?? "0.05");
+const ELIGIBILITY_THRESHOLD = parseFloat(getEnv("GAS_SPONSOR_ELIGIBILITY_THRESHOLD") ?? "0.1");
+
+type RequestBody = {
+  amount: string;
+};
+
+export async function handler(req: Request): Promise<Response> {
+  const preflight = handleCorsPreflight(req);
+  if (preflight) return preflight;
+  if (req.method !== "POST") {
+    return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+  }
+
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+  const rl = await requireRateLimit(req, "gas-sponsor-request", auth);
+  if (rl) return rl;
+  const scopeCheck = requireScope(req, auth, "gas-sponsor-request");
+  if (scopeCheck) return scopeCheck;
+  const walletCheck = await requirePrimaryWallet(auth.userId, req);
+  if (walletCheck instanceof Response) return walletCheck;
+
+  const bodyOrErr = await readJsonBody<RequestBody>(req);
+  if (bodyOrErr instanceof Response) return bodyOrErr;
+  const body = bodyOrErr;
+
+  const amountStr = (body.amount ?? "0").trim();
+  if (!/^\d+(\.\d{1,8})?$/.test(amountStr)) {
+    return error(400, "amount must be a valid decimal string", "INVALID_AMOUNT", req);
+  }
+  // Compare as strings scaled to 8 decimal places to avoid floating-point loss
+  const parts = amountStr.split(".");
+  const intPart = parts[0] || "0";
+  const fracPart = (parts[1] || "").padEnd(8, "0").slice(0, 8);
+  const amountScaled = BigInt(intPart) * 100000000n + BigInt(fracPart);
+  if (amountScaled <= 0n) {
+    return error(400, "amount must be positive", "INVALID_AMOUNT", req);
+  }
+  const maxScaled = BigInt(Math.round(MAX_PER_REQUEST * 100000000));
+  if (amountScaled > maxScaled) {
+    return error(400, `max ${MAX_PER_REQUEST} GAS per request`, "AMOUNT_EXCEEDED", req);
+  }
+
+  const supabase = supabaseServiceClient();
+
+  // Query on-chain GAS balance first (no state mutation)
+  let balanceScaled = 0n;
+  try {
+    const balanceStr = await getGasBalance(walletCheck.address);
+    const bParts = balanceStr.split(".");
+    const bInt = bParts[0] || "0";
+    const bFrac = (bParts[1] || "").padEnd(8, "0").slice(0, 8);
+    if (!/^\d+$/.test(bInt) || !/^\d+$/.test(bFrac)) {
+      return error(500, "invalid balance format", "RPC_ERROR", req);
+    }
+    balanceScaled = BigInt(bInt) * 100000000n + BigInt(bFrac);
+  } catch (e) {
+    return error(500, "failed to query balance", "RPC_ERROR", req);
+  }
+
+  const eligibilityScaled = BigInt(Math.round(ELIGIBILITY_THRESHOLD * 100000000));
+  if (balanceScaled >= eligibilityScaled) {
+    return error(403, "not eligible - balance too high", "NOT_ELIGIBLE", req);
+  }
+
+  // Atomically bump quota and check limit in one RPC call.
+  // The DB function should enforce: used_amount + p_amount <= p_daily_limit,
+  // returning the new used_amount or raising an exception on overflow.
+  const { data: bumpResult, error: bumpErr } = await supabase.rpc("gas_sponsor_bump_quota", {
+    p_user_id: auth.userId,
+    p_amount: amountStr,
+    p_daily_limit: DAILY_LIMIT,
+  });
+  if (bumpErr) {
+    const msg = bumpErr.message || "";
+    if (msg.includes("quota") || msg.includes("limit") || msg.includes("exceeded")) {
+      return error(400, "exceeds daily quota", "QUOTA_EXCEEDED", req);
+    }
+    return error(500, "quota update failed", "DB_ERROR", req);
+  }
+
+  // Create request record
+  const requestId = crypto.randomUUID();
+  const { error: insertErr } = await supabase.from("gas_sponsor_requests").insert({
+    id: requestId,
+    user_id: auth.userId,
+    amount: amountStr,
+    status: "processing",
+  });
+
+  if (insertErr) {
+    return error(500, "request creation failed", "DB_ERROR", req);
+  }
+
+  // Execute GAS transfer via TxProxy
+  let txHash: string | null = null;
+  try {
+    const txResult = await transferGas(requestId, walletCheck.address, amountStr);
+    txHash = txResult.tx_hash || null;
+
+    // Update request status (best-effort; transfer already succeeded)
+    const { error: updErr } = await supabase.from("gas_sponsor_requests").update({ status: "completed", tx_hash: txHash }).eq("id", requestId);
+    if (updErr) console.error("gas-sponsor status update failed:", updErr.message);
+  } catch (e) {
+    // Update request as failed (best-effort)
+    const { error: failErr } = await supabase
+      .from("gas_sponsor_requests")
+      .update({ status: "failed", error_message: "transfer failed" })
+      .eq("id", requestId);
+    if (failErr) console.error("gas-sponsor failure status update failed:", failErr.message);
+
+    return error(500, "transfer failed", "TRANSFER_ERROR", req);
+  }
+
+  return json(
+    {
+      request_id: requestId,
+      amount: amountStr,
+      status: "completed",
+      tx_hash: txHash,
+    },
+    {},
+    req,
+  );
+}
+
+if (import.meta.main) {
+  Deno.serve(handler);
+}

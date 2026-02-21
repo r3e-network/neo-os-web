@@ -1,0 +1,74 @@
+{
+  "common": {
+    "play": "Play",
+    "bet": "Bet",
+    "stake": "Stake",
+    "unstake": "Unstake",
+    "claim": "Claim",
+    "withdraw": "Withdraw",
+    "deposit": "Deposit",
+    "win": "Win",
+    "lose": "Lose",
+    "draw": "Draw",
+    "jackpot": "Jackpot",
+    "prize": "Prize",
+    "pool": "Pool",
+    "odds": "Odds",
+    "multiplier": "Multiplier",
+    "round": "Round",
+    "history": "History",
+    "leaderboard": "Leaderboard",
+    "rank": "Rank",
+    "player": "Player",
+    "reward": "Reward",
+    "yourBet": "Your Bet",
+    "potentialWin": "Potential Win",
+    "placeBet": "Place Bet",
+    "cashOut": "Cash Out",
+    "waiting": "Waiting for result...",
+    "gameOver": "Game Over",
+    "newGame": "New Game",
+    "rules": "Rules",
+    "howToPlay": "How to Play"
+  },
+  "coinFlip": {
+    "title": "Coin Flip",
+    "heads": "Heads",
+    "tails": "Tails",
+    "flip": "Flip Coin",
+    "result": "Result"
+  },
+  "diceGame": {
+    "title": "Dice Game",
+    "roll": "Roll Dice",
+    "rollOver": "Roll Over",
+    "rollUnder": "Roll Under",
+    "target": "Target"
+  },
+  "lottery": {
+    "title": "Lottery",
+    "buyTicket": "Buy Ticket",
+    "ticketNumber": "Ticket Number",
+    "drawTime": "Draw Time",
+    "nextDraw": "Next Draw",
+    "prizePool": "Prize Pool"
+  },
+  "scratchCard": {
+    "title": "Scratch Card",
+    "scratch": "Scratch",
+    "reveal": "Reveal All",
+    "buyCard": "Buy Card"
+  },
+  "tipping": {
+    "title": "Developer Tipping",
+    "tip": "Tip",
+    "tipAmount": "Tip Amount",
+    "message": "Message",
+    "tipperName": "Your Name",
+    "anonymous": "Anonymous",
+    "topTippers": "Top Tippers",
+    "totalTips": "Total Tips",
+    "sendTip": "Send Tip",
+    "thankYou": "Thank you for your support!"
+  }
+}

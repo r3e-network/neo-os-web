@@ -1,0 +1,38 @@
+{
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "overview": "Overview",
+    "systemHealth": "System Health",
+    "serviceStatus": "Service Status"
+  },
+  "services": {
+    "title": "Services",
+    "all": "All Services",
+    "running": "Running",
+    "stopped": "Stopped",
+    "restart": "Restart Service",
+    "viewLogs": "View Logs",
+    "lastCheck": "Last Check"
+  },
+  "users": {
+    "title": "User Management",
+    "total": "Total Users",
+    "active": "Active Users",
+    "new": "New Users",
+    "manage": "Manage Users"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "pageViews": "Page Views",
+    "uniqueVisitors": "Unique Visitors",
+    "avgSession": "Avg Session Duration",
+    "bounceRate": "Bounce Rate"
+  },
+  "miniapps": {
+    "title": "MiniApp Management",
+    "registered": "Registered Apps",
+    "pending": "Pending Approval",
+    "approve": "Approve",
+    "reject": "Reject"
+  }
+}

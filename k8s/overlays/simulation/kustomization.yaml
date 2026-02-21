@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: service-layer
+
+resources:
+  - ../../base
+
+# Simulation mode patches
+patches:
+  - patch: |-
+      - op: replace
+        path: /data/OE_SIMULATION
+        value: "1"
+      - op: replace
+        path: /data/SUPABASE_URL
+        value: "http://postgrest.supabase.svc.cluster.local:3000"
+      - op: replace
+        path: /data/SUPABASE_REST_PREFIX
+        value: "/"
+      - op: replace
+        path: /data/SUPABASE_ALLOW_INSECURE
+        value: "true"
+    target:
+      kind: ConfigMap
+      name: service-layer-config
+
+labels:
+  - includeSelectors: true
+    includeTemplates: true
+    pairs:
+      environment: simulation
