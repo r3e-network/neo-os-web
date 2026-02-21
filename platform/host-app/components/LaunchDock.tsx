@@ -1,3 +1,4 @@
+import React from "react";
 import { WalletState } from "./types";
 
 export type LaunchDockProps = {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
@@ -91,6 +91,11 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
     tryConnectWallet();
   }, []);
+
+  const handleExit = useCallback(() => {
+    // Return to app detail page
+    router.push(`/miniapps/${app.app_id}`);
+  }, [router, app.app_id]);
 
   // ESC key handler
   useEffect(() => {
@@ -186,11 +191,6 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       iframe.removeEventListener("load", handleLoad);
     };
   }, [app.app_id, app.entry_url, app.permissions, federated]);
-
-  const handleExit = useCallback(() => {
-    // Return to app detail page
-    router.push(`/miniapps/${app.app_id}`);
-  }, [router, app.app_id]);
 
   const handleShare = useCallback(() => {
     const url = `${window.location.origin}/launch/${app.app_id}`;

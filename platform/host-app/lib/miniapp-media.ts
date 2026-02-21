@@ -30,17 +30,6 @@ function normalizeSlug(value: string): string {
   return value.trim().replace(/^\/+|\/+$/g, "");
 }
 
-function resolveAssetBases(entryURL?: string | null): string[] {
-  const url = toNonEmptyString(entryURL).toLowerCase();
-  if (url.includes("/miniapp-assets/")) {
-    return ["/miniapp-assets", "/miniapps"];
-  }
-  if (url.includes("/miniapps/")) {
-    return ["/miniapps", "/miniapp-assets"];
-  }
-  return ["/miniapps", "/miniapp-assets"];
-}
-
 export function resolveMiniAppSlug(appID?: string | null, entryURL?: string | null): string {
   const url = toNonEmptyString(entryURL);
   if (url) {
@@ -69,29 +58,18 @@ export function getMiniAppPrimaryAssets(appID?: string | null, entryURL?: string
 }
 
 export function buildMiniAppLogoSources(options: MediaOptions): string[] {
-  const slug = resolveMiniAppSlug(options.appID, options.entryURL);
   const primary = getMiniAppPrimaryAssets(options.appID, options.entryURL);
-  const bases = resolveAssetBases(options.entryURL);
-
   return unique([
     options.logoURL,
     primary.logoURL,
-    ...(slug ? bases.map((base) => `${base}/${slug}/logo.jpg`) : []),
-    ...(slug ? bases.map((base) => `${base}/${slug}/static/logo.png`) : []),
-    ...(slug ? bases.map((base) => `${base}/${slug}/static/icon.svg`) : []),
   ]);
 }
 
 export function buildMiniAppBannerSources(options: MediaOptions): string[] {
-  const slug = resolveMiniAppSlug(options.appID, options.entryURL);
   const primary = getMiniAppPrimaryAssets(options.appID, options.entryURL);
-  const bases = resolveAssetBases(options.entryURL);
-
   return unique([
     options.bannerURL,
     primary.bannerURL,
-    ...(slug ? bases.map((base) => `${base}/${slug}/banner.jpg`) : []),
-    ...(slug ? bases.map((base) => `${base}/${slug}/static/banner.svg`) : []),
   ]);
 }
 

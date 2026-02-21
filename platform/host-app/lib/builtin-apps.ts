@@ -570,6 +570,149 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
     icon: "📊",
     category: "governance",
     entry_url: "/miniapps/prediction-market/",
+    detail_template: {
+      layout: "prediction",
+      hero: {
+        eyebrow: "Prediction Market",
+        disclaimer: "Prices imply probabilities, not guarantees.",
+      },
+      tabs: [
+        {
+          id: "market-overview",
+          label: "Market Info",
+          type: "content",
+          blocks: [
+            {
+              type: "notice",
+              tone: "info",
+              content: "Settle time and oracle rules decide final market resolution.",
+            },
+            {
+              type: "key_value",
+              title: "Market Facts",
+              items: [
+                { key: "Market Type", value: "Binary outcome" },
+                { key: "Quote Asset", value: "GAS" },
+                { key: "Settlement", value: "Oracle verified" },
+              ],
+            },
+            {
+              type: "bullet_list",
+              title: "How To Trade",
+              items: [
+                "Pick YES or NO based on your expected outcome.",
+                "Set stake amount and submit your position.",
+                "Close your position any time before market close.",
+              ],
+            },
+          ],
+        },
+        { id: "reviews", label: "Reviews", type: "reviews" },
+        { id: "forum", label: "Comments", type: "forum" },
+        { id: "news", label: "Activity", type: "news" },
+      ],
+      operation_panel: {
+        title: "Trade Position",
+        subtitle: "Configure side and stake, then submit an on-chain transaction.",
+        cta_label: "Open Full Experience",
+        operations: [
+          {
+            name: "Buy Position",
+            method: "buyPosition",
+            description: "Open a YES or NO position with the selected stake.",
+            button_style: "primary",
+            params: [
+              {
+                name: "side",
+                type: "select",
+                label: "Side",
+                required: true,
+                options: [
+                  { label: "YES", value: "yes" },
+                  { label: "NO", value: "no" },
+                ],
+              },
+              {
+                name: "stake",
+                type: "amount",
+                label: "Stake (GAS)",
+                required: true,
+                placeholder: "10",
+              },
+            ],
+          },
+          {
+            name: "Sell Position",
+            method: "sellPosition",
+            description: "Exit an open position before market settlement.",
+            button_style: "secondary",
+            params: [
+              {
+                name: "position_id",
+                type: "string",
+                label: "Position ID",
+                required: true,
+              },
+              {
+                name: "amount",
+                type: "amount",
+                label: "Amount",
+                required: true,
+                placeholder: "5",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    operations: [
+      {
+        name: "Buy Position",
+        method: "buyPosition",
+        description: "Open a YES or NO position with the selected stake.",
+        button_style: "primary",
+        params: [
+          {
+            name: "side",
+            type: "select",
+            label: "Side",
+            required: true,
+            options: [
+              { label: "YES", value: "yes" },
+              { label: "NO", value: "no" },
+            ],
+          },
+          {
+            name: "stake",
+            type: "amount",
+            label: "Stake (GAS)",
+            required: true,
+            placeholder: "10",
+          },
+        ],
+      },
+      {
+        name: "Sell Position",
+        method: "sellPosition",
+        description: "Exit an open position before market settlement.",
+        button_style: "secondary",
+        params: [
+          {
+            name: "position_id",
+            type: "string",
+            label: "Position ID",
+            required: true,
+          },
+          {
+            name: "amount",
+            type: "amount",
+            label: "Amount",
+            required: true,
+            placeholder: "5",
+          },
+        ],
+      },
+    ],
     permissions: { payments: true, datafeed: true },
   },
   {
@@ -699,4 +842,3 @@ export const BUILTIN_APPS_MAP: Record<string, MiniAppInfo> = Object.fromEntries(
 export function getBuiltinApp(appId: string): MiniAppInfo | undefined {
   return BUILTIN_APPS_MAP[appId];
 }
-

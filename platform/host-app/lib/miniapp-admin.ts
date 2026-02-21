@@ -1,0 +1,615 @@
+import crypto from "crypto";
+import type { MiniAppCategory, MiniAppDetailTemplate, MiniAppInfo } from "@/components/types";
+import { normalizeCategory, normalizePermissions, normalizeStatus } from "./miniapp";
+import { coerceOperationEntries, resolveMiniAppDetailConfig } from "./miniapp-template";
+
+type Dict = Record<string, unknown>;
+
+const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const CONTRACT_HASH_REGEX = /^0x[0-9a-fA-F]{40}$/;
+const PUBKEY_REGEX = /^(?:0x)?[0-9a-fA-F]+$/;
+
+const STAT_KEY_ALIASES: Record<string, string> = {
+  tx_count: "total_transactions",
+  gas_burned: "total_gas_used",
+  gas_consumed: "total_gas_used",
+};
+
+const ALLOWED_STAT_KEYS = new Set([
+  "total_transactions",
+  "total_users",
+  "total_gas_used",
+  "total_gas_earned",
+  "daily_active_users",
+  "weekly_active_users",
+  "last_activity_at",
+]);
+
+export type MiniAppBlueprint = "default" | "prediction";
+export type MiniAppAdminAction = "save_draft" | "publish" | "disable";
+
+type ExistingMiniAppRow = {
+  app_id?: string;
+  name?: string | null;
+  description?: string | null;
+  icon?: string | null;
+  category?: string | null;
+  entry_url?: string | null;
+  contract_hash?: string | null;
+  status?: string | null;
+  permissions?: Record<string, unknown> | null;
+  limits?: Record<string, unknown> | null;
+  logo_url?: string | null;
+  banner_url?: string | null;
+  docs_url?: string | null;
+  developer_user_id?: string | null;
+  developer_pubkey?: string | null;
+  assets_allowed?: string[] | null;
+  governance_assets_allowed?: string[] | null;
+  manifest?: Record<string, unknown> | null;
+};
+
+export type MiniAppUpsertRow = {
+  app_id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: MiniAppCategory;
+  entry_url: string;
+  contract_hash: string | null;
+  status: "active" | "pending" | "disabled";
+  permissions: MiniAppInfo["permissions"];
+  limits: MiniAppInfo["limits"];
+  logo_url: string | null;
+  banner_url: string | null;
+  docs_url: string | null;
+  developer_user_id: string;
+  developer_pubkey: string;
+  assets_allowed: string[];
+  governance_assets_allowed: string[];
+  manifest_hash: string;
+  manifest: Record<string, unknown>;
+};
+
+export type NormalizeMiniAppAdminPayloadResult =
+  | {
+      ok: true;
+      action: MiniAppAdminAction;
+      blueprint: MiniAppBlueprint;
+      row: MiniAppUpsertRow;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+type NormalizeMiniAppAdminPayloadOptions = {
+  existing?: ExistingMiniAppRow | null;
+  actor?: string;
+  defaultDeveloperUserId?: string;
+};
+
+type MiniAppBlueprintMetadata = {
+  id: MiniAppBlueprint;
+  label: string;
+  description: string;
+  layout: MiniAppDetailTemplate["layout"];
+  tab_types: string[];
+  starter: Record<string, unknown>;
+};
+
+function asObject(value: unknown): Dict {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Dict;
+}
+
+function asString(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  return String(value);
+}
+
+function asTrimmedString(value: unknown): string {
+  return asString(value).trim();
+}
+
+function asOptionalBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+}
+
+function toIsoNow(): string {
+  return new Date().toISOString();
+}
+
+function normalizeAppId(value: unknown): string | null {
+  const appId = asTrimmedString(value).toLowerCase();
+  if (!appId || !APP_ID_REGEX.test(appId)) return null;
+  return appId;
+}
+
+function normalizeEntryUrl(value: unknown): string | null {
+  const raw = asTrimmedString(value);
+  if (!raw) return null;
+
+  if (raw.startsWith("mf://")) {
+    return raw;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeOptionalUrl(value: unknown): string | null {
+  const raw = asTrimmedString(value);
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeContractHash(value: unknown): string | null {
+  const raw = asTrimmedString(value);
+  if (!raw) return null;
+  if (!CONTRACT_HASH_REGEX.test(raw)) return null;
+  return raw.toLowerCase();
+}
+
+function normalizeDeveloperPubkey(value: unknown): string | null {
+  const raw = asTrimmedString(value);
+  if (!raw) return "";
+  if (!PUBKEY_REGEX.test(raw)) return null;
+  return raw.toLowerCase().replace(/^0x/, "");
+}
+
+function normalizeLifecycleAction(value: unknown): MiniAppAdminAction | null {
+  const raw = asTrimmedString(value).toLowerCase();
+  if (raw === "publish") return "publish";
+  if (raw === "disable") return "disable";
+  if (raw === "draft" || raw === "save_draft") return "save_draft";
+  return null;
+}
+
+function resolveStatus(action: MiniAppAdminAction | null, statusValue: unknown, fallback: unknown): {
+  status: "active" | "pending" | "disabled";
+  action: MiniAppAdminAction;
+} {
+  if (action === "publish") return { status: "active", action };
+  if (action === "disable") return { status: "disabled", action };
+  if (action === "save_draft") return { status: "pending", action };
+
+  const normalized = normalizeStatus(statusValue, normalizeStatus(fallback));
+  if (normalized === "active") return { status: "active", action: "publish" };
+  if (normalized === "disabled") return { status: "disabled", action: "disable" };
+  return { status: "pending", action: "save_draft" };
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const out = value.map((item) => asTrimmedString(item)).filter(Boolean);
+  return Array.from(new Set(out));
+}
+
+function normalizeAssetsAllowed(value: unknown, fallback: unknown, expected: string): string[] | null {
+  const raw = normalizeStringArray(value);
+  const fallbackRaw = normalizeStringArray(fallback);
+  const candidate = raw.length > 0 ? raw : fallbackRaw.length > 0 ? fallbackRaw : [expected];
+  const normalized = Array.from(new Set(candidate.map((item) => item.toUpperCase())));
+  if (!normalized.length) return [expected];
+  if (normalized.some((item) => item !== expected)) return null;
+  return [expected];
+}
+
+function normalizeLimits(value: unknown, fallback?: MiniAppInfo["limits"] | null): MiniAppInfo["limits"] {
+  const raw = asObject(value);
+  const out: MiniAppInfo["limits"] = {};
+
+  const maxGas = asTrimmedString(raw.max_gas_per_tx ?? fallback?.max_gas_per_tx);
+  if (maxGas) out.max_gas_per_tx = maxGas;
+
+  const dailyGas = asTrimmedString(raw.daily_gas_cap_per_user ?? fallback?.daily_gas_cap_per_user);
+  if (dailyGas) out.daily_gas_cap_per_user = dailyGas;
+
+  const governanceCap = asTrimmedString(raw.governance_cap ?? fallback?.governance_cap);
+  if (governanceCap) out.governance_cap = governanceCap;
+
+  return out;
+}
+
+function normalizeStatsDisplay(value: unknown, fallback?: unknown): string[] | null {
+  const list = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : Array.isArray(fallback)
+        ? fallback
+        : typeof fallback === "string"
+          ? String(fallback).split(",")
+          : [];
+
+  const normalized = list
+    .map((item) => asTrimmedString(item).toLowerCase())
+    .filter(Boolean)
+    .map((key) => STAT_KEY_ALIASES[key] ?? key)
+    .filter((key) => ALLOWED_STAT_KEYS.has(key));
+
+  if (!normalized.length) return null;
+  return Array.from(new Set(normalized));
+}
+
+function buildDefaultTemplate(): MiniAppDetailTemplate {
+  return {
+    layout: "default",
+    tabs: [
+      { id: "overview", label: "Overview", type: "content" },
+      { id: "reviews", label: "Reviews", type: "reviews" },
+      { id: "forum", label: "Forum", type: "forum" },
+      { id: "news", label: "News", type: "news" },
+    ],
+    operation_panel: {
+      title: "Operations",
+      subtitle: "Configure parameters and submit the transaction.",
+      cta_label: "Launch App",
+      operations: [],
+    },
+  };
+}
+
+function buildPredictionTemplate(): MiniAppDetailTemplate {
+  return {
+    layout: "prediction",
+    hero: {
+      eyebrow: "Prediction Market",
+      disclaimer: "Probabilities are market-implied and can change quickly.",
+    },
+    tabs: [
+      { id: "market-info", label: "Market Info", type: "content" },
+      { id: "reviews", label: "Reviews", type: "reviews" },
+      { id: "forum", label: "Comments", type: "forum" },
+      { id: "news", label: "Activity", type: "news" },
+    ],
+    operation_panel: {
+      title: "Trade Position",
+      subtitle: "Choose side, set amount, and submit on-chain.",
+      cta_label: "Open Full Experience",
+      operations: [],
+    },
+  };
+}
+
+function getBlueprintTemplate(blueprint: MiniAppBlueprint): MiniAppDetailTemplate {
+  if (blueprint === "prediction") return buildPredictionTemplate();
+  return buildDefaultTemplate();
+}
+
+function normalizeBlueprint(value: unknown): MiniAppBlueprint {
+  const raw = asTrimmedString(value).toLowerCase();
+  if (raw === "prediction" || raw === "prediction_market" || raw === "market") {
+    return "prediction";
+  }
+  return "default";
+}
+
+function cleanForManifest(value: unknown): unknown {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => cleanForManifest(item)).filter((item) => item !== undefined);
+  }
+
+  const out: Dict = {};
+  for (const [key, nestedValue] of Object.entries(value as Dict)) {
+    const cleaned = cleanForManifest(nestedValue);
+    if (cleaned !== undefined) out[key] = cleaned;
+  }
+  return out;
+}
+
+function stableSort(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map((item) => stableSort(item));
+
+  const out: Dict = {};
+  for (const key of Object.keys(value as Dict).sort()) {
+    const next = stableSort((value as Dict)[key]);
+    if (next !== undefined) out[key] = next;
+  }
+  return out;
+}
+
+export function computeManifestHashHex(manifest: Record<string, unknown>): string {
+  const stable = stableSort(cleanForManifest(manifest));
+  return crypto.createHash("sha256").update(JSON.stringify(stable)).digest("hex");
+}
+
+export function listMiniAppBlueprints(): MiniAppBlueprintMetadata[] {
+  return [
+    {
+      id: "default",
+      label: "Default",
+      description: "General miniapp layout with overview/reviews/forum/news and operations panel.",
+      layout: "default",
+      tab_types: ["content", "reviews", "forum", "news"],
+      starter: {
+        blueprint: "default",
+        action: "save_draft",
+        permissions: {
+          payments: true,
+        },
+        limits: {
+          max_gas_per_tx: "10",
+          daily_gas_cap_per_user: "100",
+        },
+        manifest: {
+          page_template: buildDefaultTemplate(),
+          operations: [],
+        },
+      },
+    },
+    {
+      id: "prediction",
+      label: "Prediction",
+      description: "Polymarket-style layout with market info/commentary on left and trade box on right.",
+      layout: "prediction",
+      tab_types: ["content", "reviews", "forum", "news"],
+      starter: {
+        blueprint: "prediction",
+        action: "save_draft",
+        permissions: {
+          payments: true,
+          datafeed: true,
+        },
+        limits: {
+          max_gas_per_tx: "10",
+          daily_gas_cap_per_user: "100",
+        },
+        manifest: {
+          page_template: buildPredictionTemplate(),
+          operations: [
+            {
+              name: "Buy Position",
+              method: "buyPosition",
+              button_style: "primary",
+              params: [
+                {
+                  name: "side",
+                  type: "select",
+                  required: true,
+                  options: [
+                    { label: "YES", value: "yes" },
+                    { label: "NO", value: "no" },
+                  ],
+                },
+                { name: "amount", type: "amount", required: true, placeholder: "10" },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  ];
+}
+
+function mergeContentFields(base: Dict, content: Dict): Dict {
+  const next = { ...base };
+  const mappings: Array<[string, string]> = [
+    ["description", "description"],
+    ["icon", "icon"],
+    ["logo_url", "logo_url"],
+    ["banner_url", "banner_url"],
+    ["docs_url", "docs_url"],
+    ["category", "category"],
+  ];
+
+  for (const [target, source] of mappings) {
+    if (content[source] !== undefined) {
+      next[target] = content[source];
+    }
+  }
+
+  return next;
+}
+
+export function normalizeMiniAppAdminPayload(
+  raw: unknown,
+  options: NormalizeMiniAppAdminPayloadOptions = {},
+): NormalizeMiniAppAdminPayloadResult {
+  const obj = asObject(raw);
+  const existing = options.existing || null;
+  const existingManifest = asObject(existing?.manifest);
+  const incomingManifest = asObject(obj.manifest);
+  const content = asObject(obj.content);
+  const mergedInput = mergeContentFields({ ...existingManifest, ...incomingManifest, ...obj }, content);
+
+  const appId = normalizeAppId(mergedInput.app_id ?? existing?.app_id);
+  if (!appId) {
+    return { ok: false, error: "Invalid app_id format" };
+  }
+
+  const entryUrl = normalizeEntryUrl(mergedInput.entry_url ?? existing?.entry_url);
+  if (!entryUrl) {
+    return { ok: false, error: "Invalid entry_url (must be http/https or mf://)" };
+  }
+
+  const name = asTrimmedString(mergedInput.name ?? existing?.name ?? appId);
+  if (!name) {
+    return { ok: false, error: "name is required" };
+  }
+
+  const contractHashInput = mergedInput.contract_hash ?? existing?.contract_hash;
+  const contractHash = normalizeContractHash(contractHashInput);
+  if (asTrimmedString(contractHashInput) && !contractHash) {
+    return { ok: false, error: "Invalid contract_hash format" };
+  }
+
+  const category = normalizeCategory(mergedInput.category ?? existing?.category);
+  const icon = asTrimmedString(mergedInput.icon ?? existing?.icon ?? "🧩") || "🧩";
+  const description = asTrimmedString(mergedInput.description ?? existing?.description ?? "");
+
+  const logoUrlValue = mergedInput.logo_url ?? existing?.logo_url;
+  const bannerUrlValue = mergedInput.banner_url ?? existing?.banner_url;
+  const docsUrlValue = mergedInput.docs_url ?? existing?.docs_url;
+
+  const logoUrl = normalizeOptionalUrl(logoUrlValue);
+  if (asTrimmedString(logoUrlValue) && !logoUrl) {
+    return { ok: false, error: "Invalid logo_url" };
+  }
+  const bannerUrl = normalizeOptionalUrl(bannerUrlValue);
+  if (asTrimmedString(bannerUrlValue) && !bannerUrl) {
+    return { ok: false, error: "Invalid banner_url" };
+  }
+  const docsUrl = normalizeOptionalUrl(docsUrlValue);
+  if (asTrimmedString(docsUrlValue) && !docsUrl) {
+    return { ok: false, error: "Invalid docs_url" };
+  }
+
+  const actionInput = normalizeLifecycleAction(mergedInput.action);
+  const resolvedLifecycle = resolveStatus(actionInput, mergedInput.status, existing?.status);
+
+  const assetsAllowed = normalizeAssetsAllowed(
+    mergedInput.assets_allowed,
+    existing?.assets_allowed ?? existingManifest.assets_allowed,
+    "GAS",
+  );
+  if (!assetsAllowed) {
+    return { ok: false, error: "assets_allowed must contain only GAS" };
+  }
+
+  const governanceAssetsAllowed = normalizeAssetsAllowed(
+    mergedInput.governance_assets_allowed,
+    existing?.governance_assets_allowed ?? existingManifest.governance_assets_allowed,
+    "BNEO",
+  );
+  if (!governanceAssetsAllowed) {
+    return { ok: false, error: "governance_assets_allowed must contain only BNEO" };
+  }
+
+  const fallbackPermissions = normalizePermissions(existing?.permissions ?? existingManifest.permissions);
+  const permissions = normalizePermissions(mergedInput.permissions ?? existingManifest.permissions, fallbackPermissions);
+  const limits = normalizeLimits(mergedInput.limits ?? existingManifest.limits, existing?.limits ?? null);
+
+  const developerUserId = asTrimmedString(
+    mergedInput.developer_user_id ?? existing?.developer_user_id ?? options.defaultDeveloperUserId,
+  );
+  if (!UUID_REGEX.test(developerUserId)) {
+    return { ok: false, error: "developer_user_id is required and must be a UUID" };
+  }
+
+  const developerPubkey = normalizeDeveloperPubkey(mergedInput.developer_pubkey ?? existing?.developer_pubkey ?? "");
+  if (developerPubkey === null) {
+    return { ok: false, error: "Invalid developer_pubkey format" };
+  }
+
+  const blueprint = normalizeBlueprint(mergedInput.blueprint ?? mergedInput.template ?? existingManifest.blueprint);
+  const blueprintTemplate = getBlueprintTemplate(blueprint);
+
+  const detailConfig = resolveMiniAppDetailConfig(
+    {
+      manifest: {
+        ...existingManifest,
+        ...incomingManifest,
+      },
+      detail_template: mergedInput.detail_template ?? mergedInput.page_template ?? mergedInput.page_config,
+      operations: mergedInput.operations,
+      operation_schema: mergedInput.operation_schema,
+      operation_panel: mergedInput.operation_panel,
+    },
+    {
+      detailTemplate: blueprintTemplate,
+      operations: coerceOperationEntries(existingManifest.operations),
+      manifest: existingManifest,
+    },
+  );
+
+  const detailTemplate = detailConfig.detailTemplate || blueprintTemplate;
+  const operations = detailConfig.operations.length > 0
+    ? detailConfig.operations
+    : coerceOperationEntries(mergedInput.operations ?? mergedInput.operation_schema);
+
+  const statsDisplay = normalizeStatsDisplay(
+    mergedInput.stats_display,
+    existingManifest.stats_display,
+  );
+  const newsIntegration = asOptionalBoolean(mergedInput.news_integration ?? existingManifest.news_integration);
+
+  const manifest = cleanForManifest({
+    ...existingManifest,
+    ...incomingManifest,
+    app_id: appId,
+    name,
+    description,
+    icon,
+    category,
+    entry_url: entryUrl,
+    contract_hash: contractHash || undefined,
+    permissions,
+    limits,
+    assets_allowed: assetsAllowed,
+    governance_assets_allowed: governanceAssetsAllowed,
+    news_integration: newsIntegration,
+    stats_display: statsDisplay || undefined,
+    detail_template: detailTemplate,
+    page_template: detailTemplate,
+    operations,
+    logo_url: logoUrl || undefined,
+    banner_url: bannerUrl || undefined,
+    docs_url: docsUrl || undefined,
+    admin: {
+      blueprint,
+      action: resolvedLifecycle.action,
+      updated_at: toIsoNow(),
+      actor: options.actor || undefined,
+      schema_version: "2026-02-21",
+    },
+  }) as Record<string, unknown>;
+
+  const manifestHash = computeManifestHashHex(manifest);
+
+  const row: MiniAppUpsertRow = {
+    app_id: appId,
+    name,
+    description,
+    icon,
+    category,
+    entry_url: entryUrl,
+    contract_hash: contractHash,
+    status: resolvedLifecycle.status,
+    permissions,
+    limits,
+    logo_url: logoUrl,
+    banner_url: bannerUrl,
+    docs_url: docsUrl,
+    developer_user_id: developerUserId,
+    developer_pubkey: developerPubkey,
+    assets_allowed: assetsAllowed,
+    governance_assets_allowed: governanceAssetsAllowed,
+    manifest_hash: manifestHash,
+    manifest,
+  };
+
+  return {
+    ok: true,
+    action: resolvedLifecycle.action,
+    blueprint,
+    row,
+  };
+}

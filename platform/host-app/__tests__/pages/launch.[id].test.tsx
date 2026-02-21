@@ -148,12 +148,10 @@ describe("LaunchPage", () => {
     it("should render iframe with fullscreen styles", async () => {
       await renderLaunchPage();
       const iframe = document.querySelector("iframe");
-      expect(iframe).toHaveStyle({
-        position: "absolute",
-        top: "48px",
-        width: "100vw",
-        height: "calc(100vh - 48px)",
-      });
+      expect(iframe?.className).toContain("absolute");
+      expect(iframe?.className).toContain("top-12");
+      expect(iframe?.className).toContain("w-screen");
+      expect(iframe?.className).toContain("h-[calc(100vh-48px)]");
     });
   });
 
@@ -162,7 +160,10 @@ describe("LaunchPage", () => {
       await renderLaunchPage();
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith("/api/health", { method: "HEAD" });
+        expect(mockFetch).toHaveBeenCalledWith(
+          "/api/health",
+          expect.objectContaining({ method: "HEAD", signal: expect.any(Object) }),
+        );
       });
     });
 
@@ -438,7 +439,10 @@ describe("getServerSideProps", () => {
     expect(result).toHaveProperty("props");
     expect((result as any).props.app.app_id).toBe("test-app");
     expect((result as any).props.app.name).toBe("Test App");
-    expect(global.fetch).toHaveBeenCalledWith("http://localhost:3000/api/miniapps/catalog?app_id=test-app");
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:3000/api/miniapps/catalog?app_id=test-app",
+      expect.objectContaining({ signal: expect.any(Object) }),
+    );
   });
 
   it("should return 404 for non-existent app_id", async () => {

@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const appId = String(req.query.app_id || "").trim();
 
   try {
-    const catalog = await loadMiniAppCatalog(status);
+    const catalog = await loadMiniAppCatalog(status, { includeManifest: Boolean(appId) });
     if (appId) {
       const app = filterCatalogByAppId(catalog, appId);
       if (!app) {

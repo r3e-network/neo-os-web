@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -10,9 +10,13 @@ import {
   AppStatsCard,
   AppNewsList,
   OperationPanel,
+  MiniAppContentBlock,
+  MiniAppDetailTab,
+  MiniAppDetailTabType,
 } from "../../components";
-import type { OperationEntry } from "../../components/types";
+import type { OperationEntry, OperationParam } from "../../components/types";
 import { ActivityTicker } from "../../components/ActivityTicker";
+import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
 import { AppSecretsTab } from "../../components/features/secrets/AppSecretsTab";
 import { ReviewsTab } from "../../components/features/reviews";
 import { ForumTab } from "../../components/features/forum";
@@ -21,6 +25,8 @@ import { coerceMiniAppInfo } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { getBuiltinApp } from "../../lib/builtin-apps";
 import { logger } from "../../lib/logger";
+import type { InvokeParams } from "../../lib/wallet/adapters/base";
+import { getWalletAdapter, useWalletStore } from "../../lib/wallet/store";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -44,6 +50,13 @@ type StatCardConfig = {
 
 type RequestLike = {
   headers?: Record<string, string | string[] | undefined>;
+};
+
+type ResolvedTab = {
+  id: string;
+  label: string;
+  type: MiniAppDetailTabType;
+  blocks: MiniAppContentBlock[];
 };
 
 const DEFAULT_STATS_DISPLAY = ["total_transactions", "daily_active_users", "total_gas_used", "weekly_active_users"];
@@ -100,7 +113,15 @@ export type AppDetailPageProps = {
 
 export default function MiniAppDetailPage({ app, stats, notifications, error }: AppDetailPageProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "reviews" | "forum" | "news" | "secrets">("overview");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [invokeFeedback, setInvokeFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const walletConnected = useWalletStore((state) => state.connected);
+  const walletAddress = useWalletStore((state) => state.address);
+
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
 
@@ -110,6 +131,24 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     pollInterval: 5000,
     enabled: Boolean(app?.app_id),
   });
+
+  const tabs = useMemo(
+    () => buildDetailTabs(app?.detail_template?.tabs ?? [], showNews, showSecrets),
+    [app?.detail_template?.tabs, showNews, showSecrets],
+  );
+
+  const operations = useMemo(() => {
+    const panelOps = app?.detail_template?.operation_panel?.operations;
+    if (Array.isArray(panelOps) && panelOps.length > 0) return panelOps;
+    return Array.isArray(app?.operations) ? app.operations : [];
+  }, [app?.detail_template?.operation_panel?.operations, app?.operations]);
+
+  useEffect(() => {
+    if (!tabs.length) return;
+    if (!tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [activeTab, tabs]);
 
   if (error || !app) {
     return (
@@ -131,6 +170,8 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     );
   }
 
+  const activeTabConfig = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
+
   const handleBack = () => {
     router.push("/miniapps");
   };
@@ -139,22 +180,79 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     router.push(`/launch/${app.app_id}`);
   };
 
+  const handleInvoke = useCallback(async (operation: OperationEntry, values: Record<string, string>) => {
+    setInvokeFeedback(null);
+    try {
+      if (!app.contract_hash) {
+        throw new Error("Contract hash is not configured for this miniapp.");
+      }
+      if (!walletConnected) {
+        throw new Error("Connect wallet before sending transactions.");
+      }
+
+      const adapter = getWalletAdapter();
+      if (!adapter) {
+        throw new Error("Wallet adapter unavailable. Reconnect wallet and try again.");
+      }
+
+      const args = buildInvokeArgs(operation.params ?? [], values, walletAddress);
+      const invokePayload: InvokeParams = {
+        scriptHash: app.contract_hash,
+        operation: operation.method,
+        args,
+      };
+
+      if (walletAddress) {
+        invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
+      }
+
+      const result = await adapter.invoke(invokePayload);
+      setInvokeFeedback({
+        type: "success",
+        message: `Transaction submitted: ${result.txid}`,
+      });
+    } catch (invokeError) {
+      const message = invokeError instanceof Error ? invokeError.message : "Operation failed";
+      setInvokeFeedback({
+        type: "error",
+        message,
+      });
+      throw invokeError;
+    }
+  }, [app.contract_hash, walletAddress, walletConnected]);
+
   const statCards = stats ? buildStatCards(stats, app.stats_display ?? undefined) : [];
+  const operationPanel = app.detail_template?.operation_panel;
+  const operationTitle = operationPanel?.title || (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
+  const operationSubtitle = operationPanel?.subtitle;
+  const launchLabel = operationPanel?.cta_label || "Launch App";
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-24">
-      <Head><title>{app.name} - NeoHub</title></Head>
+    <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-16">
+      <Head>
+        <title>{app.name} - NeoHub</title>
+      </Head>
       <AppDetailHeader app={app} stats={stats || undefined} onBack={handleBack} />
 
-      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
-        {/* Hero Section */}
-        <section className="mb-8">
-          <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed break-words">{app.description}</p>
+      <main className="max-w-[1280px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <section className="mb-6">
+          {app.detail_template?.hero?.eyebrow && (
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-neo mb-2">
+              {app.detail_template.hero.eyebrow}
+            </p>
+          )}
+          <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed break-words">
+            {app.description}
+          </p>
+          {app.detail_template?.hero?.disclaimer && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 break-words">
+              {app.detail_template.hero.disclaimer}
+            </p>
+          )}
         </section>
 
-        {/* Stats Grid */}
         {stats && statCards.length > 0 && (
-          <section className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4 mb-8">
+          <section className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4 mb-8">
             {statCards.map((card) => (
               <AppStatsCard
                 key={card.title}
@@ -168,142 +266,151 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
           </section>
         )}
 
-        {/* App Activity Ticker */}
-        <section className="mb-6">
-          <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={150} scrollSpeed={20} />
-        </section>
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
+          <section className="space-y-6">
+            <section>
+              <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={140} scrollSpeed={20} />
+            </section>
 
-        {/* Tabs */}
-        <section className="mb-8">
-          <div role="tablist" className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
-            <button
-              type="button"
-              role="tab"
-              id="tab-overview"
-              aria-selected={activeTab === "overview"}
-              aria-controls="tabpanel-overview"
-              tabIndex={activeTab === "overview" ? 0 : -1}
-              className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
-                activeTab === "overview" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
-              }`}
-              onClick={() => setActiveTab("overview")}
-            >
-              Overview
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="tab-reviews"
-              aria-selected={activeTab === "reviews"}
-              aria-controls="tabpanel-reviews"
-              tabIndex={activeTab === "reviews" ? 0 : -1}
-              className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
-                activeTab === "reviews" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
-              }`}
-              onClick={() => setActiveTab("reviews")}
-            >
-              ⭐ Reviews
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="tab-forum"
-              aria-selected={activeTab === "forum"}
-              aria-controls="tabpanel-forum"
-              tabIndex={activeTab === "forum" ? 0 : -1}
-              className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
-                activeTab === "forum" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
-              }`}
-              onClick={() => setActiveTab("forum")}
-            >
-              💬 Forum
-            </button>
-            {showNews && (
+            <section>
+              <div role="tablist" className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`tab-${tab.id}`}
+                    aria-selected={activeTabConfig?.id === tab.id}
+                    aria-controls={`tabpanel-${tab.id}`}
+                    tabIndex={activeTabConfig?.id === tab.id ? 0 : -1}
+                    className={`px-3 sm:px-5 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
+                      activeTabConfig?.id === tab.id
+                        ? "border-neo text-neo"
+                        : "border-transparent text-gray-500 dark:text-gray-400"
+                    }`}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {activeTabConfig?.type === "content" && (
+                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  <OverviewTab app={app} blocks={activeTabConfig.blocks} />
+                </div>
+              )}
+
+              {activeTabConfig?.type === "reviews" && (
+                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  <ReviewsTab appId={app.app_id} />
+                </div>
+              )}
+
+              {activeTabConfig?.type === "forum" && (
+                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  <ForumTab appId={app.app_id} />
+                </div>
+              )}
+
+              {activeTabConfig?.type === "news" && (
+                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  {showNews ? (
+                    <AppNewsList notifications={notifications} />
+                  ) : (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
+                  )}
+                </div>
+              )}
+
+              {activeTabConfig?.type === "secrets" && (
+                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  {showSecrets ? (
+                    <AppSecretsTab appId={app.app_id} appName={app.name} />
+                  ) : (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Secrets are not enabled for this MiniApp.</p>
+                  )}
+                </div>
+              )}
+            </section>
+          </section>
+
+          <aside className="xl:sticky xl:top-6 self-start space-y-4">
+            <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 p-4 sm:p-5">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{operationTitle}</h2>
+              {operationSubtitle && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 break-words">{operationSubtitle}</p>
+              )}
+
+              {invokeFeedback && (
+                <div
+                  className={`mt-3 rounded-lg border px-3 py-2 text-xs break-words ${
+                    invokeFeedback.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-900/20 dark:text-emerald-300"
+                      : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-900/20 dark:text-red-300"
+                  }`}
+                >
+                  {invokeFeedback.message}
+                </div>
+              )}
+
+              {operations.length > 0 ? (
+                <OperationPanel
+                  operations={operations}
+                  onInvoke={handleInvoke}
+                  showTitle={false}
+                  className="mt-4"
+                />
+              ) : (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+                  No operation schema is configured for this MiniApp.
+                </p>
+              )}
+
+              {!walletConnected && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                  Connect wallet from the top navigation to submit on-chain transactions.
+                </p>
+              )}
+
               <button
                 type="button"
-                role="tab"
-                id="tab-news"
-                aria-selected={activeTab === "news"}
-                aria-controls="tabpanel-news"
-                tabIndex={activeTab === "news" ? 0 : -1}
-                className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
-                  activeTab === "news" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
-                }`}
-                onClick={() => setActiveTab("news")}
+                className="mt-4 w-full px-6 py-3 rounded-xl border-none bg-neo text-black text-sm font-bold cursor-pointer transition-all hover:bg-neo/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                onClick={handleLaunch}
               >
-                News ({notifications.length})
+                {launchLabel} →
               </button>
-            )}
-            {showSecrets && (
-              <button
-                type="button"
-                role="tab"
-                id="tab-secrets"
-                aria-selected={activeTab === "secrets"}
-                aria-controls="tabpanel-secrets"
-                tabIndex={activeTab === "secrets" ? 0 : -1}
-                className={`px-3 sm:px-6 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
-                  activeTab === "secrets" ? "border-neo text-neo" : "border-transparent text-gray-500 dark:text-gray-400"
-                }`}
-                onClick={() => setActiveTab("secrets")}
-              >
-                🔐 Secrets
-              </button>
-            )}
-          </div>
+            </section>
 
-          <div className="min-h-[200px]">
-            {activeTab === "overview" && (
-              <div id="tabpanel-overview" role="tabpanel" aria-labelledby="tab-overview">
-                <OverviewTab app={app} />
-              </div>
-            )}
-            {activeTab === "reviews" && (
-              <div id="tabpanel-reviews" role="tabpanel" aria-labelledby="tab-reviews">
-                <ReviewsTab appId={app.app_id} />
-              </div>
-            )}
-            {activeTab === "forum" && (
-              <div id="tabpanel-forum" role="tabpanel" aria-labelledby="tab-forum">
-                <ForumTab appId={app.app_id} />
-              </div>
-            )}
-            {activeTab === "news" && showNews && (
-              <div id="tabpanel-news" role="tabpanel" aria-labelledby="tab-news">
-                <AppNewsList notifications={notifications} />
-              </div>
-            )}
-            {activeTab === "secrets" && showSecrets && (
-              <div id="tabpanel-secrets" role="tabpanel" aria-labelledby="tab-secrets">
-                <AppSecretsTab appId={app.app_id} appName={app.name} />
-              </div>
-            )}
-            {!showNews && activeTab === "news" && (
-              <div id="tabpanel-news" role="tabpanel" aria-labelledby="tab-news">
-                <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
-              </div>
-            )}
-          </div>
-        </section>
+            <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 p-4 sm:p-5">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Contract Details</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 my-1.5">
+                App ID: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[11px] font-mono text-neo break-all">{app.app_id}</code>
+              </p>
+              {app.contract_hash && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 my-1.5">
+                  Contract Hash:{" "}
+                  <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[11px] font-mono text-neo break-all">
+                    {app.contract_hash}
+                  </code>
+                </p>
+              )}
+              <p className="text-xs text-gray-500 dark:text-gray-400 my-1.5">
+                Entry URL: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[11px] font-mono text-neo break-all">{app.entry_url}</code>
+              </p>
+            </section>
+          </aside>
+        </div>
       </main>
-
-      {/* Fixed Launch Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-50 dark:bg-gray-900/80 border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 sm:py-4 flex justify-center z-[100]">
-        <button
-          type="button"
-          className="px-12 py-3.5 rounded-xl border-none bg-neo text-black text-base font-bold cursor-pointer transition-all hover:bg-neo/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-          onClick={handleLaunch}
-        >
-          Launch App →
-        </button>
-      </div>
     </div>
   );
 }
 
-function OverviewTab({ app }: { app: MiniAppInfo }) {
+function OverviewTab({ app, blocks }: { app: MiniAppInfo; blocks: MiniAppContentBlock[] }) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="space-y-6">
+      {blocks.length > 0 && <DetailContentBlocks blocks={blocks} />}
+
       <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Permissions</h3>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
@@ -354,31 +461,62 @@ function OverviewTab({ app }: { app: MiniAppInfo }) {
           </a>
         </div>
       )}
-
-      {(() => {
-        const a = app as Record<string, unknown>;
-        const m = (a.manifest as Record<string, unknown>) ?? {};
-        const ops = (a.operations ?? m.operations) as OperationEntry[] | undefined;
-        if (!Array.isArray(ops) || !ops.length) return null;
-        return <OperationPanel operations={ops} contractHash={app.contract_hash ?? undefined} onInvoke={(method, params) => { logger.debug("invoke", app.contract_hash, method, params); }} />;
-      })()}
-
-      <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Contract Details</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
-          App ID: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo break-all">{app.app_id}</code>
-        </p>
-        {app.contract_hash && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
-            Contract Hash: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo break-all">{app.contract_hash}</code>
-          </p>
-        )}
-        <p className="text-sm text-gray-500 dark:text-gray-400 my-2">
-          Entry URL: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-xs font-mono text-neo break-all">{app.entry_url}</code>
-        </p>
-      </div>
     </div>
   );
+}
+
+function buildDetailTabs(templateTabs: MiniAppDetailTab[], showNews: boolean, showSecrets: boolean): ResolvedTab[] {
+  const mappedTemplateTabs = templateTabs
+    .map((tab) => ({
+      id: String(tab.id || "").trim().toLowerCase() || slugifyTabLabel(tab.label || ""),
+      label: String(tab.label || "").trim() || "Overview",
+      type: tab.type,
+      blocks: Array.isArray(tab.blocks) ? tab.blocks : [],
+    }))
+    .filter((tab) => Boolean(tab.id) && tab.type)
+    .filter((tab) => (tab.type === "news" ? showNews : true))
+    .filter((tab) => (tab.type === "secrets" ? showSecrets : true));
+
+  if (mappedTemplateTabs.length > 0) {
+    return dedupeTabs(mappedTemplateTabs);
+  }
+
+  const defaults: ResolvedTab[] = [
+    { id: "overview", label: "Overview", type: "content", blocks: [] },
+    { id: "reviews", label: "Reviews", type: "reviews", blocks: [] },
+    { id: "forum", label: "Forum", type: "forum", blocks: [] },
+  ];
+
+  if (showNews) {
+    defaults.push({ id: "news", label: "News", type: "news", blocks: [] });
+  }
+  if (showSecrets) {
+    defaults.push({ id: "secrets", label: "Secrets", type: "secrets", blocks: [] });
+  }
+
+  return defaults;
+}
+
+function dedupeTabs(tabs: ResolvedTab[]): ResolvedTab[] {
+  const seen = new Set<string>();
+  const deduped: ResolvedTab[] = [];
+
+  for (const tab of tabs) {
+    if (seen.has(tab.id)) continue;
+    seen.add(tab.id);
+    deduped.push(tab);
+  }
+
+  return deduped;
+}
+
+function slugifyTabLabel(value: string): string {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || "overview";
 }
 
 function formatPermission(key: string): string {
@@ -426,6 +564,74 @@ function formatLastActive(value: string | null): string {
   return `${days}d ago`;
 }
 
+function buildInvokeArgs(
+  params: OperationParam[],
+  values: Record<string, string>,
+  walletAddress: string,
+): Array<{ type: string; value: unknown }> {
+  return params.map((param) => {
+    const rawValue = String(values[param.name] ?? "").trim();
+    const value = rawValue || String(param.default_value ?? "").trim();
+
+    if (!value && param.required) {
+      throw new Error(`${param.label || param.name} is required.`);
+    }
+
+    if (param.type === "boolean") {
+      return {
+        type: "Boolean",
+        value: value === "true",
+      };
+    }
+
+    if (param.type === "integer") {
+      if (!/^-?\d+$/.test(value)) {
+        throw new Error(`${param.label || param.name} must be an integer.`);
+      }
+      return {
+        type: "Integer",
+        value,
+      };
+    }
+
+    if (param.type === "amount") {
+      if (!/^-?\d+(?:\.\d+)?$/.test(value)) {
+        throw new Error(`${param.label || param.name} must be numeric.`);
+      }
+      return {
+        type: "Integer",
+        value,
+      };
+    }
+
+    if (param.type === "hash160") {
+      return {
+        type: "Hash160",
+        value,
+      };
+    }
+
+    if (param.type === "hash256") {
+      return {
+        type: "Hash256",
+        value,
+      };
+    }
+
+    if (param.type === "address") {
+      return {
+        type: "String",
+        value: value === "$wallet" ? walletAddress : value,
+      };
+    }
+
+    return {
+      type: "String",
+      value,
+    };
+  });
+}
+
 // Server-Side Props
 export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async (context) => {
   const { id } = context.params as { id: string };
@@ -457,7 +663,7 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
 
     const rawStats = statsList.find((s: Record<string, unknown>) => s?.app_id === id) ?? statsList[0] ?? null;
     const catalogApp = catalogData?.app ?? null;
-    const app = coerceMiniAppInfo(catalogApp, rawStats ? coerceMiniAppInfo(rawStats, fallback) ?? fallback ?? undefined : fallback ?? undefined);
+    const app = coerceMiniAppInfo(catalogApp, fallback ?? undefined);
 
     if (!app) {
       return {
@@ -477,8 +683,8 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
         notifications: notifData.notifications || [],
       },
     };
-  } catch (error) {
-    logger.error("Failed to fetch app details:", error);
+  } catch (loadError) {
+    logger.error("Failed to fetch app details:", loadError);
     return {
       props: {
         app: null,

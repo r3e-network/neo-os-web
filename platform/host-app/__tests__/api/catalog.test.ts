@@ -50,6 +50,11 @@ describe("/api/miniapps/catalog", () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(404);
-    expect(JSON.parse(res._getData())).toEqual({ error: "MiniApp not found" });
+    expect(JSON.parse(res._getData())).toEqual({
+      error: {
+        code: "NOT_FOUND",
+        message: "MiniApp not found",
+      },
+    });
   });
 });

@@ -33,7 +33,7 @@ describe("miniapp-media helpers", () => {
   });
 
   describe("buildMiniAppLogoSources", () => {
-    it("prioritizes explicit URL and includes compatibility fallbacks", () => {
+    it("prioritizes explicit URL and keeps only canonical logo paths", () => {
       expect(
         buildMiniAppLogoSources({
           appID: "miniapp-lottery",
@@ -43,18 +43,12 @@ describe("miniapp-media helpers", () => {
       ).toEqual([
         "/custom/logo.png",
         "/miniapps/lottery/logo.png",
-        "/miniapps/lottery/logo.jpg",
-        "/miniapp-assets/lottery/logo.jpg",
-        "/miniapps/lottery/static/logo.png",
-        "/miniapp-assets/lottery/static/logo.png",
-        "/miniapps/lottery/static/icon.svg",
-        "/miniapp-assets/lottery/static/icon.svg",
       ]);
     });
   });
 
   describe("buildMiniAppBannerSources", () => {
-    it("includes primary and legacy banner paths", () => {
+    it("uses only canonical banner path", () => {
       expect(
         buildMiniAppBannerSources({
           appID: "miniapp-lottery",
@@ -62,10 +56,6 @@ describe("miniapp-media helpers", () => {
         }),
       ).toEqual([
         "/miniapps/lottery/banner.png",
-        "/miniapps/lottery/banner.jpg",
-        "/miniapp-assets/lottery/banner.jpg",
-        "/miniapps/lottery/static/banner.svg",
-        "/miniapp-assets/lottery/static/banner.svg",
       ]);
     });
   });

@@ -29,8 +29,8 @@ const mockNotifications: MiniAppNotification[] = [
 describe("AppNewsList", () => {
   it("renders loading state", () => {
     render(<AppNewsList notifications={[]} loading={true} />);
-
-    expect(screen.getByText("Loading notifications...")).toBeInTheDocument();
+    const skeletons = screen.getAllByRole("status", { name: "Loading" });
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it("renders empty state when no notifications", () => {

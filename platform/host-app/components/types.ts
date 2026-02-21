@@ -20,6 +20,9 @@ export type MiniAppInfo = {
   status?: "active" | "disabled" | "pending" | null;
   source?: MiniAppSource;
   stats?: { users?: number; transactions?: number };
+  operations?: OperationEntry[] | null;
+  detail_template?: MiniAppDetailTemplate | null;
+  manifest?: Record<string, unknown> | null;
   developer?: {
     name: string;
     address: string;
@@ -41,7 +44,7 @@ export type MiniAppInfo = {
 
 export type OperationParam = {
   name: string;
-  type: "string" | "integer" | "boolean" | "address" | "hash256" | "amount" | "select";
+  type: "string" | "integer" | "boolean" | "address" | "hash160" | "hash256" | "amount" | "select";
   label?: string;
   required?: boolean;
   default_value?: string;
@@ -57,6 +60,60 @@ export type OperationEntry = {
   button_style?: "primary" | "secondary" | "danger" | "success";
   confirm_message?: string;
   params?: OperationParam[];
+};
+
+export type MiniAppContentBlock =
+  | {
+      type: "markdown";
+      title?: string;
+      content: string;
+    }
+  | {
+      type: "notice";
+      title?: string;
+      tone?: "info" | "success" | "warning";
+      content: string;
+    }
+  | {
+      type: "bullet_list";
+      title?: string;
+      items: string[];
+    }
+  | {
+      type: "key_value";
+      title?: string;
+      items: Array<{ key: string; value: string }>;
+    }
+  | {
+      type: "links";
+      title?: string;
+      items: Array<{ label: string; href: string; external?: boolean }>;
+    };
+
+export type MiniAppDetailTabType = "content" | "reviews" | "forum" | "news" | "secrets";
+
+export type MiniAppDetailTab = {
+  id: string;
+  label: string;
+  type: MiniAppDetailTabType;
+  blocks?: MiniAppContentBlock[];
+};
+
+export type MiniAppOperationPanel = {
+  title?: string;
+  subtitle?: string;
+  cta_label?: string;
+  operations: OperationEntry[];
+};
+
+export type MiniAppDetailTemplate = {
+  layout: "default" | "prediction";
+  hero?: {
+    eyebrow?: string;
+    disclaimer?: string;
+  };
+  tabs: MiniAppDetailTab[];
+  operation_panel?: MiniAppOperationPanel;
 };
 
 export type MiniAppStats = {

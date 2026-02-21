@@ -1,3 +1,4 @@
+import React from "react";
 import { MiniAppInfo, MiniAppStats } from "./types";
 
 type Props = {

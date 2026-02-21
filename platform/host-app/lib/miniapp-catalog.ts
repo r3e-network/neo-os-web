@@ -5,6 +5,10 @@ import { logger } from "./logger";
 
 type MiniAppStatus = "active" | "pending" | "disabled";
 
+type LoadMiniAppCatalogOptions = {
+  includeManifest?: boolean;
+};
+
 type MiniAppRow = {
   app_id?: string;
   name?: string;
@@ -21,6 +25,7 @@ type MiniAppRow = {
   logo_url?: string | null;
   banner_url?: string | null;
   docs_url?: string | null;
+  manifest?: Record<string, unknown> | null;
 };
 
 type MiniAppStatsRow = {
@@ -56,14 +61,19 @@ function getSupabaseAuth(): Record<string, string> | null {
   return null;
 }
 
-async function fetchMiniAppsFromSupabase(status: MiniAppStatus): Promise<MiniAppInfo[]> {
+async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMiniAppCatalogOptions = {}): Promise<MiniAppInfo[]> {
   if (process.env.NODE_ENV === "test") return [];
   const supabaseURL = getSupabaseURL();
   const authHeaders = getSupabaseAuth();
   if (!supabaseURL || !authHeaders) return [];
 
+  const includeManifest = Boolean(options.includeManifest);
+  const selectColumns = includeManifest
+    ? "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,news_integration,stats_display,logo_url,banner_url,docs_url,manifest"
+    : "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,news_integration,stats_display,logo_url,banner_url,docs_url";
+
   const params = new URLSearchParams({
-    select: "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,news_integration,stats_display,logo_url,banner_url,docs_url",
+    select: selectColumns,
     status: `eq.${status}`,
     order: "updated_at.desc",
     limit: "500",
@@ -91,9 +101,12 @@ async function fetchMiniAppsFromSupabase(status: MiniAppStatus): Promise<MiniApp
   }
 }
 
-export async function loadMiniAppCatalog(status: MiniAppStatus = "active"): Promise<MiniAppInfo[]> {
+export async function loadMiniAppCatalog(
+  status: MiniAppStatus = "active",
+  options: LoadMiniAppCatalogOptions = {},
+): Promise<MiniAppInfo[]> {
   const builtinById = new Map(BUILTIN_APPS.map((app) => [app.app_id, app]));
-  const dbApps = await fetchMiniAppsFromSupabase(status);
+  const dbApps = await fetchMiniAppsFromSupabase(status, options);
 
   const merged: MiniAppInfo[] = [];
   const seen = new Set<string>();
