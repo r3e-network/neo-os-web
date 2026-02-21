@@ -31,7 +31,7 @@ export async function handler(req: Request): Promise<Response> {
       app_id: appId,
       event_name: eventName,
       contract_hash: contractHash,
-      limit: limit ? Number.parseInt(limit, 10) : undefined,
+      limit: limit ? Math.min(Number.parseInt(limit, 10) || 50, 200) : undefined,
       after_id: afterId,
     },
     req,

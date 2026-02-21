@@ -34,6 +34,9 @@ export async function handler(req: Request): Promise<Response> {
   if (!/^N[A-HJ-NP-Za-km-z1-9]{33}$/.test(fromAddress)) {
     return error(400, "invalid Neo N3 address", "FROM_ADDRESS_INVALID", req);
   }
+  if (fromAddress !== walletCheck.address) {
+    return error(403, "from_address must match authenticated wallet", "ADDRESS_MISMATCH", req);
+  }
 
   const txHash = String(body.tx_hash ?? "").trim().slice(0, 66) || null;
   if (txHash && !/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
