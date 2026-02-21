@@ -19,7 +19,9 @@ export function Header() {
         </div>
         <div className="flex items-center gap-4">
           <LanguageToggle />
-          <span className="text-sm text-gray-600 dark:text-gray-400">Local Development</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            {process.env.NEXT_PUBLIC_ENV_LABEL || (process.env.NODE_ENV === "production" ? "Production" : "Local Development")}
+          </span>
         </div>
       </div>
     </header>

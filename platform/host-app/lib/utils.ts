@@ -6,20 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Sanitizes user input to prevent XSS attacks
- * Removes potentially dangerous characters and HTML tags
+ * Trims and length-limits user input. Display safety is handled by React
+ * auto-escaping; use {@link escapeHtml} when rendering outside JSX.
  */
 export function sanitizeInput(input: string): string {
   if (typeof input !== "string") return "";
-
-  return input
-    .replace(/[<>]/g, "") // Remove angle brackets
-    .replace(/javascript:/gi, "") // Remove javascript: protocol
-    .replace(/on\w+\s*=/gi, "") // Remove event handlers like onclick=
-    .replace(/&lt;/g, "")
-    .replace(/&gt;/g, "")
-    .trim()
-    .slice(0, 1000); // Limit length to prevent DoS
+  return input.trim().slice(0, 1000);
 }
 
 /**

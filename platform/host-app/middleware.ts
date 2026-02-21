@@ -78,13 +78,20 @@ function buildCSP(nonce: string): string {
   return csp.join("; ");
 }
 
+function setSecurityHeaders(res: NextResponse): void {
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.headers.set("X-Frame-Options", "DENY");
+}
+
 export function middleware(req: NextRequest) {
   // Skip CSP for Next.js internals and static assets.
   const pathname = req.nextUrl.pathname;
   if (pathname.startsWith("/_next/") || pathname.startsWith("/favicon") || pathname.startsWith("/robots")) {
     const res = NextResponse.next();
-    res.headers.set("X-Content-Type-Options", "nosniff");
-    res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    setSecurityHeaders(res);
     return res;
   }
 
@@ -97,6 +104,7 @@ export function middleware(req: NextRequest) {
   });
 
   res.headers.set("Content-Security-Policy", buildCSP(nonce));
+  setSecurityHeaders(res);
 
   return res;
 }

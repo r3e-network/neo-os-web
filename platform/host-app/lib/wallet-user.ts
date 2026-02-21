@@ -2,8 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const WALLET_REGEX = /^N[A-Za-z0-9]{33}$/;
 
-type Database = any;
-
 export function isValidWalletAddress(value: unknown): value is string {
   return typeof value === "string" && WALLET_REGEX.test(value.trim());
 }
@@ -14,7 +12,7 @@ export function formatWalletDisplayName(wallet: string): string {
   return `${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
 }
 
-async function findUserByWallet(supabase: SupabaseClient<Database>, wallet: string): Promise<string | null> {
+async function findUserByWallet(supabase: SupabaseClient, wallet: string): Promise<string | null> {
   const normalized = wallet.trim();
 
   const { data: directUser } = await supabase.from("users").select("id").eq("address", normalized).maybeSingle();
@@ -43,7 +41,7 @@ async function findUserByWallet(supabase: SupabaseClient<Database>, wallet: stri
 }
 
 export async function resolveUserIdFromWallet(
-  supabase: SupabaseClient<Database>,
+  supabase: SupabaseClient,
   wallet: string,
   options: { createIfMissing?: boolean } = {},
 ): Promise<string | null> {

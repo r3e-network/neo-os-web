@@ -1,9 +1,8 @@
+// TODO: generate typed Database with `supabase gen types typescript` and import here.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const BUILD_FALLBACK_URL = "https://localhost.supabase.co";
 const BUILD_FALLBACK_KEY = "build-time-placeholder";
-
-type Database = any;
 
 function getSupabaseUrl(): string {
   return String(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
@@ -17,13 +16,13 @@ function getServiceRoleKey(): string {
   return String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 }
 
-let cachedAnonClient: SupabaseClient<Database> | null = null;
-let cachedServiceClient: SupabaseClient<Database> | null = null;
+let cachedAnonClient: SupabaseClient | null = null;
+let cachedServiceClient: SupabaseClient | null = null;
 
-function buildClient(key: string): SupabaseClient<Database> {
+function buildClient(key: string): SupabaseClient {
   const url = getSupabaseUrl() || BUILD_FALLBACK_URL;
   const token = key || BUILD_FALLBACK_KEY;
-  return createClient<Database>(url, token, {
+  return createClient(url, token, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -41,7 +40,7 @@ export function hasServiceRoleSupabase(): boolean {
   return Boolean(getSupabaseUrl() && getServiceRoleKey());
 }
 
-export function getServerSupabaseClient(options: { requireServiceRole?: boolean } = {}): SupabaseClient<Database> | null {
+export function getServerSupabaseClient(options: { requireServiceRole?: boolean } = {}): SupabaseClient | null {
   if (!isServerSupabaseConfigured()) {
     return null;
   }

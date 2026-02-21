@@ -2,6 +2,7 @@ import crypto from "crypto";
 import type { MiniAppCategory, MiniAppDetailTemplate, MiniAppInfo } from "@/components/types";
 import { normalizeCategory, normalizePermissions, normalizeStatus } from "./miniapp";
 import { coerceOperationEntries, resolveMiniAppDetailConfig } from "./miniapp-template";
+import { stableStringify } from "../../shared/manifest";
 
 type Dict = Record<string, unknown>;
 
@@ -9,6 +10,7 @@ const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CONTRACT_HASH_REGEX = /^0x[0-9a-fA-F]{40}$/;
 const PUBKEY_REGEX = /^(?:0x)?[0-9a-fA-F]+$/;
+const ADMIN_SCHEMA_VERSION = "2026-02-21";
 
 const STAT_KEY_ALIASES: Record<string, string> = {
   tx_count: "total_transactions",
@@ -26,7 +28,7 @@ const ALLOWED_STAT_KEYS = new Set([
   "last_activity_at",
 ]);
 
-export type MiniAppBlueprint = "default" | "prediction";
+export type MiniAppBlueprint = "default" | "prediction" | "gaming" | "defi" | "nft";
 export type MiniAppAdminAction = "save_draft" | "publish" | "disable";
 
 type ExistingMiniAppRow = {
@@ -295,16 +297,73 @@ function buildPredictionTemplate(): MiniAppDetailTemplate {
   };
 }
 
+function buildGamingTemplate(): MiniAppDetailTemplate {
+  return {
+    layout: "default",
+    tabs: [
+      { id: "overview", label: "Overview", type: "content" },
+      { id: "leaderboard", label: "Leaderboard", type: "content" },
+      { id: "reviews", label: "Reviews", type: "reviews" },
+      { id: "news", label: "News", type: "news" },
+    ],
+    operation_panel: {
+      title: "Play",
+      subtitle: "Configure game parameters and start playing.",
+      cta_label: "Launch Game",
+      operations: [],
+    },
+  };
+}
+
+function buildDefiTemplate(): MiniAppDetailTemplate {
+  return {
+    layout: "default",
+    tabs: [
+      { id: "pool-info", label: "Pool Info", type: "content" },
+      { id: "positions", label: "Positions", type: "content" },
+      { id: "reviews", label: "Reviews", type: "reviews" },
+      { id: "news", label: "Activity", type: "news" },
+    ],
+    operation_panel: {
+      title: "Manage Position",
+      subtitle: "Deposit, withdraw, or claim rewards.",
+      cta_label: "Open DeFi App",
+      operations: [],
+    },
+  };
+}
+
+function buildNftTemplate(): MiniAppDetailTemplate {
+  return {
+    layout: "default",
+    tabs: [
+      { id: "collection", label: "Collection", type: "content" },
+      { id: "reviews", label: "Reviews", type: "reviews" },
+      { id: "forum", label: "Forum", type: "forum" },
+    ],
+    operation_panel: {
+      title: "NFT Actions",
+      subtitle: "Mint or transfer NFTs.",
+      cta_label: "Open Collection",
+      operations: [],
+    },
+  };
+}
+
 function getBlueprintTemplate(blueprint: MiniAppBlueprint): MiniAppDetailTemplate {
   if (blueprint === "prediction") return buildPredictionTemplate();
+  if (blueprint === "gaming") return buildGamingTemplate();
+  if (blueprint === "defi") return buildDefiTemplate();
+  if (blueprint === "nft") return buildNftTemplate();
   return buildDefaultTemplate();
 }
 
 function normalizeBlueprint(value: unknown): MiniAppBlueprint {
   const raw = asTrimmedString(value).toLowerCase();
-  if (raw === "prediction" || raw === "prediction_market" || raw === "market") {
-    return "prediction";
-  }
+  if (raw === "prediction" || raw === "prediction_market" || raw === "market") return "prediction";
+  if (raw === "gaming" || raw === "game") return "gaming";
+  if (raw === "defi" || raw === "finance") return "defi";
+  if (raw === "nft" || raw === "collectible") return "nft";
   return "default";
 }
 
@@ -323,22 +382,8 @@ function cleanForManifest(value: unknown): unknown {
   return out;
 }
 
-function stableSort(value: unknown): unknown {
-  if (value === null || value === undefined) return value;
-  if (typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.map((item) => stableSort(item));
-
-  const out: Dict = {};
-  for (const key of Object.keys(value as Dict).sort()) {
-    const next = stableSort((value as Dict)[key]);
-    if (next !== undefined) out[key] = next;
-  }
-  return out;
-}
-
 export function computeManifestHashHex(manifest: Record<string, unknown>): string {
-  const stable = stableSort(cleanForManifest(manifest));
-  return crypto.createHash("sha256").update(JSON.stringify(stable)).digest("hex");
+  return crypto.createHash("sha256").update(stableStringify(cleanForManifest(manifest))).digest("hex");
 }
 
 export function listMiniAppBlueprints(): MiniAppBlueprintMetadata[] {
@@ -400,6 +445,107 @@ export function listMiniAppBlueprints(): MiniAppBlueprintMetadata[] {
                   ],
                 },
                 { name: "amount", type: "amount", required: true, placeholder: "10" },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "gaming",
+      label: "Gaming",
+      description: "Game-oriented layout with leaderboard and play operations.",
+      layout: "default",
+      tab_types: ["content", "reviews", "news"],
+      starter: {
+        blueprint: "gaming",
+        action: "save_draft",
+        permissions: {
+          payments: true,
+        },
+        limits: {
+          max_gas_per_tx: "10",
+          daily_gas_cap_per_user: "100",
+        },
+        manifest: {
+          page_template: buildGamingTemplate(),
+          operations: [
+            {
+              name: "Play Round",
+              method: "play",
+              button_style: "primary",
+              params: [
+                { name: "bet_amount", type: "amount", required: true, placeholder: "1" },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "defi",
+      label: "DeFi",
+      description: "DeFi layout with pool info, positions, and deposit/withdraw operations.",
+      layout: "default",
+      tab_types: ["content", "reviews", "news"],
+      starter: {
+        blueprint: "defi",
+        action: "save_draft",
+        permissions: {
+          payments: true,
+        },
+        limits: {
+          max_gas_per_tx: "10",
+          daily_gas_cap_per_user: "100",
+        },
+        manifest: {
+          page_template: buildDefiTemplate(),
+          operations: [
+            {
+              name: "Deposit",
+              method: "deposit",
+              button_style: "primary",
+              params: [
+                { name: "amount", type: "amount", required: true, placeholder: "10" },
+              ],
+            },
+            {
+              name: "Withdraw",
+              method: "withdraw",
+              button_style: "secondary",
+              params: [
+                { name: "amount", type: "amount", required: true, placeholder: "10" },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    {
+      id: "nft",
+      label: "NFT",
+      description: "NFT collection layout with minting and transfer operations.",
+      layout: "default",
+      tab_types: ["content", "reviews", "forum"],
+      starter: {
+        blueprint: "nft",
+        action: "save_draft",
+        permissions: {
+          payments: true,
+        },
+        limits: {
+          max_gas_per_tx: "10",
+          daily_gas_cap_per_user: "100",
+        },
+        manifest: {
+          page_template: buildNftTemplate(),
+          operations: [
+            {
+              name: "Mint",
+              method: "mint",
+              button_style: "primary",
+              params: [
+                { name: "token_id", type: "string", required: true, placeholder: "Token ID" },
               ],
             },
           ],
@@ -578,7 +724,7 @@ export function normalizeMiniAppAdminPayload(
       action: resolvedLifecycle.action,
       updated_at: toIsoNow(),
       actor: options.actor || undefined,
-      schema_version: "2026-02-21",
+      schema_version: ADMIN_SCHEMA_VERSION,
     },
   }) as Record<string, unknown>;
 
