@@ -101,10 +101,28 @@ export function buildMiniAppBannerSources(options: MediaOptions): string[] {
 export function withMiniAppCardAssets<T extends Pick<MiniAppInfo, "app_id" | "entry_url"> & Partial<MiniAppInfo>>(
   app: T,
 ): T & Pick<MiniAppInfo, "logo_url" | "banner_url"> {
+  const manifest = (app.manifest && typeof app.manifest === "object" ? app.manifest : {}) as Record<string, unknown>;
+  const media = (manifest.media && typeof manifest.media === "object" ? manifest.media : {}) as Record<string, unknown>;
+  const logoVariants = Array.isArray(media.logo_variants) ? media.logo_variants : [];
+  const bannerVariants = Array.isArray(media.banner_variants) ? media.banner_variants : [];
+
+  const pickVariant = (items: unknown[]): string => {
+    for (const item of items) {
+      if (!item || typeof item !== "object") continue;
+      const candidate = (item as Record<string, unknown>).url;
+      if (typeof candidate === "string" && candidate.trim().length > 0) {
+        return candidate.trim();
+      }
+    }
+    return "";
+  };
+
+  const variantLogo = pickVariant(logoVariants);
+  const variantBanner = pickVariant(bannerVariants);
   const primary = getMiniAppPrimaryAssets(app.app_id, app.entry_url);
   return {
     ...app,
-    logo_url: toNonEmptyString(app.logo_url) || primary.logoURL,
-    banner_url: toNonEmptyString(app.banner_url) || primary.bannerURL,
+    logo_url: toNonEmptyString(app.logo_url) || variantLogo || primary.logoURL,
+    banner_url: toNonEmptyString(app.banner_url) || variantBanner || primary.bannerURL,
   };
 }

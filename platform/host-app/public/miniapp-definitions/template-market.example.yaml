@@ -1,0 +1,86 @@
+$schema: ./miniapp-config.schema.json
+app_id: miniapp-template-market-demo
+name: Template Market Demo
+name_zh: 模板市场示例
+description: >-
+  Demonstrates no-code miniapp delivery using frontend template + contract template
+  metadata in YAML.
+description_zh: 使用 YAML 通过前端模板和合约模板快速构建小程序。
+template_type: prediction
+category: governance
+tags:
+  - template
+  - marketplace
+  - prediction
+entry_url: https://example.com/template-market-demo
+docs_url: https://docs.example.com/template-market-demo
+template:
+  template_type: prediction
+  frontend_template:
+    template_id: prediction
+    version: 1.0.0
+    variant: market-modern
+    params:
+      show_disclaimer: true
+  contract_template:
+    template_id: prediction-binary
+    version: 1.2.0
+    variant: oracle-required
+    init_params:
+      oracle: 0x1234567890abcdef1234567890abcdef12345678
+      settlement_timestamp: 1855622400
+      fee_bps: 100
+contract:
+  template_id: prediction-binary
+  init_params:
+    oracle: 0x1234567890abcdef1234567890abcdef12345678
+    settlement_timestamp: 1855622400
+media:
+  icon: /miniapp-assets/template-market-demo/icon.png
+  logo: https://cdn.example.com/template-market-demo/logo-light.png
+  banner: https://cdn.example.com/template-market-demo/banner-light.png
+  logo_variants:
+    - url: https://cdn.example.com/template-market-demo/logo-dark.png
+      theme: dark
+    - url: https://cdn.example.com/template-market-demo/logo-light.png
+      theme: light
+  banner_variants:
+    - url: https://cdn.example.com/template-market-demo/banner-dark.png
+      theme: dark
+    - url: https://cdn.example.com/template-market-demo/banner-light.png
+      theme: light
+i18n:
+  name_zh: 模板市场示例
+  description_zh: 使用 YAML 快速构建并预览小程序。
+permissions:
+  payments: true
+  datafeed: true
+limits:
+  max_gas_per_tx: "10"
+  daily_gas_cap_per_user: "100"
+frontend_spec:
+  layout: prediction
+  hero:
+    eyebrow: Template Market
+    disclaimer: Powered by reusable templates and schema-driven UI.
+  tabs:
+    - id: overview
+      label: Overview
+      type: content
+      blocks:
+        - type: markdown
+          content: |
+            ## Template-first MiniApp
+
+            - Frontend layout is selected by `template.frontend_template`.
+            - Contract behavior is selected by `template.contract_template`.
+            - App onboarding is fully configuration-driven.
+operations:
+  - name: Buy YES
+    method: buyYes
+    button_style: primary
+    params:
+      - name: amount
+        type: amount
+        required: true
+        placeholder: "10"
