@@ -9,8 +9,8 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "Puzzle Mining",
-    "navigationBarBackgroundColor": "#0d1117",
-    "backgroundColor": "#0d1117"
+    "navigationBarBackgroundColor": "#18102a",
+    "backgroundColor": "#18102a",
+    "navigationBarTitleText": "Puzzle Mining"
   }
 }

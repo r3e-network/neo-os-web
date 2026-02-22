@@ -1,0 +1,113 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "voting-example",
+  "name": "Community DAO Vote",
+  "description": "Vote on important community proposals. Each GAS token you hold equals one vote.",
+  "template_type": "voting",
+  "category": "Governance",
+  "tags": ["voting", "dao", "governance"],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "Neo DAO",
+    "email": "dao@neo.org"
+  },
+  "contract": {
+    "template_id": "voting-token-weighted",
+    "init_params": {
+      "voting_period": 604800,
+      "proposal_threshold": 1000,
+      "quorum": 10000,
+      "token_contract": "0xabcdef1234567890abcdef1234567890abcdef12"
+    }
+  },
+  "entry_url": "https://vote.neo.org",
+  "media": {
+    "icon": "/miniapp-assets/voting/icon.png",
+    "banner": "/miniapp-assets/voting/banner.png"
+  },
+  "permissions": {
+    "governance": true,
+    "storage": true
+  },
+  "limits": {
+    "max_gas_per_tx": "3",
+    "governance_cap": "1000000"
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "Governance Vote",
+      "disclaimer": "Your voting power is based on your GAS holdings at the snapshot block."
+    },
+    "tabs": [
+      {
+        "id": "proposal",
+        "label": "Proposal",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "markdown",
+            "title": "Proposal: Increase Block Gas Limit",
+            "content": "## Summary\n\nThis proposal suggests increasing the block gas limit from 10M to 15M to improve network throughput.\n\n## Rationale\n\n- Current limit was set 2 years ago\n- Network has grown significantly\n- More transactions per block = lower fees\n\n## Implementation\n\nIf passed, the change will take effect at block height 20,000,000."
+          },
+          {
+            "type": "key_value",
+            "title": "Voting Info",
+            "items": [
+              { "key": "Voting Ends", "value": "3 days 12 hours" },
+              { "key": "Current Quorum", "value": "8,432 / 10,000" },
+              { "key": "Your Voting Power", "value": "1,234 GAS" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "discussion",
+        "label": "Discussion",
+        "type": "forum"
+      },
+      {
+        "id": "reviews",
+        "label": "Feedback",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Cast Your Vote",
+      "subtitle": "Vote for or against this proposal.",
+      "cta_label": "View All Proposals",
+      "operations": [
+        {
+          "name": "Vote For",
+          "method": "vote",
+          "description": "Vote in favor of the proposal",
+          "button_style": "success",
+          "gas_cost": "~0.2 GAS",
+          "confirm_message": "Are you sure you want to vote FOR this proposal?",
+          "params": [
+            {
+              "name": "support",
+              "type": "select",
+              "required": true,
+              "default_value": "for",
+              "options": [
+                { "label": "For", "value": "for" },
+                { "label": "Against", "value": "against" },
+                { "label": "Abstain", "value": "abstain" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": true,
+    "activity_feed": true,
+    "stats_display": ["total_users", "total_gas_used"]
+  },
+  "docs_url": "https://docs.neo.org/dao"
+}

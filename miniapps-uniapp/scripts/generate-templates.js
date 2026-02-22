@@ -25,6 +25,32 @@ function copyDir(src, dest) {
   }
 }
 
+function buildFileSpecs(appDir, srcDir, app) {
+  return [
+    { path: path.join(appDir, "index.html"), content: genIndexHtml(app) },
+    { path: path.join(appDir, "package.json"), content: genPackageJson(app) },
+    { path: path.join(srcDir, "manifest.json"), content: genManifest(app) },
+    { path: path.join(srcDir, "pages.json"), content: genPagesJson(app) },
+    { path: path.join(appDir, "vite.config.ts"), content: genViteConfig(app) },
+    { path: path.join(appDir, "tsconfig.json"), content: genTsConfig() },
+    { path: path.join(srcDir, "main.ts"), content: genMainTs() },
+    { path: path.join(srcDir, "App.vue"), content: genAppVue(app) },
+  ];
+}
+
+function writeFileSpecs(fileSpecs) {
+  for (const file of fileSpecs) {
+    fs.writeFileSync(file.path, file.content);
+  }
+}
+
+function ensureSharedSources(srcDir) {
+  const sharedDest = path.join(srcDir, "shared");
+  if (!fs.existsSync(sharedDest)) {
+    copyDir(SHARED_DIR, sharedDest);
+  }
+}
+
 function generateApp(app) {
   const appDir = path.join(APPS_DIR, app.name);
   const srcDir = path.join(appDir, "src");
@@ -34,30 +60,14 @@ function generateApp(app) {
     return false;
   }
 
-  // Create directories
   fs.mkdirSync(path.join(srcDir, "static"), { recursive: true });
-
-  // Copy shared folder
-  const sharedDest = path.join(srcDir, "shared");
-  if (!fs.existsSync(sharedDest)) {
-    copyDir(SHARED_DIR, sharedDest);
-  }
-
-  // Write config files
-  fs.writeFileSync(path.join(appDir, "index.html"), genIndexHtml(app));
-  fs.writeFileSync(path.join(appDir, "package.json"), genPackageJson(app));
-  fs.writeFileSync(path.join(srcDir, "manifest.json"), genManifest(app));
-  fs.writeFileSync(path.join(srcDir, "pages.json"), genPagesJson(app));
-  fs.writeFileSync(path.join(appDir, "vite.config.ts"), genViteConfig(app));
-  fs.writeFileSync(path.join(appDir, "tsconfig.json"), genTsConfig());
-  fs.writeFileSync(path.join(srcDir, "main.ts"), genMainTs());
-  fs.writeFileSync(path.join(srcDir, "App.vue"), genAppVue(app));
+  ensureSharedSources(srcDir);
+  writeFileSpecs(buildFileSpecs(appDir, srcDir, app));
 
   console.log(`  [OK] ${app.name}`);
   return true;
 }
 
-// Main
 console.log(`Generating ${APPS.length} uni-app projects...\n`);
 let success = 0;
 for (const app of APPS) {

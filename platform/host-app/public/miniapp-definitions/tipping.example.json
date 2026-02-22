@@ -1,0 +1,105 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "tipping-example",
+  "name": "Developer Tipping",
+  "description": "Support your favorite Neo developers with GAS tips. 100% of tips go directly to the recipient.",
+  "template_type": "tipping",
+  "category": "Social",
+  "tags": ["tipping", "developers", "support"],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "Neo Community",
+    "url": "https://neo.org"
+  },
+  "contract": {
+    "template_id": "tipping-simple",
+    "init_params": {
+      "fee_bps": 0,
+      "min_tip": 1
+    }
+  },
+  "entry_url": "https://tips.neo.org",
+  "media": {
+    "icon": "/miniapp-assets/tipping/icon.png"
+  },
+  "permissions": {
+    "payments": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "Developer Tipping",
+      "disclaimer": "All tips are final and non-refundable."
+    },
+    "tabs": [
+      {
+        "id": "about",
+        "label": "About",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "markdown",
+            "content": "Support the developers who build the Neo ecosystem. Your tips help fund ongoing development and maintenance of critical infrastructure."
+          },
+          {
+            "type": "bullet_list",
+            "title": "Featured Developers",
+            "items": [
+              "Developer A - Core Protocol",
+              "Developer B - dApp Development",
+              "Developer C - Tooling"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Send a Tip",
+      "subtitle": "Support a developer with GAS.",
+      "cta_label": "Leaderboard",
+      "operations": [
+        {
+          "name": "Tip Developer",
+          "method": "tip",
+          "description": "Send a tip to a developer",
+          "button_style": "primary",
+          "gas_cost": "~0.1 GAS",
+          "params": [
+            {
+              "name": "recipient",
+              "type": "address",
+              "label": "Developer Address",
+              "required": true,
+              "placeholder": "N..."
+            },
+            {
+              "name": "amount",
+              "type": "amount",
+              "label": "Tip Amount (GAS)",
+              "required": true,
+              "placeholder": "10.0"
+            },
+            {
+              "name": "message",
+              "type": "string",
+              "label": "Message (Optional)",
+              "placeholder": "Thanks for your work!"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "integration": {
+    "news_integration": false,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true
+  }
+}

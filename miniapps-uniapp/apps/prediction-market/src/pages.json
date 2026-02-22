@@ -9,8 +9,8 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "Prediction Market",
-    "navigationBarBackgroundColor": "#0d1117",
-    "backgroundColor": "#0d1117"
+    "navigationBarBackgroundColor": "#262018",
+    "backgroundColor": "#262018",
+    "navigationBarTitleText": "Prediction Market"
   }
 }

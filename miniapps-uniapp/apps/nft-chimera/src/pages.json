@@ -9,8 +9,8 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "NFT Chimera",
-    "navigationBarBackgroundColor": "#0d1117",
-    "backgroundColor": "#0d1117"
+    "navigationBarBackgroundColor": "#102028",
+    "backgroundColor": "#102028",
+    "navigationBarTitleText": "NFT Chimera"
   }
 }

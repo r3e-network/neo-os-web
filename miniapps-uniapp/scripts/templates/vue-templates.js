@@ -2,6 +2,19 @@
  * Vue entry file templates
  */
 
+const CATEGORY_GRADIENTS = {
+  gaming: "linear-gradient(135deg, #15112b 0%, #23153d 100%)",
+  defi: "linear-gradient(135deg, #0f1d1a 0%, #164437 100%)",
+  social: "linear-gradient(135deg, #2a1410 0%, #4c2419 100%)",
+  nft: "linear-gradient(135deg, #111f2a 0%, #203a4a 100%)",
+  governance: "linear-gradient(135deg, #1d1a12 0%, #443b25 100%)",
+  utility: "linear-gradient(135deg, #11151f 0%, #1d2738 100%)",
+};
+
+function pickBackground(app) {
+  return CATEGORY_GRADIENTS[app.category] || "linear-gradient(135deg, #0d1117 0%, #1a1a2e 100%)";
+}
+
 // Generate index.html
 function genIndexHtml(app) {
   return `<!DOCTYPE html>
@@ -53,7 +66,7 @@ onHide(() => {
 @import "@/shared/styles/theme.scss";
 
 page {
-  background: linear-gradient(135deg, #0d1117 0%, #1a1a2e 100%);
+  background: ${pickBackground(app)};
   min-height: 100vh;
 }
 </style>

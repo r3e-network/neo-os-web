@@ -9,8 +9,8 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "Breakup Contract",
-    "navigationBarBackgroundColor": "#0d1117",
-    "backgroundColor": "#0d1117"
+    "navigationBarBackgroundColor": "#2a1210",
+    "backgroundColor": "#2a1210",
+    "navigationBarTitleText": "Breakup Contract"
   }
 }

@@ -9,8 +9,8 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "Bridge Guardian",
-    "navigationBarBackgroundColor": "#0d1117",
-    "backgroundColor": "#0d1117"
+    "navigationBarBackgroundColor": "#10221d",
+    "backgroundColor": "#10221d",
+    "navigationBarTitleText": "Bridge Guardian"
   }
 }

@@ -1,5 +1,4 @@
 module.exports = {
-  preset: "ts-jest",
   testEnvironment: "jsdom",
   roots: ["<rootDir>"],
   testMatch: ["**/__tests__/**/*.test.ts?(x)"],
@@ -77,10 +76,24 @@ module.exports = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   transform: {
     "^.+\\.(ts|tsx)$": [
-      "ts-jest",
+      "@swc/jest",
       {
-        tsconfig: {
-          jsx: "react-jsx",
+        sourceMaps: "inline",
+        module: {
+          type: "commonjs",
+        },
+        jsc: {
+          parser: {
+            syntax: "typescript",
+            tsx: true,
+            decorators: true,
+          },
+          transform: {
+            react: {
+              runtime: "automatic",
+            },
+          },
+          target: "es2022",
         },
       },
     ],

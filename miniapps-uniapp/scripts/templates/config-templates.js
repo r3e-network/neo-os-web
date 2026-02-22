@@ -2,6 +2,21 @@
  * TypeScript and Vite config templates
  */
 
+const CATEGORY_PORT_OFFSET = {
+  gaming: 0,
+  defi: 20,
+  social: 40,
+  nft: 60,
+  governance: 80,
+  utility: 100,
+};
+
+function pickPort(app) {
+  const base = 5173;
+  const offset = CATEGORY_PORT_OFFSET[app.category] || 0;
+  return base + offset;
+}
+
 // Generate vite.config.ts
 function genViteConfig(app) {
   return `import { defineConfig } from "vite";
@@ -20,7 +35,7 @@ export default defineConfig({
     assetsDir: "static",
   },
   server: {
-    port: 5173,
+    port: ${pickPort(app)},
     host: true,
   },
 });

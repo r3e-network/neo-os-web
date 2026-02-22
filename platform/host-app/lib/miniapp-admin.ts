@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import type { MiniAppCategory, MiniAppDetailTemplate, MiniAppInfo } from "@/components/types";
+import type { MiniAppCategory, MiniAppDetailTemplate, MiniAppInfo, OperationEntry } from "@/components/types";
 import { normalizeCategory, normalizePermissions, normalizeStatus } from "./miniapp";
 import { coerceOperationEntries, resolveMiniAppDetailConfig } from "./miniapp-template";
 import { stableStringify } from "../../shared/manifest";
@@ -17,6 +17,8 @@ const STAT_KEY_ALIASES: Record<string, string> = {
   gas_burned: "total_gas_used",
   gas_consumed: "total_gas_used",
 };
+
+const MANIFEST_ENTRY_PREFIX = "mf://manifest?app=";
 
 const ALLOWED_STAT_KEYS = new Set([
   "total_transactions",
@@ -101,6 +103,26 @@ type MiniAppBlueprintMetadata = {
   starter: Record<string, unknown>;
 };
 
+type MiniAppBlueprintStarter = {
+  action: MiniAppAdminAction;
+  permissions: MiniAppInfo["permissions"];
+  limits: {
+    max_gas_per_tx: string;
+    daily_gas_cap_per_user: string;
+  };
+  operations: OperationEntry[];
+};
+
+type MiniAppBlueprintDefinition = {
+  id: MiniAppBlueprint;
+  aliases: string[];
+  label: string;
+  description: string;
+  template: MiniAppDetailTemplate;
+  tabTypes: string[];
+  starter: MiniAppBlueprintStarter;
+};
+
 function asObject(value: unknown): Dict {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Dict;
@@ -139,6 +161,10 @@ function normalizeEntryUrl(value: unknown): string | null {
   const raw = asTrimmedString(value);
   if (!raw) return null;
 
+  if (raw.startsWith("mf://manifest?")) {
+    return raw;
+  }
+
   if (raw.startsWith("mf://")) {
     return raw;
   }
@@ -152,6 +178,10 @@ function normalizeEntryUrl(value: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+function buildManifestEntryUrl(appId: string): string {
+  return `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`;
 }
 
 function normalizeOptionalUrl(value: unknown): string | null {
@@ -257,114 +287,260 @@ function normalizeStatsDisplay(value: unknown, fallback?: unknown): string[] | n
   return Array.from(new Set(normalized));
 }
 
-function buildDefaultTemplate(): MiniAppDetailTemplate {
-  return {
-    layout: "default",
-    tabs: [
-      { id: "overview", label: "Overview", type: "content" },
-      { id: "reviews", label: "Reviews", type: "reviews" },
-      { id: "forum", label: "Forum", type: "forum" },
-      { id: "news", label: "News", type: "news" },
-    ],
-    operation_panel: {
-      title: "Operations",
-      subtitle: "Configure parameters and submit the transaction.",
-      cta_label: "Launch App",
-      operations: [],
-    },
-  };
+function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function buildPredictionTemplate(): MiniAppDetailTemplate {
-  return {
-    layout: "prediction",
-    hero: {
-      eyebrow: "Prediction Market",
-      disclaimer: "Probabilities are market-implied and can change quickly.",
+const BLUEPRINT_DEFINITIONS: MiniAppBlueprintDefinition[] = [
+  {
+    id: "default",
+    aliases: ["default", "general", "utility", "tools"],
+    label: "Default",
+    description: "General miniapp layout with overview/reviews/forum/news and operations panel.",
+    template: {
+      layout: "default",
+      tabs: [
+        { id: "overview", label: "Overview", type: "content" },
+        { id: "reviews", label: "Reviews", type: "reviews" },
+        { id: "forum", label: "Forum", type: "forum" },
+        { id: "news", label: "News", type: "news" },
+      ],
+      operation_panel: {
+        title: "Operations",
+        subtitle: "Configure parameters and submit the transaction.",
+        cta_label: "Launch App",
+        operations: [],
+      },
     },
-    tabs: [
-      { id: "market-info", label: "Market Info", type: "content" },
-      { id: "reviews", label: "Reviews", type: "reviews" },
-      { id: "forum", label: "Comments", type: "forum" },
-      { id: "news", label: "Activity", type: "news" },
-    ],
-    operation_panel: {
-      title: "Trade Position",
-      subtitle: "Choose side, set amount, and submit on-chain.",
-      cta_label: "Open Full Experience",
+    tabTypes: ["content", "reviews", "forum", "news"],
+    starter: {
+      action: "save_draft",
+      permissions: {
+        payments: true,
+      },
+      limits: {
+        max_gas_per_tx: "10",
+        daily_gas_cap_per_user: "100",
+      },
       operations: [],
     },
-  };
-}
+  },
+  {
+    id: "prediction",
+    aliases: ["prediction", "prediction_market", "market"],
+    label: "Prediction",
+    description: "Polymarket-style layout with market info/commentary on left and trade box on right.",
+    template: {
+      layout: "prediction",
+      hero: {
+        eyebrow: "Prediction Market",
+        disclaimer: "Probabilities are market-implied and can change quickly.",
+      },
+      tabs: [
+        { id: "market-info", label: "Market Info", type: "content" },
+        { id: "reviews", label: "Reviews", type: "reviews" },
+        { id: "forum", label: "Comments", type: "forum" },
+        { id: "news", label: "Activity", type: "news" },
+      ],
+      operation_panel: {
+        title: "Trade Position",
+        subtitle: "Choose side, set amount, and submit on-chain.",
+        cta_label: "Open Full Experience",
+        operations: [],
+      },
+    },
+    tabTypes: ["content", "reviews", "forum", "news"],
+    starter: {
+      action: "save_draft",
+      permissions: {
+        payments: true,
+        datafeed: true,
+      },
+      limits: {
+        max_gas_per_tx: "10",
+        daily_gas_cap_per_user: "100",
+      },
+      operations: [
+        {
+          name: "Buy Position",
+          method: "buyPosition",
+          button_style: "primary",
+          params: [
+            {
+              name: "side",
+              type: "select",
+              required: true,
+              options: [
+                { label: "YES", value: "yes" },
+                { label: "NO", value: "no" },
+              ],
+            },
+            { name: "amount", type: "amount", required: true, placeholder: "10" },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "gaming",
+    aliases: ["gaming", "game"],
+    label: "Gaming",
+    description: "Game-oriented layout with leaderboard and play operations.",
+    template: {
+      layout: "default",
+      tabs: [
+        { id: "overview", label: "Overview", type: "content" },
+        { id: "leaderboard", label: "Leaderboard", type: "content" },
+        { id: "reviews", label: "Reviews", type: "reviews" },
+        { id: "news", label: "News", type: "news" },
+      ],
+      operation_panel: {
+        title: "Play",
+        subtitle: "Configure game parameters and start playing.",
+        cta_label: "Launch Game",
+        operations: [],
+      },
+    },
+    tabTypes: ["content", "reviews", "news"],
+    starter: {
+      action: "save_draft",
+      permissions: {
+        payments: true,
+      },
+      limits: {
+        max_gas_per_tx: "10",
+        daily_gas_cap_per_user: "100",
+      },
+      operations: [
+        {
+          name: "Play Round",
+          method: "play",
+          button_style: "primary",
+          params: [
+            { name: "bet_amount", type: "amount", required: true, placeholder: "1" },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "defi",
+    aliases: ["defi", "finance"],
+    label: "DeFi",
+    description: "DeFi layout with pool info, positions, and deposit/withdraw operations.",
+    template: {
+      layout: "default",
+      tabs: [
+        { id: "pool-info", label: "Pool Info", type: "content" },
+        { id: "positions", label: "Positions", type: "content" },
+        { id: "reviews", label: "Reviews", type: "reviews" },
+        { id: "news", label: "Activity", type: "news" },
+      ],
+      operation_panel: {
+        title: "Manage Position",
+        subtitle: "Deposit, withdraw, or claim rewards.",
+        cta_label: "Open DeFi App",
+        operations: [],
+      },
+    },
+    tabTypes: ["content", "reviews", "news"],
+    starter: {
+      action: "save_draft",
+      permissions: {
+        payments: true,
+      },
+      limits: {
+        max_gas_per_tx: "10",
+        daily_gas_cap_per_user: "100",
+      },
+      operations: [
+        {
+          name: "Deposit",
+          method: "deposit",
+          button_style: "primary",
+          params: [
+            { name: "amount", type: "amount", required: true, placeholder: "10" },
+          ],
+        },
+        {
+          name: "Withdraw",
+          method: "withdraw",
+          button_style: "secondary",
+          params: [
+            { name: "amount", type: "amount", required: true, placeholder: "10" },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: "nft",
+    aliases: ["nft", "collectible", "collectibles"],
+    label: "NFT",
+    description: "NFT collection layout with minting and transfer operations.",
+    template: {
+      layout: "default",
+      tabs: [
+        { id: "collection", label: "Collection", type: "content" },
+        { id: "reviews", label: "Reviews", type: "reviews" },
+        { id: "forum", label: "Forum", type: "forum" },
+      ],
+      operation_panel: {
+        title: "NFT Actions",
+        subtitle: "Mint or transfer NFTs.",
+        cta_label: "Open Collection",
+        operations: [],
+      },
+    },
+    tabTypes: ["content", "reviews", "forum"],
+    starter: {
+      action: "save_draft",
+      permissions: {
+        payments: true,
+      },
+      limits: {
+        max_gas_per_tx: "10",
+        daily_gas_cap_per_user: "100",
+      },
+      operations: [
+        {
+          name: "Mint",
+          method: "mint",
+          button_style: "primary",
+          params: [
+            { name: "token_id", type: "string", required: true, placeholder: "Token ID" },
+          ],
+        },
+      ],
+    },
+  },
+];
 
-function buildGamingTemplate(): MiniAppDetailTemplate {
-  return {
-    layout: "default",
-    tabs: [
-      { id: "overview", label: "Overview", type: "content" },
-      { id: "leaderboard", label: "Leaderboard", type: "content" },
-      { id: "reviews", label: "Reviews", type: "reviews" },
-      { id: "news", label: "News", type: "news" },
-    ],
-    operation_panel: {
-      title: "Play",
-      subtitle: "Configure game parameters and start playing.",
-      cta_label: "Launch Game",
-      operations: [],
-    },
-  };
-}
+const BLUEPRINT_DEFAULT_ID: MiniAppBlueprint = "default";
 
-function buildDefiTemplate(): MiniAppDetailTemplate {
-  return {
-    layout: "default",
-    tabs: [
-      { id: "pool-info", label: "Pool Info", type: "content" },
-      { id: "positions", label: "Positions", type: "content" },
-      { id: "reviews", label: "Reviews", type: "reviews" },
-      { id: "news", label: "Activity", type: "news" },
-    ],
-    operation_panel: {
-      title: "Manage Position",
-      subtitle: "Deposit, withdraw, or claim rewards.",
-      cta_label: "Open DeFi App",
-      operations: [],
-    },
-  };
-}
+const BLUEPRINT_BY_ID = new Map<MiniAppBlueprint, MiniAppBlueprintDefinition>(
+  BLUEPRINT_DEFINITIONS.map((definition) => [definition.id, definition]),
+);
 
-function buildNftTemplate(): MiniAppDetailTemplate {
-  return {
-    layout: "default",
-    tabs: [
-      { id: "collection", label: "Collection", type: "content" },
-      { id: "reviews", label: "Reviews", type: "reviews" },
-      { id: "forum", label: "Forum", type: "forum" },
-    ],
-    operation_panel: {
-      title: "NFT Actions",
-      subtitle: "Mint or transfer NFTs.",
-      cta_label: "Open Collection",
-      operations: [],
-    },
-  };
+const BLUEPRINT_ALIAS_MAP = BLUEPRINT_DEFINITIONS.reduce<Record<string, MiniAppBlueprint>>((acc, definition) => {
+  for (const alias of definition.aliases) {
+    acc[alias] = definition.id;
+  }
+  acc[definition.id] = definition.id;
+  return acc;
+}, {});
+
+function getBlueprintDefinition(blueprint: MiniAppBlueprint): MiniAppBlueprintDefinition {
+  return BLUEPRINT_BY_ID.get(blueprint) || BLUEPRINT_BY_ID.get(BLUEPRINT_DEFAULT_ID)!;
 }
 
 function getBlueprintTemplate(blueprint: MiniAppBlueprint): MiniAppDetailTemplate {
-  if (blueprint === "prediction") return buildPredictionTemplate();
-  if (blueprint === "gaming") return buildGamingTemplate();
-  if (blueprint === "defi") return buildDefiTemplate();
-  if (blueprint === "nft") return buildNftTemplate();
-  return buildDefaultTemplate();
+  return deepClone(getBlueprintDefinition(blueprint).template);
 }
 
 function normalizeBlueprint(value: unknown): MiniAppBlueprint {
-  const raw = asTrimmedString(value).toLowerCase();
-  if (raw === "prediction" || raw === "prediction_market" || raw === "market") return "prediction";
-  if (raw === "gaming" || raw === "game") return "gaming";
-  if (raw === "defi" || raw === "finance") return "defi";
-  if (raw === "nft" || raw === "collectible") return "nft";
-  return "default";
+  const raw = asTrimmedString(value).toLowerCase().replace(/\s+/g, "_");
+  return BLUEPRINT_ALIAS_MAP[raw] || BLUEPRINT_DEFAULT_ID;
 }
 
 function cleanForManifest(value: unknown): unknown {
@@ -387,172 +563,23 @@ export function computeManifestHashHex(manifest: Record<string, unknown>): strin
 }
 
 export function listMiniAppBlueprints(): MiniAppBlueprintMetadata[] {
-  return [
-    {
-      id: "default",
-      label: "Default",
-      description: "General miniapp layout with overview/reviews/forum/news and operations panel.",
-      layout: "default",
-      tab_types: ["content", "reviews", "forum", "news"],
-      starter: {
-        blueprint: "default",
-        action: "save_draft",
-        permissions: {
-          payments: true,
-        },
-        limits: {
-          max_gas_per_tx: "10",
-          daily_gas_cap_per_user: "100",
-        },
-        manifest: {
-          page_template: buildDefaultTemplate(),
-          operations: [],
-        },
+  return BLUEPRINT_DEFINITIONS.map((definition) => ({
+    id: definition.id,
+    label: definition.label,
+    description: definition.description,
+    layout: definition.template.layout,
+    tab_types: [...definition.tabTypes],
+    starter: {
+      blueprint: definition.id,
+      action: definition.starter.action,
+      permissions: deepClone(definition.starter.permissions),
+      limits: deepClone(definition.starter.limits),
+      manifest: {
+        page_template: deepClone(definition.template),
+        operations: deepClone(definition.starter.operations),
       },
     },
-    {
-      id: "prediction",
-      label: "Prediction",
-      description: "Polymarket-style layout with market info/commentary on left and trade box on right.",
-      layout: "prediction",
-      tab_types: ["content", "reviews", "forum", "news"],
-      starter: {
-        blueprint: "prediction",
-        action: "save_draft",
-        permissions: {
-          payments: true,
-          datafeed: true,
-        },
-        limits: {
-          max_gas_per_tx: "10",
-          daily_gas_cap_per_user: "100",
-        },
-        manifest: {
-          page_template: buildPredictionTemplate(),
-          operations: [
-            {
-              name: "Buy Position",
-              method: "buyPosition",
-              button_style: "primary",
-              params: [
-                {
-                  name: "side",
-                  type: "select",
-                  required: true,
-                  options: [
-                    { label: "YES", value: "yes" },
-                    { label: "NO", value: "no" },
-                  ],
-                },
-                { name: "amount", type: "amount", required: true, placeholder: "10" },
-              ],
-            },
-          ],
-        },
-      },
-    },
-    {
-      id: "gaming",
-      label: "Gaming",
-      description: "Game-oriented layout with leaderboard and play operations.",
-      layout: "default",
-      tab_types: ["content", "reviews", "news"],
-      starter: {
-        blueprint: "gaming",
-        action: "save_draft",
-        permissions: {
-          payments: true,
-        },
-        limits: {
-          max_gas_per_tx: "10",
-          daily_gas_cap_per_user: "100",
-        },
-        manifest: {
-          page_template: buildGamingTemplate(),
-          operations: [
-            {
-              name: "Play Round",
-              method: "play",
-              button_style: "primary",
-              params: [
-                { name: "bet_amount", type: "amount", required: true, placeholder: "1" },
-              ],
-            },
-          ],
-        },
-      },
-    },
-    {
-      id: "defi",
-      label: "DeFi",
-      description: "DeFi layout with pool info, positions, and deposit/withdraw operations.",
-      layout: "default",
-      tab_types: ["content", "reviews", "news"],
-      starter: {
-        blueprint: "defi",
-        action: "save_draft",
-        permissions: {
-          payments: true,
-        },
-        limits: {
-          max_gas_per_tx: "10",
-          daily_gas_cap_per_user: "100",
-        },
-        manifest: {
-          page_template: buildDefiTemplate(),
-          operations: [
-            {
-              name: "Deposit",
-              method: "deposit",
-              button_style: "primary",
-              params: [
-                { name: "amount", type: "amount", required: true, placeholder: "10" },
-              ],
-            },
-            {
-              name: "Withdraw",
-              method: "withdraw",
-              button_style: "secondary",
-              params: [
-                { name: "amount", type: "amount", required: true, placeholder: "10" },
-              ],
-            },
-          ],
-        },
-      },
-    },
-    {
-      id: "nft",
-      label: "NFT",
-      description: "NFT collection layout with minting and transfer operations.",
-      layout: "default",
-      tab_types: ["content", "reviews", "forum"],
-      starter: {
-        blueprint: "nft",
-        action: "save_draft",
-        permissions: {
-          payments: true,
-        },
-        limits: {
-          max_gas_per_tx: "10",
-          daily_gas_cap_per_user: "100",
-        },
-        manifest: {
-          page_template: buildNftTemplate(),
-          operations: [
-            {
-              name: "Mint",
-              method: "mint",
-              button_style: "primary",
-              params: [
-                { name: "token_id", type: "string", required: true, placeholder: "Token ID" },
-              ],
-            },
-          ],
-        },
-      },
-    },
-  ];
+  }));
 }
 
 function mergeContentFields(base: Dict, content: Dict): Dict {
@@ -575,6 +602,14 @@ function mergeContentFields(base: Dict, content: Dict): Dict {
   return next;
 }
 
+function hasMeaningfulValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value as Dict).length > 0;
+  return true;
+}
+
 export function normalizeMiniAppAdminPayload(
   raw: unknown,
   options: NormalizeMiniAppAdminPayloadOptions = {},
@@ -585,35 +620,57 @@ export function normalizeMiniAppAdminPayload(
   const incomingManifest = asObject(obj.manifest);
   const content = asObject(obj.content);
   const mergedInput = mergeContentFields({ ...existingManifest, ...incomingManifest, ...obj }, content);
+  const contractInput = asObject(mergedInput.contract ?? incomingManifest.contract ?? existingManifest.contract);
+  const mediaInput = asObject(mergedInput.media ?? incomingManifest.media ?? existingManifest.media);
+  const integrationInput = asObject(mergedInput.integration ?? incomingManifest.integration ?? existingManifest.integration);
 
-  const appId = normalizeAppId(mergedInput.app_id ?? existing?.app_id);
+  const preparedInput: Dict = {
+    ...mergedInput,
+    contract: contractInput,
+    media: mediaInput,
+    integration: integrationInput,
+    contract_hash: mergedInput.contract_hash ?? contractInput.contract_hash,
+    template_id: mergedInput.template_id ?? contractInput.template_id,
+    init_params: mergedInput.init_params ?? contractInput.init_params,
+    icon: mergedInput.icon ?? mediaInput.icon,
+    logo_url: mergedInput.logo_url ?? mediaInput.logo_url ?? mediaInput.logo,
+    banner_url: mergedInput.banner_url ?? mediaInput.banner_url ?? mediaInput.banner,
+    news_integration: mergedInput.news_integration ?? integrationInput.news_integration,
+    stats_display: mergedInput.stats_display ?? integrationInput.stats_display,
+    blueprint: mergedInput.blueprint ?? mergedInput.template ?? mergedInput.template_type,
+  };
+
+  const appId = normalizeAppId(preparedInput.app_id ?? existing?.app_id);
   if (!appId) {
     return { ok: false, error: "Invalid app_id format" };
   }
 
-  const entryUrl = normalizeEntryUrl(mergedInput.entry_url ?? existing?.entry_url);
-  if (!entryUrl) {
-    return { ok: false, error: "Invalid entry_url (must be http/https or mf://)" };
-  }
-
-  const name = asTrimmedString(mergedInput.name ?? existing?.name ?? appId);
+  const name = asTrimmedString(preparedInput.name ?? existing?.name ?? appId);
   if (!name) {
     return { ok: false, error: "name is required" };
   }
 
-  const contractHashInput = mergedInput.contract_hash ?? existing?.contract_hash;
+  const entryUrlCandidate =
+    normalizeEntryUrl(preparedInput.entry_url ?? existing?.entry_url) ??
+    normalizeEntryUrl(existingManifest.entry_url) ??
+    buildManifestEntryUrl(appId);
+  const entryUrl = entryUrlCandidate.startsWith("mf://manifest?")
+    ? entryUrlCandidate
+    : buildManifestEntryUrl(appId);
+
+  const contractHashInput = preparedInput.contract_hash ?? existing?.contract_hash;
   const contractHash = normalizeContractHash(contractHashInput);
   if (asTrimmedString(contractHashInput) && !contractHash) {
     return { ok: false, error: "Invalid contract_hash format" };
   }
 
-  const category = normalizeCategory(mergedInput.category ?? existing?.category);
-  const icon = asTrimmedString(mergedInput.icon ?? existing?.icon ?? "🧩") || "🧩";
-  const description = asTrimmedString(mergedInput.description ?? existing?.description ?? "");
+  const category = normalizeCategory(preparedInput.category ?? existing?.category);
+  const icon = asTrimmedString(preparedInput.icon ?? existing?.icon ?? "🧩") || "🧩";
+  const description = asTrimmedString(preparedInput.description ?? existing?.description ?? "");
 
-  const logoUrlValue = mergedInput.logo_url ?? existing?.logo_url;
-  const bannerUrlValue = mergedInput.banner_url ?? existing?.banner_url;
-  const docsUrlValue = mergedInput.docs_url ?? existing?.docs_url;
+  const logoUrlValue = preparedInput.logo_url ?? existing?.logo_url;
+  const bannerUrlValue = preparedInput.banner_url ?? existing?.banner_url;
+  const docsUrlValue = preparedInput.docs_url ?? existing?.docs_url;
 
   const logoUrl = normalizeOptionalUrl(logoUrlValue);
   if (asTrimmedString(logoUrlValue) && !logoUrl) {
@@ -628,11 +685,11 @@ export function normalizeMiniAppAdminPayload(
     return { ok: false, error: "Invalid docs_url" };
   }
 
-  const actionInput = normalizeLifecycleAction(mergedInput.action);
-  const resolvedLifecycle = resolveStatus(actionInput, mergedInput.status, existing?.status);
+  const actionInput = normalizeLifecycleAction(preparedInput.action);
+  const resolvedLifecycle = resolveStatus(actionInput, preparedInput.status, existing?.status);
 
   const assetsAllowed = normalizeAssetsAllowed(
-    mergedInput.assets_allowed,
+    preparedInput.assets_allowed,
     existing?.assets_allowed ?? existingManifest.assets_allowed,
     "GAS",
   );
@@ -641,7 +698,7 @@ export function normalizeMiniAppAdminPayload(
   }
 
   const governanceAssetsAllowed = normalizeAssetsAllowed(
-    mergedInput.governance_assets_allowed,
+    preparedInput.governance_assets_allowed,
     existing?.governance_assets_allowed ?? existingManifest.governance_assets_allowed,
     "BNEO",
   );
@@ -650,22 +707,22 @@ export function normalizeMiniAppAdminPayload(
   }
 
   const fallbackPermissions = normalizePermissions(existing?.permissions ?? existingManifest.permissions);
-  const permissions = normalizePermissions(mergedInput.permissions ?? existingManifest.permissions, fallbackPermissions);
-  const limits = normalizeLimits(mergedInput.limits ?? existingManifest.limits, existing?.limits ?? null);
+  const permissions = normalizePermissions(preparedInput.permissions ?? existingManifest.permissions, fallbackPermissions);
+  const limits = normalizeLimits(preparedInput.limits ?? existingManifest.limits, existing?.limits ?? null);
 
   const developerUserId = asTrimmedString(
-    mergedInput.developer_user_id ?? existing?.developer_user_id ?? options.defaultDeveloperUserId,
+    preparedInput.developer_user_id ?? existing?.developer_user_id ?? options.defaultDeveloperUserId,
   );
   if (!UUID_REGEX.test(developerUserId)) {
     return { ok: false, error: "developer_user_id is required and must be a UUID" };
   }
 
-  const developerPubkey = normalizeDeveloperPubkey(mergedInput.developer_pubkey ?? existing?.developer_pubkey ?? "");
+  const developerPubkey = normalizeDeveloperPubkey(preparedInput.developer_pubkey ?? existing?.developer_pubkey ?? "");
   if (developerPubkey === null) {
     return { ok: false, error: "Invalid developer_pubkey format" };
   }
 
-  const blueprint = normalizeBlueprint(mergedInput.blueprint ?? mergedInput.template ?? existingManifest.blueprint);
+  const blueprint = normalizeBlueprint(preparedInput.blueprint ?? preparedInput.template ?? existingManifest.blueprint);
   const blueprintTemplate = getBlueprintTemplate(blueprint);
 
   const detailConfig = resolveMiniAppDetailConfig(
@@ -674,10 +731,17 @@ export function normalizeMiniAppAdminPayload(
         ...existingManifest,
         ...incomingManifest,
       },
-      detail_template: mergedInput.detail_template ?? mergedInput.page_template ?? mergedInput.page_config,
-      operations: mergedInput.operations,
-      operation_schema: mergedInput.operation_schema,
-      operation_panel: mergedInput.operation_panel,
+      detail_template: preparedInput.detail_template ?? preparedInput.page_template ?? preparedInput.page_config,
+      operations: preparedInput.operations,
+      operation_schema: preparedInput.operation_schema,
+      operation_panel: preparedInput.operation_panel,
+      frontend_spec:
+        preparedInput.frontend_spec ??
+        preparedInput.ui_spec ??
+        preparedInput.frontend_definition ??
+        preparedInput.page_definition ??
+        incomingManifest.frontend_spec ??
+        existingManifest.frontend_spec,
     },
     {
       detailTemplate: blueprintTemplate,
@@ -689,13 +753,30 @@ export function normalizeMiniAppAdminPayload(
   const detailTemplate = detailConfig.detailTemplate || blueprintTemplate;
   const operations = detailConfig.operations.length > 0
     ? detailConfig.operations
-    : coerceOperationEntries(mergedInput.operations ?? mergedInput.operation_schema);
+    : coerceOperationEntries(preparedInput.operations ?? preparedInput.operation_schema);
 
   const statsDisplay = normalizeStatsDisplay(
-    mergedInput.stats_display,
+    preparedInput.stats_display,
     existingManifest.stats_display,
   );
-  const newsIntegration = asOptionalBoolean(mergedInput.news_integration ?? existingManifest.news_integration);
+  const newsIntegration = asOptionalBoolean(preparedInput.news_integration ?? existingManifest.news_integration);
+  const frontendSpec =
+    preparedInput.frontend_spec ??
+    preparedInput.ui_spec ??
+    preparedInput.frontend_definition ??
+    preparedInput.page_definition ??
+    incomingManifest.frontend_spec ??
+    existingManifest.frontend_spec;
+
+  const templateId = asTrimmedString(preparedInput.template_id ?? contractInput.template_id);
+  const initParams = preparedInput.init_params ?? contractInput.init_params;
+  const normalizedContract = cleanForManifest({
+    ...asObject(existingManifest.contract),
+    ...asObject(incomingManifest.contract),
+    template_id: templateId || undefined,
+    init_params: hasMeaningfulValue(initParams) ? initParams : undefined,
+    contract_hash: contractHash || undefined,
+  });
 
   const manifest = cleanForManifest({
     ...existingManifest,
@@ -713,6 +794,10 @@ export function normalizeMiniAppAdminPayload(
     governance_assets_allowed: governanceAssetsAllowed,
     news_integration: newsIntegration,
     stats_display: statsDisplay || undefined,
+    template_id: templateId || undefined,
+    init_params: hasMeaningfulValue(initParams) ? initParams : undefined,
+    contract: hasMeaningfulValue(normalizedContract) ? normalizedContract : undefined,
+    frontend_spec: hasMeaningfulValue(frontendSpec) ? frontendSpec : undefined,
     detail_template: detailTemplate,
     page_template: detailTemplate,
     operations,

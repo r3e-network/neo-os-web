@@ -100,4 +100,55 @@ describe("miniapp-admin normalization", () => {
     expect(result.row.developer_user_id).toBe("123e4567-e89b-12d3-a456-426614174000");
     expect(result.row.developer_pubkey).toBe("03ab");
   });
+
+  it("accepts frontend_spec markdown and stores it in canonical manifest fields", () => {
+    const result = normalizeMiniAppAdminPayload({
+      app_id: "miniapp-frontend-spec",
+      name: "Frontend Spec App",
+      entry_url: "https://example.com/spec",
+      developer_user_id: "123e4567-e89b-12d3-a456-426614174000",
+      frontend_spec: "## Intro\nConfig-driven content only.",
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.row.manifest.frontend_spec).toBe("## Intro\nConfig-driven content only.");
+    expect(result.row.manifest.page_template).toEqual(
+      expect.objectContaining({
+        layout: "default",
+      }),
+    );
+  });
+
+  it("preserves contract template metadata from contract object", () => {
+    const result = normalizeMiniAppAdminPayload({
+      app_id: "miniapp-factory-template",
+      name: "Factory Template App",
+      entry_url: "https://example.com/factory-template",
+      developer_user_id: "123e4567-e89b-12d3-a456-426614174000",
+      contract: {
+        template_id: "prediction-binary",
+        init_params: {
+          question: "Will BTC close above 100k this week?",
+          end_time: 1735689600,
+        },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.row.manifest.template_id).toBe("prediction-binary");
+    expect(result.row.manifest.init_params).toEqual(
+      expect.objectContaining({
+        question: "Will BTC close above 100k this week?",
+      }),
+    );
+    expect(result.row.manifest.contract).toEqual(
+      expect.objectContaining({
+        template_id: "prediction-binary",
+      }),
+    );
+  });
 });

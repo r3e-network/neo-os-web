@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
@@ -6,12 +6,13 @@ import { LaunchDock } from "../../components/LaunchDock";
 import { FederatedMiniApp } from "../../components/FederatedMiniApp";
 import { LiveChat } from "../../components/features/chat";
 import { WalletState, MiniAppInfo } from "../../components/types";
-import { installMiniAppSDK } from "../../lib/miniapp-sdk";
-import type { MiniAppSDK } from "../../lib/miniapp-sdk";
 import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { logger } from "../../lib/logger";
 import { resolveInternalBaseUrl } from "../../lib/edge";
 import { BUILTIN_APPS } from "../../lib/builtin-apps";
+import { resolveMiniAppDetailConfig } from "../../lib/miniapp-template";
+import { OperationPanel } from "../../components/OperationPanel";
+import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
 
 /** NeoLine N3 wallet interface */
 interface NeoLineN3Wallet {
@@ -20,11 +21,6 @@ interface NeoLineN3Wallet {
 
 interface WindowWithNeoLine extends Window {
   NEOLineN3?: NeoLineN3Wallet;
-}
-
-/** Window with MiniAppSDK for iframe injection */
-interface WindowWithMiniAppSDK {
-  MiniAppSDK?: MiniAppSDK;
 }
 
 type RequestLike = {
@@ -43,13 +39,8 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   const [wallet, setWallet] = useState<WalletState>({ connected: false, address: "", provider: null });
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const federated = parseFederatedEntryUrl(app.entry_url, app.app_id);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const sdkRef = useRef<MiniAppSDK | null>(null);
-
-  useEffect(() => {
-    sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
-  }, [app.app_id, app.permissions]);
+  const isManifestMode = app.entry_url.startsWith("mf://manifest?");
+  const federated = isManifestMode ? null : parseFederatedEntryUrl(app.entry_url, app.app_id);
 
   // Network latency monitoring
   useEffect(() => {
@@ -109,89 +100,6 @@ export default function LaunchPage({ app }: LaunchPageProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleExit]);
 
-  useEffect(() => {
-    if (federated) return;
-    if (typeof window === "undefined") return;
-
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const expectedOrigin = resolveIframeOrigin(app.entry_url);
-    if (!expectedOrigin) return;
-
-    const allowSameOriginInjection = expectedOrigin === window.location.origin;
-
-    const ensureSDK = () => {
-      if (!sdkRef.current) {
-        sdkRef.current = installMiniAppSDK({ appId: app.app_id, permissions: app.permissions });
-      }
-      return sdkRef.current;
-    };
-
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.source !== iframe.contentWindow) return;
-      if (event.origin !== expectedOrigin) return;
-
-      const data = event.data as Record<string, unknown> | null;
-      if (!data || typeof data !== "object") return;
-      if (data.type !== "neo_miniapp_sdk_request") return;
-
-      const id = String(data.id ?? "").trim();
-      if (!id) return;
-
-      const method = String(data.method ?? "").trim();
-      const params = Array.isArray(data.params) ? data.params : [];
-      const source = event.source as Window | null;
-      if (!source || typeof source.postMessage !== "function") return;
-
-      const respond = (ok: boolean, result?: unknown, error?: string) => {
-        source.postMessage(
-          {
-            type: "neo_miniapp_sdk_response",
-            id,
-            ok,
-            result,
-            error,
-          },
-          expectedOrigin,
-        );
-      };
-
-      try {
-        const sdk = ensureSDK();
-        if (!sdk) throw new Error("MiniAppSDK unavailable");
-        const result = await dispatchBridgeCall(sdk, method, params, app.permissions, app.app_id);
-        respond(true, result);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "request failed";
-        respond(false, undefined, message);
-      }
-    };
-
-    const handleLoad = () => {
-      if (!allowSameOriginInjection) return;
-      const sdk = ensureSDK();
-      if (!sdk) return;
-      try {
-        if (iframe.contentWindow) {
-          (iframe.contentWindow as WindowWithMiniAppSDK).MiniAppSDK = sdk;
-          iframe.contentWindow.dispatchEvent(new Event("miniapp-sdk-ready"));
-        }
-      } catch {
-        // Ignore cross-origin access failures.
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-    iframe.addEventListener("load", handleLoad);
-    handleLoad();
-
-    return () => {
-      window.removeEventListener("message", handleMessage);
-      iframe.removeEventListener("load", handleLoad);
-    };
-  }, [app.app_id, app.entry_url, app.permissions, federated]);
-
   const handleShare = useCallback(() => {
     const url = `${window.location.origin}/launch/${app.app_id}`;
     navigator.clipboard
@@ -222,14 +130,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
           <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
         </div>
       ) : (
-        <iframe
-          src={app.entry_url}
-          ref={iframeRef}
-          className="absolute top-12 left-0 w-screen h-[calc(100vh-48px)] border-none"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          title={`${app.name} MiniApp`}
-          allowFullScreen
-        />
+        <ManifestRuntime app={app} />
       )}
       {toastMessage && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-neo/90 text-black px-6 py-3 rounded-lg font-semibold text-sm z-[60]">{toastMessage}</div>}
 
@@ -243,113 +144,81 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   );
 }
 
-function resolveIframeOrigin(entryUrl: string): string | null {
-  const trimmed = String(entryUrl || "").trim();
-  if (!trimmed || trimmed.startsWith("mf://")) return null;
-  try {
-    return new URL(trimmed, window.location.origin).origin;
-  } catch {
-    return null;
-  }
-}
+function ManifestRuntime({ app }: { app: MiniAppInfo }) {
+  const [invokeFeedback, setInvokeFeedback] = useState<string | null>(null);
+  const config = resolveMiniAppDetailConfig({
+    frontend_spec: app.manifest?.frontend_spec,
+    page_template: app.manifest?.page_template,
+    detail_template: app.manifest?.detail_template,
+    operation_panel: app.manifest?.operation_panel,
+    operations: app.manifest?.operations,
+    manifest: app.manifest,
+  });
 
-function hasPermission(method: string, permissions: MiniAppInfo["permissions"]): boolean {
-  if (!permissions) return false;
-  switch (method) {
-    case "payments.payGAS":
-      return Boolean(permissions.payments);
-    case "governance.vote":
-      return Boolean(permissions.governance);
-    case "rng.requestRandom":
-      return Boolean(permissions.randomness);
-    case "datafeed.getPrice":
-      return Boolean(permissions.datafeed);
-    default:
-      return true;
-  }
-}
+  const template = config.detailTemplate;
+  const operations = config.operations;
+  const tabs = template?.tabs || [];
+  const overviewTab = tabs.find((tab) => tab.type === "content") || tabs[0] || null;
 
-function resolveScopedAppId(requested: unknown, appId: string): string {
-  const trimmed = String(requested ?? "").trim();
-  if (trimmed && trimmed !== appId) {
-    throw new Error("app_id mismatch");
-  }
-  return appId;
-}
+  const onInvoke = useCallback(async () => {
+    setInvokeFeedback("Manifest runtime mode: operation schema loaded. Wallet invoke is disabled here.");
+  }, []);
 
-function normalizeListParams(raw: unknown, appId: string): Record<string, unknown> {
-  const base = raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
-  return { ...base, app_id: resolveScopedAppId(base.app_id, appId) };
-}
+  const panelOps = useMemo(() => {
+    if (template?.operation_panel?.operations?.length) return template.operation_panel.operations;
+    return operations;
+  }, [operations, template?.operation_panel?.operations]);
 
-async function dispatchBridgeCall(
-  sdk: MiniAppSDK,
-  method: string,
-  params: unknown[],
-  permissions: MiniAppInfo["permissions"],
-  appId: string,
-): Promise<unknown> {
-  if (!hasPermission(method, permissions)) {
-    throw new Error(`permission denied: ${method}`);
-  }
+  return (
+    <div className="absolute top-12 left-0 w-screen h-[calc(100vh-48px)] overflow-auto bg-black text-white">
+      <div className="mx-auto max-w-5xl px-5 py-6">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-xs uppercase tracking-wider text-neo mb-1">Manifest Runtime</p>
+          <h1 className="text-2xl font-bold mb-2">{app.name}</h1>
+          <p className="text-sm text-white/70 mb-6">{app.description}</p>
 
-  switch (method) {
-    case "wallet.getAddress":
-    case "getAddress": {
-      if (sdk.wallet?.getAddress) return sdk.wallet.getAddress();
-      if (sdk.getAddress) return sdk.getAddress();
-      throw new Error("wallet.getAddress not available");
-    }
-    case "wallet.invokeIntent": {
-      if (!sdk.wallet?.invokeIntent) throw new Error("wallet.invokeIntent not available");
-      const [requestId] = params;
-      return sdk.wallet.invokeIntent(String(requestId ?? ""));
-    }
-    case "payments.payGAS": {
-      if (!sdk.payments?.payGAS) throw new Error("payments.payGAS not available");
-      const [requestedAppId, amount, memo] = params;
-      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
-      const memoValue = memo === undefined || memo === null ? undefined : String(memo);
-      return sdk.payments.payGAS(scopedAppId, String(amount ?? ""), memoValue);
-    }
-    case "governance.vote": {
-      if (!sdk.governance?.vote) throw new Error("governance.vote not available");
-      const [requestedAppId, proposalId, neoAmount, support] = params;
-      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
-      const supportValue = typeof support === "boolean" ? support : undefined;
-      return sdk.governance.vote(scopedAppId, String(proposalId ?? ""), String(neoAmount ?? ""), supportValue);
-    }
-    case "rng.requestRandom": {
-      if (!sdk.rng?.requestRandom) throw new Error("rng.requestRandom not available");
-      const [requestedAppId] = params;
-      const scopedAppId = resolveScopedAppId(requestedAppId, appId);
-      return sdk.rng.requestRandom(scopedAppId);
-    }
-    case "datafeed.getPrice": {
-      if (!sdk.datafeed?.getPrice) throw new Error("datafeed.getPrice not available");
-      const [symbol] = params;
-      return sdk.datafeed.getPrice(String(symbol ?? ""));
-    }
-    case "stats.getMyUsage": {
-      if (!sdk.stats?.getMyUsage) throw new Error("stats.getMyUsage not available");
-      const [requestedAppId, date] = params;
-      const resolvedAppId = resolveScopedAppId(requestedAppId, appId);
-      const dateValue = date === undefined || date === null ? undefined : String(date);
-      return sdk.stats.getMyUsage(resolvedAppId, dateValue);
-    }
-    case "events.list": {
-      if (!sdk.events?.list) throw new Error("events.list not available");
-      const [rawParams] = params;
-      return sdk.events.list(normalizeListParams(rawParams, appId));
-    }
-    case "transactions.list": {
-      if (!sdk.transactions?.list) throw new Error("transactions.list not available");
-      const [rawParams] = params;
-      return sdk.transactions.list(normalizeListParams(rawParams, appId));
-    }
-    default:
-      throw new Error(`unsupported method: ${method}`);
-  }
+          <div className="grid gap-4 md:grid-cols-2 mb-6">
+            <div className="rounded-xl border border-white/10 p-4 bg-black/20">
+              <h2 className="text-sm font-semibold mb-2">Layout</h2>
+              <p className="text-xs text-white/70">{template?.layout || "default"}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 p-4 bg-black/20">
+              <h2 className="text-sm font-semibold mb-2">Operations</h2>
+              <p className="text-xs text-white/70">{operations.length}</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <section className="rounded-xl border border-white/10 p-4 bg-black/20">
+              <h3 className="text-sm font-semibold mb-2">{overviewTab?.label || "Overview"}</h3>
+              {overviewTab?.blocks?.length ? (
+                <DetailContentBlocks blocks={overviewTab.blocks} />
+              ) : (
+                <p className="text-xs text-white/70">No content blocks configured.</p>
+              )}
+            </section>
+
+            <section className="rounded-xl border border-white/10 p-4 bg-black/20">
+              <h3 className="text-sm font-semibold mb-2">{template?.operation_panel?.title || "Operations"}</h3>
+              {template?.operation_panel?.subtitle && (
+                <p className="text-xs text-white/60 mb-3">{template.operation_panel.subtitle}</p>
+              )}
+              {panelOps.length ? (
+                <OperationPanel
+                  operations={panelOps}
+                  onInvoke={onInvoke}
+                  showTitle={false}
+                />
+              ) : (
+                <p className="text-xs text-white/70">No operation schema configured.</p>
+              )}
+              {invokeFeedback && <p className="text-xs text-neo mt-3">{invokeFeedback}</p>}
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // SSR: Fetch app info from API or static catalog

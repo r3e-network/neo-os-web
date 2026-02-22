@@ -14,7 +14,7 @@ export default defineConfig({
     assetsDir: "static",
   },
   server: {
-    port: 5173,
+    port: 5193,
     host: true,
   },
 });

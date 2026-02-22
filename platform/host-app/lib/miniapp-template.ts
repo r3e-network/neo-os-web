@@ -7,6 +7,7 @@ import type {
   OperationEntry,
   OperationParam,
 } from "@/components/types";
+import yaml from "js-yaml";
 
 type Dict = Record<string, unknown>;
 
@@ -28,6 +29,33 @@ const OP_PARAM_TYPES = new Set<OperationParam["type"]>([
 ]);
 
 const TAB_TYPES = new Set<MiniAppDetailTabType>(["content", "reviews", "forum", "news", "secrets"]);
+
+const FRONTEND_SPEC_KEYS = [
+  "frontend_spec",
+  "ui_spec",
+  "frontend_definition",
+  "page_definition",
+] as const;
+
+const FRONTEND_TEMPLATE_KEYS = [
+  "detail_template",
+  "page_template",
+  "page_config",
+  "ui",
+  "page",
+  "template",
+] as const;
+
+const OPERATION_KEYS = ["operations", "operation_schema"] as const;
+
+function firstDefined(source: Dict, keys: readonly string[]): unknown {
+  for (const key of keys) {
+    if (source[key] !== undefined) {
+      return source[key];
+    }
+  }
+  return undefined;
+}
 
 function asObject(value: unknown): Dict {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -329,6 +357,89 @@ function isRecordWithKeys(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value) && Object.keys(value as Dict).length > 0);
 }
 
+function buildMarkdownFrontendSpec(markdown: string): Dict {
+  const content = asTrimmedString(markdown);
+  if (!content) return {};
+
+  return {
+    page_template: {
+      layout: "default",
+      tabs: [
+        {
+          id: "overview",
+          label: "Overview",
+          type: "content",
+          blocks: [
+            {
+              type: "markdown",
+              content,
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+function parseStructuredSpecString(raw: string): Dict {
+  const text = asTrimmedString(raw);
+  if (!text) return {};
+
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed === "string") {
+      return buildMarkdownFrontendSpec(parsed);
+    }
+    return asObject(parsed);
+  } catch {
+    // Continue to YAML parsing.
+  }
+
+  const yamlLikely =
+    text.startsWith("---") ||
+    /^\s*[a-zA-Z0-9_-]+\s*:/m.test(text);
+
+  if (yamlLikely) {
+    try {
+      const parsed = yaml.load(text);
+      if (typeof parsed === "string") {
+        return buildMarkdownFrontendSpec(parsed);
+      }
+      return asObject(parsed);
+    } catch {
+      // Treat as markdown when YAML parsing fails.
+    }
+  }
+
+  return buildMarkdownFrontendSpec(text);
+}
+
+function normalizeFrontendSpec(raw: unknown): Dict {
+  if (typeof raw === "string") {
+    return parseStructuredSpecString(raw);
+  }
+
+  const obj = asObject(raw);
+  if (!Object.keys(obj).length) return {};
+
+  const format = asTrimmedString(obj.format).toLowerCase();
+  const content =
+    obj.content ??
+    obj.value ??
+    obj.source ??
+    obj.spec ??
+    obj.raw;
+
+  if ((format === "json" || format === "yaml") && typeof content === "string") {
+    return parseStructuredSpecString(content);
+  }
+  if ((format === "md" || format === "markdown") && typeof content === "string") {
+    return buildMarkdownFrontendSpec(content);
+  }
+
+  return obj;
+}
+
 function mergeOperationPanel(
   template: MiniAppDetailTemplate | null,
   panel: MiniAppOperationPanel | null,
@@ -381,29 +492,32 @@ export function resolveMiniAppDetailConfig(
     : fallbackManifest;
 
   const manifestTyped = asObject(manifest);
+  const frontendSpec = normalizeFrontendSpec(
+    firstDefined(obj, FRONTEND_SPEC_KEYS) ?? firstDefined(manifestTyped, FRONTEND_SPEC_KEYS),
+  );
+
+  const frontendTemplateCandidate =
+    firstDefined(frontendSpec, FRONTEND_TEMPLATE_KEYS) ??
+    (isRecordWithKeys(frontendSpec) ? frontendSpec : undefined);
 
   const templateCandidate =
-    obj.detail_template ??
-    obj.page_template ??
-    obj.page_config ??
-    manifestTyped.detail_template ??
-    manifestTyped.page_template ??
-    manifestTyped.page_config ??
-    manifestTyped.ui ??
-    manifestTyped.page ??
+    firstDefined(obj, FRONTEND_TEMPLATE_KEYS) ??
+    frontendTemplateCandidate ??
+    firstDefined(manifestTyped, FRONTEND_TEMPLATE_KEYS) ??
     fallback.detailTemplate;
 
   let detailTemplate = coerceMiniAppDetailTemplate(templateCandidate) ?? fallback.detailTemplate ?? null;
 
   const operationPanel =
     coerceOperationPanel(obj.operation_panel) ??
+    coerceOperationPanel(frontendSpec.operation_panel) ??
     coerceOperationPanel(manifestTyped.operation_panel) ??
     null;
 
   const operationCandidates = [
-    obj.operations,
-    obj.operation_schema,
-    manifestTyped.operations,
+    ...OPERATION_KEYS.map((key) => obj[key]),
+    ...OPERATION_KEYS.map((key) => frontendSpec[key]),
+    ...OPERATION_KEYS.map((key) => manifestTyped[key]),
     operationPanel?.operations,
     detailTemplate?.operation_panel?.operations,
     fallback.operations,

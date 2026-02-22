@@ -6,7 +6,11 @@ import { QueryProvider } from "@/lib/query";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
+import { MonitoringPanel } from "@/components/MonitoringPanel";
+import { PerformanceReportPanel } from "@/components/PerformanceReport";
 import { useAuthStore } from "@/lib/auth/store";
+import { initAllMonitoring } from "@/lib/monitoring";
 import "@/styles/globals.css";
 
 function AuthSync({ children }: { children: ReactNode }) {
@@ -14,6 +18,18 @@ function AuthSync({ children }: { children: ReactNode }) {
   const syncFromSession = useAuthStore((s) => s.syncFromSession);
   useEffect(() => { syncFromSession(user ?? null); }, [user, syncFromSession]);
   return <>{children}</>;
+}
+
+/**
+ * Initialize monitoring on app mount
+ */
+function MonitoringInit() {
+  useEffect(() => {
+    // Initialize all monitoring systems
+    initAllMonitoring();
+  }, []);
+  
+  return null;
 }
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -25,7 +41,23 @@ export default function App({ Component, pageProps }: AppProps) {
             <I18nProvider>
               <QueryProvider>
                 <ThemeProvider>
-                  <Component {...pageProps} />
+                  <AnalyticsProvider>
+                    <MonitoringInit />
+                    <Component {...pageProps} />
+                    
+                    {/* Development monitoring panels */}
+                    {process.env.NODE_ENV === "development" && (
+                      <>
+                        <PerformanceReportPanel
+                          devOnly={true}
+                          position="bottom-right"
+                        />
+                        <MonitoringPanel
+                          position="bottom-right"
+                        />
+                      </>
+                    )}
+                  </AnalyticsProvider>
                 </ThemeProvider>
               </QueryProvider>
             </I18nProvider>

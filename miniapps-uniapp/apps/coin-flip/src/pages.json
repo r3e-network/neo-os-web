@@ -9,8 +9,8 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "Coin Flip",
-    "navigationBarBackgroundColor": "#0d1117",
-    "backgroundColor": "#0d1117"
+    "navigationBarBackgroundColor": "#18102a",
+    "backgroundColor": "#18102a",
+    "navigationBarTitleText": "Coin Flip"
   }
 }

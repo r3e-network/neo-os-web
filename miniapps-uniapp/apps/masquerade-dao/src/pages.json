@@ -9,8 +9,8 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "Masquerade DAO",
-    "navigationBarBackgroundColor": "#0d1117",
-    "backgroundColor": "#0d1117"
+    "navigationBarBackgroundColor": "#262018",
+    "backgroundColor": "#262018",
+    "navigationBarTitleText": "Masquerade DAO"
   }
 }

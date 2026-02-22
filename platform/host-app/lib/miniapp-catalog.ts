@@ -1,6 +1,7 @@
 import type { MiniAppInfo } from "@/components/types";
 import { BUILTIN_APPS } from "./builtin-apps";
 import { coerceMiniAppInfo } from "./miniapp";
+import { loadMiniAppDefinitions } from "./miniapp-definitions";
 import { logger } from "./logger";
 
 type MiniAppStatus = "active" | "pending" | "disabled";
@@ -105,7 +106,18 @@ export async function loadMiniAppCatalog(
   status: MiniAppStatus = "active",
   options: LoadMiniAppCatalogOptions = {},
 ): Promise<MiniAppInfo[]> {
-  const builtinById = new Map(BUILTIN_APPS.map((app) => [app.app_id, app]));
+  const definitionApps = await loadMiniAppDefinitions();
+  const mergedBuiltinsMap = new Map(BUILTIN_APPS.map((app) => [app.app_id, app]));
+  for (const definitionApp of definitionApps) {
+    const fallback = mergedBuiltinsMap.get(definitionApp.app_id);
+    mergedBuiltinsMap.set(definitionApp.app_id, {
+      ...(fallback || {}),
+      ...definitionApp,
+      source: "builtin",
+    });
+  }
+  const mergedBuiltins = Array.from(mergedBuiltinsMap.values());
+  const builtinById = new Map(mergedBuiltins.map((app) => [app.app_id, app]));
   const dbApps = await fetchMiniAppsFromSupabase(status, options);
 
   const merged: MiniAppInfo[] = [];
@@ -120,7 +132,7 @@ export async function loadMiniAppCatalog(
   // Built-ins represent the active static catalog and should not leak into
   // pending/disabled status views.
   if (status === "active") {
-    for (const builtin of BUILTIN_APPS) {
+    for (const builtin of mergedBuiltins) {
       if (seen.has(builtin.app_id)) continue;
       merged.push({ ...builtin, source: "builtin" });
     }

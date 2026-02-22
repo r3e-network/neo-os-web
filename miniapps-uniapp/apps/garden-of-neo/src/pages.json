@@ -9,8 +9,8 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "Garden of Neo",
-    "navigationBarBackgroundColor": "#0d1117",
-    "backgroundColor": "#0d1117"
+    "navigationBarBackgroundColor": "#102028",
+    "backgroundColor": "#102028",
+    "navigationBarTitleText": "Garden of Neo"
   }
 }

@@ -1,0 +1,161 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "prediction-market",
+  "name": "Prediction Market",
+  "description": "Decentralized prediction market platform. Create and trade on outcomes of real-world events.",
+  "template_type": "prediction",
+  "category": "Finance",
+  "tags": ["prediction", "trading", "defi", "oracle"],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "Neo MiniApp Platform",
+    "url": "https://neo.org"
+  },
+  "contract": {
+    "template_id": "prediction-binary",
+    "contract_hash": "0x6b589e1bc92f5a13c677898cf26c1dfdd8ee7b59"
+  },
+  "entry_url": "https://prediction.neo.org",
+  "media": {
+    "icon": "/miniapp-assets/prediction-market/icon.png",
+    "banner": "/miniapp-assets/prediction-market/banner.png"
+  },
+  "permissions": {
+    "payments": true,
+    "datafeed": true,
+    "oracle": true
+  },
+  "limits": {
+    "max_gas_per_tx": "10",
+    "daily_gas_cap_per_user": "100"
+  },
+  "frontend_spec": {
+    "layout": "prediction",
+    "hero": {
+      "eyebrow": "Prediction Market",
+      "disclaimer": "Prices imply probabilities, not guarantees. Trade responsibly."
+    },
+    "tabs": [
+      {
+        "id": "market-info",
+        "label": "Market Info",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Settlement is controlled by market oracle rules. Results will be final 24 hours after the event."
+          },
+          {
+            "type": "key_value",
+            "title": "Market Facts",
+            "items": [
+              { "key": "Market Type", "value": "Binary" },
+              { "key": "Asset", "value": "GAS" },
+              { "key": "Trading Fee", "value": "1%" },
+              { "key": "Settlement", "value": "Oracle-based" }
+            ]
+          },
+          {
+            "type": "markdown",
+            "title": "How It Works",
+            "content": "## Trading Mechanism\n\n1. **Buy YES or NO shares** - If you think the outcome will happen, buy YES. Otherwise, buy NO.\n2. **Price reflects probability** - A YES share trading at 0.65 means the market thinks there's a 65% chance.\n3. **Settlement** - When the event resolves, winning shares are worth 1 GAS each."
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      },
+      {
+        "id": "forum",
+        "label": "Discussion",
+        "type": "forum"
+      },
+      {
+        "id": "news",
+        "label": "Activity",
+        "type": "news"
+      }
+    ],
+    "operation_panel": {
+      "title": "Trade Position",
+      "subtitle": "Select your position and stake amount.",
+      "cta_label": "Open Full Experience",
+      "operations": [
+        {
+          "name": "Buy YES",
+          "method": "buyYes",
+          "description": "Buy YES shares if you believe this outcome will happen",
+          "button_style": "primary",
+          "gas_cost": "~0.5 GAS",
+          "params": [
+            {
+              "name": "amount",
+              "type": "amount",
+              "label": "Stake Amount (GAS)",
+              "required": true,
+              "placeholder": "10.0"
+            }
+          ]
+        },
+        {
+          "name": "Buy NO",
+          "method": "buyNo",
+          "description": "Buy NO shares if you believe this outcome won't happen",
+          "button_style": "secondary",
+          "gas_cost": "~0.5 GAS",
+          "params": [
+            {
+              "name": "amount",
+              "type": "amount",
+              "label": "Stake Amount (GAS)",
+              "required": true,
+              "placeholder": "10.0"
+            }
+          ]
+        },
+        {
+          "name": "Sell Position",
+          "method": "sellShares",
+          "description": "Sell your existing position",
+          "button_style": "danger",
+          "gas_cost": "~0.5 GAS",
+          "params": [
+            {
+              "name": "side",
+              "type": "select",
+              "label": "Position to Sell",
+              "required": true,
+              "options": [
+                { "label": "YES Shares", "value": "yes" },
+                { "label": "NO Shares", "value": "no" }
+              ]
+            },
+            {
+              "name": "amount",
+              "type": "amount",
+              "label": "Shares to Sell",
+              "required": true,
+              "placeholder": "10.0"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": true,
+    "activity_feed": true,
+    "stats_display": ["total_transactions", "daily_active_users", "total_gas_used"]
+  },
+  "docs_url": "https://docs.neo.org/prediction-market",
+  "links": [
+    { "label": "Documentation", "url": "https://docs.neo.org/prediction-market", "type": "docs" },
+    { "label": "GitHub", "url": "https://github.com/neo-project", "type": "github" }
+  ]
+}
