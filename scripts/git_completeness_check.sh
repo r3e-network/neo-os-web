@@ -28,7 +28,7 @@ declare -a important=()
 while IFS= read -r path; do
   [[ -n "$path" ]] || continue
   case "$path" in
-    platform/edge/functions/*|miniapps/*|platform/host-app/public/*|supabase/*|deploy/wallets/*|test/e2e/*|scripts/export_host_miniapps.sh|scripts/export_supabase_functions.sh|services/*/contract/*)
+    platform/edge/functions/*|miniapps/*|platform/host-app/public/*|supabase/*|deploy/wallets/*|test/e2e/*|scripts/export_supabase_functions.sh|services/*/contract/*)
       important+=("$path")
       ;;
   esac
@@ -50,7 +50,7 @@ Suggested next step (review first):
   git add \
     platform/edge/functions \
     miniapps \
-    scripts/export_host_miniapps.sh scripts/export_supabase_functions.sh \
+    scripts/export_supabase_functions.sh \
     platform/host-app/public \
     supabase \
     deploy/wallets \

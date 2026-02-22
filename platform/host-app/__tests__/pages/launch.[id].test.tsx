@@ -3,7 +3,6 @@ import { act, render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { useRouter } from "next/router";
 import LaunchPage, { getServerSideProps } from "../../pages/launch/[id]";
 import { MiniAppInfo } from "../../components/types";
-import { installMiniAppSDK } from "../../lib/miniapp-sdk";
 
 // Mock next/router
 jest.mock("next/router", () => ({
@@ -21,17 +20,13 @@ jest.mock("../../components/LaunchDock", () => ({
   ),
 }));
 
-jest.mock("../../lib/miniapp-sdk", () => ({
-  installMiniAppSDK: jest.fn(),
-}));
-
 const mockApp: MiniAppInfo = {
   app_id: "test-app",
   name: "Test App",
   description: "Test description",
   icon: "🧪",
   category: "gaming",
-  entry_url: "https://example.com/app",
+  entry_url: "mf://manifest?app=test-app",
   permissions: { payments: true, governance: true, randomness: true, datafeed: true },
 };
 
@@ -51,7 +46,6 @@ const renderLaunchPage = async (app: MiniAppInfo = mockApp) => {
 describe("LaunchPage", () => {
   let mockPush: jest.Mock;
   let mockFetch: jest.Mock;
-  let mockSDK: any;
   let consoleLogSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -88,36 +82,6 @@ describe("LaunchPage", () => {
       })),
     };
 
-    mockSDK = {
-      getAddress: jest.fn().mockResolvedValue("NeoTestAddress123456789"),
-      wallet: {
-        getAddress: jest.fn().mockResolvedValue("NeoTestAddress123456789"),
-        invokeIntent: jest.fn().mockResolvedValue({ txid: "0x1" }),
-      },
-      payments: {
-        payGAS: jest.fn().mockResolvedValue({ request_id: "req-1" }),
-      },
-      governance: {
-        vote: jest.fn().mockResolvedValue({ request_id: "req-2" }),
-      },
-      rng: {
-        requestRandom: jest.fn().mockResolvedValue({ randomness: "abc" }),
-      },
-      datafeed: {
-        getPrice: jest.fn().mockResolvedValue({ price: "123" }),
-      },
-      stats: {
-        getMyUsage: jest.fn().mockResolvedValue({ tx_count: 1 }),
-      },
-      events: {
-        list: jest.fn().mockResolvedValue({ events: [] }),
-      },
-      transactions: {
-        list: jest.fn().mockResolvedValue({ transactions: [] }),
-      },
-    };
-    (installMiniAppSDK as jest.Mock).mockReturnValue(mockSDK);
-
     consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     jest.useFakeTimers();
   });
@@ -133,25 +97,19 @@ describe("LaunchPage", () => {
     it("should render LaunchDock with app name", async () => {
       await renderLaunchPage();
       expect(screen.getByTestId("launch-dock")).toBeInTheDocument();
-      expect(screen.getByText("Test App")).toBeInTheDocument();
+      expect(screen.getAllByText("Test App").length).toBeGreaterThan(0);
     });
 
-    it("should render iframe with correct src and sandbox attributes", async () => {
+    it("should render manifest runtime", async () => {
       await renderLaunchPage();
-      const iframe = document.querySelector("iframe");
-      expect(iframe).toBeInTheDocument();
-      expect(iframe?.src).toBe("https://example.com/app");
-      expect(iframe?.getAttribute("sandbox")).toBe("allow-scripts allow-same-origin allow-forms allow-popups");
-      expect(iframe?.title).toBe("Test App MiniApp");
+      expect(screen.getByText("Manifest Runtime")).toBeInTheDocument();
+      expect(document.querySelector("iframe")).not.toBeInTheDocument();
     });
 
-    it("should render iframe with fullscreen styles", async () => {
+    it("should render runtime sections", async () => {
       await renderLaunchPage();
-      const iframe = document.querySelector("iframe");
-      expect(iframe?.className).toContain("absolute");
-      expect(iframe?.className).toContain("top-12");
-      expect(iframe?.className).toContain("w-screen");
-      expect(iframe?.className).toContain("h-[calc(100vh-48px)]");
+      expect(screen.getByText("Layout")).toBeInTheDocument();
+      expect(screen.getAllByText("Operations").length).toBeGreaterThan(0);
     });
   });
 
@@ -293,113 +251,6 @@ describe("LaunchPage", () => {
     });
   });
 
-  describe("MiniApp SDK bridge", () => {
-    const setupFrame = () => {
-      const iframe = document.querySelector("iframe") as HTMLIFrameElement;
-      const contentWindow = {
-        postMessage: jest.fn(),
-        dispatchEvent: jest.fn(),
-      } as any;
-      Object.defineProperty(iframe, "contentWindow", {
-        value: contentWindow,
-        writable: true,
-      });
-      return { iframe, contentWindow };
-    };
-
-    const sendMessage = async (
-      contentWindow: any,
-      method: string,
-      params: unknown[],
-      origin = "https://example.com",
-    ) => {
-      contentWindow.postMessage.mockClear();
-      const event = new MessageEvent("message", {
-        data: { type: "neo_miniapp_sdk_request", id: method, method, params },
-        origin,
-      });
-      Object.defineProperty(event, "source", { value: contentWindow });
-      window.dispatchEvent(event);
-      await waitFor(() => expect(contentWindow.postMessage).toHaveBeenCalled());
-      return contentWindow.postMessage.mock.calls.at(-1);
-    };
-
-    it("responds to MiniApp SDK requests", async () => {
-      await renderLaunchPage();
-      const { contentWindow } = setupFrame();
-
-      await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
-
-      const response1 = await sendMessage(contentWindow, "wallet.getAddress", []);
-      expect(response1?.[0]).toEqual(
-        expect.objectContaining({ ok: true, result: "NeoTestAddress123456789", id: "wallet.getAddress" }),
-      );
-
-      await sendMessage(contentWindow, "wallet.invokeIntent", ["req-1"]);
-      expect(mockSDK.wallet.invokeIntent).toHaveBeenCalledWith("req-1");
-
-      const response3 = await sendMessage(contentWindow, "payments.payGAS", ["test-app", "1", "memo"]);
-      expect(response3?.[0]).toEqual(expect.objectContaining({ ok: true, id: "payments.payGAS" }));
-      expect(mockSDK.payments.payGAS).toHaveBeenCalledWith("test-app", "1", "memo");
-
-      await sendMessage(contentWindow, "governance.vote", ["test-app", "proposal-1", "10", true]);
-      expect(mockSDK.governance.vote).toHaveBeenCalledWith("test-app", "proposal-1", "10", true);
-
-      await sendMessage(contentWindow, "rng.requestRandom", ["test-app"]);
-      expect(mockSDK.rng.requestRandom).toHaveBeenCalledWith("test-app");
-
-      await sendMessage(contentWindow, "datafeed.getPrice", ["NEO-USD"]);
-      expect(mockSDK.datafeed.getPrice).toHaveBeenCalledWith("NEO-USD");
-
-      await sendMessage(contentWindow, "stats.getMyUsage", []);
-      expect(mockSDK.stats.getMyUsage).toHaveBeenCalledWith("test-app", undefined);
-
-      await sendMessage(contentWindow, "events.list", [{ limit: 2 }]);
-      expect(mockSDK.events.list).toHaveBeenCalledWith({ limit: 2, app_id: "test-app" });
-
-      await sendMessage(contentWindow, "transactions.list", [{ limit: 3 }]);
-      expect(mockSDK.transactions.list).toHaveBeenCalledWith({ limit: 3, app_id: "test-app" });
-
-      const response7 = await sendMessage(contentWindow, "unsupported.method", []);
-      expect(response7?.[0]).toEqual(expect.objectContaining({ ok: false, id: "unsupported.method" }));
-    });
-
-    it("denies requests without manifest permissions", async () => {
-      const restrictedApp: MiniAppInfo = {
-        ...mockApp,
-        permissions: { payments: false },
-      };
-      await renderLaunchPage(restrictedApp);
-      const { contentWindow } = setupFrame();
-
-      await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
-
-      const response = await sendMessage(contentWindow, "payments.payGAS", ["test-app", "1"]);
-      expect(response?.[0]).toEqual(
-        expect.objectContaining({ ok: false, id: "payments.payGAS", error: expect.stringContaining("permission") }),
-      );
-    });
-
-    it("injects MiniAppSDK into same-origin iframes", async () => {
-      const sameOriginApp: MiniAppInfo = {
-        ...mockApp,
-        entry_url: "/miniapps/test/index.html",
-      };
-      await renderLaunchPage(sameOriginApp);
-      const { iframe, contentWindow } = setupFrame();
-
-      await waitFor(() => expect(installMiniAppSDK).toHaveBeenCalled());
-      fireEvent.load(iframe);
-
-      await waitFor(() => {
-        expect((contentWindow as any).MiniAppSDK).toBe(mockSDK);
-      });
-
-      const dispatched = (contentWindow.dispatchEvent as jest.Mock).mock.calls.at(-1)?.[0];
-      expect(dispatched?.type).toBe("miniapp-sdk-ready");
-    });
-  });
-
   describe("Cleanup", () => {
     it("should cleanup network latency interval on unmount", async () => {
       const { unmount } = await renderLaunchPage();
@@ -460,7 +311,7 @@ describe("getServerSideProps", () => {
     expect(result).toEqual({ notFound: true });
   });
 
-  it("should return props with correct entry_url", async () => {
+  it("should return props with manifest entry_url", async () => {
     const context = {
       params: { id: "miniapp-coinflip" },
       req: { headers: { host: "localhost:3000" } },
@@ -472,7 +323,7 @@ describe("getServerSideProps", () => {
 
     const result = await getServerSideProps(context);
 
-    expect((result as any).props.app.entry_url).toBe("/miniapps/coin-flip/");
+    expect((result as any).props.app.entry_url).toBe("mf://manifest?app=miniapp-coinflip");
   });
 
   it("should return app with required fields", async () => {

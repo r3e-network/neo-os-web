@@ -23,7 +23,7 @@ describe("miniapp-definitions loader", () => {
         {
           app_id: "miniapp-prediction-market",
           name: "Prediction Market",
-          entry_url: "/miniapps/prediction-market/",
+          entry_url: "mf://manifest?app=miniapp-prediction-market",
           content: {
             category: "defi",
             logo_url: "/miniapp-assets/prediction-market/logo.jpg",
@@ -69,7 +69,7 @@ describe("miniapp-definitions loader", () => {
         {
           app_id: "miniapp-market-factory",
           name: "Market Factory",
-          entry_url: "https://example.com/market-factory",
+          entry_url: "mf://manifest?app=miniapp-market-factory",
           contract: {
             template_id: "prediction-binary",
             init_params: {

@@ -5,16 +5,11 @@ import { BUILTIN_APP_TEMPLATES } from "./templates/builtin-app-templates";
 const MANIFEST_ENTRY_PREFIX = "mf://manifest?app=";
 
 /**
- * Built-in MiniApp catalog - all 62 uni-app MiniApps
+ * Built-in MiniApp catalog.
  *
- * Entry URL Migration:
- * - Legacy apps (60): Use `/miniapps/{app-name}/` format (served from static H5 builds)
- * - New apps (2): Use `mf://builtin?app={app-id}` format (module federation protocol)
- *
- * Migration Path:
- * - Both URL schemes are supported for backward compatibility
- * - New apps should use the `mf://` protocol for better performance and hot-reload support
- * - Legacy apps will be gradually migrated to the new protocol in future releases
+ * Runtime policy:
+ * - all built-ins are normalized to manifest runtime entry URLs
+ * - `entry_url` is forced to `mf://manifest?app=<app_id>` at export time
  */
 
 // Gaming Apps (15)
@@ -765,7 +760,7 @@ const GOVERNANCE_APPS: MiniAppInfo[] = [
       "Vote for platform candidates and earn GAS rewards. Participate in governance by staking your tokens and supporting your preferred candidates with transparent on-chain voting.",
     icon: "🗳️",
     category: "governance",
-    entry_url: "mf://builtin?app=miniapp-candidate-vote",
+    entry_url: "mf://manifest?app=miniapp-candidate-vote",
     permissions: { governance: true, payments: true },
   },
 ];
@@ -779,7 +774,7 @@ const UTILITY_APPS: MiniAppInfo[] = [
       "Explore the Neo N3 blockchain with real-time stats for both Mainnet and Testnet. Search transactions, addresses, and contracts with detailed execution traces.",
     icon: "🔍",
     category: "utility",
-    entry_url: "mf://builtin?app=miniapp-explorer",
+    entry_url: "mf://manifest?app=miniapp-explorer",
     permissions: { datafeed: true },
   },
   {

@@ -17,7 +17,7 @@ describe("miniapp-media helpers", () => {
     });
 
     it("falls back to app_id when entry URL is not static", () => {
-      expect(resolveMiniAppSlug("miniapp-candidate-vote", "mf://builtin?app=miniapp-candidate-vote")).toBe(
+      expect(resolveMiniAppSlug("miniapp-candidate-vote", "mf://manifest?app=miniapp-candidate-vote")).toBe(
         "candidate-vote",
       );
     });
