@@ -30,6 +30,17 @@ Admin-only endpoints:
   returns `starter` payload blocks that admin can copy/fill directly
 - `POST /api/miniapps/admin/upsert` -> validates + normalizes config + upserts DB row/manifest
 - `POST /api/miniapps/admin/status` -> lifecycle status transition
+- `POST /api/miniapps/admin/import-definitions` -> batch import `public/miniapp-definitions/*.json`
+  supports `dry_run` (`?dry_run=true` or `{ "dry_run": true }`) for validation-only runs
+
+Admin console (`platform/admin-console`) now also exposes a `Frontend Spec` editor in the MiniApps form:
+
+- `format`: `markdown | yaml | json`
+- `content`: raw spec text
+- plus batch actions:
+  - `Validate Definitions` (dry-run)
+  - `Import Definitions` (write mode)
+  - requires `MINIAPP_HOST_APP_BASE_URL` in admin-console env
 
 Example upsert payload:
 
@@ -92,6 +103,17 @@ Operation schema is resolved from:
 - `operation_schema`
 - `manifest.operations`
 - `operation_panel.operations`
+
+Frontend spec can also be declared via `frontend_spec` (or `ui_spec`) in:
+
+- root payload (`frontend_spec`, `ui_spec`)
+- `manifest.frontend_spec`, `manifest.ui_spec`
+
+Supported `frontend_spec` inputs:
+
+- JSON object
+- YAML string (`{ format: "yaml", content: "..." }` or raw string)
+- Markdown string (auto-mapped to a default Overview tab)
 
 ## Template Shape
 
@@ -173,6 +195,23 @@ Operation schema is resolved from:
 
 To add a new predict-style MiniApp, admin only updates backend catalog/manifest content.
 Frontend uses existing components and shared page renderer automatically.
+
+For file-driven bootstrapping (without hardcoding in TS), place definition JSON files in:
+
+- `platform/host-app/public/miniapp-definitions/*.json`
+
+These definitions are merged into the active catalog and can override built-in metadata by `app_id`.
+
+To import these files into DB-managed miniapps:
+
+```bash
+curl -X POST "http://localhost:3000/api/miniapps/admin/import-definitions?dry_run=true" \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Key: $MINIAPP_ADMIN_API_KEY" \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
+  -b "csrf-token=$CSRF_TOKEN" \
+  -d '{}'
+```
 
 ## Repeatable Hardening Loop
 

@@ -1,0 +1,182 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "gas-sponsor",
+  "name": "Gas Sponsor",
+  "description": "Sponsor GAS fees for specific contracts or users, enabling gasless transactions for your dApp users.",
+  "template_type": "utility",
+  "category": "Utility",
+  "tags": ["gas", "sponsor", "fee", "utility", "meta-transaction"],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "Neo MiniApp Platform",
+    "url": "https://neo.org"
+  },
+  "contract": {
+    "template_id": "utility-gas-sponsor",
+    "init_params": {
+      "max_sponsorship_per_tx": 10,
+      "daily_limit": 10000,
+      "whitelist_enabled": true
+    }
+  },
+  "entry_url": "https://sponsor.neo.org",
+  "media": {
+    "icon": "/miniapp-assets/gas-sponsor/icon.png",
+    "banner": "/miniapp-assets/gas-sponsor/banner.png"
+  },
+  "permissions": {
+    "payments": true
+  },
+  "limits": {
+    "max_gas_per_tx": "10",
+    "daily_gas_cap_per_user": "100"
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "Gas Sponsorship",
+      "disclaimer": "Sponsored transactions are limited by your sponsorship pool balance. Users must be whitelisted."
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Sponsor GAS fees for users of your dApp or specific contracts, enabling gasless transactions. Perfect for onboarding new users who don't yet have GAS."
+          },
+          {
+            "type": "key_value",
+            "title": "Tool Info",
+            "items": [
+              { "key": "Category", "value": "Utility" },
+              { "key": "Asset", "value": "GAS" },
+              { "key": "Type", "value": "Fee Sponsorship" },
+              { "key": "Max per TX", "value": "10 GAS" }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How To Use",
+            "items": [
+              "Deposit GAS into your sponsorship pool.",
+              "Configure which contracts or users to sponsor.",
+              "Whitelist addresses that can use sponsored transactions.",
+              "Sponsored users can transact without paying GAS."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sponsors",
+        "label": "Sponsors",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "markdown",
+            "title": "Active Sponsorships",
+            "content": "## Your Sponsorship Pool\n\nView active sponsorship configurations and usage statistics.\n\n- **Total Deposited**: Your current pool balance\n- **Total Used**: GAS consumed by sponsored transactions\n- **Active Users**: Number of whitelisted addresses"
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Manage Sponsorship",
+      "subtitle": "Deposit or configure your sponsorship settings.",
+      "cta_label": "View Dashboard",
+      "operations": [
+        {
+          "name": "Deposit",
+          "method": "deposit",
+          "description": "Add GAS to your sponsorship pool",
+          "button_style": "primary",
+          "gas_cost": "~0.1 GAS",
+          "params": [
+            {
+              "name": "amount",
+              "type": "amount",
+              "label": "Deposit Amount (GAS)",
+              "required": true,
+              "placeholder": "100"
+            }
+          ]
+        },
+        {
+          "name": "Whitelist Address",
+          "method": "whitelist",
+          "description": "Add an address to the sponsorship whitelist",
+          "button_style": "secondary",
+          "gas_cost": "~0.1 GAS",
+          "params": [
+            {
+              "name": "address",
+              "type": "address",
+              "label": "Address to Whitelist",
+              "required": true,
+              "placeholder": "N..."
+            }
+          ]
+        },
+        {
+          "name": "Configure Contract",
+          "method": "configureContract",
+          "description": "Set sponsorship rules for a specific contract",
+          "button_style": "secondary",
+          "params": [
+            {
+              "name": "contract_hash",
+              "type": "hash160",
+              "label": "Contract to Sponsor",
+              "required": true,
+              "placeholder": "0x..."
+            },
+            {
+              "name": "max_per_tx",
+              "type": "integer",
+              "label": "Max GAS per Transaction",
+              "required": true,
+              "placeholder": "10"
+            }
+          ]
+        },
+        {
+          "name": "Withdraw",
+          "method": "withdraw",
+          "description": "Withdraw from sponsorship pool",
+          "button_style": "danger",
+          "gas_cost": "~0.1 GAS",
+          "confirm_message": "Are you sure you want to withdraw? Sponsored transactions will stop if the pool is empty.",
+          "params": [
+            {
+              "name": "amount",
+              "type": "amount",
+              "label": "Withdraw Amount (GAS)",
+              "required": true,
+              "placeholder": "50"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "integration": {
+    "news_integration": false,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": ["total_transactions", "total_gas_used"]
+  },
+  "docs_url": "https://docs.neo.org/gas-sponsor",
+  "links": [
+    { "label": "Documentation", "url": "https://docs.neo.org/gas-sponsor", "type": "docs" }
+  ]
+}

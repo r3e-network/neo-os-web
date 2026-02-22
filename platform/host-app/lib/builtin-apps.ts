@@ -2,6 +2,8 @@ import type { MiniAppInfo } from "../components/types";
 import { withMiniAppCardAssets } from "./miniapp-media";
 import { BUILTIN_APP_TEMPLATES } from "./templates/builtin-app-templates";
 
+const MANIFEST_ENTRY_PREFIX = "mf://manifest?app=";
+
 /**
  * Built-in MiniApp catalog - all 62 uni-app MiniApps
  *
@@ -843,7 +845,14 @@ function applyTemplate(app: MiniAppInfo): MiniAppInfo {
   };
 }
 
-export const BUILTIN_APPS: MiniAppInfo[] = BUILTIN_APPS_RAW.map((app) => withMiniAppCardAssets(applyTemplate(app)));
+function forceManifestEntry(app: MiniAppInfo): MiniAppInfo {
+  return {
+    ...app,
+    entry_url: `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(app.app_id)}`,
+  };
+}
+
+export const BUILTIN_APPS: MiniAppInfo[] = BUILTIN_APPS_RAW.map((app) => withMiniAppCardAssets(forceManifestEntry(applyTemplate(app))));
 
 // Lookup map by app_id
 export const BUILTIN_APPS_MAP: Record<string, MiniAppInfo> = Object.fromEntries(

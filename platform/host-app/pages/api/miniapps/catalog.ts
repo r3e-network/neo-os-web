@@ -13,9 +13,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const statusRaw = String(req.query.status || "active").trim().toLowerCase();
   const status = statusRaw === "pending" || statusRaw === "disabled" ? statusRaw : "active";
   const appId = String(req.query.app_id || "").trim();
+  const search = String(req.query.search || "").trim().toLowerCase();
 
   try {
-    const catalog = await loadMiniAppCatalog(status, { includeManifest: Boolean(appId) });
+    let catalog = await loadMiniAppCatalog(status, { includeManifest: Boolean(appId) });
+
+    if (search) {
+      catalog = catalog.filter((item) => {
+        const id = String(item.app_id || "").toLowerCase();
+        const name = String(item.name || "").toLowerCase();
+        return id.includes(search) || name.includes(search);
+      });
+    }
+
     if (appId) {
       const app = filterCatalogByAppId(catalog, appId);
       if (!app) {

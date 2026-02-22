@@ -1,0 +1,405 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://neo-miniapps.platform/schemas/miniapp-config.schema.json",
+  "title": "MiniApp Configuration Schema",
+  "description": "Schema for defining a template-driven MiniApp configuration",
+  "type": "object",
+  "required": ["app_id", "name", "template_type"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this schema"
+    },
+    "app_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "maxLength": 64,
+      "description": "Unique identifier for the MiniApp"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Display name of the MiniApp"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2048,
+      "description": "Detailed description of the MiniApp"
+    },
+    "template_type": {
+      "type": "string",
+      "enum": ["prediction", "voting", "lottery", "auction", "defi", "nft", "gaming", "social", "tipping", "governance", "utility", "default"],
+      "description": "Template type for the MiniApp"
+    },
+    "category": {
+      "type": "string",
+      "maxLength": 64,
+      "description": "Category for filtering and organization"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 32
+      },
+      "maxItems": 10,
+      "description": "Tags for search and filtering"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0",
+      "description": "Version of the MiniApp configuration"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "pending", "active", "disabled"],
+      "default": "draft",
+      "description": "Lifecycle status of the MiniApp"
+    },
+    "developer": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "description": "Contract configuration",
+      "properties": {
+        "template_id": {
+          "type": "string",
+          "description": "Template ID from MiniAppFactory"
+        },
+        "init_params": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Parameters passed to contract initialization"
+        },
+        "contract_hash": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$",
+          "description": "Deployed contract hash (if already deployed)"
+        }
+      }
+    },
+    "entry_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "External entry URL for the MiniApp"
+    },
+    "media": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string",
+          "description": "URL or path to icon image"
+        },
+        "banner": {
+          "type": "string",
+          "description": "URL or path to banner image"
+        },
+        "logo": {
+          "type": "string",
+          "description": "URL or path to logo image"
+        }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "payments": { "type": "boolean", "default": false },
+        "datafeed": { "type": "boolean", "default": false },
+        "confidential": { "type": "boolean", "default": false },
+        "governance": { "type": "boolean", "default": false },
+        "storage": { "type": "boolean", "default": false },
+        "oracle": { "type": "boolean", "default": false },
+        "randomness": { "type": "boolean", "default": false },
+        "cross_chain": { "type": "boolean", "default": false }
+      },
+      "default": {}
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "max_gas_per_tx": { "type": "string" },
+        "daily_gas_cap_per_user": { "type": "string" },
+        "governance_cap": { "type": "string" },
+        "max_users": { "type": "integer" },
+        "rate_limit": {
+          "type": "object",
+          "properties": {
+            "requests_per_minute": { "type": "integer" },
+            "requests_per_hour": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "frontend_spec": {
+      "type": "object",
+      "description": "Frontend template specification",
+      "$ref": "#/definitions/frontend_spec"
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operation"
+      },
+      "description": "Operations available in the operation panel"
+    },
+    "integration": {
+      "type": "object",
+      "properties": {
+        "news_integration": { "type": "boolean", "default": true },
+        "reviews_enabled": { "type": "boolean", "default": true },
+        "forum_enabled": { "type": "boolean", "default": true },
+        "activity_feed": { "type": "boolean", "default": true },
+        "stats_display": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "docs_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to documentation"
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "type": { "type": "string", "enum": ["docs", "github", "twitter", "discord", "website", "other"] }
+        },
+        "required": ["label", "url"]
+      }
+    }
+  },
+  "definitions": {
+    "frontend_spec": {
+      "type": "object",
+      "properties": {
+        "layout": {
+          "type": "string",
+          "enum": ["default", "prediction", "market", "gaming", "social"],
+          "default": "default",
+          "description": "Layout style for the detail page"
+        },
+        "hero": {
+          "type": "object",
+          "properties": {
+            "eyebrow": { "type": "string", "description": "Small label above title" },
+            "disclaimer": { "type": "string", "description": "Legal/important notice" }
+          }
+        },
+        "tabs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tab"
+          },
+          "description": "Tabs for the left panel content"
+        },
+        "operation_panel": {
+          "$ref": "#/definitions/operation_panel"
+        }
+      }
+    },
+    "tab": {
+      "type": "object",
+      "required": ["id", "label", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "description": "Unique tab identifier"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label for the tab"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["content", "reviews", "forum", "news", "secrets"],
+          "description": "Type of content in the tab"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/content_block"
+          },
+          "description": "Content blocks for content-type tabs"
+        }
+      }
+    },
+    "content_block": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["markdown", "bullet_list", "key_value", "links", "notice"],
+          "description": "Type of content block"
+        },
+        "title": {
+          "type": "string",
+          "description": "Optional title for the block"
+        },
+        "content": {
+          "type": "string",
+          "description": "Markdown content (for markdown/notice types)"
+        },
+        "items": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "List items (for bullet_list type)"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": { "type": "string" },
+                  "value": { "type": "string" }
+                },
+                "required": ["key", "value"]
+              },
+              "description": "Key-value items (for key_value type)"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": { "type": "string" },
+                  "href": { "type": "string" },
+                  "external": { "type": "boolean" }
+                },
+                "required": ["label", "href"]
+              },
+              "description": "Link items (for links type)"
+            }
+          ]
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["info", "success", "warning"],
+          "description": "Tone for notice blocks"
+        }
+      }
+    },
+    "operation_panel": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "default": "Operations",
+          "description": "Title for the operation panel"
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Subtitle/description for the panel"
+        },
+        "cta_label": {
+          "type": "string",
+          "default": "Launch App",
+          "description": "Label for the CTA button"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operation"
+          }
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "required": ["name", "method"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name for the operation"
+        },
+        "method": {
+          "type": "string",
+          "description": "Contract method to call"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of what the operation does"
+        },
+        "button_style": {
+          "type": "string",
+          "enum": ["primary", "secondary", "danger", "success"],
+          "default": "primary"
+        },
+        "gas_cost": {
+          "type": "string",
+          "description": "Estimated GAS cost"
+        },
+        "confirm_message": {
+          "type": "string",
+          "description": "Confirmation message before executing"
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operation_param"
+          }
+        }
+      }
+    },
+    "operation_param": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Parameter name (used in contract call)"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "boolean", "address", "hash160", "hash256", "amount", "select"],
+          "description": "Parameter type"
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label for the parameter"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "default_value": {
+          "type": "string",
+          "description": "Default value for the parameter"
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "Placeholder text for input"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" },
+              "value": { "type": "string" }
+            },
+            "required": ["label", "value"]
+          },
+          "description": "Options for select type parameters"
+        }
+      }
+    }
+  }
+}

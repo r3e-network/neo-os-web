@@ -82,6 +82,43 @@ describe("miniapp-template", () => {
   });
 
   describe("resolveMiniAppDetailConfig", () => {
+    it("resolves frontend_spec root object layout and tabs", () => {
+      const config = resolveMiniAppDetailConfig({
+        frontend_spec: {
+          layout: "prediction",
+          hero: {
+            eyebrow: "Prediction Market",
+          },
+          tabs: [
+            {
+              id: "market-info",
+              label: "Market Info",
+              type: "content",
+              blocks: [
+                {
+                  type: "markdown",
+                  content: "## Rules",
+                },
+              ],
+            },
+          ],
+          operation_panel: {
+            title: "Trade Position",
+            operations: [{ name: "Buy YES", method: "buyYes" }],
+          },
+        },
+      });
+
+      expect(config.detailTemplate?.layout).toBe("prediction");
+      expect(config.detailTemplate?.tabs).toEqual([
+        expect.objectContaining({ id: "market-info", type: "content" }),
+      ]);
+      expect(config.detailTemplate?.operation_panel?.title).toBe("Trade Position");
+      expect(config.operations).toEqual([
+        expect.objectContaining({ method: "buyYes" }),
+      ]);
+    });
+
     it("resolves template and operations from manifest fields", () => {
       const config = resolveMiniAppDetailConfig({
         manifest: {
@@ -130,6 +167,53 @@ describe("miniapp-template", () => {
       ]);
       expect(config.detailTemplate?.operation_panel?.operations).toEqual([
         expect.objectContaining({ method: "fallbackMethod", name: "Fallback" }),
+      ]);
+    });
+
+    it("resolves frontend_spec written as markdown text", () => {
+      const config = resolveMiniAppDetailConfig({
+        frontend_spec: "## Overview\nThis market settles by oracle resolution.",
+      });
+
+      expect(config.detailTemplate?.tabs[0]).toEqual(
+        expect.objectContaining({
+          id: "overview",
+          type: "content",
+        }),
+      );
+      expect(config.detailTemplate?.tabs[0].blocks?.[0]).toEqual(
+        expect.objectContaining({
+          type: "markdown",
+          content: "## Overview\nThis market settles by oracle resolution.",
+        }),
+      );
+    });
+
+    it("resolves frontend_spec from yaml content blocks", () => {
+      const config = resolveMiniAppDetailConfig({
+        frontend_spec: {
+          format: "yaml",
+          content: `
+page_template:
+  layout: prediction
+  tabs:
+    - id: market-info
+      label: Market Info
+      type: content
+      content: "YES resolves if condition is true."
+operations:
+  - name: Buy YES
+    method: buyYes
+`,
+        },
+      });
+
+      expect(config.detailTemplate?.layout).toBe("prediction");
+      expect(config.operations).toEqual([
+        expect.objectContaining({
+          method: "buyYes",
+          name: "Buy YES",
+        }),
       ]);
     });
   });

@@ -1,76 +1,50 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { SUPABASE_URL, SERVICE_ROLE_KEY } from "@/lib/constants";
-import { computeManifestHashHex } from "@/lib/manifest-hash";
 import { miniAppConfigSchema } from "@/lib/schemas";
+import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 export async function POST(req: Request) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
-  if (!SERVICE_ROLE_KEY || !SUPABASE_URL) {
-    return jsonError("Supabase service role not configured");
+  const hostAppBaseURL = resolveHostAppBaseURL();
+  if (!hostAppBaseURL) {
+    return jsonError("MINIAPP_HOST_APP_BASE_URL is not configured", 500);
   }
 
-  let config: z.infer<typeof miniAppConfigSchema>;
+  let payload: Record<string, unknown>;
+  let action = "save_draft";
   try {
     const body = await req.json();
-    config = miniAppConfigSchema.parse(body);
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return jsonError(err.errors[0]?.message || "Invalid input", 400);
-    }
+    const parsed = miniAppConfigSchema.passthrough().parse(body);
+    payload = parsed as Record<string, unknown>;
+    const rawAction = String((body as Record<string, unknown>)?.action || "").trim();
+    if (rawAction) action = rawAction;
+  } catch {
     return jsonError("Invalid JSON body", 400);
   }
 
-  if (!config.developer_user_id) {
-    return jsonError("developer_user_id is required", 400);
-  }
-
-  const manifest = {
-    ...config,
-    developer_user_id: undefined,
-  };
-  const manifestHash = computeManifestHashHex(manifest);
-
-  const row = {
-    app_id: config.app_id,
-    developer_user_id: config.developer_user_id,
-    manifest_hash: manifestHash,
-    entry_url: config.entry_url,
-    developer_pubkey: config.developer_pubkey || "",
-    permissions: config.permissions,
-    limits: config.limits || {},
-    assets_allowed: config.assets_allowed,
-    governance_assets_allowed: config.governance_assets_allowed,
-    manifest,
-    name: config.name,
-    category: config.content?.category || null,
-    status: "pending",
-  };
-
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/miniapps`, {
+    const upstream = new URL("/api/miniapps/admin/upsert", hostAppBaseURL);
+    const response = await fetch(upstream.toString(), {
       method: "POST",
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "return=representation",
-      },
-      body: JSON.stringify(row),
+      headers: createProxyHeaders(req),
+      body: JSON.stringify({
+        ...payload,
+        action,
+      }),
       signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {
-      return jsonError("Failed to create MiniApp", response.status);
+      const message = await parseHostErrorPayload(response, "Failed to create MiniApp");
+      return jsonError(message, response.status);
     }
 
-    const data = await response.json();
-    return NextResponse.json({ success: true, data: Array.isArray(data) ? data[0] : data });
+    const data = await response.json().catch(() => null);
+    return NextResponse.json(data || { success: true }, { status: response.status });
   } catch {
-    return jsonError("Failed to connect to database", 502);
+    return jsonError("Failed to reach host-app admin endpoint", 502);
   }
 }

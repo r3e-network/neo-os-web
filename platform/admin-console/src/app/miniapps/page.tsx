@@ -12,9 +12,28 @@ import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { Tabs } from "@/components/ui/Tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
-import { useMiniApps, useCreateMiniApp, useUpdateMiniAppStatus, useUpdateMiniApp, useDeleteMiniApp } from "@/lib/hooks/useMiniApps";
+import {
+  useMiniApps,
+  useCreateMiniApp,
+  useUpdateMiniAppStatus,
+  useUpdateMiniApp,
+  useDeleteMiniApp,
+  useImportMiniAppDefinitions,
+  useMiniAppVersions,
+  useRollbackMiniAppVersion,
+  useMiniAppPublishRequests,
+  useReviewMiniAppPublishRequest,
+  useTriggerPublishReminders,
+  useVerifyPublishAuditChain,
+  type MiniAppDefinitionImportResult,
+  type MiniAppVersionSummary,
+  type MiniAppPublishRequest,
+  type MiniAppPublishReminderResult,
+  type MiniAppPublishAuditVerifyResult,
+} from "@/lib/hooks/useMiniApps";
 import { miniAppConfigSchema } from "@/lib/schemas";
 import { formatDate, truncate } from "@/lib/utils";
+import { diffEntriesToCsv, diffVersionPayload, filterDiffEntries, summarizeDiff, type VersionDiffEntry } from "@/lib/version-diff";
 import type { MiniApp } from "@/types";
 
 type Panel = "none" | "create" | "edit" | "detail";
@@ -79,6 +98,8 @@ interface DetailTemplate {
   operation_panel?: Record<string, string>;
 }
 
+type FrontendSpecFormat = "markdown" | "yaml" | "json";
+
 const EMPTY_FORM = {
   app_id: "", name: "", entry_url: "", version: "1.0.0",
   developer_user_id: "",
@@ -91,8 +112,12 @@ const EMPTY_FORM = {
   contracts: [] as ContractEntry[],
   operations: [] as OperationEntry[],
   components: [] as ComponentEntry[],
+  frontend_spec_format: "markdown" as FrontendSpecFormat,
+  frontend_spec_content: "",
   content_description: "", content_icon_url: "", content_logo_url: "", content_banner_url: "", content_docs_url: "", content_category: "", content_tags: "",
 };
+
+const SOFT_DELETE_WARNING = "Delete now means disabling the MiniApp (soft delete).";
 
 export default function MiniAppsPage() {
   const { data: miniapps, isLoading, error } = useMiniApps();
@@ -100,12 +125,40 @@ export default function MiniAppsPage() {
   const updateMutation = useUpdateMiniApp();
   const statusMutation = useUpdateMiniAppStatus();
   const deleteMutation = useDeleteMiniApp();
+  const importDefinitionsMutation = useImportMiniAppDefinitions();
+  const rollbackMutation = useRollbackMiniAppVersion();
+  const reviewPublishRequestMutation = useReviewMiniAppPublishRequest();
+  const triggerPublishRemindersMutation = useTriggerPublishReminders();
+  const verifyPublishAuditMutation = useVerifyPublishAuditChain();
 
   const [panel, setPanel] = useState<Panel>("none");
   const [selectedApp, setSelectedApp] = useState<MiniApp | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [jsonText, setJsonText] = useState("");
   const [formError, setFormError] = useState("");
+  const [importError, setImportError] = useState("");
+  const [importResult, setImportResult] = useState<MiniAppDefinitionImportResult | null>(null);
+  const [publishInfo, setPublishInfo] = useState("");
+  const [versionChannel, setVersionChannel] = useState<"all" | "draft" | "published">("all");
+  const [versionError, setVersionError] = useState("");
+  const [publishRequestStatus, setPublishRequestStatus] = useState<"all" | "pending" | "approved" | "rejected" | "applied" | "cancelled">("pending");
+  const [publishReviewError, setPublishReviewError] = useState("");
+  const [publishReminderResult, setPublishReminderResult] = useState<MiniAppPublishReminderResult | null>(null);
+  const [publishDetailRequestId, setPublishDetailRequestId] = useState<string | null>(null);
+  const [publishAuditVerifyResult, setPublishAuditVerifyResult] = useState<MiniAppPublishAuditVerifyResult | null>(null);
+  const [selectedDiffVersionId, setSelectedDiffVersionId] = useState<string | null>(null);
+  const [diffScope, setDiffScope] = useState<"all" | "manifest" | "operations" | "layout" | "admin">("all");
+
+  const versionsQuery = useMiniAppVersions(selectedApp?.app_id || "", {
+    releaseChannel: versionChannel,
+    enabled: panel === "detail" && Boolean(selectedApp?.app_id),
+  });
+
+  const publishRequestsQuery = useMiniAppPublishRequests({
+    appId: selectedApp?.app_id || undefined,
+    status: publishRequestStatus,
+    enabled: panel === "detail" && Boolean(selectedApp?.app_id),
+  });
 
   const resetPanel = useCallback(() => {
     setPanel("none");
@@ -113,18 +166,23 @@ export default function MiniAppsPage() {
     setForm(EMPTY_FORM);
     setJsonText("");
     setFormError("");
+    setPublishInfo("");
   }, []);
 
   const handleCreate = async () => {
     setFormError("");
-    const result = miniAppConfigSchema.safeParse(formToConfig(form));
+    const payload = formToConfig(form);
+    const result = miniAppConfigSchema.safeParse(payload);
     if (!result.success) {
       setFormError(result.error.errors[0]?.message || "Validation failed");
       return;
     }
 
     try {
-      await createMutation.mutateAsync(result.data);
+      const resultPayload = await createMutation.mutateAsync(payload) as { publish_requested?: boolean } | null;
+      if (resultPayload?.publish_requested) {
+        setPublishInfo("Publish request submitted for approval.");
+      }
       resetPanel();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Create failed");
@@ -148,7 +206,10 @@ export default function MiniAppsPage() {
     }
 
     try {
-      await createMutation.mutateAsync(result.data);
+      const resultPayload = await createMutation.mutateAsync(parsed as Record<string, unknown>) as { publish_requested?: boolean } | null;
+      if (resultPayload?.publish_requested) {
+        setPublishInfo("Publish request submitted for approval.");
+      }
       resetPanel();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Import failed");
@@ -169,7 +230,7 @@ export default function MiniAppsPage() {
   };
 
   const handleDelete = (app: MiniApp) => {
-    if (!window.confirm(`Delete "${app.app_id}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Disable "${app.app_id}"?\n\n${SOFT_DELETE_WARNING}`)) return;
     deleteMutation.mutate(app.app_id);
   };
 
@@ -190,15 +251,27 @@ export default function MiniAppsPage() {
     setPanel("create");
   };
 
-  const handleUpdate = async () => {
+  const handleUpdate = async (action: "save_draft" | "publish" = "save_draft") => {
     setFormError("");
-    const result = miniAppConfigSchema.safeParse(formToConfig(form));
+    const payload = formToConfig(form);
+    const result = miniAppConfigSchema.safeParse(payload);
     if (!result.success) {
       setFormError(result.error.errors[0]?.message || "Validation failed");
       return;
     }
     try {
-      await updateMutation.mutateAsync({ appId: selectedApp!.app_id, config: result.data });
+      const resultPayload = await updateMutation.mutateAsync({
+        appId: selectedApp!.app_id,
+        config: {
+          ...payload,
+          action,
+        },
+      }) as { action?: string } | null;
+
+      if (resultPayload?.action === "publish_requested") {
+        setPublishInfo("Publish request submitted for approval.");
+      }
+
       resetPanel();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Update failed");
@@ -213,14 +286,211 @@ export default function MiniAppsPage() {
     reader.readAsText(file);
   };
 
+  const handleImportDefinitions = async (dryRun: boolean) => {
+    setImportError("");
+    try {
+      const result = await importDefinitionsMutation.mutateAsync({ dryRun });
+      setImportResult(result);
+    } catch (err) {
+      setImportResult(null);
+      setImportError(err instanceof Error ? err.message : "Failed to import definition files");
+    }
+  };
+
+  const handleRollback = async (version: MiniAppVersionSummary) => {
+    if (!selectedApp) return;
+    const confirmed = window.confirm(`Rollback ${selectedApp.app_id} to version #${version.version_no}?`);
+    if (!confirmed) return;
+
+    setVersionError("");
+    try {
+      await rollbackMutation.mutateAsync({
+        appId: selectedApp.app_id,
+        versionId: version.id,
+        releaseChannel: version.release_channel,
+      });
+    } catch (err) {
+      setVersionError(err instanceof Error ? err.message : "Rollback failed");
+    }
+  };
+
+  const handleReviewPublishRequest = async (
+    request: MiniAppPublishRequest,
+    decision: "approve" | "reject" | "cancel",
+  ) => {
+    setPublishReviewError("");
+    try {
+      await reviewPublishRequestMutation.mutateAsync({
+        requestId: request.id,
+        decision,
+        appId: request.app_id,
+      });
+    } catch (err) {
+      setPublishReviewError(err instanceof Error ? err.message : "Failed to review publish request");
+    }
+  };
+
+  const handleTriggerPublishReminders = async (dryRun: boolean) => {
+    setPublishReviewError("");
+    try {
+      const result = await triggerPublishRemindersMutation.mutateAsync({ dryRun });
+      setPublishReminderResult(result);
+    } catch (err) {
+      setPublishReviewError(err instanceof Error ? err.message : "Failed to trigger reminders");
+    }
+  };
+
+  const handleVerifyPublishAudit = async () => {
+    setPublishReviewError("");
+    try {
+      const result = await verifyPublishAuditMutation.mutateAsync({
+        appId: selectedApp?.app_id,
+        limit: 1000,
+      });
+      setPublishAuditVerifyResult(result);
+    } catch (err) {
+      setPublishReviewError(err instanceof Error ? err.message : "Failed to verify publish audit chain");
+    }
+  };
+
+  const versions = versionsQuery.data?.versions || [];
+  const selectedPublishRequest = publishRequestsQuery.data?.requests.find((request) => request.id === publishDetailRequestId) || null;
+  const selectedDiffVersion = versions.find((item) => item.id === selectedDiffVersionId) || null;
+  const selectedDiffIndex = selectedDiffVersion ? versions.findIndex((item) => item.id === selectedDiffVersion.id) : -1;
+  const previousDiffVersion = selectedDiffIndex >= 0 && selectedDiffIndex + 1 < versions.length
+    ? versions[selectedDiffIndex + 1]
+    : null;
+  const rawDiffEntries: VersionDiffEntry[] = selectedDiffVersion && previousDiffVersion
+    ? diffVersionPayload(previousDiffVersion.row_snapshot || previousDiffVersion.manifest, selectedDiffVersion.row_snapshot || selectedDiffVersion.manifest)
+    : [];
+
+  const diffEntries: VersionDiffEntry[] = (() => {
+    if (diffScope === "all") return rawDiffEntries;
+    if (diffScope === "manifest") {
+      return filterDiffEntries(rawDiffEntries, { includePaths: ["manifest"] });
+    }
+    if (diffScope === "operations") {
+      return filterDiffEntries(rawDiffEntries, {
+        includePaths: ["manifest.operations", "operations"],
+      });
+    }
+    if (diffScope === "layout") {
+      return filterDiffEntries(rawDiffEntries, {
+        includePaths: ["manifest.detail_template", "manifest.page_template", "detail_template", "page_template"],
+      });
+    }
+    return filterDiffEntries(rawDiffEntries, { includePaths: ["manifest.admin", "admin"] });
+  })();
+
+  const diffSummary = summarizeDiff(diffEntries);
+
+  const exportCurrentDiffCsv = () => {
+    const csv = diffEntriesToCsv(diffEntries);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `miniapp-diff-${selectedDiffVersion?.version_no || "latest"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportPublishRequestsCsv = () => {
+    const params = new URLSearchParams();
+    if (selectedApp?.app_id) {
+      params.set("app_id", selectedApp.app_id);
+    }
+    if (publishRequestStatus !== "all") {
+      params.set("status", publishRequestStatus);
+    }
+
+    const href = `/api/miniapps/publish-requests/export?${params.toString()}`;
+    const a = document.createElement("a");
+    a.href = href;
+    a.click();
+  };
+
+  const renderPublishRequestDiff = () => {
+    if (!selectedPublishRequest) return null;
+
+    const requestedVersion = versions.find((version) => version.id === selectedPublishRequest.requested_version_id) || null;
+    const publishedVersionId = versionsQuery.data?.releases?.published || null;
+    const publishedVersion = versions.find((version) => version.id === publishedVersionId) || null;
+
+    if (!requestedVersion || !publishedVersion) {
+      return (
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Unable to render request diff (requested/published version snapshot unavailable).
+        </p>
+      );
+    }
+
+    const entries = diffVersionPayload(
+      publishedVersion.row_snapshot || publishedVersion.manifest,
+      requestedVersion.row_snapshot || requestedVersion.manifest,
+    );
+
+    const summary = summarizeDiff(entries);
+
+    return (
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mt-3">
+        <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">
+          Request Diff: Published v{publishedVersion.version_no} {"->"} Requested v{requestedVersion.version_no}
+        </p>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-2">
+          Total {summary.total} | Added {summary.added} | Removed {summary.removed} | Changed {summary.changed}
+        </p>
+        {!entries.length ? (
+          <p className="text-xs text-gray-500 dark:text-gray-400">No differences found.</p>
+        ) : (
+          <div className="max-h-48 overflow-auto rounded border border-gray-100 dark:border-gray-800 divide-y dark:divide-gray-800">
+            {entries.slice(0, 200).map((entry, idx) => (
+              <div key={`${entry.path}-${idx}`} className="px-2 py-1 text-[11px]">
+                <span className="font-mono text-gray-700 dark:text-gray-300">{entry.path || "(root)"}</span>
+                <span className="ml-2 text-gray-500 dark:text-gray-400">{entry.kind}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">MiniApps</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage registered MiniApps</p>
+          {importError && (
+            <p className="mt-2 text-sm text-danger-600 dark:text-danger-400">{importError}</p>
+          )}
+          {publishInfo && (
+            <p className="mt-2 text-sm text-warning-600 dark:text-warning-400">{publishInfo}</p>
+          )}
+          {importResult && (
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              {importResult.dry_run ? "Validation" : "Import"} finished: total {importResult.summary.total}, imported{" "}
+              {importResult.summary.imported}, validated {importResult.summary.validated}, failed{" "}
+              {importResult.summary.failed}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            disabled={importDefinitionsMutation.isPending}
+            onClick={() => handleImportDefinitions(true)}
+          >
+            Validate Definitions
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={importDefinitionsMutation.isPending}
+            onClick={() => handleImportDefinitions(false)}
+          >
+            Import Definitions
+          </Button>
           <Button onClick={() => { resetPanel(); setPanel("create"); }}>Create MiniApp</Button>
         </div>
       </div>
@@ -232,7 +502,8 @@ export default function MiniAppsPage() {
           setForm={setForm}
           formError={formError}
           loading={panel === "edit" ? updateMutation.isPending : createMutation.isPending}
-          onSubmit={panel === "edit" ? handleUpdate : handleCreate}
+          onSubmit={panel === "edit" ? () => handleUpdate("save_draft") : handleCreate}
+          onPublish={panel === "edit" ? () => handleUpdate("publish") : undefined}
           onCancel={resetPanel}
           jsonText={jsonText}
           setJsonText={setJsonText}
@@ -308,7 +579,7 @@ export default function MiniAppsPage() {
                           disabled={deleteMutation.isPending}
                           className="text-danger-600 dark:text-danger-400"
                         >
-                          Delete
+                          Disable
                         </Button>
                       </div>
                     </TableCell>
@@ -394,6 +665,271 @@ export default function MiniAppsPage() {
             })()}
 
             <div><h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Full Manifest</h4><pre className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3 text-xs overflow-auto max-h-64">{JSON.stringify(selectedApp.manifest || {}, null, 2)}</pre></div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Version History</h4>
+                <div className="flex items-center gap-2">
+                  <select
+                    className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100"
+                    value={versionChannel}
+                    onChange={(e) => setVersionChannel(e.target.value as "all" | "draft" | "published")}
+                    aria-label="Version channel filter"
+                  >
+                    <option value="all">All</option>
+                    <option value="published">Published</option>
+                    <option value="draft">Draft</option>
+                  </select>
+                </div>
+              </div>
+
+              {versionError && <p className="mb-2 text-xs text-danger-600 dark:text-danger-400">{versionError}</p>}
+
+              {versionsQuery.isLoading ? (
+                <Spinner />
+              ) : versionsQuery.isError ? (
+                <p className="text-xs text-danger-600 dark:text-danger-400">
+                  {versionsQuery.error instanceof Error ? versionsQuery.error.message : "Failed to load version history"}
+                </p>
+              ) : !versionsQuery.data?.versions.length ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400">No versions yet.</p>
+              ) : (
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 divide-y dark:divide-gray-700">
+                  {versionsQuery.data.versions.map((version) => (
+                    <div key={version.id} className="flex items-center gap-3 px-3 py-2 text-xs">
+                      <span className="font-medium">v{version.version_no}</span>
+                      <Badge variant={version.release_channel === "published" ? "success" : "warning"}>
+                        {version.release_channel}
+                      </Badge>
+                      <span className="text-gray-500 dark:text-gray-400">{version.source_action}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{formatDate(version.created_at)}</span>
+                      <span className="ml-auto flex items-center gap-2">
+                        <span className="font-mono text-[10px] text-gray-500 dark:text-gray-400">{truncate(version.id, 14)}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedDiffVersionId(version.id)}
+                        >
+                          Diff
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleRollback(version)}
+                          disabled={rollbackMutation.isPending}
+                        >
+                          Rollback
+                        </Button>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedDiffVersion && previousDiffVersion && (
+                <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h5 className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                      Diff: v{previousDiffVersion.version_no} {"->"} v{selectedDiffVersion.version_no}
+                    </h5>
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="rounded-md border border-gray-300 dark:border-gray-600 p-1 text-[11px] cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100"
+                        value={diffScope}
+                        onChange={(e) => setDiffScope(e.target.value as typeof diffScope)}
+                        aria-label="Diff scope"
+                      >
+                        <option value="all">All</option>
+                        <option value="manifest">Manifest</option>
+                        <option value="operations">Operations</option>
+                        <option value="layout">Layout</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <Button size="sm" variant="ghost" onClick={exportCurrentDiffCsv}>
+                        Export CSV
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setSelectedDiffVersionId(null)}>
+                        Close Diff
+                      </Button>
+                    </div>
+                  </div>
+
+                  <p className="mb-2 text-[11px] text-gray-600 dark:text-gray-300">
+                    Total {diffSummary.total} | Added {diffSummary.added} | Removed {diffSummary.removed} | Changed {diffSummary.changed}
+                  </p>
+
+                  {!diffEntries.length ? (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">No differences found.</p>
+                  ) : (
+                    <div className="max-h-56 overflow-auto rounded border border-gray-100 dark:border-gray-800 divide-y dark:divide-gray-800">
+                      {diffEntries.slice(0, 200).map((entry, idx) => (
+                        <div key={`${entry.path}-${idx}`} className="px-2 py-1 text-[11px]">
+                          <span className="font-mono text-gray-700 dark:text-gray-300">{entry.path || "(root)"}</span>
+                          <span className="ml-2 text-gray-500 dark:text-gray-400">{entry.kind}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Publish Requests</h4>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={exportPublishRequestsCsv}
+                  >
+                    Export Requests CSV
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleVerifyPublishAudit}
+                    disabled={verifyPublishAuditMutation.isPending}
+                  >
+                    Verify Audit Chain
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleTriggerPublishReminders(true)}
+                    disabled={triggerPublishRemindersMutation.isPending}
+                  >
+                    Dry-Run Remind
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleTriggerPublishReminders(false)}
+                    disabled={triggerPublishRemindersMutation.isPending}
+                  >
+                    Send Reminders
+                  </Button>
+                  <select
+                    className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100"
+                    value={publishRequestStatus}
+                    onChange={(e) => setPublishRequestStatus(e.target.value as typeof publishRequestStatus)}
+                    aria-label="Publish request status filter"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="all">All</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="applied">Applied</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {publishReviewError && <p className="mb-2 text-xs text-danger-600 dark:text-danger-400">{publishReviewError}</p>}
+
+              {publishReminderResult && (
+                <p className="mb-2 text-xs text-gray-600 dark:text-gray-300">
+                  Reminder {publishReminderResult.dry_run ? "dry-run" : "sent"}: {publishReminderResult.sent} items ({publishReminderResult.channel})
+                </p>
+              )}
+
+              {publishAuditVerifyResult && (
+                <p className={`mb-2 text-xs ${publishAuditVerifyResult.ok ? "text-success-600 dark:text-success-400" : "text-danger-600 dark:text-danger-400"}`}>
+                  Audit chain {publishAuditVerifyResult.ok ? "OK" : "FAILED"} |
+                  Events {publishAuditVerifyResult.total_events} |
+                  Invalid {publishAuditVerifyResult.invalid_hash_events} |
+                  Breaks {publishAuditVerifyResult.chain_break_events}
+                </p>
+              )}
+
+              {publishRequestsQuery.data?.sla && (
+                <div className="mb-2 rounded border border-gray-200 dark:border-gray-700 p-2 text-[11px] text-gray-600 dark:text-gray-300">
+                  SLA {publishRequestsQuery.data.sla.minutes}m / Escalation {publishRequestsQuery.data.sla.escalation_minutes}m |
+                  Pending {publishRequestsQuery.data.sla.pending} |
+                  Breached {publishRequestsQuery.data.sla.sla_breached} |
+                  Escalated {publishRequestsQuery.data.sla.escalated}
+                </div>
+              )}
+
+              {publishRequestsQuery.isLoading ? (
+                <Spinner />
+              ) : publishRequestsQuery.isError ? (
+                <p className="text-xs text-danger-600 dark:text-danger-400">
+                  {publishRequestsQuery.error instanceof Error
+                    ? publishRequestsQuery.error.message
+                    : "Failed to load publish requests"}
+                </p>
+              ) : !publishRequestsQuery.data?.requests.length ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400">No publish requests.</p>
+              ) : (
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 divide-y dark:divide-gray-700">
+                  {publishRequestsQuery.data.requests.map((request) => (
+                    <div key={request.id} className="flex items-center gap-3 px-3 py-2 text-xs">
+                      <span className="font-mono text-[10px] text-gray-500 dark:text-gray-400">{truncate(request.id, 14)}</span>
+                      <span className="font-medium">v{request.requested_version_no ?? "-"}</span>
+                      <Badge variant={request.status === "pending" ? "warning" : request.status === "applied" ? "success" : "default"}>
+                        {request.status}
+                      </Badge>
+                      <span className="text-gray-500 dark:text-gray-400">{formatDate(request.requested_at)}</span>
+                      {(() => {
+                        const timing = request.timing;
+                        if (!timing) return null;
+                        if (timing.isEscalated) {
+                          return <Badge variant="danger">Escalated ({timing.ageMinutes}m)</Badge>;
+                        }
+                        if (timing.isSlaBreached) {
+                          return <Badge variant="warning">SLA Breach ({timing.ageMinutes}m)</Badge>;
+                        }
+                        return <Badge variant="default">Age {timing.ageMinutes}m</Badge>;
+                      })()}
+                      <span className="ml-auto flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setPublishDetailRequestId(request.id)}
+                        >
+                          View Diff
+                        </Button>
+                        {request.status === "pending" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleReviewPublishRequest(request, "approve")}
+                              disabled={reviewPublishRequestMutation.isPending}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleReviewPublishRequest(request, "reject")}
+                              disabled={reviewPublishRequestMutation.isPending}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {publishDetailRequestId && selectedPublishRequest && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                      Request {truncate(selectedPublishRequest.id, 20)}
+                    </p>
+                    <Button size="sm" variant="ghost" onClick={() => setPublishDetailRequestId(null)}>
+                      Close Request Diff
+                    </Button>
+                  </div>
+                  {renderPublishRequestDiff()}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -402,14 +938,24 @@ export default function MiniAppsPage() {
 }
 
 function formToConfig(form: typeof EMPTY_FORM) {
+  const frontendSpecContent = form.frontend_spec_content.trim();
+  const frontendSpec = frontendSpecContent
+    ? {
+        format: form.frontend_spec_format,
+        content: frontendSpecContent,
+      }
+    : undefined;
+
   return {
     app_id: form.app_id, name: form.name, entry_url: form.entry_url,
     developer_user_id: form.developer_user_id || undefined,
+    template_type: form.blueprint || "default",
     version: form.version || "1.0.0", developer_pubkey: form.developer_pubkey,
     callback_contract: form.callback_contract || undefined,
     callback_method: form.callback_method || undefined,
     blueprint: form.blueprint || undefined,
     detail_template: form.detail_template || undefined,
+    frontend_spec: frontendSpec,
     attestation_required: form.attestation_required,
     permissions: form.permissions,
     limits: {
@@ -465,6 +1011,26 @@ function appToForm(app: MiniApp): typeof EMPTY_FORM {
       options: Array.isArray(p.options) ? JSON.stringify(p.options) : "",
     })) : [] as OperationParam[],
   })) : [];
+  const frontendSpecRaw = m.frontend_spec ?? m.ui_spec;
+  let frontendSpecFormat: FrontendSpecFormat = "markdown";
+  let frontendSpecContent = "";
+
+  if (typeof frontendSpecRaw === "string") {
+    frontendSpecContent = frontendSpecRaw;
+  } else if (frontendSpecRaw && typeof frontendSpecRaw === "object" && !Array.isArray(frontendSpecRaw)) {
+    const specObj = frontendSpecRaw as Record<string, unknown>;
+    const candidateFormat = String(specObj.format || "").trim().toLowerCase();
+    if (candidateFormat === "yaml" || candidateFormat === "json" || candidateFormat === "markdown") {
+      frontendSpecFormat = candidateFormat;
+    }
+    if (typeof specObj.content === "string") {
+      frontendSpecContent = specObj.content;
+    } else {
+      frontendSpecFormat = "json";
+      frontendSpecContent = JSON.stringify(specObj, null, 2);
+    }
+  }
+
   return {
     app_id: app.app_id,
     name: String(m.name || app.app_id),
@@ -492,6 +1058,8 @@ function appToForm(app: MiniApp): typeof EMPTY_FORM {
           props: JSON.stringify((c.props && typeof c.props === "object") ? c.props : {}, null, 2),
         }))
       : [] as ComponentEntry[],
+    frontend_spec_format: frontendSpecFormat,
+    frontend_spec_content: frontendSpecContent,
     content_description: String(content.description || ""),
     content_icon_url: String(content.icon_url || ""),
     content_logo_url: String(content.logo_url || ""),
@@ -503,7 +1071,7 @@ function appToForm(app: MiniApp): typeof EMPTY_FORM {
 }
 
 function CreateFormPanel({
-  form, setForm, formError, loading, onSubmit, onCancel,
+  form, setForm, formError, loading, onSubmit, onPublish, onCancel,
   jsonText, setJsonText, onImportJson, onFileUpload, mode = "create",
 }: {
   form: typeof EMPTY_FORM;
@@ -511,6 +1079,7 @@ function CreateFormPanel({
   formError: string;
   loading: boolean;
   onSubmit: () => void;
+  onPublish?: () => void;
   onCancel: () => void;
   jsonText: string;
   setJsonText: (s: string) => void;
@@ -678,6 +1247,40 @@ function CreateFormPanel({
                 <Input label="CTA Label" placeholder="Launch App" value={dtOp.cta_label || ""} onChange={e => updateDT({ operation_panel: { ...dtOp, cta_label: e.target.value } })} />
               </div>
             </div>
+
+            {/* Frontend Spec */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Frontend Spec (Optional)</label>
+              <div className="grid grid-cols-4 gap-4 mb-2">
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Format</label>
+                  <select
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                    value={form.frontend_spec_format}
+                    onChange={e => update("frontend_spec_format", e.target.value as FrontendSpecFormat)}
+                    aria-label="Frontend spec format"
+                  >
+                    <option value="markdown">markdown</option>
+                    <option value="yaml">yaml</option>
+                    <option value="json">json</option>
+                  </select>
+                </div>
+                <div className="col-span-3">
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Spec Content</label>
+                  <textarea
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                    rows={6}
+                    placeholder={form.frontend_spec_format === "markdown" ? "# Overview\n\nDescribe app details..." : form.frontend_spec_format === "yaml" ? "page_template:\n  layout: prediction" : "{\n  \"page_template\": { \"layout\": \"default\" }\n}"}
+                    value={form.frontend_spec_content}
+                    onChange={e => update("frontend_spec_content", e.target.value)}
+                    aria-label="Frontend spec content"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Supports `markdown`, `yaml`, or `json`. Host app will render tabs/operation panel from this definition.
+              </p>
+            </div>
           </div>
         )}
 
@@ -802,6 +1405,15 @@ function CreateFormPanel({
         {tab !== "json" && (
           <div className="flex gap-2">
             <Button onClick={onSubmit} disabled={loading}>{loading ? (mode === "edit" ? "Saving..." : "Creating...") : (mode === "edit" ? "Save Changes" : "Create MiniApp")}</Button>
+            {mode === "edit" && onPublish && (
+              <Button
+                variant="secondary"
+                onClick={onPublish}
+                disabled={loading}
+              >
+                {loading ? "Publishing..." : "Save & Publish"}
+              </Button>
+            )}
             <Button variant="secondary" onClick={onCancel}>Cancel</Button>
           </div>
         )}

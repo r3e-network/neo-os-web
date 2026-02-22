@@ -25,3 +25,18 @@ final schema consistent.
 - Table `pool_accounts` exists with columns: `id`, `address`, `created_at`, `last_used_at`, `tx_count`, `is_retiring`, `locked_by`, `locked_at`.
 - Indexes `pool_accounts_locked_by_idx` and `pool_accounts_is_retiring_idx` exist.
 - Optional: table `pool_account_balances` exists when multi-token balances are enabled (`011_multi_token_balances.sql`).
+
+## MiniApp versioning rollout
+- Apply `053_miniapp_versions.sql` after `025_miniapps.sql` and later miniapp migrations.
+- Apply `054_miniapp_publish_requests.sql` to enable publish approval workflow.
+- Apply `055_miniapp_publish_request_audit.sql` to enable immutable approval audit chain.
+- New tables added:
+  - `miniapp_versions`
+  - `miniapp_releases`
+  - `miniapp_release_history`
+  - `miniapp_publish_requests`
+  - `miniapp_publish_request_audit`
+- Verify:
+  - `miniapp_versions` accepts insert on admin upsert/status/import.
+  - `miniapp_releases` keeps one row per `app_id` with draft/published pointers.
+  - `miniapp_release_history` records pointer transitions for `save_draft` / `publish` / `disable` / `rollback`.

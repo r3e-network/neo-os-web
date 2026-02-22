@@ -1,15 +1,23 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { logger } from "@/lib/logger";
+import { trackError, getTrackedErrors, getErrorCount, type ErrorCategory } from "@/lib/monitoring/errors";
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  // Optional: provide component name for better error tracking
+  componentName?: string;
+  // Optional: custom error handler
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  // Optional: show error count badge
+  showErrorCount?: boolean;
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  errorId?: string;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -27,18 +35,32 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to monitoring service in production
-    logger.error("ErrorBoundary caught an error:", error);
-
+    // Track error with monitoring system
+    const errorId = trackError(error, {
+      category: this.getCategoryFromProps(),
+      componentStack: errorInfo.componentStack,
+      extra: {
+        componentName: this.props.componentName,
+      },
+    });
+    
+    // Log to logger
+    logger.error(`ErrorBoundary [${this.props.componentName || "Unknown"}] caught an error:`, error);
+    
+    // Set state with error ID
     this.setState({
       error,
       errorInfo,
+      errorId,
     });
+    
+    // Call custom error handler if provided
+    this.props.onError?.(error, errorInfo);
+  }
 
-    // In production, send to error tracking service if configured
-    if (process.env.NODE_ENV === "production" && typeof window !== "undefined") {
-      // Integrate Sentry/LogRocket here when available
-    }
+  getCategoryFromProps(): ErrorCategory {
+    // Can be extended to determine category based on component type
+    return "render";
   }
 
   handleReset = (): void => {
@@ -46,7 +68,19 @@ export class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      errorId: undefined,
     });
+  };
+
+  handleReport = (): void => {
+    if (this.state.errorId) {
+      // In production, this would open a bug report dialog
+      // or send to a bug tracking service
+      const errorReportUrl = `mailto:support@example.com?subject=Error Report: ${this.state.errorId}&body=${encodeURIComponent(
+        `Error ID: ${this.state.errorId}\nError: ${this.state.error?.toString()}\n\nStack: ${this.state.errorInfo?.componentStack || "N/A"}`
+      )}`;
+      window.open(errorReportUrl);
+    }
   };
 
   render(): ReactNode {
@@ -85,6 +119,12 @@ export class ErrorBoundary extends Component<Props, State> {
               We apologize for the inconvenience. The application encountered an unexpected error.
             </p>
 
+            {this.state.errorId && (
+              <div className="text-xs text-gray-500 dark:text-gray-400 text-center mb-4">
+                Error ID: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{this.state.errorId}</code>
+              </div>
+            )}
+
             {process.env.NODE_ENV === "development" && this.state.error && (
               <details className="mb-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg text-xs overflow-auto">
                 <summary className="cursor-pointer font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -107,8 +147,18 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
               <button
                 type="button"
+                onClick={this.handleReport}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                title="Report this error"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </button>
+              <button
+                type="button"
                 onClick={() => (window.location.href = "/")}
-                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
               >
                 Go Home
               </button>
@@ -121,3 +171,48 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+/**
+ * HOC to wrap a component with ErrorBoundary
+ */
+export function withErrorBoundary<P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  errorBoundaryProps?: Omit<Props, "children">
+): React.FC<P> {
+  const displayName = WrappedComponent.displayName || WrappedComponent.name || "Component";
+  
+  const WithErrorBoundary: React.FC<P> = (props) => (
+    <ErrorBoundary componentName={displayName} {...errorBoundaryProps}>
+      <WrappedComponent {...props} />
+    </ErrorBoundary>
+  );
+  
+  WithErrorBoundary.displayName = `withErrorBoundary(${displayName})`;
+  return WithErrorBoundary;
+}
+
+/**
+ * Hook to get global error state
+ */
+export function useGlobalErrors() {
+  const [errorCount, setErrorCount] = React.useState(0);
+  const [errors, setErrors] = React.useState<ReturnType<typeof getTrackedErrors>>([]);
+  
+  React.useEffect(() => {
+    // Update on mount and periodically
+    const update = () => {
+      setErrorCount(getErrorCount());
+      setErrors(getTrackedErrors());
+    };
+    
+    update();
+    
+    // Listen for new errors
+    const interval = setInterval(update, 5000);
+    return () => clearInterval(interval);
+  }, []);
+  
+  return { errorCount, errors };
+}
+
+export default ErrorBoundary;
