@@ -110,4 +110,55 @@ describe("miniapp-definitions loader", () => {
       }),
     );
   });
+
+  it("loads yaml definitions and preserves template/i18n metadata", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-yaml");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+
+    fs.writeFileSync(
+      path.join(definitionsDir, "yaml-miniapp.yaml"),
+      [
+        "app_id: miniapp-yaml-market",
+        "name: YAML Market",
+        "name_zh: YAML 市场",
+        "description: Example loaded from YAML",
+        "description_zh: YAML 配置示例",
+        "template_type: prediction",
+        "entry_url: https://example.com/yaml-market",
+        "template:",
+        "  frontend_template:",
+        "    template_id: prediction",
+        "    version: 1.0.0",
+        "  contract_template:",
+        "    template_id: prediction-binary",
+        "    version: 1.0.0",
+        "media:",
+        "  logo: https://cdn.example.com/yaml/logo.png",
+        "  banner: https://cdn.example.com/yaml/banner.png",
+        "",
+      ].join("\n"),
+      "utf-8",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    expect(apps).toHaveLength(1);
+    expect(apps[0]).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-yaml-market",
+        name: "YAML Market",
+      }),
+    );
+    expect(apps[0].manifest).toEqual(
+      expect.objectContaining({
+        name_zh: "YAML 市场",
+        description_zh: "YAML 配置示例",
+        template_type: "prediction",
+        template: expect.objectContaining({
+          frontend_template: expect.objectContaining({ template_id: "prediction" }),
+          contract_template: expect.objectContaining({ template_id: "prediction-binary" }),
+        }),
+      }),
+    );
+  });
 });

@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { normalizeMiniAppAdminPayload } from "@/lib/miniapp-admin";
 import { recordMiniAppVersion } from "@/lib/miniapp-versioning";
 import { loadMiniAppDefinitionPayloads } from "@/lib/miniapp-definitions";
+import { validateMiniAppDefinitionAgainstSchema } from "@/lib/miniapp-schema-validator";
 import { strictLimit } from "@/lib/rate-limit";
 import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
 import schema from "@/public/miniapp-definitions/miniapp-config.schema.json";
@@ -111,6 +112,11 @@ function validateDefinitionPayload(payload: unknown): string | null {
     if (!TEMPLATE_TYPE_ENUM.has(rawTemplateType)) {
       return `Invalid template_type: ${rawTemplateType}`;
     }
+  }
+
+  const schemaValidation = validateMiniAppDefinitionAgainstSchema(payload);
+  if (!schemaValidation.valid) {
+    return schemaValidation.error || "Definition does not match miniapp schema";
   }
 
   return null;

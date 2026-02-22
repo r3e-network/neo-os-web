@@ -23,15 +23,62 @@
       "maxLength": 128,
       "description": "Display name of the MiniApp"
     },
+    "name_zh": {
+      "type": "string",
+      "maxLength": 128,
+      "description": "Chinese display name"
+    },
     "description": {
       "type": "string",
       "maxLength": 2048,
       "description": "Detailed description of the MiniApp"
     },
+    "description_zh": {
+      "type": "string",
+      "maxLength": 2048,
+      "description": "Chinese description"
+    },
     "template_type": {
       "type": "string",
       "enum": ["prediction", "voting", "lottery", "auction", "defi", "nft", "gaming", "social", "tipping", "governance", "utility", "default"],
       "description": "Template type for the MiniApp"
+    },
+    "template": {
+      "type": "object",
+      "description": "Template metadata for frontend and contract templates",
+      "properties": {
+        "template_type": {
+          "type": "string",
+          "enum": ["prediction", "voting", "lottery", "auction", "defi", "nft", "gaming", "social", "tipping", "governance", "utility", "default"]
+        },
+        "frontend_template": {
+          "type": "object",
+          "properties": {
+            "template_id": { "type": "string", "maxLength": 128 },
+            "version": { "type": "string", "maxLength": 64 },
+            "variant": { "type": "string", "maxLength": 64 },
+            "params": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "contract_template": {
+          "type": "object",
+          "properties": {
+            "template_id": { "type": "string", "maxLength": 128 },
+            "version": { "type": "string", "maxLength": 64 },
+            "variant": { "type": "string", "maxLength": 64 },
+            "init_params": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
     },
     "category": {
       "type": "string",
@@ -87,6 +134,20 @@
         }
       }
     },
+    "contract_template": {
+      "type": "object",
+      "description": "Contract template descriptor for template marketplace usage",
+      "properties": {
+        "template_id": { "type": "string", "maxLength": 128 },
+        "version": { "type": "string", "maxLength": 64 },
+        "variant": { "type": "string", "maxLength": 64 },
+        "init_params": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
     "entry_url": {
       "type": "string",
       "format": "uri",
@@ -106,8 +167,52 @@
         "logo": {
           "type": "string",
           "description": "URL or path to logo image"
+        },
+        "logo_variants": {
+          "type": "array",
+          "description": "Optional logo variants by theme/density",
+          "items": {
+            "type": "object",
+            "required": ["url"],
+            "properties": {
+              "url": { "type": "string" },
+              "theme": { "type": "string", "enum": ["light", "dark", "any"] },
+              "density": { "type": "string", "enum": ["1x", "2x", "3x"] },
+              "locale": { "type": "string", "maxLength": 16 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "banner_variants": {
+          "type": "array",
+          "description": "Optional banner variants by theme/density/locale",
+          "items": {
+            "type": "object",
+            "required": ["url"],
+            "properties": {
+              "url": { "type": "string" },
+              "theme": { "type": "string", "enum": ["light", "dark", "any"] },
+              "density": { "type": "string", "enum": ["1x", "2x", "3x"] },
+              "locale": { "type": "string", "maxLength": 16 }
+            },
+            "additionalProperties": false
+          }
         }
       }
+    },
+    "frontend_template": {
+      "type": "object",
+      "description": "Frontend template descriptor for template marketplace usage",
+      "properties": {
+        "template_id": { "type": "string", "maxLength": 128 },
+        "version": { "type": "string", "maxLength": 64 },
+        "variant": { "type": "string", "maxLength": 64 },
+        "params": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
     },
     "permissions": {
       "type": "object",
@@ -168,6 +273,15 @@
       "type": "string",
       "format": "uri",
       "description": "URL to documentation"
+    },
+    "i18n": {
+      "type": "object",
+      "description": "Localized fields",
+      "properties": {
+        "name_zh": { "type": "string", "maxLength": 128 },
+        "description_zh": { "type": "string", "maxLength": 2048 }
+      },
+      "additionalProperties": true
     },
     "links": {
       "type": "array",
