@@ -57,6 +57,38 @@ function firstDefined(source: Dict, keys: readonly string[]): unknown {
   return undefined;
 }
 
+function isTemplateMetadataObject(value: unknown): boolean {
+  const obj = asObject(value);
+  if (!Object.keys(obj).length) return false;
+
+  const hasTemplateMetaHints =
+    obj.template_type !== undefined ||
+    obj.frontend_template !== undefined ||
+    obj.contract_template !== undefined;
+
+  if (!hasTemplateMetaHints) return false;
+
+  const hasDetailTemplateShape =
+    obj.layout !== undefined ||
+    obj.tabs !== undefined ||
+    obj.operation_panel !== undefined ||
+    obj.operations !== undefined ||
+    obj.page_template !== undefined ||
+    obj.detail_template !== undefined;
+
+  return !hasDetailTemplateShape;
+}
+
+function pickTemplateCandidate(source: Dict): unknown {
+  for (const key of FRONTEND_TEMPLATE_KEYS) {
+    const candidate = source[key];
+    if (candidate === undefined) continue;
+    if (key === "template" && isTemplateMetadataObject(candidate)) continue;
+    return candidate;
+  }
+  return undefined;
+}
+
 function asObject(value: unknown): Dict {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Dict;
@@ -496,14 +528,12 @@ export function resolveMiniAppDetailConfig(
     firstDefined(obj, FRONTEND_SPEC_KEYS) ?? firstDefined(manifestTyped, FRONTEND_SPEC_KEYS),
   );
 
-  const frontendTemplateCandidate =
-    firstDefined(frontendSpec, FRONTEND_TEMPLATE_KEYS) ??
-    (isRecordWithKeys(frontendSpec) ? frontendSpec : undefined);
+  const frontendTemplateCandidate = pickTemplateCandidate(frontendSpec) ?? (isRecordWithKeys(frontendSpec) ? frontendSpec : undefined);
 
   const templateCandidate =
-    firstDefined(obj, FRONTEND_TEMPLATE_KEYS) ??
+    pickTemplateCandidate(obj) ??
     frontendTemplateCandidate ??
-    firstDefined(manifestTyped, FRONTEND_TEMPLATE_KEYS) ??
+    pickTemplateCandidate(manifestTyped) ??
     fallback.detailTemplate;
 
   let detailTemplate = coerceMiniAppDetailTemplate(templateCandidate) ?? fallback.detailTemplate ?? null;

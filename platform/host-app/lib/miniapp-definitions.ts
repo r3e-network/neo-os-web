@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import yaml from "js-yaml";
 import type { MiniAppInfo } from "@/components/types";
 import { coerceMiniAppInfo } from "./miniapp";
 import { logger } from "./logger";
@@ -7,6 +8,7 @@ import { logger } from "./logger";
 type Dict = Record<string, unknown>;
 
 const MANIFEST_ENTRY_PREFIX = "mf://manifest?app=";
+const DEFINITION_EXTENSIONS = new Set([".json", ".yaml", ".yml"]);
 
 export type MiniAppDefinitionPayload = {
   fileName: string;
@@ -38,6 +40,40 @@ function asString(value: unknown): string {
   return String(value).trim();
 }
 
+function asOptionalString(value: unknown): string | undefined {
+  const out = asString(value);
+  return out || undefined;
+}
+
+export function parseMiniAppDefinitionContent(content: string): unknown {
+  const input = String(content || "").trim();
+  if (!input) {
+    throw new Error("definition file is empty");
+  }
+
+  try {
+    return JSON.parse(input) as unknown;
+  } catch {
+    // Continue to YAML parsing.
+  }
+
+  try {
+    const parsed = yaml.load(input);
+    if (parsed === undefined || parsed === null) {
+      throw new Error("definition content resolved to empty value");
+    }
+    return parsed as unknown;
+  } catch (error) {
+    const message = error instanceof Error && error.message ? error.message : "unknown parse error";
+    throw new Error(`invalid JSON/YAML definition: ${message}`);
+  }
+}
+
+function fileHasSupportedDefinitionExtension(fileName: string): boolean {
+  const ext = path.extname(fileName).toLowerCase();
+  return DEFINITION_EXTENSIONS.has(ext);
+}
+
 function resolveManifestEntryUrl(rawEntryUrl: unknown, appId: string): string {
   const input = asString(rawEntryUrl);
   if (!input) return `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`;
@@ -56,12 +92,19 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
   const obj = asObject(raw);
   const content = asObject(obj.content);
   const manifest = asObject(obj.manifest);
+  const i18n = asObject(obj.i18n ?? manifest.i18n);
+  const template = asObject(obj.template ?? manifest.template);
   const contract = asObject(obj.contract ?? manifest.contract);
   const media = asObject(obj.media ?? manifest.media);
   const integration = asObject(obj.integration ?? manifest.integration);
+  const contractTemplate = asObject(obj.contract_template ?? template.contract_template ?? manifest.contract_template);
+  const frontendTemplate = asObject(obj.frontend_template ?? template.frontend_template ?? manifest.frontend_template);
 
   const appId = asString(obj.app_id) || `miniapp-${slug}`;
   const name = asString(obj.name) || titleCase(slug);
+  const nameZh = asOptionalString(obj.name_zh ?? i18n.name_zh ?? manifest.name_zh);
+  const descriptionZh = asOptionalString(obj.description_zh ?? i18n.description_zh ?? manifest.description_zh);
+  const templateType = asOptionalString(obj.template_type ?? template.template_type ?? manifest.template_type);
   const entryUrl = resolveManifestEntryUrl(obj.entry_url, appId);
   const contractHash = asString(obj.contract_hash ?? contract.contract_hash ?? manifest.contract_hash);
   const templateId = asString(obj.template_id ?? contract.template_id ?? manifest.template_id);
@@ -90,10 +133,36 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     stats_display: statsDisplay,
   };
 
+  const normalizedTemplate = {
+    ...asObject(manifest.template),
+    ...template,
+    template_type: templateType,
+    contract_template: {
+      ...asObject(asObject(manifest.template).contract_template),
+      ...asObject(manifest.contract_template),
+      ...contractTemplate,
+    },
+    frontend_template: {
+      ...asObject(asObject(manifest.template).frontend_template),
+      ...asObject(manifest.frontend_template),
+      ...frontendTemplate,
+    },
+  };
+
+  const normalizedI18n = {
+    ...asObject(manifest.i18n),
+    ...i18n,
+    name_zh: nameZh,
+    description_zh: descriptionZh,
+  };
+
   return {
     ...obj,
     app_id: appId,
     name,
+    name_zh: nameZh,
+    description_zh: descriptionZh,
+    template_type: templateType,
     entry_url: entryUrl,
     description: obj.description ?? content.description ?? manifest.description,
     icon,
@@ -106,6 +175,10 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     init_params: initParams,
     news_integration: newsIntegration,
     stats_display: statsDisplay,
+    contract_template: normalizedTemplate.contract_template,
+    frontend_template: normalizedTemplate.frontend_template,
+    i18n: normalizedI18n,
+    template: normalizedTemplate,
     contract: normalizedContract,
     media: {
       ...media,
@@ -120,11 +193,18 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
       template_id: templateId || manifest.template_id,
       init_params: initParams ?? manifest.init_params,
       contract: normalizedContract,
+      contract_template: normalizedTemplate.contract_template,
+      frontend_template: normalizedTemplate.frontend_template,
+      template: normalizedTemplate,
+      template_type: templateType ?? manifest.template_type,
       media: {
         ...asObject(manifest.media),
         ...media,
       },
       integration: normalizedIntegration,
+      i18n: normalizedI18n,
+      name_zh: nameZh ?? manifest.name_zh,
+      description_zh: descriptionZh ?? manifest.description_zh,
       news_integration: newsIntegration ?? manifest.news_integration,
       stats_display: statsDisplay ?? manifest.stats_display,
       logo_url: logoUrl ?? manifest.logo_url,
@@ -160,17 +240,20 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
 
   try {
     const entries = await fs.readdir(definitionsDir, { withFileTypes: true });
-    const jsonFiles = entries
-      .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".json"))
+    const definitionFiles = entries
+      .filter((entry) => entry.isFile() && fileHasSupportedDefinitionExtension(entry.name))
       .map((entry) => entry.name)
       .sort();
 
-    for (const fileName of jsonFiles) {
+    for (const fileName of definitionFiles) {
       const fullPath = path.join(definitionsDir, fileName);
-      const slug = getSlugFromFilename(fileName);
+      const slug = getSlugFromFilename(path.parse(fileName).name);
       try {
         const content = await fs.readFile(fullPath, "utf-8");
-        const parsed = JSON.parse(content) as unknown;
+        const parsed = parseMiniAppDefinitionContent(content);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("definition payload must be a JSON/YAML object");
+        }
         const normalized = normalizeRawDefinition(parsed, slug);
         definitions.push({
           fileName,
