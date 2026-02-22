@@ -1,12 +1,14 @@
 # SDK Assets (Export Target)
 
-This folder is an **export target** for the canonical MiniApp bridge script:
+This folder stores static SDK-side helper assets.
+
+Legacy source note:
 
 - Source: `miniapps/_shared/miniapp-bridge.js`
-- Exported to: `platform/host-app/public/sdk/miniapp-bridge.js`
+- Target: `platform/host-app/public/sdk/miniapp-bridge.js`
 
-To refresh the copy, run:
+To refresh manually, copy the file directly:
 
 ```bash
-./scripts/export_host_miniapps.sh
+cp miniapps/_shared/miniapp-bridge.js platform/host-app/public/sdk/miniapp-bridge.js
 ```

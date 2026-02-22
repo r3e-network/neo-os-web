@@ -1,30 +1,11 @@
-# MiniApps Build Output
+# Legacy Static MiniApps
 
-This folder is the **build output target** for UniApp MiniApps.
+This directory previously held exported static MiniApp bundles.
 
-## Source Location
+Current runtime policy is manifest-driven:
 
-The canonical MiniApp source code is located at:
+- MiniApps are described by JSON/YAML/Markdown specs
+- Host renders from manifest schema/template metadata
+- Built-ins use `mf://manifest?app=<app_id>` entry URLs
 
-```
-miniapps-uniapp/apps/
-```
-
-Each app contains:
-
-- `src/pages/` - Vue components
-- `src/static/` - Static assets (icon.svg, banner.svg)
-- `src/manifest.json` - App configuration
-
-## Build Process
-
-To build and export MiniApps to this directory:
-
-```bash
-cd miniapps-uniapp
-pnpm build:all
-```
-
-## Do Not Edit
-
-Files in this directory are auto-generated. Edit the source in `miniapps-uniapp/apps/` instead.
+Do not add new static bundles here.

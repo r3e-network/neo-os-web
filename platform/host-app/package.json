@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "bash ../../scripts/export_host_miniapps.sh",
     "dev": "next dev",
-    "prebuild": "bash ../../scripts/export_host_miniapps.sh",
     "build": "next build",
     "start": "next start",
     "test": "jest",

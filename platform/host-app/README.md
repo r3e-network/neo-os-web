@@ -107,35 +107,29 @@ NEXT_PUBLIC_MF_REMOTES=builtin@http://localhost:3001 npm run dev
 
 Then open:
 
-- `http://localhost:3000/?entry_url=mf://builtin?app=builtin-price-ticker`
+- `http://localhost:3000/?entry_url=mf://manifest?app=builtin-price-ticker`
 
-### iframe Runs (Legacy/Static Fallback)
+### Manifest Runtime (Recommended)
 
-Static MiniApps are built from uni-app source:
+MiniApps are configuration-driven and rendered by host runtime from manifest specs:
 
-- `miniapps-uniapp/apps/*`
+- JSON/YAML/Markdown frontend spec
+- no Vue/uniapp bundle required
 
-Build and export with:
+Open a manifest app via:
 
-```bash
-cd miniapps-uniapp && pnpm build
-```
-
-Then open (only if you are testing the static iframe build):
-
-- `http://localhost:3000/?entry_url=/miniapps/lottery/index.html`
+- `http://localhost:3000/launch/<app_id>`
+- or `entry_url=mf://manifest?app=<app_id>`
 
 ## Module Federation (Built-ins)
 
-The built-in remote lives in `platform/builtin-app` and exposes `./App` as `builtin/App`.
-Built-in manifests use:
+Built-in manifests use the manifest runtime scheme:
 
 ```
-mf://builtin?app=<app_id>
+mf://manifest?app=<app_id>
 ```
 
-The host resolves the remote URL using `NEXT_PUBLIC_MF_REMOTES` and loads the
-federated module without an iframe sandbox.
+The host resolves JSON/YAML/Markdown frontend specs and renders UI directly.
 
 ## Wallet Binding + Intents
 
