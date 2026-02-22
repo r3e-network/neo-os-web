@@ -3,13 +3,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
-SRC_DIR="$ROOT_DIR/miniapps-uniapp/apps"
+SRC_DIR="$ROOT_DIR/miniapps"
 OUT_DIR="$ROOT_DIR/platform/host-app/public/miniapp-definitions"
 FORCE="${1:-}"
-ENTRY_BASE_URL="${MINIAPP_SCAFFOLD_ENTRY_BASE_URL:-https://miniapps.example.com}"
 
 if [ ! -d "$SRC_DIR" ]; then
-  echo "miniapps-uniapp apps directory not found: $SRC_DIR"
+  echo "miniapps directory not found: $SRC_DIR"
   exit 1
 fi
 
@@ -35,11 +34,17 @@ find_asset() {
 count=0
 for app_dir in "$SRC_DIR"/*; do
   [ -d "$app_dir" ] || continue
+  [ -d "$app_dir/public" ] || continue
+  case "$(basename "$app_dir")" in
+    templates|shared|_shared)
+      continue
+      ;;
+  esac
 
   slug="$(basename "$app_dir")"
   app_id="miniapp-$slug"
   name="$(title_case "$slug")"
-  entry_url="${ENTRY_BASE_URL%/}/$slug/"
+  entry_url="mf://manifest?app=$app_id"
   output="$OUT_DIR/$slug.json"
 
   if [ -f "$output" ] && [ "$FORCE" != "--force" ]; then
