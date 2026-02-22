@@ -7,9 +7,18 @@ function asObject(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+const MANIFEST_ENTRY_PREFIX = "mf://manifest?app=";
+
 function toString(value: unknown, fallback = ""): string {
   if (value === undefined || value === null) return fallback;
   return String(value);
+}
+
+function normalizeEntryUrl(raw: unknown, appId: string): string {
+  const input = toString(raw).trim();
+  if (!input) return `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`;
+  if (input.startsWith("mf://manifest?")) return input;
+  return `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`;
 }
 
 export function normalizeCategory(value: unknown): MiniAppCategory {
@@ -116,7 +125,10 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   const appId = toString(obj.app_id ?? obj.appid ?? fallback?.app_id).trim();
   if (!appId) return null;
 
-  const entryUrl = toString(obj.entry_url ?? manifestCandidate.entry_url ?? fallback?.entry_url).trim();
+  const entryUrl = normalizeEntryUrl(
+    obj.entry_url ?? manifestCandidate.entry_url ?? fallback?.entry_url,
+    appId,
+  );
   if (!entryUrl) return null;
 
   const name = toString(obj.name ?? manifestCandidate.name ?? fallback?.name ?? appId).trim() || appId;

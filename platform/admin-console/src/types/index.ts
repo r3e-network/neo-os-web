@@ -31,6 +31,8 @@ export interface MiniApp {
   status: "active" | "disabled" | "pending";
   created_at: string;
   updated_at: string;
+  name?: string;
+  category?: string | null;
 }
 
 export interface User {

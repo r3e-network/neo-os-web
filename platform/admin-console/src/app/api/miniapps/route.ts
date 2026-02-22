@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { SERVICE_ROLE_KEY, SUPABASE_URL } from "@/lib/constants";
+import { createProxyHeaders, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const ALLOWED_STATUS = new Set(["active", "pending", "disabled"]);
@@ -15,8 +15,9 @@ export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    return jsonError("Supabase service role not configured");
+  const hostAppBaseURL = resolveHostAppBaseURL();
+  if (!hostAppBaseURL) {
+    return jsonError("MINIAPP_HOST_APP_BASE_URL is not configured", 500);
   }
 
   const url = new URL(req.url);
@@ -32,24 +33,14 @@ export async function GET(req: Request) {
     return jsonError("Invalid status filter", 400);
   }
 
-  const params = new URLSearchParams();
-  params.set("select", "*");
-  params.set("order", "created_at.desc");
-  params.set("limit", "200");
-
-  if (appId) params.set("app_id", `eq.${appId}`);
-  if (status) params.set("status", `eq.${status}`);
-  if (search) {
-    const escaped = search.replace(/[%_\\,().]/g, "\\$&");
-    params.set("or", `app_id.ilike.%${escaped}%,name.ilike.%${escaped}%`);
-  }
-
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/miniapps?${params.toString()}`, {
-      headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      },
+    const upstream = new URL("/api/miniapps/catalog", hostAppBaseURL);
+    if (status) upstream.searchParams.set("status", status);
+    if (appId) upstream.searchParams.set("app_id", appId);
+    if (search) upstream.searchParams.set("search", search);
+
+    const response = await fetch(upstream.toString(), {
+      headers: createProxyHeaders(req),
       signal: AbortSignal.timeout(15000),
     });
 
@@ -57,9 +48,10 @@ export async function GET(req: Request) {
       return jsonError("Failed to fetch miniapps", response.status);
     }
 
-    const data = await response.json();
-    return NextResponse.json(Array.isArray(data) ? data : []);
+    const data = await response.json().catch(() => ({}));
+    const apps = Array.isArray(data?.apps) ? data.apps : [];
+    return NextResponse.json(apps);
   } catch {
-    return jsonError("Failed to connect to database", 502);
+    return jsonError("Failed to reach host-app catalog endpoint", 502);
   }
 }

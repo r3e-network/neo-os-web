@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "backfill:miniapp-versions": "node scripts/backfill-miniapp-versions.js",
+    "verify:publish-audit-chain": "node scripts/verify-publish-audit-chain.js",
+    "validate:miniapp-env": "node scripts/validate-miniapp-env.js"
+  },
   "devDependencies": {
     "dotenv": "^17.2.3",
     "pg": "^8.16.3"

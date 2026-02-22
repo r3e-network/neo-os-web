@@ -60,7 +60,7 @@ export function getMiniAppPrimaryAssets(appID?: string | null, entryURL?: string
   };
 }
 
-function getMiniAppAssetCandidates(appID?: string | null, entryURL?: string | null, asset: AssetKind): string[] {
+function getMiniAppAssetCandidates(asset: AssetKind, appID?: string | null, entryURL?: string | null): string[] {
   const slug = resolveMiniAppSlug(appID, entryURL);
   if (!slug) return [];
 
@@ -85,7 +85,7 @@ export function buildMiniAppLogoSources(options: MediaOptions): string[] {
   return unique([
     options.logoURL,
     primary.logoURL,
-    ...getMiniAppAssetCandidates(options.appID, options.entryURL, "logo"),
+    ...getMiniAppAssetCandidates("logo", options.appID, options.entryURL),
   ]);
 }
 
@@ -94,7 +94,7 @@ export function buildMiniAppBannerSources(options: MediaOptions): string[] {
   return unique([
     options.bannerURL,
     primary.bannerURL,
-    ...getMiniAppAssetCandidates(options.appID, options.entryURL, "banner"),
+    ...getMiniAppAssetCandidates("banner", options.appID, options.entryURL),
   ]);
 }
 

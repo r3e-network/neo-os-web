@@ -25,17 +25,31 @@
   }
 
   body {
-    @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-white antialiased;
+    @apply bg-[#FCFDFF] dark:bg-[#05050A] text-gray-900 dark:text-white antialiased transition-colors duration-300;
   }
 }
 
 @layer components {
+  .glass-panel {
+    @apply bg-white/70 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-white/20 dark:border-white/5 shadow-xl;
+  }
+
   .glass-card {
-    @apply bg-white dark:bg-white/[0.05] backdrop-blur-xl border border-gray-200 dark:border-gray-700 hover:border-neo/30 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-500 shadow-md dark:shadow-2xl;
+    @apply bg-white/60 dark:bg-[#0C0D14]/50 backdrop-blur-xl border border-gray-200/50 dark:border-white/5 hover:border-neo/40 hover:bg-white/80 dark:hover:bg-[#12131C]/80 transition-all duration-500 shadow-lg hover:shadow-neo/10 dark:shadow-2xl;
   }
 
   .neo-gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#00E599] to-[#7000FF];
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#00E599] via-[#00D4FF] to-[#7000FF];
+  }
+  
+  .neo-glow {
+    @apply relative after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[0_0_20px_rgba(0,229,153,0.3)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 after:z-[-1];
+  }
+
+  .animated-gradient-bg {
+    background: linear-gradient(-45deg, #00E599, #00D4FF, #7000FF, #FF00E5);
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
   }
 }
 
@@ -50,6 +64,12 @@
 
 ::-webkit-scrollbar-thumb {
   @apply bg-gray-300 dark:bg-white/10 rounded-full hover:bg-gray-400 dark:hover:bg-white/20 transition-colors;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

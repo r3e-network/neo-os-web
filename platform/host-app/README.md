@@ -28,6 +28,25 @@ Current capabilities:
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL for `connect-src` allowlist.
 - `EDGE_RPC_ALLOWLIST`: comma-separated Edge function names that `/api/rpc/*` may call (`*` to allow all).
 
+### MiniApp Approval & Governance
+
+- `MINIAPP_PUBLISH_APPROVAL_REQUIRED=true` enables publish approval gate.
+- `MINIAPP_PUBLISH_REVIEWERS` sets wallet allowlist for approval actions.
+- `MINIAPP_PUBLISH_APPROVAL_SLA_MINUTES` and `MINIAPP_PUBLISH_APPROVAL_ESCALATION_MINUTES` control SLA labels.
+- `MINIAPP_PUBLISH_REMINDER_WEBHOOK_URL` enables reminder notifications for breached/escalated requests.
+- `CRON_SECRET` protects cron endpoints.
+- `HOST_APP_BASE_URL` is required by the publish reminder cron endpoint.
+
+Cron endpoint:
+
+- `GET/POST /api/cron/miniapp-publish-reminders`
+
+Additional references:
+
+- `docs/MINIAPP_VERSIONING_MODEL.md`
+- `docs/MINIAPP_PRODUCTION_CUTOVER_CHECKLIST.md`
+- `docs/MINIAPP_ENV_TEMPLATE.md`
+
 ## `/api/rpc/*` Proxy (Blueprint Path)
 
 The architectural blueprint uses the prefix `/api/rpc/*` for gateway endpoints.

@@ -188,6 +188,8 @@ platform_contracts=(
     "PriceFeed:PriceFeed"
     "RandomnessLog:RandomnessLog"
     "AppRegistry:AppRegistry"
+    "MiniAppFactory:MiniAppFactory"
+    "MiniAppFactoryV2:MiniAppFactoryV2"
     "AutomationAnchor:AutomationAnchor"
     "ServiceLayerGateway:ServiceLayerGateway"
     "PauseRegistry:PauseRegistry"

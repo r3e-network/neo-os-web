@@ -4,7 +4,10 @@ import { requireMiniAppAdmin } from "@/lib/admin-auth";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { normalizeMiniAppAdminPayload } from "@/lib/miniapp-admin";
+import { createPublishRequest, getPendingPublishRequest, isApprovalRequired } from "@/lib/miniapp-publish-approval";
 import { coerceMiniAppInfo } from "@/lib/miniapp";
+import { appendPublishApprovalAuditEvent } from "@/lib/publish-approval-audit";
+import { recordMiniAppVersion } from "@/lib/miniapp-versioning";
 import { strictLimit } from "@/lib/rate-limit";
 import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
 
@@ -91,6 +94,78 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.badRequest(res, normalized.error);
   }
 
+  const approvalRequired = isApprovalRequired();
+  const requestedPublish = normalized.action === "publish";
+  const forcePublish = asTrimmedString(bodyObj.publish_override).toLowerCase() === "true";
+
+  if (approvalRequired && requestedPublish && !forcePublish) {
+    const pending = await getPendingPublishRequest(supabase, normalized.row.app_id);
+    if (pending) {
+      return apiError.badRequest(res, `Publish request already pending for ${normalized.row.app_id}`);
+    }
+
+    let latestVersion:
+      | {
+          id: string;
+          version_no: number;
+        }
+      | null = null;
+    try {
+      const recorded = await recordMiniAppVersion(supabase, {
+        row: {
+          ...normalized.row,
+          status: "pending",
+        },
+        action: "save_draft",
+        actor: admin.kind === "wallet" ? admin.value : "api_key",
+        note: "publish request draft snapshot",
+      });
+      latestVersion = {
+        id: recorded.version.id,
+        version_no: recorded.version.version_no,
+      };
+    } catch (error) {
+      logger.error("miniapp publish request version write failed:", error instanceof Error ? error.message : "unknown error");
+      return apiError.internal(res, "Failed to save publish request snapshot");
+    }
+
+    try {
+      const request = await createPublishRequest(supabase, {
+        appId: normalized.row.app_id,
+        requestedVersionId: latestVersion?.id || null,
+        requestedVersionNo: latestVersion?.version_no || null,
+        requestedManifestHash: normalized.row.manifest_hash,
+        requestedBy: admin.kind === "wallet" ? admin.value : "api_key",
+        requestNote: asTrimmedString(bodyObj.publish_note) || null,
+      });
+
+      await appendPublishApprovalAuditEvent(supabase, {
+        request_id: request.id,
+        app_id: request.app_id,
+        actor: admin.kind === "wallet" ? admin.value : "api_key",
+        action: "request_created",
+        status: request.status,
+        payload: {
+          requested_version_id: request.requested_version_id,
+          requested_version_no: request.requested_version_no,
+          requested_manifest_hash: request.requested_manifest_hash,
+          request_note: request.request_note,
+        },
+      });
+
+      return res.status(202).json({
+        success: true,
+        action: "publish_requested",
+        blueprint: normalized.blueprint,
+        approval_required: true,
+        request,
+      });
+    } catch (error) {
+      logger.error("miniapp publish request creation failed:", error instanceof Error ? error.message : "unknown error");
+      return apiError.internal(res, "Failed to create publish request");
+    }
+  }
+
   const { data: upserted, error: upsertError } = await supabase
     .from("miniapps")
     .upsert(normalized.row, { onConflict: "app_id" })
@@ -107,11 +182,40 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.internal(res, "Miniapp saved but response normalization failed");
   }
 
+  let versionInfo:
+    | {
+        id: string;
+        app_id: string;
+        version_no: number;
+        release_channel: "draft" | "published";
+        source_action: "save_draft" | "publish" | "disable" | "rollback";
+      }
+    | null = null;
+
+  try {
+    const version = await recordMiniAppVersion(supabase, {
+      row: normalized.row,
+      action: normalized.action,
+      actor: admin.kind === "wallet" ? admin.value : "api_key",
+    });
+    versionInfo = {
+      id: version.version.id,
+      app_id: version.version.app_id,
+      version_no: version.version.version_no,
+      release_channel: version.version.release_channel,
+      source_action: version.version.source_action,
+    };
+  } catch (versionError) {
+    logger.error("miniapp version write failed:", versionError instanceof Error ? versionError.message : "unknown error");
+    return apiError.internal(res, "Miniapp saved but failed to write version snapshot");
+  }
+
   res.setHeader("Cache-Control", "no-store, private");
   return res.status(existing ? 200 : 201).json({
     success: true,
     action: normalized.action,
     blueprint: normalized.blueprint,
+    version: versionInfo,
     app,
   });
 }

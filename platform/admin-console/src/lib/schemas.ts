@@ -58,6 +58,60 @@ export const contentSchema = z.object({
   tags: z.array(z.string()).default([]),
 }).default({});
 
+// Blueprint Layout Types
+export const blueprintLayoutSchema = z.enum([
+  "default",
+  "trading",
+  "voting",
+  "gaming",
+  "info",
+]);
+
+export const heroConfigSchema = z.object({
+  eyebrow: z.string().optional(),
+  title: z.string().optional(),
+  subtitle: z.string().optional(),
+  disclaimer: z.string().optional(),
+  image: z.string().optional(),
+}).optional();
+
+export const operationPanelConfigSchema = z.object({
+  title: z.string().optional(),
+  subtitle: z.string().optional(),
+  cta_label: z.string().optional(),
+  position: z.enum(["right", "bottom"]).optional(),
+  collapsible: z.boolean().optional(),
+}).optional();
+
+export const statsDisplayConfigSchema = z.object({
+  items: z.array(z.object({
+    key: z.string(),
+    label: z.string(),
+    format: z.enum(["number", "currency", "percent", "date", "duration"]).optional(),
+  })),
+  refresh_interval: z.number().optional(),
+}).optional();
+
+export const blueprintConfigSchema = z.object({
+  layout: blueprintLayoutSchema.default("default"),
+  hero: heroConfigSchema,
+  tabs: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    type: z.enum(["content", "forum", "reviews", "news", "custom"]),
+  })).optional(),
+  operation_panel: operationPanelConfigSchema,
+  stats_display: statsDisplayConfigSchema,
+  left_panel: z.object({
+    width: z.string().optional(),
+    components: z.array(z.string()).optional(),
+  }).optional(),
+  right_panel: z.object({
+    width: z.string().optional(),
+    sticky: z.boolean().optional(),
+  }).optional(),
+});
+
 export const miniAppConfigSchema = z.object({
   app_id: z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*$/, "lowercase alphanumeric with dots/hyphens"),
   developer_user_id: z.string().uuid().optional(),
@@ -80,8 +134,9 @@ export const miniAppConfigSchema = z.object({
   operations: z.array(operationEntrySchema).default([]),
   components: z.array(componentEntrySchema).default([]),
   content: contentSchema,
-  blueprint: z.string().optional(),
-  detail_template: z.unknown().optional(),
+  blueprint: blueprintLayoutSchema.optional(),
+  detail_template: blueprintConfigSchema.optional(),
+  frontend_spec: z.unknown().optional(),
 });
 
 export type MiniAppConfig = z.infer<typeof miniAppConfigSchema>;

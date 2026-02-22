@@ -1,8 +1,6 @@
 module github.com/r3e-network/neo-miniapp-platform
 
-go 1.24.9
-
-toolchain go1.24.11
+go 1.24.13
 
 require (
 	github.com/dop251/goja v0.0.0-20260216154549-8b74ce4618c5
