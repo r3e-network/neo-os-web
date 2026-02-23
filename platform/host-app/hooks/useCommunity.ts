@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import type { SocialComment, SocialRating, ProofOfInteraction, VoteType } from "../components/types";
+import { fetchJSON, fetchOK, toApiError, type ApiError } from "@/lib/fetch-client";
 
 const API_BASE = (process.env.NEXT_PUBLIC_SUPABASE_URL || "") + "/functions/v1";
 
@@ -8,10 +9,7 @@ interface UseCommunityOptions {
   token?: string;
 }
 
-interface CommunityError {
-  message: string;
-  code?: string;
-}
+type CommunityError = ApiError;
 
 export function useCommunity({ appId, token }: UseCommunityOptions) {
   const [comments, setComments] = useState<SocialComment[]>([]);
@@ -28,30 +26,16 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
     return h;
   }, [token]);
 
-  const handleApiError = async (res: Response): Promise<CommunityError> => {
-    try {
-      const data = await res.json();
-      return { message: data.error || "Request failed", code: data.code };
-    } catch {
-      return { message: `HTTP ${res.status}: ${res.statusText}`, code: "HTTP_ERROR" };
-    }
-  };
-
   // Fetch comments with error handling
   const fetchComments = useCallback(
     async (offset = 0) => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(
+        const data = await fetchJSON<{ comments?: SocialComment[]; has_more?: boolean }>(
           `${API_BASE}/social-comments?app_id=${encodeURIComponent(appId)}&limit=20&offset=${offset}&parent_id=null`,
-          { headers, signal: AbortSignal.timeout(30000) },
+          { headers },
         );
-        if (!res.ok) {
-          setError(await handleApiError(res));
-          return;
-        }
-        const data = await res.json();
         if (offset === 0) {
           setComments(data.comments || []);
         } else {
@@ -59,7 +43,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
         }
         setHasMore(data.has_more || false);
       } catch (err) {
-        setError({ message: err instanceof Error ? err.message : "Network error", code: "NETWORK_ERROR" });
+        setError(toApiError(err));
       } finally {
         setLoading(false);
       }
@@ -71,15 +55,10 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
   const fetchRating = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/social-ratings?app_id=${encodeURIComponent(appId)}`, { headers, signal: AbortSignal.timeout(30000) });
-      if (!res.ok) {
-        setError(await handleApiError(res));
-        return;
-      }
-      const data = await res.json();
+      const data = await fetchJSON<SocialRating>(`${API_BASE}/social-ratings?app_id=${encodeURIComponent(appId)}`, { headers });
       setRating(data);
     } catch (err) {
-      setError({ message: err instanceof Error ? err.message : "Network error", code: "NETWORK_ERROR" });
+      setError(toApiError(err));
     }
   }, [appId, headers]);
 
@@ -88,20 +67,14 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
     if (!token) return;
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/social-proof-verify`, {
+      const data = await fetchJSON<ProofOfInteraction>(`${API_BASE}/social-proof-verify`, {
         method: "POST",
         headers,
         body: JSON.stringify({ app_id: appId }),
-        signal: AbortSignal.timeout(30000),
       });
-      if (!res.ok) {
-        setError(await handleApiError(res));
-        return;
-      }
-      const data = await res.json();
       setProof(data);
     } catch (err) {
-      setError({ message: err instanceof Error ? err.message : "Network error", code: "NETWORK_ERROR" });
+      setError(toApiError(err));
     }
   }, [appId, token, headers]);
 
@@ -115,23 +88,18 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       setSubmitting(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/social-comment-create`, {
+        const data = await fetchJSON<{ comment?: SocialComment }>(`${API_BASE}/social-comment-create`, {
           method: "POST",
           headers,
           body: JSON.stringify({ app_id: appId, content, parent_id: parentId }),
-          signal: AbortSignal.timeout(30000),
         });
-        if (!res.ok) {
-          setError(await handleApiError(res));
-          return false;
-        }
-        const data = await res.json();
-        if (!parentId) {
-          setComments((prev) => [data.comment, ...prev]);
+        const createdComment = data.comment;
+        if (!parentId && createdComment) {
+          setComments((prev) => [createdComment, ...prev]);
         }
         return true;
       } catch (err) {
-        setError({ message: err instanceof Error ? err.message : "Network error", code: "NETWORK_ERROR" });
+        setError(toApiError(err));
         return false;
       } finally {
         setSubmitting(false);
@@ -149,23 +117,17 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       }
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/social-comment-vote`, {
+        const data = await fetchJSON<{ upvotes: number; downvotes: number }>(`${API_BASE}/social-comment-vote`, {
           method: "POST",
           headers,
           body: JSON.stringify({ comment_id: commentId, vote_type: voteType }),
-          signal: AbortSignal.timeout(30000),
         });
-        if (!res.ok) {
-          setError(await handleApiError(res));
-          return false;
-        }
-        const data = await res.json();
         setComments((prev) =>
           prev.map((c) => (c.id === commentId ? { ...c, upvotes: data.upvotes, downvotes: data.downvotes } : c)),
         );
         return true;
       } catch (err) {
-        setError({ message: err instanceof Error ? err.message : "Network error", code: "NETWORK_ERROR" });
+        setError(toApiError(err));
         return false;
       }
     },
@@ -182,20 +144,15 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       setSubmitting(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/social-rating-submit`, {
+        await fetchOK(`${API_BASE}/social-rating-submit`, {
           method: "POST",
           headers,
           body: JSON.stringify({ app_id: appId, rating_value: value, review_text: reviewText }),
-          signal: AbortSignal.timeout(30000),
         });
-        if (!res.ok) {
-          setError(await handleApiError(res));
-          return false;
-        }
         await fetchRating();
         return true;
       } catch (err) {
-        setError({ message: err instanceof Error ? err.message : "Network error", code: "NETWORK_ERROR" });
+        setError(toApiError(err));
         return false;
       } finally {
         setSubmitting(false);
@@ -209,18 +166,13 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
     async (parentId: string): Promise<SocialComment[]> => {
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/social-comments?app_id=${encodeURIComponent(appId)}&parent_id=${encodeURIComponent(parentId)}&limit=50`, {
-          headers,
-          signal: AbortSignal.timeout(30000),
-        });
-        if (!res.ok) {
-          setError(await handleApiError(res));
-          return [];
-        }
-        const data = await res.json();
+        const data = await fetchJSON<{ comments?: SocialComment[] }>(
+          `${API_BASE}/social-comments?app_id=${encodeURIComponent(appId)}&parent_id=${encodeURIComponent(parentId)}&limit=50`,
+          { headers },
+        );
         return data.comments || [];
       } catch (err) {
-        setError({ message: err instanceof Error ? err.message : "Network error", code: "NETWORK_ERROR" });
+        setError(toApiError(err));
         return [];
       }
     },
@@ -236,20 +188,15 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       }
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/social-comment-delete`, {
+        await fetchOK(`${API_BASE}/social-comment-delete`, {
           method: "POST",
           headers,
           body: JSON.stringify({ comment_id: commentId }),
-          signal: AbortSignal.timeout(30000),
         });
-        if (!res.ok) {
-          setError(await handleApiError(res));
-          return false;
-        }
         setComments((prev) => prev.filter((c) => c.id !== commentId));
         return true;
       } catch (err) {
-        setError({ message: err instanceof Error ? err.message : "Network error", code: "NETWORK_ERROR" });
+        setError(toApiError(err));
         return false;
       }
     },
