@@ -657,6 +657,9 @@ func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 		"builtin-fog-chess":       s.miniAppSimulator.SimulateFogChess,
 		"builtin-garden-of-neo":   s.miniAppSimulator.SimulateGardenOfNeo,
 		"builtin-dev-tipping":     s.miniAppSimulator.SimulateDevTipping,
+		"builtin-airdrop":         s.miniAppSimulator.SimulateAirdrop,
+		"builtin-dao-voting":      s.miniAppSimulator.SimulateDaoVoting,
+		"builtin-gacha":           s.miniAppSimulator.SimulateGacha,
 	}
 
 	apps := normalizeMiniAppIDs(s.miniApps)
