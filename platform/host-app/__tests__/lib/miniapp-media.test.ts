@@ -56,6 +56,34 @@ describe("miniapp-media helpers", () => {
         "/miniapps/lottery/public/logo.svg",
       ]);
     });
+
+    it("prioritizes best matching logo variant by theme/locale", () => {
+      expect(
+        buildMiniAppLogoSources({
+          appID: "miniapp-lottery",
+          entryURL: "/miniapps/lottery/",
+          manifest: {
+            media: {
+              logo_variants: [
+                { url: "https://cdn.example.com/logo-any.png", theme: "any" },
+                { url: "https://cdn.example.com/logo-zh-dark.png", theme: "dark", locale: "zh-CN" },
+                { url: "https://cdn.example.com/logo-en-dark.png", theme: "dark", locale: "en" },
+              ],
+            },
+          },
+          preferences: {
+            theme: "dark",
+            locale: "zh-CN",
+          },
+        }),
+      ).toEqual(
+        expect.arrayContaining([
+          "https://cdn.example.com/logo-zh-dark.png",
+          "https://cdn.example.com/logo-en-dark.png",
+          "https://cdn.example.com/logo-any.png",
+        ]),
+      );
+    });
   });
 
   describe("buildMiniAppBannerSources", () => {
@@ -79,6 +107,26 @@ describe("miniapp-media helpers", () => {
         "/miniapps/lottery/public/banner.jpeg",
         "/miniapps/lottery/public/banner.svg",
       ]);
+    });
+
+    it("prioritizes best matching banner variant by theme", () => {
+      const result = buildMiniAppBannerSources({
+        appID: "miniapp-lottery",
+        entryURL: "/miniapps/lottery/",
+        manifest: {
+          media: {
+            banner_variants: [
+              { url: "https://cdn.example.com/banner-light.png", theme: "light" },
+              { url: "https://cdn.example.com/banner-dark.png", theme: "dark" },
+            ],
+          },
+        },
+        preferences: {
+          theme: "dark",
+        },
+      });
+
+      expect(result[0]).toBe("https://cdn.example.com/banner-dark.png");
     });
   });
 

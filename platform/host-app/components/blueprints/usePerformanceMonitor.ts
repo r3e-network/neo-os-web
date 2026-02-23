@@ -126,7 +126,7 @@ export function measureAsync<T extends (...args: unknown[]) => Promise<unknown>>
         console.log(`[Performance] ${label}: ${duration.toFixed(2)}ms`);
       }
     }) as ReturnType<T>;
-  }) as T;
+  }) as unknown as T;
 }
 
 /**

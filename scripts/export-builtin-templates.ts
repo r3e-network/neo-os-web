@@ -176,7 +176,7 @@ const GAS_SPONSOR_TEMPLATE = {
         blocks: [
           {
             type: "markdown",
-            content": "View active sponsorship configurations and usage statistics."
+            content: "View active sponsorship configurations and usage statistics."
           }
         ]
       },
@@ -210,7 +210,7 @@ const GAS_SPONSOR_TEMPLATE = {
         {
           name: "Configure",
           method: "configure",
-          description": "Set sponsorship rules",
+          description: "Set sponsorship rules",
           button_style: "secondary",
           params: [
             {
@@ -232,7 +232,7 @@ const GAS_SPONSOR_TEMPLATE = {
         {
           name: "Withdraw",
           method: "withdraw",
-          description": "Withdraw from sponsorship pool",
+          description: "Withdraw from sponsorship pool",
           button_style: "danger",
           params: [
             {
@@ -248,13 +248,13 @@ const GAS_SPONSOR_TEMPLATE = {
     }
   },
   integration: {
-    news_integration": false,
-    reviews_enabled": true,
-    forum_enabled": false,
-    activity_feed": true,
-    stats_display": ["total_transactions", "total_gas_used"]
+    news_integration: false,
+    reviews_enabled: true,
+    forum_enabled: false,
+    activity_feed: true,
+    stats_display: ["total_transactions", "total_gas_used"]
   },
-  docs_url": "https://docs.neo.org/gas-sponsor"
+  docs_url: "https://docs.neo.org/gas-sponsor"
 };
 
 function main() {

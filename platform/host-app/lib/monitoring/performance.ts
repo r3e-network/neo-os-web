@@ -36,7 +36,7 @@ export interface PerformanceReport {
   url: string;
   webVitals: WebVitals;
   resources: ResourceTiming[];
-  navigationTiming?: NavigationTimingData;
+  navigationTiming?: Record<string, number>;
   timestamp: number;
   userAgent: string;
 }

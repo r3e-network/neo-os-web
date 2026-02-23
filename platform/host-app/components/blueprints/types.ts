@@ -20,11 +20,12 @@ export type TabConfig = {
 };
 
 export type OperationPanelConfig = {
-  title: string;
+  title?: string;
   subtitle?: string;
   ctaLabel?: string;
   position?: "right" | "bottom";
   collapsible?: boolean;
+  sticky?: boolean;
 };
 
 export type HeroConfig = {

@@ -3,7 +3,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { buildMiniAppBannerSources } from "@/lib/miniapp-media";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { Users, Activity } from "lucide-react";
@@ -17,6 +17,7 @@ export interface MiniAppInfo {
   entry_url?: string;
   logo_url?: string | null;
   banner_url?: string | null;
+  manifest?: Record<string, unknown> | null;
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
   source?: "builtin" | "community" | "verified";
   stats?: {
@@ -52,8 +53,9 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
         appID: app.app_id,
         entryURL: app.entry_url,
         bannerURL: app.banner_url,
+        manifest: app.manifest || null,
       }),
-    [app.app_id, app.banner_url, app.entry_url],
+    [app.app_id, app.banner_url, app.entry_url, app.manifest],
   );
   const [bannerIndex, setBannerIndex] = useState(0);
 
@@ -92,7 +94,7 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
 
         <CardContent className="p-6 pt-5 relative bg-transparent z-20">
           <div className="absolute -top-10 left-6 z-30 p-1.5 bg-white/80 dark:bg-[#12131C]/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 dark:border-white/10 group-hover:-translate-y-2 transition-transform duration-500">
-            <MiniAppLogo appId={app.app_id} category={app.category} entryUrl={app.entry_url} logoUrl={app.logo_url} size="lg" className="rounded-xl" />
+            <MiniAppLogo appId={app.app_id} category={app.category} entryUrl={app.entry_url} logoUrl={app.logo_url} manifest={app.manifest || null} size="lg" className="rounded-xl" />
           </div>
 
           <div className="flex justify-end gap-2 mb-4 h-6">

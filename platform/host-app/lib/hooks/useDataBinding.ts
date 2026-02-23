@@ -129,7 +129,6 @@ async function fetchApiData(source: DataSource, key: string): Promise<unknown> {
   if (!source.endpoint) return null;
 
   const controller = new AbortController();
-  abortControllers.current[key] = controller;
 
   const response = await fetch(source.endpoint, {
     method: source.method || "GET",

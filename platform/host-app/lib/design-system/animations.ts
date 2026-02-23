@@ -286,7 +286,7 @@ export function createTransition(
 ): string {
   const durationValue = typeof duration === "number" ? `${duration}ms` : durations[duration];
   const delayValue = typeof delay === "number" ? `${delay}ms` : durations[delay];
-  const easingValue = typeof easing === "string" ? easings[easing] || easing : easings[easing];
+  const easingValue = typeof easing === "string" ? (easings[easing as keyof typeof easings] || easing) : easings[easing as keyof typeof easings];
   
   const props = Array.isArray(properties) ? properties.join(", ") : properties;
   
@@ -307,7 +307,7 @@ export function createAnimation(
 ): string {
   const durationValue = typeof duration === "number" ? `${duration}ms` : durations[duration];
   const delayValue = typeof delay === "number" ? `${delay}ms` : durations[delay];
-  const easingValue = typeof easing === "string" ? easings[easing] || easing : easings[easing];
+  const easingValue = typeof easing === "string" ? (easings[easing as keyof typeof easings] || easing) : easings[easing as keyof typeof easings];
   
   return `${keyframesName} ${durationValue} ${easingValue} ${delayValue} ${iterations} ${direction} ${fill}`;
 }

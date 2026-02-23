@@ -50,7 +50,7 @@ const paddingStyles: Record<CardPadding, string> = {
 // Rounded Styles
 // ============================================================================
 
-const roundedStyles: Record<CardProps["rounded"], string> = {
+const roundedStyles: Record<NonNullable<CardProps["rounded"]>, string> = {
   none: "rounded-none",
   sm: "rounded-lg",
   md: "rounded-xl",
@@ -243,7 +243,7 @@ export interface CardMediaProps extends React.HTMLAttributes<HTMLDivElement> {
   aspectRatio?: "auto" | "square" | "video" | "wide";
 }
 
-const aspectRatioStyles: Record<CardMediaProps["aspectRatio"], string> = {
+const aspectRatioStyles: Record<NonNullable<CardMediaProps["aspectRatio"]>, string> = {
   auto: "",
   square: "aspect-square",
   video: "aspect-video",
@@ -311,7 +311,7 @@ export interface CardBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: "default" | "success" | "warning" | "error" | "info";
 }
 
-const badgeVariantStyles: Record<CardBadgeProps["variant"], string> = {
+const badgeVariantStyles: Record<NonNullable<CardBadgeProps["variant"]>, string> = {
   default: "bg-gray-700 text-gray-300",
   success: "bg-emerald-500/20 text-emerald-400",
   warning: "bg-amber-500/20 text-amber-400",
@@ -343,7 +343,7 @@ CardBadge.displayName = "CardBadge";
 // Composite Card (Complete Card with all parts)
 // ============================================================================
 
-export interface CompositeCardProps extends CardProps {
+export interface CompositeCardProps extends Omit<CardProps, "title" | "content"> {
   /** Card header content */
   header?: React.ReactNode;
   /** Card title */

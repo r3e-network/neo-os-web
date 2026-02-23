@@ -136,6 +136,13 @@ describe("miniapp-definitions loader", () => {
         "media:",
         "  logo: https://cdn.example.com/yaml/logo.png",
         "  banner: https://cdn.example.com/yaml/banner.png",
+        "  logo_variants:",
+        "    - url: https://cdn.example.com/yaml/logo-dark.png",
+        "      theme: dark",
+        "      locale: zh-CN",
+        "  banner_variants:",
+        "    - url: https://cdn.example.com/yaml/banner-dark.png",
+        "      theme: dark",
         "",
       ].join("\n"),
       "utf-8",
@@ -154,6 +161,14 @@ describe("miniapp-definitions loader", () => {
         name_zh: "YAML 市场",
         description_zh: "YAML 配置示例",
         template_type: "prediction",
+        media: expect.objectContaining({
+          logo_variants: expect.arrayContaining([
+            expect.objectContaining({ url: "https://cdn.example.com/yaml/logo-dark.png" }),
+          ]),
+          banner_variants: expect.arrayContaining([
+            expect.objectContaining({ url: "https://cdn.example.com/yaml/banner-dark.png" }),
+          ]),
+        }),
         template: expect.objectContaining({
           frontend_template: expect.objectContaining({ template_id: "prediction" }),
           contract_template: expect.objectContaining({ template_id: "prediction-binary" }),

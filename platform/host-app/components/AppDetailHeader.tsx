@@ -37,7 +37,7 @@ export function AppDetailHeader({ app, stats, onBack }: Props) {
           className="mb-8 flex items-center gap-2 rounded-xl border border-transparent bg-gray-100/50 dark:bg-white/5 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 transition-all cursor-pointer hover:bg-gray-200/50 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo shadow-sm w-fit group"
         >
           <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
-          Back to Explorer
+          Back to MiniApps
         </button>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-8">

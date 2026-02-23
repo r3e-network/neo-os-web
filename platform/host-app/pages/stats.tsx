@@ -1,10 +1,10 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/badge";
 import { logger } from "@/lib/logger";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 
@@ -97,7 +97,7 @@ export default function EnhancedStatsPage() {
   return (
     <Layout>
       <Head>
-        <title>Statistics - NeoHub</title>
+        <title>Statistics - R3E Network</title>
       </Head>
 
       <div className="mx-auto max-w-7xl px-4 py-12">

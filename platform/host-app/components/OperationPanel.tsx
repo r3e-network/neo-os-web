@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { OperationEntry, OperationParam } from "./types";
+import { cn } from "@/lib/utils";
 
 type Props = {
   operations: OperationEntry[];
@@ -12,23 +13,62 @@ type Props = {
 export function OperationPanel({
   operations,
   onInvoke,
-  title = "Operations",
+  title = "Trade",
   showTitle = true,
   className,
 }: Props) {
+  const [activeTabIdx, setActiveTabIdx] = useState(0);
+
   if (!operations.length) return null;
 
+  const activeOp = operations[activeTabIdx];
+
   return (
-    <div className={className}>
-      {showTitle && <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">{title}</h3>}
-      {operations.map((op) => (
-        <OperationCard key={op.method} op={op} onInvoke={onInvoke} />
-      ))}
+    <div className={cn("bg-white dark:bg-[#1C1D22] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden", className)}>
+      {showTitle && (
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white m-0">{title}</h3>
+        </div>
+      )}
+
+      {/* Segmented Control for Operations */}
+      {operations.length > 1 && (
+        <div className="p-2">
+          <div className="flex p-1 space-x-1 bg-gray-100 dark:bg-black/40 rounded-xl">
+            {operations.map((op, idx) => (
+              <button
+                key={op.name + idx}
+                onClick={() => setActiveTabIdx(idx)}
+                className={cn(
+                  "flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer border-none focus-visible:outline-none",
+                  activeTabIdx === idx
+                    ? getTabActiveColor(op.button_style)
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent"
+                )}
+              >
+                {op.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Active Operation Form */}
+      <div className="p-5">
+        <OperationForm op={activeOp} onInvoke={onInvoke} />
+      </div>
     </div>
   );
 }
 
-function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["onInvoke"] }) {
+function getTabActiveColor(style?: string) {
+  if (style === "danger") return "bg-white dark:bg-gray-800 text-red-500 shadow-sm";
+  if (style === "success") return "bg-white dark:bg-gray-800 text-emerald-500 shadow-sm";
+  if (style === "secondary") return "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm";
+  return "bg-white dark:bg-gray-800 text-neo shadow-sm";
+}
+
+function OperationForm({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["onInvoke"] }) {
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const p of op.params ?? []) {
@@ -63,24 +103,21 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
     }
   };
 
-  const btnClass =
-    op.button_style === "danger"
-      ? "bg-red-500 hover:bg-red-600"
-      : op.button_style === "success"
-        ? "bg-emerald-500 hover:bg-emerald-600"
-        : op.button_style === "secondary"
-          ? "bg-gray-500 hover:bg-gray-600"
-          : "bg-neo hover:bg-neo/90";
+  const getBtnClass = () => {
+    if (op.button_style === "danger") return "bg-red-500 hover:bg-red-600 text-white";
+    if (op.button_style === "success") return "bg-emerald-500 hover:bg-emerald-600 text-white";
+    if (op.button_style === "secondary") return "bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white";
+    return "bg-neo hover:bg-neo/90 text-black";
+  };
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700">
-      <div className="flex justify-between items-center mb-2">
-        <span className="font-semibold text-sm text-gray-900 dark:text-white truncate">{op.name}</span>
-        {op.gas_cost && (
-          <span className="text-xs text-neo bg-neo/10 px-2 py-0.5 rounded-md shrink-0">{op.gas_cost} GAS</span>
-        )}
-      </div>
-      {op.description && <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{op.description}</p>}
+    <div className="flex flex-col space-y-4">
+      {op.description && (
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 leading-relaxed">
+          {op.description}
+        </p>
+      )}
+      
       {(op.params ?? []).map((param) => (
         <ParamInput
           key={param.name}
@@ -90,15 +127,30 @@ function OperationCard({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
         />
       ))}
 
-      {error && <p className="text-xs text-red-600 dark:text-red-400 mb-2 break-words">{error}</p>}
+      {op.gas_cost && (
+        <div className="flex justify-between items-center py-3 border-t border-gray-100 dark:border-gray-800/60 mt-2">
+          <span className="text-sm text-gray-500 dark:text-gray-400">Network Fee</span>
+          <span className="text-sm font-medium text-gray-900 dark:text-white">{op.gas_cost} GAS</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm break-words">
+          {error}
+        </div>
+      )}
 
       <button
         type="button"
-        className={`w-full py-2.5 rounded-lg border-none text-white font-semibold text-sm cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${btnClass}`}
+        className={cn(
+          "w-full py-3.5 mt-2 rounded-xl font-bold text-base cursor-pointer transition-all border-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neo",
+          "disabled:opacity-50 disabled:cursor-not-allowed",
+          getBtnClass()
+        )}
         onClick={handleSubmit}
         disabled={submitting}
       >
-        {submitting ? "Submitting..." : op.name}
+        {submitting ? "Processing..." : op.name}
       </button>
     </div>
   );
@@ -117,57 +169,68 @@ function ParamInput({
 
   if (param.type === "boolean") {
     return (
-      <label className="flex items-center gap-2 text-sm mb-2.5 text-gray-900 dark:text-white">
+      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-neo/50 transition-colors">
         <input
           type="checkbox"
+          className="w-5 h-5 rounded border-gray-300 text-neo focus:ring-neo focus:ring-offset-gray-900"
           checked={value === "true"}
-          onChange={(event) => onChange(String(event.target.checked))}
-          className="accent-neo rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+          onChange={(e) => onChange(e.target.checked ? "true" : "false")}
         />
-        {label}
+        <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
       </label>
     );
   }
 
-  const inputId = `param-${param.name}`;
+  if (param.type === "select") {
+    const options = param.options;
+    if (!options) return null;
 
-  if (param.type === "select" && param.options?.length) {
+    let parsedOptions: Array<{ label: string; value: string }> = [];
+    if (typeof options === "string") {
+      try {
+        parsedOptions = JSON.parse(options);
+      } catch {
+        parsedOptions = (options as string).split(",").map((s) => ({ label: s.trim(), value: s.trim() }));
+      }
+    } else if (Array.isArray(options)) {
+      parsedOptions = options;
+    }
+
     return (
-      <div className="mb-2.5">
-        <label htmlFor={inputId} className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-          {label}
-          {param.required && " *"}
-        </label>
-        <select
-          id={inputId}
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-transparent text-gray-900 dark:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-        >
-          <option value="">Select...</option>
-          {param.options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-col space-y-1.5">
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-400">{label}</label>
+        <div className="relative">
+          <select
+            className="w-full appearance-none bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+          >
+            {parsedOptions.map((opt, i) => (
+              <option key={i} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mb-2.5">
-      <label htmlFor={inputId} className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-        {label}
-        {param.required && " *"}
-      </label>
+    <div className="flex flex-col space-y-1.5">
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-400">{label}</label>
       <input
-        id={inputId}
-        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-transparent text-gray-900 dark:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 placeholder-gray-500 dark:placeholder-gray-400"
-        type={param.type === "integer" || param.type === "amount" ? "number" : "text"}
-        placeholder={param.placeholder || label}
+        type={param.type === "amount" || param.type === "integer" ? "number" : "text"}
+        step={param.type === "amount" ? "any" : "1"}
+        className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+        placeholder={param.placeholder || `Enter ${label.toLowerCase()}`}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(e) => onChange(e.target.value)}
       />
     </div>
   );

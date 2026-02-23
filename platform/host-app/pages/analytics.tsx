@@ -3,7 +3,7 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Activity, Wallet, LayoutGrid, Clock } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import dynamic from "next/dynamic";
@@ -56,7 +56,7 @@ export default function AnalyticsPage() {
     return (
       <Layout>
         <Head>
-          <title>Analytics - NeoHub</title>
+          <title>Analytics - R3E Network</title>
         </Head>
         <div className="mx-auto max-w-4xl px-4 py-12 text-center">
           <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-4">Connect Wallet</h1>
@@ -69,7 +69,7 @@ export default function AnalyticsPage() {
   return (
     <Layout>
       <Head>
-        <title>Analytics - NeoHub</title>
+        <title>Analytics - R3E Network</title>
       </Head>
       <div className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-8">Your Analytics</h1>

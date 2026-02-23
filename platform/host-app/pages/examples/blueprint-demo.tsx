@@ -90,7 +90,7 @@ export default function GenericMiniAppPage({
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
       <Head>
-        <title>{name} - NeoHub</title>
+        <title>{name} - R3E Network</title>
       </Head>
 
       <TradingLayout
@@ -151,8 +151,8 @@ export default function GenericMiniAppPage({
             </div>
           ) : undefined
         }
-        operations={operations}
-        onInvoke={handleInvoke}
+        operations={operations as any}
+        onInvoke={handleInvoke as any}
         operationPanelConfig={{
           title: blueprint.operationPanel?.title || "Operations",
           subtitle: blueprint.operationPanel?.subtitle,

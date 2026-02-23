@@ -13,31 +13,16 @@ import (
 )
 
 var newMiniApps = []string{
-	// Missing MiniApps to deploy
-	"MiniAppAITrader",
-	"MiniAppBridgeGuardian",
-	"MiniAppCoinFlip",
-	"MiniAppDiceGame",
-	"MiniAppFlashLoan",
-	"MiniAppFogChess",
-	"MiniAppGasCircle",
-	"MiniAppGasSpin",
-	"MiniAppGovBooster",
-	"MiniAppGridBot",
-	"MiniAppGuardianPolicy",
-	"MiniAppILGuard",
-	"MiniAppLottery",
-	"MiniAppMegaMillions",
-	"MiniAppMicroPredict",
-	"MiniAppNFTEvolve",
-	"MiniAppPredictionMarket",
-	"MiniAppPricePredict",
-	"MiniAppPriceTicker",
-	"MiniAppRedEnvelope",
-	"MiniAppScratchCard",
-	"MiniAppSecretPoker",
-	"MiniAppSecretVote",
-	"MiniAppTurboOptions",
+        "MiniAppCandidateVote",
+        "MiniAppCoinFlip",
+        "MiniAppDevTipping",
+        "MiniAppDiceGame",
+        "MiniAppGasCircle",
+        "MiniAppLottery",
+        "MiniAppPredictionMarket",
+        "MiniAppRedEnvelope",
+        "MiniAppSecretVote",
+        "MiniAppTemplates",
 }
 
 type DeployResult struct {

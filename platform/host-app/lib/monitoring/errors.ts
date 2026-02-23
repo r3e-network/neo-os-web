@@ -494,7 +494,7 @@ export function createErrorHandler(
   return (error: Error, errorInfo: React.ErrorInfo) => {
     trackError(error, {
       ...options,
-      componentStack: errorInfo.componentStack,
+      componentStack: errorInfo.componentStack || undefined,
       extra: {
         ...options.extra,
         componentName,

@@ -35,5 +35,7 @@ describe("/api/miniapps/admin/template-catalog", () => {
     expect(Array.isArray(payload.frontend_templates)).toBe(true);
     expect(Array.isArray(payload.contract_templates)).toBe(true);
     expect(Array.isArray(payload.blueprints)).toBe(true);
+    expect(payload.frontend_templates[0]).toEqual(expect.objectContaining({ template_id: expect.any(String) }));
+    expect(payload.contract_templates[0]).toEqual(expect.objectContaining({ template_id: expect.any(String) }));
   });
 });

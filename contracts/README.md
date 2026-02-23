@@ -20,7 +20,7 @@ gateway + TEE services, with final enforcement at the contract layer.
                              ▼
 ┌────────────────────────────────────────────────────────────────┐
 │                    MiniApp Contracts (C#)                      │
-│   CoinFlip · DiceGame · Lottery · PredictionMarket · etc.      │
+│   MiniAppTemplates (Prediction, Lottery, Governance, etc.)     │
 │   (Store state, request services, handle callbacks)            │
 └────────────────────────────────────────────────────────────────┘
                              │ requestService()

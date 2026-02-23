@@ -169,11 +169,12 @@ interface MiniAppLogoProps {
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
   entryUrl?: string | null;
   logoUrl?: string | null;
+  manifest?: Record<string, unknown> | null;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export function MiniAppLogo({ appId, category, entryUrl, logoUrl, size = "md", className = "" }: MiniAppLogoProps) {
+export function MiniAppLogo({ appId, category, entryUrl, logoUrl, manifest, size = "md", className = "" }: MiniAppLogoProps) {
   const Icon = APP_ICONS[appId] || CATEGORY_ICONS[category] || Puzzle;
   const gradient = CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.utility;
 
@@ -195,8 +196,9 @@ export function MiniAppLogo({ appId, category, entryUrl, logoUrl, size = "md", c
         appID: appId,
         entryURL: entryUrl,
         logoURL: logoUrl,
+        manifest: manifest || null,
       }),
-    [appId, entryUrl, logoUrl],
+    [appId, entryUrl, logoUrl, manifest],
   );
 
   const [logoIndex, setLogoIndex] = useState(0);
