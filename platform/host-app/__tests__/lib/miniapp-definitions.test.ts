@@ -219,7 +219,7 @@ describe("miniapp-definitions loader", () => {
       path.join(definitionsDir, "legacy-coinflip.json"),
       JSON.stringify(
         {
-          app_id: "builtin-coin-flip",
+          app_id: "miniapp-coin-flip",
           name: "Legacy Coin Flip",
           content: {
             category: "gaming",
