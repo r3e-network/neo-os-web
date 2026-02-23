@@ -81,6 +81,11 @@ func TestNewClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("SUPABASE_URL", "")
+			t.Setenv("SUPABASE_SERVICE_KEY", "")
+			t.Setenv("OE_SIMULATION", "1")
+			t.Setenv("SUPABASE_ALLOW_INSECURE", "true")
+			t.Setenv("MARBLE_ENV", "development")
 			if tt.env != "" {
 				t.Setenv("MARBLE_ENV", tt.env)
 			}
