@@ -1,10 +1,10 @@
 {
   "$schema": "../miniapp-config.schema.json",
-  "app_id": "miniapp-prediction-market",
+  "app_id": "miniapp-predictionmarket",
   "name": "Prediction Market",
   "template_type": "prediction",
   "category": "defi",
-  "entry_url": "mf://builtin?app=miniapp-prediction-market",
+  "entry_url": "mf://manifest?app=miniapp-predictionmarket",
   "contract": {
     "template_id": "prediction-binary",
     "init_params": {}
@@ -13,7 +13,7 @@
     "layout": "prediction",
     "hero": {
       "eyebrow": "PREDICTION MARKET",
-      "disclaimer": "Legacy app migrated to generic template."
+      "disclaimer": "Template-generated definition."
     },
     "tabs": [
       {

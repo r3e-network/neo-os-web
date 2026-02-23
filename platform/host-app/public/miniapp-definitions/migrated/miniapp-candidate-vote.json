@@ -4,7 +4,7 @@
   "name": "Candidate Vote",
   "template_type": "governance",
   "category": "governance",
-  "entry_url": "mf://builtin?app=miniapp-candidate-vote",
+  "entry_url": "mf://manifest?app=miniapp-candidate-vote",
   "contract": {
     "template_id": "governance-v1",
     "init_params": {}
@@ -13,7 +13,7 @@
     "layout": "governance",
     "hero": {
       "eyebrow": "CANDIDATE VOTE",
-      "disclaimer": "Legacy app migrated to generic template."
+      "disclaimer": "Template-generated definition."
     },
     "tabs": [
       {

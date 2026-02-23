@@ -4,7 +4,7 @@
   "name": "Lottery Game",
   "template_type": "lottery",
   "category": "gaming",
-  "entry_url": "mf://builtin?app=miniapp-lottery",
+  "entry_url": "mf://manifest?app=miniapp-lottery",
   "contract": {
     "template_id": "lottery-v1",
     "init_params": {}
@@ -13,7 +13,7 @@
     "layout": "lottery",
     "hero": {
       "eyebrow": "LOTTERY GAME",
-      "disclaimer": "Legacy app migrated to generic template."
+      "disclaimer": "Template-generated definition."
     },
     "tabs": [
       {
