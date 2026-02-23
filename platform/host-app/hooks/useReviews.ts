@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import type { SocialRating, SocialComment, VoteType } from "@/components/types";
 import { logger } from "@/lib/logger";
+import { fetchJSON, fetchOK, toApiError } from "@/lib/fetch-client";
 
 interface UseReviewsOptions {
   appId: string;
@@ -19,11 +20,8 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
   const fetchRating = useCallback(async () => {
     try {
       const url = `/api/miniapps/${encodeURIComponent(appId)}/reviews/ratings${walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : ""}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
-      if (res.ok) {
-        const data = await res.json();
-        setRating(data.rating);
-      }
+      const data = await fetchJSON<{ rating?: SocialRating }>(url);
+      setRating(data.rating ?? null);
     } catch (err) {
       logger.warn("Failed to fetch rating:", err);
     }
@@ -33,20 +31,17 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (offset = 0) => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?limit=20&offset=${offset}`, {
-          signal: AbortSignal.timeout(30000),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (offset === 0) {
-            setComments(data.comments);
-          } else {
-            setComments((prev) => [...prev, ...data.comments]);
-          }
-          setHasMore(data.hasMore);
+        const data = await fetchJSON<{ comments?: SocialComment[]; hasMore?: boolean }>(
+          `/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?limit=20&offset=${offset}`,
+        );
+        if (offset === 0) {
+          setComments(data.comments || []);
+        } else {
+          setComments((prev) => [...prev, ...(data.comments || [])]);
         }
-      } catch {
-        setError("Failed to load comments");
+        setHasMore(Boolean(data.hasMore));
+      } catch (err) {
+        setError(toApiError(err).message);
       } finally {
         setLoading(false);
       }
@@ -58,18 +53,15 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (value: number, review?: string): Promise<boolean> => {
       if (!walletAddress) return false;
       try {
-        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/ratings`, {
+        await fetchOK(`/api/miniapps/${encodeURIComponent(appId)}/reviews/ratings`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, value, review }),
-          signal: AbortSignal.timeout(30000),
         });
-        if (res.ok) {
-          await fetchRating();
-          return true;
-        }
-      } catch {
-        setError("Failed to submit rating");
+        await fetchRating();
+        return true;
+      } catch (err) {
+        setError(toApiError(err).message);
       }
       return false;
     },
@@ -80,18 +72,15 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (content: string): Promise<boolean> => {
       if (!walletAddress) return false;
       try {
-        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments`, {
+        await fetchOK(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, content }),
-          signal: AbortSignal.timeout(30000),
         });
-        if (res.ok) {
-          await fetchComments(0);
-          return true;
-        }
-      } catch {
-        setError("Failed to post comment");
+        await fetchComments(0);
+        return true;
+      } catch (err) {
+        setError(toApiError(err).message);
       }
       return false;
     },
@@ -102,13 +91,12 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (commentId: string, voteType: VoteType): Promise<boolean> => {
       if (!walletAddress) return false;
       try {
-        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/${encodeURIComponent(commentId)}/vote`, {
+        await fetchOK(`/api/miniapps/${encodeURIComponent(appId)}/reviews/${encodeURIComponent(commentId)}/vote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, vote_type: voteType }),
-          signal: AbortSignal.timeout(30000),
         });
-        return res.ok;
+        return true;
       } catch {
         return false;
       }
@@ -120,13 +108,12 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
     async (parentId: string, content: string): Promise<boolean> => {
       if (!walletAddress) return false;
       try {
-        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments`, {
+        await fetchOK(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ wallet: walletAddress, content, parent_id: parentId }),
-          signal: AbortSignal.timeout(30000),
         });
-        return res.ok;
+        return true;
       } catch {
         return false;
       }
@@ -137,13 +124,10 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
   const loadReplies = useCallback(
     async (parentId: string): Promise<SocialComment[]> => {
       try {
-        const res = await fetch(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?parent_id=${encodeURIComponent(parentId)}`, {
-          signal: AbortSignal.timeout(30000),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          return data.comments;
-        }
+        const data = await fetchJSON<{ comments?: SocialComment[] }>(
+          `/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?parent_id=${encodeURIComponent(parentId)}`,
+        );
+        return data.comments || [];
       } catch (err) {
         logger.warn("Failed to load replies:", err);
       }
