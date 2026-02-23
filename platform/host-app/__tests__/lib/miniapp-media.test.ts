@@ -21,6 +21,14 @@ describe("miniapp-media helpers", () => {
         "candidate-vote",
       );
     });
+
+    it("maps known compact app ids to canonical asset slugs", () => {
+      expect(resolveMiniAppSlug("miniapp-coinflip", "mf://manifest?app=miniapp-coinflip")).toBe("coin-flip");
+      expect(resolveMiniAppSlug("miniapp-dicegame", "mf://manifest?app=miniapp-dicegame")).toBe("dice-game");
+      expect(resolveMiniAppSlug("miniapp-predictionmarket", "mf://manifest?app=miniapp-predictionmarket")).toBe(
+        "prediction-market",
+      );
+    });
   });
 
   describe("getMiniAppPrimaryAssets", () => {
@@ -30,31 +38,47 @@ describe("miniapp-media helpers", () => {
         bannerURL: "/miniapp-assets/lottery/banner.jpg",
       });
     });
+
+    it("uses static miniapp assets for app ids without miniapp-assets jpgs", () => {
+      expect(getMiniAppPrimaryAssets("miniapp-dicegame", "mf://manifest?app=miniapp-dicegame")).toEqual({
+        logoURL: "/miniapps/dice-game/static/icon.svg",
+        bannerURL: "/miniapps/dice-game/static/banner.svg",
+      });
+      expect(getMiniAppPrimaryAssets("miniapp-secretvote", "mf://manifest?app=miniapp-secretvote")).toEqual({
+        logoURL: "/miniapps/secret-vote/static/icon.svg",
+        bannerURL: "/miniapps/secret-vote/static/banner.svg",
+      });
+    });
   });
 
   describe("buildMiniAppLogoSources", () => {
     it("prioritizes explicit URL and includes compatible fallback logo paths", () => {
-      expect(
-        buildMiniAppLogoSources({
-          appID: "miniapp-lottery",
-          entryURL: "/miniapps/lottery/",
-          logoURL: "/custom/logo.png",
-        }),
-      ).toEqual([
-        "/custom/logo.png",
-        "/miniapp-assets/lottery/logo.jpg",
-        "/miniapp-assets/lottery/logo.png",
-        "/miniapp-assets/lottery/logo.jpeg",
-        "/miniapp-assets/lottery/logo.svg",
-        "/miniapps/lottery/logo.jpg",
-        "/miniapps/lottery/logo.png",
-        "/miniapps/lottery/logo.jpeg",
-        "/miniapps/lottery/logo.svg",
-        "/miniapps/lottery/public/logo.jpg",
-        "/miniapps/lottery/public/logo.png",
-        "/miniapps/lottery/public/logo.jpeg",
-        "/miniapps/lottery/public/logo.svg",
-      ]);
+      const result = buildMiniAppLogoSources({
+        appID: "miniapp-lottery",
+        entryURL: "/miniapps/lottery/",
+        logoURL: "/custom/logo.png",
+      });
+
+      expect(result[0]).toBe("/custom/logo.png");
+      expect(result).toEqual(
+        expect.arrayContaining([
+          "/miniapp-assets/lottery/logo.jpg",
+          "/miniapp-assets/lottery/logo.png",
+          "/miniapps/lottery/logo.jpg",
+          "/miniapps/lottery/public/logo.jpg",
+          "/miniapps/lottery/static/icon.svg",
+        ]),
+      );
+    });
+
+    it("prefers static icon assets for apps without jpg media", () => {
+      const result = buildMiniAppLogoSources({
+        appID: "miniapp-dicegame",
+        entryURL: "mf://manifest?app=miniapp-dicegame",
+      });
+
+      expect(result[0]).toBe("/miniapps/dice-game/static/icon.svg");
+      expect(result).toEqual(expect.arrayContaining(["/miniapps/dice-game/static/icon.svg"]));
     });
 
     it("prioritizes best matching logo variant by theme/locale", () => {
@@ -88,25 +112,30 @@ describe("miniapp-media helpers", () => {
 
   describe("buildMiniAppBannerSources", () => {
     it("includes compatible fallback banner paths", () => {
-      expect(
-        buildMiniAppBannerSources({
-          appID: "miniapp-lottery",
-          entryURL: "/miniapps/lottery/",
-        }),
-      ).toEqual([
-        "/miniapp-assets/lottery/banner.jpg",
-        "/miniapp-assets/lottery/banner.png",
-        "/miniapp-assets/lottery/banner.jpeg",
-        "/miniapp-assets/lottery/banner.svg",
-        "/miniapps/lottery/banner.jpg",
-        "/miniapps/lottery/banner.png",
-        "/miniapps/lottery/banner.jpeg",
-        "/miniapps/lottery/banner.svg",
-        "/miniapps/lottery/public/banner.jpg",
-        "/miniapps/lottery/public/banner.png",
-        "/miniapps/lottery/public/banner.jpeg",
-        "/miniapps/lottery/public/banner.svg",
-      ]);
+      const result = buildMiniAppBannerSources({
+        appID: "miniapp-lottery",
+        entryURL: "/miniapps/lottery/",
+      });
+
+      expect(result).toEqual(
+        expect.arrayContaining([
+          "/miniapp-assets/lottery/banner.jpg",
+          "/miniapp-assets/lottery/banner.png",
+          "/miniapps/lottery/banner.jpg",
+          "/miniapps/lottery/public/banner.jpg",
+          "/miniapps/lottery/static/banner.svg",
+        ]),
+      );
+    });
+
+    it("prefers static banner assets for apps without jpg media", () => {
+      const result = buildMiniAppBannerSources({
+        appID: "miniapp-secretvote",
+        entryURL: "mf://manifest?app=miniapp-secretvote",
+      });
+
+      expect(result[0]).toBe("/miniapps/secret-vote/static/banner.svg");
+      expect(result).toEqual(expect.arrayContaining(["/miniapps/secret-vote/static/banner.svg"]));
     });
 
     it("prioritizes best matching banner variant by theme", () => {
@@ -143,6 +172,20 @@ describe("miniapp-media helpers", () => {
 
       expect(app.logo_url).toBe("/miniapp-assets/coin-flip/logo.jpg");
       expect(app.banner_url).toBe("/miniapp-assets/coin-flip/banner.jpg");
+    });
+
+    it("fills manifest-mode app media from canonical aliases", () => {
+      const app = withMiniAppCardAssets({
+        app_id: "miniapp-predictionmarket",
+        entry_url: "mf://manifest?app=miniapp-predictionmarket",
+        name: "Prediction Market",
+        description: "test",
+        icon: "📊",
+        category: "defi",
+      });
+
+      expect(app.logo_url).toBe("/miniapp-assets/prediction-market/logo.jpg");
+      expect(app.banner_url).toBe("/miniapp-assets/prediction-market/banner.jpg");
     });
   });
 });

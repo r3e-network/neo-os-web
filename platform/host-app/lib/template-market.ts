@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type TemplateKind = "frontend" | "contract";
-export type TemplateSourceType = "builtin" | "community" | "verified";
+export type TemplateSourceType = "miniapp" | "community" | "verified";
 export type TemplatePublishRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 export type TemplateCatalogItem = {
@@ -182,7 +182,7 @@ export function normalizeTemplateKind(value: unknown): TemplateKind | null {
 
 export function normalizeTemplateSourceType(value: unknown): TemplateSourceType {
   const raw = asTrimmedString(value).toLowerCase();
-  if (raw === "builtin") return "builtin";
+  if (raw === "miniapp") return "miniapp";
   if (raw === "verified") return "verified";
   return "community";
 }

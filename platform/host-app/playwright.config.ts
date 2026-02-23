@@ -19,9 +19,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
+    command: "npm run dev -- --port 3004",
     url: "http://localhost:3004",
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 120000,
   },
 });

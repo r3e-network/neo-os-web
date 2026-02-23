@@ -1,7 +1,7 @@
 //go:build scripts
 
-// Batch register builtin MiniApps to AppRegistry contract
-// Usage: go run -tags=scripts scripts/register_builtin_miniapps.go
+// Batch register platform MiniApps to AppRegistry contract.
+// Usage: go run -tags=scripts scripts/register_miniapps.go
 package main
 
 import (
@@ -22,52 +22,52 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
 )
 
-// BuiltinApp defines a builtin MiniApp for registration
-type BuiltinApp struct {
+// MiniAppRegistration defines a MiniApp payload for registration.
+type MiniAppRegistration struct {
 	AppID       string
 	Name        string
 	EntryURL    string
 	Permissions []string
 }
 
-var builtinApps = []BuiltinApp{
+var miniApps = []MiniAppRegistration{
 	// Gaming apps
-	{"builtin-lottery", "Lottery", "mf://manifest?app=builtin-lottery", []string{"wallet", "payments", "rng"}},
-	{"builtin-coin-flip", "Coin Flip", "mf://manifest?app=builtin-coin-flip", []string{"wallet", "payments", "rng"}},
-	{"builtin-dice-game", "Dice Game", "mf://manifest?app=builtin-dice-game", []string{"wallet", "payments", "rng"}},
-	{"builtin-secret-poker", "Secret Poker", "mf://manifest?app=builtin-secret-poker", []string{"wallet", "payments", "rng", "compute"}},
-	{"builtin-red-envelope", "Red Envelope", "mf://manifest?app=builtin-red-envelope", []string{"wallet", "payments", "rng"}},
-	{"builtin-gas-circle", "GAS Circle", "mf://manifest?app=builtin-gas-circle", []string{"wallet", "payments", "rng", "automation"}},
-	{"builtin-fog-chess", "Fog Chess", "mf://manifest?app=builtin-fog-chess", []string{"wallet", "payments", "rng", "compute"}},
-	{"builtin-scratch-card", "Scratch Card", "mf://manifest?app=builtin-scratch-card", []string{"wallet", "payments", "rng"}},
-	{"builtin-neo-crash", "Neo Crash", "mf://manifest?app=builtin-neo-crash", []string{"wallet", "payments", "rng"}},
+	{"miniapp-lottery", "Lottery", "mf://manifest?app=miniapp-lottery", []string{"wallet", "payments", "rng"}},
+	{"miniapp-coinflip", "Coin Flip", "mf://manifest?app=miniapp-coinflip", []string{"wallet", "payments", "rng"}},
+	{"miniapp-dicegame", "Dice Game", "mf://manifest?app=miniapp-dicegame", []string{"wallet", "payments", "rng"}},
+	{"miniapp-secret-poker", "Secret Poker", "mf://manifest?app=miniapp-secret-poker", []string{"wallet", "payments", "rng", "compute"}},
+	{"miniapp-redenvelope", "Red Envelope", "mf://manifest?app=miniapp-redenvelope", []string{"wallet", "payments", "rng"}},
+	{"miniapp-gascircle", "GAS Circle", "mf://manifest?app=miniapp-gascircle", []string{"wallet", "payments", "rng", "automation"}},
+	{"miniapp-fog-chess", "Fog Chess", "mf://manifest?app=miniapp-fog-chess", []string{"wallet", "payments", "rng", "compute"}},
+	{"miniapp-scratch-card", "Scratch Card", "mf://manifest?app=miniapp-scratch-card", []string{"wallet", "payments", "rng"}},
+	{"miniapp-neo-crash", "Neo Crash", "mf://manifest?app=miniapp-neo-crash", []string{"wallet", "payments", "rng"}},
 	// DeFi apps
-	{"builtin-prediction-market", "Prediction Market", "mf://manifest?app=builtin-prediction-market", []string{"wallet", "payments", "datafeed"}},
-	{"builtin-il-guard", "IL Guard", "mf://manifest?app=builtin-il-guard", []string{"wallet", "payments", "datafeed", "automation"}},
-	{"builtin-grid-bot", "Grid Bot", "mf://manifest?app=builtin-grid-bot", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
-	{"builtin-ai-trader", "AI Trader", "mf://manifest?app=builtin-ai-trader", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
-	{"builtin-flashloan", "Flash Loan", "mf://manifest?app=builtin-flashloan", []string{"wallet", "payments"}},
-	{"builtin-dark-pool", "Dark Pool", "mf://manifest?app=builtin-dark-pool", []string{"wallet", "payments", "compute"}},
-	{"builtin-dutch-auction", "Dutch Auction", "mf://manifest?app=builtin-dutch-auction", []string{"wallet", "payments"}},
+	{"miniapp-predictionmarket", "Prediction Market", "mf://manifest?app=miniapp-predictionmarket", []string{"wallet", "payments", "datafeed"}},
+	{"miniapp-il-guard", "IL Guard", "mf://manifest?app=miniapp-il-guard", []string{"wallet", "payments", "datafeed", "automation"}},
+	{"miniapp-grid-bot", "Grid Bot", "mf://manifest?app=miniapp-grid-bot", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
+	{"miniapp-ai-trader", "AI Trader", "mf://manifest?app=miniapp-ai-trader", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
+	{"miniapp-flashloan", "Flash Loan", "mf://manifest?app=miniapp-flashloan", []string{"wallet", "payments"}},
+	{"miniapp-dark-pool", "Dark Pool", "mf://manifest?app=miniapp-dark-pool", []string{"wallet", "payments", "compute"}},
+	{"miniapp-dutch-auction", "Dutch Auction", "mf://manifest?app=miniapp-dutch-auction", []string{"wallet", "payments"}},
 	// Governance apps
-	{"builtin-secret-vote", "Secret Vote", "mf://manifest?app=builtin-secret-vote", []string{"wallet", "payments", "governance"}},
-	{"builtin-gov-booster", "Gov Booster", "mf://manifest?app=builtin-gov-booster", []string{"wallet", "payments", "governance", "automation", "datafeed"}},
-	{"builtin-gov-merc", "Gov Merc", "mf://manifest?app=builtin-gov-merc", []string{"wallet", "payments", "governance"}},
+	{"miniapp-secretvote", "Secret Vote", "mf://manifest?app=miniapp-secretvote", []string{"wallet", "payments", "governance"}},
+	{"miniapp-gov-booster", "Gov Booster", "mf://manifest?app=miniapp-gov-booster", []string{"wallet", "payments", "governance", "automation", "datafeed"}},
+	{"miniapp-gov-merc", "Gov Merc", "mf://manifest?app=miniapp-gov-merc", []string{"wallet", "payments", "governance"}},
 	// NFT apps
-	{"builtin-nft-evolve", "NFT Evolve", "mf://manifest?app=builtin-nft-evolve", []string{"wallet", "payments", "rng", "datafeed", "automation"}},
-	{"builtin-schrodinger-nft", "Schrodinger NFT", "mf://manifest?app=builtin-schrodinger-nft", []string{"wallet", "payments", "rng"}},
+	{"miniapp-nft-evolve", "NFT Evolve", "mf://manifest?app=miniapp-nft-evolve", []string{"wallet", "payments", "rng", "datafeed", "automation"}},
+	{"miniapp-schrodinger-nft", "Schrodinger NFT", "mf://manifest?app=miniapp-schrodinger-nft", []string{"wallet", "payments", "rng"}},
 	// Utility apps
-	{"builtin-bridge-guardian", "Bridge Guardian", "mf://manifest?app=builtin-bridge-guardian", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
-	{"builtin-guardian-policy", "Guardian Policy", "mf://manifest?app=builtin-guardian-policy", []string{"wallet", "payments", "compute"}},
-	{"builtin-price-ticker", "Price Ticker", "mf://manifest?app=builtin-price-ticker", []string{"wallet", "datafeed"}},
-	{"builtin-dead-switch", "Dead Switch", "mf://manifest?app=builtin-dead-switch", []string{"wallet", "payments", "automation"}},
-	{"builtin-heritage-trust", "Heritage Trust", "mf://manifest?app=builtin-heritage-trust", []string{"wallet", "payments", "automation"}},
-	{"builtin-time-capsule", "Time Capsule", "mf://manifest?app=builtin-time-capsule", []string{"wallet", "payments"}},
+	{"miniapp-bridge-guardian", "Bridge Guardian", "mf://manifest?app=miniapp-bridge-guardian", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
+	{"miniapp-guardian-policy", "Guardian Policy", "mf://manifest?app=miniapp-guardian-policy", []string{"wallet", "payments", "compute"}},
+	{"miniapp-price-ticker", "Price Ticker", "mf://manifest?app=miniapp-price-ticker", []string{"wallet", "datafeed"}},
+	{"miniapp-dead-switch", "Dead Switch", "mf://manifest?app=miniapp-dead-switch", []string{"wallet", "payments", "automation"}},
+	{"miniapp-heritage-trust", "Heritage Trust", "mf://manifest?app=miniapp-heritage-trust", []string{"wallet", "payments", "automation"}},
+	{"miniapp-time-capsule", "Time Capsule", "mf://manifest?app=miniapp-time-capsule", []string{"wallet", "payments"}},
 }
 
 func main() {
 	fmt.Println("╔════════════════════════════════════════════════════════════════╗")
-	fmt.Println("║   Batch Register Builtin MiniApps to AppRegistry               ║")
+	fmt.Println("║   Batch Register MiniApps to AppRegistry                       ║")
 	fmt.Println("╚════════════════════════════════════════════════════════════════╝")
 
 	ctx := context.Background()
@@ -112,13 +112,13 @@ func main() {
 	fmt.Printf("📍 RPC: %s\n", rpcURL)
 	fmt.Printf("📍 Developer: %s\n", acc.Address)
 	fmt.Printf("📍 AppRegistry: 0x%s\n", contractHash.StringLE())
-	fmt.Printf("📦 Apps to register: %d\n\n", len(builtinApps))
+	fmt.Printf("📦 Apps to register: %d\n\n", len(miniApps))
 
 	registered := 0
 	skipped := 0
 	failed := 0
 
-	for _, app := range builtinApps {
+	for _, app := range miniApps {
 		fmt.Printf("━━━ %s ━━━\n", app.AppID)
 
 		manifest := buildManifest(app, pubKeyHex)
@@ -166,7 +166,7 @@ func main() {
 	fmt.Println("╚════════════════════════════════════════════════════════════════╝")
 }
 
-func buildManifest(app BuiltinApp, pubKeyHex string) map[string]any {
+func buildManifest(app MiniAppRegistration, pubKeyHex string) map[string]any {
 	perms := make(map[string]any)
 	for _, p := range app.Permissions {
 		if p == "wallet" {

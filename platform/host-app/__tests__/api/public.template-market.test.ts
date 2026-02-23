@@ -29,7 +29,7 @@ jest.mock("@/lib/template-market", () => ({
   }),
   normalizeTemplateSourceType: jest.fn((value: unknown) => {
     const raw = String(value || "").trim().toLowerCase();
-    if (raw === "builtin" || raw === "verified") return raw;
+    if (raw === "miniapp" || raw === "verified") return raw;
     return "community";
   }),
 }));

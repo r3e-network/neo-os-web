@@ -31,7 +31,7 @@ export function BasicTab({
         <Input label="App ID *" placeholder="com.example.myapp" value={form.app_id} onChange={e => update("app_id", e.target.value)} disabled={mode === "edit"} />
         <Input label="Name *" placeholder="My App" value={form.name} onChange={e => update("name", e.target.value)} />
         <Input label="Name (ZH)" placeholder="我的小程序" value={form.name_zh} onChange={e => update("name_zh", e.target.value)} />
-        <Input label="Entry URL *" placeholder="mf://builtin?app=com.example.myapp" value={form.entry_url} onChange={e => update("entry_url", e.target.value)} />
+        <Input label="Entry URL *" placeholder="mf://manifest?app=com.example.myapp" value={form.entry_url} onChange={e => update("entry_url", e.target.value)} />
         <Input label="Version" placeholder="1.0.0" value={form.version} onChange={e => update("version", e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-4">
