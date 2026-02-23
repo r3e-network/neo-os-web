@@ -204,18 +204,23 @@ func (c *Client) doRequest(ctx context.Context, method, reqURL, prefer string, b
 	return respBody, nil
 }
 
-// buildTableURL constructs the full URL for a table endpoint with optional query string.
-func (c *Client) buildTableURL(table, query string) string {
-	var u string
-	if c.restPrefix == "" {
-		u = fmt.Sprintf("%s/%s", c.url, table)
-	} else {
-		u = fmt.Sprintf("%s%s/%s", c.url, c.restPrefix, table)
+// buildEndpointURL constructs the full URL for an endpoint with optional query string.
+// It prepends restPrefix when configured.
+func (c *Client) buildEndpointURL(path, query string) string {
+	u := c.url
+	if c.restPrefix != "" {
+		u += c.restPrefix
 	}
+	u += "/" + strings.TrimPrefix(path, "/")
 	if query != "" {
 		u += "?" + query
 	}
 	return u
+}
+
+// buildTableURL constructs the full URL for a table endpoint with optional query string.
+func (c *Client) buildTableURL(table, query string) string {
+	return c.buildEndpointURL(table, query)
 }
 
 // request makes an HTTP request to the Supabase REST API.
@@ -225,11 +230,7 @@ func (c *Client) request(ctx context.Context, method, table string, body interfa
 
 // buildRPCURL constructs the full URL for an RPC endpoint with optional query string.
 func (c *Client) buildRPCURL(functionName, query string) string {
-	u := fmt.Sprintf("%s/rpc/%s", c.url, functionName)
-	if query != "" {
-		u += "?" + query
-	}
-	return u
+	return c.buildEndpointURL("rpc/"+functionName, query)
 }
 
 // requestRPC makes an HTTP request to a Supabase RPC endpoint.

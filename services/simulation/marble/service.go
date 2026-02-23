@@ -615,51 +615,51 @@ func (s *Service) runMiniAppWorkflow(appID string, workerID int, workflowFn func
 func (s *Service) startMiniAppWorkflows(ctx context.Context) int {
 	workflowByAppID := map[string]func(context.Context) error{
 		// Gaming MiniApps
-		"builtin-lottery":         s.miniAppSimulator.SimulateLottery,
-		"builtin-coin-flip":       s.miniAppSimulator.SimulateCoinFlip,
-		"builtin-dice-game":       s.miniAppSimulator.SimulateDiceGame,
-		"builtin-scratch-card":    s.miniAppSimulator.SimulateScratchCard,
-		"builtin-mega-millions":   s.miniAppSimulator.SimulateMegaMillions,
-		"builtin-gas-spin":        s.miniAppSimulator.SimulateGasSpin,
-		"builtin-neo-crash":       s.miniAppSimulator.SimulateNeoCrash,
-		"builtin-throne-of-gas":   s.miniAppSimulator.SimulateThroneOfGas,
-		"builtin-doomsday-clock":  s.miniAppSimulator.SimulateDoomsdayClock,
-		"builtin-schrodinger-nft": s.miniAppSimulator.SimulateSchrodingerNFT,
-		"builtin-algo-battle":     s.miniAppSimulator.SimulateAlgoBattle,
+		"miniapp-lottery":         s.miniAppSimulator.SimulateLottery,
+		"miniapp-coinflip":        s.miniAppSimulator.SimulateCoinFlip,
+		"miniapp-dicegame":        s.miniAppSimulator.SimulateDiceGame,
+		"miniapp-scratch-card":    s.miniAppSimulator.SimulateScratchCard,
+		"miniapp-mega-millions":   s.miniAppSimulator.SimulateMegaMillions,
+		"miniapp-gas-spin":        s.miniAppSimulator.SimulateGasSpin,
+		"miniapp-neo-crash":       s.miniAppSimulator.SimulateNeoCrash,
+		"miniapp-throne-of-gas":   s.miniAppSimulator.SimulateThroneOfGas,
+		"miniapp-doomsday-clock":  s.miniAppSimulator.SimulateDoomsdayClock,
+		"miniapp-schrodinger-nft": s.miniAppSimulator.SimulateSchrodingerNFT,
+		"miniapp-algo-battle":     s.miniAppSimulator.SimulateAlgoBattle,
 
 		// DeFi MiniApps
-		"builtin-prediction-market": s.miniAppSimulator.SimulatePredictionMarket,
-		"builtin-flashloan":         s.miniAppSimulator.SimulateFlashLoan,
-		"builtin-price-ticker":      s.miniAppSimulator.SimulatePriceTicker,
-		"builtin-price-predict":     s.miniAppSimulator.SimulatePricePredict,
-		"builtin-turbo-options":     s.miniAppSimulator.SimulateTurboOptions,
-		"builtin-il-guard":          s.miniAppSimulator.SimulateILGuard,
-		"builtin-candle-wars":       s.miniAppSimulator.SimulateCandleWars,
-		"builtin-dutch-auction":     s.miniAppSimulator.SimulateDutchAuction,
-		"builtin-the-parasite":      s.miniAppSimulator.SimulateParasite,
-		"builtin-no-loss-lottery":   s.miniAppSimulator.SimulateNoLossLottery,
+		"miniapp-predictionmarket": s.miniAppSimulator.SimulatePredictionMarket,
+		"miniapp-flashloan":        s.miniAppSimulator.SimulateFlashLoan,
+		"miniapp-price-ticker":     s.miniAppSimulator.SimulatePriceTicker,
+		"miniapp-price-predict":    s.miniAppSimulator.SimulatePricePredict,
+		"miniapp-turbo-options":    s.miniAppSimulator.SimulateTurboOptions,
+		"miniapp-il-guard":         s.miniAppSimulator.SimulateILGuard,
+		"miniapp-candle-wars":      s.miniAppSimulator.SimulateCandleWars,
+		"miniapp-dutch-auction":    s.miniAppSimulator.SimulateDutchAuction,
+		"miniapp-the-parasite":     s.miniAppSimulator.SimulateParasite,
+		"miniapp-no-loss-lottery":  s.miniAppSimulator.SimulateNoLossLottery,
 
 		// Social MiniApps
-		"builtin-secret-vote":   s.miniAppSimulator.SimulateSecretVote,
-		"builtin-secret-poker":  s.miniAppSimulator.SimulateSecretPoker,
-		"builtin-micro-predict": s.miniAppSimulator.SimulateMicroPredict,
-		"builtin-red-envelope":  s.miniAppSimulator.SimulateRedEnvelope,
-		"builtin-gas-circle":    s.miniAppSimulator.SimulateGasCircle,
-		"builtin-pay-to-view":   s.miniAppSimulator.SimulatePayToView,
-		"builtin-time-capsule":  s.miniAppSimulator.SimulateTimeCapsule,
+		"miniapp-secretvote":    s.miniAppSimulator.SimulateSecretVote,
+		"miniapp-secret-poker":  s.miniAppSimulator.SimulateSecretPoker,
+		"miniapp-micro-predict": s.miniAppSimulator.SimulateMicroPredict,
+		"miniapp-redenvelope":   s.miniAppSimulator.SimulateRedEnvelope,
+		"miniapp-gascircle":     s.miniAppSimulator.SimulateGasCircle,
+		"miniapp-pay-to-view":   s.miniAppSimulator.SimulatePayToView,
+		"miniapp-time-capsule":  s.miniAppSimulator.SimulateTimeCapsule,
 
 		// Other MiniApps
-		"builtin-gov-booster":     s.miniAppSimulator.SimulateGovBooster,
-		"builtin-ai-trader":       s.miniAppSimulator.SimulateAITrader,
-		"builtin-grid-bot":        s.miniAppSimulator.SimulateGridBot,
-		"builtin-nft-evolve":      s.miniAppSimulator.SimulateNFTEvolve,
-		"builtin-bridge-guardian": s.miniAppSimulator.SimulateBridgeGuardian,
-		"builtin-fog-chess":       s.miniAppSimulator.SimulateFogChess,
-		"builtin-garden-of-neo":   s.miniAppSimulator.SimulateGardenOfNeo,
-		"builtin-dev-tipping":     s.miniAppSimulator.SimulateDevTipping,
-		"builtin-airdrop":         s.miniAppSimulator.SimulateAirdrop,
-		"builtin-dao-voting":      s.miniAppSimulator.SimulateDaoVoting,
-		"builtin-gacha":           s.miniAppSimulator.SimulateGacha,
+		"miniapp-gov-booster":     s.miniAppSimulator.SimulateGovBooster,
+		"miniapp-ai-trader":       s.miniAppSimulator.SimulateAITrader,
+		"miniapp-grid-bot":        s.miniAppSimulator.SimulateGridBot,
+		"miniapp-nft-evolve":      s.miniAppSimulator.SimulateNFTEvolve,
+		"miniapp-bridge-guardian": s.miniAppSimulator.SimulateBridgeGuardian,
+		"miniapp-fog-chess":       s.miniAppSimulator.SimulateFogChess,
+		"miniapp-garden-of-neo":   s.miniAppSimulator.SimulateGardenOfNeo,
+		"miniapp-dev-tipping":     s.miniAppSimulator.SimulateDevTipping,
+		"miniapp-airdrop":         s.miniAppSimulator.SimulateAirdrop,
+		"miniapp-dao-voting":      s.miniAppSimulator.SimulateDaoVoting,
+		"miniapp-gacha":           s.miniAppSimulator.SimulateGacha,
 	}
 
 	apps := normalizeMiniAppIDs(s.miniApps)
@@ -726,10 +726,10 @@ func normalizeMiniAppID(appID string) string {
 	if trimmed == "" {
 		return ""
 	}
-	if strings.HasPrefix(trimmed, "builtin-") {
+	if strings.HasPrefix(trimmed, "miniapp-") {
 		return trimmed
 	}
-	return "builtin-" + trimmed
+	return "miniapp-" + trimmed
 }
 
 func shortHash(hash string) string {

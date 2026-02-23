@@ -22,13 +22,13 @@ const defaultRPC = "https://testnet1.neo.coz.io:443"
 var miniApps = []struct {
 	AppID string
 }{
-	{"builtin-lottery"},
-	{"builtin-coin-flip"},
-	{"builtin-dice-game"},
-	{"builtin-scratch-card"},
-	{"builtin-prediction-market"},
-	{"builtin-flashloan"},
-	{"builtin-price-ticker"},
+	{"miniapp-lottery"},
+	{"miniapp-coinflip"},
+	{"miniapp-dicegame"},
+	{"miniapp-scratch-card"},
+	{"miniapp-predictionmarket"},
+	{"miniapp-flashloan"},
+	{"miniapp-price-ticker"},
 }
 
 func main() {

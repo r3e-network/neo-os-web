@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSecretsStore } from "@/lib/secrets";
 import { useWalletStore } from "@/lib/wallet/store";
-import { BUILTIN_APPS } from "@/lib/builtin-apps";
+import { MINIAPP_REGISTRY } from "@/lib/miniapp-registry";
 import { CreateTokenForm } from "./CreateTokenForm";
 import { TokenList } from "./TokenList";
 import { InfoCard } from "./InfoCard";
 
-const CONFIDENTIAL_APPS = BUILTIN_APPS.filter((app) => app.permissions?.confidential);
+const CONFIDENTIAL_APPS = MINIAPP_REGISTRY.filter((app) => app.permissions?.confidential);
 
 export default function SecretsContent() {
   const { connected } = useWalletStore();

@@ -2,7 +2,7 @@
 
 export type MiniAppCategory = "gaming" | "defi" | "governance" | "utility" | "social" | "nft" | "data" | "other";
 
-export type MiniAppSource = "builtin" | "community" | "verified";
+export type MiniAppSource = "miniapp" | "community" | "verified";
 
 export type MiniAppInfo = {
   app_id: string;

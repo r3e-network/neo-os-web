@@ -64,7 +64,7 @@ function FederatedLoader({ remote, appId, view }: Props) {
 
   useEffect(() => {
     let mounted = true;
-    const remoteName = (remote || "builtin").trim();
+    const remoteName = (remote || "miniapp").trim();
     if (!remoteName) {
       setError("Federated remote not specified");
       setLoading(false);

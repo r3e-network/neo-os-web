@@ -91,7 +91,7 @@ data:
 
   # Simulation service defaults (dev/test only).
   SIMULATION_ENABLED: "false"
-  SIMULATION_MINIAPPS: "builtin-lottery,builtin-coin-flip,builtin-dice-game"
+  SIMULATION_MINIAPPS: "miniapp-lottery,miniapp-coinflip,miniapp-dicegame"
   SIMULATION_TX_INTERVAL_MIN_MS: "1000"
   SIMULATION_TX_INTERVAL_MAX_MS: "5000"
   SIMULATION_WORKERS_PER_APP: "2"

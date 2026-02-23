@@ -44,6 +44,16 @@ export interface PerformanceReport {
 type PerformanceCallback = (metric: PerformanceMetric) => void;
 type ReportCallback = (report: PerformanceReport) => void;
 
+interface WebVitalsAPI {
+  getCLS: (cb: (value: number) => void) => void;
+  getFID: (cb: (value: number) => void) => void;
+  getLCP: (cb: (value: number) => void) => void;
+}
+
+interface WindowWithWebVitals extends Window {
+  webVitals?: WebVitalsAPI;
+}
+
 // In-memory metrics storage (for client-side)
 let metricsBuffer: PerformanceMetric[] = [];
 let isInitialized = false;
@@ -56,15 +66,13 @@ export function initPerformanceMonitoring(): void {
   if (typeof window === "undefined" || isInitialized) return;
   
   isInitialized = true;
+  const win = window as WindowWithWebVitals;
   
   // Report initial Web Vitals
-  if ("web-vital" in window) {
-    // @ts-ignore - web-vitals library may be loaded
-    window.webVitals.getCLS(onCLS);
-    // @ts-ignore
-    window.webVitals.getFID(onFID);
-    // @ts-ignore
-    window.webVitals.getLCP(onLCP);
+  if (win.webVitals) {
+    win.webVitals.getCLS(onCLS);
+    win.webVitals.getFID(onFID);
+    win.webVitals.getLCP(onLCP);
   }
   
   // Fallback: Use Performance Observer directly

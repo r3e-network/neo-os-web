@@ -83,30 +83,45 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
   if (!tx) return { type: "transaction", found: false };
 
   const [traces, calls, syscalls] = await Promise.all([
-    supabase
-      .from("indexer_opcode_traces")
-      .select("id, tx_hash, step_index, opcode, opcode_hex, gas_consumed, stack_size, contract_hash, instruction_ptr")
-      .eq("tx_hash", hash)
-      .order("step_index")
-      .limit(500)
-      .then(({ data }) => data || [])
-      .catch(() => []),
-    supabase
-      .from("indexer_contract_calls")
-      .select("id, tx_hash, call_index, contract_hash, method, args_json, gas_consumed, success, parent_call_id")
-      .eq("tx_hash", hash)
-      .order("call_index")
-      .limit(200)
-      .then(({ data }) => data || [])
-      .catch(() => []),
-    supabase
-      .from("indexer_syscalls")
-      .select("id, tx_hash, call_index, syscall_name, args_json, result_json, gas_consumed, contract_hash")
-      .eq("tx_hash", hash)
-      .order("call_index")
-      .limit(200)
-      .then(({ data }) => data || [])
-      .catch(() => []),
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("indexer_opcode_traces")
+          .select("id, tx_hash, step_index, opcode, opcode_hex, gas_consumed, stack_size, contract_hash, instruction_ptr")
+          .eq("tx_hash", hash)
+          .order("step_index")
+          .limit(500);
+        return data || [];
+      } catch {
+        return [];
+      }
+    })(),
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("indexer_contract_calls")
+          .select("id, tx_hash, call_index, contract_hash, method, args_json, gas_consumed, success, parent_call_id")
+          .eq("tx_hash", hash)
+          .order("call_index")
+          .limit(200);
+        return data || [];
+      } catch {
+        return [];
+      }
+    })(),
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("indexer_syscalls")
+          .select("id, tx_hash, call_index, syscall_name, args_json, result_json, gas_consumed, contract_hash")
+          .eq("tx_hash", hash)
+          .order("call_index")
+          .limit(200);
+        return data || [];
+      } catch {
+        return [];
+      }
+    })(),
   ]);
 
   return {

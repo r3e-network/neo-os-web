@@ -350,15 +350,15 @@ func (s *Simulation) runWorkflow(acc *PoolAccount, round int, mu *sync.Mutex) {
 
 func getRandomAppID() string {
 	apps := []string{
-		"builtin-gas-spin",      // Lucky wheel with VRF
-		"builtin-price-predict", // Binary options with datafeed
-		"builtin-secret-vote",   // Privacy governance voting
-		"builtin-lottery",
-		"builtin-coin-flip",
-		"builtin-dice-game",
-		"builtin-secret-poker",  // TEE Texas Hold'em
-		"builtin-micro-predict", // High-freq 60s prediction
-		"builtin-red-envelope",  // Social GAS packets
+		"miniapp-gas-spin",      // Lucky wheel with VRF
+		"miniapp-price-predict", // Binary options with datafeed
+		"miniapp-secretvote",    // Privacy governance voting
+		"miniapp-lottery",
+		"miniapp-coinflip",
+		"miniapp-dicegame",
+		"miniapp-secret-poker",  // TEE Texas Hold'em
+		"miniapp-micro-predict", // High-freq 60s prediction
+		"miniapp-redenvelope",   // Social GAS packets
 	}
 	return apps[mrand.Intn(len(apps))]
 }
