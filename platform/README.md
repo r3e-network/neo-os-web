@@ -12,7 +12,7 @@ The platform allows configuring complex decentralized applications (MiniApps) li
 - **`admin-console/`**: React-based zero-code DApp issuer. Features a built-in Template Marketplace to assemble app manifests visually and interact with contract templates dynamically via JSON Schema rendering.
 - **`edge/`**: Supabase Edge Functions handling routing, limits, anti-abuse, Auth0 sync, and NeoX/N3 nonce derivations.
 - **`sdk/`**: Client side SDK enabling direct integrations.
-- **`builtin-app/`**: Legacy Micro-Frontends (Being phased out in favor of the new JSON-driven Host app).
+- **Manifest runtime + external remotes**: the host runtime now loads MiniApps from manifests (and optional external Module Federation remotes) without a dedicated legacy local remote workspace.
 
 ## Core Concepts
 

@@ -49,7 +49,6 @@ neo-miniapp-platform/
 │
 ├─ platform/
 │  ├─ host-app/         # 前端宿主（Next.js/Vercel）
-│  ├─ builtin-app/      # 内置小程序（Module Federation 远程）
 │  ├─ sdk/              # JS SDK（payGAS/vote/rng/datafeed/stats）
 │  ├─ edge/             # Supabase Edge（鉴权/限流/路由）
 │  ├─ rls/              # Supabase RLS 策略 SQL
