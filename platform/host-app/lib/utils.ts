@@ -6,12 +6,25 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Trims and length-limits user input. Display safety is handled by React
- * auto-escaping; use {@link escapeHtml} when rendering outside JSX.
+ * Trims and length-limits user input. Also strips HTML-like structure.
  */
 export function sanitizeInput(input: string): string {
   if (typeof input !== "string") return "";
-  return input.trim().slice(0, 1000);
+  let sanitized = input.trim();
+  
+  // Strip angle brackets
+  sanitized = sanitized.replace(/[<>]/g, "");
+  
+  // Strip javascript: protocol
+  sanitized = sanitized.replace(/javascript:/gi, "");
+  
+  // Strip event handlers (e.g. onclick=)
+  sanitized = sanitized.replace(/on\w+\s*=/gi, "").trim();
+  
+  // Decode basic HTML entities for pure text
+  sanitized = sanitized.replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/[<>]/g, "");
+
+  return sanitized.slice(0, 1000);
 }
 
 /**
