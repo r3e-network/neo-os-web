@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { OnChainActivity } from "../components/types";
 import { logger } from "../lib/logger";
+import { fetchJSON, toApiError } from "@/lib/fetch-client";
 
 interface UseActivityFeedOptions {
   appId?: string;
@@ -38,42 +39,47 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
         if (appId) params.set("app_id", appId);
         params.set("limit", "50");
 
+        const fetchMaybe = async <T,>(url: string): Promise<T | null> => {
+          try {
+            return await fetchJSON<T>(url);
+          } catch {
+            return null;
+          }
+        };
+
         // Fetch events and transactions in parallel
-        const [eventsRes, txRes, notifRes] = await Promise.all([
-          fetch(`/api/activity/events?${params}`, { signal: AbortSignal.timeout(30000) }),
-          fetch(`/api/activity/transactions?${params}`, { signal: AbortSignal.timeout(30000) }),
-          fetch(`/api/miniapp-notifications?${params}&limit=20`, { signal: AbortSignal.timeout(30000) }),
+        const [eventsData, txData, notifData] = await Promise.all([
+          fetchMaybe<{ events?: Array<Record<string, unknown>> }>(`/api/activity/events?${params}`),
+          fetchMaybe<{ transactions?: Array<Record<string, unknown>> }>(`/api/activity/transactions?${params}`),
+          fetchMaybe<{ notifications?: Array<Record<string, unknown>> }>(`/api/miniapp-notifications?${params}&limit=20`),
         ]);
 
         const newActivities: OnChainActivity[] = [];
 
         // Process events
-        if (eventsRes.ok) {
-          const eventsData = await eventsRes.json();
+        if (eventsData) {
           const events = eventsData.events || [];
           for (const evt of events) {
             newActivities.push(transformEvent(evt));
           }
           if (events.length > 0) {
-            lastEventIdRef.current = events[0].id;
+            lastEventIdRef.current = String(events[0].id ?? "");
           }
         }
 
         // Process transactions
-        if (txRes.ok) {
-          const txData = await txRes.json();
+        if (txData) {
           const txs = txData.transactions || [];
           for (const tx of txs) {
             newActivities.push(transformTransaction(tx));
           }
           if (txs.length > 0) {
-            lastTxIdRef.current = txs[0].id;
+            lastTxIdRef.current = String(txs[0].id ?? "");
           }
         }
 
         // Process notifications
-        if (notifRes.ok) {
-          const notifData = await notifRes.json();
+        if (notifData) {
           const notifs = notifData.notifications || [];
           for (const notif of notifs) {
             newActivities.push(transformNotification(notif));
@@ -92,7 +98,7 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
         setIsConnected(true);
         setError(null);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to fetch activities";
+        const msg = toApiError(err).message || "Failed to fetch activities";
         logger.error("Activity feed error:", err);
         setError(msg);
         setIsConnected(false);
