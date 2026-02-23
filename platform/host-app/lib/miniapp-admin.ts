@@ -768,6 +768,9 @@ export function normalizeMiniAppAdminPayload(
     incomingManifest.frontend_spec ??
     existingManifest.frontend_spec;
 
+  const contractTemplateInput = asObject(mergedInput.contract_template ?? incomingManifest.contract_template ?? existingManifest.contract_template);
+  const normalizedContractTemplate = hasMeaningfulValue(contractTemplateInput) ? contractTemplateInput : undefined;
+
   const templateId = asTrimmedString(preparedInput.template_id ?? contractInput.template_id);
   const initParams = preparedInput.init_params ?? contractInput.init_params;
   const normalizedContract = cleanForManifest({
@@ -797,6 +800,7 @@ export function normalizeMiniAppAdminPayload(
     template_id: templateId || undefined,
     init_params: hasMeaningfulValue(initParams) ? initParams : undefined,
     contract: hasMeaningfulValue(normalizedContract) ? normalizedContract : undefined,
+    contract_template: normalizedContractTemplate,
     frontend_spec: hasMeaningfulValue(frontendSpec) ? frontendSpec : undefined,
     detail_template: detailTemplate,
     page_template: detailTemplate,
