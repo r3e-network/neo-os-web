@@ -505,3 +505,18 @@ func (s *MiniAppSimulator) SimulateGuardianPolicy(ctx context.Context) error {
 	atomic.AddInt64(&s.guardianPolicySets, 1)
 	return nil
 }
+
+func (s *MiniAppSimulator) SimulateAirdrop(ctx context.Context) error {
+	s.Logger().WithContext(ctx).Debug("Simulating builtin-airdrop")
+	return nil
+}
+
+func (s *MiniAppSimulator) SimulateDaoVoting(ctx context.Context) error {
+	s.Logger().WithContext(ctx).Debug("Simulating builtin-dao-voting")
+	return nil
+}
+
+func (s *MiniAppSimulator) SimulateGacha(ctx context.Context) error {
+	s.Logger().WithContext(ctx).Debug("Simulating builtin-gacha")
+	return nil
+}
