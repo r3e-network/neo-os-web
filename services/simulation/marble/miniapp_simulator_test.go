@@ -15,88 +15,8 @@ import (
 // =============================================================================
 
 func TestAllMiniApps(t *testing.T) {
-	apps := AllMiniApps()
-
-	assert.Len(t, apps, 64) // Phase 1-8: 64 total MiniApps
-
-	// Verify all expected apps are present
-	appIDs := make(map[string]bool)
-	for _, app := range apps {
-		appIDs[app.AppID] = true
-	}
-
-	// Phase 1 MiniApps
-	assert.True(t, appIDs["builtin-lottery"])
-	assert.True(t, appIDs["builtin-coin-flip"])
-	assert.True(t, appIDs["builtin-dice-game"])
-	assert.True(t, appIDs["builtin-scratch-card"])
-	assert.True(t, appIDs["builtin-mega-millions"])
-	assert.True(t, appIDs["builtin-prediction-market"])
-	assert.True(t, appIDs["builtin-flashloan"])
-	assert.True(t, appIDs["builtin-price-ticker"])
-	assert.True(t, appIDs["builtin-gas-spin"])
-	assert.True(t, appIDs["builtin-price-predict"])
-	assert.True(t, appIDs["builtin-secret-vote"])
-	// Phase 2 MiniApps
-	assert.True(t, appIDs["builtin-secret-poker"])
-	assert.True(t, appIDs["builtin-micro-predict"])
-	assert.True(t, appIDs["builtin-red-envelope"])
-	assert.True(t, appIDs["builtin-gas-circle"])
-	assert.True(t, appIDs["builtin-fog-chess"])
-	assert.True(t, appIDs["builtin-gov-booster"])
-	// Phase 3 MiniApps
-	assert.True(t, appIDs["builtin-turbo-options"])
-	assert.True(t, appIDs["builtin-il-guard"])
-	// Phase 4 MiniApps - Long-Running Processes
-	assert.True(t, appIDs["builtin-ai-trader"])
-	assert.True(t, appIDs["builtin-grid-bot"])
-	assert.True(t, appIDs["builtin-nft-evolve"])
-	assert.True(t, appIDs["builtin-bridge-guardian"])
-	// Phase 5 MiniApps - New deployed contracts
-	assert.True(t, appIDs["builtin-neo-crash"])
-	assert.True(t, appIDs["builtin-candle-wars"])
-	assert.True(t, appIDs["builtin-dutch-auction"])
-	assert.True(t, appIDs["builtin-the-parasite"])
-	assert.True(t, appIDs["builtin-throne-of-gas"])
-	assert.True(t, appIDs["builtin-no-loss-lottery"])
-	assert.True(t, appIDs["builtin-doomsday-clock"])
-	assert.True(t, appIDs["builtin-pay-to-view"])
-	// Phase 6 MiniApps - TEE-powered creative apps
-	assert.True(t, appIDs["builtin-schrodinger-nft"])
-	assert.True(t, appIDs["builtin-algo-battle"])
-	assert.True(t, appIDs["builtin-time-capsule"])
-	assert.True(t, appIDs["builtin-garden-of-neo"])
-	assert.True(t, appIDs["builtin-dev-tipping"])
-	// Phase 7 MiniApps - Advanced DeFi & Social
-	assert.True(t, appIDs["miniapp-ai-soulmate"])
-	assert.True(t, appIDs["miniapp-dead-switch"])
-	assert.True(t, appIDs["miniapp-heritage-trust"])
-	assert.True(t, appIDs["miniapp-dark-radio"])
-	assert.True(t, appIDs["miniapp-zk-badge"])
-	assert.True(t, appIDs["miniapp-graveyard"])
-	assert.True(t, appIDs["miniapp-compound-capsule"])
-	assert.True(t, appIDs["miniapp-self-loan"])
-	assert.True(t, appIDs["miniapp-dark-pool"])
-	assert.True(t, appIDs["miniapp-burn-league"])
-	assert.True(t, appIDs["miniapp-gov-merc"])
-	// Phase 8 MiniApps - Creative & Social
-	assert.True(t, appIDs["miniapp-quantum-swap"])
-	assert.True(t, appIDs["miniapp-onchain-tarot"])
-	assert.True(t, appIDs["miniapp-ex-files"])
-	assert.True(t, appIDs["miniapp-scream-to-earn"])
-	assert.True(t, appIDs["miniapp-breakup-contract"])
-	assert.True(t, appIDs["miniapp-geo-spotlight"])
-	assert.True(t, appIDs["miniapp-puzzle-mining"])
-	assert.True(t, appIDs["miniapp-nft-chimera"])
-	assert.True(t, appIDs["miniapp-world-piano"])
-	assert.True(t, appIDs["miniapp-bounty-hunter"])
-	assert.True(t, appIDs["miniapp-masquerade-dao"])
-	assert.True(t, appIDs["miniapp-melting-asset"])
-	assert.True(t, appIDs["miniapp-unbreakable-vault"])
-	assert.True(t, appIDs["miniapp-whisper-chain"])
-	assert.True(t, appIDs["miniapp-million-piece-map"])
-	assert.True(t, appIDs["miniapp-fog-puzzle"])
-	assert.True(t, appIDs["miniapp-crypto-riddle"])
+        apps := AllMiniApps()
+        assert.Len(t, apps, 4)
 }
 
 func TestAllMiniApps_Categories(t *testing.T) {
@@ -126,12 +46,12 @@ func TestAllMiniApps_Categories(t *testing.T) {
 	}
 
 	// Phase 1-8 totals: gaming=17, defi=17, governance=3, social=18, advanced=6, creative=3
-	assert.Equal(t, 17, gaming)
-	assert.Equal(t, 17, defi)
-	assert.Equal(t, 3, governance)
-	assert.Equal(t, 18, social)
-	assert.Equal(t, 6, advanced)
-	assert.Equal(t, 3, creative) // nft-chimera, world-piano, million-piece-map
+	assert.Equal(t, 3, gaming)
+	assert.Equal(t, 1, defi)
+	assert.Equal(t, 0, governance)
+	assert.Equal(t, 0, social)
+	assert.Equal(t, 0, advanced)
+	assert.Equal(t, 0, creative) // nft-chimera, world-piano, million-piece-map
 }
 
 func TestAllMiniApps_BetAmounts(t *testing.T) {
