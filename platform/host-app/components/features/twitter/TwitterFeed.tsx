@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Twitter } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { fetchJSON } from "@/lib/fetch-client";
 
 interface Tweet {
   id: string;
@@ -10,18 +11,31 @@ interface Tweet {
   url: string;
 }
 
+type TwitterFeedResponse = {
+  tweets?: Tweet[];
+};
+
 export function TwitterFeed() {
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/twitter-feed", { signal: AbortSignal.timeout(30000) })
-      .then((res) => res.json())
-      .then((data) => {
+    let active = true;
+    const loadTweets = async () => {
+      try {
+        const data = await fetchJSON<TwitterFeedResponse>("/api/twitter-feed");
+        if (!active) return;
         setTweets(data.tweets || []);
-        setLoading(false);
-      })
-      .catch((err) => { logger.warn("Failed to fetch tweets:", err); setLoading(false); });
+      } catch (err) {
+        if (active) logger.warn("Failed to fetch tweets:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadTweets();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const formatTime = (dateStr: string) => {
