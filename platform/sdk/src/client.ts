@@ -58,6 +58,7 @@ interface NeoLineInvokeParams {
 
 /** Extended window with NeoLine */
 interface WindowWithNeoLine extends Window {
+  ethereum?: any;
   NEOLineN3?: NeoLineN3Wallet;
   [key: string]: unknown;
 }
@@ -66,11 +67,16 @@ async function getInjectedWalletAddress(): Promise<string> {
   if (typeof window === "undefined") {
     throw new Error("wallet.getAddress must be called in a browser context");
   }
-
-  if (!("NEOLineN3" in window)) {
-    throw new Error("neo wallet not detected (install NeoLine N3) or host must bridge wallet.getAddress");
-  }
+  
   const g = window as unknown as WindowWithNeoLine;
+  
+  // Check EVM
+  if (g.ethereum && typeof g.ethereum.request === "function") {
+    try {
+      const accounts = await g.ethereum.request({ method: "eth_accounts" });
+      if (accounts && accounts.length > 0) return accounts[0];
+    } catch {}
+  }
 
   const neoline = g.NEOLineN3;
   if (neoline && typeof neoline.Init === "function") {
@@ -119,7 +125,21 @@ function resolveInvocationParams(params: InvocationIntent["params"], userAddress
   });
 }
 
-async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<unknown> {
+async function invokeDirectInvocation(invocation: InvocationIntent): Promise<unknown> {
+  const g = typeof window !== "undefined" ? window as unknown as WindowWithNeoLine : null;
+  const address = await getInjectedWalletAddress();
+
+  if (address.startsWith("0x") && g?.ethereum) {
+    const data = "0x"; // Evm encoding placeholder
+    return await g.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: address,
+        to: invocation.contract_hash,
+        data: data
+      }]
+    });
+  }
   const inst = getNeoLineN3Instance();
   if (!inst || typeof inst.invoke !== "function") {
     throw new Error("wallet does not support invoke (NeoLine N3 required)");
@@ -130,9 +150,6 @@ async function invokeNeoLineInvocation(invocation: InvocationIntent): Promise<un
 
   if (!scriptHash) throw new Error("invocation missing contract_hash");
   if (!operation) throw new Error("invocation missing method");
-
-  // Get user's wallet address for SENDER placeholder resolution and signing
-  const address = await getInjectedWalletAddress();
 
   // Resolve SENDER placeholders in params with the user's actual address
   const rawArgs = Array.isArray(invocation.params) ? invocation.params : [];
@@ -240,10 +257,10 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         const invocation = pendingInvocations.get(id);
         if (!invocation) throw new Error("unknown request_id (no pending invocation)");
         pendingInvocations.delete(id);
-        return invokeNeoLineInvocation(invocation);
+        return invokeDirectInvocation(invocation);
       },
       async invokeInvocation(invocation: InvocationIntent): Promise<unknown> {
-        return invokeNeoLineInvocation(invocation);
+        return invokeDirectInvocation(invocation);
       },
     },
     payments: {
@@ -257,7 +274,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       },
       async payGASAndInvoke(appId: string, amount: string, memo?: string) {
         const intent = await this.payGAS(appId, amount, memo);
-        const tx = await invokeNeoLineInvocation(intent.invocation);
+        const tx = await invokeDirectInvocation(intent.invocation);
         return { intent, tx };
       },
     },
@@ -277,7 +294,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       },
       async voteAndInvoke(appId: string, proposalId: string, bneoAmount: string, support?: boolean) {
         const intent = await this.vote(appId, proposalId, bneoAmount, support);
-        const tx = await invokeNeoLineInvocation(intent.invocation);
+        const tx = await invokeDirectInvocation(intent.invocation);
         return { intent, tx };
       },
     },

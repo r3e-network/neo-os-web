@@ -12,9 +12,9 @@ const MiniAppCSP = `
   style-src-elem 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   font-src 'self' data: https:;
-  connect-src 'self' https://*.neo.org https://*.neo.coz.io https://*.supabase.co https://*.sentry.io wss://*.supabase.co https://rpc*.seed.neo.org https://mainnet*.neo.coz.io https://testnet*.neo.coz.io;
+  connect-src 'self' https://*.r3e.network https://*.neo.coz.io https://*.supabase.co https://*.sentry.io wss://*.supabase.co https://rpc*.seed.r3e.network https://mainnet*.neo.coz.io https://testnet*.neo.coz.io;
   frame-src 'none';
-  frame-ancestors 'self' https://neomini.app https://*.miniapp.neo.org;
+  frame-ancestors 'self' https://neomini.app https://*.miniapp.r3e.network;
   form-action 'self';
   base-uri 'self';
   object-src 'none';
@@ -30,7 +30,7 @@ const MainCSP = `
   style-src-elem 'self' 'unsafe-inline';
   img-src 'self' data: blob: https:;
   font-src 'self' data: https:;
-  connect-src 'self' https://*.neo.org https://*.neo.coz.io https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
+  connect-src 'self' https://*.r3e.network https://*.neo.coz.io https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
   frame-src 'self' blob:;
   frame-ancestors 'self';
   form-action 'self';

@@ -33,7 +33,7 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
       <div className="flex items-center gap-5 px-5 py-4 relative z-10">
         {/* Logo */}
         <div className="shrink-0 p-1.5 bg-white/80 dark:bg-[#12131C] rounded-xl shadow-sm border border-gray-100 dark:border-white/5 group-hover:scale-105 transition-transform duration-300">
-          <MiniAppLogo appId={app.app_id} category={app.category} entryUrl={app.entry_url} logoUrl={app.logo_url} size="md" className="rounded-lg" />
+          <MiniAppLogo appId={app.app_id} category={app.category} entryUrl={app.entry_url} logoUrl={app.logo_url} manifest={app.manifest || null} size="md" className="rounded-lg" />
         </div>
 
         {/* Content Grid */}

@@ -18,6 +18,7 @@ export function Sidebar() {
     { name: t("navigation.dashboard"), href: "/", icon: "📊" },
     { name: t("navigation.services"), href: "/services", icon: "🔧" },
     { name: t("navigation.miniapps"), href: "/miniapps", icon: "📱" },
+    { name: t("navigation.templateStudio"), href: "/templates", icon: "🧱" },
     { name: t("navigation.users"), href: "/users", icon: "👥" },
     { name: t("navigation.analytics"), href: "/analytics", icon: "📈" },
     { name: t("navigation.contracts"), href: "/contracts", icon: "📄" },

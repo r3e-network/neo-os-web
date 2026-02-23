@@ -386,7 +386,7 @@ export const RenderComponentTree = memo(function RenderComponentTree({
         {config.children && config.children.length > 0 ? (
           () => (
             <RenderComponentTree
-              configs={config.children}
+              configs={config.children || []}
               registry={registry}
               data={data}
               onAction={onAction}

@@ -1,8 +1,8 @@
 import Head from "next/head";
 import Link from "next/link";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Wallet, Trophy, Zap, TrendingUp, Flame } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
@@ -19,7 +19,7 @@ export default function AccountPage() {
   return (
     <Layout>
       <Head>
-        <title>Account - NeoHub</title>
+        <title>Account - R3E Network</title>
       </Head>
 
       <div className="mx-auto max-w-4xl px-4 py-12">
@@ -203,7 +203,7 @@ function OAuthBindingItem({
         </div>
       </div>
       <Button
-        variant={isConnected ? "outline" : "default"}
+        variant={isConnected ? "outline" : "primary"}
         size="sm"
         onClick={isConnected ? onUnlink : onLink}
         disabled={isLoading}

@@ -76,7 +76,7 @@ function setupClickTracking(): void {
       const element = target.closest("[data-track-click], [data-analytics], [data-event]");
       
       if (element) {
-        const dataset = element.dataset;
+        const dataset = (element as HTMLElement).dataset;
         
         // Use data attributes for tracking
         const eventName = dataset.trackClick || dataset.analytics || dataset.event;
@@ -250,7 +250,7 @@ export function AnalyticsVisible({
     );
     
     const current = React.Children.only(children) as React.ReactElement;
-    if (current?.ref) {
+    if ((current as any)?.ref) {
       // Handle ref
       observer.observe(current as unknown as Element);
     }

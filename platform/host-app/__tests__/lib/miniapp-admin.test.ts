@@ -151,4 +151,43 @@ describe("miniapp-admin normalization", () => {
       }),
     );
   });
+
+  it("keeps contract template compatibility and audit metadata", () => {
+    const result = normalizeMiniAppAdminPayload({
+      app_id: "miniapp-contract-compat",
+      name: "Contract Compat",
+      entry_url: "https://example.com/contract-compat",
+      developer_user_id: "123e4567-e89b-12d3-a456-426614174000",
+      contract_template: {
+        template_id: "prediction-binary",
+        min_factory_version: "1.2.0",
+        max_factory_version: "2.0.0",
+        requires_host_capability: ["oracle", "attestation"],
+        security_profile: {
+          audited: true,
+          audit_provider: "BlockSec",
+          audit_hash: "sha256:abc123",
+          audit_date: "2026-02-22",
+        },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.row.manifest.contract_template).toEqual(
+      expect.objectContaining({
+        template_id: "prediction-binary",
+        min_factory_version: "1.2.0",
+        max_factory_version: "2.0.0",
+        requires_host_capability: ["oracle", "attestation"],
+        security_profile: expect.objectContaining({
+          audited: true,
+          audit_provider: "BlockSec",
+          audit_hash: "sha256:abc123",
+          audit_date: "2026-02-22",
+        }),
+      }),
+    );
+  });
 });

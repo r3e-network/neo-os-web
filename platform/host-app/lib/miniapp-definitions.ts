@@ -45,6 +45,31 @@ function asOptionalString(value: unknown): string | undefined {
   return out || undefined;
 }
 
+function normalizeMediaVariants(raw: unknown): Array<{
+  url: string;
+  theme?: "light" | "dark" | "any";
+  density?: "1x" | "2x" | "3x";
+  locale?: string;
+}> {
+  if (!Array.isArray(raw)) return [];
+  const items = raw
+    .map((item) => asObject(item))
+    .map((item) => {
+      const getStr = (v: unknown) => typeof v === "string" ? v.trim() : "";
+      const url = getStr(item.url);
+      if (!url) return null;
+      const themeRaw = getStr(item.theme).toLowerCase();
+      const densityRaw = getStr(item.density).toLowerCase();
+      const locale = getStr(item.locale);
+      const res: any = { url };
+      if (themeRaw === "light" || themeRaw === "dark" || themeRaw === "any") res.theme = themeRaw;
+      if (densityRaw === "1x" || densityRaw === "2x" || densityRaw === "3x") res.density = densityRaw;
+      if (locale) res.locale = locale;
+      return res;
+    });
+  return items.filter((x) => x !== null) as any;
+}
+
 export function parseMiniAppDefinitionContent(content: string): unknown {
   const input = String(content || "").trim();
   if (!input) {
@@ -99,10 +124,14 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
   const integration = asObject(obj.integration ?? manifest.integration);
   const contractTemplate = asObject(obj.contract_template ?? template.contract_template ?? manifest.contract_template);
   const frontendTemplate = asObject(obj.frontend_template ?? template.frontend_template ?? manifest.frontend_template);
+  const logic = asObject(obj.logic ?? manifest.logic);
+  const marketplace = asObject(obj.marketplace ?? manifest.marketplace);
 
   const appId = asString(obj.app_id) || `miniapp-${slug}`;
   const name = asString(obj.name) || titleCase(slug);
+  const nameEn = asOptionalString(obj.name_en ?? i18n.name_en ?? manifest.name_en);
   const nameZh = asOptionalString(obj.name_zh ?? i18n.name_zh ?? manifest.name_zh);
+  const descriptionEn = asOptionalString(obj.description_en ?? i18n.description_en ?? manifest.description_en);
   const descriptionZh = asOptionalString(obj.description_zh ?? i18n.description_zh ?? manifest.description_zh);
   const templateType = asOptionalString(obj.template_type ?? template.template_type ?? manifest.template_type);
   const entryUrl = resolveManifestEntryUrl(obj.entry_url, appId);
@@ -114,6 +143,8 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
 
   const logoUrl = obj.logo_url ?? content.logo_url ?? media.logo_url ?? media.logo ?? manifest.logo_url;
   const bannerUrl = obj.banner_url ?? content.banner_url ?? media.banner_url ?? media.banner ?? manifest.banner_url;
+  const logoVariants = normalizeMediaVariants(media.logo_variants ?? asObject(manifest.media).logo_variants);
+  const bannerVariants = normalizeMediaVariants(media.banner_variants ?? asObject(manifest.media).banner_variants);
   const docsUrl = obj.docs_url ?? content.docs_url ?? manifest.docs_url;
   const icon = obj.icon ?? content.icon ?? media.icon ?? manifest.icon ?? "🧩";
   const category = obj.category ?? content.category ?? manifest.category ?? "utility";
@@ -152,6 +183,8 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
   const normalizedI18n = {
     ...asObject(manifest.i18n),
     ...i18n,
+    name_en: nameEn,
+    description_en: descriptionEn,
     name_zh: nameZh,
     description_zh: descriptionZh,
   };
@@ -160,7 +193,9 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     ...obj,
     app_id: appId,
     name,
+    name_en: nameEn,
     name_zh: nameZh,
+    description_en: descriptionEn,
     description_zh: descriptionZh,
     template_type: templateType,
     entry_url: entryUrl,
@@ -178,6 +213,8 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     contract_template: normalizedTemplate.contract_template,
     frontend_template: normalizedTemplate.frontend_template,
     i18n: normalizedI18n,
+    logic,
+    marketplace,
     template: normalizedTemplate,
     contract: normalizedContract,
     media: {
@@ -185,6 +222,8 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
       icon,
       logo: logoUrl,
       banner: bannerUrl,
+      logo_variants: logoVariants,
+      banner_variants: bannerVariants,
     },
     integration: normalizedIntegration,
     manifest: {
@@ -200,10 +239,16 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
       media: {
         ...asObject(manifest.media),
         ...media,
+        logo_variants: logoVariants.length > 0 ? logoVariants : asObject(manifest.media).logo_variants,
+        banner_variants: bannerVariants.length > 0 ? bannerVariants : asObject(manifest.media).banner_variants,
       },
+      logic: Object.keys(logic).length > 0 ? logic : manifest.logic,
+      marketplace: Object.keys(marketplace).length > 0 ? marketplace : manifest.marketplace,
       integration: normalizedIntegration,
       i18n: normalizedI18n,
+      name_en: nameEn ?? manifest.name_en,
       name_zh: nameZh ?? manifest.name_zh,
+      description_en: descriptionEn ?? manifest.description_en,
       description_zh: descriptionZh ?? manifest.description_zh,
       news_integration: newsIntegration ?? manifest.news_integration,
       stats_display: statsDisplay ?? manifest.stats_display,
@@ -225,7 +270,7 @@ function getDefinitionsDir(): string {
 }
 
 function getSlugFromFilename(fileName: string): string {
-  return fileName.replace(/\.json$/i, "").trim();
+  return path.parse(fileName).name.trim();
 }
 
 function getErrorMessage(error: unknown): string {
@@ -247,7 +292,7 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
 
     for (const fileName of definitionFiles) {
       const fullPath = path.join(definitionsDir, fileName);
-      const slug = getSlugFromFilename(path.parse(fileName).name);
+      const slug = getSlugFromFilename(fileName);
       try {
         const content = await fs.readFile(fullPath, "utf-8");
         const parsed = parseMiniAppDefinitionContent(content);

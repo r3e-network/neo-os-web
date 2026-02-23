@@ -111,7 +111,7 @@ const LeaderboardRow = memo<LeaderboardRowProps>(({
         </div>
       );
     }
-    return formatValue(entry[col.key as keyof LeaderboardEntry] as string | number, col.format);
+    return formatValue(entry[col.key as keyof LeaderboardEntry] as string | number, (col as any).format);
   };
 
   return (
@@ -212,13 +212,13 @@ export const Leaderboard = memo(function Leaderboard({
       
       <div className="overflow-x-auto">
         <table className="w-full">
-          <LeaderboardHeader columns={cols} />
+          <LeaderboardHeader columns={cols as any} />
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {displayEntries.map((entry) => (
               <LeaderboardRow
                 key={entry.rank}
                 entry={entry}
-                columns={cols}
+                columns={cols as any}
                 showAvatar={showAvatar}
                 highlightUser={highlightUser}
                 onRowClick={handleRowClick}

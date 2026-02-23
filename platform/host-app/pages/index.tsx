@@ -2,10 +2,10 @@ import { useState, useMemo, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { logger } from "@/lib/logger";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { StatsBar } from "@/components/features/stats";
 import { MiniAppCard, MiniAppListItem } from "@/components/features/miniapp";
@@ -162,7 +162,7 @@ export default function LandingPage() {
   return (
     <Layout>
       <Head>
-        <title>NeoHub | The Premier MiniApp Platform for Neo N3</title>
+        <title>R3E Network | The Premier MiniApp Platform for Neo N3</title>
         <meta name="description" content="Discover, connect, and launch decentralized miniapps on the most secure blockchain network." />
       </Head>
 

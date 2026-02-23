@@ -20,7 +20,7 @@ export interface DrawerProps {
   /** Drawer title (for accessibility) */
   title?: React.ReactNode;
   /** Drawer content */
-  children: React.ReactNode;
+  children?: React.ReactNode;
   /** Drawer position */
   position?: DrawerPosition;
   /** Drawer size */
@@ -269,7 +269,7 @@ Drawer.displayName = "Drawer";
 // Sheet (Alternative name with different API)
 // ============================================================================
 
-export interface SheetProps extends Omit<DrawerProps, "title"> {
+export interface SheetProps extends Omit<DrawerProps, "title" | "isOpen" | "onClose"> {
   /** Trigger element */
   trigger?: React.ReactNode;
   /** Sheet content */

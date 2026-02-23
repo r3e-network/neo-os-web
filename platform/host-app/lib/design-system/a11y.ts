@@ -88,7 +88,7 @@ export function useFocusTrap(options: FocusTrapOptions) {
     const firstFocusable = containerRef.current?.querySelector(initialFocus) || 
       focusableElements?.[0] as HTMLElement;
 
-    setTimeout(() => firstFocusable?.focus(), 0);
+    setTimeout(() => (firstFocusable as HTMLElement | undefined)?.focus(), 0);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;

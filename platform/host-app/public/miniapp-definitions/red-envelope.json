@@ -10,13 +10,13 @@
   "status": "active",
   "developer": {
     "name": "Neo MiniApp Platform",
-    "url": "https://neo.org"
+    "url": "https://r3e.network"
   },
   "contract": {
     "template_id": "tipping-red-envelope",
     "contract_hash": "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
   },
-  "entry_url": "https://red-envelope.neo.org",
+  "entry_url": "https://red-envelope.r3e.network",
   "media": {
     "icon": "/miniapp-assets/red-envelope/icon.png",
     "banner": "/miniapp-assets/red-envelope/banner.png"
@@ -156,5 +156,5 @@
     "activity_feed": true,
     "stats_display": ["total_transactions", "total_gas_used"]
   },
-  "docs_url": "https://docs.neo.org/red-envelope"
+  "docs_url": "https://docs.r3e.network/red-envelope"
 }

@@ -28,6 +28,7 @@ vi.mock("../../../../../shared/i18n/react", () => ({
         "navigation.dashboard": "Dashboard",
         "navigation.services": "Services",
         "navigation.miniapps": "MiniApps",
+        "navigation.templateStudio": "Template Studio",
         "navigation.users": "Users",
         "navigation.analytics": "Analytics",
         "navigation.contracts": "Contracts",
@@ -57,6 +58,7 @@ describe("Sidebar Component", () => {
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Services")).toBeInTheDocument();
     expect(screen.getByText("MiniApps")).toBeInTheDocument();
+    expect(screen.getByText("Template Studio")).toBeInTheDocument();
     expect(screen.getByText("Users")).toBeInTheDocument();
     expect(screen.getByText("Analytics")).toBeInTheDocument();
     expect(screen.getByText("Contracts")).toBeInTheDocument();
@@ -67,6 +69,7 @@ describe("Sidebar Component", () => {
     expect(screen.getByRole("link", { name: /Dashboard/i })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: /Services/i })).toHaveAttribute("href", "/services");
     expect(screen.getByRole("link", { name: /MiniApps/i })).toHaveAttribute("href", "/miniapps");
+    expect(screen.getByRole("link", { name: /Template Studio/i })).toHaveAttribute("href", "/templates");
     expect(screen.getByRole("link", { name: /Users/i })).toHaveAttribute("href", "/users");
     expect(screen.getByRole("link", { name: /Analytics/i })).toHaveAttribute("href", "/analytics");
     expect(screen.getByRole("link", { name: /Contracts/i })).toHaveAttribute("href", "/contracts");

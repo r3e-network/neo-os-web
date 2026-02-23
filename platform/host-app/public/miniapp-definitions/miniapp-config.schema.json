@@ -5,7 +5,7 @@
   "description": "Schema for defining a template-driven MiniApp configuration",
   "type": "object",
   "required": ["app_id", "name", "template_type"],
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
     "$schema": {
       "type": "string",
@@ -13,7 +13,7 @@
     },
     "app_id": {
       "type": "string",
-      "pattern": "^[a-z0-9-]+$",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
       "maxLength": 64,
       "description": "Unique identifier for the MiniApp"
     },
@@ -39,8 +39,7 @@
       "description": "Chinese description"
     },
     "template_type": {
-      "type": "string",
-      "enum": ["prediction", "voting", "lottery", "auction", "defi", "nft", "gaming", "social", "tipping", "governance", "utility", "default"],
+      "$ref": "#/definitions/template_type",
       "description": "Template type for the MiniApp"
     },
     "template": {
@@ -48,34 +47,13 @@
       "description": "Template metadata for frontend and contract templates",
       "properties": {
         "template_type": {
-          "type": "string",
-          "enum": ["prediction", "voting", "lottery", "auction", "defi", "nft", "gaming", "social", "tipping", "governance", "utility", "default"]
+          "$ref": "#/definitions/template_type"
         },
         "frontend_template": {
-          "type": "object",
-          "properties": {
-            "template_id": { "type": "string", "maxLength": 128 },
-            "version": { "type": "string", "maxLength": 64 },
-            "variant": { "type": "string", "maxLength": 64 },
-            "params": {
-              "type": "object",
-              "additionalProperties": true
-            }
-          },
-          "additionalProperties": true
+          "$ref": "#/definitions/template_binding"
         },
         "contract_template": {
-          "type": "object",
-          "properties": {
-            "template_id": { "type": "string", "maxLength": 128 },
-            "version": { "type": "string", "maxLength": 64 },
-            "variant": { "type": "string", "maxLength": 64 },
-            "init_params": {
-              "type": "object",
-              "additionalProperties": true
-            }
-          },
-          "additionalProperties": true
+          "$ref": "#/definitions/contract_template_binding"
         }
       },
       "additionalProperties": true
@@ -135,18 +113,8 @@
       }
     },
     "contract_template": {
-      "type": "object",
       "description": "Contract template descriptor for template marketplace usage",
-      "properties": {
-        "template_id": { "type": "string", "maxLength": 128 },
-        "version": { "type": "string", "maxLength": 64 },
-        "variant": { "type": "string", "maxLength": 64 },
-        "init_params": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "additionalProperties": true
+      "$ref": "#/definitions/contract_template_binding"
     },
     "entry_url": {
       "type": "string",
@@ -171,48 +139,18 @@
         "logo_variants": {
           "type": "array",
           "description": "Optional logo variants by theme/density",
-          "items": {
-            "type": "object",
-            "required": ["url"],
-            "properties": {
-              "url": { "type": "string" },
-              "theme": { "type": "string", "enum": ["light", "dark", "any"] },
-              "density": { "type": "string", "enum": ["1x", "2x", "3x"] },
-              "locale": { "type": "string", "maxLength": 16 }
-            },
-            "additionalProperties": false
-          }
+          "items": { "$ref": "#/definitions/media_variant" }
         },
         "banner_variants": {
           "type": "array",
           "description": "Optional banner variants by theme/density/locale",
-          "items": {
-            "type": "object",
-            "required": ["url"],
-            "properties": {
-              "url": { "type": "string" },
-              "theme": { "type": "string", "enum": ["light", "dark", "any"] },
-              "density": { "type": "string", "enum": ["1x", "2x", "3x"] },
-              "locale": { "type": "string", "maxLength": 16 }
-            },
-            "additionalProperties": false
-          }
+          "items": { "$ref": "#/definitions/media_variant" }
         }
       }
     },
     "frontend_template": {
-      "type": "object",
       "description": "Frontend template descriptor for template marketplace usage",
-      "properties": {
-        "template_id": { "type": "string", "maxLength": 128 },
-        "version": { "type": "string", "maxLength": 64 },
-        "variant": { "type": "string", "maxLength": 64 },
-        "params": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "additionalProperties": true
+      "$ref": "#/definitions/template_binding"
     },
     "permissions": {
       "type": "object",
@@ -245,9 +183,23 @@
       }
     },
     "frontend_spec": {
-      "type": "object",
       "description": "Frontend template specification",
-      "$ref": "#/definitions/frontend_spec"
+      "oneOf": [
+        { "$ref": "#/definitions/frontend_spec" },
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": ["content"],
+          "properties": {
+            "format": {
+              "type": "string",
+              "enum": ["markdown", "md", "yaml", "json"]
+            },
+            "content": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      ]
     },
     "operations": {
       "type": "array",
@@ -278,9 +230,21 @@
       "type": "object",
       "description": "Localized fields",
       "properties": {
+        "name_en": { "type": "string", "maxLength": 128 },
+        "description_en": { "type": "string", "maxLength": 2048 },
         "name_zh": { "type": "string", "maxLength": 128 },
         "description_zh": { "type": "string", "maxLength": 2048 }
       },
+      "additionalProperties": true
+    },
+    "logic": {
+      "type": "object",
+      "description": "Declarative logic configuration for triggers/hooks/guards",
+      "additionalProperties": true
+    },
+    "marketplace": {
+      "type": "object",
+      "description": "Marketplace publication and monetization metadata",
       "additionalProperties": true
     },
     "links": {
@@ -297,6 +261,100 @@
     }
   },
   "definitions": {
+    "template_type": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["prediction", "voting", "lottery", "auction", "defi", "nft", "gaming", "social", "tipping", "governance", "utility", "default"]
+        },
+        {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]*$",
+          "maxLength": 64
+        }
+      ]
+    },
+    "media_variant": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": { "type": "string" },
+        "theme": { "type": "string", "enum": ["light", "dark", "any"] },
+        "density": { "type": "string", "enum": ["1x", "2x", "3x"] },
+        "locale": { "type": "string", "maxLength": 16 }
+      },
+      "additionalProperties": false
+    },
+    "template_binding": {
+      "type": "object",
+      "properties": {
+        "template_id": { "type": "string", "maxLength": 128 },
+        "version": { "type": "string", "maxLength": 64 },
+        "variant": { "type": "string", "maxLength": 64 },
+        "params": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "contract_template_binding": {
+      "allOf": [
+        { "$ref": "#/definitions/template_binding" },
+        {
+          "type": "object",
+          "properties": {
+            "init_params": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "init_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "method_schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "security_profile": {
+              "$ref": "#/definitions/contract_security_profile"
+            },
+            "factory_template_ref": { "type": "string", "maxLength": 256 },
+            "requires_host_capability": {
+              "type": "array",
+              "description": "Host capabilities required by this contract template",
+              "items": {
+                "type": "string",
+                "maxLength": 64
+              },
+              "maxItems": 32
+            },
+            "min_factory_version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "description": "Minimum compatible contract factory version"
+            },
+            "max_factory_version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$",
+              "description": "Maximum compatible contract factory version"
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "contract_security_profile": {
+      "type": "object",
+      "properties": {
+        "upgradeable": { "type": "boolean" },
+        "audited": { "type": "boolean" },
+        "audit_provider": { "type": "string", "maxLength": 128 },
+        "audit_hash": { "type": "string", "maxLength": 256 },
+        "audit_date": { "type": "string", "description": "Audit publish date in YYYY-MM-DD" }
+      },
+      "additionalProperties": true
+    },
     "frontend_spec": {
       "type": "object",
       "properties": {

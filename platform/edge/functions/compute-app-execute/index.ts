@@ -49,7 +49,7 @@ type Manifest = {
   tee_scripts?: Record<string, ScriptInfo>;
 };
 
-const SCRIPTS_BASE_URL = getEnv("MINIAPP_SCRIPTS_BASE_URL") || "https://cdn.miniapps.neo.org";
+const SCRIPTS_BASE_URL = getEnv("MINIAPP_SCRIPTS_BASE_URL") || "https://cdn.miniapps.r3e.network";
 
 async function loadAppScript(
   appId: string,

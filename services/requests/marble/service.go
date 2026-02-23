@@ -48,7 +48,7 @@ type Config struct {
 	NeoVRFURL          string
 	NeoOracleURL       string
 	NeoComputeURL      string
-	ScriptsBaseURL     string // Base URL for loading TEE scripts (e.g., https://cdn.miniapps.neo.org)
+	ScriptsBaseURL     string // Base URL for loading TEE scripts (e.g., https://cdn.miniapps.r3e.network)
 
 	HTTPClient     *http.Client
 	ChainID        string

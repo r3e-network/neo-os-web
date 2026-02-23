@@ -5,7 +5,6 @@ import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 
 export async function handler(req: Request): Promise<Response> {
-  try {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
@@ -41,13 +40,13 @@ export async function handler(req: Request): Promise<Response> {
   // Check existing linked_identities
   const { data: existing } = await supabase
     .from("linked_identities")
-    .select("neohub_account_id")
+    .select("user_id")
     .eq("provider", provider)
     .eq("provider_user_id", providerUserId)
     .maybeSingle();
 
-  if (existing?.neohub_account_id) {
-    return json({ user_id: existing.neohub_account_id, is_new: false }, {}, req);
+  if (existing?.user_id) {
+    return json({ user_id: existing.user_id, is_new: false }, {}, req);
   }
 
   // Check if another identity with same email exists (merge case)
@@ -55,81 +54,78 @@ export async function handler(req: Request): Promise<Response> {
   if (email) {
     const { data: byEmail } = await supabase
       .from("linked_identities")
-      .select("neohub_account_id")
+      .select("user_id")
       .eq("email", email)
       .limit(1)
       .maybeSingle();
-    if (byEmail?.neohub_account_id) accountId = byEmail.neohub_account_id;
+    if (byEmail?.user_id) accountId = byEmail.user_id;
   }
 
-  // Create new neohub_accounts entry if needed
+  // Create new user entry if needed
   if (!accountId) {
-    const { data: newAcct, error: createErr } = await supabase
-      .from("neohub_accounts")
-      .insert({
-        password_hash: crypto.randomUUID(),
-        password_salt: crypto.randomUUID(),
-        display_name: name,
-        avatar_url: avatar,
-      })
-      .select("id")
-      .single();
-    if (createErr || !newAcct) {
-      return error(500, "failed to create account", "DB_ERROR", req);
-    }
-    accountId = newAcct.id;
-
-    // Also create users row for metadata
-    const { error: userErr } = await supabase.from("users").insert({ email, wallet_type: "custodial" }).select("id").maybeSingle();
-    if (userErr && !userErr.message.includes("duplicate")) {
-      return error(500, "failed to create user", "DB_ERROR", req);
+    // Check main users table directly just in case
+    if (email) {
+      const { data: userByEmail } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
+      if (userByEmail?.id) accountId = userByEmail.id;
     }
 
-    // Allocate custodial wallet via account pool service (best-effort)
-    try {
-      const poolUrl = mustGetEnv("ACCOUNT_POOL_URL");
-      const poolResp = await fetch(`${poolUrl}/user-wallet`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Service-ID": "auth-social-sync" },
-        signal: AbortSignal.timeout(10000),
-        body: JSON.stringify({ user_id: accountId }),
-      });
-      if (poolResp.ok) {
-        const { address } = await poolResp.json();
-        if (address) {
-          await supabase.from("linked_neo_accounts").insert({
-            neohub_account_id: accountId,
-            address,
-            public_key: "custodial",
-            is_primary: true,
-            linked_at: new Date().toISOString(),
-          });
-        }
+    if (!accountId) {
+      const { data: newUser, error: createErr } = await supabase
+        .from("users")
+        .insert({ email, wallet_type: "custodial" })
+        .select("id")
+        .single();
+        
+      if (createErr || !newUser) {
+        return error(500, "failed to create account", "DB_ERROR", req);
       }
-    } catch {
-      // Pool service unreachable — wallet allocation deferred
+      accountId = newUser.id;
+
+      // Allocate custodial wallet via account pool service (best-effort)
+      try {
+        const poolUrl = mustGetEnv("ACCOUNT_POOL_URL");
+        const poolResp = await fetch(`${poolUrl}/user-wallet`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Service-ID": "auth-social-sync" },
+          signal: AbortSignal.timeout(10000),
+          body: JSON.stringify({ user_id: accountId }),
+        });
+        if (poolResp.ok) {
+          const { address } = await poolResp.json();
+          if (address) {
+            await supabase.from("user_wallets").insert({
+              user_id: accountId,
+              address,
+              is_primary: true,
+              verified: true,
+            });
+            // Link to main users record
+            await supabase.from("users").update({ address }).eq("id", accountId);
+          }
+        }
+      } catch {
+        // Pool service unreachable — wallet allocation deferred
+      }
     }
   }
 
   // Insert linked_identities
   const { error: linkErr } = await supabase.from("linked_identities").upsert({
-    neohub_account_id: accountId,
+    user_id: accountId,
     provider,
     provider_user_id: providerUserId,
     auth0_sub: sub,
     email,
-    name: name,
-    avatar: avatar,
-    linked_at: new Date().toISOString(),
+    name,
+    avatar_url: avatar,
+    last_login: new Date().toISOString(),
   }, { onConflict: "provider,provider_user_id" });
+
   if (linkErr) {
     return error(500, "failed to link identity", "DB_ERROR", req);
   }
 
   return json({ user_id: accountId, is_new: true }, {}, req);
-  } catch (e) {
-    return error(500, "internal error", "INTERNAL", req);
-  }
 }
 
 if (import.meta.main) {

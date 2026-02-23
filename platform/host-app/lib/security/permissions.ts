@@ -44,7 +44,7 @@ type OwnerChecker = (resourceOwner: string, actor: string) => boolean | Promise<
  */
 function hasPermission(userPermissions: Permission[], required: Permission): boolean {
   // Admin permission grants all
-  if (userPermissions.includes("admin:write") || userPermissions.includes("admin:admin")) {
+  if (userPermissions.includes("admin:write")) {
     return true;
   }
   
@@ -68,7 +68,7 @@ export function requirePermission(permission: Permission) {
     
     if (!wallet) {
       logAuthorizationEvent(req, false, {
-        actor: wallet,
+        actor: wallet || undefined,
         resource: permission,
         errorMessage: "Authentication required",
       });
@@ -81,7 +81,7 @@ export function requirePermission(permission: Permission) {
     
     if (!hasPermission(permissions, permission)) {
       logAuthorizationEvent(req, false, {
-        actor: wallet,
+        actor: wallet || undefined,
         resource: permission,
         errorMessage: "Insufficient permissions",
       });
@@ -90,7 +90,7 @@ export function requirePermission(permission: Permission) {
     }
     
     logAuthorizationEvent(req, true, {
-      actor: wallet,
+      actor: wallet || undefined,
       resource: permission,
     });
     
@@ -102,7 +102,7 @@ export function requirePermission(permission: Permission) {
  * Gets permissions for a wallet (simplified implementation)
  * In production, this would query a permissions database
  */
-function getPermissionsForWallet(wallet: string): Permission[] {
+export function getPermissionsForWallet(wallet: string): Permission[] {
   // Check against admin wallets from environment
   const adminWallets = String(process.env.MINIAPP_ADMIN_WALLETS || "")
     .split(",")
@@ -161,7 +161,7 @@ export function requireResourceOwner(
     
     if (resourceOwner !== wallet) {
       logAuthorizationEvent(req, false, {
-        actor: wallet,
+        actor: wallet || undefined,
         resource: `${resourceType}:${resourceOwner}`,
         action: "owner_check",
         errorMessage: `Not the owner of this ${resourceType}`,
@@ -187,14 +187,14 @@ export function requirePermissions(...requirements: PermissionRequirement[]) {
     
     const permissions = getPermissionsForWallet(wallet);
     
-    for (const req of requirements) {
-      if (!hasPermission(permissions, req.permission)) {
+    for (const requirement of requirements) {
+      if (!hasPermission(permissions, requirement.permission)) {
         logAuthorizationEvent(req, false, {
-          actor: wallet,
-          resource: req.permission,
+          actor: wallet || undefined,
+          resource: requirement.permission,
           errorMessage: "Missing required permission",
         });
-        apiError.forbidden(res, `Missing required permission: ${req.permission}`);
+        apiError.forbidden(res, `Missing required permission: ${requirement.permission}`);
         return false;
       }
     }
@@ -284,7 +284,7 @@ export function withPermission(
     
     if (!hasPermission(permissions, permission)) {
       logAuthorizationEvent(req, false, {
-        actor: wallet,
+        actor: wallet || undefined,
         resource: permission,
         errorMessage: "Permission denied",
       });
@@ -293,7 +293,7 @@ export function withPermission(
     }
     
     logAuthorizationEvent(req, true, {
-      actor: wallet,
+      actor: wallet || undefined,
       resource: permission,
     });
     

@@ -130,6 +130,116 @@ export type MiniAppDefinitionImportResult = {
   results: Array<Record<string, unknown>>;
 };
 
+export type MiniAppBatchImportDefinitionInput = {
+  file_name?: string;
+  content?: string;
+  payload?: Record<string, unknown>;
+};
+
+export type MiniAppBatchImportRollbackTarget = {
+  app_id: string;
+  mode: "create" | "update";
+  rollback_version_id: string | null;
+  rollback_release_channel: "draft" | "published" | null;
+};
+
+export type MiniAppBatchImportResult = {
+  success: boolean;
+  dry_run: boolean;
+  stop_on_error: boolean;
+  summary: {
+    total: number;
+    failed: number;
+    validated: number;
+    imported: number;
+  };
+  results: Array<Record<string, unknown>>;
+  rollback_plan: {
+    import_batch_id: string;
+    generated_at: string;
+    targets: MiniAppBatchImportRollbackTarget[];
+  } | null;
+};
+
+export type MiniAppBatchRollbackResult = {
+  success: boolean;
+  summary: {
+    total: number;
+    failed: number;
+    rolled_back: number;
+    disabled_created_app: number;
+    noop: number;
+  };
+  results: Array<Record<string, unknown>>;
+};
+
+export type MiniAppMediaAssetKind = "icon" | "logo" | "banner";
+
+export type MiniAppMediaUploadVariant = {
+  theme?: "light" | "dark" | "any";
+  density?: "1x" | "2x" | "3x";
+  locale?: string;
+};
+
+export type MiniAppMediaUploadUrlResult = {
+  success: boolean;
+  upload_url: string;
+  public_url: string;
+  key: string;
+  expires_in: number;
+  headers?: Record<string, string>;
+};
+
+export type TemplateKind = "frontend" | "contract";
+export type TemplateSourceType = "builtin" | "community" | "verified";
+export type TemplatePublishRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export type TemplateCatalogItem = {
+  row_id: string;
+  template_kind: TemplateKind;
+  template_id: string;
+  version: string;
+  owner_user_id: string | null;
+  name: string;
+  description: string;
+  category: string;
+  source_type: TemplateSourceType;
+  tags: string[];
+  is_active: boolean;
+  is_verified: boolean;
+  usage_count: number;
+  rating_avg: number | null;
+  rating_count: number;
+  schema: Record<string, unknown>;
+  ui_schema: Record<string, unknown>;
+  manifest: Record<string, unknown>;
+  factory_template_ref: string | null;
+  updated_at: string;
+};
+
+export type TemplatePublishRequestRow = {
+  id: string;
+  template_kind: TemplateKind;
+  template_row_id: string;
+  status: TemplatePublishRequestStatus;
+  requested_by: string;
+  reviewed_by: string | null;
+  review_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+};
+
+export type TemplateMarketTemplateListResult = {
+  mode: "templates";
+  templates: TemplateCatalogItem[];
+  approval_required?: boolean;
+};
+
+export type TemplateMarketRequestListResult = {
+  mode: "requests";
+  requests: TemplatePublishRequestRow[];
+};
+
 /**
  * Fetch all MiniApps
  */
@@ -349,6 +459,120 @@ export function useImportMiniAppDefinitions() {
       if (!payload.dry_run) {
         queryClient.invalidateQueries({ queryKey: ["miniapps"] });
       }
+    },
+  });
+}
+
+/**
+ * Hook to import miniapp definitions from uploaded JSON/YAML payloads
+ */
+export function useImportMiniAppBatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      dry_run?: boolean;
+      stop_on_error?: boolean;
+      definitions: MiniAppBatchImportDefinitionInput[];
+    }): Promise<MiniAppBatchImportResult> => {
+      const response = await fetch("/api/miniapps/import-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(60000),
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } & Partial<MiniAppBatchImportResult> | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to import uploaded definitions");
+      }
+
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Invalid batch import response");
+      }
+
+      return payload as MiniAppBatchImportResult;
+    },
+    onSuccess: (payload) => {
+      if (!payload.dry_run) {
+        queryClient.invalidateQueries({ queryKey: ["miniapps"] });
+      }
+    },
+  });
+}
+
+/**
+ * Hook to rollback a previous miniapp batch import
+ */
+export function useRollbackMiniAppBatchImport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      targets: MiniAppBatchImportRollbackTarget[];
+    }): Promise<MiniAppBatchRollbackResult> => {
+      const response = await fetch("/api/miniapps/import-batch/rollback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(60000),
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } & Partial<MiniAppBatchRollbackResult> | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to rollback import batch");
+      }
+
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Invalid batch rollback response");
+      }
+
+      return payload as MiniAppBatchRollbackResult;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["miniapps"] });
+    },
+  });
+}
+
+/**
+ * Hook to create signed upload URLs for miniapp media assets (Cloudflare R2)
+ */
+export function useCreateMiniAppMediaUploadUrl() {
+  return useMutation({
+    mutationFn: async (input: {
+      app_id: string;
+      asset_type: MiniAppMediaAssetKind;
+      content_type: string;
+      file_name?: string;
+      variant?: MiniAppMediaUploadVariant;
+    }): Promise<MiniAppMediaUploadUrlResult> => {
+      const response = await fetch("/api/miniapps/admin/media/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } & Partial<MiniAppMediaUploadUrlResult> | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to create media upload URL");
+      }
+
+      if (!payload?.upload_url || !payload.public_url || !payload.key) {
+        throw new Error("Invalid media upload URL response");
+      }
+
+      return payload as MiniAppMediaUploadUrlResult;
     },
   });
 }
@@ -601,6 +825,196 @@ export function useVerifyPublishAuditChain() {
       }
 
       return payload as MiniAppPublishAuditVerifyResult;
+    },
+  });
+}
+
+export function useTemplateMarketTemplates(
+  options: {
+    kind?: TemplateKind | "all";
+    category?: string;
+    source?: TemplateSourceType | "all";
+    active?: "true" | "false" | "all";
+    verified?: "true" | "false" | "all";
+    search?: string;
+    limit?: number;
+    enabled?: boolean;
+  } = {},
+) {
+  const {
+    kind = "all",
+    category,
+    source = "all",
+    active = "all",
+    verified = "all",
+    search,
+    limit = 100,
+    enabled = true,
+  } = options;
+
+  return useQuery({
+    queryKey: ["miniapps", "template-market", "templates", kind, category || "", source, active, verified, search || "", limit],
+    enabled,
+    staleTime: DEFAULT_STALE_TIME_MS,
+    queryFn: async (): Promise<TemplateMarketTemplateListResult> => {
+      const params = new URLSearchParams();
+      params.set("mode", "templates");
+      if (kind !== "all") params.set("kind", kind);
+      if (category) params.set("category", category);
+      if (source !== "all") params.set("source", source);
+      if (active !== "all") params.set("active", active);
+      if (verified !== "all") params.set("verified", verified);
+      if (search) params.set("search", search);
+      params.set("limit", String(limit));
+
+      const response = await fetch(`/api/miniapps/template-market?${params.toString()}`, {
+        headers: getAdminAuthHeaders(),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      const payload = await response.json().catch(() => null) as {
+        error?: string;
+      } & Partial<TemplateMarketTemplateListResult> | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to load template market templates");
+      }
+
+      if (!payload || payload.mode !== "templates" || !Array.isArray(payload.templates)) {
+        throw new Error("Invalid template market templates response");
+      }
+
+      return payload as TemplateMarketTemplateListResult;
+    },
+  });
+}
+
+export function useTemplateMarketRequests(
+  options: {
+    kind?: TemplateKind | "all";
+    status?: TemplatePublishRequestStatus | "all";
+    limit?: number;
+    enabled?: boolean;
+  } = {},
+) {
+  const { kind = "all", status = "all", limit = 100, enabled = true } = options;
+
+  return useQuery({
+    queryKey: ["miniapps", "template-market", "requests", kind, status, limit],
+    enabled,
+    staleTime: DEFAULT_STALE_TIME_MS,
+    queryFn: async (): Promise<TemplateMarketRequestListResult> => {
+      const params = new URLSearchParams();
+      params.set("mode", "requests");
+      if (kind !== "all") params.set("kind", kind);
+      if (status !== "all") params.set("status", status);
+      params.set("limit", String(limit));
+
+      const response = await fetch(`/api/miniapps/template-market?${params.toString()}`, {
+        headers: getAdminAuthHeaders(),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      const payload = await response.json().catch(() => null) as {
+        error?: string;
+      } & Partial<TemplateMarketRequestListResult> | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to load template publish requests");
+      }
+
+      if (!payload || payload.mode !== "requests" || !Array.isArray(payload.requests)) {
+        throw new Error("Invalid template publish request response");
+      }
+
+      return payload as TemplateMarketRequestListResult;
+    },
+  });
+}
+
+export function useUpsertTemplateMarketEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      kind: TemplateKind;
+      template_id: string;
+      version?: string;
+      name?: string;
+      description?: string;
+      category?: string;
+      schema?: Record<string, unknown>;
+      ui_schema?: Record<string, unknown>;
+      manifest: Record<string, unknown>;
+      source_type?: TemplateSourceType;
+      tags?: string[];
+      is_active?: boolean;
+      is_verified?: boolean;
+      owner_user_id?: string | null;
+      factory_template_ref?: string | null;
+    }) => {
+      const response = await fetch("/api/miniapps/template-market", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify({
+          action: "upsert_template",
+          ...input,
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      const payload = await response.json().catch(() => null) as {
+        error?: string;
+        template?: TemplateCatalogItem;
+        request?: TemplatePublishRequestRow;
+        approval_required?: boolean;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to upsert template");
+      }
+
+      return payload;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["miniapps", "template-market"] });
+    },
+  });
+}
+
+export function useReviewTemplateMarketRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      requestId: string;
+      decision: "approve" | "reject" | "cancel";
+      reviewNote?: string;
+    }) => {
+      const response = await fetch("/api/miniapps/template-market", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify({
+          action: "review_request",
+          request_id: input.requestId,
+          decision: input.decision,
+          review_note: input.reviewNote,
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
+
+      const payload = await response.json().catch(() => null) as {
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to review template publish request");
+      }
+
+      return payload;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["miniapps", "template-market"] });
     },
   });
 }
