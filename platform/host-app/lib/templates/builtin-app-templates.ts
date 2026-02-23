@@ -39,12 +39,60 @@ const T_PREDICTION: AppTemplate = {
     tabs: [{ id: "market-info", label: "Market Info", type: "content" }, { id: "reviews", label: "Reviews", type: "reviews" }],
     operation_panel: { title: "Trade Position", subtitle: "Choose side, set amount, submit on-chain.", cta_label: "Open Full Experience", operations: [] }
   },
-  operations: [op("Buy YES", "buyYes", "primary", [amt()]), op("Buy NO", "buyNo", "danger", [amt()])]
+  operations: [op("Buy YES", "buyYes", "success", [amt()]), op("Buy NO", "buyNo", "danger", [amt()])]
 };
 
+const T_AIRDROP: AppTemplate = {
+  detail_template: {
+    layout: "default",
+    tabs: [
+      { id: "overview", label: "Overview", type: "content", blocks: [
+        { type: "notice", tone: "success", content: "Claim Multi-Chain Tokens & NFTs directly to your wallet." },
+        { type: "key_value", title: "Eligibility", items: [{ key: "Status", value: "Active" }, { key: "Network", value: "Neo N3 & Neo X" }] },
+      ]},
+      { id: "reviews", label: "Reviews", type: "reviews" }
+    ],
+    operation_panel: { title: "Claim", subtitle: "Check eligibility and claim tokens.", cta_label: "Connect to Claim", operations: [] },
+  },
+  operations: [op("Claim Tokens", "claim", "primary", [])]
+};
+
+const T_DAO: AppTemplate = {
+  detail_template: {
+    layout: "prediction", // Reuse prediction layout for split view
+    hero: { eyebrow: "Governance", disclaimer: "1 Token = 1 Vote" },
+    tabs: [
+      { id: "proposal", label: "Proposal Info", type: "content", blocks: [
+        { type: "markdown", title: "Summary", content: "Should we allocate 1,000 GAS to the community developer fund?" }
+      ]},
+      { id: "votes", label: "Votes", type: "content" }
+    ],
+    operation_panel: { title: "Cast Vote", subtitle: "Voting power is determined by snapshot.", cta_label: "Vote Now", operations: [] }
+  },
+  operations: [op("Vote FOR", "voteFor", "success", []), op("Vote AGAINST", "voteAgainst", "danger", []), op("Abstain", "abstain", "secondary", [])]
+};
+
+const T_GACHA: AppTemplate = {
+  detail_template: {
+    layout: "default",
+    tabs: [
+      { id: "prizes", label: "Prize Pool", type: "content", blocks: [
+        { type: "key_value", title: "Drop Rates", items: [{ key: "Legendary NFT", value: "1%" }, { key: "100 GAS", value: "5%" }, { key: "Common Item", value: "94%" }] }
+      ]},
+      { id: "history", label: "Recent Drops", type: "content" }
+    ],
+    operation_panel: { title: "Draw", subtitle: "Open blind boxes to win on-chain prizes.", cta_label: "Open Gacha", operations: [] }
+  },
+  operations: [op("Draw x1", "drawOne", "primary", [amt("fee", "Cost", "1.0")]), op("Draw x10", "drawTen", "primary", [amt("fee", "Cost", "10.0")])]
+};
+
+
 export const BUILTIN_APP_TEMPLATES: Record<string, AppTemplate> = {
-  "miniapp-lottery": T_LOTTERY,
-  "miniapp-coinflip": T_COINFLIP,
-  "miniapp-dicegame": T_DICE,
-  "miniapp-prediction-market": T_PREDICTION
+  "builtin-lottery": T_LOTTERY,
+  "builtin-coin-flip": T_COINFLIP,
+  "builtin-dice-game": T_DICE,
+  "builtin-prediction-market": T_PREDICTION,
+  "builtin-airdrop": T_AIRDROP,
+  "builtin-dao-voting": T_DAO,
+  "builtin-gacha": T_GACHA
 };
