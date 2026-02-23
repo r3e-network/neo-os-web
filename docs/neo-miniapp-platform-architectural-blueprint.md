@@ -98,7 +98,6 @@ neo-miniapp-platform/
 │
 ├── platform/                   # [TS] Host Platform
 │   ├── host-app/               # Next.js App (The "App Store" UI)
-│   ├── builtin-app/            # Built-in MiniApps (Module Federation remote)
 │   ├── sdk/                    # The "MiniAppSDK" npm package
 │   ├── edge/                   # [Deno] Supabase Edge Functions
 │   └── rls/                    # [SQL] RLS Policies & Migrations

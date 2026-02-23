@@ -47,7 +47,6 @@ These remain as shared building blocks used by the platform services.
 ### Platform Layer
 
 - `platform/host-app`: Next.js host (Vercel) with iframe + Module Federation loader
-- `platform/builtin-app`: built-in MiniApps served as Module Federation remote
 - `platform/sdk`: JS SDK (`window.MiniAppSDK`)
 - `platform/edge`: Supabase Edge functions (auth/limits/routing)
 - `platform/rls`: Supabase RLS SQL policies (schema lives in `migrations/`)

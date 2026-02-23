@@ -7,7 +7,7 @@ This **Next.js** host runs on **Vercel** and serves as the entry point for MiniA
 Responsibilities:
 
 - enforce MiniApp manifest policy (permissions/limits/assets) via Edge gating
-- sandbox MiniApps: **Module Federation** for built-ins, `iframe` for third-party apps
+- sandbox MiniApps via **Module Federation remotes** and `iframe` containers
 - strict CSP + postMessage allowlists
 - provide `window.MiniAppSDK` for federated apps and same-origin iframes
 - surface wallet binding, intent submission, and AppRegistry workflows
@@ -90,19 +90,14 @@ consistent for the host UI (same `EDGE_BASE_URL` / `NEXT_PUBLIC_SUPABASE_URL` re
 
 ## Local Runs
 
-### Module Federation (MiniApps)
+### Module Federation Remotes (Optional)
 
-Run the remote and host app together:
-
-```bash
-cd platform/builtin-app
-npm install
-npm run dev
-```
+This repository no longer includes a dedicated local legacy-remote workspace.
+Run the host app and point `NEXT_PUBLIC_MF_REMOTES` to any reachable remote.
 
 ```bash
 cd platform/host-app
-NEXT_PUBLIC_MF_REMOTES=miniapp@http://localhost:3001 npm run dev
+NEXT_PUBLIC_MF_REMOTES=miniapp@https://cdn.example.com/miniapps/remoteEntry.js npm run dev
 ```
 
 Then open:
