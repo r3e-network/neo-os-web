@@ -216,7 +216,7 @@ contracts** - they only pay via the SDK, and the platform handles the rest.
 ```ts
 // User buys 5 lottery tickets
 const payment = await window.MiniAppSDK.payments.payGAS(
-    "builtin-lottery",
+    "miniapp-lottery",
     "0.5", // 0.5 GAS for 5 tickets
     "lottery:round:42:tickets:5",
 );
@@ -241,33 +241,33 @@ await window.MiniAppSDK.wallet.invokeIntent?.(payment.request_id);
 - Rate limits and caps are enforced on **Edge** and **TEE** (defense in depth).
 - Host must enforce manifest constraints (assets/permissions/limits) at runtime.
 
-## Builtin MiniApps
+## Platform MiniApps
 
-The platform includes 24 builtin MiniApps demonstrating SDK usage patterns:
+The platform includes 24 platform MiniApps demonstrating SDK usage patterns:
 
 | Category   | App ID                      | Description                          |
 | ---------- | --------------------------- | ------------------------------------ |
-| Gaming     | `builtin-lottery`           | Lottery with provable VRF randomness |
-| Gaming     | `builtin-coin-flip`         | 50/50 double-or-nothing              |
-| Gaming     | `builtin-dice-game`         | Roll dice, win up to 6x              |
-| Gaming     | `builtin-scratch-card`      | Instant win scratch cards            |
-| Gaming     | `builtin-gas-spin`          | Lucky wheel with VRF                 |
-| Gaming     | `builtin-secret-poker`      | TEE Texas Hold'em                    |
-| Gaming     | `builtin-fog-chess`         | Chess with fog of war                |
-| DeFi       | `builtin-prediction-market` | Price movement predictions           |
-| DeFi       | `builtin-flashloan`         | Instant borrow and repay             |
-| DeFi       | `builtin-price-ticker`      | Real-time price feeds                |
-| DeFi       | `builtin-price-predict`     | Binary options trading               |
-| DeFi       | `builtin-micro-predict`     | 60-second predictions                |
-| DeFi       | `builtin-turbo-options`     | Ultra-fast binary options            |
-| DeFi       | `builtin-il-guard`          | Impermanent loss protection          |
-| DeFi       | `builtin-ai-trader`         | Autonomous AI trading                |
-| DeFi       | `builtin-grid-bot`          | Automated grid trading               |
-| DeFi       | `builtin-bridge-guardian`   | Cross-chain asset bridge             |
-| Social     | `builtin-red-envelope`      | Social GAS red packets               |
-| Social     | `builtin-gas-circle`        | Daily savings circle                 |
-| Social     | `builtin-canvas`            | Collaborative pixel art canvas       |
-| Governance | `builtin-secret-vote`       | Privacy-preserving voting            |
-| Governance | `builtin-gov-booster`       | bNEO governance tools                |
-| Security   | `builtin-guardian-policy`   | TEE transaction security             |
-| Gaming     | `builtin-nft-evolve`        | Dynamic NFT evolution                |
+| Gaming     | `miniapp-lottery`           | Lottery with provable VRF randomness |
+| Gaming     | `miniapp-coinflip`         | 50/50 double-or-nothing              |
+| Gaming     | `miniapp-dicegame`         | Roll dice, win up to 6x              |
+| Gaming     | `miniapp-scratch-card`      | Instant win scratch cards            |
+| Gaming     | `miniapp-gas-spin`          | Lucky wheel with VRF                 |
+| Gaming     | `miniapp-secret-poker`      | TEE Texas Hold'em                    |
+| Gaming     | `miniapp-fog-chess`         | Chess with fog of war                |
+| DeFi       | `miniapp-predictionmarket` | Price movement predictions           |
+| DeFi       | `miniapp-flashloan`         | Instant borrow and repay             |
+| DeFi       | `miniapp-price-ticker`      | Real-time price feeds                |
+| DeFi       | `miniapp-price-predict`     | Binary options trading               |
+| DeFi       | `miniapp-micro-predict`     | 60-second predictions                |
+| DeFi       | `miniapp-turbo-options`     | Ultra-fast binary options            |
+| DeFi       | `miniapp-il-guard`          | Impermanent loss protection          |
+| DeFi       | `miniapp-ai-trader`         | Autonomous AI trading                |
+| DeFi       | `miniapp-grid-bot`          | Automated grid trading               |
+| DeFi       | `miniapp-bridge-guardian`   | Cross-chain asset bridge             |
+| Social     | `miniapp-redenvelope`      | Social GAS red packets               |
+| Social     | `miniapp-gascircle`        | Daily savings circle                 |
+| Social     | `miniapp-canvas`            | Collaborative pixel art canvas       |
+| Governance | `miniapp-secretvote`       | Privacy-preserving voting            |
+| Governance | `miniapp-gov-booster`       | bNEO governance tools                |
+| Security   | `miniapp-guardian-policy`   | TEE transaction security             |
+| Gaming     | `miniapp-nft-evolve`        | Dynamic NFT evolution                |

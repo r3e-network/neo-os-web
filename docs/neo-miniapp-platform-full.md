@@ -56,7 +56,7 @@ neo-miniapp-platform/
 │  └─ admin-console/    # 审核/运维后台（可选）
 │
 ├─ miniapps/
-│  ├─ builtin/          # 官方内置：coin-flip, dice-game, scratch-card, lottery, prediction-market, flashloan, price-ticker
+│  ├─ miniapp/          # 官方平台：coin-flip, dice-game, scratch-card, lottery, prediction-market, flashloan, price-ticker
 │  └─ templates/        # 开发者 starter kits（React + HTML）
 │
 ├─ docker/              # dev/test 容器编排（Supabase 等）
