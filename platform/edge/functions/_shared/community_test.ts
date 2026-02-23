@@ -31,6 +31,13 @@ function createMockSupabase(
       select: (_cols: string) => ({
         eq: (_col: string, _val: string) => ({
           eq: (_col2: string, _val2: string) => ({
+            order: (_col3: string, _opts: { ascending: boolean }) => ({
+              limit: (_n: number) =>
+                Promise.resolve({
+                  data: overrides.fromData ?? null,
+                  error: overrides.fromError ?? null,
+                }),
+            }),
             limit: (_n: number) =>
               Promise.resolve({
                 data: overrides.fromData ?? null,
@@ -153,7 +160,7 @@ Deno.test("checkSpamLimit passes appId to RPC when provided", async () => {
   await checkSpamLimit(mockSupabase, "user-1", "comment", "app-1");
 
   assertExists(capturedParams);
-  assertEquals(capturedParams!.p_app_id, "app-1");
+  assertEquals((capturedParams as Record<string, unknown>)["p_app_id"], "app-1");
 });
 
 // -----------------------------------------------------------------------------
@@ -176,9 +183,9 @@ Deno.test("logSpamAction calls RPC with correct parameters", async () => {
 
   assertEquals(capturedFn, "log_spam_action");
   assertExists(capturedParams);
-  assertEquals(capturedParams!.p_user_id, "user-1");
-  assertEquals(capturedParams!.p_action_type, "comment");
-  assertEquals(capturedParams!.p_app_id, "app-1");
+  assertEquals((capturedParams as Record<string, unknown>)["p_user_id"], "user-1");
+  assertEquals((capturedParams as Record<string, unknown>)["p_action_type"], "comment");
+  assertEquals((capturedParams as Record<string, unknown>)["p_app_id"], "app-1");
 });
 
 Deno.test("logSpamAction passes null appId when not provided", async () => {
@@ -194,7 +201,7 @@ Deno.test("logSpamAction passes null appId when not provided", async () => {
   await logSpamAction(mockSupabase, "user-1", "vote");
 
   assertExists(capturedParams);
-  assertEquals(capturedParams!.p_app_id, null);
+  assertEquals((capturedParams as Record<string, unknown>)["p_app_id"], null);
 });
 
 // -----------------------------------------------------------------------------

@@ -8,6 +8,9 @@ import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { relaxedLimit } from "@/lib/rate-limit";
+import { warnOnce } from "@/lib/log-once";
+import { canonicalizeMiniAppId } from "@/lib/miniapp-id";
+import { isMissingSupabaseSchemaObject } from "@/lib/supabase-errors";
 
 const PLATFORM_TX_COUNT = parseInt(process.env.PLATFORM_TX_COUNT || "444981", 10);
 const colors = ["#00d4aa", "#3498db", "#9b59b6", "#f1c40f", "#e67e22"];
@@ -34,6 +37,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data, error } = await supabase.rpc("platform_stats_aggregate");
 
     if (error) {
+      if (isMissingSupabaseSchemaObject(error)) {
+        warnOnce("platform-stats-rpc-missing", "platform_stats_aggregate RPC not available; returning fallback platform stats.");
+        return res.status(200).json(base);
+      }
       logger.error("platform_stats_aggregate RPC failed:", error.message);
       return res.status(200).json(base);
     }
@@ -44,7 +51,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       base.totalVolume = Number(row.total_volume || 0).toFixed(2);
       const apps = (row.top_apps || []) as { name: string; users: number }[];
       base.topApps = apps.map((a, i) => ({
-        name: String(a.name).replace("builtin-", "").replace("miniapp-", "").replace(/-/g, " "),
+        name: (canonicalizeMiniAppId(a.name) || String(a.name || ""))
+          .replace("miniapp-", "")
+          .replace(/-/g, " "),
         users: Number(a.users || 0),
         color: colors[i % colors.length],
       }));

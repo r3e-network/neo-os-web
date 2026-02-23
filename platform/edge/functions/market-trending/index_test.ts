@@ -312,13 +312,16 @@ Deno.test("market-trending - handles apps metadata error", async () => {
   mockSupabaseData.todayData = [{ app_id: "app1", tx_count: 100 }];
   mockSupabaseData.historicalData = [{ app_id: "app1", tx_count: 50 }];
   mockSupabaseData.appsError = { message: "Failed to fetch apps" };
+  mockSupabaseData.statsData = [{ app_id: "app1", total_transactions: 1000 }];
 
   const req = new Request("http://localhost/market-trending");
   const res = await handler(req, createMockSupabaseFactory());
 
-  assertEquals(res.status, 500);
+  assertEquals(res.status, 200);
   const body = await res.json();
-  assertEquals(body.error.code, "DB_ERROR");
+  assertEquals(body.trending.length, 1);
+  assertEquals(body.trending[0].app_id, "app1");
+  assertEquals(body.trending[0].name, "app1");
 });
 
 Deno.test("market-trending - handles stats error", async () => {
