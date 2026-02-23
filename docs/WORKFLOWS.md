@@ -170,7 +170,7 @@ This is the **correct business workflow** for MiniApps that involve payments
 User clicks "Buy 5 Tickets" in Lottery MiniApp
     │
     ▼
-SDK.payGAS("builtin-lottery", "0.5", "lottery:round:42:tickets:5")
+SDK.payGAS("miniapp-lottery", "0.5", "lottery:round:42:tickets:5")
     │
     ▼
 PaymentHub receives 0.5 GAS with memo
@@ -185,7 +185,7 @@ Platform invokes MiniAppLottery.recordTickets(42, userAddr, 5)
 Platform invokes MiniAppLottery.recordWinner(42, winnerAddr)
     │
     ▼
-Platform calls PayoutToUser("builtin-lottery", winnerAddr, prizeAmount, "lottery:win:42")
+Platform calls PayoutToUser("miniapp-lottery", winnerAddr, prizeAmount, "lottery:win:42")
 ```
 
 ### Key Principles
@@ -237,7 +237,7 @@ Use these scripts to validate GAS payments and bNEO governance flows on testnet.
 go run scripts/send_paymenthub_gas.go
 
 # Optional overrides
-# PAY_APP_ID=builtin-lottery
+# PAY_APP_ID=miniapp-lottery
 # PAY_GAS_AMOUNT=100000   # 0.001 GAS
 ```
 

@@ -61,7 +61,7 @@ Complete JSON Schema with:
 | Script | Purpose |
 |--------|---------|
 | `scripts/generate-miniapp-config.ts` | Generate new MiniApp configurations |
-| `scripts/export-builtin-templates.ts` | Export builtin templates to JSON |
+| `scripts/export-miniapp-templates.ts` | Export miniapp templates to JSON |
 
 ### 6. Documentation
 
@@ -91,7 +91,7 @@ Complete JSON Schema with:
   - Operation panel rendering
   - Content block components
 
-- **Builtin Templates** (`platform/host-app/lib/templates/builtin-app-templates.ts`)
+- **MiniApp Templates** (`platform/host-app/lib/templates/miniapp-templates.ts`)
   - 62 predefined templates
   - 6 template factory functions
 
@@ -148,7 +148,7 @@ curl -X POST "http://localhost:3000/api/miniapps/admin/import-definitions" \
 ## Next Steps
 
 1. **Deploy Contract Templates**: Upload `.nef` files to MiniAppFactory
-2. **Export Builtin Templates**: Run `export-builtin-templates.ts`
+2. **Export MiniApp Templates**: Run `export-miniapp-templates.ts`
 3. **Import Configurations**: Use Admin API to import all configs
 4. **Test End-to-End**: Verify new MiniApps work correctly
 5. **Document API**: Update API documentation
@@ -182,7 +182,7 @@ platform/host-app/
 
 scripts/
 ├── generate-miniapp-config.ts (NEW)
-└── export-builtin-templates.ts (NEW)
+└── export-miniapp-templates.ts (NEW)
 ```
 
 ## Statistics
@@ -190,7 +190,7 @@ scripts/
 | Metric | Value |
 |--------|-------|
 | Total MiniApps | 65 |
-| Templates in builtin-app-templates.ts | 62 (95.4%) |
+| Templates in miniapp-templates.ts | 62 (95.4%) |
 | Missing templates (now added) | 1 (gas-sponsor) |
 | Template factory functions | 6 |
 | New JSON configs created | 9 |

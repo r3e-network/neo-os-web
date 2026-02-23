@@ -132,8 +132,8 @@ High level:
 `entry_url` supports two modes:
 
 - `https://...` for iframe-hosted MiniApps.
-- `mf://<remote>?app=<app_id>` for Module Federation built-ins. The host resolves
-  `<remote>` via `NEXT_PUBLIC_MF_REMOTES` and loads `builtin/App` without an iframe.
+- `mf://<remote>?app=<app_id>` for Module Federation miniapps. The host resolves
+  `<remote>` via `NEXT_PUBLIC_MF_REMOTES` and loads `miniapp/App` without an iframe.
 
 ### Permissions
 

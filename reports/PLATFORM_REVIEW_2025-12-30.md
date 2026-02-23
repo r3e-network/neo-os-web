@@ -329,7 +329,7 @@ All 62 apps properly integrate `@neo/uniapp-sdk` with:
 
 | Component                        | Count | Status      |
 | -------------------------------- | ----- | ----------- |
-| builtin-apps.ts entries          | 60    | ✅          |
+| miniapp-registry.ts entries      | 60    | ✅          |
 | manifests/manifest.json hashes   | 60    | ✅          |
 | contracts/build/\*.manifest.json | 62    | ⚠️ MISMATCH |
 | contracts/build/\*.nef files     | 68    | ⚠️ MISMATCH |
@@ -344,11 +344,11 @@ All 62 apps properly integrate `@neo/uniapp-sdk` with:
 
 2. **Entry URL Scheme Divergence**
    - Legacy: `/miniapps/{app-name}/` (60 apps)
-   - New: `mf://builtin?app={app-id}` (2 apps)
+   - New: `mf://manifest?app={app-id}` (2 apps)
    - Impact: Frontend routing inconsistency
 
 3. **Frontend Registry Out of Sync**
-   - builtin-apps.ts missing neoburger, candidate-vote
+   - miniapp-registry.ts missing neoburger, candidate-vote
    - Impact: New apps not visible in UI
 
 ### Warnings (5)
@@ -388,7 +388,7 @@ All 62 apps properly integrate `@neo/uniapp-sdk` with:
 | 19  | SDK       | Missing Governance Composable      | HIGH     | composables/                       |
 | 20  | Cross     | Build Artifact Mismatch            | HIGH     | contracts/build/                   |
 | 21  | Cross     | Entry URL Scheme Divergence        | MEDIUM   | miniapps-uniapp/apps/              |
-| 22  | Cross     | Frontend Registry Out of Sync      | MEDIUM   | builtin-apps.ts                    |
+| 22  | Cross     | Frontend Registry Out of Sync      | MEDIUM   | miniapp-registry.ts                |
 
 ---
 
@@ -534,7 +534,7 @@ The following contracts have been deleted but build artifacts remain:
 
 ### E. New Apps Not in Frontend Registry
 
-| App            | manifest.json | builtin-apps.ts | Status          |
+| App            | manifest.json | miniapp-registry.ts | Status          |
 | -------------- | ------------- | --------------- | --------------- |
 | neoburger      | ✅ Present    | ❌ Missing      | Add to registry |
 | candidate-vote | ✅ Present    | ❌ Missing      | Add to registry |
