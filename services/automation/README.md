@@ -60,7 +60,7 @@ POST /triggers
     "schedule": "0 9 * * *",
     "action": {
         "type": "webhook",
-        "url": "https://hooks.miniapps.com/callback",
+        "url": "https://hooks.r3e.network/callback",
         "method": "POST"
     }
 }
