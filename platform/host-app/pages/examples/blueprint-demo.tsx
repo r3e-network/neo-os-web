@@ -90,7 +90,7 @@ export default function GenericMiniAppPage({
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
       <Head>
-        <title>{name} - R3E Network</title>
+        <title>{`${name} - R3E Network`}</title>
       </Head>
 
       <TradingLayout

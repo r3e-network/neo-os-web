@@ -21,7 +21,7 @@ import (
 // =============================================================================
 
 func TestNew(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 
 	svc, err := New(Config{
@@ -56,7 +56,7 @@ func TestServiceConstants(t *testing.T) {
 }
 
 func TestInitDefaultSources(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := New(Config{Marble: m})
 
@@ -157,6 +157,7 @@ func TestSignPriceWithKey(t *testing.T) {
 }
 
 func TestSignPriceWithoutKey(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := New(Config{Marble: m})
 
@@ -203,6 +204,7 @@ func TestHandleGetPriceMissingPair(t *testing.T) {
 }
 
 func TestHandleGetPrices(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})

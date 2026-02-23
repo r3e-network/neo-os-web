@@ -16,13 +16,13 @@ import (
 )
 
 var miniApps = []string{
-	"builtin-lottery",
-	"builtin-coin-flip",
-	"builtin-dice-game",
-	"builtin-scratch-card",
-	"builtin-prediction-market",
-	"builtin-flashloan",
-	"builtin-price-ticker",
+	"miniapp-lottery",
+	"miniapp-coinflip",
+	"miniapp-dicegame",
+	"miniapp-scratch-card",
+	"miniapp-predictionmarket",
+	"miniapp-flashloan",
+	"miniapp-price-ticker",
 }
 
 func main() {

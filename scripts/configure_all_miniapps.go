@@ -34,33 +34,33 @@ var miniApps = []struct {
 	Description string
 }{
 	// Gaming (6)
-	{"builtin-lottery", "Neo Lottery", "gaming", "Decentralized lottery with provably fair randomness"},
-	{"builtin-coin-flip", "Neo Coin Flip", "gaming", "50/50 coin flip game"},
-	{"builtin-dice-game", "Neo Dice", "gaming", "Roll dice and win up to 6x"},
-	{"builtin-scratch-card", "Neo Scratch Cards", "gaming", "Instant win scratch cards"},
-	{"builtin-mega-millions", "Mega Millions", "gaming", "Multi-tier lottery with 9 prize levels"},
-	{"builtin-gas-spin", "Neo Gas Spin", "gaming", "Spin wheel to win GAS prizes"},
+	{"miniapp-lottery", "Neo Lottery", "gaming", "Decentralized lottery with provably fair randomness"},
+	{"miniapp-coinflip", "Neo Coin Flip", "gaming", "50/50 coin flip game"},
+	{"miniapp-dicegame", "Neo Dice", "gaming", "Roll dice and win up to 6x"},
+	{"miniapp-scratch-card", "Neo Scratch Cards", "gaming", "Instant win scratch cards"},
+	{"miniapp-mega-millions", "Mega Millions", "gaming", "Multi-tier lottery with 9 prize levels"},
+	{"miniapp-gas-spin", "Neo Gas Spin", "gaming", "Spin wheel to win GAS prizes"},
 	// DeFi (6)
-	{"builtin-prediction-market", "Neo Predictions", "defi", "Bet on price movements"},
-	{"builtin-flashloan", "Neo FlashLoan", "defi", "Instant borrow and repay"},
-	{"builtin-price-ticker", "Neo Price Ticker", "defi", "Real-time price feeds"},
-	{"builtin-price-predict", "Neo Price Predict", "defi", "Predict price direction"},
-	{"builtin-turbo-options", "Turbo Options", "defi", "Ultra-fast binary options"},
-	{"builtin-il-guard", "IL Guard", "defi", "Impermanent loss protection"},
+	{"miniapp-predictionmarket", "Neo Predictions", "defi", "Bet on price movements"},
+	{"miniapp-flashloan", "Neo FlashLoan", "defi", "Instant borrow and repay"},
+	{"miniapp-price-ticker", "Neo Price Ticker", "defi", "Real-time price feeds"},
+	{"miniapp-price-predict", "Neo Price Predict", "defi", "Predict price direction"},
+	{"miniapp-turbo-options", "Turbo Options", "defi", "Ultra-fast binary options"},
+	{"miniapp-il-guard", "IL Guard", "defi", "Impermanent loss protection"},
 	// Social (5)
-	{"builtin-secret-vote", "Neo Secret Vote", "social", "Anonymous voting with TEE privacy"},
-	{"builtin-secret-poker", "Secret Poker", "social", "TEE Texas Hold'em"},
-	{"builtin-micro-predict", "Micro Predict", "social", "60-second price predictions"},
-	{"builtin-red-envelope", "Red Envelope", "social", "WeChat-style lucky red packets"},
-	{"builtin-gas-circle", "Gas Circle", "social", "Daily savings circle with lottery"},
+	{"miniapp-secretvote", "Neo Secret Vote", "social", "Anonymous voting with TEE privacy"},
+	{"miniapp-secret-poker", "Secret Poker", "social", "TEE Texas Hold'em"},
+	{"miniapp-micro-predict", "Micro Predict", "social", "60-second price predictions"},
+	{"miniapp-redenvelope", "Red Envelope", "social", "WeChat-style lucky red packets"},
+	{"miniapp-gascircle", "Gas Circle", "social", "Daily savings circle with lottery"},
 	// Governance (1)
-	{"builtin-gov-booster", "Gov Booster", "governance", "bNEO governance optimization"},
+	{"miniapp-gov-booster", "Gov Booster", "governance", "bNEO governance optimization"},
 	// Advanced (5)
-	{"builtin-ai-trader", "Neo AI Trader", "advanced", "AI-powered trading strategies"},
-	{"builtin-grid-bot", "Neo Grid Bot", "advanced", "Automated grid trading"},
-	{"builtin-nft-evolve", "Neo NFT Evolve", "advanced", "Evolving NFT collectibles"},
-	{"builtin-bridge-guardian", "Neo Bridge Guardian", "advanced", "Cross-chain bridge monitoring"},
-	{"builtin-fog-chess", "Fog Chess", "advanced", "Chess with fog of war using TEE"},
+	{"miniapp-ai-trader", "Neo AI Trader", "advanced", "AI-powered trading strategies"},
+	{"miniapp-grid-bot", "Neo Grid Bot", "advanced", "Automated grid trading"},
+	{"miniapp-nft-evolve", "Neo NFT Evolve", "advanced", "Evolving NFT collectibles"},
+	{"miniapp-bridge-guardian", "Neo Bridge Guardian", "advanced", "Cross-chain bridge monitoring"},
+	{"miniapp-fog-chess", "Fog Chess", "advanced", "Chess with fog of war using TEE"},
 }
 
 func main() {

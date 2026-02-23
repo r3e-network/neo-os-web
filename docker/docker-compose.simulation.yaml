@@ -437,7 +437,7 @@ services:
       - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
       - SIMULATION_ENABLED=${SIMULATION_ENABLED:-true}
-      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-builtin-lottery,builtin-coin-flip,builtin-dice-game,builtin-scratch-card,builtin-mega-millions,builtin-gas-spin,builtin-prediction-market,builtin-flashloan,builtin-price-ticker,builtin-price-predict,builtin-turbo-options,builtin-il-guard,builtin-secret-vote,builtin-secret-poker,builtin-micro-predict,builtin-red-envelope,builtin-gas-circle,builtin-gov-booster,builtin-ai-trader,builtin-grid-bot,builtin-nft-evolve,builtin-bridge-guardian,builtin-fog-chess}
+      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-miniapp-lottery,miniapp-coinflip,miniapp-dicegame,miniapp-scratch-card,miniapp-mega-millions,miniapp-gas-spin,miniapp-predictionmarket,miniapp-flashloan,miniapp-price-ticker,miniapp-price-predict,miniapp-turbo-options,miniapp-il-guard,miniapp-secretvote,miniapp-secret-poker,miniapp-micro-predict,miniapp-redenvelope,miniapp-gascircle,miniapp-gov-booster,miniapp-ai-trader,miniapp-grid-bot,miniapp-nft-evolve,miniapp-bridge-guardian,miniapp-fog-chess}
       - SIMULATION_TX_INTERVAL_MIN_MS=${SIMULATION_TX_INTERVAL_MIN_MS:-15000}
       - SIMULATION_TX_INTERVAL_MAX_MS=${SIMULATION_TX_INTERVAL_MAX_MS:-15000}
       - SIMULATION_WORKERS_PER_APP=${SIMULATION_WORKERS_PER_APP:-1}

@@ -38,7 +38,7 @@ function getMTLSClient(): Deno.HttpClient | undefined {
     return undefined;
   }
 
-  const opts: Deno.HttpClientOptions = { cert, key };
+  const opts: { cert: string; key: string; caCerts?: string[] } = { cert, key };
   if (ca) {
     opts.caCerts = [ca];
   }

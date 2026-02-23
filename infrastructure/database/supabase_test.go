@@ -164,6 +164,24 @@ func TestClientRequestError(t *testing.T) {
 	}
 }
 
+func TestClientRequestRPCUsesRestPrefix(t *testing.T) {
+	client := newClientWithHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/rest/v1/rpc/miniapp_stats_rollup" {
+			t.Errorf("Path = %s, want /rest/v1/rpc/miniapp_stats_rollup", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok": true}`))
+	}))
+
+	ctx := context.Background()
+	_, err := client.requestRPC(ctx, "POST", "rpc/miniapp_stats_rollup", map[string]string{"miniapp_id": "app-1"}, "")
+	if err != nil {
+		t.Fatalf("requestRPC() error = %v", err)
+	}
+}
+
 // =============================================================================
 // Domain Model Tests
 // =============================================================================

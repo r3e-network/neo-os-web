@@ -2,34 +2,67 @@ import { test, expect } from "@playwright/test";
 
 test.describe("MiniApps List", () => {
   test.beforeEach(async ({ page }) => {
+    const catalogRequest = page
+      .waitForResponse((response) => response.url().includes("/api/miniapps/catalog"))
+      .catch(() => null);
+    const statsRequest = page
+      .waitForResponse((response) => response.url().includes("/api/miniapp-stats"))
+      .catch(() => null);
+    const communityRequest = page
+      .waitForResponse((response) => response.url().includes("/api/miniapps/community"))
+      .catch(() => null);
+
     await page.goto("/miniapps");
+    await Promise.all([catalogRequest, statsRequest, communityRequest]);
   });
 
-  test("should display MiniApps page", async ({ page }) => {
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  test("should display MiniApps hero and controls", async ({ page }) => {
+    await expect(page.getByRole("heading", { name: /^MiniApps$/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Filters/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sort options" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "List view" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Grid view" })).toBeVisible();
   });
 
-  test("should show MiniApp cards", async ({ page }) => {
-    // Wait for apps to load
-    await page.waitForTimeout(2000);
-    // Use broader selectors to find app cards
-    const cards = page.locator('a[href*="/miniapps/"], div[class*="card"], div[class*="app"]');
-    const count = await cards.count();
-    expect(count).toBeGreaterThanOrEqual(0); // Allow 0 if page structure differs
+  test("should show MiniApp cards or fallback state", async ({ page }) => {
+    const cards = page.locator('a[aria-label^="View "]');
+    const cardCount = await cards.count();
+
+    if (cardCount > 0) {
+      await expect(cards.first()).toBeVisible();
+    } else {
+      const fallbackMessage = page.locator("text=No apps to display");
+      const errorAlert = page.locator("role=alert");
+      const visibleFallback = await fallbackMessage.count();
+      const visibleAlert = await errorAlert.count();
+      expect(visibleFallback + visibleAlert).toBeGreaterThan(0);
+    }
   });
 
   test("should have search functionality", async ({ page }) => {
-    const searchInput = page.getByPlaceholder(/search/i);
-    if (await searchInput.isVisible()) {
-      await searchInput.fill("lottery");
-      await page.waitForTimeout(500);
-    }
+    const searchInput = page.getByRole("searchbox", { name: /search/i }).first();
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill("lottery");
+    await expect(searchInput).toHaveValue("lottery");
+    await searchInput.fill("");
   });
 
   test("should filter by category", async ({ page }) => {
-    const categoryFilter = page.getByRole("button", { name: /gaming|defi|all/i }).first();
-    if (await categoryFilter.isVisible()) {
-      await categoryFilter.click();
+    const categorySection = page.getByRole("button", { name: "Category" });
+    if ((await categorySection.getAttribute("aria-expanded")) === "false") {
+      await categorySection.click();
     }
+
+    const gamingOption = page.locator("label", { hasText: "Gaming" }).first();
+    await expect(gamingOption).toBeVisible();
+
+    const checkIcon = gamingOption.locator("svg");
+    await expect(checkIcon).toHaveCount(0);
+
+    await gamingOption.click();
+    await expect(checkIcon).toHaveCount(1);
+
+    await gamingOption.click();
+    await expect(checkIcon).toHaveCount(0);
   });
 });

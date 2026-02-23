@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { StatsBar } from "@/components/features/stats";
 import { MiniAppGrid, type MiniAppInfo } from "@/components/features/miniapp";
 import { TwitterFeed } from "@/components/features/twitter";
@@ -18,7 +18,7 @@ const platformStats = [
 // MiniApp catalog
 const miniApps: MiniAppInfo[] = [
   {
-    app_id: "builtin-lottery",
+    app_id: "miniapp-lottery",
     name: "Neo Lottery",
     description: "Decentralized lottery with provably fair randomness",
     icon: "🎰",
@@ -26,7 +26,7 @@ const miniApps: MiniAppInfo[] = [
     stats: { users: 12500, transactions: 45000 },
   },
   {
-    app_id: "builtin-coin-flip",
+    app_id: "miniapp-coinflip",
     name: "Coin Flip",
     description: "50/50 coin flip - double your GAS",
     icon: "🪙",
@@ -34,7 +34,7 @@ const miniApps: MiniAppInfo[] = [
     stats: { users: 8900, transactions: 32000 },
   },
   {
-    app_id: "builtin-dice-game",
+    app_id: "miniapp-dicegame",
     name: "Dice Game",
     description: "Roll the dice and win up to 6x",
     icon: "🎲",
@@ -42,7 +42,7 @@ const miniApps: MiniAppInfo[] = [
     stats: { users: 6700, transactions: 28000 },
   },
   {
-    app_id: "builtin-prediction-market",
+    app_id: "miniapp-predictionmarket",
     name: "Prediction Market",
     description: "Trade on future outcomes",
     icon: "📊",
@@ -50,7 +50,7 @@ const miniApps: MiniAppInfo[] = [
     stats: { users: 3200, transactions: 15000 },
   },
   {
-    app_id: "builtin-airdrop",
+    app_id: "miniapp-redenvelope",
     name: "Airdrop Center",
     description: "Claim Multi-Chain Tokens & NFTs",
     icon: "🪂",
@@ -58,7 +58,7 @@ const miniApps: MiniAppInfo[] = [
     stats: { users: 15600, transactions: 42000 },
   },
   {
-    app_id: "builtin-dao-voting",
+    app_id: "miniapp-secretvote",
     name: "DAO Snapshot",
     description: "On-Chain Governance & Voting",
     icon: "⚖️",
@@ -66,7 +66,7 @@ const miniApps: MiniAppInfo[] = [
     stats: { users: 8100, transactions: 12500 },
   },
   {
-    app_id: "builtin-gacha",
+    app_id: "miniapp-gacha",
     name: "On-Chain Gacha",
     description: "Blind Box Gamification",
     icon: "🎁",

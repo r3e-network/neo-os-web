@@ -15,8 +15,8 @@ import (
 // =============================================================================
 
 func TestAllMiniApps(t *testing.T) {
-        apps := AllMiniApps()
-        assert.Len(t, apps, 7)
+	apps := AllMiniApps()
+	assert.Len(t, apps, 7)
 }
 
 func TestAllMiniApps_Categories(t *testing.T) {
@@ -58,7 +58,7 @@ func TestAllMiniApps_BetAmounts(t *testing.T) {
 	apps := AllMiniApps()
 
 	for _, app := range apps {
-		if app.AppID == "builtin-price-ticker" || app.AppID == "builtin-airdrop" || app.AppID == "builtin-dao-voting" {
+		if app.AppID == "miniapp-price-ticker" || app.AppID == "miniapp-airdrop" || app.AppID == "miniapp-dao-voting" {
 			assert.Equal(t, int64(0), app.BetAmount, "price-ticker should have 0 bet amount")
 		} else {
 			assert.Greater(t, app.BetAmount, int64(0), "%s should have positive bet amount", app.AppID)
@@ -94,13 +94,13 @@ func TestMiniAppSimulator_SimulateLottery_Success(t *testing.T) {
 	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 	require.GreaterOrEqual(t, len(payToAppCalls), 1)
-	assert.Equal(t, "builtin-lottery", payToAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-lottery", payToAppCalls[0].AppID)
 	assert.Greater(t, payToAppCalls[0].Amount, int64(0))
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
-	assert.Equal(t, "builtin-lottery", miniAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-lottery", miniAppCalls[0].AppID)
 	assert.Equal(t, "BuyTickets", miniAppCalls[0].Method)
 
 	// Verify stats updated
@@ -161,13 +161,13 @@ func TestMiniAppSimulator_SimulateCoinFlip_Success(t *testing.T) {
 	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 	require.GreaterOrEqual(t, len(payToAppCalls), 1)
-	assert.Equal(t, "builtin-coin-flip", payToAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-coinflip", payToAppCalls[0].AppID)
 	assert.Equal(t, int64(5000000), payToAppCalls[0].Amount) // 0.05 GAS
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
-	assert.Equal(t, "builtin-coin-flip", miniAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-coinflip", miniAppCalls[0].AppID)
 	assert.Equal(t, "PlaceBet", miniAppCalls[0].Method)
 
 	// Verify stats updated
@@ -204,13 +204,13 @@ func TestMiniAppSimulator_SimulateDiceGame_Success(t *testing.T) {
 	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 	require.GreaterOrEqual(t, len(payToAppCalls), 1)
-	assert.Equal(t, "builtin-dice-game", payToAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-dicegame", payToAppCalls[0].AppID)
 	assert.Equal(t, int64(8000000), payToAppCalls[0].Amount) // 0.08 GAS
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
-	assert.Equal(t, "builtin-dice-game", miniAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-dicegame", miniAppCalls[0].AppID)
 	assert.Equal(t, "PlaceBet", miniAppCalls[0].Method)
 
 	// Verify stats updated
@@ -247,7 +247,7 @@ func TestMiniAppSimulator_SimulateScratchCard_Success(t *testing.T) {
 	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 	require.GreaterOrEqual(t, len(payToAppCalls), 1)
-	assert.Equal(t, "builtin-scratch-card", payToAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-scratch-card", payToAppCalls[0].AppID)
 	assert.GreaterOrEqual(t, payToAppCalls[0].Amount, int64(2000000))
 	assert.LessOrEqual(t, payToAppCalls[0].Amount, int64(6000000))
 	assert.Equal(t, int64(0), payToAppCalls[0].Amount%2000000)
@@ -255,7 +255,7 @@ func TestMiniAppSimulator_SimulateScratchCard_Success(t *testing.T) {
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
-	assert.Equal(t, "builtin-scratch-card", miniAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-scratch-card", miniAppCalls[0].AppID)
 	assert.Equal(t, "BuyCard", miniAppCalls[0].Method)
 
 	// Verify stats updated
@@ -292,13 +292,13 @@ func TestMiniAppSimulator_SimulatePredictionMarket_Success(t *testing.T) {
 	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 	require.GreaterOrEqual(t, len(payToAppCalls), 1)
-	assert.Equal(t, "builtin-prediction-market", payToAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-predictionmarket", payToAppCalls[0].AppID)
 	assert.Equal(t, int64(20000000), payToAppCalls[0].Amount) // 0.2 GAS
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
-	assert.Equal(t, "builtin-prediction-market", miniAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-predictionmarket", miniAppCalls[0].AppID)
 	assert.Equal(t, "PlacePrediction", miniAppCalls[0].Method)
 
 	// Verify stats updated
@@ -337,13 +337,13 @@ func TestMiniAppSimulator_SimulateFlashLoan_Success(t *testing.T) {
 	// Verify PayToApp was called (USER ACTION - simulates SDK payGAS for fee)
 	payToAppCalls := mockInvoker.getPayToAppCalls()
 	require.GreaterOrEqual(t, len(payToAppCalls), 1)
-	assert.Equal(t, "builtin-flashloan", payToAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-flashloan", payToAppCalls[0].AppID)
 	assert.Equal(t, int64(1000000), payToAppCalls[0].Amount) // 0.01 GAS fee
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
 	require.GreaterOrEqual(t, len(miniAppCalls), 1)
-	assert.Equal(t, "builtin-flashloan", miniAppCalls[0].AppID)
+	assert.Equal(t, "miniapp-flashloan", miniAppCalls[0].AppID)
 	assert.Equal(t, "RequestLoan", miniAppCalls[0].Method)
 
 	// Verify stats updated
@@ -557,17 +557,17 @@ func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
 		appPayments[call.AppID]++
 	}
 
-	assert.Greater(t, appPayments["builtin-lottery"], 0)
-	assert.Greater(t, appPayments["builtin-coin-flip"], 0)
-	assert.Greater(t, appPayments["builtin-dice-game"], 0)
-	assert.Greater(t, appPayments["builtin-scratch-card"], 0)
-	assert.Greater(t, appPayments["builtin-prediction-market"], 0)
-	assert.Greater(t, appPayments["builtin-flashloan"], 0)
-	assert.Greater(t, appPayments["builtin-gas-spin"], 0)
-	assert.Greater(t, appPayments["builtin-price-predict"], 0)
-	assert.Greater(t, appPayments["builtin-secret-vote"], 0)
+	assert.Greater(t, appPayments["miniapp-lottery"], 0)
+	assert.Greater(t, appPayments["miniapp-coinflip"], 0)
+	assert.Greater(t, appPayments["miniapp-dicegame"], 0)
+	assert.Greater(t, appPayments["miniapp-scratch-card"], 0)
+	assert.Greater(t, appPayments["miniapp-predictionmarket"], 0)
+	assert.Greater(t, appPayments["miniapp-flashloan"], 0)
+	assert.Greater(t, appPayments["miniapp-gas-spin"], 0)
+	assert.Greater(t, appPayments["miniapp-price-predict"], 0)
+	assert.Greater(t, appPayments["miniapp-secretvote"], 0)
 	// price-ticker is read-only, no payment
-	assert.Equal(t, 0, appPayments["builtin-price-ticker"])
+	assert.Equal(t, 0, appPayments["miniapp-price-ticker"])
 
 	// Verify InvokeMiniAppContract was called (PLATFORM ACTION)
 	miniAppCalls := mockInvoker.getInvokeMiniAppCalls()
@@ -578,16 +578,16 @@ func TestMiniAppSimulator_VerifyPaymentWorkflow(t *testing.T) {
 		invokeCounts[call.AppID]++
 	}
 
-	assert.Greater(t, invokeCounts["builtin-lottery"], 0)
-	assert.Greater(t, invokeCounts["builtin-coin-flip"], 0)
-	assert.Greater(t, invokeCounts["builtin-dice-game"], 0)
-	assert.Greater(t, invokeCounts["builtin-scratch-card"], 0)
-	assert.Greater(t, invokeCounts["builtin-prediction-market"], 0)
-	assert.Greater(t, invokeCounts["builtin-flashloan"], 0)
-	assert.Greater(t, invokeCounts["builtin-gas-spin"], 0)
-	assert.Greater(t, invokeCounts["builtin-price-predict"], 0)
-	assert.Greater(t, invokeCounts["builtin-secret-vote"], 0)
-	assert.Equal(t, 0, invokeCounts["builtin-price-ticker"])
+	assert.Greater(t, invokeCounts["miniapp-lottery"], 0)
+	assert.Greater(t, invokeCounts["miniapp-coinflip"], 0)
+	assert.Greater(t, invokeCounts["miniapp-dicegame"], 0)
+	assert.Greater(t, invokeCounts["miniapp-scratch-card"], 0)
+	assert.Greater(t, invokeCounts["miniapp-predictionmarket"], 0)
+	assert.Greater(t, invokeCounts["miniapp-flashloan"], 0)
+	assert.Greater(t, invokeCounts["miniapp-gas-spin"], 0)
+	assert.Greater(t, invokeCounts["miniapp-price-predict"], 0)
+	assert.Greater(t, invokeCounts["miniapp-secretvote"], 0)
+	assert.Equal(t, 0, invokeCounts["miniapp-price-ticker"])
 }
 
 func TestMiniAppSimulator_VerifyMasterAccountUsage(t *testing.T) {

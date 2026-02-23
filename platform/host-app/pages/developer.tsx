@@ -2,7 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import {
   X,
   Code2,
@@ -57,7 +57,7 @@ type AdminTemplateCatalog = {
 };
 
 type MarketTemplateKind = "frontend" | "contract";
-type MarketTemplateSource = "builtin" | "community" | "verified";
+type MarketTemplateSource = "miniapp" | "community" | "verified";
 type MarketTemplateItem = {
   template_kind: MarketTemplateKind;
   template_id: string;
@@ -643,7 +643,7 @@ export default function DeveloperPage() {
               <option value="all">All Sources</option>
               <option value="community">Community</option>
               <option value="verified">Verified</option>
-              <option value="builtin">Builtin</option>
+              <option value="miniapp">MiniApp</option>
             </select>
             <select
               className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50"

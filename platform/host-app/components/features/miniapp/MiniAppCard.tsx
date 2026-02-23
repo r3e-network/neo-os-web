@@ -3,7 +3,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/card";
 import { buildMiniAppBannerSources } from "@/lib/miniapp-media";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { Users, Activity } from "lucide-react";
@@ -19,7 +19,7 @@ export interface MiniAppInfo {
   banner_url?: string | null;
   manifest?: Record<string, unknown> | null;
   category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
-  source?: "builtin" | "community" | "verified";
+  source?: "miniapp" | "community" | "verified";
   stats?: {
     users?: number;
     transactions?: number;
@@ -39,14 +39,14 @@ const categoryColors = {
 };
 
 const sourceColors = {
-  builtin: "",
+  miniapp: "",
   community: "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-700/50",
   verified:
     "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/50",
 };
 
 export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo }) {
-  const showSourceBadge = app.source && app.source !== "builtin";
+  const showSourceBadge = app.source && app.source !== "miniapp";
   const bannerSources = useMemo(
     () =>
       buildMiniAppBannerSources({

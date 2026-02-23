@@ -69,6 +69,7 @@ const APP_ICONS: Record<string, LucideIcon> = {
   "miniapp-lottery": Ticket,
   "miniapp-coinflip": Coins,
   "miniapp-dicegame": Dice5,
+  "miniapp-gacha": Sparkles,
   "miniapp-scratchcard": CreditCard,
   "miniapp-secretpoker": Spade,
   "miniapp-neocrash": TrendingUp,
@@ -127,8 +128,8 @@ const APP_ICONS: Record<string, LucideIcon> = {
 
   // Governance
   "miniapp-secretvote": Vote,
-  "miniapp-govbooster": Rocket,
   "miniapp-predictionmarket": BarChart3,
+  "miniapp-govbooster": Rocket,
   "miniapp-burnleague": Flame,
   "miniapp-doomsdayclock": Timer,
   "miniapp-masqueradedao": Drama,

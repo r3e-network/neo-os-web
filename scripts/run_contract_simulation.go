@@ -48,7 +48,7 @@ var priceFeeds = map[string]int64{
 }
 
 // MiniApps
-var miniApps = []string{"builtin-lottery", "builtin-coin-flip", "builtin-dice-game"}
+var miniApps = []string{"miniapp-lottery", "miniapp-coinflip", "miniapp-dicegame"}
 
 // Statistics
 var stats struct {
