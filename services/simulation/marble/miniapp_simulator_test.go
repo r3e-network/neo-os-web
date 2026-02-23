@@ -16,7 +16,7 @@ import (
 
 func TestAllMiniApps(t *testing.T) {
         apps := AllMiniApps()
-        assert.Len(t, apps, 4)
+        assert.Len(t, apps, 7)
 }
 
 func TestAllMiniApps_Categories(t *testing.T) {
@@ -46,9 +46,9 @@ func TestAllMiniApps_Categories(t *testing.T) {
 	}
 
 	// Phase 1-8 totals: gaming=17, defi=17, governance=3, social=18, advanced=6, creative=3
-	assert.Equal(t, 3, gaming)
-	assert.Equal(t, 1, defi)
-	assert.Equal(t, 0, governance)
+	assert.Equal(t, 4, gaming)
+	assert.Equal(t, 2, defi)
+	assert.Equal(t, 1, governance)
 	assert.Equal(t, 0, social)
 	assert.Equal(t, 0, advanced)
 	assert.Equal(t, 0, creative) // nft-chimera, world-piano, million-piece-map
@@ -58,7 +58,7 @@ func TestAllMiniApps_BetAmounts(t *testing.T) {
 	apps := AllMiniApps()
 
 	for _, app := range apps {
-		if app.AppID == "builtin-price-ticker" {
+		if app.AppID == "builtin-price-ticker" || app.AppID == "builtin-airdrop" || app.AppID == "builtin-dao-voting" {
 			assert.Equal(t, int64(0), app.BetAmount, "price-ticker should have 0 bet amount")
 		} else {
 			assert.Greater(t, app.BetAmount, int64(0), "%s should have positive bet amount", app.AppID)
