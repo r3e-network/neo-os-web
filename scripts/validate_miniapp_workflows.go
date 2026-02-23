@@ -269,7 +269,7 @@ func (v *Validator) ValidatePaymentHubWorkflow() {
 	fmt.Println("💰 Validating PaymentHub Workflow...")
 
 	// Test 1: Check if app is configured
-	appID := "builtin-lottery"
+	appID := "miniapp-lottery"
 	result, err := v.rpc.InvokeFunction(v.contracts.PaymentHub, "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)

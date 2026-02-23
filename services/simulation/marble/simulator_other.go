@@ -13,7 +13,7 @@ import (
 // SimulateGovBooster simulates bNEO governance optimization.
 // Business flow: RequestBoost -> VerifyStake -> ApplyBoost
 func (s *MiniAppSimulator) SimulateGovBooster(ctx context.Context) error {
-	appID := "builtin-gov-booster"
+	appID := "miniapp-gov-booster"
 	amount := int64(100000000) // 1 GAS minimum
 
 	memo := fmt.Sprintf("gov:%d", time.Now().UnixNano())
@@ -51,7 +51,7 @@ func (s *MiniAppSimulator) SimulateGovBooster(ctx context.Context) error {
 // SimulateAITrader simulates autonomous AI trading.
 // Business flow: CreateStrategy -> RequestPriceCheck -> ExecuteTrade
 func (s *MiniAppSimulator) SimulateAITrader(ctx context.Context) error {
-	appID := "builtin-ai-trader"
+	appID := "miniapp-ai-trader"
 	amount := int64(10000000) // 0.1 GAS minimum
 
 	memo := fmt.Sprintf("ai:%d", time.Now().UnixNano())
@@ -85,7 +85,7 @@ func (s *MiniAppSimulator) SimulateAITrader(ctx context.Context) error {
 // SimulateGridBot simulates automated grid trading.
 // Business flow: CreateGrid -> RequestPriceCheck -> FillGridOrder
 func (s *MiniAppSimulator) SimulateGridBot(ctx context.Context) error {
-	appID := "builtin-grid-bot"
+	appID := "miniapp-grid-bot"
 	amount := int64(10000000) // 0.1 GAS minimum
 
 	memo := fmt.Sprintf("grid:%d", time.Now().UnixNano())
@@ -125,7 +125,7 @@ func (s *MiniAppSimulator) SimulateGridBot(ctx context.Context) error {
 // SimulateNFTEvolve simulates dynamic NFT evolution.
 // Business flow: InitiateEvolution -> RequestRNG -> ResolveEvolution
 func (s *MiniAppSimulator) SimulateNFTEvolve(ctx context.Context) error {
-	appID := "builtin-nft-evolve"
+	appID := "miniapp-nft-evolve"
 	amount := int64(50000000) // 0.5 GAS evolution fee
 
 	memo := fmt.Sprintf("nft:%d", time.Now().UnixNano())
@@ -161,7 +161,7 @@ func (s *MiniAppSimulator) SimulateNFTEvolve(ctx context.Context) error {
 // SimulateBridgeGuardian simulates cross-chain bridge.
 // Business flow: InitiateBridge -> RequestVerification -> CompleteBridge
 func (s *MiniAppSimulator) SimulateBridgeGuardian(ctx context.Context) error {
-	appID := "builtin-bridge-guardian"
+	appID := "miniapp-bridge-guardian"
 	amount := int64(100000000) // 1 GAS minimum
 
 	memo := fmt.Sprintf("bridge:%d", time.Now().UnixNano())
@@ -199,7 +199,7 @@ func (s *MiniAppSimulator) SimulateBridgeGuardian(ctx context.Context) error {
 // SimulateFogChess simulates chess with fog of war.
 // Business flow: CreateGame -> JoinGame -> SubmitMove -> RevealMove
 func (s *MiniAppSimulator) SimulateFogChess(ctx context.Context) error {
-	appID := "builtin-fog-chess"
+	appID := "miniapp-fog-chess"
 	amount := int64(50000000) // 0.5 GAS minimum stake
 
 	memo := fmt.Sprintf("chess:%d", time.Now().UnixNano())
@@ -263,7 +263,7 @@ func (s *MiniAppSimulator) SimulateFogChess(ctx context.Context) error {
 // SimulateGardenOfNeo simulates the blockchain-driven plant garden.
 // Business flow: Plant seed -> Grow (based on chain data) -> Harvest
 func (s *MiniAppSimulator) SimulateGardenOfNeo(ctx context.Context) error {
-	appID := "builtin-garden-of-neo"
+	appID := "miniapp-garden-of-neo"
 	plantFee := int64(10000000) // 0.1 GAS to plant
 
 	// Randomly decide action: plant (60%), harvest (40%)

@@ -76,6 +76,8 @@ func TestLoadMasterKey_FailsOnHashMismatch(t *testing.T) {
 }
 
 func TestLoadMasterKey_DerivesFromSeed(t *testing.T) {
+	t.Setenv("POOL_MASTER_KEY", "") // Ensure host env doesn't break test
+
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret(secretCoordinatorMasterSeed, bytes.Repeat([]byte{0x04}, 16))
 

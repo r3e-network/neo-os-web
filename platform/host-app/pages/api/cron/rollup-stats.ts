@@ -15,10 +15,8 @@ const DEPLOYED_APPS = [
   { appId: "miniapp-lottery", contract: CONTRACTS.lottery },
   { appId: "miniapp-coinflip", contract: CONTRACTS.coinFlip },
   { appId: "miniapp-dicegame", contract: CONTRACTS.diceGame },
-  { appId: "miniapp-neocrash", contract: CONTRACTS.neoCrash },
   { appId: "miniapp-secretvote", contract: CONTRACTS.secretVote },
   { appId: "miniapp-predictionmarket", contract: CONTRACTS.predictionMarket },
-  { appId: "miniapp-flashloan", contract: CONTRACTS.flashLoan },
   { appId: "miniapp-redenvelope", contract: CONTRACTS.redEnvelope },
 ];
 

@@ -44,7 +44,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region App Constants
         // Define your app ID here - must match AppRegistry registration
-        private const string APP_ID = "builtin-template";
+        private const string APP_ID = "miniapp-template";
         #endregion
 
         #region App-Specific Prefixes (start from 0x10)

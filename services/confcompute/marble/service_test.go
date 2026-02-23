@@ -18,6 +18,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	svc, err := New(Config{Marble: m})
 	if err != nil {
@@ -41,6 +42,7 @@ func TestServiceConstants(t *testing.T) {
 }
 
 func TestResultTTLConfiguredViaEnv(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOCOMPUTE_RESULT_TTL", "2h")
 
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
@@ -52,6 +54,7 @@ func TestResultTTLConfiguredViaEnv(t *testing.T) {
 }
 
 func TestGetJobRespectsTTL(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	svc, _ := New(Config{Marble: m, ResultTTL: time.Millisecond})
 
@@ -71,6 +74,7 @@ func TestGetJobRespectsTTL(t *testing.T) {
 }
 
 func TestCleanupWorkerRemovesExpiredJobs(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	svc, _ := New(Config{
 		Marble:          m,

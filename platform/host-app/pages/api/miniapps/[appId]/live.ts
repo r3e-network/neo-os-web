@@ -10,10 +10,9 @@ const APP_CONTRACTS: Record<string, string> = {
   "miniapp-lottery": CONTRACTS.lottery,
   "miniapp-coinflip": CONTRACTS.coinFlip,
   "miniapp-dicegame": CONTRACTS.diceGame,
-  "miniapp-neocrash": CONTRACTS.neoCrash,
   "miniapp-secretvote": CONTRACTS.secretVote,
   "miniapp-predictionmarket": CONTRACTS.predictionMarket,
-  "miniapp-flashloan": CONTRACTS.flashLoan,
+  "miniapp-redenvelope": CONTRACTS.redEnvelope,
 };
 
 // Map app IDs to categories
@@ -21,10 +20,9 @@ const APP_CATEGORIES: Record<string, string> = {
   "miniapp-lottery": "gaming",
   "miniapp-coinflip": "gaming",
   "miniapp-dicegame": "gaming",
-  "miniapp-neocrash": "gaming",
   "miniapp-secretvote": "governance",
   "miniapp-predictionmarket": "defi",
-  "miniapp-flashloan": "defi",
+  "miniapp-redenvelope": "social",
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

@@ -13,7 +13,7 @@ import (
 // SimulateSecretVote simulates privacy-preserving voting.
 // Business flow: CreateProposal -> SubmitVote -> RequestTally
 func (s *MiniAppSimulator) SimulateSecretVote(ctx context.Context) error {
-	appID := "builtin-secret-vote"
+	appID := "miniapp-secretvote"
 	amount := int64(1000000)
 
 	memo := fmt.Sprintf("vote:%d", time.Now().UnixNano())
@@ -68,7 +68,7 @@ func (s *MiniAppSimulator) SimulateSecretVote(ctx context.Context) error {
 // SimulateSecretPoker simulates TEE Texas Hold'em.
 // Business flow: CreateTable -> JoinTable -> StartHand
 func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
-	appID := "builtin-secret-poker"
+	appID := "miniapp-secret-poker"
 	amount := int64(50000000)
 
 	memo := fmt.Sprintf("poker:%d", time.Now().UnixNano())
@@ -139,7 +139,7 @@ func (s *MiniAppSimulator) SimulateSecretPoker(ctx context.Context) error {
 // SimulateMicroPredict simulates 60-second price predictions.
 // Business flow: PlacePrediction -> RequestResolve
 func (s *MiniAppSimulator) SimulateMicroPredict(ctx context.Context) error {
-	appID := "builtin-micro-predict"
+	appID := "miniapp-micro-predict"
 	amount := int64(10000000)
 
 	memo := fmt.Sprintf("micro:%d", time.Now().UnixNano())
@@ -191,7 +191,7 @@ func (s *MiniAppSimulator) SimulateMicroPredict(ctx context.Context) error {
 // SimulateRedEnvelope simulates social GAS red packets.
 // Business flow: CreateEnvelope -> Claim (multiple times)
 func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
-	appID := "builtin-red-envelope"
+	appID := "miniapp-redenvelope"
 	amount := int64(20000000)
 
 	memo := fmt.Sprintf("redenv:%d", time.Now().UnixNano())
@@ -258,7 +258,7 @@ func (s *MiniAppSimulator) SimulateRedEnvelope(ctx context.Context) error {
 // SimulateGasCircle simulates daily savings circle with lottery.
 // Business flow: CreateCircle -> JoinCircle -> MakeDeposit -> RequestPayout
 func (s *MiniAppSimulator) SimulateGasCircle(ctx context.Context) error {
-	appID := "builtin-gas-circle"
+	appID := "miniapp-gascircle"
 	amount := int64(10000000)
 
 	memo := fmt.Sprintf("circle:%d", time.Now().UnixNano())
@@ -329,7 +329,7 @@ func (s *MiniAppSimulator) SimulateGasCircle(ctx context.Context) error {
 // SimulatePayToView simulates premium content unlocking.
 // Business flow: CreateContent -> Purchase -> ViewContent
 func (s *MiniAppSimulator) SimulatePayToView(ctx context.Context) error {
-	appID := "builtin-pay-to-view"
+	appID := "miniapp-pay-to-view"
 	price := int64(randomInt(1, 10)) * 10000000 // 0.1-1 GAS
 
 	// Randomly decide: create content (20%) or purchase (80%)
@@ -407,7 +407,7 @@ func (s *MiniAppSimulator) SimulatePayToView(ctx context.Context) error {
 // SimulateTimeCapsule simulates the TEE time capsule workflow.
 // Business flow: Bury (encrypt) -> Fish (random pickup) -> Reveal (time unlock)
 func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
-	appID := "builtin-time-capsule"
+	appID := "miniapp-time-capsule"
 	buryFee := int64(20000000) // 0.2 GAS to bury
 	fishFee := int64(5000000)  // 0.05 GAS to fish
 
@@ -462,7 +462,7 @@ func (s *MiniAppSimulator) SimulateTimeCapsule(ctx context.Context) error {
 
 // SimulateDevTipping simulates the EcoBoost developer tipping app.
 func (s *MiniAppSimulator) SimulateDevTipping(ctx context.Context) error {
-	appID := "builtin-dev-tipping"
+	appID := "miniapp-dev-tipping"
 	tipAmount := int64(randomInt(1, 10)) * 100000000 // 1-10 GAS
 
 	devID := randomInt(1, 8)

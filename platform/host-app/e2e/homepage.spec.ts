@@ -13,16 +13,17 @@ test.describe("Homepage", () => {
     await expect(page.getByRole("navigation")).toBeVisible();
   });
 
-  test("should have Connect Wallet button", async ({ page }) => {
-    const connectBtn = page.getByRole("button", { name: /connect wallet/i });
+  test("should have login button", async ({ page }) => {
+    const connectBtn = page.getByRole("button", { name: /log in \/ sign up/i });
     await expect(connectBtn).toBeVisible();
   });
 
   test("should navigate to MiniApps page", async ({ page }) => {
-    const miniappsLink = page.getByRole("link", { name: /miniapps|apps/i }).first();
-    if (await miniappsLink.isVisible()) {
-      await miniappsLink.click();
-      await expect(page).toHaveURL(/miniapps/);
-    }
+    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    const miniappsLink = nav.getByRole("link", { name: "MiniApps" });
+    await expect(miniappsLink).toBeVisible();
+    await expect(miniappsLink).toHaveAttribute("href", "/miniapps");
+    await miniappsLink.click();
+    await expect(page).toHaveURL(/\/miniapps(\/|$)/);
   });
 });

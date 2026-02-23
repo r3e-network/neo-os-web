@@ -4,6 +4,15 @@ import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 
+function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.byteLength !== b.byteLength) return false;
+  let diff = 0;
+  for (let i = 0; i < a.byteLength; i += 1) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff === 0;
+}
+
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -15,7 +24,7 @@ export async function handler(req: Request): Promise<Response> {
   const encoder = new TextEncoder();
   const a = encoder.encode(serviceKey);
   const b = encoder.encode(expected);
-  if (a.byteLength !== b.byteLength || !crypto.subtle.timingSafeEqual(a, b)) {
+  if (!timingSafeEqualBytes(a, b)) {
     return error(401, "invalid service key", "AUTH_REQUIRED", req);
   }
 

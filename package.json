@@ -1,5 +1,9 @@
 {
   "scripts": {
+    "test": "npm run -s test:host-app && npm run -s test:admin-console",
+    "test:go": "go test ./...",
+    "test:host-app": "npm --prefix platform/host-app test --silent",
+    "test:admin-console": "npm --prefix platform/admin-console run -s test -- --run",
     "backfill:miniapp-versions": "node scripts/backfill-miniapp-versions.js",
     "verify:publish-audit-chain": "node scripts/verify-publish-audit-chain.js",
     "validate:miniapp-env": "node scripts/validate-miniapp-env.js"

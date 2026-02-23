@@ -400,6 +400,7 @@ func TestConcurrentRandomAmount(t *testing.T) {
 
 // TestHTTPHandlers tests HTTP route handlers.
 func TestHTTPHandlers(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	s := &Service{
 		BaseService: mockBaseService(),
 		running:     false,
@@ -465,6 +466,7 @@ func TestHTTPHandlers(t *testing.T) {
 
 // TestHTTPHandlersWithConfig tests HTTP handlers with configuration override.
 func TestHTTPHandlersWithConfig(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	s := &Service{
 		BaseService: mockBaseService(),
 		running:     false,
@@ -488,7 +490,7 @@ func TestHTTPHandlersWithConfig(t *testing.T) {
 		s.Router().ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.True(t, s.running)
-		assert.Equal(t, []string{"builtin-custom-app1", "builtin-custom-app2"}, s.miniApps)
+		assert.Equal(t, []string{"miniapp-custom-app1", "miniapp-custom-app2"}, s.miniApps)
 		s.Stop()
 	})
 
@@ -515,7 +517,7 @@ func TestHTTPHandlersWithConfig(t *testing.T) {
 		s.Router().ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.True(t, s.running)
-		assert.Equal(t, []string{"builtin-full-config-app"}, s.miniApps)
+		assert.Equal(t, []string{"miniapp-full-config-app"}, s.miniApps)
 		assert.Equal(t, 200*time.Millisecond, s.minInterval)
 		assert.Equal(t, 800*time.Millisecond, s.maxInterval)
 		s.Stop()

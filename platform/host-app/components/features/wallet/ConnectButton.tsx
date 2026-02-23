@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { useWalletStore, walletOptions, WalletProvider } from "@/lib/wallet/store";
 import { useAuthStore } from "@/lib/auth/store";
 import { cn } from "@/lib/utils";
@@ -131,6 +131,7 @@ export function ConnectButton() {
           <div className="relative w-full max-w-[440px] rounded-3xl bg-white dark:bg-[#12131C] border border-gray-200 dark:border-white/10 shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
             <button
               onClick={() => setShowConnectModal(false)}
+              aria-label="Close login modal"
               className="absolute right-6 top-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500 cursor-pointer"
             >
               <X size={20} />

@@ -60,6 +60,16 @@ function parseLimit(raw: string | null, defaultLimit: number, maxLimit: number):
   return Math.min(n, maxLimit);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function asRecordOrNull(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
 export async function queryEvents(params: EventsQueryParams, req?: Request): Promise<EventsListResponse | Response> {
   const limit = parseLimit(String(params.limit ?? ""), 100, 1000);
   const afterId = params.after_id ? String(params.after_id).trim() : undefined;
@@ -119,7 +129,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
       contract_hash: String(row.contract_hash ?? ""),
       event_name: String(row.event_name ?? ""),
       app_id: row.app_id ? String(row.app_id) : null,
-      state: row.state ?? null,
+      state: asRecordOrNull(row.state),
       created_at: String(row.created_at ?? ""),
     })),
     has_more: hasMore,
@@ -173,7 +183,7 @@ export async function queryTransactions(
       tx_type: String(row.tx_type ?? ""),
       contract_address: String(row.contract_address ?? ""),
       method_name: String(row.method_name ?? ""),
-      params: row.params ?? {},
+      params: asRecord(row.params),
       gas_consumed: row.gas_consumed !== null && row.gas_consumed !== undefined ? Number(row.gas_consumed) : null,
       status: String(row.status ?? ""),
       retry_count: Number(row.retry_count ?? 0),
