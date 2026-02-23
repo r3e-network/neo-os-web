@@ -116,7 +116,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden">
-      <Head><title>{app.name} - NeoHub</title></Head>
+      <Head><title>{app.name} - R3E Network</title></Head>
       <LaunchDock
         appName={app.name}
         appId={app.app_id}

@@ -20,8 +20,7 @@ import (
 )
 
 var miniApps = []string{
-	// Missing from Phase 2
-	"MiniAppCanvas",
+        "MiniAppTemplates",
 }
 
 const (

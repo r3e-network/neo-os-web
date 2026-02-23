@@ -62,6 +62,14 @@ function typeMatches(value: unknown, typeName: string): boolean {
 function validateNode(value: unknown, schemaNode: Dict, path: string[] = []): ValidationResult {
   const resolved = resolveRef(schemaNode);
 
+  const allOf = asArray(resolved.allOf);
+  if (allOf.length > 0) {
+    for (const candidate of allOf) {
+      const result = validateNode(value, asObject(candidate), path);
+      if (!result.valid) return result;
+    }
+  }
+
   const oneOf = asArray(resolved.oneOf);
   if (oneOf.length > 0) {
     for (const candidate of oneOf) {

@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
     // Track error with monitoring system
     const errorId = trackError(error, {
       category: this.getCategoryFromProps(),
-      componentStack: errorInfo.componentStack,
+      componentStack: errorInfo.componentStack || undefined,
       extra: {
         componentName: this.props.componentName,
       },

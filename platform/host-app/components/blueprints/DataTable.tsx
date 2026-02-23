@@ -16,20 +16,20 @@ export type TableColumn<T = unknown> = {
   render?: (value: unknown, row: T, index: number) => React.ReactNode;
 };
 
-export type TableConfig = {
-  columns: TableColumn[];
-  data: unknown[];
+export type TableConfig<T = unknown> = {
+  columns: TableColumn<T>[];
+  data: T[];
   sortable?: boolean;
   pagination?: boolean;
   pageSize?: number;
   emptyMessage?: string;
-  rowKey?: string;
+  rowKey?: keyof T;
   virtualScroll?: boolean;
   virtualScrollHeight?: number;
 };
 
 type DataTableProps<T = unknown> = {
-  config: TableConfig;
+  config: TableConfig<T>;
   onRowClick?: (row: T, index: number) => void;
   className?: string;
 };
@@ -45,17 +45,17 @@ interface TableRowProps<T> {
   row: T;
   rowIndex: number;
   columns: TableColumn<T>[];
-  rowKey?: string;
+  rowKey?: keyof T;
   onRowClick?: (row: T, index: number) => void;
 }
 
-const TableRow = memo(<T extends Record<string, unknown>>({ 
+const TableRow = memo(function TableRowInner<T>({ 
   row, 
   rowIndex, 
   columns, 
   rowKey, 
   onRowClick 
-}: TableRowProps<T>) => {
+}: TableRowProps<T>) {
   const handleClick = useCallback(() => {
     onRowClick?.(row, rowIndex);
   }, [onRowClick, row, rowIndex]);
@@ -72,7 +72,7 @@ const TableRow = memo(<T extends Record<string, unknown>>({
 
   return (
     <tr
-      key={key}
+      key={key as string | number}
       className={cn(
         "hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors",
         onRowClick && "cursor-pointer"
@@ -93,9 +93,8 @@ const TableRow = memo(<T extends Record<string, unknown>>({
       ))}
     </tr>
   );
-});
+}) as <T>(props: TableRowProps<T>) => React.ReactElement;
 
-TableRow.displayName = "TableRow";
 
 /**
  * 表头组件 - 使用 memo 优化
@@ -108,40 +107,41 @@ interface TableHeaderProps<T> {
   sortable: boolean;
 }
 
-const TableHeader = memo(<T extends Record<string, unknown>>({ 
+const TableHeader = memo(function TableHeaderInner<T>({ 
   columns, 
   sortKey, 
   sortOrder, 
   onSort,
   sortable 
-}: TableHeaderProps<T>) => (
-  <thead className="bg-gray-50 dark:bg-gray-800/50">
-    <tr>
-      {columns.map((col) => (
-        <th
-          key={col.key}
-          className={cn(
-            "px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400",
-            col.align === "center" && "text-center",
-            col.align === "right" && "text-right",
-            sortable && col.sortable && "cursor-pointer hover:text-gray-700 dark:hover:text-gray-200"
-          )}
-          style={{ width: col.width }}
-          onClick={() => sortable && col.sortable && onSort(col.key)}
-        >
-          <div className={cn("flex items-center gap-1", col.align === "right" && "justify-end", col.align === "center" && "justify-center")}>
-            {col.label}
-            {sortable && col.sortable && sortKey === col.key && (
-              <span className="text-neo">{sortOrder === "asc" ? "↑" : "↓"}</span>
+}: TableHeaderProps<T>) {
+  return (
+    <thead className="bg-gray-50 dark:bg-gray-800/50">
+      <tr>
+        {columns.map((col) => (
+          <th
+            key={col.key}
+            className={cn(
+              "px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400",
+              col.align === "center" && "text-center",
+              col.align === "right" && "text-right",
+              sortable && col.sortable && "cursor-pointer hover:text-gray-700 dark:hover:text-gray-200"
             )}
-          </div>
-        </th>
-      ))}
-    </tr>
-  </thead>
-));
+            style={{ width: col.width }}
+            onClick={() => sortable && col.sortable && onSort(col.key)}
+          >
+            <div className={cn("flex items-center gap-1", col.align === "right" && "justify-end", col.align === "center" && "justify-center")}>
+              {col.label}
+              {sortable && col.sortable && sortKey === col.key && (
+                <span className="text-neo">{sortOrder === "asc" ? "↑" : "↓"}</span>
+              )}
+            </div>
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+}) as <T>(props: TableHeaderProps<T>) => React.ReactElement;
 
-TableHeader.displayName = "TableHeader";
 
 /**
  * 分页组件 - 使用 memo 优化

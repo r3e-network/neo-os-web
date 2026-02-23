@@ -279,9 +279,15 @@ describe("/api/miniapps/admin/import-definitions", () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
-  it("rejects unsupported top-level fields from schema", async () => {
+  it("accepts extensible top-level fields when schema validation passes", async () => {
     const { supabase, upsert } = makeSupabaseMock([]);
     getServerSupabaseClient.mockReturnValue(supabase);
+    normalizeMiniAppAdminPayload.mockReturnValue({
+      ok: true,
+      action: "save_draft",
+      blueprint: "default",
+      row: { app_id: "miniapp-invalid-field" },
+    });
     loadMiniAppDefinitionPayloads.mockResolvedValue({
       definitionsDir: "/tmp/miniapp-definitions",
       errors: [],
@@ -310,16 +316,15 @@ describe("/api/miniapps/admin/import-definitions", () => {
 
     expect(res._getStatusCode()).toBe(200);
     const payload = JSON.parse(res._getData());
-    expect(payload.success).toBe(false);
-    expect(payload.summary).toEqual({ total: 1, failed: 1, validated: 0, imported: 0 });
+    expect(payload.success).toBe(true);
+    expect(payload.summary).toEqual({ total: 1, failed: 0, validated: 1, imported: 0 });
     expect(payload.results[0]).toEqual(
       expect.objectContaining({
         file: "invalid-field.json",
-        status: "failed",
-        error: expect.stringContaining("Unsupported top-level field"),
+        status: "validated",
       }),
     );
-    expect(normalizeMiniAppAdminPayload).not.toHaveBeenCalled();
+    expect(normalizeMiniAppAdminPayload).toHaveBeenCalledTimes(1);
     expect(upsert).not.toHaveBeenCalled();
   });
 });

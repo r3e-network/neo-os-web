@@ -10,13 +10,13 @@
   "status": "active",
   "developer": {
     "name": "Neo MiniApp Platform",
-    "url": "https://neo.org"
+    "url": "https://r3e.network"
   },
   "contract": {
     "template_id": "prediction-binary",
     "contract_hash": "0x6b589e1bc92f5a13c677898cf26c1dfdd8ee7b59"
   },
-  "entry_url": "https://prediction.neo.org",
+  "entry_url": "https://prediction.r3e.network",
   "media": {
     "icon": "/miniapp-assets/prediction-market/icon.png",
     "banner": "/miniapp-assets/prediction-market/banner.png"
@@ -153,9 +153,9 @@
     "activity_feed": true,
     "stats_display": ["total_transactions", "daily_active_users", "total_gas_used"]
   },
-  "docs_url": "https://docs.neo.org/prediction-market",
+  "docs_url": "https://docs.r3e.network/prediction-market",
   "links": [
-    { "label": "Documentation", "url": "https://docs.neo.org/prediction-market", "type": "docs" },
+    { "label": "Documentation", "url": "https://docs.r3e.network/prediction-market", "type": "docs" },
     { "label": "GitHub", "url": "https://github.com/neo-project", "type": "github" }
   ]
 }

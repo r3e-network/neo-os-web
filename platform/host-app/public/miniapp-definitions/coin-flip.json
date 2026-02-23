@@ -1,0 +1,114 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "Neo MiniApp Platform",
+    "url": "https://r3e.network"
+  },
+  "app_id": "coin-flip",
+  "name": "Coin Flip",
+  "description": "Classic 50/50 coin flip with cryptographically secure randomness.",
+  "template_type": "gaming",
+  "category": "Gaming",
+  "tags": [
+    "coin-flip",
+    "vrf",
+    "gaming"
+  ],
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "Coin Flip"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Classic 50/50 coin flip with cryptographically secure randomness."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Category",
+                "value": "Gaming"
+              },
+              {
+                "key": "Asset",
+                "value": "GAS"
+              },
+              {
+                "key": "Randomness",
+                "value": "VRF"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How To Play",
+            "items": [
+              "Choose Heads or Tails.",
+              "Set your wager amount.",
+              "Flip and win double if correct."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "leaderboard",
+        "label": "Leaderboard",
+        "type": "content"
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Play",
+      "subtitle": "Choose your side and flip!",
+      "cta_label": "Launch Game",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Flip",
+      "method": "flip",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "side",
+          "type": "select",
+          "label": "Side",
+          "required": true,
+          "options": [
+            {
+              "label": "Heads",
+              "value": "heads"
+            },
+            {
+              "label": "Tails",
+              "value": "tails"
+            }
+          ]
+        },
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Wager (GAS)",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    }
+  ]
+}

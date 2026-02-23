@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",
+    "@aws-sdk/client-s3": "^3.995.0",
+    "@aws-sdk/s3-request-presigner": "^3.995.0",
     "@module-federation/nextjs-mf": "^8.1.0",
     "@sendgrid/mail": "^8.1.6",
     "@supabase/supabase-js": "^2.89.0",

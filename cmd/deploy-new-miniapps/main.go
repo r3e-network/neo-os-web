@@ -17,24 +17,16 @@ import (
 )
 
 var newMiniApps = []string{
-	// Phase 8 - Creative & Social
-	"MiniAppQuantumSwap",
-	"MiniAppOnChainTarot",
-	"MiniAppExFiles",
-	"MiniAppScreamToEarn",
-	"MiniAppBreakupContract",
-	"MiniAppGeoSpotlight",
-	"MiniAppPuzzleMining",
-	"MiniAppNFTChimera",
-	"MiniAppWorldPiano",
-	"MiniAppBountyHunter",
-	"MiniAppMasqueradeDAO",
-	"MiniAppMeltingAsset",
-	"MiniAppUnbreakableVault",
-	"MiniAppWhisperChain",
-	"MiniAppMillionPieceMap",
-	"MiniAppFogPuzzle",
-	"MiniAppCryptoRiddle",
+        "MiniAppCandidateVote",
+        "MiniAppCoinFlip",
+        "MiniAppDevTipping",
+        "MiniAppDiceGame",
+        "MiniAppGasCircle",
+        "MiniAppLottery",
+        "MiniAppPredictionMarket",
+        "MiniAppRedEnvelope",
+        "MiniAppSecretVote",
+        "MiniAppTemplates",
 }
 
 const (

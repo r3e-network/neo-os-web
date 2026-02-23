@@ -87,7 +87,7 @@ export function initAnalytics(): void {
       trackPageView();
     };
     
-    window.addEventListener("popstate", trackPageView);
+    window.addEventListener("popstate", () => trackPageView());
   }
   
   // Track page unload
@@ -188,8 +188,8 @@ export function trackPageView(path?: string): void {
   // Track event
   trackEvent("page_view", {
     type: "page_view",
-    path: currentPath,
     metadata: {
+      path: currentPath,
       title: document.title,
       referrer: document.referrer,
     },

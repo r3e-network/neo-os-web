@@ -2,41 +2,36 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "gas-sponsor",
   "name": "Gas Sponsor",
-  "description": "Sponsor GAS fees for specific contracts or users, enabling gasless transactions for your dApp users.",
+  "description": "Sponsor GAS fees for specific contracts or users, enabling gasless transactions.",
   "template_type": "utility",
   "category": "Utility",
-  "tags": ["gas", "sponsor", "fee", "utility", "meta-transaction"],
+  "tags": [
+    "gas",
+    "sponsor",
+    "fee",
+    "utility"
+  ],
   "version": "1.0.0",
   "status": "active",
   "developer": {
     "name": "Neo MiniApp Platform",
-    "url": "https://neo.org"
+    "url": "https://r3e.network"
   },
   "contract": {
-    "template_id": "utility-gas-sponsor",
+    "template_id": "utility-sponsor",
     "init_params": {
       "max_sponsorship_per_tx": 10,
-      "daily_limit": 10000,
-      "whitelist_enabled": true
+      "daily_limit": 10000
     }
-  },
-  "entry_url": "https://sponsor.neo.org",
-  "media": {
-    "icon": "/miniapp-assets/gas-sponsor/icon.png",
-    "banner": "/miniapp-assets/gas-sponsor/banner.png"
   },
   "permissions": {
     "payments": true
-  },
-  "limits": {
-    "max_gas_per_tx": "10",
-    "daily_gas_cap_per_user": "100"
   },
   "frontend_spec": {
     "layout": "default",
     "hero": {
       "eyebrow": "Gas Sponsorship",
-      "disclaimer": "Sponsored transactions are limited by your sponsorship pool balance. Users must be whitelisted."
+      "disclaimer": "Sponsored transactions are limited by your sponsorship pool balance."
     },
     "tabs": [
       {
@@ -47,25 +42,32 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "Sponsor GAS fees for users of your dApp or specific contracts, enabling gasless transactions. Perfect for onboarding new users who don't yet have GAS."
+            "content": "Sponsor GAS fees for users of your dApp or specific contracts, enabling gasless transactions."
           },
           {
             "type": "key_value",
-            "title": "Tool Info",
+            "title": "Quick Facts",
             "items": [
-              { "key": "Category", "value": "Utility" },
-              { "key": "Asset", "value": "GAS" },
-              { "key": "Type", "value": "Fee Sponsorship" },
-              { "key": "Max per TX", "value": "10 GAS" }
+              {
+                "key": "Category",
+                "value": "Utility"
+              },
+              {
+                "key": "Asset",
+                "value": "GAS"
+              },
+              {
+                "key": "Type",
+                "value": "Fee Sponsorship"
+              }
             ]
           },
           {
             "type": "bullet_list",
-            "title": "How To Use",
+            "title": "How It Works",
             "items": [
               "Deposit GAS into your sponsorship pool.",
               "Configure which contracts or users to sponsor.",
-              "Whitelist addresses that can use sponsored transactions.",
               "Sponsored users can transact without paying GAS."
             ]
           }
@@ -78,8 +80,7 @@
         "blocks": [
           {
             "type": "markdown",
-            "title": "Active Sponsorships",
-            "content": "## Your Sponsorship Pool\n\nView active sponsorship configurations and usage statistics.\n\n- **Total Deposited**: Your current pool balance\n- **Total Used**: GAS consumed by sponsored transactions\n- **Active Users**: Number of whitelisted addresses"
+            "content": "View active sponsorship configurations and usage statistics."
           }
         ]
       },
@@ -111,25 +112,9 @@
           ]
         },
         {
-          "name": "Whitelist Address",
-          "method": "whitelist",
-          "description": "Add an address to the sponsorship whitelist",
-          "button_style": "secondary",
-          "gas_cost": "~0.1 GAS",
-          "params": [
-            {
-              "name": "address",
-              "type": "address",
-              "label": "Address to Whitelist",
-              "required": true,
-              "placeholder": "N..."
-            }
-          ]
-        },
-        {
-          "name": "Configure Contract",
-          "method": "configureContract",
-          "description": "Set sponsorship rules for a specific contract",
+          "name": "Configure",
+          "method": "configure",
+          "description": "Set sponsorship rules",
           "button_style": "secondary",
           "params": [
             {
@@ -153,8 +138,6 @@
           "method": "withdraw",
           "description": "Withdraw from sponsorship pool",
           "button_style": "danger",
-          "gas_cost": "~0.1 GAS",
-          "confirm_message": "Are you sure you want to withdraw? Sponsored transactions will stop if the pool is empty.",
           "params": [
             {
               "name": "amount",
@@ -173,10 +156,10 @@
     "reviews_enabled": true,
     "forum_enabled": false,
     "activity_feed": true,
-    "stats_display": ["total_transactions", "total_gas_used"]
+    "stats_display": [
+      "total_transactions",
+      "total_gas_used"
+    ]
   },
-  "docs_url": "https://docs.neo.org/gas-sponsor",
-  "links": [
-    { "label": "Documentation", "url": "https://docs.neo.org/gas-sponsor", "type": "docs" }
-  ]
+  "docs_url": "https://docs.r3e.network/gas-sponsor"
 }

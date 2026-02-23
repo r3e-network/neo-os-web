@@ -27,6 +27,7 @@ import { getBuiltinApp } from "../../lib/builtin-apps";
 import { logger } from "../../lib/logger";
 import type { InvokeParams } from "../../lib/wallet/adapters/base";
 import { getWalletAdapter, useWalletStore } from "../../lib/wallet/store";
+import { invokeEvmContract } from "../../lib/wallet/evm";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -186,30 +187,43 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
       if (!app.contract_hash) {
         throw new Error("Contract hash is not configured for this miniapp.");
       }
-      if (!walletConnected) {
+      if (!walletConnected && !walletAddress) {
         throw new Error("Connect wallet before sending transactions.");
       }
 
-      const adapter = getWalletAdapter();
-      if (!adapter) {
-        throw new Error("Wallet adapter unavailable. Reconnect wallet and try again.");
-      }
-
       const args = buildInvokeArgs(operation.params ?? [], values, walletAddress);
-      const invokePayload: InvokeParams = {
-        scriptHash: app.contract_hash,
-        operation: operation.method,
-        args,
-      };
 
-      if (walletAddress) {
-        invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
+      let txid: string;
+
+      // Neo X (EVM) Branch
+      if (walletAddress.startsWith("0x") || app.contract_hash.startsWith("0x")) {
+        const result = await invokeEvmContract(app.contract_hash, operation.method, args, walletAddress);
+        txid = result.txid;
+      } 
+      // Neo N3 Branch
+      else {
+        const adapter = getWalletAdapter();
+        if (!adapter) {
+          throw new Error("Wallet adapter unavailable. Reconnect wallet and try again.");
+        }
+
+        const invokePayload: InvokeParams = {
+          scriptHash: app.contract_hash,
+          operation: operation.method,
+          args,
+        };
+
+        if (walletAddress) {
+          invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
+        }
+
+        const result = await adapter.invoke(invokePayload);
+        txid = result.txid;
       }
 
-      const result = await adapter.invoke(invokePayload);
       setInvokeFeedback({
         type: "success",
-        message: `Transaction submitted: ${result.txid}`,
+        message: `Transaction submitted: ${txid}`,
       });
     } catch (invokeError) {
       const message = invokeError instanceof Error ? invokeError.message : "Operation failed";
@@ -230,7 +244,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-16">
       <Head>
-        <title>{app.name} - NeoHub</title>
+        <title>{app.name} - R3E MiniApps</title>
       </Head>
       <AppDetailHeader app={app} stats={stats || undefined} onBack={handleBack} />
 

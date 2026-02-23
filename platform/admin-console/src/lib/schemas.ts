@@ -48,6 +48,43 @@ export const componentEntrySchema = z.object({
   props: z.record(z.unknown()).default({}),
 });
 
+export const mediaVariantSchema = z.object({
+  url: z.string().min(1),
+  theme: z.enum(["light", "dark", "any"]).optional(),
+  density: z.enum(["1x", "2x", "3x"]).optional(),
+  locale: z.string().max(16).optional(),
+});
+
+export const templateBindingSchema = z.object({
+  template_id: z.string().min(1),
+  version: z.string().optional(),
+  variant: z.string().optional(),
+  params: z.record(z.unknown()).optional(),
+  init_params: z.record(z.unknown()).optional(),
+  init_schema: z.record(z.unknown()).optional(),
+  method_schema: z.record(z.unknown()).optional(),
+  security_profile: z.record(z.unknown()).optional(),
+  factory_template_ref: z.string().optional(),
+  requires_host_capability: z.array(z.string()).optional(),
+  min_factory_version: z.string().regex(/^\d+\.\d+\.\d+$/).optional(),
+  max_factory_version: z.string().regex(/^\d+\.\d+\.\d+$/).optional(),
+});
+
+export const i18nSchema = z.object({
+  name_zh: z.string().optional(),
+  description_zh: z.string().optional(),
+  name_en: z.string().optional(),
+  description_en: z.string().optional(),
+}).passthrough();
+
+export const mediaSchema = z.object({
+  icon: z.string().optional(),
+  logo: z.string().optional(),
+  banner: z.string().optional(),
+  logo_variants: z.array(mediaVariantSchema).optional(),
+  banner_variants: z.array(mediaVariantSchema).optional(),
+}).passthrough();
+
 export const contentSchema = z.object({
   description: z.string().optional(),
   icon_url: z.string().optional(),
@@ -116,8 +153,11 @@ export const miniAppConfigSchema = z.object({
   app_id: z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*$/, "lowercase alphanumeric with dots/hyphens"),
   developer_user_id: z.string().uuid().optional(),
   name: z.string().min(1),
+  name_zh: z.string().optional(),
   entry_url: z.string().min(1),
   version: z.string().default("1.0.0"),
+  description_zh: z.string().optional(),
+  i18n: i18nSchema.optional(),
   developer_pubkey: z.string().regex(/^[0-9a-fA-F]*$/, "hex").optional().default(""),
   permissions: z.record(z.boolean()).default({}),
   limits: z.object({
@@ -134,9 +174,26 @@ export const miniAppConfigSchema = z.object({
   operations: z.array(operationEntrySchema).default([]),
   components: z.array(componentEntrySchema).default([]),
   content: contentSchema,
+  media: mediaSchema.optional(),
   blueprint: blueprintLayoutSchema.optional(),
   detail_template: blueprintConfigSchema.optional(),
-  frontend_spec: z.unknown().optional(),
+  template: z.object({
+    template_type: z.string().optional(),
+    frontend_template: templateBindingSchema.partial().optional(),
+    contract_template: templateBindingSchema.partial().optional(),
+  }).passthrough().optional(),
+  frontend_template: templateBindingSchema.partial().optional(),
+  contract_template: templateBindingSchema.partial().optional(),
+  frontend_spec: z.union([
+    z.string(),
+    z.object({
+      format: z.enum(["markdown", "yaml", "json"]).optional(),
+      content: z.string().optional(),
+    }).passthrough(),
+    z.record(z.unknown()),
+  ]).optional(),
+  logic: z.record(z.unknown()).optional(),
+  marketplace: z.record(z.unknown()).optional(),
 });
 
 export type MiniAppConfig = z.infer<typeof miniAppConfigSchema>;

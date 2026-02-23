@@ -10,7 +10,7 @@
   "status": "active",
   "developer": {
     "name": "Neo Community",
-    "url": "https://neo.org"
+    "url": "https://r3e.network"
   },
   "contract": {
     "template_id": "tipping-simple",
@@ -19,7 +19,7 @@
       "min_tip": 1
     }
   },
-  "entry_url": "https://tips.neo.org",
+  "entry_url": "https://tips.r3e.network",
   "media": {
     "icon": "/miniapp-assets/tipping/icon.png"
   },

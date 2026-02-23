@@ -1,0 +1,50 @@
+{
+  "$schema": "../miniapp-config.schema.json",
+  "app_id": "miniapp-candidate-vote",
+  "name": "Candidate Vote",
+  "template_type": "governance",
+  "category": "governance",
+  "entry_url": "mf://builtin?app=miniapp-candidate-vote",
+  "contract": {
+    "template_id": "governance-v1",
+    "init_params": {}
+  },
+  "frontend_spec": {
+    "layout": "governance",
+    "hero": {
+      "eyebrow": "CANDIDATE VOTE",
+      "disclaimer": "Legacy app migrated to generic template."
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "markdown",
+            "content": "## Candidate Vote\n\nMigrated automatically."
+          }
+        ]
+      }
+    ],
+    "operation_panel": {
+      "title": "Interact",
+      "cta_label": "Submit Tx"
+    }
+  },
+  "operations": [
+    {
+      "name": "Vote",
+      "method": "vote",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "candidate",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

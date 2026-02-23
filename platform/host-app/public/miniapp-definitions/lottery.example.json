@@ -10,7 +10,7 @@
   "status": "active",
   "developer": {
     "name": "Neo Lottery",
-    "email": "lottery@neo.org"
+    "email": "lottery@r3e.network"
   },
   "contract": {
     "template_id": "lottery-scheduled",
@@ -21,7 +21,7 @@
       "max_tickets_per_user": 100
     }
   },
-  "entry_url": "https://lottery.neo.org",
+  "entry_url": "https://lottery.r3e.network",
   "media": {
     "icon": "/miniapp-assets/lottery/icon.png",
     "banner": "/miniapp-assets/lottery/banner.png"
@@ -118,5 +118,5 @@
     "activity_feed": true,
     "stats_display": ["total_transactions", "total_gas_used"]
   },
-  "docs_url": "https://docs.neo.org/lottery"
+  "docs_url": "https://docs.r3e.network/lottery"
 }

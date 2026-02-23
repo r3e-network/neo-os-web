@@ -13,11 +13,11 @@ describe("miniapp-schema-validator", () => {
     expect(result.valid).toBe(true);
   });
 
-  it("rejects invalid enum values", () => {
+  it("rejects invalid template_type format", () => {
     const result = validateMiniAppDefinitionAgainstSchema({
       app_id: "miniapp-schema-bad",
       name: "Schema Bad",
-      template_type: "not-a-template",
+      template_type: "Not Valid!!",
       category: "utility",
       entry_url: "https://example.com/app",
     });
@@ -26,7 +26,7 @@ describe("miniapp-schema-validator", () => {
     expect(result.error).toMatch(/template_type/i);
   });
 
-  it("rejects unexpected top-level fields", () => {
+  it("accepts unexpected top-level extension fields", () => {
     const result = validateMiniAppDefinitionAgainstSchema({
       app_id: "miniapp-extra-field",
       name: "Extra Field",
@@ -34,8 +34,7 @@ describe("miniapp-schema-validator", () => {
       unsupported: true,
     });
 
-    expect(result.valid).toBe(false);
-    expect(result.error).toMatch(/unsupported|not allowed/i);
+    expect(result.valid).toBe(true);
   });
 
   it("accepts extended template/i18n/media variants payload", () => {
@@ -59,6 +58,14 @@ describe("miniapp-schema-validator", () => {
           template_id: "prediction-binary",
           version: "1.0.0",
           init_params: { oracle: "0x1234567890abcdef1234567890abcdef12345678" },
+          requires_host_capability: ["oracle", "attestation"],
+          min_factory_version: "1.2.0",
+          security_profile: {
+            audited: true,
+            audit_provider: "BlockSec",
+            audit_hash: "sha256:abc123",
+            audit_date: "2026-02-22",
+          },
         },
       },
       media: {

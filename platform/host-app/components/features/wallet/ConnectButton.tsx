@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { useWalletStore, walletOptions, WalletProvider } from "@/lib/wallet/store";
 import { useAuthStore } from "@/lib/auth/store";
 import { cn } from "@/lib/utils";
-import { LogOut, Wallet } from "lucide-react";
+import { LogOut, Wallet, Mail, X } from "lucide-react";
+import { connectNeoX } from "./NeoXConnect";
 
 export function ConnectButton() {
   const { user } = useUser();
@@ -12,6 +13,9 @@ export function ConnectButton() {
   const auth = useAuthStore();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Connect Modal State
+  const [showConnectModal, setShowConnectModal] = useState(false);
 
   useEffect(() => {
     if (!showMenu) return;
@@ -59,7 +63,8 @@ export function ConnectButton() {
     );
   }
 
-  if (wallet.connected) {
+  if (wallet.connected || auth.walletAddress) {
+    const address = wallet.address || auth.walletAddress;
     return (
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-3 rounded-xl bg-white/60 dark:bg-[#12131C]/60 border border-gray-200/80 dark:border-white/10 px-4 py-2 backdrop-blur-xl shadow-sm hover:border-neo/30 transition-colors group cursor-pointer">
@@ -68,8 +73,8 @@ export function ConnectButton() {
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-neo border border-neo/50 shadow-[0_0_8px_rgba(0,229,153,0.8)]"></span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[13px] font-bold text-gray-900 dark:text-white tracking-tight group-hover:text-neo transition-colors leading-tight" title={wallet.address}>
-              {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+            <span className="text-[13px] font-bold text-gray-900 dark:text-white tracking-tight group-hover:text-neo transition-colors leading-tight" title={address}>
+              {address.slice(0, 6)}...{address.slice(-4)}
             </span>
             {wallet.balance && <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{wallet.balance.gas} GAS</span>}
           </div>
@@ -87,66 +92,132 @@ export function ConnectButton() {
   }
 
   const handleConnect = async (provider: WalletProvider) => {
-    setShowMenu(false);
+    setShowConnectModal(false);
     await auth.loginWallet(provider);
+  };
+  
+  const handleNeoXConnect = async () => {
+    try {
+      setShowConnectModal(false);
+      useAuthStore.setState({ loading: true });
+      const address = await connectNeoX();
+      useAuthStore.setState({
+        authenticated: true,
+        method: "wallet",
+        walletAddress: address,
+        walletType: "external",
+        loading: false,
+      });
+    } catch (e: any) {
+      useAuthStore.setState({ loading: false, error: e.message });
+    }
   };
 
   return (
-    <div ref={menuRef} className="relative">
+    <>
       <button
         type="button"
-        onClick={() => setShowMenu(!showMenu)}
-        disabled={wallet.loading}
-        aria-haspopup="true"
-        aria-expanded={showMenu}
-        className="group relative flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)] transition-all hover:shadow-[0_6px_25px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo overflow-hidden"
+        onClick={() => setShowConnectModal(true)}
+        disabled={wallet.loading || auth.loading}
+        className="group relative flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-5 py-2.5 text-sm font-bold text-white dark:text-gray-900 transition-all hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo shadow-sm hover:shadow"
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-500 opacity-0 transition-opacity group-hover:opacity-100" />
-        <Wallet size={16} className="relative z-10 opacity-80 group-hover:opacity-100" />
-        <span className="relative z-10">{wallet.loading ? "Connecting..." : "Connect"}</span>
+        <span className="relative z-10">{wallet.loading || auth.loading ? "Connecting..." : "Log In / Sign Up"}</span>
       </button>
 
-      <div
-        className={cn(
-          "absolute right-0 top-[calc(100%+12px)] w-60 rounded-2xl border border-gray-200/50 dark:border-white/10 bg-white/90 dark:bg-[#0A0B10]/90 backdrop-blur-2xl shadow-2xl z-50 transform origin-top-right transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] p-2",
-          showMenu ? "scale-100 opacity-100 pointer-events-auto" : "scale-95 opacity-0 pointer-events-none"
-        )}
-        role="menu"
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent dark:from-white/5 pointer-events-none rounded-2xl" />
-        <div className="relative z-10">
-          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 px-4 py-2 mb-1">Select Wallet</div>
-          <div className="space-y-1">
-            {walletOptions.map((w) => (
-              <button
-                type="button"
-                role="menuitem"
-                key={w.id}
-                onClick={() => handleConnect(w.id)}
-                className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo border border-transparent hover:border-gray-200/80 dark:hover:border-white/10 hover:bg-gray-50/80 dark:hover:bg-white/5 hover:shadow-sm"
-              >
-                <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 border border-gray-100 dark:border-white/10 bg-white shadow-sm p-1 group-hover:scale-105 transition-transform duration-300">
-                  <img src={w.icon} alt={w.name} className="w-full h-full object-contain" onError={(e) => { e.currentTarget.src = "/wallet-default.svg"; }} />
+      {/* Polymarket-style Global Login Modal */}
+      {showConnectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowConnectModal(false)} />
+          <div className="relative w-full max-w-[440px] rounded-3xl bg-white dark:bg-[#12131C] border border-gray-200 dark:border-white/10 shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowConnectModal(false)}
+              className="absolute right-6 top-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500 cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Welcome to R3E</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Connect a wallet or sign in with email to continue.</p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Social / Email Login */}
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400 px-1">Email & Social</p>
+                <button
+                  onClick={() => auth.loginSocial("google")}
+                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1A1C25] px-4 py-3.5 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+                  Continue with Google
+                </button>
+                <button
+                  onClick={() => auth.loginSocial("github")}
+                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1A1C25] px-4 py-3.5 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  <img src="https://www.svgrepo.com/show/512317/github-142.svg" className="w-5 h-5 dark:invert" alt="GitHub" />
+                  Continue with GitHub
+                </button>
+              </div>
+
+              <div className="relative flex items-center py-4">
+                <div className="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
+                <span className="flex-shrink-0 mx-4 text-xs text-gray-400 font-medium">OR</span>
+                <div className="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
+              </div>
+
+              {/* Neo Wallets */}
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400 px-1">Neo Ecosystem</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {walletOptions.map((w) => (
+                    <button
+                      key={w.id}
+                      onClick={() => handleConnect(w.id)}
+                      className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1A1C25] p-4 hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] transition-all group cursor-pointer"
+                    >
+                      <img src={w.icon} alt={w.name} className="h-8 w-8 object-contain group-hover:scale-110 transition-transform" />
+                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{w.name}</span>
+                    </button>
+                  ))}
+                  
+                  {/* Neo X Option */}
+                  <button
+                    onClick={handleNeoXConnect}
+                    className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1A1C25] p-4 hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] transition-all group cursor-pointer"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-[#1A1C25] dark:bg-white flex items-center justify-center">
+                       <span className="text-white dark:text-black font-black text-xs leading-none">X</span>
+                    </div>
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Neo X</span>
+                  </button>
                 </div>
-                <span className="font-bold text-gray-800 dark:text-gray-200 text-sm group-hover:text-neo dark:group-hover:text-neo transition-colors">{w.name}</span>
-              </button>
-            ))}
+              </div>
+            </div>
+            
+            <p className="mt-8 text-center text-xs text-gray-400">
+              By connecting, you agree to our Terms of Service and Privacy Policy.
+            </p>
           </div>
         </div>
-      </div>
+      )}
 
-      {wallet.error && (
-        <div role="alert" className="absolute right-0 top-[calc(100%+12px)] w-72 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/90 dark:bg-red-950/90 backdrop-blur-xl p-4 shadow-xl z-50">
-          <p className="text-sm font-semibold text-red-600 dark:text-red-400 leading-tight">{wallet.error}</p>
+      {/* Error Toast */}
+      {(wallet.error || auth.error) && (
+        <div role="alert" className="fixed bottom-6 right-6 w-80 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/90 dark:bg-red-950/90 backdrop-blur-xl p-4 shadow-xl z-50 animate-in slide-in-from-bottom-5">
+          <p className="text-sm font-semibold text-red-600 dark:text-red-400 leading-tight mb-3">
+            {wallet.error || auth.error}
+          </p>
           <button
             type="button"
-            onClick={wallet.clearError}
-            className="mt-3 block w-full text-center py-1.5 cursor-pointer text-xs font-bold text-red-500 dark:text-red-400 hover:text-white hover:bg-red-500 dark:hover:bg-red-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg border border-red-200 dark:border-red-800"
+            onClick={() => { wallet.clearError(); auth.clearError(); }}
+            className="block w-full text-center py-2 cursor-pointer text-xs font-bold text-red-500 dark:text-red-400 hover:text-white hover:bg-red-500 dark:hover:bg-red-500 transition-colors rounded-lg border border-red-200 dark:border-red-800"
           >
             Dismiss
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 }

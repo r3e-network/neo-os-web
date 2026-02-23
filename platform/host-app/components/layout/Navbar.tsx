@@ -70,10 +70,10 @@ export function Navbar() {
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo transition-transform hover:scale-105">
             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#00E599] to-[#00A3FF] shadow-[0_0_15px_rgba(0,229,153,0.4)]">
-              <span className="text-base font-black text-white">N</span>
+              <span className="text-base font-black text-white">R3E</span>
             </div>
             <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-              Neo<span className="text-neo">Hub</span>
+              R3E <span className="text-neo">Network</span>
             </span>
           </Link>
 

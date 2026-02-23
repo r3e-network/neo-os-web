@@ -1,31 +1,29 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Neo MiniApp Platform" width="100%"/>
+  <img src="assets/banner.svg" alt="R3E MiniApps Platform" width="100%"/>
 </p>
 
 <p align="center">
-  <a href="https://neomini.app"><img src="https://img.shields.io/badge/Live-neomini.app-00E599?style=flat-square" alt="Live"/></a>
+  <a href="https://r3e.network"><img src="https://img.shields.io/badge/Live-r3e.network-00E599?style=flat-square" alt="Live"/></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/Quick%20Start-Guide-00E599?style=flat-square" alt="Quick Start"/></a>
   <a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/Docs-Architecture-00D9FF?style=flat-square" alt="Architecture"/></a>
-  <a href="#platform-contracts"><img src="https://img.shields.io/badge/Network-Neo%20N3%20Testnet-green?style=flat-square" alt="Neo N3"/></a>
+  <a href="#platform-contracts"><img src="https://img.shields.io/badge/Network-Multi--Chain-blue?style=flat-square" alt="Multi-Chain"/></a>
   <a href="https://github.com/r3e-network/neo-miniapp-platform"><img src="https://img.shields.io/badge/R3E-Network-00E599?style=flat-square" alt="R3E Network"/></a>
 </p>
 
 ---
 
-# Neo MiniApp Platform
+# R3E MiniApps Platform
 
-A TEE-powered miniapp platform for Neo N3 that combines a user-facing **Gateway** (Supabase Edge) with enclave workloads (MarbleRun + EGo) for secure signing and confidential computation.
+A modern, polymorphic, data-driven decentralized application (MiniApp) distribution platform built for the **Neo Ecosystem (Neo N3 & Neo X)**.
 
 ## Overview
 
-The Neo MiniApp Platform provides infrastructure for building decentralized MiniApps on Neo N3 with:
+The R3E MiniApps Platform enables developers and operators to deploy sophisticated on-chain applications with zero-code configurations:
 
-- **60+ Production MiniApps** across Gaming, DeFi, Social, NFT, and Governance categories
-- **TEE Security** via Intel SGX enclaves for confidential computation
-- **Provable Randomness** through VRF with on-chain attestation
-- **Real-time Price Feeds** from multiple oracle sources
-- **Automated Workflows** with cron-based task scheduling
-- **Confidential Computing** enables confidential preserving operations
+- **JSON-Driven Polymorphic UI**: Build complex interfaces (like Polymarket, DAOs, or Lotteries) using reusable component layouts and dynamically rendered operation sidebars. No frontend coding required per app.
+- **Universal Contract Templates**: Instantiate parameter-driven factory contracts (`Template.Prediction.cs`, `Template.Lottery.cs`) via JSON config, bypassing custom C# development and audits for standard DApp behaviors.
+- **Universal Multi-Chain Auth**: A unified Polymarket-style connection flow supporting **Web2 Social Logins** (via Auth0 to custodial wallets), native **Neo N3** wallets, and EVM-based **Neo X** wallets (via MetaMask).
+- **TEE Security**: Powered by Intel SGX enclaves and Supabase Edge for confidential computation and scalable off-chain logic.
 
 ## Architecture
 

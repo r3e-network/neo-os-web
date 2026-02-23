@@ -1,7 +1,5 @@
 // Template Components Export
-// Export all template-specific components for easy importing
 
-// Prediction Market Components
 export {
   PredictionOutcomes,
   PredictionStats,
@@ -9,27 +7,24 @@ export {
   UserPosition,
   type PredictionOutcome,
   type PredictionMarketData,
-} from "./PredictionMarketComponents";
+} from "../PredictionMarketComponents";
 
-// Voting Components
 export {
   VotingProgress,
   VotingStats,
   DelegationInfo,
   type VotingOption,
   type VotingData,
-} from "./VotingComponents";
+} from "../VotingComponents";
 
-// Lottery Components
 export {
   LotteryPool,
   LotteryCountdown,
   UserTickets,
   PastDraws,
   type LotteryData,
-} from "./LotteryComponents";
+} from "../LotteryComponents";
 
-// Auction Components
 export {
   AuctionItem,
   AuctionStatus,
@@ -37,4 +32,4 @@ export {
   DutchAuction,
   type AuctionBid,
   type AuctionData,
-} from "./AuctionComponents";
+} from "../AuctionComponents";

@@ -1,123 +1,110 @@
 {
   "$schema": "./miniapp-config.schema.json",
-  "app_id": "lottery",
-  "name": "GAS Lottery",
-  "description": "Weekly GAS lottery with 50% of ticket sales going to the prize pool and 50% burned forever.",
-  "template_type": "lottery",
-  "category": "Gaming",
-  "tags": ["lottery", "gas", "weekly", "prize"],
   "version": "1.0.0",
   "status": "active",
   "developer": {
     "name": "Neo MiniApp Platform",
-    "url": "https://neo.org"
+    "url": "https://r3e.network"
   },
-  "contract": {
-    "template_id": "lottery-scheduled",
-    "contract_hash": "0x8b4c7d3f2a1e9c6b5d8f0a7e3c2b1d9f8e7a6c5b"
-  },
-  "entry_url": "https://lottery.neo.org",
-  "media": {
-    "icon": "/miniapp-assets/lottery/icon.png",
-    "banner": "/miniapp-assets/lottery/banner.png"
-  },
-  "permissions": {
-    "payments": true,
-    "randomness": true
-  },
-  "limits": {
-    "max_gas_per_tx": "5",
-    "daily_gas_cap_per_user": "50"
-  },
+  "app_id": "lottery",
+  "name": "GAS Lottery",
+  "description": "Provably fair lottery draws powered by VRF randomness with 100% on-chain verification.",
+  "template_type": "lottery",
+  "category": "Gaming",
+  "tags": [
+    "lottery",
+    "vrf",
+    "gaming"
+  ],
   "frontend_spec": {
     "layout": "default",
     "hero": {
-      "eyebrow": "Weekly Lottery",
+      "eyebrow": "Lottery",
       "disclaimer": "Gambling can be addictive. Play responsibly."
     },
     "tabs": [
       {
-        "id": "how-to-play",
-        "label": "How to Play",
+        "id": "overview",
+        "label": "Overview",
         "type": "content",
         "blocks": [
           {
-            "type": "bullet_list",
-            "title": "Rules",
-            "items": [
-              "Each ticket costs 10 GAS",
-              "You can buy up to 100 tickets per draw",
-              "Draws happen every Sunday at 00:00 UTC",
-              "50% of ticket sales go to the prize pool",
-              "50% of ticket sales are burned forever"
-            ]
+            "type": "notice",
+            "tone": "info",
+            "content": "Provably fair lottery draws powered by VRF randomness with 100% on-chain verification."
           },
           {
             "type": "key_value",
-            "title": "Current Draw",
+            "title": "Quick Facts",
             "items": [
-              { "key": "Ticket Price", "value": "10 GAS" },
-              { "key": "Max Tickets/User", "value": "100" },
-              { "key": "Draw Schedule", "value": "Weekly (Sunday 00:00 UTC)" },
-              { "key": "Randomness", "value": "On-chain VRF" }
+              {
+                "key": "Category",
+                "value": "Gaming"
+              },
+              {
+                "key": "Asset",
+                "value": "GAS"
+              },
+              {
+                "key": "Randomness",
+                "value": "VRF"
+              }
             ]
           },
           {
-            "type": "markdown",
-            "title": "Prize Distribution",
-            "content": "## How Prizes Work\n\n- **50% to Winner** - The winning ticket holder receives 50% of all ticket sales\n- **50% Burned** - The remaining 50% is permanently burned, reducing GAS supply\n\nThis unique mechanism means every lottery contributes to the deflation of GAS tokens!"
+            "type": "bullet_list",
+            "title": "How To Play",
+            "items": [
+              "Buy one or more tickets with GAS.",
+              "Wait for the on-chain draw powered by VRF.",
+              "Winners are paid automatically to their wallet."
+            ]
           }
         ]
       },
       {
-        "id": "past-draws",
-        "label": "Past Draws",
-        "type": "content",
-        "blocks": [
-          {
-            "type": "markdown",
-            "content": "View historical lottery results and winners. Each draw is verifiable on-chain using our VRF system."
-          }
-        ]
+        "id": "leaderboard",
+        "label": "Leaderboard",
+        "type": "content"
       },
       {
         "id": "reviews",
         "label": "Reviews",
         "type": "reviews"
+      },
+      {
+        "id": "news",
+        "label": "News",
+        "type": "news"
       }
     ],
     "operation_panel": {
-      "title": "Buy Tickets",
-      "subtitle": "Purchase your lottery tickets for the next draw.",
-      "cta_label": "View My Tickets",
-      "operations": [
-        {
-          "name": "Buy Tickets",
-          "method": "buyTickets",
-          "description": "Purchase lottery tickets for the next draw",
-          "button_style": "primary",
-          "gas_cost": "~0.3 GAS",
-          "confirm_message": "Confirm ticket purchase?",
-          "params": [
-            {
-              "name": "count",
-              "type": "integer",
-              "label": "Number of Tickets",
-              "required": true,
-              "default_value": "1",
-              "placeholder": "1"
-            }
-          ]
-        }
-      ]
+      "title": "Play",
+      "subtitle": "Configure game parameters and start playing.",
+      "cta_label": "Launch Game",
+      "operations": []
     }
   },
-  "integration": {
-    "news_integration": true,
-    "reviews_enabled": true,
-    "forum_enabled": false,
-    "activity_feed": true,
-    "stats_display": ["total_transactions", "total_gas_used"]
-  },
-  "docs_url": "https://docs.neo.org/lottery"
+  "operations": [
+    {
+      "name": "Buy Ticket",
+      "method": "buyTicket",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Ticket Price (GAS)",
+          "required": true,
+          "placeholder": "5"
+        }
+      ]
+    },
+    {
+      "name": "Check Draw",
+      "method": "checkDraw",
+      "button_style": "secondary",
+      "params": []
+    }
+  ]
 }

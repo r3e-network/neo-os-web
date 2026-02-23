@@ -2,7 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   X,
   Code2,
@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Upload,
   Database,
+  Store,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import yaml from "js-yaml";
@@ -53,6 +54,28 @@ type FormData = {
 type AdminTemplateCatalog = {
   frontend_templates?: Array<{ template_id: string; name: string }>;
   contract_templates?: Array<{ template_id: string; name: string }>;
+};
+
+type MarketTemplateKind = "frontend" | "contract";
+type MarketTemplateSource = "builtin" | "community" | "verified";
+type MarketTemplateItem = {
+  template_kind: MarketTemplateKind;
+  template_id: string;
+  version: string;
+  name: string;
+  description: string;
+  category: string;
+  source_type: MarketTemplateSource;
+  tags: string[];
+  is_verified: boolean;
+  usage_count: number;
+  rating_avg: number | null;
+  rating_count: number;
+  schema: Record<string, unknown>;
+  ui_schema: Record<string, unknown>;
+  manifest: Record<string, unknown>;
+  factory_template_ref: string | null;
+  updated_at: string;
 };
 
 const initialForm: FormData = {
@@ -99,6 +122,19 @@ function asErrorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
+function asObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function isCategory(value: string): value is FormData["category"] {
+  return (categories as readonly string[]).includes(value);
+}
+
+function isTemplateType(value: string): value is FormData["template_type"] {
+  return (templateTypes as readonly string[]).includes(value);
+}
+
 export default function DeveloperPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormData>(initialForm);
@@ -109,6 +145,14 @@ export default function DeveloperPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewResult, setPreviewResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [catalog, setCatalog] = useState<AdminTemplateCatalog | null>(null);
+  const [marketTemplates, setMarketTemplates] = useState<MarketTemplateItem[]>([]);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketError, setMarketError] = useState("");
+  const [marketKind, setMarketKind] = useState<"all" | MarketTemplateKind>("all");
+  const [marketCategory, setMarketCategory] = useState<"all" | FormData["category"]>("all");
+  const [marketSource, setMarketSource] = useState<"all" | MarketTemplateSource>("all");
+  const [marketVerified, setMarketVerified] = useState<"all" | "true">("all");
+  const [marketSearch, setMarketSearch] = useState("");
 
   useEffect(() => {
     const loadCatalog = async () => {
@@ -125,6 +169,57 @@ export default function DeveloperPage() {
     loadCatalog();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setMarketLoading(true);
+      setMarketError("");
+      try {
+        const params = new URLSearchParams();
+        params.set("kind", marketKind);
+        params.set("source", marketSource);
+        params.set("verified", marketVerified);
+        params.set("limit", "80");
+        if (marketCategory !== "all") params.set("category", marketCategory);
+        if (marketSearch.trim()) params.set("search", marketSearch.trim());
+
+        const res = await fetch(`/api/miniapps/template-market?${params.toString()}`, {
+          signal: AbortSignal.timeout(12000),
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (!cancelled) {
+            setMarketTemplates([]);
+            setMarketError(asErrorMessage(payload, "Failed to load marketplace templates"));
+          }
+          return;
+        }
+
+        const templates = Array.isArray((payload as Record<string, unknown>).templates)
+          ? ((payload as Record<string, unknown>).templates as MarketTemplateItem[])
+          : [];
+        if (!cancelled) {
+          setMarketTemplates(templates);
+        }
+      } catch (error) {
+        logger.debug("template market fetch failed", error);
+        if (!cancelled) {
+          setMarketTemplates([]);
+          setMarketError("Template marketplace request failed");
+        }
+      } finally {
+        if (!cancelled) {
+          setMarketLoading(false);
+        }
+      }
+    }, 220);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [marketKind, marketCategory, marketSource, marketVerified, marketSearch]);
+
   const frontendTemplateOptions = useMemo(
     () => (catalog?.frontend_templates || []).map((item) => item.template_id),
     [catalog],
@@ -134,51 +229,51 @@ export default function DeveloperPage() {
     [catalog],
   );
 
-  const buildDefinitionPayload = () => {
-    const appSlug = normalizeSlug(form.app_id || form.name);
+  const buildDefinitionPayload = (sourceForm: FormData = form) => {
+    const appSlug = normalizeSlug(sourceForm.app_id || sourceForm.name);
     const appId = appSlug.startsWith("miniapp-") ? appSlug : `miniapp-${appSlug}`;
     return {
       app_id: appId,
-      name: form.name,
-      name_zh: form.name_zh || undefined,
-      description: form.description,
-      description_zh: form.description_zh || undefined,
-      template_type: form.template_type,
-      category: form.category,
-      icon: form.icon || "📦",
-      entry_url: form.entry_url,
-      contract_hash: form.contract_hash || undefined,
-      docs_url: form.docs_url || undefined,
+      name: sourceForm.name,
+      name_zh: sourceForm.name_zh || undefined,
+      description: sourceForm.description,
+      description_zh: sourceForm.description_zh || undefined,
+      template_type: sourceForm.template_type,
+      category: sourceForm.category,
+      icon: sourceForm.icon || "📦",
+      entry_url: sourceForm.entry_url,
+      contract_hash: sourceForm.contract_hash || undefined,
+      docs_url: sourceForm.docs_url || undefined,
       developer: {
-        name: form.developer_name || undefined,
+        name: sourceForm.developer_name || undefined,
       },
       template: {
-        template_type: form.template_type,
+        template_type: sourceForm.template_type,
         frontend_template: {
-          template_id: form.frontend_template_id || form.template_type,
+          template_id: sourceForm.frontend_template_id || sourceForm.template_type,
           version: "1.0.0",
         },
         contract_template: {
-          template_id: form.contract_template_id || undefined,
+          template_id: sourceForm.contract_template_id || undefined,
           version: "1.0.0",
         },
       },
       contract_template: {
-        template_id: form.contract_template_id || undefined,
+        template_id: sourceForm.contract_template_id || undefined,
       },
       frontend_template: {
-        template_id: form.frontend_template_id || form.template_type,
+        template_id: sourceForm.frontend_template_id || sourceForm.template_type,
       },
       contract: {
-        template_id: form.contract_template_id || undefined,
+        template_id: sourceForm.contract_template_id || undefined,
       },
       media: {
-        logo: form.logo_url || undefined,
-        banner: form.banner_url || undefined,
+        logo: sourceForm.logo_url || undefined,
+        banner: sourceForm.banner_url || undefined,
       },
       i18n: {
-        name_zh: form.name_zh || undefined,
-        description_zh: form.description_zh || undefined,
+        name_zh: sourceForm.name_zh || undefined,
+        description_zh: sourceForm.description_zh || undefined,
       },
       permissions: {
         payments: true,
@@ -188,18 +283,87 @@ export default function DeveloperPage() {
         daily_gas_cap_per_user: "100",
       },
       frontend_spec: {
-        layout: form.template_type === "prediction" ? "prediction" : "default",
+        layout: sourceForm.template_type === "prediction" ? "prediction" : "default",
         tabs: [
           {
             id: "overview",
             label: "Overview",
             type: "content",
-            blocks: [{ type: "markdown", content: form.description || "" }],
+            blocks: [{ type: "markdown", content: sourceForm.description || "" }],
           },
         ],
       },
       operations: [],
     };
+  };
+
+  const applyMarketTemplateToFormData = (baseForm: FormData, item: MarketTemplateItem): FormData => {
+    const manifest = asObject(item.manifest);
+    const templateContainer = asObject(manifest.template);
+    const frontendTemplate = asObject(manifest.frontend_template ?? templateContainer.frontend_template);
+    const contractTemplate = asObject(manifest.contract_template ?? templateContainer.contract_template);
+    const media = asObject(manifest.media);
+
+    const next: FormData = { ...baseForm };
+
+    if (item.template_kind === "frontend") {
+      const frontendTemplateId = String(frontendTemplate.template_id || item.template_id || "").trim();
+      if (frontendTemplateId) {
+        next.frontend_template_id = frontendTemplateId;
+      }
+    }
+
+    if (item.template_kind === "contract") {
+      const contractTemplateId = String(contractTemplate.template_id || item.template_id || "").trim();
+      if (contractTemplateId) {
+        next.contract_template_id = contractTemplateId;
+      }
+    }
+
+    const templateTypeRaw = String(manifest.template_type || templateContainer.template_type || "").trim().toLowerCase();
+    if (isTemplateType(templateTypeRaw)) {
+      next.template_type = templateTypeRaw;
+    }
+
+    const categoryRaw = String(manifest.category || "").trim().toLowerCase();
+    if (isCategory(categoryRaw)) {
+      next.category = categoryRaw;
+    }
+
+    if (!next.name.trim() && item.name.trim()) {
+      next.name = item.name.trim();
+    }
+    if (!next.description.trim() && item.description.trim()) {
+      next.description = item.description.trim();
+    }
+
+    const docsUrl = String(manifest.docs_url || "").trim();
+    if (!next.docs_url.trim() && docsUrl) {
+      next.docs_url = docsUrl;
+    }
+
+    const logoUrl = String(manifest.logo_url || media.logo_url || media.logo || "").trim();
+    if (!next.logo_url.trim() && logoUrl) {
+      next.logo_url = logoUrl;
+    }
+
+    const bannerUrl = String(manifest.banner_url || media.banner_url || media.banner || "").trim();
+    if (!next.banner_url.trim() && bannerUrl) {
+      next.banner_url = bannerUrl;
+    }
+
+    return next;
+  };
+
+  const handleApplyMarketTemplate = (item: MarketTemplateItem) => {
+    const nextForm = applyMarketTemplateToFormData(form, item);
+    setForm(nextForm);
+    syncDefinitionText(definitionMode, buildDefinitionPayload(nextForm) as Record<string, unknown>);
+    setPreviewResult({
+      ok: true,
+      message: `Applied ${item.template_kind} template ${item.template_id}@${item.version} to builder.`,
+    });
+    setShowForm(true);
   };
 
   const syncDefinitionText = (mode: "json" | "yaml", payload: Record<string, unknown>) => {
@@ -428,6 +592,138 @@ export default function DeveloperPage() {
               </Button>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      <section className="py-12 px-4">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Template Marketplace</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Browse published frontend and contract templates, then install to builder in one click.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1 text-xs text-gray-600 dark:text-gray-300">
+              <Store size={14} aria-hidden="true" />
+              Live Market Feed
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-5 mb-4">
+            <select
+              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50"
+              value={marketKind}
+              onChange={(e) => setMarketKind(e.target.value as "all" | MarketTemplateKind)}
+              aria-label="Filter kind"
+            >
+              <option value="all">All Kinds</option>
+              <option value="frontend">Frontend</option>
+              <option value="contract">Contract</option>
+            </select>
+            <select
+              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50"
+              value={marketCategory}
+              onChange={(e) => setMarketCategory(e.target.value as "all" | FormData["category"])}
+              aria-label="Filter category"
+            >
+              <option value="all">All Categories</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+            <select
+              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50"
+              value={marketSource}
+              onChange={(e) => setMarketSource(e.target.value as "all" | MarketTemplateSource)}
+              aria-label="Filter source"
+            >
+              <option value="all">All Sources</option>
+              <option value="community">Community</option>
+              <option value="verified">Verified</option>
+              <option value="builtin">Builtin</option>
+            </select>
+            <select
+              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50"
+              value={marketVerified}
+              onChange={(e) => setMarketVerified(e.target.value as "all" | "true")}
+              aria-label="Filter verified"
+            >
+              <option value="all">All Verification</option>
+              <option value="true">Verified Only</option>
+            </select>
+            <input
+              type="text"
+              value={marketSearch}
+              onChange={(e) => setMarketSearch(e.target.value)}
+              placeholder="Search template ID/name"
+              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50"
+            />
+          </div>
+
+          {marketError ? (
+            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/15 px-3 py-2 text-sm text-red-300">
+              {marketError}
+            </div>
+          ) : null}
+
+          {marketLoading ? (
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-6 text-sm text-gray-600 dark:text-gray-400">
+              Loading template marketplace...
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {marketTemplates.slice(0, 18).map((item) => (
+                <div
+                  key={`${item.template_kind}:${item.template_id}:${item.version}`}
+                  className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-4"
+                >
+                  <div className="flex items-center gap-2 mb-2 text-xs">
+                    <span className={`rounded-full px-2 py-0.5 ${item.template_kind === "contract" ? "bg-orange-500/20 text-orange-300" : "bg-neo/20 text-neo"}`}>
+                      {item.template_kind}
+                    </span>
+                    <span className="rounded-full px-2 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
+                      {item.source_type}
+                    </span>
+                    {item.is_verified ? (
+                      <span className="rounded-full px-2 py-0.5 bg-emerald-500/20 text-emerald-300">verified</span>
+                    ) : null}
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.name || item.template_id}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    <code>{item.template_id}</code> · v{item.version}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-2">
+                    {item.description || "No description"}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    {item.category} · usage {item.usage_count} · rating {item.rating_avg ?? "-"} ({item.rating_count})
+                  </p>
+                  {item.tags.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {item.tags.slice(0, 4).map((tag) => (
+                        <span key={`${item.template_id}-${tag}`} className="text-[11px] rounded-full bg-gray-100 dark:bg-white/10 px-2 py-0.5 text-gray-600 dark:text-gray-300">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="mt-3">
+                    <Button size="sm" onClick={() => handleApplyMarketTemplate(item)}>
+                      Install To Builder
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {!marketTemplates.length ? (
+                <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-4 text-sm text-gray-600 dark:text-gray-300">
+                  No templates matched current filters.
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
       </section>
 
@@ -780,11 +1076,11 @@ export default function DeveloperPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 mb-3">
-                    <Button type="button" variant="outline" className="text-xs" onClick={handleGenerateDefinition}>
+                    <Button type="button" variant="secondary" size="sm" className="text-xs" onClick={handleGenerateDefinition}>
                       <Database size={14} className="mr-1" />
                       Generate From Form
                     </Button>
-                    <Button type="button" variant="outline" className="text-xs" onClick={handlePreviewDefinition}>
+                    <Button type="button" variant="secondary" size="sm" className="text-xs" onClick={handlePreviewDefinition}>
                       <Rocket size={14} className="mr-1" />
                       {previewLoading ? "Previewing..." : "Schema + Runtime Preview"}
                     </Button>

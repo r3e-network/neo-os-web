@@ -65,13 +65,13 @@ func TestConfigValidate(t *testing.T) {
 
 func TestGetRPCURL(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.MainnetRPCURL = "https://mainnet.neo.org"
-	cfg.TestnetRPCURL = "https://testnet.neo.org"
+	cfg.MainnetRPCURL = "https://mainnet.r3e.network"
+	cfg.TestnetRPCURL = "https://testnet.r3e.network"
 
-	if cfg.GetRPCURL(NetworkMainnet) != "https://mainnet.neo.org" {
+	if cfg.GetRPCURL(NetworkMainnet) != "https://mainnet.r3e.network" {
 		t.Error("wrong mainnet URL")
 	}
-	if cfg.GetRPCURL(NetworkTestnet) != "https://testnet.neo.org" {
+	if cfg.GetRPCURL(NetworkTestnet) != "https://testnet.r3e.network" {
 		t.Error("wrong testnet URL")
 	}
 }

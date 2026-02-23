@@ -53,9 +53,6 @@ const miniAppConfigSchema = schema as MiniAppConfigSchema;
 const REQUIRED_TOP_LEVEL_FIELDS = Array.isArray(miniAppConfigSchema.required)
   ? miniAppConfigSchema.required.filter((field): field is string => typeof field === "string" && field.length > 0)
   : [];
-const ALLOWED_TOP_LEVEL_FIELDS = miniAppConfigSchema.properties
-  ? new Set(Object.keys(miniAppConfigSchema.properties))
-  : null;
 const TEMPLATE_TYPE_ENUM = Array.isArray(miniAppConfigSchema.properties?.template_type?.enum)
   ? new Set(
       miniAppConfigSchema.properties?.template_type?.enum
@@ -87,14 +84,6 @@ function validateDefinitionPayload(payload: unknown): string | null {
   const obj = asObject(payload);
   if (!Object.keys(obj).length) {
     return "Definition payload must be a JSON object";
-  }
-
-  if (ALLOWED_TOP_LEVEL_FIELDS) {
-    for (const key of Object.keys(obj)) {
-      if (!ALLOWED_TOP_LEVEL_FIELDS.has(key)) {
-        return `Unsupported top-level field: ${key}`;
-      }
-    }
   }
 
   for (const requiredField of REQUIRED_TOP_LEVEL_FIELDS) {

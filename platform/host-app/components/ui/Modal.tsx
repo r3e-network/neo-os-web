@@ -78,7 +78,12 @@ const animationStyles = {
     exit: "opacity-100 translate-y-0",
     exitActive: "opacity-0 translate-y-4",
   },
-  none: {},
+  none: {
+    enter: "",
+    enterActive: "",
+    exit: "",
+    exitActive: "",
+  },
 };
 
 // ============================================================================
@@ -104,7 +109,7 @@ export const Modal: React.FC<ModalProps> = ({
   const modalId = useId();
   const titleId = generateAriaId("modal-title");
   const descriptionId = generateAriaId("modal-description");
-  const modalRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
   // Use focus trap for dialog
   const focusTrapRef = useFocusTrap({

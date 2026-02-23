@@ -17,7 +17,7 @@ func TestSyncerConfig(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.PostgresHost = "localhost"
 	cfg.PostgresPassword = "test"
-	cfg.TestnetRPCURL = "https://testnet.neo.org"
+	cfg.TestnetRPCURL = "https://testnet.r3e.network"
 
 	if cfg.GetRPCURL(NetworkTestnet) == "" {
 		t.Error("RPC URL should not be empty")

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, memo } from "react";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { usePerformanceMonitor } from "./usePerformanceMonitor";
 
 /**
@@ -251,8 +251,8 @@ export const OperationList = memo(function OperationList({
 }: OperationListProps) {
   // 使用 useMemo 缓存操作处理函数
   const handleSubmit = useCallback(
-    (operation: Operation) => (values: Record<string, string>) => {
-      onSubmit(operation, values);
+    (operation: Operation) => async (values: Record<string, string>) => {
+      await onSubmit(operation, values);
     },
     [onSubmit]
   );

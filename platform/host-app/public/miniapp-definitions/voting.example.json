@@ -10,7 +10,7 @@
   "status": "active",
   "developer": {
     "name": "Neo DAO",
-    "email": "dao@neo.org"
+    "email": "dao@r3e.network"
   },
   "contract": {
     "template_id": "voting-token-weighted",
@@ -21,7 +21,7 @@
       "token_contract": "0xabcdef1234567890abcdef1234567890abcdef12"
     }
   },
-  "entry_url": "https://vote.neo.org",
+  "entry_url": "https://vote.r3e.network",
   "media": {
     "icon": "/miniapp-assets/voting/icon.png",
     "banner": "/miniapp-assets/voting/banner.png"
@@ -109,5 +109,5 @@
     "activity_feed": true,
     "stats_display": ["total_users", "total_gas_used"]
   },
-  "docs_url": "https://docs.neo.org/dao"
+  "docs_url": "https://docs.r3e.network/dao"
 }

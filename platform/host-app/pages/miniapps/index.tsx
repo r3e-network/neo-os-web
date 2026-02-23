@@ -166,7 +166,7 @@ export default function MiniAppsPage() {
   return (
     <Layout>
       <Head>
-        <title>MiniApps - NeoHub</title>
+        <title>MiniApps - R3E Network</title>
       </Head>
 
       <div className="flex min-h-[calc(100vh-3.5rem)]">

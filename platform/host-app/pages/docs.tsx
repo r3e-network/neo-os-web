@@ -2,7 +2,7 @@ import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   Search,
   Rocket,

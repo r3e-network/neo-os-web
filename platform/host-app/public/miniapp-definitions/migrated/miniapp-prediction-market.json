@@ -1,0 +1,62 @@
+{
+  "$schema": "../miniapp-config.schema.json",
+  "app_id": "miniapp-prediction-market",
+  "name": "Prediction Market",
+  "template_type": "prediction",
+  "category": "defi",
+  "entry_url": "mf://builtin?app=miniapp-prediction-market",
+  "contract": {
+    "template_id": "prediction-binary",
+    "init_params": {}
+  },
+  "frontend_spec": {
+    "layout": "prediction",
+    "hero": {
+      "eyebrow": "PREDICTION MARKET",
+      "disclaimer": "Legacy app migrated to generic template."
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "markdown",
+            "content": "## Prediction Market\n\nMigrated automatically."
+          }
+        ]
+      }
+    ],
+    "operation_panel": {
+      "title": "Interact",
+      "cta_label": "Submit Tx"
+    }
+  },
+  "operations": [
+    {
+      "name": "Buy YES",
+      "method": "buyYes",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "amount",
+          "type": "amount",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "Buy NO",
+      "method": "buyNo",
+      "button_style": "danger",
+      "params": [
+        {
+          "name": "amount",
+          "type": "amount",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

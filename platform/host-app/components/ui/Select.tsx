@@ -32,7 +32,9 @@ export interface SelectOption {
   description?: string;
 }
 
-export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "size" | "onChange"> {
+export interface SelectProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "size" | "onChange" | "value"> {
+  /** Value */
+  value?: string;
   /** Select options */
   options: SelectOption[];
   /** Placeholder text */
