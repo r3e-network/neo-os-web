@@ -15,8 +15,9 @@ func TestMasterKeyEndpoint_ReturnsAttestation(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/master-key", nil)
 	req.Header.Set(serviceauth.ServiceIDHeader, "neocompute")
+	req = req.WithContext(serviceauth.WithServiceID(req.Context(), "neocompute"))
 	w := httptest.NewRecorder()
-	svc.Router().ServeHTTP(w, req)
+	svc.handleMasterKey(w, req)
 
 	resp := w.Result()
 	defer resp.Body.Close()

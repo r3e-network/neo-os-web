@@ -1323,6 +1323,7 @@ func TestHandleInfoEndpoint(t *testing.T) {
 	}
 
 	req := httptest.NewRequest("GET", "/pool-info", nil)
+	req.Header.Set("X-Service-ID", "neocompute")
 	addServiceAuth(req)
 	rr := httptest.NewRecorder()
 
@@ -1358,6 +1359,7 @@ func TestHandleListAccountsEndpoint(t *testing.T) {
 	svc, _ := New(Config{Marble: m, NeoAccountsRepo: mockRepo})
 
 	req := httptest.NewRequest("GET", "/accounts?service_id=neocompute", nil)
+	req.Header.Set("X-Service-ID", "neocompute")
 	addServiceAuth(req)
 	rr := httptest.NewRecorder()
 
@@ -2235,6 +2237,7 @@ func TestHandleInfoError(t *testing.T) {
 	mockRepo.simulateError = true
 
 	req := httptest.NewRequest("GET", "/pool-info", nil)
+	req.Header.Set("X-Service-ID", "neocompute")
 	rr := httptest.NewRecorder()
 
 	svc.handleInfo(rr, req)
