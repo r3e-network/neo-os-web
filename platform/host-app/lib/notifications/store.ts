@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { NotificationPreferences, NotificationEvent, ChainHealthStatus } from "./types";
+import { fetchJSON, fetchOK, toApiError } from "@/lib/fetch-client";
 
 interface NotificationState {
   preferences: NotificationPreferences | null;
@@ -32,6 +33,18 @@ const defaultPreferences: NotificationPreferences = {
   digestFrequency: "instant",
 };
 
+type PreferencesResponse = {
+  preferences?: NotificationPreferences;
+};
+
+type EventsResponse = {
+  events?: NotificationEvent[];
+};
+
+function errorMessage(err: unknown, fallback: string): string {
+  return toApiError(err).message || fallback;
+}
+
 export const useNotificationStore = create<NotificationStore>()(
   persist(
     (set, get) => ({
@@ -44,52 +57,46 @@ export const useNotificationStore = create<NotificationStore>()(
       loadPreferences: async (walletAddress: string) => {
         set({ loading: true, error: null });
         try {
-          const res = await fetch(`/api/notifications/preferences?wallet=${encodeURIComponent(walletAddress)}`, {
-            signal: AbortSignal.timeout(30000),
-          });
-          if (!res.ok) throw new Error("Failed to load preferences");
-          const data = await res.json();
+          const data = await fetchJSON<PreferencesResponse>(
+            `/api/notifications/preferences?wallet=${encodeURIComponent(walletAddress)}`,
+          );
           set({ preferences: data.preferences || { ...defaultPreferences, walletAddress }, loading: false });
         } catch (err) {
-          set({ loading: false, error: err instanceof Error ? err.message : "Load failed" });
+          set({ loading: false, error: errorMessage(err, "Load failed") });
         }
       },
 
       updatePreferences: async (prefs: Partial<NotificationPreferences>) => {
         const { preferences } = get();
         if (!preferences) return;
-        set({ loading: true });
+        set({ loading: true, error: null });
         try {
-          const res = await fetch("/api/notifications/preferences", {
+          await fetchOK("/api/notifications/preferences", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...preferences, ...prefs }),
-            signal: AbortSignal.timeout(30000),
           });
-          if (!res.ok) throw new Error("Update failed");
           set({ preferences: { ...preferences, ...prefs }, loading: false });
         } catch (err) {
-          set({ loading: false, error: err instanceof Error ? err.message : "Update failed" });
+          set({ loading: false, error: errorMessage(err, "Update failed") });
         }
       },
 
       bindEmail: async (email: string) => {
         const { preferences } = get();
         if (!preferences) return;
-        set({ loading: true });
+        set({ loading: true, error: null });
         try {
-          const res = await fetch("/api/notifications/bind-email", {
+          await fetchOK("/api/notifications/bind-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ wallet: preferences.walletAddress, email }),
-            signal: AbortSignal.timeout(30000),
           });
-          if (!res.ok) throw new Error("Bind failed");
           set({
             loading: false,
           });
         } catch (err) {
-          set({ loading: false, error: err instanceof Error ? err.message : "Bind failed" });
+          set({ loading: false, error: errorMessage(err, "Bind failed") });
         }
       },
 
@@ -97,13 +104,11 @@ export const useNotificationStore = create<NotificationStore>()(
         const { preferences } = get();
         if (!preferences) return false;
         try {
-          const res = await fetch("/api/notifications/verify-email", {
+          await fetchOK("/api/notifications/verify-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ wallet: preferences.walletAddress, code }),
-            signal: AbortSignal.timeout(30000),
           });
-          if (!res.ok) return false;
           set({ preferences: { ...preferences, emailVerified: true } });
           return true;
         } catch {
@@ -115,11 +120,9 @@ export const useNotificationStore = create<NotificationStore>()(
         const { preferences } = get();
         if (!preferences) return;
         try {
-          const res = await fetch(`/api/notifications/events?wallet=${encodeURIComponent(preferences.walletAddress)}`, {
-            signal: AbortSignal.timeout(30000),
-          });
-          if (!res.ok) return;
-          const data = await res.json();
+          const data = await fetchJSON<EventsResponse>(
+            `/api/notifications/events?wallet=${encodeURIComponent(preferences.walletAddress)}`,
+          );
           set({ events: data.events || [] });
         } catch {
           // Silent fail for events
