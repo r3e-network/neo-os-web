@@ -1,5 +1,6 @@
 import type { MiniAppCategory, MiniAppInfo } from "../components/types";
 import { withMiniAppCardAssets } from "./miniapp-media";
+import { canonicalizeMiniAppId } from "./miniapp-id";
 import { resolveMiniAppDetailConfig } from "./miniapp-template";
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -94,7 +95,7 @@ export function normalizeStatus(value: unknown, fallback?: MiniAppInfo["status"]
 
 function normalizeSource(value: unknown, fallback?: MiniAppInfo["source"]): MiniAppInfo["source"] | undefined {
   const raw = toString(value).trim().toLowerCase();
-  if (raw === "builtin" || raw === "community" || raw === "verified") {
+  if (raw === "miniapp" || raw === "community" || raw === "verified") {
     return raw as MiniAppInfo["source"];
   }
   return fallback;
@@ -122,7 +123,8 @@ function normalizeDeveloper(
 export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniAppInfo | null {
   const obj = asObject(raw);
   const manifestCandidate = asObject(obj.manifest ?? fallback?.manifest);
-  const appId = toString(obj.app_id ?? obj.appid ?? fallback?.app_id).trim();
+  const rawAppId = toString(obj.app_id ?? obj.appid ?? fallback?.app_id).trim();
+  const appId = canonicalizeMiniAppId(rawAppId) || rawAppId;
   if (!appId) return null;
 
   const entryUrl = normalizeEntryUrl(
@@ -204,6 +206,6 @@ export function parseFederatedEntryUrl(entryUrl: string, fallbackAppId: string):
     return { remote, appId, view };
   } catch {
     if (!fallbackAppId) return null;
-    return { remote: "builtin", appId: fallbackAppId };
+    return { remote: "miniapp", appId: fallbackAppId };
   }
 }

@@ -21,9 +21,9 @@ describe("miniapp-definitions loader", () => {
       path.join(definitionsDir, "prediction-market.json"),
       JSON.stringify(
         {
-          app_id: "miniapp-prediction-market",
+          app_id: "miniapp-predictionmarket",
           name: "Prediction Market",
-          entry_url: "mf://manifest?app=miniapp-prediction-market",
+          entry_url: "mf://manifest?app=miniapp-predictionmarket",
           content: {
             category: "defi",
             logo_url: "/miniapp-assets/prediction-market/logo.jpg",
@@ -44,7 +44,7 @@ describe("miniapp-definitions loader", () => {
     expect(apps).toHaveLength(1);
     expect(apps[0]).toEqual(
       expect.objectContaining({
-        app_id: "miniapp-prediction-market",
+        app_id: "miniapp-predictionmarket",
         name: "Prediction Market",
         category: "defi",
         logo_url: "/miniapp-assets/prediction-market/logo.jpg",
@@ -173,6 +173,77 @@ describe("miniapp-definitions loader", () => {
           frontend_template: expect.objectContaining({ template_id: "prediction" }),
           contract_template: expect.objectContaining({ template_id: "prediction-binary" }),
         }),
+      }),
+    );
+  });
+
+  it("skips non-runtime definition files and canonicalizes app ids to miniapp-*", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-filter");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+
+    fs.writeFileSync(
+      path.join(definitionsDir, "miniapp-config.schema.json"),
+      JSON.stringify({ $schema: "https://json-schema.org/draft/2020-12/schema" }, null, 2),
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(definitionsDir, "lottery.example.json"),
+      JSON.stringify(
+        {
+          app_id: "lottery-example",
+          name: "Lottery Example",
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(definitionsDir, "dice-game.json"),
+      JSON.stringify(
+        {
+          app_id: "dice-game",
+          name: "Dice Game",
+          entry_url: "https://example.com/dice-game",
+          content: {
+            category: "gaming",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(definitionsDir, "legacy-coinflip.json"),
+      JSON.stringify(
+        {
+          app_id: "builtin-coin-flip",
+          name: "Legacy Coin Flip",
+          content: {
+            category: "gaming",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    expect(apps).toHaveLength(2);
+    const byId = new Map(apps.map((app) => [app.app_id, app]));
+    expect(byId.get("miniapp-dicegame")).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-dicegame",
+        entry_url: "mf://manifest?app=miniapp-dicegame",
+      }),
+    );
+    expect(byId.get("miniapp-coinflip")).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-coinflip",
+        entry_url: "mf://manifest?app=miniapp-coinflip",
       }),
     );
   });

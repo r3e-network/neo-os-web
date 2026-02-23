@@ -27,7 +27,7 @@ describe("/api/miniapps/catalog", () => {
     expect(data.apps.length).toBeGreaterThan(0);
   });
 
-  it("does not include built-in apps for pending catalog", async () => {
+  it("does not include static miniapps for pending catalog", async () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
       query: { status: "pending" },
