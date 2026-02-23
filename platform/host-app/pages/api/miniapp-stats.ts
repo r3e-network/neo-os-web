@@ -7,7 +7,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { warnOnce } from "@/lib/log-once";
 import { standardLimit } from "@/lib/rate-limit";
+import { canonicalizeMiniAppId } from "@/lib/miniapp-id";
+import { isMissingSupabaseSchemaObject } from "@/lib/supabase-errors";
 
 interface AppStats {
   app_id: string;
@@ -22,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   if (standardLimit(req, res)) return;
 
-  const appIdFilter = (req.query.app_id as string | undefined) || null;
+  const appIdFilter = canonicalizeMiniAppId((req.query.app_id as string | undefined) || "") || null;
 
   if (!isSupabaseConfigured) {
     return res.status(200).json({ stats: [] });
@@ -34,12 +37,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (error) {
+      if (isMissingSupabaseSchemaObject(error)) {
+        warnOnce("miniapp-stats-rpc-missing", "miniapp_stats_aggregate RPC not available; returning empty miniapp stats.");
+        return res.status(200).json({ stats: [] });
+      }
       logger.error("miniapp_stats_aggregate RPC failed:", error.message);
       return apiError.internal(res, "Failed to fetch stats");
     }
 
     const stats: AppStats[] = (data || []).map((row: Record<string, unknown>) => ({
-      app_id: String(row.app_id),
+      app_id: canonicalizeMiniAppId(row.app_id) || String(row.app_id || ""),
       total_users: Number(row.total_users || 0),
       total_transactions: Number(row.total_transactions || 0),
       total_gas_used: Number(row.total_gas_used || 0).toFixed(2),

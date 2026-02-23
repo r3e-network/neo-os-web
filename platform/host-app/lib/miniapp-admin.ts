@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import type { MiniAppCategory, MiniAppDetailTemplate, MiniAppInfo, OperationEntry } from "@/components/types";
 import { normalizeCategory, normalizePermissions, normalizeStatus } from "./miniapp";
+import { canonicalizeMiniAppId } from "./miniapp-id";
 import { coerceOperationEntries, resolveMiniAppDetailConfig } from "./miniapp-template";
 import { stableStringify } from "../../shared/manifest";
 
@@ -152,7 +153,7 @@ function toIsoNow(): string {
 }
 
 function normalizeAppId(value: unknown): string | null {
-  const appId = asTrimmedString(value).toLowerCase();
+  const appId = canonicalizeMiniAppId(value, { coerceMiniappPrefix: true });
   if (!appId || !APP_ID_REGEX.test(appId)) return null;
   return appId;
 }

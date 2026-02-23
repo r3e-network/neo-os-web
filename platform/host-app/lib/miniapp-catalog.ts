@@ -1,8 +1,11 @@
 import type { MiniAppInfo } from "@/components/types";
-import { BUILTIN_APPS } from "./builtin-apps";
+import { MINIAPP_REGISTRY } from "./miniapp-registry";
 import { coerceMiniAppInfo } from "./miniapp";
 import { loadMiniAppDefinitions } from "./miniapp-definitions";
+import { canonicalizeMiniAppId } from "./miniapp-id";
 import { logger } from "./logger";
+import { warnOnce } from "./log-once";
+import { isMissingSupabaseSchemaObject, parsePostgrestErrorResponse } from "./supabase-errors";
 
 type MiniAppStatus = "active" | "pending" | "disabled";
 
@@ -70,8 +73,8 @@ async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMin
 
   const includeManifest = Boolean(options.includeManifest);
   const selectColumns = includeManifest
-    ? "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,news_integration,stats_display,logo_url,banner_url,docs_url,manifest"
-    : "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,news_integration,stats_display,logo_url,banner_url,docs_url";
+    ? "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,logo_url,banner_url,docs_url,manifest"
+    : "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,logo_url,banner_url,docs_url";
 
   const params = new URLSearchParams({
     select: selectColumns,
@@ -87,6 +90,14 @@ async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMin
     });
     if (!response.ok) {
       const text = await response.text().catch(() => "");
+      const parsedError = parsePostgrestErrorResponse(text);
+      if (isMissingSupabaseSchemaObject(parsedError || text)) {
+        warnOnce(
+          "miniapps-table-missing",
+          "miniapp catalog source table missing in Supabase; falling back to local miniapp definitions.",
+        );
+        return [];
+      }
       logger.warn(`miniapp catalog fetch failed: ${response.status} ${text}`);
       return [];
     }
@@ -107,34 +118,37 @@ export async function loadMiniAppCatalog(
   options: LoadMiniAppCatalogOptions = {},
 ): Promise<MiniAppInfo[]> {
   const definitionApps = await loadMiniAppDefinitions();
-  const mergedBuiltinsMap = new Map(BUILTIN_APPS.map((app) => [app.app_id, app]));
+  const mergedMiniAppsMap = new Map(MINIAPP_REGISTRY.map((app) => [canonicalizeMiniAppId(app.app_id) || app.app_id, app]));
   for (const definitionApp of definitionApps) {
-    const fallback = mergedBuiltinsMap.get(definitionApp.app_id);
-    mergedBuiltinsMap.set(definitionApp.app_id, {
+    const appId = canonicalizeMiniAppId(definitionApp.app_id) || definitionApp.app_id;
+    const fallback = mergedMiniAppsMap.get(appId);
+    mergedMiniAppsMap.set(appId, {
       ...(fallback || {}),
       ...definitionApp,
-      source: "builtin",
+      app_id: appId,
+      source: "miniapp",
     });
   }
-  const mergedBuiltins = Array.from(mergedBuiltinsMap.values());
-  const builtinById = new Map(mergedBuiltins.map((app) => [app.app_id, app]));
+  const mergedMiniApps = Array.from(mergedMiniAppsMap.values());
+  const miniAppById = new Map(mergedMiniApps.map((app) => [canonicalizeMiniAppId(app.app_id) || app.app_id, app]));
   const dbApps = await fetchMiniAppsFromSupabase(status, options);
 
   const merged: MiniAppInfo[] = [];
   const seen = new Set<string>();
 
   for (const app of dbApps) {
-    const fallback = builtinById.get(app.app_id);
-    merged.push({ ...(fallback || {}), ...app, source: app.source || "verified" });
-    seen.add(app.app_id);
+    const appId = canonicalizeMiniAppId(app.app_id) || app.app_id;
+    const fallback = miniAppById.get(appId);
+    merged.push({ ...(fallback || {}), ...app, app_id: appId, source: app.source || "verified" });
+    seen.add(appId);
   }
 
-  // Built-ins represent the active static catalog and should not leak into
+  // Static miniapps represent the active catalog and should not leak into
   // pending/disabled status views.
   if (status === "active") {
-    for (const builtin of mergedBuiltins) {
-      if (seen.has(builtin.app_id)) continue;
-      merged.push({ ...builtin, source: "builtin" });
+    for (const miniapp of mergedMiniApps) {
+      if (seen.has(miniapp.app_id)) continue;
+      merged.push({ ...miniapp, source: "miniapp" });
     }
   }
 
@@ -142,9 +156,12 @@ export async function loadMiniAppCatalog(
 }
 
 export function filterCatalogByAppId(catalog: MiniAppInfo[], appId: string): MiniAppInfo | null {
-  const normalized = String(appId || "").trim();
+  const normalized = canonicalizeMiniAppId(appId) || String(appId || "").trim();
   if (!normalized) return null;
-  return catalog.find((app) => app.app_id === normalized) || null;
+  return catalog.find((app) => {
+    const appKey = canonicalizeMiniAppId(app.app_id) || app.app_id;
+    return appKey === normalized;
+  }) || null;
 }
 
 export async function loadMiniAppStatsMap(): Promise<Record<string, {
@@ -180,16 +197,30 @@ export async function loadMiniAppStatsMap(): Promise<Record<string, {
 
     const map: Record<string, { users: number; transactions: number; volume: number; lastActivityAt: string | null }> = {};
     for (const row of rows) {
-      const appId = String(row.app_id || "").trim();
+      const appId = canonicalizeMiniAppId(row.app_id) || String(row.app_id || "").trim();
       if (!appId) continue;
       const totalUsers = Number(row.total_users ?? row.daily_active_users ?? 0);
       const totalTransactions = Number(row.total_transactions ?? 0);
       const totalGasUsed = Number.parseFloat(String(row.total_gas_used ?? "0"));
-      map[appId] = {
+      const next = {
         users: Number.isFinite(totalUsers) ? totalUsers : 0,
         transactions: Number.isFinite(totalTransactions) ? totalTransactions : 0,
         volume: Number.isFinite(totalGasUsed) ? totalGasUsed : 0,
         lastActivityAt: row.last_activity_at || null,
+      };
+      const existing = map[appId];
+      if (!existing) {
+        map[appId] = next;
+        continue;
+      }
+
+      map[appId] = {
+        users: existing.users + next.users,
+        transactions: existing.transactions + next.transactions,
+        volume: existing.volume + next.volume,
+        lastActivityAt: existing.lastActivityAt && next.lastActivityAt
+          ? (existing.lastActivityAt > next.lastActivityAt ? existing.lastActivityAt : next.lastActivityAt)
+          : (existing.lastActivityAt || next.lastActivityAt || null),
       };
     }
     return map;

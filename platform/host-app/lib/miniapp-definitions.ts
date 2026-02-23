@@ -1,9 +1,10 @@
-import { promises as fs } from "fs";
+import { existsSync, statSync, promises as fs } from "fs";
 import path from "path";
 import yaml from "js-yaml";
 import type { MiniAppInfo } from "@/components/types";
 import { coerceMiniAppInfo } from "./miniapp";
 import { logger } from "./logger";
+import { canonicalizeMiniAppId } from "./miniapp-id";
 
 type Dict = Record<string, unknown>;
 
@@ -43,6 +44,13 @@ function asString(value: unknown): string {
 function asOptionalString(value: unknown): string | undefined {
   const out = asString(value);
   return out || undefined;
+}
+
+function canonicalizeAppId(rawAppId: unknown, slug: string): string {
+  return canonicalizeMiniAppId(rawAppId, {
+    fallbackSlug: slug,
+    coerceMiniappPrefix: true,
+  });
 }
 
 function normalizeMediaVariants(raw: unknown): Array<{
@@ -127,7 +135,7 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
   const logic = asObject(obj.logic ?? manifest.logic);
   const marketplace = asObject(obj.marketplace ?? manifest.marketplace);
 
-  const appId = asString(obj.app_id) || `miniapp-${slug}`;
+  const appId = canonicalizeAppId(obj.app_id, slug);
   const name = asString(obj.name) || titleCase(slug);
   const nameEn = asOptionalString(obj.name_en ?? i18n.name_en ?? manifest.name_en);
   const nameZh = asOptionalString(obj.name_zh ?? i18n.name_zh ?? manifest.name_zh);
@@ -266,11 +274,29 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
 function getDefinitionsDir(): string {
   const fromEnv = asString(process.env.MINIAPP_DEFINITIONS_DIR);
   if (fromEnv) return fromEnv;
+
+  const migratedDir = path.join(process.cwd(), "public", "miniapp-definitions", "migrated");
+  try {
+    if (existsSync(migratedDir) && statSync(migratedDir).isDirectory()) {
+      return migratedDir;
+    }
+  } catch {
+    // Fallback below.
+  }
+
   return path.join(process.cwd(), "public", "miniapp-definitions");
 }
 
 function getSlugFromFilename(fileName: string): string {
   return path.parse(fileName).name.trim();
+}
+
+function shouldSkipDefinitionFile(fileName: string): boolean {
+  const lower = fileName.toLowerCase();
+  if (lower === "miniapp-config.schema.json") return true;
+  if (lower.endsWith(".schema.json")) return true;
+  if (lower.includes(".example.")) return true;
+  return false;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -286,7 +312,7 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
   try {
     const entries = await fs.readdir(definitionsDir, { withFileTypes: true });
     const definitionFiles = entries
-      .filter((entry) => entry.isFile() && fileHasSupportedDefinitionExtension(entry.name))
+      .filter((entry) => entry.isFile() && fileHasSupportedDefinitionExtension(entry.name) && !shouldSkipDefinitionFile(entry.name))
       .map((entry) => entry.name)
       .sort();
 
@@ -334,7 +360,7 @@ export async function loadMiniAppDefinitions(): Promise<MiniAppInfo[]> {
   for (const definition of loaded.definitions) {
     const app = coerceMiniAppInfo(definition.payload);
     if (!app) continue;
-    apps.push({ ...app, source: "builtin" });
+    apps.push({ ...app, source: "miniapp" });
   }
   return apps;
 }
