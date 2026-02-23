@@ -13,6 +13,7 @@ import (
 )
 
 func TestAllowlistBlocksURL(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	svc := newTestOracle(t, URLAllowlist{Prefixes: []string{"https://allowed.example"}})
 	body := `{"url":"https://forbidden.example/data"}`
 	req := httptest.NewRequest("POST", "/query", strings.NewReader(body))
@@ -25,6 +26,7 @@ func TestAllowlistBlocksURL(t *testing.T) {
 }
 
 func TestBodyLimitApplied(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	// Mock upstream returning large body.
 	up := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(strings.Repeat("A", 1024)))

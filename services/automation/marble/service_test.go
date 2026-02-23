@@ -364,6 +364,7 @@ func TestHandleCreateTriggerInvalidBody(t *testing.T) {
 }
 
 func TestHandleCreateTriggerMissingFields(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	svc, _ := New(Config{Marble: m})
 
@@ -911,6 +912,7 @@ func TestSchedulerMapInitialization(t *testing.T) {
 }
 
 func TestServiceConfigFields(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 
 	cfg := Config{
@@ -993,6 +995,7 @@ func BenchmarkPriceConditionMarshal(b *testing.B) {
 // =============================================================================
 
 func TestHandleListTriggersWithMock(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 
@@ -1104,6 +1107,7 @@ func TestDispatchActionUnknownType(t *testing.T) {
 }
 
 func TestDispatchActionWebhookSuccess(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	// Create test server
 	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -1124,6 +1128,7 @@ func TestDispatchActionWebhookSuccess(t *testing.T) {
 }
 
 func TestDispatchActionWebhookDefaultMethod(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("method = %s, want POST (default)", r.Method)
@@ -1242,6 +1247,7 @@ func TestSetupAutomationAnchorListenerNil(t *testing.T) {
 // =============================================================================
 
 func TestHandleCreateTriggerWithMock(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
@@ -1278,6 +1284,7 @@ func TestHandleCreateTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleCreateTriggerNonCronWithMock(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
@@ -1301,6 +1308,7 @@ func TestHandleCreateTriggerNonCronWithMock(t *testing.T) {
 }
 
 func TestHandleGetTriggerWithMock(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174000"
@@ -1322,6 +1330,7 @@ func TestHandleGetTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleGetTriggerNotFound(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
@@ -1340,6 +1349,7 @@ func TestHandleGetTriggerNotFound(t *testing.T) {
 }
 
 func TestHandleUpdateTriggerWithMock(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174002"
@@ -1368,6 +1378,7 @@ func TestHandleUpdateTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleDeleteTriggerWithMock(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174003"
@@ -1394,6 +1405,7 @@ func TestHandleDeleteTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleEnableDisableTriggerWithMock(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174004"
@@ -1432,6 +1444,7 @@ func TestHandleEnableDisableTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleListExecutionsWithMock(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174005"
@@ -1457,6 +1470,7 @@ func TestHandleListExecutionsWithMock(t *testing.T) {
 }
 
 func TestHandleResumeTriggerWithMock(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174006"
