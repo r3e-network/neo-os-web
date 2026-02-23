@@ -191,7 +191,7 @@ export type MiniAppMediaUploadUrlResult = {
 };
 
 export type TemplateKind = "frontend" | "contract";
-export type TemplateSourceType = "builtin" | "community" | "verified";
+export type TemplateSourceType = "miniapp" | "community" | "verified";
 export type TemplatePublishRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 export type TemplateCatalogItem = {

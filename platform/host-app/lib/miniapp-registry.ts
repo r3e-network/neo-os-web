@@ -1,11 +1,11 @@
 import type { MiniAppInfo } from "../components/types";
 import { withMiniAppCardAssets } from "./miniapp-media";
-import { BUILTIN_APP_TEMPLATES } from "./templates/builtin-app-templates";
+import { MINIAPP_TEMPLATES } from "./templates/miniapp-templates";
 
 const MANIFEST_ENTRY_PREFIX = "mf://manifest?app=";
 
 function applyTemplate(app: MiniAppInfo): MiniAppInfo {
-  const t = BUILTIN_APP_TEMPLATES[app.app_id];
+  const t = MINIAPP_TEMPLATES[app.app_id];
   if (t) {
     if (!app.detail_template) app.detail_template = t.detail_template;
     if (!app.operations) app.operations = t.operations;
@@ -17,9 +17,9 @@ function forceManifestEntry(app: MiniAppInfo): MiniAppInfo {
   return { ...app, entry_url: `${MANIFEST_ENTRY_PREFIX}${app.app_id}` };
 }
 
-const BUILTIN_APPS_RAW: MiniAppInfo[] = [
+const MINIAPP_REGISTRY_RAW: MiniAppInfo[] = [
   {
-    app_id: "builtin-lottery",
+    app_id: "miniapp-lottery",
     name: "Neo Lottery",
     description: "Decentralized lottery with provably fair randomness",
     icon: "🎰",
@@ -28,7 +28,7 @@ const BUILTIN_APPS_RAW: MiniAppInfo[] = [
     permissions: { payments: true, randomness: true },
   },
   {
-    app_id: "builtin-coin-flip",
+    app_id: "miniapp-coinflip",
     name: "Coin Flip",
     description: "50/50 coin flip - double your GAS",
     icon: "🪙",
@@ -37,7 +37,7 @@ const BUILTIN_APPS_RAW: MiniAppInfo[] = [
     permissions: { payments: true, randomness: true },
   },
   {
-    app_id: "builtin-dice-game",
+    app_id: "miniapp-dicegame",
     name: "Dice Game",
     description: "Roll the dice and win up to 6x",
     icon: "🎲",
@@ -46,7 +46,7 @@ const BUILTIN_APPS_RAW: MiniAppInfo[] = [
     permissions: { payments: true, randomness: true },
   },
   {
-    app_id: "builtin-prediction-market",
+    app_id: "miniapp-predictionmarket",
     name: "Prediction Market",
     description: "Trade on future outcomes",
     icon: "📊",
@@ -55,7 +55,7 @@ const BUILTIN_APPS_RAW: MiniAppInfo[] = [
     permissions: { payments: true, datafeed: true },
   },
   {
-    app_id: "builtin-airdrop",
+    app_id: "miniapp-redenvelope",
     name: "Airdrop Center",
     description: "Claim Multi-Chain Tokens & NFTs",
     icon: "🪂",
@@ -64,7 +64,7 @@ const BUILTIN_APPS_RAW: MiniAppInfo[] = [
     permissions: { payments: false },
   },
   {
-    app_id: "builtin-dao-voting",
+    app_id: "miniapp-secretvote",
     name: "DAO Snapshot",
     description: "On-Chain Governance & Voting",
     icon: "⚖️",
@@ -73,7 +73,7 @@ const BUILTIN_APPS_RAW: MiniAppInfo[] = [
     permissions: { governance: true },
   },
   {
-    app_id: "builtin-gacha",
+    app_id: "miniapp-gacha",
     name: "On-Chain Gacha",
     description: "Blind Box Gamification",
     icon: "🎁",
@@ -83,18 +83,18 @@ const BUILTIN_APPS_RAW: MiniAppInfo[] = [
   }
 ];
 
-export const BUILTIN_APPS: MiniAppInfo[] = BUILTIN_APPS_RAW.map((app) =>
+export const MINIAPP_REGISTRY: MiniAppInfo[] = MINIAPP_REGISTRY_RAW.map((app) =>
   withMiniAppCardAssets(forceManifestEntry(applyTemplate(app)))
 );
 
-export const BUILTIN_APPS_MAP: Record<string, MiniAppInfo> = Object.fromEntries(
-  BUILTIN_APPS.map((app) => [app.app_id, app]),
+export const MINIAPP_REGISTRY_MAP: Record<string, MiniAppInfo> = Object.fromEntries(
+  MINIAPP_REGISTRY.map((app) => [app.app_id, app]),
 );
 
-export function getBuiltinApp(appId: string): MiniAppInfo | undefined {
-  return BUILTIN_APPS_MAP[appId];
+export function getMiniApp(appId: string): MiniAppInfo | undefined {
+  return MINIAPP_REGISTRY_MAP[appId];
 }
 
-export function getAllBuiltinApps(): MiniAppInfo[] {
-  return BUILTIN_APPS;
+export function getAllMiniApps(): MiniAppInfo[] {
+  return MINIAPP_REGISTRY;
 }

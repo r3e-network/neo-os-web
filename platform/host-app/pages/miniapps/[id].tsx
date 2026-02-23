@@ -23,7 +23,7 @@ import { ForumTab } from "../../components/features/forum";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { coerceMiniAppInfo } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
-import { getBuiltinApp } from "../../lib/builtin-apps";
+import { getMiniApp } from "../../lib/miniapp-registry";
 import { logger } from "../../lib/logger";
 import type { InvokeParams } from "../../lib/wallet/adapters/base";
 import { getWalletAdapter, useWalletStore } from "../../lib/wallet/store";
@@ -244,7 +244,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-16">
       <Head>
-        <title>{app.name} - R3E MiniApps</title>
+        <title>{`${app.name} - R3E MiniApps`}</title>
       </Head>
       <AppDetailHeader app={app} stats={stats || undefined} onBack={handleBack} />
 
@@ -652,8 +652,8 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
   const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
   const encodedId = encodeURIComponent(id);
 
-  // First check if it's a builtin app - return immediately if found
-  const fallback = getBuiltinApp(id);
+  // First check if it's a registry miniapp - return immediately if found
+  const fallback = getMiniApp(id);
 
   try {
     // Parallel fetch with shorter timeout (2s) for faster page load

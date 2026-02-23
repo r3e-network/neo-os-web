@@ -9,7 +9,7 @@ import { WalletState, MiniAppInfo } from "../../components/types";
 import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { logger } from "../../lib/logger";
 import { resolveInternalBaseUrl } from "../../lib/edge";
-import { BUILTIN_APPS } from "../../lib/builtin-apps";
+import { getMiniApp } from "../../lib/miniapp-registry";
 import { resolveMiniAppDetailConfig } from "../../lib/miniapp-template";
 import { OperationPanel } from "../../components/OperationPanel";
 import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
@@ -26,9 +26,6 @@ interface WindowWithNeoLine extends Window {
 type RequestLike = {
   headers?: Record<string, string | string[] | undefined>;
 };
-
-// Use centralized app catalog from builtin-apps.ts
-const MINIAPP_CATALOG: MiniAppInfo[] = BUILTIN_APPS;
 
 type LaunchPageProps = {
   app: MiniAppInfo;
@@ -116,7 +113,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden">
-      <Head><title>{app.name} - R3E Network</title></Head>
+      <Head><title>{`${app.name} - R3E Network`}</title></Head>
       <LaunchDock
         appName={app.name}
         appId={app.app_id}
@@ -224,7 +221,7 @@ function ManifestRuntime({ app }: { app: MiniAppInfo }) {
 // SSR: Fetch app info from API or static catalog
 export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (context) => {
   const { id } = context.params as { id: string };
-  const fallback = MINIAPP_CATALOG.find((app) => app.app_id === id);
+  const fallback = getMiniApp(id);
   const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
 
   try {

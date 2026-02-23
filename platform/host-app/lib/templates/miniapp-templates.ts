@@ -87,12 +87,12 @@ const T_GACHA: AppTemplate = {
 };
 
 
-export const BUILTIN_APP_TEMPLATES: Record<string, AppTemplate> = {
-  "builtin-lottery": T_LOTTERY,
-  "builtin-coin-flip": T_COINFLIP,
-  "builtin-dice-game": T_DICE,
-  "builtin-prediction-market": T_PREDICTION,
-  "builtin-airdrop": T_AIRDROP,
-  "builtin-dao-voting": T_DAO,
-  "builtin-gacha": T_GACHA
+export const MINIAPP_TEMPLATES: Record<string, AppTemplate> = {
+  "miniapp-lottery": T_LOTTERY,
+  "miniapp-coinflip": T_COINFLIP,
+  "miniapp-dicegame": T_DICE,
+  "miniapp-predictionmarket": T_PREDICTION,
+  "miniapp-redenvelope": T_AIRDROP,
+  "miniapp-secretvote": T_DAO,
+  "miniapp-gacha": T_GACHA
 };

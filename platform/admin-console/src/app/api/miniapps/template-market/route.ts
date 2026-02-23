@@ -8,7 +8,7 @@ const KIND_SET = new Set(["all", "frontend", "contract"]);
 const MODE_SET = new Set(["templates", "requests"]);
 const ACTIVE_SET = new Set(["all", "true", "false"]);
 const VERIFIED_SET = new Set(["all", "true", "false"]);
-const SOURCE_SET = new Set(["all", "builtin", "community", "verified"]);
+const SOURCE_SET = new Set(["all", "miniapp", "community", "verified"]);
 const REQUEST_STATUS_SET = new Set(["all", "pending", "approved", "rejected", "cancelled"]);
 
 function asNormalized(value: string | null): string {
@@ -24,7 +24,7 @@ const upsertPayloadSchema = z.object({
   name: z.string().trim().min(1).optional(),
   description: z.string().optional(),
   category: z.string().trim().optional(),
-  source_type: z.enum(["builtin", "community", "verified"]).optional(),
+  source_type: z.enum(["miniapp", "community", "verified"]).optional(),
   tags: z.array(z.string().trim()).optional(),
   schema: z.record(z.unknown()).optional(),
   ui_schema: z.record(z.unknown()).optional(),

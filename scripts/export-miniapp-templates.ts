@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Export Builtin Templates to JSON Configuration Files
+ * Export MiniApp Templates to JSON Configuration Files
  *
- * This script exports all builtin app templates to individual JSON configuration files
+ * This script exports all platform miniapp templates to individual JSON configuration files
  * that can be imported via the Admin API.
  *
  * Usage:
- *   node scripts/export-builtin-templates.ts
- *   node scripts/export-builtin-templates.ts --output ./output-dir
+   *   node scripts/export-miniapp-templates.ts
+ *   node scripts/export-miniapp-templates.ts --output ./output-dir
  */
 
 const fs = require('fs');

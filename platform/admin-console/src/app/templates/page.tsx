@@ -113,7 +113,7 @@ function formatDateTime(value: string): string {
 
 function sourceBadgeVariant(source: TemplateSourceType): "info" | "success" | "default" {
   if (source === "verified") return "success";
-  if (source === "builtin") return "info";
+  if (source === "miniapp") return "info";
   return "default";
 }
 
@@ -303,7 +303,7 @@ export default function TemplateStudioPage() {
 
         const sourceTypeRaw = String(parsed.source_type || "").trim().toLowerCase();
         const sourceType: TemplateSourceType =
-          sourceTypeRaw === "builtin" || sourceTypeRaw === "verified" ? sourceTypeRaw : "community";
+          sourceTypeRaw === "miniapp" || sourceTypeRaw === "verified" ? sourceTypeRaw : "community";
 
         const tags = Array.isArray(parsed.tags)
           ? parsed.tags.map((item) => String(item || "").trim()).filter(Boolean).join(", ")
@@ -441,7 +441,7 @@ export default function TemplateStudioPage() {
               <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
               <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={source} onChange={(e) => setSource(e.target.value as TemplateSourceType | "all")}> 
                 <option value="all">all</option>
-                <option value="builtin">builtin</option>
+                <option value="miniapp">miniapp</option>
                 <option value="community">community</option>
                 <option value="verified">verified</option>
               </select>
@@ -625,7 +625,7 @@ export default function TemplateStudioPage() {
               <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
               <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.source_type} onChange={(e) => setForm({ ...form, source_type: e.target.value as TemplateSourceType })}>
                 <option value="community">community</option>
-                <option value="builtin">builtin</option>
+                <option value="miniapp">miniapp</option>
                 <option value="verified">verified</option>
               </select>
             </div>

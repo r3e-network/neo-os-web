@@ -22,6 +22,26 @@ const miniAppPathPattern = /\/(?:miniapps|miniapp-assets)\/([^/?#]+)/i;
 const imageExtensions = ["jpg", "png", "jpeg", "svg"] as const;
 type AssetKind = "logo" | "banner";
 
+const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
+  "miniapp-coinflip": ["coin-flip"],
+  "miniapp-dicegame": ["dice-game"],
+  "miniapp-predictionmarket": ["prediction-market"],
+  "miniapp-redenvelope": ["red-envelope"],
+  "miniapp-secretvote": ["secret-vote", "candidate-vote"],
+  "miniapp-gacha": ["neo-gacha"],
+};
+
+const MINIAPP_PRIMARY_STATIC_ASSETS: Record<string, { logoURL: string; bannerURL: string }> = {
+  "miniapp-dicegame": {
+    logoURL: "/miniapps/dice-game/static/icon.svg",
+    bannerURL: "/miniapps/dice-game/static/banner.svg",
+  },
+  "miniapp-secretvote": {
+    logoURL: "/miniapps/secret-vote/static/icon.svg",
+    bannerURL: "/miniapps/secret-vote/static/banner.svg",
+  },
+};
+
 type MediaVariant = {
   url: string;
   theme?: MediaTheme;
@@ -48,6 +68,10 @@ function unique(items: Array<string | null | undefined>): string[] {
 
 function normalizeSlug(value: string): string {
   return value.trim().replace(/^\/+|\/+$/g, "");
+}
+
+function normalizeAppID(value: string | null | undefined): string {
+  return toNonEmptyString(value).toLowerCase();
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -189,6 +213,7 @@ function getVariantUrls(
 }
 
 export function resolveMiniAppSlug(appID?: string | null, entryURL?: string | null): string {
+  const appId = normalizeAppID(appID);
   const url = toNonEmptyString(entryURL);
   if (url) {
     const match = url.match(miniAppPathPattern);
@@ -197,15 +222,20 @@ export function resolveMiniAppSlug(appID?: string | null, entryURL?: string | nu
     }
   }
 
-  const id = toNonEmptyString(appID);
-  if (!id) return "";
-  return normalizeSlug(id.replace(/^miniapp-/, ""));
+  if (!appId) return "";
+  const alias = MINIAPP_SLUG_ALIASES[appId]?.[0];
+  if (alias) return normalizeSlug(alias);
+  return normalizeSlug(appId.replace(/^miniapp-/, ""));
 }
 
 export function getMiniAppPrimaryAssets(appID?: string | null, entryURL?: string | null): {
   logoURL: string | null;
   bannerURL: string | null;
 } {
+  const appId = normalizeAppID(appID);
+  const staticPrimary = MINIAPP_PRIMARY_STATIC_ASSETS[appId];
+  if (staticPrimary) return staticPrimary;
+
   const slug = resolveMiniAppSlug(appID, entryURL);
   if (!slug) return { logoURL: null, bannerURL: null };
 
@@ -217,15 +247,21 @@ export function getMiniAppPrimaryAssets(appID?: string | null, entryURL?: string
 }
 
 function getMiniAppAssetCandidates(asset: AssetKind, appID?: string | null, entryURL?: string | null): string[] {
+  const appId = normalizeAppID(appID);
   const slug = resolveMiniAppSlug(appID, entryURL);
-  if (!slug) return [];
+  const aliases = (MINIAPP_SLUG_ALIASES[appId] || []).map(normalizeSlug);
+  const slugs = unique([slug, ...aliases]);
+  if (slugs.length === 0) return [];
 
-  const bases = [
-    `/miniapp-assets/${slug}/${asset}`,
-    `/miniapps/${slug}/${asset}`,
-    // Keep compatibility with source-tree style paths used by miniapp folders.
-    `/miniapps/${slug}/public/${asset}`,
-  ];
+  const bases: string[] = [];
+  for (const appSlug of slugs) {
+    bases.push(
+      `/miniapp-assets/${appSlug}/${asset}`,
+      `/miniapps/${appSlug}/${asset}`,
+      // Keep compatibility with source-tree style paths used by miniapp folders.
+      `/miniapps/${appSlug}/public/${asset}`,
+    );
+  }
 
   const out: string[] = [];
   for (const base of bases) {
@@ -233,6 +269,16 @@ function getMiniAppAssetCandidates(asset: AssetKind, appID?: string | null, entr
       out.push(`${base}.${ext}`);
     }
   }
+
+  const staticFileNames = asset === "logo" ? ["icon", "logo"] : ["banner"];
+  for (const appSlug of slugs) {
+    for (const fileName of staticFileNames) {
+      for (const ext of imageExtensions) {
+        out.push(`/miniapps/${appSlug}/static/${fileName}.${ext}`);
+      }
+    }
+  }
+
   return out;
 }
 

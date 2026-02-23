@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Target directory for generic templates
+// Target directory for generated templates
 const TARGET_DIR = path.join(__dirname, '../platform/host-app/public/miniapp-definitions/migrated');
 
 if (!fs.existsSync(TARGET_DIR)) {
@@ -30,7 +30,7 @@ function generateConfig(appId, name, type, operations) {
     "name": name,
     "template_type": type,
     "category": type === "governance" ? "governance" : type === "prediction" ? "defi" : "gaming",
-    "entry_url": `mf://builtin?app=${appId}`,
+    "entry_url": `mf://manifest?app=${appId}`,
     "contract": {
       "template_id": contractTemplateId,
       "init_params": {}
@@ -39,7 +39,7 @@ function generateConfig(appId, name, type, operations) {
       "layout": layout,
       "hero": {
         "eyebrow": name.toUpperCase(),
-        "disclaimer": "Legacy app migrated to generic template."
+        "disclaimer": "Template-generated definition."
       },
       "tabs": [
         {
@@ -65,12 +65,12 @@ function generateConfig(appId, name, type, operations) {
   fs.writeFileSync(path.join(TARGET_DIR, `${appId}.json`), JSON.stringify(json, null, 2));
 }
 
-// Map of legacy apps to migrate
+// Source apps to convert into migrated JSON definitions
 const migrations = [
   { id: 'miniapp-candidate-vote', name: 'Candidate Vote', type: 'governance', ops: [{ name: 'Vote', method: 'vote', button_style: 'primary', params: [{ name: 'candidate', type: 'string', required: true }] }] },
-  { id: 'miniapp-prediction-market', name: 'Prediction Market', type: 'prediction', ops: [{ name: 'Buy YES', method: 'buyYes', button_style: 'primary', params: [{ name: 'amount', type: 'amount', required: true }] }, { name: 'Buy NO', method: 'buyNo', button_style: 'danger', params: [{ name: 'amount', type: 'amount', required: true }] }] },
+  { id: 'miniapp-predictionmarket', name: 'Prediction Market', type: 'prediction', ops: [{ name: 'Buy YES', method: 'buyYes', button_style: 'primary', params: [{ name: 'amount', type: 'amount', required: true }] }, { name: 'Buy NO', method: 'buyNo', button_style: 'danger', params: [{ name: 'amount', type: 'amount', required: true }] }] },
   { id: 'miniapp-lottery', name: 'Lottery Game', type: 'lottery', ops: [{ name: 'Buy Ticket', method: 'buyTicket', button_style: 'primary', params: [{ name: 'tickets', type: 'integer', required: true }] }] },
-  { id: 'miniapp-secret-vote', name: 'Secret Vote', type: 'governance', ops: [{ name: 'Submit ZK Vote', method: 'submitZkVote', button_style: 'primary', params: [{ name: 'proof', type: 'string', required: true }] }] }
+  { id: 'miniapp-secretvote', name: 'Secret Vote', type: 'governance', ops: [{ name: 'Submit ZK Vote', method: 'submitZkVote', button_style: 'primary', params: [{ name: 'proof', type: 'string', required: true }] }] }
 ];
 
 migrations.forEach(m => {

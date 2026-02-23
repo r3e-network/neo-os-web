@@ -13,7 +13,7 @@ import {
 
 const KIND_SET = new Set(["all", "frontend", "contract"]);
 const VERIFIED_SET = new Set(["all", "true", "false"]);
-const SOURCE_SET = new Set(["all", "builtin", "community", "verified"]);
+const SOURCE_SET = new Set(["all", "miniapp", "community", "verified"]);
 
 type PublicTemplateMarketResponse = {
   templates: Array<{
@@ -23,7 +23,7 @@ type PublicTemplateMarketResponse = {
     name: string;
     description: string;
     category: string;
-    source_type: "builtin" | "community" | "verified";
+    source_type: "miniapp" | "community" | "verified";
     tags: string[];
     is_verified: boolean;
     usage_count: number;
@@ -38,7 +38,7 @@ type PublicTemplateMarketResponse = {
   filters: {
     kind: "all" | "frontend" | "contract";
     category?: string;
-    source: "all" | "builtin" | "community" | "verified";
+    source: "all" | "miniapp" | "community" | "verified";
     verified: "all" | "true" | "false";
     search?: string;
     limit: number;

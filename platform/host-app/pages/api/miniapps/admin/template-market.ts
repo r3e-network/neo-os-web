@@ -68,7 +68,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   const templateId = normalizeTemplateId(req.query.template_id);
   const category = asTrimmedString(req.query.category);
   const sourceRaw = asTrimmedString(req.query.source).toLowerCase();
-  const source = sourceRaw === "builtin" || sourceRaw === "community" || sourceRaw === "verified"
+  const source = sourceRaw === "miniapp" || sourceRaw === "community" || sourceRaw === "verified"
     ? sourceRaw
     : "all";
   const active = asTrimmedString(req.query.active).toLowerCase();
