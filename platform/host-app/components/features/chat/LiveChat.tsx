@@ -6,12 +6,18 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
 import type { ChatMessage } from "./types";
+import { fetchJSON, fetchOK } from "@/lib/fetch-client";
 
 interface LiveChatProps {
   appId: string;
   walletAddress?: string;
   userName?: string;
 }
+
+type ChatMessagesResponse = {
+  messages?: ChatMessage[];
+  participantCount?: number;
+};
 
 function timeAgo(date: string): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -60,12 +66,10 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
       if (!active) return;
       setLoading(true);
       try {
-        const res = await fetch(`/api/chat/${appId}/messages?limit=50`, { signal: AbortSignal.timeout(30000) });
-        if (res.ok && active) {
-          const data = await res.json();
-          setMessages(data.messages || []);
-          setParticipantCount(data.participantCount || 0);
-        }
+        const data = await fetchJSON<ChatMessagesResponse>(`/api/chat/${encodeURIComponent(appId)}/messages?limit=50`);
+        if (!active) return;
+        setMessages(data.messages || []);
+        setParticipantCount(data.participantCount || 0);
       } catch (err) {
         logger.warn("Failed to fetch chat messages:", err);
       } finally {
@@ -97,14 +101,13 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
     setInputValue("");
 
     try {
-      await fetch(`/api/chat/${appId}/messages`, {
+      await fetchOK(`/api/chat/${encodeURIComponent(appId)}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           wallet: walletAddress,
           content: newMessage.content,
         }),
-        signal: AbortSignal.timeout(30000),
       });
     } catch (err) {
       logger.warn("Failed to send chat message:", err);

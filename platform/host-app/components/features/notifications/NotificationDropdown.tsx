@@ -6,10 +6,15 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
 import type { NotificationEvent } from "@/lib/notifications/types";
+import { fetchJSON, fetchOK } from "@/lib/fetch-client";
 
 interface NotificationDropdownProps {
   walletAddress?: string;
 }
+
+type NotificationEventsResponse = {
+  events?: NotificationEvent[];
+};
 
 const typeIcons: Record<string, string> = {
   miniapp_win: "🎉",
@@ -60,12 +65,13 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
     const fetchNotifications = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/notifications/events?wallet=${encodeURIComponent(walletAddress)}&limit=10`, { signal: AbortSignal.timeout(30000) });
-        if (res.ok && active) {
-          const data = await res.json();
-          setNotifications(data.events || []);
-          setUnreadCount(data.events?.filter((n: NotificationEvent) => !n.read).length || 0);
-        }
+        const data = await fetchJSON<NotificationEventsResponse>(
+          `/api/notifications/events?wallet=${encodeURIComponent(walletAddress)}&limit=10`,
+        );
+        if (!active) return;
+        const events = data.events || [];
+        setNotifications(events);
+        setUnreadCount(events.filter((n) => !n.read).length);
       } catch (err) {
         logger.warn("Failed to fetch notifications:", err);
       } finally {
@@ -78,7 +84,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
 
   const markAsRead = async (id: string) => {
     try {
-      await fetch(`/api/notifications/events/${id}/read`, { method: "POST", signal: AbortSignal.timeout(30000) });
+      await fetchOK(`/api/notifications/events/${id}/read`, { method: "POST" });
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
@@ -89,7 +95,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
   const markAllAsRead = async () => {
     if (!walletAddress) return;
     try {
-      await fetch(`/api/notifications/events/read-all?wallet=${encodeURIComponent(walletAddress)}`, { method: "POST", signal: AbortSignal.timeout(30000) });
+      await fetchOK(`/api/notifications/events/read-all?wallet=${encodeURIComponent(walletAddress)}`, { method: "POST" });
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (err) {

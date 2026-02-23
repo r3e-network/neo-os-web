@@ -6,10 +6,15 @@ import type { LeaderboardEntry } from "./types";
 import { LEVELS } from "./constants";
 import { logger } from "@/lib/logger";
 import { Skeleton } from "@/components/ui/skeleton";
+import { fetchJSON } from "@/lib/fetch-client";
 
 interface LeaderboardProps {
   currentWallet?: string;
 }
+
+type LeaderboardResponse = {
+  entries?: LeaderboardEntry[];
+};
 
 export function Leaderboard({ currentWallet }: LeaderboardProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -17,11 +22,8 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
 
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const res = await fetch("/api/gamification/leaderboard?limit=20", { signal: AbortSignal.timeout(30000) });
-      if (res.ok) {
-        const data = await res.json();
-        setEntries(data.entries);
-      }
+      const data = await fetchJSON<LeaderboardResponse>("/api/gamification/leaderboard?limit=20");
+      setEntries(data.entries || []);
     } catch (err) {
       logger.warn("Failed to fetch leaderboard:", err);
     } finally {
