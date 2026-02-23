@@ -20,15 +20,7 @@ type MiniAppConfig struct {
 
 // AllMiniApps returns configuration for all platform MiniApps.
 func AllMiniApps() []MiniAppConfig {
-	return []MiniAppConfig{
-		{AppID: "miniapp-lottery", Name: "Neo Lottery", Category: "gaming", Interval: 5 * time.Second, BetAmount: 10000000, Description: "Buy lottery tickets, draw winners"},
-		{AppID: "miniapp-coinflip", Name: "Neo Coin Flip", Category: "gaming", Interval: 3 * time.Second, BetAmount: 5000000, Description: "50/50 coin flip, double or nothing"},
-		{AppID: "miniapp-dicegame", Name: "Neo Dice", Category: "gaming", Interval: 4 * time.Second, BetAmount: 8000000, Description: "Roll dice, win up to 6x"},
-		{AppID: "miniapp-predictionmarket", Name: "Prediction Market", Category: "defi", Interval: 8 * time.Second, BetAmount: 20000000, Description: "Bet on price movements"},
-		{AppID: "miniapp-airdrop", Name: "Airdrop Center", Category: "defi", Interval: 6 * time.Second, BetAmount: 0, Description: "Claim Multi-Chain Tokens & NFTs"},
-		{AppID: "miniapp-dao-voting", Name: "DAO Snapshot", Category: "governance", Interval: 10 * time.Second, BetAmount: 0, Description: "On-Chain Governance & Voting"},
-		{AppID: "miniapp-gacha", Name: "On-Chain Gacha", Category: "gaming", Interval: 2 * time.Second, BetAmount: 2000000, Description: "Blind Box Gamification"},
-	}
+	return defaultMiniAppConfigs()
 }
 
 // Helper function to generate random int in range [min, max]
