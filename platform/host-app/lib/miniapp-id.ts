@@ -4,7 +4,6 @@ type CanonicalizeMiniAppIdOptions = {
 };
 
 const MINIAPP_PREFIX = "miniapp-";
-const BUILTIN_PREFIX = "builtin-";
 const MINIAPP_SLUG_ALIAS_MAP: Record<string, string> = {
   "coin-flip": "coinflip",
   "dice-game": "dicegame",
@@ -39,9 +38,6 @@ export function canonicalizeMiniAppId(
   }
 
   let normalized = raw;
-  if (normalized.startsWith(BUILTIN_PREFIX)) {
-    normalized = `${MINIAPP_PREFIX}${normalized.slice(BUILTIN_PREFIX.length)}`;
-  }
   if (normalized.startsWith("miniapp_")) {
     normalized = `${MINIAPP_PREFIX}${normalized.slice("miniapp_".length)}`;
   } else if (normalized.startsWith("miniapp") && !normalized.startsWith(MINIAPP_PREFIX)) {
