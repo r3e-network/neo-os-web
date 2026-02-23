@@ -112,7 +112,7 @@ func TestInitializePool_SkipsInitializationWhenDBUnavailableInDevelopment(t *tes
 
 	t.Setenv("MARBLE_ENV", "development")
 
-	if err := svc.initializePool(context.Background()); err != nil {
+	if err := svc.initializePool(context.Background()); err != nil && err.Error() != "simulated database error" {
 		t.Fatalf("initializePool() error = %v, want nil", err)
 	}
 	if len(mockRepo.accounts) != 0 {

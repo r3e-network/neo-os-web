@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
@@ -140,6 +141,7 @@ func TestResolveServiceID_Behavior(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("X-Service-ID", "neooracle")
+	req = req.WithContext(serviceauth.WithServiceID(req.Context(), "neooracle"))
 	rr = httptest.NewRecorder()
 	if _, ok := resolveServiceID(rr, req, "neocompute"); ok {
 		t.Fatalf("expected mismatched service_id to be rejected")
