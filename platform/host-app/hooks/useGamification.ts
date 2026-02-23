@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { UserStats } from "@/components/features/gamification/types";
 import { LEVELS } from "@/components/features/gamification/constants";
+import { fetchJSON, RequestError, toApiError } from "@/lib/fetch-client";
 
 interface UseGamificationResult {
   stats: UserStats | null;
@@ -33,16 +34,14 @@ export function useGamification(wallet?: string): UseGamificationResult {
     setError(null);
 
     try {
-      const res = await fetch(`/api/gamification/stats?wallet=${encodeURIComponent(wallet)}`, {
-        signal: AbortSignal.timeout(30000),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch stats");
-      }
-      const data = await res.json();
-      setStats(data.stats);
+      const data = await fetchJSON<{ stats?: UserStats }>(`/api/gamification/stats?wallet=${encodeURIComponent(wallet)}`);
+      setStats(data.stats ?? null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      if (err instanceof RequestError) {
+        setError("Failed to fetch stats");
+      } else {
+        setError(toApiError(err).message);
+      }
     } finally {
       setLoading(false);
     }

@@ -488,17 +488,5 @@ func resolveChainID() string {
 }
 
 func normalizeContractHash(value string) string {
-	value = strings.TrimSpace(value)
-	value = strings.TrimPrefix(value, "0x")
-	value = strings.TrimPrefix(value, "0X")
-	value = strings.ToLower(value)
-	if len(value) != 40 {
-		return ""
-	}
-	for _, ch := range value {
-		if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') {
-			return ""
-		}
-	}
-	return value
+	return chain.NormalizeContractHash(value)
 }

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"strings"
 	"sync"
 	"time"
 
@@ -96,7 +95,7 @@ func NewEventListener(cfg *ListenerConfig) *EventListener {
 		cfg.Contracts.AutomationAnchor,
 		cfg.Contracts.ServiceLayerGateway,
 	} {
-		if normalized := normalizeContractHash(contractHash); normalized != "" {
+		if normalized := NormalizeContractHash(contractHash); normalized != "" {
 			contractHashes[normalized] = true
 		}
 	}
@@ -310,7 +309,7 @@ func (l *EventListener) processTransaction(
 		}
 
 		for _, notif := range exec.Notifications {
-			contractHash := normalizeContractHash(notif.Contract)
+			contractHash := NormalizeContractHash(notif.Contract)
 
 			// Filter by contract (if we have contracts configured)
 			if len(l.contractHashes) > 0 && !l.contractHashes[contractHash] {
@@ -399,20 +398,4 @@ func (l *EventListener) runHandler(ctx context.Context, fields map[string]interf
 			l.logger.WithFields(fields).WithError(err).Warn(message)
 		}
 	}()
-}
-
-func normalizeContractHash(value string) string {
-	trimmed := strings.TrimSpace(value)
-	trimmed = strings.TrimPrefix(trimmed, "0x")
-	trimmed = strings.TrimPrefix(trimmed, "0X")
-	trimmed = strings.ToLower(trimmed)
-	if len(trimmed) != 40 {
-		return ""
-	}
-	for _, ch := range trimmed {
-		if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') {
-			return ""
-		}
-	}
-	return trimmed
 }
