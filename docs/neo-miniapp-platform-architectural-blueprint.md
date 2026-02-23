@@ -104,7 +104,7 @@ neo-miniapp-platform/
 │   └── rls/                    # [SQL] RLS Policies & Migrations
 │
 ├── miniapps/                   # [React/Vue] Mini-apps
-│   ├── builtin/                # Trusted apps (Coin Flip, Dice, Lottery, etc.)
+│   ├── miniapp/                # Trusted apps (Coin Flip, Dice, Lottery, etc.)
 │   └── templates/              # Starter kits for users
 │
 └── infra/                      # Infrastructure Config

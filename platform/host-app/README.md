@@ -24,7 +24,7 @@ Current capabilities:
 ## Production Configuration
 
 - `MINIAPP_FRAME_ORIGINS`: space-separated `frame-src` allowlist for embedded iframes.
-- `NEXT_PUBLIC_MF_REMOTES`: comma-separated Module Federation remotes (e.g. `builtin@https://cdn.miniapps.com/miniapps/builtin-mf`).
+- `NEXT_PUBLIC_MF_REMOTES`: comma-separated Module Federation remotes (e.g. `miniapp@https://cdn.miniapps.com/miniapps/miniapp-mf`).
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL for `connect-src` allowlist.
 - `EDGE_RPC_ALLOWLIST`: comma-separated Edge function names that `/api/rpc/*` may call (`*` to allow all).
 
@@ -90,9 +90,9 @@ consistent for the host UI (same `EDGE_BASE_URL` / `NEXT_PUBLIC_SUPABASE_URL` re
 
 ## Local Runs
 
-### Module Federation (Built-ins)
+### Module Federation (MiniApps)
 
-Run the built-in remote and host app together:
+Run the remote and host app together:
 
 ```bash
 cd platform/builtin-app
@@ -102,12 +102,12 @@ npm run dev
 
 ```bash
 cd platform/host-app
-NEXT_PUBLIC_MF_REMOTES=builtin@http://localhost:3001 npm run dev
+NEXT_PUBLIC_MF_REMOTES=miniapp@http://localhost:3001 npm run dev
 ```
 
 Then open:
 
-- `http://localhost:3000/?entry_url=mf://manifest?app=builtin-price-ticker`
+- `http://localhost:3000/?entry_url=mf://manifest?app=miniapp-price-ticker`
 
 ### Manifest Runtime (Recommended)
 
@@ -121,9 +121,9 @@ Open a manifest app via:
 - `http://localhost:3000/launch/<app_id>`
 - or `entry_url=mf://manifest?app=<app_id>`
 
-## Module Federation (Built-ins)
+## Module Federation (MiniApps)
 
-Built-in manifests use the manifest runtime scheme:
+MiniApp manifests use the manifest runtime scheme:
 
 ```
 mf://manifest?app=<app_id>

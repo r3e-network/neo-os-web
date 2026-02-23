@@ -23,8 +23,8 @@ PauseRegistry provides a single point of control to pause/resume the entire Mini
 │  ├── IsGloballyPaused() → affects ALL apps              │
 │  │                                                       │
 │  Per-App Pause State                                     │
-│  ├── IsAppPaused("builtin-lottery") → specific app      │
-│  ├── IsAppPaused("builtin-coinflip") → specific app     │
+│  ├── IsAppPaused("miniapp-lottery") → specific app      │
+│  ├── IsAppPaused("miniapp-coinflip") → specific app     │
 │  └── ...                                                 │
 │                                                          │
 │  IsPaused(appId) = IsGloballyPaused() OR IsAppPaused()  │
@@ -117,9 +117,9 @@ Emitted when a specific app's pause state changes.
 ### Pause Specific App
 
 ```
-1. Admin/Operator calls SetAppPause("builtin-lottery", true)
+1. Admin/Operator calls SetAppPause("miniapp-lottery", true)
 2. Only Lottery app stops, others continue
-3. Event: AppPauseChanged("builtin-lottery", true, caller)
+3. Event: AppPauseChanged("miniapp-lottery", true, caller)
 ```
 
 ## Integration in MiniApps
