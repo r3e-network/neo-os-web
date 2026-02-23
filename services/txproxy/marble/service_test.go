@@ -12,6 +12,7 @@ import (
 )
 
 func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
+        t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, err := marble.New(marble.Config{MarbleType: ServiceID})
 	if err != nil {
 		t.Fatalf("marble.New: %v", err)
