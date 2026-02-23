@@ -594,45 +594,7 @@ func NewContractInvokerFromEnv(poolClient *neoaccountsclient.Client) (*ContractI
 func loadMiniAppContractsFromEnv() map[string]string {
 	contracts := make(map[string]string)
 
-	// Define mapping from env var suffix to app ID
-	miniAppEnvMapping := map[string]string{
-		"LOTTERY":          "miniapp-lottery",
-		"COINFLIP":         "miniapp-coinflip",
-		"DICEGAME":         "miniapp-dicegame",
-		"SCRATCHCARD":      "miniapp-scratch-card",
-		"PREDICTIONMARKET": "miniapp-predictionmarket",
-		"FLASHLOAN":        "miniapp-flashloan",
-		"PRICETICKER":      "miniapp-price-ticker",
-		"GASSPIN":          "miniapp-gas-spin",
-		"PRICEPREDICT":     "miniapp-price-predict",
-		"SECRETVOTE":       "miniapp-secretvote",
-		"SECRETPOKER":      "miniapp-secret-poker",
-		"MICROPREDICT":     "miniapp-micro-predict",
-		"REDENVELOPE":      "miniapp-redenvelope",
-		"GASCIRCLE":        "miniapp-gascircle",
-		"FOGCHESS":         "miniapp-fog-chess",
-		"GOVBOOSTER":       "miniapp-gov-booster",
-		"TURBOOPTIONS":     "miniapp-turbo-options",
-		"ILGUARD":          "miniapp-il-guard",
-		"GUARDIANPOLICY":   "miniapp-guardian-policy",
-		"AITRADER":         "miniapp-ai-trader",
-		"GRIDBOT":          "miniapp-grid-bot",
-		"NFTEVOLVE":        "miniapp-nft-evolve",
-		"BRIDGEGUARDIAN":   "miniapp-bridge-guardian",
-		"NEOCRASH":         "miniapp-neo-crash",
-		"CANDLEWARS":       "miniapp-candle-wars",
-		"DUTCHAUCTION":     "miniapp-dutch-auction",
-		"PARASITE":         "miniapp-the-parasite",
-		"THRONEOFGAS":      "miniapp-throne-of-gas",
-		"NOLOSSLOTTERY":    "miniapp-no-loss-lottery",
-		"DOOMSDAYCLOCK":    "miniapp-doomsday-clock",
-		"PAYTOVIEW":        "miniapp-pay-to-view",
-		"SCHRODINGERNFT":   "miniapp-schrodinger-nft",
-		"ALGOBATTLE":       "miniapp-algo-battle",
-		"TIMECAPSULE":      "miniapp-time-capsule",
-		"GARDENOFNEO":      "miniapp-garden-of-neo",
-		"DEVTIPPING":       "miniapp-dev-tipping",
-	}
+	miniAppEnvMapping := miniAppContractEnvMapping()
 
 	for envSuffix, appID := range miniAppEnvMapping {
 		envVar := "CONTRACT_MINIAPP_" + envSuffix + "_HASH"
