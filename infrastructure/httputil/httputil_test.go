@@ -61,6 +61,10 @@ func TestGetUserID_ProductionUsesAuthContext(t *testing.T) {
 }
 
 func TestGetUserID_NonProductionAllowsHeaderFallback(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
+	t.Setenv("MARBLE_CERT", "")
+	t.Setenv("MARBLE_KEY", "")
+	t.Setenv("MARBLE_ROOT_CA", "")
 	t.Setenv("MARBLE_ENV", "development")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -91,6 +95,10 @@ func TestGetUserID_StrictModeRequiresVerifiedMTLS(t *testing.T) {
 }
 
 func TestGetServiceID_HeaderFallbackNonProduction(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
+	t.Setenv("MARBLE_CERT", "")
+	t.Setenv("MARBLE_KEY", "")
+	t.Setenv("MARBLE_ROOT_CA", "")
 	t.Setenv("MARBLE_ENV", "development")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
