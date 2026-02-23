@@ -110,6 +110,7 @@ func TestNeoFeedsPriceFetching(t *testing.T) {
 
 // TestNeoFeedsHTTPHandler tests the HTTP handlers for neofeeds service.
 func TestNeoFeedsHTTPHandler(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
@@ -182,6 +183,8 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 
 // TestNeoFeedsSignatureVerification tests that signatures can be verified.
 func TestNeoFeedsSignatureVerification(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
+	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	signingKey := []byte("test-signing-key-32-bytes-long!!")
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", signingKey)
@@ -361,6 +364,8 @@ func TestChainlinkDirectFetch(t *testing.T) {
 
 // TestNeoFeedsServiceInfo tests service info methods.
 func TestNeoFeedsServiceInfo(t *testing.T) {
+	t.Setenv("OE_SIMULATION", "1")
+	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository()})
 
