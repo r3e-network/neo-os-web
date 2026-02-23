@@ -112,7 +112,6 @@ neo-miniapp-platform/
 │
 ├── platform/                   # Host platform layer
 │   ├── host-app/               # Next.js host app (Vercel)
-│   ├── builtin-app/            # Built-in MiniApps (Module Federation remote)
 │   ├── sdk/                    # MiniAppSDK (TS)
 │   ├── edge/                   # Supabase Edge functions
 │   └── rls/                    # RLS SQL (schema lives in migrations/)
