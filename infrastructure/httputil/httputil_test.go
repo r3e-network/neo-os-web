@@ -61,7 +61,6 @@ func TestGetUserID_ProductionUsesAuthContext(t *testing.T) {
 }
 
 func TestGetUserID_NonProductionAllowsHeaderFallback(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("MARBLE_CERT", "")
 	t.Setenv("MARBLE_KEY", "")
 	t.Setenv("MARBLE_ROOT_CA", "")
@@ -95,7 +94,6 @@ func TestGetUserID_StrictModeRequiresVerifiedMTLS(t *testing.T) {
 }
 
 func TestGetServiceID_HeaderFallbackNonProduction(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("MARBLE_CERT", "")
 	t.Setenv("MARBLE_KEY", "")
 	t.Setenv("MARBLE_ROOT_CA", "")
@@ -348,7 +346,6 @@ func TestPathAndQueryHelpers(t *testing.T) {
 
 func TestRequireAdminRole(t *testing.T) {
 	t.Setenv("MARBLE_ENV", "development")
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("MARBLE_CERT", "")
 	t.Setenv("MARBLE_KEY", "")
 

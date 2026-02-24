@@ -1,7 +1,22 @@
+# ---------------------------------------------------------------------------
+# Shared configuration anchors (Simulation Mode)
+# ---------------------------------------------------------------------------
+x-sim-defaults: &sim-defaults
+  restart: unless-stopped
+  depends_on:
+    - coordinator
+
+x-build-defaults: &build-defaults
+  context: ..
+  dockerfile: docker/Dockerfile.service
+
+x-build-args: &build-args
+  EGO_VERSION: ${EGO_VERSION:-1.8.0}
+  EGO_STRICT_SIGNING: 0
+
 services:
   # =============================================================================
   # MarbleRun Coordinator (Simulation Mode)
-  # - Runs without SGX devices or AESM/DCAP mounts.
   # =============================================================================
   coordinator:
     image: ${MARBLERUN_COORDINATOR_IMAGE:-ghcr.io/edgelesssys/marblerun/coordinator:v1.8.0}
@@ -25,14 +40,13 @@ services:
   # NeoFeeds Service Marble - Simulation Mode
   # =============================================================================
   neofeeds:
+    <<: *sim-defaults
     image: service-layer/neofeeds:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neofeeds
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-neofeeds
     ports:
       - 127.0.0.1:${NEOFEEDS_PORT:-8083}:${NEOFEEDS_PORT:-8083}
@@ -55,22 +69,18 @@ services:
       # NeoFeeds delegates all on-chain writes to txproxy (single allowlist gate).
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
-    depends_on:
-      - coordinator
-    restart: unless-stopped
 
   # =============================================================================
   # NeoFlow Service Marble - Simulation Mode
   # =============================================================================
   neoflow:
+    <<: *sim-defaults
     image: service-layer/neoflow:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neoflow
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-neoflow
     ports:
       - 127.0.0.1:${NEOFLOW_PORT:-8084}:${NEOFLOW_PORT:-8084}
@@ -95,22 +105,18 @@ services:
       # NeoFlow delegates all on-chain writes to txproxy (single allowlist gate).
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
-    depends_on:
-      - coordinator
-    restart: unless-stopped
 
   # =============================================================================
   # NeoAccounts Service Marble - Simulation Mode
   # =============================================================================
   neoaccounts:
+    <<: *sim-defaults
     image: service-layer/neoaccounts:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: accountpool
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-neoaccounts
     ports:
       - 127.0.0.1:${NEOACCOUNTS_PORT:-8085}:${NEOACCOUNTS_PORT:-8085}
@@ -139,20 +145,18 @@ services:
         condition: service_started
       globalsigner:
         condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # NeoGasBank Service Marble - Simulation Mode
   # =============================================================================
   neogasbank:
+    <<: *sim-defaults
     image: service-layer/neogasbank:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neogasbank
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-neogasbank
     ports:
       - 127.0.0.1:${NEOGASBANK_PORT:-8091}:${NEOGASBANK_PORT:-8091}
@@ -177,20 +181,18 @@ services:
         condition: service_started
       neoaccounts:
         condition: service_started
-    restart: unless-stopped
 
   # =============================================================================
   # NeoCompute Service Marble - Simulation Mode
   # =============================================================================
   neocompute:
+    <<: *sim-defaults
     image: service-layer/neocompute:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neocompute
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-neocompute
     ports:
       - 127.0.0.1:${NEOCOMPUTE_PORT:-8086}:${NEOCOMPUTE_PORT:-8086}
@@ -209,22 +211,18 @@ services:
       - NEO_NETWORK_MAGIC
       - SECRETS_MASTER_KEY
       - NEOCOMPUTE_RESULT_TTL
-    depends_on:
-      - coordinator
-    restart: unless-stopped
 
   # =============================================================================
   # NeoVRF Service Marble - Simulation Mode
   # =============================================================================
   neovrf:
+    <<: *sim-defaults
     image: service-layer/neovrf:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neovrf
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-neovrf
     ports:
       - 127.0.0.1:${NEOVRF_PORT:-8087}:${NEOVRF_PORT:-8087}
@@ -241,22 +239,18 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
-    depends_on:
-      - coordinator
-    restart: unless-stopped
 
   # =============================================================================
   # NeoOracle Service Marble - Simulation Mode
   # =============================================================================
   neooracle:
+    <<: *sim-defaults
     image: service-layer/neooracle:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neooracle
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-neooracle
     ports:
       - 127.0.0.1:${NEOORACLE_PORT:-8088}:${NEOORACLE_PORT:-8088}
@@ -277,22 +271,18 @@ services:
       - ORACLE_HTTP_ALLOWLIST
       - ORACLE_TIMEOUT
       - ORACLE_MAX_SIZE
-    depends_on:
-      - coordinator
-    restart: unless-stopped
 
   # =============================================================================
   # NeoRequests Service Marble - Simulation Mode
   # =============================================================================
   neorequests:
+    <<: *sim-defaults
     image: service-layer/neorequests:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neorequests
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-neorequests
     ports:
       - 127.0.0.1:${NEOREQUESTS_PORT:-8094}:${NEOREQUESTS_PORT:-8094}
@@ -321,22 +311,18 @@ services:
       - NEOREQUESTS_APPREGISTRY_CACHE_SECONDS
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
-    depends_on:
-      - coordinator
-    restart: unless-stopped
 
   # =============================================================================
   # TxProxy Service Marble - Simulation Mode
   # =============================================================================
   txproxy:
+    <<: *sim-defaults
     image: service-layer/txproxy:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: txproxy
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-txproxy
     ports:
       - 127.0.0.1:${TXPROXY_PORT:-8090}:${TXPROXY_PORT:-8090}
@@ -362,21 +348,18 @@ services:
         condition: service_started
       globalsigner:
         condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # GlobalSigner Service Marble - Simulation Mode
-  # Central signing authority (domain-separated signing + key rotation).
   # =============================================================================
   globalsigner:
+    <<: *sim-defaults
     image: service-layer/globalsigner:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: globalsigner
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-globalsigner
     ports:
       - 127.0.0.1:${GLOBALSIGNER_PORT:-8092}:${GLOBALSIGNER_PORT:-8092}
@@ -395,9 +378,6 @@ services:
       - NEO_NETWORK_MAGIC
       - GLOBALSIGNER_MASTER_SEED
       - TEE_PRIVATE_KEY
-    depends_on:
-      - coordinator
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8092"]
       interval: 5s
@@ -407,17 +387,15 @@ services:
 
   # =============================================================================
   # NeoSimulation Service Marble - Simulation Mode
-  # Continuous transaction simulation for MiniApps
   # =============================================================================
   neosimulation:
+    <<: *sim-defaults
     image: service-layer/neosimulation:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neosimulation
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: 0
     container_name: service-neosimulation
     ports:
       - 127.0.0.1:${NEOSIMULATION_PORT:-8093}:${NEOSIMULATION_PORT:-8093}
@@ -480,7 +458,6 @@ services:
         condition: service_started
       globalsigner:
         condition: service_healthy
-    restart: unless-stopped
 
 volumes:
   coordinator-data:

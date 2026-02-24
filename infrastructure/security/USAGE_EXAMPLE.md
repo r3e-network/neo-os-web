@@ -19,6 +19,7 @@ import (
 
     "github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
     "github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+    "github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
         logger.WithError(err).Fatal("Failed to load public key")
     }
 
-    publicKey, err := middleware.ParseRSAPublicKeyFromPEM(publicKeyPEM)
+    publicKey, err := serviceauth.ParseRSAPublicKeyFromPEM(publicKeyPEM)
     if err != nil {
         logger.WithError(err).Fatal("Failed to parse public key")
     }
@@ -99,7 +100,7 @@ func rotateServiceKeys(authMiddleware *middleware.ServiceAuthMiddleware) error {
         return err
     }
 
-    newPublicKey, err := middleware.ParseRSAPublicKeyFromPEM(newPublicKeyPEM)
+    newPublicKey, err := serviceauth.ParseRSAPublicKeyFromPEM(newPublicKeyPEM)
     if err != nil {
         return err
     }

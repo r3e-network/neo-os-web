@@ -14,6 +14,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 	neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 )
@@ -141,7 +142,6 @@ func (m *mockNeoFlowRepo) GetExecutions(_ context.Context, triggerID string, lim
 // =============================================================================
 
 func TestNew(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 
 	svc, err := New(Config{
@@ -176,7 +176,6 @@ func TestServiceConstants(t *testing.T) {
 }
 
 func TestSchedulerInitialization(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	svc, _ := New(Config{Marble: m})
 
@@ -192,7 +191,6 @@ func TestSchedulerInitialization(t *testing.T) {
 }
 
 func TestServiceStopIsIdempotent(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	svc, _ := New(Config{Marble: m})
 
@@ -210,7 +208,6 @@ func TestServiceStopIsIdempotent(t *testing.T) {
 }
 
 func TestSchedulerHydrationSkipsEmptyUserID(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	repo := newTrackingNeoFlowRepo(t)
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: repo})
@@ -319,7 +316,7 @@ func TestHandleListTriggersUnauthorized(t *testing.T) {
 	// No X-User-ID header
 	rr := httptest.NewRecorder()
 
-	svc.handleListTriggers(rr, req)
+	httputil.WithUserAuth(svc.handleListTriggers).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
@@ -339,7 +336,7 @@ func TestHandleCreateTriggerUnauthorized(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	svc.handleCreateTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleCreateTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
@@ -347,7 +344,6 @@ func TestHandleCreateTriggerUnauthorized(t *testing.T) {
 }
 
 func TestHandleCreateTriggerInvalidBody(t *testing.T) {
-	t.Skip("handler requires Supabase repository")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	svc, _ := New(Config{Marble: m})
 
@@ -356,7 +352,7 @@ func TestHandleCreateTriggerInvalidBody(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
 
-	svc.handleCreateTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleCreateTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
@@ -364,7 +360,6 @@ func TestHandleCreateTriggerInvalidBody(t *testing.T) {
 }
 
 func TestHandleCreateTriggerMissingFields(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	svc, _ := New(Config{Marble: m})
 
@@ -385,7 +380,7 @@ func TestHandleCreateTriggerMissingFields(t *testing.T) {
 			req.Header.Set("X-User-ID", "user-123")
 			rr := httptest.NewRecorder()
 
-			svc.handleCreateTrigger(rr, req)
+			httputil.WithUserAuth(svc.handleCreateTrigger).ServeHTTP(rr, req)
 
 			if rr.Code != http.StatusBadRequest {
 				t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
@@ -395,9 +390,9 @@ func TestHandleCreateTriggerMissingFields(t *testing.T) {
 }
 
 func TestHandleCreateTriggerInvalidCron(t *testing.T) {
-	t.Skip("handler requires Supabase repository")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
-	svc, _ := New(Config{Marble: m})
+	mockRepo := newMockNeoFlowRepo()
+	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
 	reqBody, _ := json.Marshal(TriggerRequest{
 		Name:        "Test Trigger",
@@ -410,7 +405,7 @@ func TestHandleCreateTriggerInvalidCron(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
 
-	svc.handleCreateTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleCreateTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
@@ -418,9 +413,9 @@ func TestHandleCreateTriggerInvalidCron(t *testing.T) {
 }
 
 func TestHandleCreateTriggerSuccess(t *testing.T) {
-	t.Skip("handler requires Supabase repository")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
-	svc, _ := New(Config{Marble: m})
+	mockRepo := newMockNeoFlowRepo()
+	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
 	reqBody, _ := json.Marshal(TriggerRequest{
 		Name:        "Test Trigger",
@@ -434,7 +429,7 @@ func TestHandleCreateTriggerSuccess(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
 
-	svc.handleCreateTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleCreateTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusCreated {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusCreated)
@@ -457,9 +452,9 @@ func TestHandleCreateTriggerSuccess(t *testing.T) {
 }
 
 func TestHandleCreateTriggerNonCron(t *testing.T) {
-	t.Skip("handler requires Supabase repository")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
-	svc, _ := New(Config{Marble: m})
+	mockRepo := newMockNeoFlowRepo()
+	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
 	reqBody, _ := json.Marshal(TriggerRequest{
 		Name:        "Event Trigger",
@@ -472,7 +467,7 @@ func TestHandleCreateTriggerNonCron(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
 
-	svc.handleCreateTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleCreateTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusCreated {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusCreated)
@@ -480,14 +475,20 @@ func TestHandleCreateTriggerNonCron(t *testing.T) {
 }
 
 func TestHandleGetTrigger(t *testing.T) {
-	t.Skip("handler requires Supabase repository")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
-	svc, _ := New(Config{Marble: m})
+	mockRepo := newMockNeoFlowRepo()
+	const triggerID = "a0000000-0000-0000-0000-000000000001"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Test", TriggerType: "cron",
+	}
+	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	req := httptest.NewRequest("GET", "/triggers/123", nil)
+	req := httptest.NewRequest("GET", "/triggers/"+triggerID, nil)
+	req.Header.Set("X-User-ID", "user-123")
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleGetTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleGetTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
@@ -495,14 +496,27 @@ func TestHandleGetTrigger(t *testing.T) {
 }
 
 func TestHandleUpdateTrigger(t *testing.T) {
-	t.Skip("handler requires Supabase repository")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
-	svc, _ := New(Config{Marble: m})
+	mockRepo := newMockNeoFlowRepo()
+	const triggerID = "a0000000-0000-0000-0000-000000000002"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Old Name", TriggerType: "cron", Schedule: "0 * * * *",
+	}
+	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	req := httptest.NewRequest("PUT", "/triggers/123", nil)
+	reqBody, _ := json.Marshal(TriggerRequest{
+		Name:        "New Name",
+		TriggerType: "cron",
+		Schedule:    "30 * * * *",
+	})
+
+	req := httptest.NewRequest("PUT", "/triggers/"+triggerID, bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", "user-123")
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleUpdateTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleUpdateTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
@@ -510,14 +524,20 @@ func TestHandleUpdateTrigger(t *testing.T) {
 }
 
 func TestHandleDeleteTrigger(t *testing.T) {
-	t.Skip("handler requires Supabase repository")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
-	svc, _ := New(Config{Marble: m})
+	mockRepo := newMockNeoFlowRepo()
+	const triggerID = "a0000000-0000-0000-0000-000000000003"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Test", TriggerType: "cron",
+	}
+	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	req := httptest.NewRequest("DELETE", "/triggers/123", nil)
+	req := httptest.NewRequest("DELETE", "/triggers/"+triggerID, nil)
+	req.Header.Set("X-User-ID", "user-123")
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleDeleteTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleDeleteTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusNoContent {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusNoContent)
@@ -525,14 +545,20 @@ func TestHandleDeleteTrigger(t *testing.T) {
 }
 
 func TestHandleEnableTrigger(t *testing.T) {
-	t.Skip("handler requires Supabase repository")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
-	svc, _ := New(Config{Marble: m})
+	mockRepo := newMockNeoFlowRepo()
+	const triggerID = "a0000000-0000-0000-0000-000000000004"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Test", TriggerType: "cron", Enabled: false,
+	}
+	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	req := httptest.NewRequest("POST", "/triggers/123/enable", nil)
+	req := httptest.NewRequest("POST", "/triggers/"+triggerID+"/enable", nil)
+	req.Header.Set("X-User-ID", "user-123")
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleEnableTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleEnableTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
@@ -540,14 +566,20 @@ func TestHandleEnableTrigger(t *testing.T) {
 }
 
 func TestHandleDisableTrigger(t *testing.T) {
-	t.Skip("handler requires Supabase repository")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
-	svc, _ := New(Config{Marble: m})
+	mockRepo := newMockNeoFlowRepo()
+	const triggerID = "a0000000-0000-0000-0000-000000000005"
+	mockRepo.triggers[triggerID] = &neoflowsupabase.Trigger{
+		ID: triggerID, UserID: "user-123", Name: "Test", TriggerType: "cron", Enabled: true,
+	}
+	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
 
-	req := httptest.NewRequest("POST", "/triggers/123/disable", nil)
+	req := httptest.NewRequest("POST", "/triggers/"+triggerID+"/disable", nil)
+	req.Header.Set("X-User-ID", "user-123")
+	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleDisableTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleDisableTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
@@ -912,7 +944,6 @@ func TestSchedulerMapInitialization(t *testing.T) {
 }
 
 func TestServiceConfigFields(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 
 	cfg := Config{
@@ -995,7 +1026,6 @@ func BenchmarkPriceConditionMarshal(b *testing.B) {
 // =============================================================================
 
 func TestHandleListTriggersWithMock(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 
@@ -1010,7 +1040,7 @@ func TestHandleListTriggersWithMock(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
 
-	svc.handleListTriggers(rr, req)
+	httputil.WithUserAuth(svc.handleListTriggers).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
@@ -1107,7 +1137,6 @@ func TestDispatchActionUnknownType(t *testing.T) {
 }
 
 func TestDispatchActionWebhookSuccess(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	// Create test server
 	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -1128,7 +1157,6 @@ func TestDispatchActionWebhookSuccess(t *testing.T) {
 }
 
 func TestDispatchActionWebhookDefaultMethod(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("method = %s, want POST (default)", r.Method)
@@ -1247,7 +1275,6 @@ func TestSetupAutomationAnchorListenerNil(t *testing.T) {
 // =============================================================================
 
 func TestHandleCreateTriggerWithMock(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
@@ -1264,7 +1291,7 @@ func TestHandleCreateTriggerWithMock(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
 
-	svc.handleCreateTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleCreateTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusCreated {
 		t.Errorf("status = %d, want %d, body: %s", rr.Code, http.StatusCreated, rr.Body.String())
@@ -1284,7 +1311,6 @@ func TestHandleCreateTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleCreateTriggerNonCronWithMock(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
@@ -1300,7 +1326,7 @@ func TestHandleCreateTriggerNonCronWithMock(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
 
-	svc.handleCreateTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleCreateTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusCreated {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusCreated)
@@ -1308,7 +1334,6 @@ func TestHandleCreateTriggerNonCronWithMock(t *testing.T) {
 }
 
 func TestHandleGetTriggerWithMock(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174000"
@@ -1322,7 +1347,7 @@ func TestHandleGetTriggerWithMock(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleGetTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleGetTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
@@ -1330,7 +1355,6 @@ func TestHandleGetTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleGetTriggerNotFound(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	svc, _ := New(Config{Marble: m, NeoFlowRepo: mockRepo})
@@ -1341,7 +1365,7 @@ func TestHandleGetTriggerNotFound(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleGetTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleGetTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusNotFound)
@@ -1349,7 +1373,6 @@ func TestHandleGetTriggerNotFound(t *testing.T) {
 }
 
 func TestHandleUpdateTriggerWithMock(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174002"
@@ -1370,7 +1393,7 @@ func TestHandleUpdateTriggerWithMock(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleUpdateTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleUpdateTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
@@ -1378,7 +1401,6 @@ func TestHandleUpdateTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleDeleteTriggerWithMock(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174003"
@@ -1392,7 +1414,7 @@ func TestHandleDeleteTriggerWithMock(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleDeleteTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleDeleteTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusNoContent {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusNoContent)
@@ -1405,7 +1427,6 @@ func TestHandleDeleteTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleEnableDisableTriggerWithMock(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174004"
@@ -1419,7 +1440,7 @@ func TestHandleEnableDisableTriggerWithMock(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
-	svc.handleDisableTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleDisableTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("disable status = %d, want %d", rr.Code, http.StatusOK)
@@ -1433,7 +1454,7 @@ func TestHandleEnableDisableTriggerWithMock(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr = httptest.NewRecorder()
-	svc.handleEnableTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleEnableTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("enable status = %d, want %d", rr.Code, http.StatusOK)
@@ -1444,7 +1465,6 @@ func TestHandleEnableDisableTriggerWithMock(t *testing.T) {
 }
 
 func TestHandleListExecutionsWithMock(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174005"
@@ -1462,7 +1482,7 @@ func TestHandleListExecutionsWithMock(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleListExecutions(rr, req)
+	httputil.WithUserAuth(svc.handleListExecutions).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
@@ -1470,7 +1490,6 @@ func TestHandleListExecutionsWithMock(t *testing.T) {
 }
 
 func TestHandleResumeTriggerWithMock(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
 	mockRepo := newMockNeoFlowRepo()
 	const triggerID = "123e4567-e89b-12d3-a456-426614174006"
@@ -1484,7 +1503,7 @@ func TestHandleResumeTriggerWithMock(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{"id": triggerID})
 	rr := httptest.NewRecorder()
 
-	svc.handleResumeTrigger(rr, req)
+	httputil.WithUserAuth(svc.handleResumeTrigger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)

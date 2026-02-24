@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 )
 
 // =============================================================================
@@ -31,7 +32,7 @@ func generateTestKeyPair(t *testing.T) (*rsa.PrivateKey, *rsa.PublicKey) {
 func generateValidServiceToken(t *testing.T, privateKey *rsa.PrivateKey, serviceID string, expiry time.Duration) string {
 	t.Helper()
 	now := time.Now()
-	claims := &ServiceClaims{
+	claims := &serviceauth.ServiceClaims{
 		ServiceID: serviceID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -51,7 +52,7 @@ func generateValidServiceToken(t *testing.T, privateKey *rsa.PrivateKey, service
 func generateExpiredServiceToken(t *testing.T, privateKey *rsa.PrivateKey, serviceID string) string {
 	t.Helper()
 	now := time.Now()
-	claims := &ServiceClaims{
+	claims := &serviceauth.ServiceClaims{
 		ServiceID: serviceID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now.Add(-2 * time.Hour)),
@@ -91,11 +92,11 @@ func TestServiceAuthMiddleware_ValidToken(t *testing.T) {
 	token := generateValidServiceToken(t, privateKey, "gateway", 2*time.Hour)
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, token)
+	req.Header.Set(serviceauth.ServiceTokenHeader, token)
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		serviceID := GetServiceID(r.Context())
+		serviceID := serviceauth.GetServiceID(r.Context())
 		if serviceID != "gateway" {
 			t.Errorf("Expected service_id 'gateway', got '%s'", serviceID)
 		}
@@ -132,7 +133,7 @@ func TestServiceAuthMiddleware_InvalidToken(t *testing.T) {
 	middleware := newTestServiceAuthMiddleware(t, publicKey, []string{"gateway"}, false)
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, "invalid-token")
+	req.Header.Set(serviceauth.ServiceTokenHeader, "invalid-token")
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +154,7 @@ func TestServiceAuthMiddleware_ExpiredToken(t *testing.T) {
 	token := generateExpiredServiceToken(t, privateKey, "gateway")
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, token)
+	req.Header.Set(serviceauth.ServiceTokenHeader, token)
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +176,7 @@ func TestServiceAuthMiddleware_UnauthorizedService(t *testing.T) {
 	token := generateValidServiceToken(t, privateKey, "unknown-service", time.Hour)
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, token)
+	req.Header.Set(serviceauth.ServiceTokenHeader, token)
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -219,7 +220,7 @@ func TestServiceAuthMiddleware_RequireUserID_Missing(t *testing.T) {
 	token := generateValidServiceToken(t, privateKey, "gateway", time.Hour)
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, token)
+	req.Header.Set(serviceauth.ServiceTokenHeader, token)
 	// No X-User-ID header
 
 	rr := httptest.NewRecorder()
@@ -241,12 +242,12 @@ func TestServiceAuthMiddleware_RequireUserID_Valid(t *testing.T) {
 	token := generateValidServiceToken(t, privateKey, "gateway", time.Hour)
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, token)
-	req.Header.Set(UserIDHeader, "550e8400-e29b-41d4-a716-446655440000")
+	req.Header.Set(serviceauth.ServiceTokenHeader, token)
+	req.Header.Set(serviceauth.UserIDHeader, "550e8400-e29b-41d4-a716-446655440000")
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := GetUserIDFromContext(r.Context())
+		userID := serviceauth.GetUserID(r.Context())
 		if userID != "550e8400-e29b-41d4-a716-446655440000" {
 			t.Errorf("Expected user_id, got '%s'", userID)
 		}
@@ -267,8 +268,8 @@ func TestServiceAuthMiddleware_InvalidUserIDFormat(t *testing.T) {
 	token := generateValidServiceToken(t, privateKey, "gateway", time.Hour)
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, token)
-	req.Header.Set(UserIDHeader, "invalid-user-id")
+	req.Header.Set(serviceauth.ServiceTokenHeader, token)
+	req.Header.Set(serviceauth.UserIDHeader, "invalid-user-id")
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -290,7 +291,7 @@ func TestServiceAuthMiddleware_AllServicesAllowed(t *testing.T) {
 	token := generateValidServiceToken(t, privateKey, "any-service", time.Hour)
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, token)
+	req.Header.Set(serviceauth.ServiceTokenHeader, token)
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -310,7 +311,7 @@ func TestServiceAuthMiddleware_AllServicesAllowed(t *testing.T) {
 
 func TestServiceTokenGenerator_GenerateToken(t *testing.T) {
 	privateKey, publicKey := generateTestKeyPair(t)
-	generator := NewServiceTokenGenerator(privateKey, "gateway", time.Hour)
+	generator := serviceauth.NewServiceTokenGenerator(privateKey, "gateway", time.Hour)
 
 	tokenString, err := generator.GenerateToken()
 	if err != nil {
@@ -318,14 +319,14 @@ func TestServiceTokenGenerator_GenerateToken(t *testing.T) {
 	}
 
 	// Verify the token
-	token, err := jwt.ParseWithClaims(tokenString, &ServiceClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &serviceauth.ServiceClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return publicKey, nil
 	})
 	if err != nil {
 		t.Fatalf("Failed to parse token: %v", err)
 	}
 
-	claims, ok := token.Claims.(*ServiceClaims)
+	claims, ok := token.Claims.(*serviceauth.ServiceClaims)
 	if !ok {
 		t.Fatal("Invalid claims type")
 	}
@@ -337,29 +338,29 @@ func TestServiceTokenGenerator_GenerateToken(t *testing.T) {
 
 func TestServiceTokenGenerator_DefaultExpiry(t *testing.T) {
 	privateKey, publicKey := generateTestKeyPair(t)
-	generator := NewServiceTokenGenerator(privateKey, "gateway", 0)
+	generator := serviceauth.NewServiceTokenGenerator(privateKey, "gateway", 0)
 
 	tokenString, err := generator.GenerateToken()
 	if err != nil {
 		t.Fatalf("GenerateToken() error = %v", err)
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, &ServiceClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &serviceauth.ServiceClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return publicKey, nil
 	})
 	if err != nil {
 		t.Fatalf("Failed to parse token: %v", err)
 	}
 
-	claims, ok := token.Claims.(*ServiceClaims)
+	claims, ok := token.Claims.(*serviceauth.ServiceClaims)
 	if !ok {
 		t.Fatal("Invalid claims type")
 	}
 	if claims.IssuedAt == nil || claims.ExpiresAt == nil {
 		t.Fatalf("expected issued_at and expires_at to be set")
 	}
-	if got := claims.ExpiresAt.Time.Sub(claims.IssuedAt.Time); got != DefaultServiceTokenExpiry {
-		t.Errorf("Expected default expiry %v, got %v", DefaultServiceTokenExpiry, got)
+	if got := claims.ExpiresAt.Time.Sub(claims.IssuedAt.Time); got != serviceauth.DefaultServiceTokenExpiry {
+		t.Errorf("Expected default expiry %v, got %v", serviceauth.DefaultServiceTokenExpiry, got)
 	}
 }
 
@@ -399,13 +400,13 @@ func TestGetServiceID(t *testing.T) {
 	ctx := context.Background()
 
 	// Empty context
-	if id := GetServiceID(ctx); id != "" {
+	if id := serviceauth.GetServiceID(ctx); id != "" {
 		t.Errorf("Expected empty string, got '%s'", id)
 	}
 
 	// With service ID
-	ctx = WithServiceID(ctx, "gateway")
-	if id := GetServiceID(ctx); id != "gateway" {
+	ctx = serviceauth.WithServiceID(ctx, "gateway")
+	if id := serviceauth.GetServiceID(ctx); id != "gateway" {
 		t.Errorf("Expected 'gateway', got '%s'", id)
 	}
 }
@@ -414,13 +415,13 @@ func TestGetUserIDFromContext(t *testing.T) {
 	ctx := context.Background()
 
 	// Empty context
-	if id := GetUserIDFromContext(ctx); id != "" {
+	if id := serviceauth.GetUserID(ctx); id != "" {
 		t.Errorf("Expected empty string, got '%s'", id)
 	}
 
 	// With user ID
-	ctx = WithUserID(ctx, "user-123")
-	if id := GetUserIDFromContext(ctx); id != "user-123" {
+	ctx = serviceauth.WithUserID(ctx, "user-123")
+	if id := serviceauth.GetUserID(ctx); id != "user-123" {
 		t.Errorf("Expected 'user-123', got '%s'", id)
 	}
 }
@@ -430,12 +431,11 @@ func TestGetUserIDFromContext(t *testing.T) {
 // =============================================================================
 
 func TestRequireServiceAuth_WithServiceID(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("MARBLE_CERT", "")
 	t.Setenv("MARBLE_KEY", "")
 	t.Setenv("MARBLE_ROOT_CA", "")
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	ctx := WithServiceID(req.Context(), "gateway")
+	ctx := serviceauth.WithServiceID(req.Context(), "gateway")
 	req = req.WithContext(ctx)
 
 	rr := httptest.NewRecorder()
@@ -476,7 +476,7 @@ func TestRequireServiceAuth_WithoutServiceID(t *testing.T) {
 
 func TestRequireUserIDHeader_Valid(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(UserIDHeader, "550e8400-e29b-41d4-a716-446655440000")
+	req.Header.Set(serviceauth.UserIDHeader, "550e8400-e29b-41d4-a716-446655440000")
 
 	rr := httptest.NewRecorder()
 	called := false
@@ -512,7 +512,7 @@ func TestRequireUserIDHeader_Missing(t *testing.T) {
 
 func TestRequireUserIDHeader_Invalid(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(UserIDHeader, "invalid")
+	req.Header.Set(serviceauth.UserIDHeader, "invalid")
 
 	rr := httptest.NewRecorder()
 	handler := RequireUserIDHeader(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -538,7 +538,7 @@ func TestServiceAuthMiddleware_TokenCaching(t *testing.T) {
 
 	// First request - should validate and cache
 	req1 := httptest.NewRequest("GET", "/api/test", nil)
-	req1.Header.Set(ServiceTokenHeader, token)
+	req1.Header.Set(serviceauth.ServiceTokenHeader, token)
 	rr1 := httptest.NewRecorder()
 
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -552,7 +552,7 @@ func TestServiceAuthMiddleware_TokenCaching(t *testing.T) {
 
 	// Second request - should use cache
 	req2 := httptest.NewRequest("GET", "/api/test", nil)
-	req2.Header.Set(ServiceTokenHeader, token)
+	req2.Header.Set(serviceauth.ServiceTokenHeader, token)
 	rr2 := httptest.NewRecorder()
 
 	handler.ServeHTTP(rr2, req2)
@@ -582,7 +582,7 @@ func TestServiceAuthMiddleware_CacheCleanup(t *testing.T) {
 	for i := 0; i < 1010; i++ {
 		token := generateValidServiceToken(t, privateKey, fmt.Sprintf("service-%d", i), time.Hour)
 		req := httptest.NewRequest("GET", "/api/test", nil)
-		req.Header.Set(ServiceTokenHeader, token)
+		req.Header.Set(serviceauth.ServiceTokenHeader, token)
 		rr := httptest.NewRecorder()
 
 		handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -609,7 +609,7 @@ func TestServiceAuthMiddleware_CacheExpiry(t *testing.T) {
 
 	// Generate a token with very short expiry
 	now := time.Now()
-	claims := &ServiceClaims{
+	claims := &serviceauth.ServiceClaims{
 		ServiceID: "gateway",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -623,7 +623,7 @@ func TestServiceAuthMiddleware_CacheExpiry(t *testing.T) {
 
 	// First request - should validate and cache
 	req1 := httptest.NewRequest("GET", "/api/test", nil)
-	req1.Header.Set(ServiceTokenHeader, tokenString)
+	req1.Header.Set(serviceauth.ServiceTokenHeader, tokenString)
 	rr1 := httptest.NewRecorder()
 
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -636,7 +636,7 @@ func TestServiceAuthMiddleware_CacheExpiry(t *testing.T) {
 
 	// Second request - token should be expired
 	req2 := httptest.NewRequest("GET", "/api/test", nil)
-	req2.Header.Set(ServiceTokenHeader, tokenString)
+	req2.Header.Set(serviceauth.ServiceTokenHeader, tokenString)
 	rr2 := httptest.NewRecorder()
 	handler.ServeHTTP(rr2, req2)
 
@@ -655,7 +655,7 @@ func TestServiceAuthMiddleware_WrongSigningKey(t *testing.T) {
 	token := generateValidServiceToken(t, wrongPrivateKey, "gateway", time.Hour)
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, token)
+	req.Header.Set(serviceauth.ServiceTokenHeader, token)
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -675,7 +675,7 @@ func TestServiceAuthMiddleware_MissingServiceIDClaim(t *testing.T) {
 
 	// Create token without service_id claim
 	now := time.Now()
-	claims := &ServiceClaims{
+	claims := &serviceauth.ServiceClaims{
 		ServiceID: "", // Empty service ID
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -687,7 +687,7 @@ func TestServiceAuthMiddleware_MissingServiceIDClaim(t *testing.T) {
 	tokenString, _ := token.SignedString(privateKey)
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, tokenString)
+	req.Header.Set(serviceauth.ServiceTokenHeader, tokenString)
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -707,7 +707,7 @@ func TestServiceAuthMiddleware_WrongSigningMethod(t *testing.T) {
 
 	// Create token with HMAC instead of RSA
 	now := time.Now()
-	claims := &ServiceClaims{
+	claims := &serviceauth.ServiceClaims{
 		ServiceID: "gateway",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -718,7 +718,7 @@ func TestServiceAuthMiddleware_WrongSigningMethod(t *testing.T) {
 	tokenString, _ := token.SignedString([]byte("secret"))
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	req.Header.Set(ServiceTokenHeader, tokenString)
+	req.Header.Set(serviceauth.ServiceTokenHeader, tokenString)
 
 	rr := httptest.NewRecorder()
 	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -737,16 +737,16 @@ func TestServiceAuthMiddleware_WrongSigningMethod(t *testing.T) {
 // =============================================================================
 
 func TestConstants(t *testing.T) {
-	if ServiceTokenHeader != "X-Service-Token" {
-		t.Errorf("ServiceTokenHeader = %s, want X-Service-Token", ServiceTokenHeader)
+	if serviceauth.ServiceTokenHeader != "X-Service-Token" {
+		t.Errorf("ServiceTokenHeader = %s, want X-Service-Token", serviceauth.ServiceTokenHeader)
 	}
-	if ServiceIDHeader != "X-Service-ID" {
-		t.Errorf("ServiceIDHeader = %s, want X-Service-ID", ServiceIDHeader)
+	if serviceauth.ServiceIDHeader != "X-Service-ID" {
+		t.Errorf("ServiceIDHeader = %s, want X-Service-ID", serviceauth.ServiceIDHeader)
 	}
-	if UserIDHeader != "X-User-ID" {
-		t.Errorf("UserIDHeader = %s, want X-User-ID", UserIDHeader)
+	if serviceauth.UserIDHeader != "X-User-ID" {
+		t.Errorf("UserIDHeader = %s, want X-User-ID", serviceauth.UserIDHeader)
 	}
-	if DefaultServiceTokenExpiry != time.Hour {
-		t.Errorf("DefaultServiceTokenExpiry = %v, want 1h", DefaultServiceTokenExpiry)
+	if serviceauth.DefaultServiceTokenExpiry != time.Hour {
+		t.Errorf("DefaultServiceTokenExpiry = %v, want 1h", serviceauth.DefaultServiceTokenExpiry)
 	}
 }

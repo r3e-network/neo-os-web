@@ -152,6 +152,14 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Install Neo tooling (nccs, neo-express)
         run: |
           set -euo pipefail
@@ -299,8 +307,7 @@ jobs:
       - name: Run Gosec Security Scanner
         uses: securego/gosec@v2.22.11
         with:
-          args: '-fmt sarif -out gosec.sarif ./...'
-        continue-on-error: true
+          args: '-severity high -fmt sarif -out gosec.sarif ./...'
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
@@ -313,9 +320,9 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
+          severity: 'HIGH,CRITICAL'
           format: 'sarif'
           output: 'trivy-results.sarif'
-        continue-on-error: true
 
       - name: Upload Trivy results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3

@@ -133,7 +133,7 @@ func (c *ChainlinkClient) GetPrice(ctx context.Context, feedID string) (priceFlo
 		return 0, 0, fmt.Errorf("marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.rpcURL, bytes.NewReader(reqBody))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.rpcURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return 0, 0, fmt.Errorf("create request: %w", err)
 	}

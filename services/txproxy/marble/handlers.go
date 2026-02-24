@@ -31,23 +31,23 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 	// Validate allowlist and policy BEFORE marking request as seen
 	// This prevents DoS via invalid requests consuming request_ids
 	if s.allowlist == nil || !s.allowlist.Allows(contractHash, method) {
-		httputil.WriteError(w, http.StatusForbidden, "contract/method not allowed")
+		httputil.WriteErrorResponse(w, r, http.StatusForbidden, "FORBIDDEN", "contract/method not allowed", nil)
 		return
 	}
 
 	if status, msg := s.checkIntentPolicy(contractHash, method, req.Intent, req.Params); status != 0 {
-		httputil.WriteError(w, status, msg)
+		httputil.WriteErrorResponse(w, r, status, statusToCode(status), msg, nil)
 		return
 	}
 
 	if s.chainClient == nil || s.signer == nil {
-		httputil.WriteError(w, http.StatusServiceUnavailable, "chain signing is not configured")
+		httputil.WriteErrorResponse(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "chain signing is not configured", nil)
 		return
 	}
 
 	// Mark request as seen only after all validations pass
-	if !s.markSeen(r.Context(), reqID) {
-		httputil.WriteError(w, http.StatusConflict, "request_id already used")
+	if !s.replayGuard.MarkSeen(r.Context(), reqID) {
+		httputil.WriteErrorResponse(w, r, http.StatusConflict, "CONFLICT", "request_id already used", nil)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to invoke contract", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -78,4 +78,23 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, resp)
+}
+
+func statusToCode(status int) string {
+	switch status {
+	case http.StatusBadRequest:
+		return "BAD_REQUEST"
+	case http.StatusUnauthorized:
+		return "UNAUTHORIZED"
+	case http.StatusForbidden:
+		return "FORBIDDEN"
+	case http.StatusNotFound:
+		return "NOT_FOUND"
+	case http.StatusConflict:
+		return "CONFLICT"
+	case http.StatusTooManyRequests:
+		return "RATE_LIMITED"
+	default:
+		return "INTERNAL_ERROR"
+	}
 }

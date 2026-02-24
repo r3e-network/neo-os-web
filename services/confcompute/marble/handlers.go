@@ -26,12 +26,7 @@ func isValidEntryPoint(s string) bool {
 // HTTP Handlers
 // =============================================================================
 
-func (s *Service) handleExecute(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-
+func (s *Service) handleExecute(w http.ResponseWriter, r *http.Request, userID string) {
 	var req ExecuteRequest
 	if !httputil.DecodeJSON(w, r, &req) {
 		return
@@ -52,19 +47,14 @@ func (s *Service) handleExecute(w http.ResponseWriter, r *http.Request) {
 	result, err := s.Execute(r.Context(), userID, &req)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to execute script", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, result)
 }
 
-func (s *Service) handleGetJob(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-
+func (s *Service) handleGetJob(w http.ResponseWriter, r *http.Request, userID string) {
 	jobID := mux.Vars(r)["id"]
 	if jobID == "" {
 		httputil.BadRequest(w, "job id required")
@@ -80,12 +70,7 @@ func (s *Service) handleGetJob(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, job)
 }
 
-func (s *Service) handleListJobs(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-
+func (s *Service) handleListJobs(w http.ResponseWriter, r *http.Request, userID string) {
 	jobs := s.listJobs(userID)
 	if jobs == nil {
 		jobs = []*ExecuteResponse{}

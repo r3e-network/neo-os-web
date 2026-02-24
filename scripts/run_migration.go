@@ -90,7 +90,7 @@ func main() {
 		}
 
 		fmt.Printf("📝 Executing statement %d...\n", i+1)
-		_, err := repo.RequestRPC(ctx, "POST", "rpc/exec_sql", []byte(fmt.Sprintf(`{"query": %q}`, stmt)), "")
+		_, err := repo.RequestRPC(ctx, http.MethodPost, "rpc/exec_sql", []byte(fmt.Sprintf(`{"query": %q}`, stmt)), "")
 		if err != nil {
 			failedStatements++
 			fmt.Printf("❌ Statement %d failed: %v\n", i+1, err)
@@ -149,7 +149,7 @@ func splitStatements(sql string) []string {
 }
 
 func canUseExecSQL(ctx context.Context, repo *database.Repository) bool {
-	_, err := repo.RequestRPC(ctx, "POST", "rpc/exec_sql", []byte(`{"query":"select 1;"}`), "")
+	_, err := repo.RequestRPC(ctx, http.MethodPost, "rpc/exec_sql", []byte(`{"query":"select 1;"}`), "")
 	return err == nil
 }
 

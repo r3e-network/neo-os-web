@@ -1,7 +1,6 @@
 package indexer
 
 import (
-	"os"
 	"testing"
 )
 
@@ -19,15 +18,15 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestLoadFromEnv(t *testing.T) {
-	os.Setenv("INDEXER_SUPABASE_URL", "https://test.supabase.co")
-	os.Setenv("INDEXER_POSTGRES_HOST", "db.test.supabase.co")
-	os.Setenv("INDEXER_POSTGRES_PASSWORD", "testpass")
-	os.Setenv("INDEXER_NETWORKS", "both")
+	t.Setenv("INDEXER_SUPABASE_URL", "https://test.supabase.co")
+	t.Setenv("INDEXER_POSTGRES_HOST", "db.test.supabase.co")
+	t.Setenv("INDEXER_POSTGRES_PASSWORD", "testpass")
+	t.Setenv("INDEXER_NETWORKS", "both")
 	defer func() {
-		os.Unsetenv("INDEXER_SUPABASE_URL")
-		os.Unsetenv("INDEXER_POSTGRES_HOST")
-		os.Unsetenv("INDEXER_POSTGRES_PASSWORD")
-		os.Unsetenv("INDEXER_NETWORKS")
+		t.Setenv("INDEXER_SUPABASE_URL", "")
+		t.Setenv("INDEXER_POSTGRES_HOST", "")
+		t.Setenv("INDEXER_POSTGRES_PASSWORD", "")
+		t.Setenv("INDEXER_NETWORKS", "")
 	}()
 
 	cfg, err := LoadFromEnv()

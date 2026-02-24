@@ -58,84 +58,84 @@ func TestEnabled(t *testing.T) {
 	savedMarble := os.Getenv("MARBLE_ENV")
 	defer func() {
 		if savedMetrics != "" {
-			os.Setenv("METRICS_ENABLED", savedMetrics)
+			t.Setenv("METRICS_ENABLED", savedMetrics)
 		} else {
-			os.Unsetenv("METRICS_ENABLED")
+			t.Setenv("METRICS_ENABLED", "")
 		}
 		if savedMarble != "" {
-			os.Setenv("MARBLE_ENV", savedMarble)
+			t.Setenv("MARBLE_ENV", savedMarble)
 		} else {
-			os.Unsetenv("MARBLE_ENV")
+			t.Setenv("MARBLE_ENV", "")
 		}
 	}()
 
 	t.Run("explicitly enabled", func(t *testing.T) {
-		os.Setenv("METRICS_ENABLED", "true")
+		t.Setenv("METRICS_ENABLED", "true")
 		if !Enabled() {
 			t.Error("Enabled() should return true when METRICS_ENABLED=true")
 		}
 	})
 
 	t.Run("enabled with 1", func(t *testing.T) {
-		os.Setenv("METRICS_ENABLED", "1")
+		t.Setenv("METRICS_ENABLED", "1")
 		if !Enabled() {
 			t.Error("Enabled() should return true when METRICS_ENABLED=1")
 		}
 	})
 
 	t.Run("enabled with yes", func(t *testing.T) {
-		os.Setenv("METRICS_ENABLED", "yes")
+		t.Setenv("METRICS_ENABLED", "yes")
 		if !Enabled() {
 			t.Error("Enabled() should return true when METRICS_ENABLED=yes")
 		}
 	})
 
 	t.Run("enabled with on", func(t *testing.T) {
-		os.Setenv("METRICS_ENABLED", "on")
+		t.Setenv("METRICS_ENABLED", "on")
 		if !Enabled() {
 			t.Error("Enabled() should return true when METRICS_ENABLED=on")
 		}
 	})
 
 	t.Run("explicitly disabled", func(t *testing.T) {
-		os.Setenv("METRICS_ENABLED", "false")
+		t.Setenv("METRICS_ENABLED", "false")
 		if Enabled() {
 			t.Error("Enabled() should return false when METRICS_ENABLED=false")
 		}
 	})
 
 	t.Run("disabled with 0", func(t *testing.T) {
-		os.Setenv("METRICS_ENABLED", "0")
+		t.Setenv("METRICS_ENABLED", "0")
 		if Enabled() {
 			t.Error("Enabled() should return false when METRICS_ENABLED=0")
 		}
 	})
 
 	t.Run("default in development", func(t *testing.T) {
-		os.Unsetenv("METRICS_ENABLED")
-		os.Setenv("MARBLE_ENV", "development")
+		t.Setenv("METRICS_ENABLED", "")
+		t.Setenv("MARBLE_ENV", "development")
 		if !Enabled() {
 			t.Error("Enabled() should return true by default in development")
 		}
 	})
 
 	t.Run("default in production", func(t *testing.T) {
-		os.Unsetenv("METRICS_ENABLED")
-		os.Setenv("MARBLE_ENV", "production")
+		t.Setenv("METRICS_ENABLED", "")
+		t.Setenv("MARBLE_ENV", "production")
 		if Enabled() {
 			t.Error("Enabled() should return false by default in production")
 		}
 	})
 
 	t.Run("case insensitive", func(t *testing.T) {
-		os.Setenv("METRICS_ENABLED", "TRUE")
+		t.Setenv("METRICS_ENABLED", "TRUE")
 		if !Enabled() {
 			t.Error("Enabled() should be case insensitive")
 		}
 	})
 
 	t.Run("whitespace trimmed", func(t *testing.T) {
-		os.Setenv("METRICS_ENABLED", "  true  ")
+		t.Setenv("METRICS_ENABLED", "  true  ")
 		if !Enabled() {
 			t.Error("Enabled() should trim whitespace")
 		}

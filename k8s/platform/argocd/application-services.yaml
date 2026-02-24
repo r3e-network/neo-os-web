@@ -3,22 +3,22 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: neo-services-production
+  name: neo-services-prod
   namespace: argocd
   labels:
     app.kubernetes.io/name: neo-services
     app.kubernetes.io/part-of: service-layer
-    environment: production
+    environment: prod
 spec:
   project: default
 
   source:
     repoURL: https://github.com/r3e-network/neo-miniapp-platform.git
     targetRevision: HEAD
-    path: k8s/overlays/production
+    path: k8s/overlays/prod
     kustomize:
       commonLabels:
-        environment: production
+        environment: prod
 
   destination:
     server: https://kubernetes.default.svc
@@ -42,26 +42,26 @@ spec:
   revisionHistoryLimit: 10
 
 ---
-# Application for simulation/dev environment
+# Application for dev environment
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: neo-services-simulation
+  name: neo-services-dev
   namespace: argocd
   labels:
     app.kubernetes.io/name: neo-services
     app.kubernetes.io/part-of: service-layer
-    environment: simulation
+    environment: dev
 spec:
   project: default
 
   source:
     repoURL: https://github.com/r3e-network/neo-miniapp-platform.git
     targetRevision: HEAD
-    path: k8s/overlays/simulation
+    path: k8s/overlays/dev
     kustomize:
       commonLabels:
-        environment: simulation
+        environment: dev
 
   destination:
     server: https://kubernetes.default.svc

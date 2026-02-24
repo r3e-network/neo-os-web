@@ -68,7 +68,7 @@ Commands:
 
 Options:
   --env <env>           Environment: dev, test, prod (default: dev)
-  --overlay <path>      Override the kustomize overlay path (e.g. k8s/overlays/production-hardened)
+  --overlay <path>      Override the kustomize overlay path (e.g. k8s/overlays/prod)
   --registry <url>      Docker registry URL (e.g., docker.io/myorg). Images will be pushed as: <registry>/service-layer/<service>:<tag>
   --push                Push images to registry after build
   --skip-build          Skip Docker image build
@@ -95,8 +95,8 @@ Examples:
   # Deploy to test environment
   $0 --env test deploy
 
-  # Deploy hardened production overlay
-  $0 --env prod --overlay k8s/overlays/production-hardened deploy
+  # Deploy staging (SGX hardware) overlay
+  $0 --env prod --overlay k8s/overlays/staging deploy
 
 EOF
 }
@@ -203,10 +203,10 @@ resolve_overlay_path() {
         return 0
     fi
     case "$ENVIRONMENT" in
-        dev) echo "k8s/overlays/simulation" ;;
-        test) echo "k8s/overlays/test" ;;
-        prod) echo "k8s/overlays/production" ;;
-        *) echo "k8s/overlays/simulation" ;;
+        dev) echo "k8s/overlays/dev" ;;
+        test) echo "k8s/overlays/dev" ;;
+        prod) echo "k8s/overlays/prod" ;;
+        *) echo "k8s/overlays/dev" ;;
     esac
 }
 

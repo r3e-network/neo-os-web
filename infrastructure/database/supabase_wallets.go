@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
@@ -20,7 +21,7 @@ func (r *Repository) CreateWallet(ctx context.Context, wallet *UserWallet) error
 		return err
 	}
 
-	data, err := r.client.request(ctx, "POST", "user_wallets", wallet, "")
+	data, err := r.client.request(ctx, http.MethodPost, "user_wallets", wallet, "")
 	if err != nil {
 		return fmt.Errorf("%w: create wallet: %v", ErrDatabaseError, err)
 	}
@@ -41,7 +42,7 @@ func (r *Repository) GetUserWallets(ctx context.Context, userID string) ([]UserW
 	}
 
 	query := fmt.Sprintf("user_id=eq.%s&order=is_primary.desc,created_at.asc", url.QueryEscape(userID))
-	data, err := r.client.request(ctx, "GET", "user_wallets", nil, query)
+	data, err := r.client.request(ctx, http.MethodGet, "user_wallets", nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: get user wallets: %v", ErrDatabaseError, err)
 	}
@@ -60,7 +61,7 @@ func (r *Repository) GetWalletByAddress(ctx context.Context, address string) (*U
 	}
 
 	query := fmt.Sprintf("address=eq.%s&limit=1", url.QueryEscape(address))
-	data, err := r.client.request(ctx, "GET", "user_wallets", nil, query)
+	data, err := r.client.request(ctx, http.MethodGet, "user_wallets", nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: get wallet by address: %v", ErrDatabaseError, err)
 	}
@@ -85,7 +86,7 @@ func (r *Repository) GetWallet(ctx context.Context, walletID, userID string) (*U
 	}
 
 	query := fmt.Sprintf("id=eq.%s&user_id=eq.%s", url.QueryEscape(walletID), url.QueryEscape(userID))
-	resp, err := r.client.request(ctx, "GET", "user_wallets", nil, query)
+	resp, err := r.client.request(ctx, http.MethodGet, "user_wallets", nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: get wallet: %v", ErrDatabaseError, err)
 	}
@@ -103,7 +104,7 @@ func (r *Repository) GetWallet(ctx context.Context, walletID, userID string) (*U
 func (r *Repository) SetPrimaryWallet(ctx context.Context, userID, walletID string) error {
 	// First, unset all primary wallets for this user
 	update := map[string]interface{}{"is_primary": false}
-	_, err := r.client.request(ctx, "PATCH", "user_wallets", update, "user_id=eq."+url.QueryEscape(userID))
+	_, err := r.client.request(ctx, http.MethodPatch, "user_wallets", update, "user_id=eq."+url.QueryEscape(userID))
 	if err != nil {
 		return err
 	}
@@ -111,7 +112,7 @@ func (r *Repository) SetPrimaryWallet(ctx context.Context, userID, walletID stri
 	// Then set the specified wallet as primary
 	update = map[string]interface{}{"is_primary": true}
 	query := fmt.Sprintf("id=eq.%s&user_id=eq.%s", url.QueryEscape(walletID), url.QueryEscape(userID))
-	_, err = r.client.request(ctx, "PATCH", "user_wallets", update, query)
+	_, err = r.client.request(ctx, http.MethodPatch, "user_wallets", update, query)
 	return err
 }
 
@@ -121,13 +122,13 @@ func (r *Repository) VerifyWallet(ctx context.Context, walletID, signature strin
 		"verified":               true,
 		"verification_signature": signature,
 	}
-	_, err := r.client.request(ctx, "PATCH", "user_wallets", update, "id=eq."+url.QueryEscape(walletID))
+	_, err := r.client.request(ctx, http.MethodPatch, "user_wallets", update, "id=eq."+url.QueryEscape(walletID))
 	return err
 }
 
 // DeleteWallet deletes a wallet binding.
 func (r *Repository) DeleteWallet(ctx context.Context, walletID, userID string) error {
 	query := fmt.Sprintf("id=eq.%s&user_id=eq.%s&is_primary=eq.false", url.QueryEscape(walletID), url.QueryEscape(userID))
-	_, err := r.client.request(ctx, "DELETE", "user_wallets", nil, query)
+	_, err := r.client.request(ctx, http.MethodDelete, "user_wallets", nil, query)
 	return err
 }

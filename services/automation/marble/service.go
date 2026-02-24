@@ -110,22 +110,8 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		DB:      cfg.DB,
 	})
 
-	triggerConcurrency := cfg.TriggerConcurrency
-	if triggerConcurrency <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOFLOW_TRIGGER_CONCURRENCY"); ok && parsed > 0 {
-			triggerConcurrency = parsed
-		} else {
-			triggerConcurrency = 10
-		}
-	}
-	anchoredTaskConcurrency := cfg.AnchoredTaskConcurrency
-	if anchoredTaskConcurrency <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOFLOW_ANCHORED_TASK_CONCURRENCY"); ok && parsed > 0 {
-			anchoredTaskConcurrency = parsed
-		} else {
-			anchoredTaskConcurrency = 10
-		}
-	}
+	triggerConcurrency := runtime.LoadEnvInt("NEOFLOW_TRIGGER_CONCURRENCY", cfg.TriggerConcurrency, 10)
+	anchoredTaskConcurrency := runtime.LoadEnvInt("NEOFLOW_ANCHORED_TASK_CONCURRENCY", cfg.AnchoredTaskConcurrency, 10)
 
 	s := &Service{
 		BaseService: base,

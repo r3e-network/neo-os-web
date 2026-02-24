@@ -35,7 +35,7 @@ func (s *Service) RegisterRoutes(mux *http.ServeMux) {
 // handleRotate handles POST /rotate - trigger key rotation.
 func (s *Service) handleRotate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+		httputil.WriteErrorResponse(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", nil)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (s *Service) handleRotate(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.Rotate(r.Context(), req.Force)
 	if err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, "key rotation failed")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (s *Service) handleRotate(w http.ResponseWriter, r *http.Request) {
 // handleSign handles POST /sign - domain-separated signing.
 func (s *Service) handleSign(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+		httputil.WriteErrorResponse(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", nil)
 		return
 	}
 
@@ -69,7 +69,7 @@ func (s *Service) handleSign(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.Sign(r.Context(), &req)
 	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "signing failed")
+		httputil.WriteErrorResponse(w, r, http.StatusBadRequest, "BAD_REQUEST", "signing failed", nil)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (s *Service) handleSign(w http.ResponseWriter, r *http.Request) {
 // handleSignRaw handles POST /sign-raw - raw signing without domain separation.
 func (s *Service) handleSignRaw(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+		httputil.WriteErrorResponse(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", nil)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (s *Service) handleSignRaw(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.SignRaw(r.Context(), &req)
 	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "signing failed")
+		httputil.WriteErrorResponse(w, r, http.StatusBadRequest, "BAD_REQUEST", "signing failed", nil)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (s *Service) handleSignRaw(w http.ResponseWriter, r *http.Request) {
 // handleDerive handles POST /derive - deterministic key derivation.
 func (s *Service) handleDerive(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+		httputil.WriteErrorResponse(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", nil)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (s *Service) handleDerive(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.Derive(r.Context(), &req)
 	if err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "key derivation failed")
+		httputil.WriteErrorResponse(w, r, http.StatusBadRequest, "BAD_REQUEST", "key derivation failed", nil)
 		return
 	}
 
@@ -121,13 +121,13 @@ func (s *Service) handleDerive(w http.ResponseWriter, r *http.Request) {
 // handleAttestation handles GET /attestation - get current key attestation.
 func (s *Service) handleAttestation(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+		httputil.WriteErrorResponse(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", nil)
 		return
 	}
 
 	att, err := s.GetAttestation(r.Context())
 	if err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, "attestation failed")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -137,7 +137,7 @@ func (s *Service) handleAttestation(w http.ResponseWriter, r *http.Request) {
 // handleListKeys handles GET /keys - list all key versions.
 func (s *Service) handleListKeys(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+		httputil.WriteErrorResponse(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", nil)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (s *Service) handleListKeys(w http.ResponseWriter, r *http.Request) {
 // handleStatus handles GET /status - detailed service status.
 func (s *Service) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+		httputil.WriteErrorResponse(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", nil)
 		return
 	}
 

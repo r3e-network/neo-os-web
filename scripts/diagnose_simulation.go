@@ -129,7 +129,7 @@ func main() {
 }
 
 func checkServiceHealth(ctx context.Context, baseURL, serviceName string) bool {
-	req, err := http.NewRequestWithContext(ctx, "GET", baseURL+"/health", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/health", nil)
 	if err != nil {
 		fmt.Printf("❌ %s Service: Failed to create request: %v\n", serviceName, err)
 		return false
@@ -153,7 +153,7 @@ func checkServiceHealth(ctx context.Context, baseURL, serviceName string) bool {
 }
 
 func checkPoolInfo(ctx context.Context, baseURL string) {
-	req, err := http.NewRequestWithContext(ctx, "GET", baseURL+"/pool-info", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/pool-info", nil)
 	if err != nil {
 		return
 	}
@@ -186,7 +186,7 @@ func checkPoolInfo(ctx context.Context, baseURL string) {
 }
 
 func checkSimulationStatus(ctx context.Context, baseURL string) {
-	req, err := http.NewRequestWithContext(ctx, "GET", baseURL+"/status", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/status", nil)
 	if err != nil {
 		return
 	}

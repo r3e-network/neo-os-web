@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -588,29 +589,61 @@ func NewContractInvokerFromEnv(poolClient *neoaccountsclient.Client) (*ContractI
 	})
 }
 
-// loadMiniAppContractsFromEnv loads MiniApp contract hashes from environment variables.
-// Environment variable format: CONTRACT_MINIAPP_<APPID>_HASH
-// Example: CONTRACT_MINIAPP_LOTTERY_HASH=0x3e330b4c396b40aa08d49912c0179319831b3a6e
+// contractHashesConfigPath is the path to the JSON file containing contract hashes.
+// Can be overridden via CONTRACT_HASHES_FILE env var.
+const defaultContractHashesPath = "config/contract-hashes.json"
+
+// loadMiniAppContractsFromEnv loads MiniApp contract hashes from config/contract-hashes.json,
+// falling back to environment variables if the file is not found.
 func loadMiniAppContractsFromEnv() map[string]string {
-	contracts := make(map[string]string)
+	contracts := loadContractHashesFromFile()
+	if len(contracts) > 0 {
+		return contracts
+	}
 
-	miniAppEnvMapping := miniAppContractEnvMapping()
-
-	for envSuffix, appID := range miniAppEnvMapping {
-		envVar := "CONTRACT_MINIAPP_" + envSuffix + "_HASH"
-		hash := strings.TrimSpace(os.Getenv(envVar))
+	// Fallback: load from environment variables
+	contracts = make(map[string]string)
+	for envSuffix, appID := range miniAppContractEnvMapping() {
+		hash := strings.TrimSpace(os.Getenv("CONTRACT_MINIAPP_" + envSuffix + "_HASH"))
 		if hash != "" {
 			contracts[appID] = hash
 		}
 	}
-
-	// Log summary of loaded contracts
 	if len(contracts) > 0 {
 		log.Printf("neosimulation: loaded %d MiniApp contract hashes from environment", len(contracts))
-		for appID, hash := range contracts {
-			log.Printf("  - %s: %s", appID, hash[:min(20, len(hash))]+"...")
+	}
+	return contracts
+}
+
+// loadContractHashesFromFile reads contract hashes from a JSON file.
+// Returns nil if the file cannot be read.
+func loadContractHashesFromFile() map[string]string {
+	path := os.Getenv("CONTRACT_HASHES_FILE")
+	if path == "" {
+		path = defaultContractHashesPath
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+
+	// File maps EnvSuffix (e.g. "LOTTERY") -> hash
+	var raw map[string]string
+	if err := json.Unmarshal(data, &raw); err != nil {
+		log.Printf("neosimulation: warning: failed to parse %s: %v", path, err)
+		return nil
+	}
+
+	// Convert EnvSuffix keys to AppIDs using the catalog mapping
+	envMapping := miniAppContractEnvMapping()
+	contracts := make(map[string]string, len(raw))
+	for suffix, hash := range raw {
+		if appID, ok := envMapping[suffix]; ok {
+			contracts[appID] = hash
 		}
 	}
 
+	log.Printf("neosimulation: loaded %d MiniApp contract hashes from %s", len(contracts), path)
 	return contracts
 }

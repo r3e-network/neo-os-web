@@ -302,7 +302,7 @@ func (p *RPCPool) checkEndpoint(ctx context.Context, ep *RPCEndpoint) {
 	ctx, cancel := context.WithTimeout(ctx, p.config.HealthCheckTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", ep.URL, strings.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ep.URL, strings.NewReader(reqBody))
 	if err != nil {
 		p.MarkUnhealthy(ep.URL)
 		return

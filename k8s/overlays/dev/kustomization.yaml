@@ -6,7 +6,7 @@ namespace: service-layer
 resources:
   - ../../base
 
-# Local test images are built/imported with the `:test` tag.
+# Local dev/test images are built/imported with the `:test` tag.
 images:
   - name: service-layer/neofeeds
     newTag: test
@@ -27,7 +27,7 @@ images:
   - name: service-layer/globalsigner
     newTag: test
 
-# Test overlay: run in OE simulation mode with MARBLE_ENV=testing.
+# Dev overlay: OE simulation mode, local Supabase, test contract hashes.
 patches:
   - target:
       kind: ConfigMap
@@ -77,4 +77,4 @@ labels:
   - includeSelectors: true
     includeTemplates: true
     pairs:
-      environment: test
+      environment: dev

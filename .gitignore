@@ -140,3 +140,10 @@ SPRINT*_COMPLETION_REPORT.md
 
 # MiniApp simulations (not ready for commit)
 miniapps-uniapp/apps/*/simulation/
+
+# Temporary files
+fix_*.go
+test_*.go
+*.tar
+coordinator-config.json
+coordinator-enclave.signed

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 )
 
 // =============================================================================
@@ -29,7 +30,7 @@ func (r *Repository) MarkRequestSeen(ctx context.Context, serviceID, requestID s
 		"p_window_seconds": windowSeconds,
 	}
 
-	data, err := r.client.requestRPC(ctx, "POST", "rpc/mark_request_seen", body, "")
+	data, err := r.client.requestRPC(ctx, http.MethodPost, "rpc/mark_request_seen", body, "")
 	if err != nil {
 		return false, fmt.Errorf("%w: mark_request_seen: %v", ErrDatabaseError, err)
 	}
@@ -53,7 +54,7 @@ func (r *Repository) CleanupSeenRequests(ctx context.Context, serviceID string) 
 		body = map[string]interface{}{}
 	}
 
-	data, err := r.client.requestRPC(ctx, "POST", "rpc/cleanup_seen_requests", body, "")
+	data, err := r.client.requestRPC(ctx, http.MethodPost, "rpc/cleanup_seen_requests", body, "")
 	if err != nil {
 		return 0, fmt.Errorf("%w: cleanup_seen_requests: %v", ErrDatabaseError, err)
 	}

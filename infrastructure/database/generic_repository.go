@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -47,7 +48,7 @@ func GenericCreate[T any](base *Repository, ctx context.Context, table string, m
 		return fmt.Errorf("%s: model cannot be nil", table)
 	}
 
-	data, err := base.Request(ctx, "POST", table, model, "")
+	data, err := base.Request(ctx, http.MethodPost, table, model, "")
 	if err != nil {
 		return fmt.Errorf("create %s: %w", table, err)
 	}
@@ -97,7 +98,7 @@ func GenericUpdate[T any](base *Repository, ctx context.Context, table, keyField
 	}
 
 	query := fmt.Sprintf("%s=eq.%s", keyField, url.QueryEscape(keyValue))
-	_, err := base.Request(ctx, "PATCH", table, model, query)
+	_, err := base.Request(ctx, http.MethodPatch, table, model, query)
 	if err != nil {
 		return fmt.Errorf("update %s: %w", table, err)
 	}
@@ -113,7 +114,7 @@ func GenericGetByField[T any](base *Repository, ctx context.Context, table, fiel
 	}
 
 	query := fmt.Sprintf("%s=eq.%s&limit=1", field, url.QueryEscape(value))
-	data, err := base.Request(ctx, "GET", table, nil, query)
+	data, err := base.Request(ctx, http.MethodGet, table, nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("get %s by %s: %w", table, field, err)
 	}
@@ -130,7 +131,7 @@ func GenericGetByField[T any](base *Repository, ctx context.Context, table, fiel
 
 // GenericList fetches all records from a table.
 func GenericList[T any](base *Repository, ctx context.Context, table string) ([]T, error) {
-	data, err := base.Request(ctx, "GET", table, nil, "")
+	data, err := base.Request(ctx, http.MethodGet, table, nil, "")
 	if err != nil {
 		return nil, fmt.Errorf("list %s: %w", table, err)
 	}
@@ -150,7 +151,7 @@ func GenericListByField[T any](base *Repository, ctx context.Context, table, fie
 	}
 
 	query := fmt.Sprintf("%s=eq.%s", field, url.QueryEscape(value))
-	data, err := base.Request(ctx, "GET", table, nil, query)
+	data, err := base.Request(ctx, http.MethodGet, table, nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("list %s by %s: %w", table, field, err)
 	}
@@ -164,7 +165,7 @@ func GenericListByField[T any](base *Repository, ctx context.Context, table, fie
 
 // GenericListWithQuery fetches records with a custom query string.
 func GenericListWithQuery[T any](base *Repository, ctx context.Context, table, query string) ([]T, error) {
-	data, err := base.Request(ctx, "GET", table, nil, query)
+	data, err := base.Request(ctx, http.MethodGet, table, nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("list %s: %w", table, err)
 	}
@@ -184,7 +185,7 @@ func GenericDelete(base *Repository, ctx context.Context, table, keyField, keyVa
 	}
 
 	query := fmt.Sprintf("%s=eq.%s", keyField, url.QueryEscape(keyValue))
-	_, err := base.Request(ctx, "DELETE", table, nil, query)
+	_, err := base.Request(ctx, http.MethodDelete, table, nil, query)
 	if err != nil {
 		return fmt.Errorf("delete %s: %w", table, err)
 	}
@@ -201,7 +202,7 @@ func GenericUpdateWithQuery[T any](base *Repository, ctx context.Context, table,
 		return fmt.Errorf("%s: query cannot be empty", table)
 	}
 
-	_, err := base.Request(ctx, "PATCH", table, model, query)
+	_, err := base.Request(ctx, http.MethodPatch, table, model, query)
 	if err != nil {
 		return fmt.Errorf("update %s: %w", table, err)
 	}
@@ -215,7 +216,7 @@ func GenericDeleteWithQuery(base *Repository, ctx context.Context, table, query 
 		return fmt.Errorf("%s: query cannot be empty", table)
 	}
 
-	_, err := base.Request(ctx, "DELETE", table, nil, query)
+	_, err := base.Request(ctx, http.MethodDelete, table, nil, query)
 	if err != nil {
 		return fmt.Errorf("delete %s: %w", table, err)
 	}
@@ -277,6 +278,13 @@ func (q *QueryBuilder) IsFalse(field string) *QueryBuilder {
 func (q *QueryBuilder) IsTrue(field string) *QueryBuilder {
 	validateField(field)
 	q.filters = append(q.filters, fmt.Sprintf("%s=eq.true", field))
+	return q
+}
+
+// Lt adds a less than filter: field=lt.value
+func (q *QueryBuilder) Lt(field, value string) *QueryBuilder {
+	validateField(field)
+	q.filters = append(q.filters, fmt.Sprintf("%s=lt.%s", field, url.QueryEscape(value)))
 	return q
 }
 

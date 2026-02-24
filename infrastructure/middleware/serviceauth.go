@@ -2,7 +2,6 @@
 package middleware
 
 import (
-	"context"
 	"crypto/rsa"
 	"net/http"
 	"strings"
@@ -17,48 +16,6 @@ import (
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/security"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 )
-
-// =============================================================================
-// Service Authentication Constants
-// =============================================================================
-
-const (
-	// ServiceTokenHeader is the header name for service-to-service tokens.
-	ServiceTokenHeader = serviceauth.ServiceTokenHeader
-
-	// ServiceIDHeader is the header name for service identification.
-	ServiceIDHeader = serviceauth.ServiceIDHeader
-
-	// UserIDHeader is the header name for user identification.
-	UserIDHeader = serviceauth.UserIDHeader
-
-	// DefaultServiceTokenExpiry is the default expiration time for service tokens.
-	DefaultServiceTokenExpiry = serviceauth.DefaultServiceTokenExpiry
-)
-
-// =============================================================================
-// Service Claims
-// =============================================================================
-
-// ServiceClaims represents JWT claims for service-to-service authentication.
-type ServiceClaims = serviceauth.ServiceClaims
-
-// ServiceTokenGenerator generates service-to-service JWT tokens.
-type ServiceTokenGenerator = serviceauth.ServiceTokenGenerator
-
-// ServiceTokenRoundTripper injects X-Service-Token (and optionally X-User-ID)
-// into outgoing HTTP requests.
-type ServiceTokenRoundTripper = serviceauth.ServiceTokenRoundTripper
-
-// NewServiceTokenGenerator creates a new service token generator.
-func NewServiceTokenGenerator(privateKey *rsa.PrivateKey, serviceID string, expiry time.Duration) *ServiceTokenGenerator {
-	return serviceauth.NewServiceTokenGenerator(privateKey, serviceID, expiry)
-}
-
-// NewServiceTokenRoundTripper wraps a base transport with service-token injection.
-func NewServiceTokenRoundTripper(base http.RoundTripper, generator *ServiceTokenGenerator) http.RoundTripper {
-	return serviceauth.NewServiceTokenRoundTripper(base, generator)
-}
 
 // =============================================================================
 // Service Auth Middleware
@@ -80,7 +37,7 @@ type ServiceAuthMiddleware struct {
 
 // cachedToken stores validated token info with expiry.
 type cachedToken struct {
-	claims    *ServiceClaims
+	claims    *serviceauth.ServiceClaims
 	expiresAt time.Time
 }
 
@@ -136,7 +93,7 @@ func (m *ServiceAuthMiddleware) Handler(next http.Handler) http.Handler {
 		}
 
 		// Validate service token
-		serviceToken := r.Header.Get(ServiceTokenHeader)
+		serviceToken := r.Header.Get(serviceauth.ServiceTokenHeader)
 		if serviceToken == "" {
 			m.respondError(w, r, errors.Unauthorized("Missing service token"))
 			return
@@ -160,7 +117,7 @@ func (m *ServiceAuthMiddleware) Handler(next http.Handler) http.Handler {
 		}
 
 		// Validate X-User-ID header if required
-		userID := r.Header.Get(UserIDHeader)
+		userID := r.Header.Get(serviceauth.UserIDHeader)
 		if m.requireUserID && userID == "" {
 			m.respondError(w, r, errors.Unauthorized("Missing X-User-ID header"))
 			return
@@ -189,7 +146,7 @@ func (m *ServiceAuthMiddleware) Handler(next http.Handler) http.Handler {
 }
 
 // validateServiceToken validates a service JWT token.
-func (m *ServiceAuthMiddleware) validateServiceToken(tokenString string) (*ServiceClaims, error) {
+func (m *ServiceAuthMiddleware) validateServiceToken(tokenString string) (*serviceauth.ServiceClaims, error) {
 	if m.publicKey == nil {
 		return nil, errors.Internal("service authentication is not configured", nil)
 	}
@@ -200,7 +157,7 @@ func (m *ServiceAuthMiddleware) validateServiceToken(tokenString string) (*Servi
 	}
 
 	// Parse and validate token
-	token, err := jwt.ParseWithClaims(tokenString, &ServiceClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &serviceauth.ServiceClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Verify signing method is RS256
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, errors.InvalidToken(nil).WithDetails("method", token.Header["alg"])
@@ -216,7 +173,7 @@ func (m *ServiceAuthMiddleware) validateServiceToken(tokenString string) (*Servi
 		return nil, errors.InvalidToken(nil)
 	}
 
-	claims, ok := token.Claims.(*ServiceClaims)
+	claims, ok := token.Claims.(*serviceauth.ServiceClaims)
 	if !ok {
 		return nil, errors.InvalidToken(nil).WithDetails("reason", "invalid claims type")
 	}
@@ -241,7 +198,7 @@ func (m *ServiceAuthMiddleware) validateServiceToken(tokenString string) (*Servi
 }
 
 // getCachedToken retrieves a cached token if valid.
-func (m *ServiceAuthMiddleware) getCachedToken(tokenString string) *ServiceClaims {
+func (m *ServiceAuthMiddleware) getCachedToken(tokenString string) *serviceauth.ServiceClaims {
 	m.mu.RLock()
 	cached, ok := m.validatedTokens[tokenString]
 	if !ok {
@@ -266,7 +223,7 @@ func (m *ServiceAuthMiddleware) getCachedToken(tokenString string) *ServiceClaim
 }
 
 // cacheToken stores a validated token in cache.
-func (m *ServiceAuthMiddleware) cacheToken(tokenString string, claims *ServiceClaims) {
+func (m *ServiceAuthMiddleware) cacheToken(tokenString string, claims *serviceauth.ServiceClaims) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -396,64 +353,6 @@ func (m *ServiceAuthMiddleware) respondError(w http.ResponseWriter, r *http.Requ
 	m.logger.WithContext(r.Context()).WithFields(logFields).Warnf("Service authentication failed: %s", sanitizedErrMsg)
 }
 
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-// GetServiceID extracts service ID from context.
-func GetServiceID(ctx context.Context) string {
-	return serviceauth.GetServiceID(ctx)
-}
-
-// GetUserID extracts user ID from context.
-//
-// Prefer using this helper over reaching into infrastructure/serviceauth directly so
-// middleware consumers have a single import surface.
-func GetUserID(ctx context.Context) string {
-	// The gateway stores user identity in the logging context, while the
-	// service-to-service auth middleware stores it in the serviceauth context.
-	// Prefer the logging context when present so generic middleware (rate limits,
-	// metrics, etc.) can key off the authenticated user consistently.
-	if userID := logging.GetUserID(ctx); userID != "" {
-		return userID
-	}
-	return serviceauth.GetUserID(ctx)
-}
-
-// GetUserIDFromContext extracts user ID from context.
-func GetUserIDFromContext(ctx context.Context) string {
-	return GetUserID(ctx)
-}
-
-// WithServiceID returns a new context with the service ID set.
-// This is useful for propagating service identity through internal calls.
-func WithServiceID(ctx context.Context, serviceID string) context.Context {
-	return serviceauth.WithServiceID(ctx, serviceID)
-}
-
-// WithUserID returns a new context with the user ID set.
-// This is useful for propagating user ID through service-to-service calls.
-func WithUserID(ctx context.Context, userID string) context.Context {
-	return serviceauth.WithUserID(ctx, userID)
-}
-
-// GetUserRole extracts the user role from context when present.
-func GetUserRole(ctx context.Context) string {
-	return logging.GetRole(ctx)
-}
-
-// ParseRSAPublicKeyFromPEM parses an RSA public key from PEM bytes.
-// Supported PEM types: PUBLIC KEY (PKIX), RSA PUBLIC KEY (PKCS#1), CERTIFICATE.
-func ParseRSAPublicKeyFromPEM(pemBytes []byte) (*rsa.PublicKey, error) {
-	return serviceauth.ParseRSAPublicKeyFromPEM(pemBytes)
-}
-
-// ParseRSAPrivateKeyFromPEM parses an RSA private key from PEM bytes.
-// Supported PEM types: RSA PRIVATE KEY (PKCS#1), PRIVATE KEY (PKCS#8).
-func ParseRSAPrivateKeyFromPEM(pemBytes []byte) (*rsa.PrivateKey, error) {
-	return serviceauth.ParseRSAPrivateKeyFromPEM(pemBytes)
-}
-
 // isValidUserID validates user ID format (UUID).
 func isValidUserID(userID string) bool {
 	// Basic UUID format validation: 8-4-4-4-12 hex characters
@@ -510,7 +409,7 @@ func RequireServiceAuth(next http.Handler) http.Handler {
 // RequireUserIDHeader is a middleware that requires X-User-ID header.
 func RequireUserIDHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Header.Get(UserIDHeader)
+		userID := r.Header.Get(serviceauth.UserIDHeader)
 		if userID == "" {
 			internalhttputil.WriteErrorResponse(w, r, http.StatusUnauthorized, "USER_ID_REQUIRED", "X-User-ID header required", nil)
 			return

@@ -3,7 +3,6 @@ package marble
 
 import (
 	"context"
-	"os"
 	"testing"
 )
 
@@ -111,8 +110,7 @@ func TestMarbleInitialize(t *testing.T) {
 	m, _ := New(Config{MarbleType: "test"})
 
 	// Set environment variables for testing
-	os.Setenv("MARBLE_UUID", "test-uuid-123")
-	defer os.Unsetenv("MARBLE_UUID")
+	t.Setenv("MARBLE_UUID", "test-uuid-123")
 
 	ctx := context.Background()
 	err := m.Initialize(ctx)
@@ -449,8 +447,7 @@ func TestMarbleSecretFromEnv(t *testing.T) {
 	m, _ := New(Config{MarbleType: "test"})
 
 	// Set environment variable
-	os.Setenv("TEST_ENV_SECRET", "env-secret-value")
-	defer os.Unsetenv("TEST_ENV_SECRET")
+	t.Setenv("TEST_ENV_SECRET", "env-secret-value")
 
 	secret, ok := m.Secret("TEST_ENV_SECRET")
 	if !ok {
@@ -465,8 +462,7 @@ func TestMarbleSecretFromEnvHex(t *testing.T) {
 	m, _ := New(Config{MarbleType: "test"})
 
 	// Set hex-encoded environment variable
-	os.Setenv("TEST_HEX_SECRET", "0x48656c6c6f") // "Hello" in hex
-	defer os.Unsetenv("TEST_HEX_SECRET")
+	t.Setenv("TEST_HEX_SECRET", "0x48656c6c6f")
 
 	secret, ok := m.Secret("TEST_HEX_SECRET")
 	if !ok {
@@ -480,10 +476,8 @@ func TestMarbleSecretFromEnvHex(t *testing.T) {
 func TestMarbleInitializeWithSecrets(t *testing.T) {
 	m, _ := New(Config{MarbleType: "test"})
 
-	os.Setenv("MARBLE_SECRETS", `{"key1":"dmFsdWUx"}`) // base64 encoded
-	os.Setenv("MARBLE_UUID", "test-uuid")
-	defer os.Unsetenv("MARBLE_SECRETS")
-	defer os.Unsetenv("MARBLE_UUID")
+	t.Setenv("MARBLE_SECRETS", `{"key1":"dmFsdWUx"}`)
+	t.Setenv("MARBLE_UUID", "test-uuid")
 
 	ctx := context.Background()
 	err := m.Initialize(ctx)
@@ -496,10 +490,8 @@ func TestMarbleInitializeCertWithoutRootCA(t *testing.T) {
 	m, _ := New(Config{MarbleType: "test"})
 
 	// Set cert and key but no root CA - should fail
-	os.Setenv("MARBLE_CERT", "dummy-cert")
-	os.Setenv("MARBLE_KEY", "dummy-key")
-	defer os.Unsetenv("MARBLE_CERT")
-	defer os.Unsetenv("MARBLE_KEY")
+	t.Setenv("MARBLE_CERT", "dummy-cert")
+	t.Setenv("MARBLE_KEY", "dummy-key")
 
 	ctx := context.Background()
 	err := m.Initialize(ctx)

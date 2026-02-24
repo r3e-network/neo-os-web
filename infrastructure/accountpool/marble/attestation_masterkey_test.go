@@ -160,7 +160,7 @@ func TestResolveServiceID_ProductionRejectsMismatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("rsaKeyForTest: %v", err)
 	}
-	gen := middleware.NewServiceTokenGenerator(privateKey, "neocompute", time.Hour)
+	gen := serviceauth.NewServiceTokenGenerator(privateKey, "neocompute", time.Hour)
 	token, err := gen.GenerateToken()
 	if err != nil {
 		t.Fatalf("GenerateToken: %v", err)
@@ -175,7 +175,7 @@ func TestResolveServiceID_ProductionRejectsMismatch(t *testing.T) {
 	body := []byte(`{"service_id":"neooracle","count":1}`)
 	req := httptest.NewRequest(http.MethodPost, "/request", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(middleware.ServiceTokenHeader, token)
+	req.Header.Set(serviceauth.ServiceTokenHeader, token)
 	req.TLS = &tls.ConnectionState{
 		VerifiedChains: [][]*x509.Certificate{{&x509.Certificate{DNSNames: []string{"neocompute"}}}},
 	}

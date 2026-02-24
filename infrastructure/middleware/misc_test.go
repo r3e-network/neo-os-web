@@ -18,6 +18,7 @@ import (
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/metrics"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 )
 
 type testRoundTripperFunc func(*http.Request) (*http.Response, error)
@@ -187,24 +188,24 @@ func TestResponseWriter_CapturesStatus(t *testing.T) {
 
 func TestGetUserRole(t *testing.T) {
 	ctx := logging.WithRole(context.Background(), "admin")
-	if role := GetUserRole(ctx); role != "admin" {
-		t.Fatalf("GetUserRole() = %q, want admin", role)
+	if role := logging.GetRole(ctx); role != "admin" {
+		t.Fatalf("GetRole() = %q, want admin", role)
 	}
 }
 
 func TestServiceTokenRoundTripper_Defaults(t *testing.T) {
-	if got := NewServiceTokenRoundTripper(nil, nil); got != http.DefaultTransport {
+	if got := serviceauth.NewServiceTokenRoundTripper(nil, nil); got != http.DefaultTransport {
 		t.Fatalf("expected default transport when base and generator are nil")
 	}
 
 	base := testRoundTripperFunc(func(r *http.Request) (*http.Response, error) {
-		if r.Header.Get(ServiceTokenHeader) != "" {
+		if r.Header.Get(serviceauth.ServiceTokenHeader) != "" {
 			t.Fatalf("unexpected token header when generator is nil")
 		}
 		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody, Header: make(http.Header)}, nil
 	})
 
-	got := NewServiceTokenRoundTripper(base, nil)
+	got := serviceauth.NewServiceTokenRoundTripper(base, nil)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	if _, err := got.RoundTrip(req); err != nil {
 		t.Fatalf("RoundTrip() error = %v", err)
@@ -268,18 +269,18 @@ func TestParseRSAKeysFromPEM(t *testing.T) {
 		t.Fatalf("MarshalPKIXPublicKey: %v", err)
 	}
 	pkixPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pkixBytes})
-	pub, err := ParseRSAPublicKeyFromPEM(pkixPEM)
+	pub, err := serviceauth.ParseRSAPublicKeyFromPEM(pkixPEM)
 	if err != nil {
-		t.Fatalf("ParseRSAPublicKeyFromPEM(PKIX): %v", err)
+		t.Fatalf("serviceauth.ParseRSAPublicKeyFromPEM(PKIX): %v", err)
 	}
 	if pub.N.Cmp(privateKey.PublicKey.N) != 0 {
 		t.Fatalf("parsed public key mismatch")
 	}
 
 	pkcs1PEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(&privateKey.PublicKey)})
-	pub, err = ParseRSAPublicKeyFromPEM(pkcs1PEM)
+	pub, err = serviceauth.ParseRSAPublicKeyFromPEM(pkcs1PEM)
 	if err != nil {
-		t.Fatalf("ParseRSAPublicKeyFromPEM(PKCS1): %v", err)
+		t.Fatalf("serviceauth.ParseRSAPublicKeyFromPEM(PKCS1): %v", err)
 	}
 	if pub.E != privateKey.PublicKey.E {
 		t.Fatalf("parsed public key mismatch")
@@ -295,9 +296,9 @@ func TestParseRSAKeysFromPEM(t *testing.T) {
 		t.Fatalf("CreateCertificate: %v", err)
 	}
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
-	pub, err = ParseRSAPublicKeyFromPEM(certPEM)
+	pub, err = serviceauth.ParseRSAPublicKeyFromPEM(certPEM)
 	if err != nil {
-		t.Fatalf("ParseRSAPublicKeyFromPEM(CERTIFICATE): %v", err)
+		t.Fatalf("serviceauth.ParseRSAPublicKeyFromPEM(CERTIFICATE): %v", err)
 	}
 	if pub == nil {
 		t.Fatalf("expected RSA public key in certificate")
@@ -307,9 +308,9 @@ func TestParseRSAKeysFromPEM(t *testing.T) {
 	}
 
 	pkcs1PrivPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
-	priv, err := ParseRSAPrivateKeyFromPEM(pkcs1PrivPEM)
+	priv, err := serviceauth.ParseRSAPrivateKeyFromPEM(pkcs1PrivPEM)
 	if err != nil {
-		t.Fatalf("ParseRSAPrivateKeyFromPEM(PKCS1): %v", err)
+		t.Fatalf("serviceauth.ParseRSAPrivateKeyFromPEM(PKCS1): %v", err)
 	}
 	if priv.PublicKey.N.Cmp(privateKey.PublicKey.N) != 0 {
 		t.Fatalf("parsed private key mismatch")
@@ -320,15 +321,15 @@ func TestParseRSAKeysFromPEM(t *testing.T) {
 		t.Fatalf("MarshalPKCS8PrivateKey: %v", err)
 	}
 	pkcs8PEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8DER})
-	_, err = ParseRSAPrivateKeyFromPEM(pkcs8PEM)
+	_, err = serviceauth.ParseRSAPrivateKeyFromPEM(pkcs8PEM)
 	if err != nil {
-		t.Fatalf("ParseRSAPrivateKeyFromPEM(PKCS8): %v", err)
+		t.Fatalf("serviceauth.ParseRSAPrivateKeyFromPEM(PKCS8): %v", err)
 	}
 
-	if _, err := ParseRSAPublicKeyFromPEM([]byte("not pem")); err == nil {
+	if _, err := serviceauth.ParseRSAPublicKeyFromPEM([]byte("not pem")); err == nil {
 		t.Fatalf("expected error for invalid public key input")
 	}
-	if _, err := ParseRSAPrivateKeyFromPEM([]byte("not pem")); err == nil {
+	if _, err := serviceauth.ParseRSAPrivateKeyFromPEM([]byte("not pem")); err == nil {
 		t.Fatalf("expected error for invalid private key input")
 	}
 }
