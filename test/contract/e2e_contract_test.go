@@ -17,7 +17,6 @@ import (
 
 // TestE2ENeoComputeFlow tests a minimal confidential compute flow.
 func TestE2ENeoComputeFlow(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("e2e-compute-master-key-32-bytes!!!"))

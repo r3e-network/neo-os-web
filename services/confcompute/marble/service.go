@@ -55,6 +55,12 @@ func (c *runningJobCounter) tryIncrement(userID string, limit int) bool {
 		c.mu.Unlock()
 		return false
 	}
+	// Safety cap: reject new users if map has grown beyond expected bounds,
+	// which would indicate leaked entries (jobs that never called decrement).
+	if len(c.counts) >= 10_000 && c.counts[userID] == 0 {
+		c.mu.Unlock()
+		return false
+	}
 	c.counts[userID]++
 	c.mu.Unlock()
 	return true

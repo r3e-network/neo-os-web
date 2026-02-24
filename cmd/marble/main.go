@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,28 +27,14 @@ import (
 	slmetrics "github.com/r3e-network/neo-miniapp-platform/infrastructure/metrics"
 	slmiddleware "github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/secrets"
-	secretssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/secrets/supabase"
 	txproxyclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/client"
 	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
 
-	// Neo service imports
-	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/marble"
 	neoaccountssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
 	gsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/client"
-	globalsigner "github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/marble"
 	globalsignersupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/supabase"
-	neoflow "github.com/r3e-network/neo-miniapp-platform/services/automation/marble"
 	neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
-	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/marble"
-	neooracle "github.com/r3e-network/neo-miniapp-platform/services/conforacle/marble"
-	neofeeds "github.com/r3e-network/neo-miniapp-platform/services/datafeed/marble"
-	neogasbank "github.com/r3e-network/neo-miniapp-platform/services/gasbank/marble"
-	neorequests "github.com/r3e-network/neo-miniapp-platform/services/requests/marble"
 	neorequestsupabase "github.com/r3e-network/neo-miniapp-platform/services/requests/supabase"
-	neosimulation "github.com/r3e-network/neo-miniapp-platform/services/simulation/marble"
-	txproxy "github.com/r3e-network/neo-miniapp-platform/services/txproxy/marble"
-	neovrf "github.com/r3e-network/neo-miniapp-platform/services/vrf/marble"
 )
 
 // ServiceRunner interface for all Neo services
@@ -449,139 +434,55 @@ func main() {
 	}
 
 	var svc ServiceRunner
+	sctx := &serviceContext{
+		m:                    m,
+		db:                   db,
+		globalSignerRepo:     globalSignerRepo,
+		neoaccountsRepo:      neoaccountsRepo,
+		neoflowRepo:          neoflowRepo,
+		neorequestsRepo:      neorequestsRepo,
+		chainClient:          chainClient,
+		teeSigner:            teeSigner,
+		eventListener:        eventListener,
+		txProxyInvoker:       txProxyInvoker,
+		gasbankClient:        gasbankClient,
+		arbitrumRPC:          arbitrumRPC,
+		priceFeedHash:        priceFeedHash,
+		automationAnchorHash: automationAnchorHash,
+		appRegistryHash:      appRegistryHash,
+		serviceGatewayHash:   serviceGatewayHash,
+		paymentHubHash:       paymentHubHash,
+		enableChainPush:      enableChainPush,
+		enableChainExec:      enableChainExec,
+		neovrfURL:            neovrfURL,
+		neooracleURL:         neooracleURL,
+		neocomputeURL:        neocomputeURL,
+		chainID:              chainID,
+	}
+
 	switch serviceType {
 	case "globalsigner":
-		svc, err = globalsigner.New(globalsigner.Config{
-			Marble:     m,
-			DB:         db,
-			Repository: globalSignerRepo,
-		})
+		svc, err = newGlobalSigner(sctx)
 	case "neoaccounts":
-		var accountsSvc *neoaccounts.Service
-		accountsSvc, err = neoaccounts.New(neoaccounts.Config{
-			Marble:          m,
-			DB:              db,
-			NeoAccountsRepo: neoaccountsRepo,
-			ChainClient:     chainClient,
-		})
-		svc = accountsSvc
+		svc, err = newNeoAccounts(sctx)
 	case "neocompute":
-		svc, err = neocompute.New(neocompute.Config{
-			Marble:         m,
-			DB:             db,
-			SecretProvider: newServiceSecretsProvider(m, db, neocompute.ServiceID),
-		})
+		svc, err = newNeoCompute(sctx)
 	case "neofeeds":
-		var feedsSvc *neofeeds.Service
-		feedsSvc, err = neofeeds.New(neofeeds.Config{
-			Marble:          m,
-			DB:              db,
-			ArbitrumRPC:     arbitrumRPC,
-			ChainClient:     chainClient,
-			PriceFeedHash:   priceFeedHash,
-			TxProxy:         txProxyInvoker,
-			EnableChainPush: enableChainPush,
-			GasBank:         gasbankClient,
-		})
-		svc = feedsSvc
+		svc, err = newNeoFeeds(sctx)
 	case "neoflow":
-		var flowSvc *neoflow.Service
-		flowSvc, err = neoflow.New(neoflow.Config{
-			Marble:               m,
-			DB:                   db,
-			NeoFlowRepo:          neoflowRepo,
-			ChainClient:          chainClient,
-			PriceFeedHash:        priceFeedHash,
-			AutomationAnchorHash: automationAnchorHash,
-			TxProxy:              txProxyInvoker,
-			EventListener:        eventListener,
-			EnableChainExec:      enableChainExec,
-			GasBank:              gasbankClient,
-		})
-		svc = flowSvc
+		svc, err = newNeoFlow(sctx)
 	case "neooracle":
-		oracleAllowlistRaw := strings.TrimSpace(os.Getenv("ORACLE_HTTP_ALLOWLIST"))
-		oracleAllowlist := neooracle.URLAllowlist{Prefixes: splitAndTrimCSV(oracleAllowlistRaw)}
-		if len(oracleAllowlist.Prefixes) == 0 {
-			if runtime.StrictIdentityMode() || m.IsEnclave() {
-				log.Fatalf("CRITICAL: ORACLE_HTTP_ALLOWLIST is required for NeoOracle in strict identity/SGX mode")
-			}
-			log.Printf("Warning: ORACLE_HTTP_ALLOWLIST not set; allowing all outbound URLs (development/testing only)")
-		}
-
-		oracleTimeout := time.Duration(0)
-		if raw := strings.TrimSpace(os.Getenv("ORACLE_TIMEOUT")); raw != "" {
-			if parsed, parseErr := time.ParseDuration(raw); parseErr != nil || parsed <= 0 {
-				log.Printf("Warning: invalid ORACLE_TIMEOUT %q: %v", raw, parseErr)
-			} else {
-				oracleTimeout = parsed
-			}
-		}
-
-		oracleMaxBodyBytes := int64(0)
-		if raw := strings.TrimSpace(os.Getenv("ORACLE_MAX_SIZE")); raw != "" {
-			if parsed, parseErr := parseByteSize(raw); parseErr != nil || parsed <= 0 {
-				log.Printf("Warning: invalid ORACLE_MAX_SIZE %q: %v", raw, parseErr)
-			} else {
-				oracleMaxBodyBytes = parsed
-			}
-		}
-
-		svc, err = neooracle.New(neooracle.Config{
-			Marble:         m,
-			SecretProvider: newServiceSecretsProvider(m, db, neooracle.ServiceID),
-			Timeout:        oracleTimeout,
-			MaxBodyBytes:   oracleMaxBodyBytes,
-			URLAllowlist:   oracleAllowlist,
-		})
+		svc, err = newNeoOracle(sctx)
 	case "neorequests":
-		svc, err = neorequests.New(neorequests.Config{
-			Marble:             m,
-			DB:                 db,
-			RequestsRepo:       neorequestsRepo,
-			EventListener:      eventListener,
-			TxProxy:            txProxyInvoker,
-			ChainClient:        chainClient,
-			ServiceGatewayHash: serviceGatewayHash,
-			AppRegistryHash:    appRegistryHash,
-			PaymentHubHash:     paymentHubHash,
-			NeoVRFURL:          neovrfURL,
-			NeoOracleURL:       neooracleURL,
-			NeoComputeURL:      neocomputeURL,
-			HTTPClient:         m.HTTPClient(),
-			ChainID:            chainID,
-		})
+		svc, err = newNeoRequests(sctx)
 	case "neovrf":
-		svc, err = neovrf.New(neovrf.Config{
-			Marble: m,
-			DB:     db,
-		})
+		svc, err = newNeoVRF(sctx)
 	case "neogasbank":
-		svc, err = neogasbank.New(neogasbank.Config{
-			Marble:      m,
-			DB:          db,
-			ChainClient: chainClient,
-		})
+		svc, err = newNeoGasBank(sctx)
 	case "neosimulation":
-		// Get account pool URL for simulation
-		accountPoolURL := strings.TrimSpace(os.Getenv("NEOACCOUNTS_SERVICE_URL"))
-		if accountPoolURL == "" {
-			accountPoolURL = "https://neoaccounts:8085"
-		}
-		svc, err = neosimulation.New(neosimulation.Config{
-			Marble:         m,
-			DB:             db,
-			ChainClient:    chainClient,
-			AccountPoolURL: accountPoolURL,
-			AutoStart:      strings.ToLower(os.Getenv("SIMULATION_ENABLED")) == "true",
-		})
+		svc, err = newNeoSimulation(sctx)
 	case "txproxy":
-		svc, err = txproxy.New(txproxy.Config{
-			Marble:      m,
-			DB:          db,
-			ChainClient: chainClient,
-			Signer:      teeSigner,
-		})
+		svc, err = newTxProxy(sctx)
 	default:
 		log.Fatalf("Unknown service: %s. Available: %v", serviceType, availableServices)
 	}
@@ -672,141 +573,29 @@ func main() {
 	log.Println("Service stopped")
 }
 
-func splitAndTrimCSV(raw string) []string {
-	if raw == "" {
-		return nil
-	}
-	parts := strings.Split(raw, ",")
-	values := make([]string, 0, len(parts))
-	for _, part := range parts {
-		trimmed := strings.TrimSpace(part)
-		if trimmed != "" {
-			values = append(values, trimmed)
-		}
-	}
-	return values
-}
-
-func isAvailableService(serviceType string) bool {
-	for _, available := range availableServices {
-		if serviceType == available {
-			return true
-		}
-	}
-	return false
-}
-
-func parseByteSize(raw string) (int64, error) {
-	value := strings.ToLower(strings.TrimSpace(raw))
-	if value == "" {
-		return 0, fmt.Errorf("empty size")
-	}
-
-	type suffix struct {
-		value      string
-		multiplier int64
-	}
-
-	suffixes := []suffix{
-		{value: "gib", multiplier: 1024 * 1024 * 1024},
-		{value: "gb", multiplier: 1024 * 1024 * 1024},
-		{value: "g", multiplier: 1024 * 1024 * 1024},
-		{value: "mib", multiplier: 1024 * 1024},
-		{value: "mb", multiplier: 1024 * 1024},
-		{value: "m", multiplier: 1024 * 1024},
-		{value: "kib", multiplier: 1024},
-		{value: "kb", multiplier: 1024},
-		{value: "k", multiplier: 1024},
-		{value: "b", multiplier: 1},
-	}
-
-	const maxInt64 = int64(^uint64(0) >> 1)
-
-	for _, entry := range suffixes {
-		if !strings.HasSuffix(value, entry.value) {
-			continue
-		}
-		num := strings.TrimSpace(strings.TrimSuffix(value, entry.value))
-		if num == "" {
-			return 0, fmt.Errorf("missing size value")
-		}
-		parsed, err := strconv.ParseInt(num, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		if parsed <= 0 {
-			return 0, fmt.Errorf("size must be positive")
-		}
-		if parsed > maxInt64/entry.multiplier {
-			return 0, fmt.Errorf("size too large")
-		}
-		return parsed * entry.multiplier, nil
-	}
-
-	parsed, err := strconv.ParseInt(value, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if parsed <= 0 {
-		return 0, fmt.Errorf("size must be positive")
-	}
-	return parsed, nil
-}
-
-func trimHexPrefix(value string) string {
-	value = strings.TrimSpace(value)
-	if len(value) >= 2 {
-		prefix := strings.ToLower(value[:2])
-		if prefix == "0x" {
-			return value[2:]
-		}
-	}
-	return value
-}
-
-func loadTEEPrivateKey(m *marble.Marble) string {
-	if key := strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY")); key != "" {
-		return trimHexPrefix(key)
-	}
-	if key := strings.TrimSpace(os.Getenv("TEE_WALLET_PRIVATE_KEY")); key != "" {
-		return trimHexPrefix(key)
-	}
-	if secret, ok := m.Secret("TEE_PRIVATE_KEY"); ok && len(secret) > 0 {
-		return hex.EncodeToString(secret)
-	}
-	if secret, ok := m.Secret("TEE_WALLET_PRIVATE_KEY"); ok && len(secret) > 0 {
-		return hex.EncodeToString(secret)
-	}
-	return ""
-}
-
-func newServiceSecretsProvider(m *marble.Marble, db *database.Repository, serviceID string) secrets.Provider {
-	if db == nil {
-		return nil
-	}
-
-	var rawKey []byte
-	if m != nil {
-		if secret, ok := m.Secret(secrets.MasterKeyEnv); ok && len(secret) > 0 {
-			rawKey = secret
-		}
-	}
-	if len(rawKey) == 0 {
-		rawKey = []byte(strings.TrimSpace(os.Getenv(secrets.MasterKeyEnv)))
-	}
-
-	if len(rawKey) == 0 {
-		strict := runtime.StrictIdentityMode() || (m != nil && m.IsEnclave())
-		if strict {
-			log.Fatalf("CRITICAL: %s is required for %s secret access in production/SGX mode", secrets.MasterKeyEnv, serviceID)
-		}
-		return nil
-	}
-
-	repo := secretssupabase.NewRepository(db)
-	manager, err := secrets.NewManager(repo, rawKey)
-	if err != nil {
-		log.Fatalf("CRITICAL: initialize secrets manager for %s: %v", serviceID, err)
-	}
-	return secrets.ServiceProvider{Manager: manager, ServiceID: serviceID}
+// serviceContext aggregates shared dependencies for service factory functions.
+type serviceContext struct {
+	m                    *marble.Marble
+	db                   *database.Repository
+	globalSignerRepo     globalsignersupabase.Repository
+	neoaccountsRepo      *neoaccountssupabase.Repository
+	neoflowRepo          *neoflowsupabase.Repository
+	neorequestsRepo      *neorequestsupabase.Repository
+	chainClient          *chain.Client
+	teeSigner            chain.TEESigner
+	eventListener        *chain.EventListener
+	txProxyInvoker       txproxytypes.Invoker
+	gasbankClient        *gasbankclient.Client
+	arbitrumRPC          string
+	priceFeedHash        string
+	automationAnchorHash string
+	appRegistryHash      string
+	serviceGatewayHash   string
+	paymentHubHash       string
+	enableChainPush      bool
+	enableChainExec      bool
+	neovrfURL            string
+	neooracleURL         string
+	neocomputeURL        string
+	chainID              string
 }

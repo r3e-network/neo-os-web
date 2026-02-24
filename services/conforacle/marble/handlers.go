@@ -82,7 +82,7 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 		secret, err := s.secretProvider.GetSecret(r.Context(), userID, input.SecretName)
 		if err != nil {
 			s.Logger().Error(r.Context(), "failed to fetch secret", err, nil)
-			httputil.InternalError(w, "internal error")
+			httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 			return
 		}
 		if strings.ContainsAny(secret, "\r\n") {
@@ -117,7 +117,7 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		s.Logger().Error(r.Context(), "upstream request failed", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 	defer resp.Body.Close()
@@ -125,7 +125,7 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 	respBody, truncated, err := httputil.ReadAllWithLimit(resp.Body, s.maxBodyBytes)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to read response body", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 	if truncated {

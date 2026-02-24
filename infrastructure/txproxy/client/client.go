@@ -72,23 +72,23 @@ func New(cfg Config) (*Client, error) {
 	}, nil
 }
 
-// Invoke calls TxProxy /invoke.
-func (c *Client) Invoke(ctx context.Context, req *txproxytypes.InvokeRequest) (*txproxytypes.InvokeResponse, error) {
+// doPost performs a JSON POST request and unmarshals the response into result.
+func (c *Client) doPost(ctx context.Context, path string, reqBody, result any) error {
 	if c == nil {
-		return nil, fmt.Errorf("txproxy: client is nil")
+		return fmt.Errorf("txproxy: client is nil")
 	}
 	if c.httpClient == nil {
-		return nil, fmt.Errorf("txproxy: http client not configured")
+		return fmt.Errorf("txproxy: http client not configured")
 	}
 
-	body, err := json.Marshal(req)
+	body, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
+		return fmt.Errorf("marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/invoke", bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
+		return fmt.Errorf("create request: %w", err)
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -98,34 +98,42 @@ func (c *Client) Invoke(ctx context.Context, req *txproxytypes.InvokeRequest) (*
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("send request: %w", err)
+		return fmt.Errorf("send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
 		if readErr != nil {
-			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+			return fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
 		}
 		msg := strings.TrimSpace(string(body))
 		if truncated {
 			msg += "...(truncated)"
 		}
 		if msg != "" {
-			return nil, fmt.Errorf("request failed: %s - %s", resp.Status, msg)
+			return fmt.Errorf("request failed: %s - %s", resp.Status, msg)
 		}
-		return nil, fmt.Errorf("request failed: %s", resp.Status)
+		return fmt.Errorf("request failed: %s", resp.Status)
 	}
 
 	respBody, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
+		return fmt.Errorf("read response: %w", err)
 	}
 
+	if err := json.Unmarshal(respBody, result); err != nil {
+		return fmt.Errorf("unmarshal response: %w", err)
+	}
+
+	return nil
+}
+
+// Invoke calls TxProxy /invoke.
+func (c *Client) Invoke(ctx context.Context, req *txproxytypes.InvokeRequest) (*txproxytypes.InvokeResponse, error) {
 	var result txproxytypes.InvokeResponse
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("unmarshal response: %w", err)
+	if err := c.doPost(ctx, "/invoke", req, &result); err != nil {
+		return nil, err
 	}
-
 	return &result, nil
 }

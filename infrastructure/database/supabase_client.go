@@ -254,5 +254,5 @@ func (c *Client) requestUpsert(ctx context.Context, table string, body interface
 	if query != "" {
 		params += "&" + query
 	}
-	return c.doRequest(ctx, "POST", c.buildTableURL(validateTable(table), params), "resolution=merge-duplicates,return=representation", body)
+	return c.doRequest(ctx, http.MethodPost, c.buildTableURL(validateTable(table), params), "resolution=merge-duplicates,return=representation", body)
 }

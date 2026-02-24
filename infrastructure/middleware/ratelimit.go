@@ -15,6 +15,7 @@ import (
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/errors"
 	internalhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 )
 
 // limiterEntry wraps a rate.Limiter with access tracking for LRU eviction.
@@ -106,7 +107,7 @@ func (rl *RateLimiter) getLimiter(key string) *rate.Limiter {
 func (rl *RateLimiter) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Use user ID if authenticated, otherwise use IP address
-		key := GetUserID(r.Context())
+		key := serviceauth.GetUserID(r.Context())
 		if key == "" {
 			key = internalhttputil.ClientIP(r)
 		}

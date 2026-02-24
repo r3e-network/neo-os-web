@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/replay"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 )
@@ -35,9 +35,7 @@ type Service struct {
 	chainClient *chain.Client
 	signer      chain.TEESigner
 
-	replayWindow time.Duration
-	replayMu     sync.Mutex
-	seenRequests map[string]time.Time
+	replayGuard *replay.Guard
 }
 
 type Config struct {
@@ -139,16 +137,23 @@ func New(cfg Config) (*Service, error) {
 		governanceHash: normalizeContractHash(governanceHash),
 		chainClient:    cfg.ChainClient,
 		signer:         cfg.Signer,
-		replayWindow:   replayWindow,
-		seenRequests:   make(map[string]time.Time),
 	}
+
+	var replayOpts []replay.Option
+	if cfg.DB != nil {
+		replayOpts = append(replayOpts, replay.WithDB(cfg.DB))
+	}
+	replayOpts = append(replayOpts, replay.WithLogger(func(msg string, err error) {
+		s.Logger().WithError(err).Warn(msg)
+	}))
+	s.replayGuard = replay.New(ServiceID, replayWindow, replayOpts...)
 
 	base.RegisterStandardRoutes()
 	s.registerRoutes()
 
 	// Best-effort cleanup of the replay cache.
 	base.AddTickerWorker(1*time.Minute, func(ctx context.Context) error {
-		s.cleanupReplay()
+		s.replayGuard.Cleanup(ctx)
 		return nil
 	}, commonservice.WithTickerWorkerName("replay-cleanup"))
 
@@ -157,72 +162,4 @@ func New(cfg Config) (*Service, error) {
 
 func (s *Service) registerRoutes() {
 	s.Router().Handle("/invoke", middleware.RequireServiceAuth(http.HandlerFunc(s.handleInvoke))).Methods(http.MethodPost)
-}
-
-func (s *Service) markSeen(ctx context.Context, requestID string) bool {
-	requestID = strings.TrimSpace(requestID)
-	if requestID == "" {
-		return false
-	}
-
-	if db := s.DB(); db != nil {
-		windowSeconds := int(s.replayWindow.Seconds())
-		seen, err := db.MarkRequestSeen(ctx, ServiceID, requestID, windowSeconds)
-		if err != nil {
-			// Conservative: reject on DB error to prevent potential replays.
-			// If the DB partially wrote the "seen" marker but returned an error,
-			// allowing the request could open a replay window. We prefer a
-			// false-reject over a false-accept during transient DB failures.
-			s.Logger().WithError(err).Warn("replay check failed on DB; rejecting request as potentially seen")
-			s.markSeenInMemory(requestID) // best-effort local tracking
-			return false
-		}
-		return seen
-	}
-	return s.markSeenInMemory(requestID)
-}
-
-func (s *Service) markSeenInMemory(requestID string) bool {
-	now := time.Now()
-	s.replayMu.Lock()
-	defer s.replayMu.Unlock()
-
-	if until, ok := s.seenRequests[requestID]; ok && now.Before(until) {
-		return false
-	}
-
-	// Prevent unbounded growth under high request volume.
-	if len(s.seenRequests) >= 100_000 {
-		for k, until := range s.seenRequests {
-			if now.After(until) {
-				delete(s.seenRequests, k)
-			}
-		}
-	}
-
-	s.seenRequests[requestID] = now.Add(s.replayWindow)
-	return true
-}
-
-func (s *Service) cleanupReplay() {
-	if db := s.DB(); db != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if _, err := db.CleanupSeenRequests(ctx, ServiceID); err != nil {
-			s.Logger().WithError(err).Warn("failed to cleanup seen requests in DB")
-		}
-	}
-	s.cleanupReplayInMemory()
-}
-
-func (s *Service) cleanupReplayInMemory() {
-	now := time.Now()
-	s.replayMu.Lock()
-	defer s.replayMu.Unlock()
-
-	for key, until := range s.seenRequests {
-		if now.After(until) {
-			delete(s.seenRequests, key)
-		}
-	}
 }

@@ -1,10 +1,12 @@
 package neorequests
 
 import (
+	"context"
 	"strings"
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 	neorequestsupabase "github.com/r3e-network/neo-miniapp-platform/services/requests/supabase"
 )
 
@@ -104,4 +106,29 @@ func miniAppNotFoundError(key string) error {
 		key = "unknown"
 	}
 	return database.NewNotFoundError("miniapps", key)
+}
+
+func (s *Service) registerMiniAppCacheCleanup() {
+	if s == nil || s.BaseService == nil || s.miniAppCacheTTL <= 0 {
+		return
+	}
+	s.BaseService.AddTickerWorker(
+		60*time.Second,
+		func(ctx context.Context) error {
+			s.cleanupMiniAppCache()
+			return nil
+		},
+		commonservice.WithTickerWorkerName("miniapp-cache-cleanup"),
+	)
+}
+
+func (s *Service) cleanupMiniAppCache() {
+	now := time.Now()
+	s.miniAppCacheMu.Lock()
+	for k, entry := range s.miniAppCache {
+		if now.Sub(entry.checkedAt) > s.miniAppCacheTTL {
+			delete(s.miniAppCache, k)
+		}
+	}
+	s.miniAppCacheMu.Unlock()
 }

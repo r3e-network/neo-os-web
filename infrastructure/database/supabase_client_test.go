@@ -4,7 +4,6 @@ import "testing"
 
 func TestNewClient_AllowsHTTPInNonStrictMode(t *testing.T) {
 	t.Setenv("MARBLE_ENV", "development")
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("MARBLE_CERT", "")
 	t.Setenv("MARBLE_KEY", "")
 	t.Setenv("MARBLE_ROOT_CA", "")
@@ -20,7 +19,6 @@ func TestNewClient_AllowsHTTPInNonStrictMode(t *testing.T) {
 
 func TestNewClient_StrictModeRejectsNonHTTPS(t *testing.T) {
 	t.Setenv("MARBLE_ENV", "production")
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("MARBLE_CERT", "")
 	t.Setenv("MARBLE_KEY", "")
 	t.Setenv("MARBLE_ROOT_CA", "")
@@ -36,7 +34,6 @@ func TestNewClient_StrictModeRejectsNonHTTPS(t *testing.T) {
 
 func TestNewClient_StrictModeRejectsUserInfo(t *testing.T) {
 	t.Setenv("MARBLE_ENV", "production")
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("MARBLE_CERT", "")
 	t.Setenv("MARBLE_KEY", "")
 	t.Setenv("MARBLE_ROOT_CA", "")

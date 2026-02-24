@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,9 +45,14 @@ func TestNew(t *testing.T) {
 		assert.Contains(t, err.Error(), "invalid marble type")
 	})
 
-	t.Run("invalid DB type", func(t *testing.T) {
-		// This would require a valid marble mock
-		t.Skip("requires mock marble setup")
+	t.Run("valid creation", func(t *testing.T) {
+		m, err := marble.New(marble.Config{MarbleType: ServiceID})
+		require.NoError(t, err)
+		svc, err := New(Config{Marble: m})
+		require.NoError(t, err)
+		assert.Equal(t, ServiceID, svc.ID())
+		assert.Equal(t, ServiceName, svc.Name())
+		assert.Equal(t, Version, svc.Version())
 	})
 }
 
@@ -400,7 +406,6 @@ func TestConcurrentRandomAmount(t *testing.T) {
 
 // TestHTTPHandlers tests HTTP route handlers.
 func TestHTTPHandlers(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	s := &Service{
 		BaseService: mockBaseService(),
 		running:     false,
@@ -466,7 +471,6 @@ func TestHTTPHandlers(t *testing.T) {
 
 // TestHTTPHandlersWithConfig tests HTTP handlers with configuration override.
 func TestHTTPHandlersWithConfig(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	s := &Service{
 		BaseService: mockBaseService(),
 		running:     false,

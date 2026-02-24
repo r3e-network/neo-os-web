@@ -292,7 +292,7 @@ func (s *Simulation) getPoolAccounts(limit int) ([]PoolAccount, error) {
 	url := fmt.Sprintf("%s%s?select=id,address,encrypted_wif&limit=%d",
 		s.supabaseURL, PoolAccountsURL, limit)
 
-	req, err := http.NewRequestWithContext(s.ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(s.ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}

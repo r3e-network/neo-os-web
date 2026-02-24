@@ -1,6 +1,7 @@
 {
-	"SecurityVersion": 3,
+	"SecurityVersion": 2,
 	"ProductID": 3,
-	"SignerID": "8a293147655c920bc7c08e7a9718c3e98c6a303126bd541d48bfc59fe6102c9a",
+	"UniqueID": "63ac3f4cb24770d26f2298e6f555ec02cd99a03046b32f322a5626cfdd0aa00b",
+	"SignerID": "43361affedeb75affee9baec7e054a5e14883213e5a121b67d74a0e12e9d2b7a",
 	"Debug": false
 }

@@ -1303,7 +1303,6 @@ func TestUpdateBalanceDefaultToken(t *testing.T) {
 // =============================================================================
 
 func TestHandleInfoEndpoint(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("MARBLE_ENV", "development")
 	t.Setenv("MARBLE_CERT", "")
 	t.Setenv("MARBLE_KEY", "")

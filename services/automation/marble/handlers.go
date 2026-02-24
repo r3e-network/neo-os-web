@@ -11,20 +11,22 @@ import (
 	neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 )
 
-func (s *Service) handleListTriggers(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
+// withRepo wraps a handler that requires the repository to be configured.
+func (s *Service) withRepo(fn func(w http.ResponseWriter, r *http.Request, userID string)) func(w http.ResponseWriter, r *http.Request, userID string) {
+	return func(w http.ResponseWriter, r *http.Request, userID string) {
+		if s.repo == nil {
+			httputil.ServiceUnavailable(w, "repository not configured")
+			return
+		}
+		fn(w, r, userID)
 	}
-	if s.repo == nil {
-		httputil.ServiceUnavailable(w, "repository not configured")
-		return
-	}
+}
 
+func (s *Service) handleListTriggers(w http.ResponseWriter, r *http.Request, userID string) {
 	triggers, err := s.repo.GetTriggers(r.Context(), userID)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to list triggers", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -46,12 +48,7 @@ func (s *Service) handleListTriggers(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, responses)
 }
 
-func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-
+func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request, userID string) {
 	var req TriggerRequest
 	if !httputil.DecodeJSON(w, r, &req) {
 		return
@@ -63,11 +60,6 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(req.Schedule) > 256 || len(req.Condition) > 4096 || len(req.Action) > 4096 || len(req.Name) > 256 {
 		httputil.BadRequest(w, "field exceeds maximum length")
-		return
-	}
-
-	if s.repo == nil {
-		httputil.ServiceUnavailable(w, "repository not configured")
 		return
 	}
 
@@ -97,7 +89,7 @@ func (s *Service) handleCreateTrigger(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.repo.CreateTrigger(r.Context(), trigger); err != nil {
 		s.Logger().Error(r.Context(), "failed to persist trigger", err, nil)
-		httputil.InternalError(w, "failed to persist trigger")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -121,37 +113,21 @@ func requireTriggerID(w http.ResponseWriter, r *http.Request) (string, bool) {
 	return id, true
 }
 
-func (s *Service) handleGetTrigger(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-	if s.repo == nil {
-		httputil.ServiceUnavailable(w, "repository not configured")
-		return
-	}
+func (s *Service) handleGetTrigger(w http.ResponseWriter, r *http.Request, userID string) {
 	id, ok := requireTriggerID(w, r)
 	if !ok {
 		return
 	}
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil {
-		s.Logger().WithError(err).WithField("trigger_id", id).Warn("get trigger")
+		s.Logger().Warn(r.Context(), "get trigger", map[string]interface{}{"trigger_id": id, "error": err.Error()})
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
 	httputil.WriteJSON(w, http.StatusOK, trigger)
 }
 
-func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-	if s.repo == nil {
-		httputil.ServiceUnavailable(w, "repository not configured")
-		return
-	}
+func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request, userID string) {
 	id, idOk := requireTriggerID(w, r)
 	if !idOk {
 		return
@@ -169,7 +145,7 @@ func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 
 	trigger, err := s.repo.GetTrigger(r.Context(), id, userID)
 	if err != nil {
-		s.Logger().WithError(err).WithField("trigger_id", id).Warn("get trigger for update")
+		s.Logger().Warn(r.Context(), "get trigger for update", map[string]interface{}{"trigger_id": id, "error": err.Error()})
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
@@ -191,28 +167,20 @@ func (s *Service) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.repo.UpdateTrigger(r.Context(), trigger); err != nil {
 		s.Logger().Error(r.Context(), "failed to update trigger", err, nil)
-		httputil.InternalError(w, "failed to update trigger")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, trigger)
 }
 
-func (s *Service) handleDeleteTrigger(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-	if s.repo == nil {
-		httputil.ServiceUnavailable(w, "repository not configured")
-		return
-	}
+func (s *Service) handleDeleteTrigger(w http.ResponseWriter, r *http.Request, userID string) {
 	id, idOk := requireTriggerID(w, r)
 	if !idOk {
 		return
 	}
 	if err := s.repo.DeleteTrigger(r.Context(), id, userID); err != nil {
-		s.Logger().WithError(err).WithField("trigger_id", id).Warn("delete trigger")
+		s.Logger().Warn(r.Context(), "delete trigger", map[string]interface{}{"trigger_id": id, "error": err.Error()})
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
@@ -220,64 +188,40 @@ func (s *Service) handleDeleteTrigger(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Service) handleEnableTrigger(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-	if s.repo == nil {
-		httputil.ServiceUnavailable(w, "repository not configured")
-		return
-	}
+func (s *Service) handleEnableTrigger(w http.ResponseWriter, r *http.Request, userID string) {
 	id, idOk := requireTriggerID(w, r)
 	if !idOk {
 		return
 	}
 	if err := s.repo.SetTriggerEnabled(r.Context(), id, userID, true); err != nil {
-		s.Logger().WithError(err).WithField("trigger_id", id).Warn("enable trigger")
+		s.Logger().Warn(r.Context(), "enable trigger", map[string]interface{}{"trigger_id": id, "error": err.Error()})
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
 	httputil.WriteJSON(w, http.StatusOK, StatusResponse{Status: "enabled"})
 }
 
-func (s *Service) handleDisableTrigger(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-	if s.repo == nil {
-		httputil.ServiceUnavailable(w, "repository not configured")
-		return
-	}
+func (s *Service) handleDisableTrigger(w http.ResponseWriter, r *http.Request, userID string) {
 	id, idOk := requireTriggerID(w, r)
 	if !idOk {
 		return
 	}
 	if err := s.repo.SetTriggerEnabled(r.Context(), id, userID, false); err != nil {
-		s.Logger().WithError(err).WithField("trigger_id", id).Warn("disable trigger")
+		s.Logger().Warn(r.Context(), "disable trigger", map[string]interface{}{"trigger_id": id, "error": err.Error()})
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
 	httputil.WriteJSON(w, http.StatusOK, StatusResponse{Status: "disabled"})
 }
 
-func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-	if s.repo == nil {
-		httputil.ServiceUnavailable(w, "repository not configured")
-		return
-	}
+func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request, userID string) {
 	id, idOk := requireTriggerID(w, r)
 	if !idOk {
 		return
 	}
 	// Ensure trigger belongs to user
 	if _, err := s.repo.GetTrigger(r.Context(), id, userID); err != nil {
-		s.Logger().WithError(err).WithField("trigger_id", id).Warn("get trigger for executions")
+		s.Logger().Warn(r.Context(), "get trigger for executions", map[string]interface{}{"trigger_id": id, "error": err.Error()})
 		httputil.NotFound(w, "trigger not found")
 		return
 	}
@@ -288,22 +232,14 @@ func (s *Service) handleListExecutions(w http.ResponseWriter, r *http.Request) {
 	execs, err := s.repo.GetExecutions(r.Context(), id, limit)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to load executions", err, nil)
-		httputil.InternalError(w, "failed to load executions")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 	httputil.WriteJSON(w, http.StatusOK, execs)
 }
 
 // handleResumeTrigger re-enqueues a trigger by id (e.g., after restart).
-func (s *Service) handleResumeTrigger(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-	if s.repo == nil {
-		httputil.ServiceUnavailable(w, "repository not configured")
-		return
-	}
+func (s *Service) handleResumeTrigger(w http.ResponseWriter, r *http.Request, userID string) {
 	id, idOk := requireTriggerID(w, r)
 	if !idOk {
 		return

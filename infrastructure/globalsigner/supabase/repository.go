@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -93,7 +94,7 @@ func (r *repository) CreateKeyVersion(ctx context.Context, v *types.KeyVersion) 
 		"created_at":       v.CreatedAt,
 	}
 
-	_, err := r.base.Request(ctx, "POST", keyRotationsTable, payload, "")
+	_, err := r.base.Request(ctx, http.MethodPost, keyRotationsTable, payload, "")
 	if err != nil {
 		return fmt.Errorf("create %s: %w", keyRotationsTable, err)
 	}
@@ -119,7 +120,7 @@ func (r *repository) UpdateKeyStatus(ctx context.Context, version string, status
 	}
 
 	query := "key_id=eq." + url.QueryEscape(version)
-	_, err := r.base.Request(ctx, "PATCH", keyRotationsTable, update, query)
+	_, err := r.base.Request(ctx, http.MethodPatch, keyRotationsTable, update, query)
 	if err != nil {
 		return fmt.Errorf("update %s: %w", keyRotationsTable, err)
 	}
@@ -136,7 +137,7 @@ func (r *repository) GetKeyVersion(ctx context.Context, version string) (*types.
 	}
 
 	query := "key_id=eq." + url.QueryEscape(version) + "&limit=1"
-	data, err := r.base.Request(ctx, "GET", keyRotationsTable, nil, query)
+	data, err := r.base.Request(ctx, http.MethodGet, keyRotationsTable, nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("get %s: %w", keyRotationsTable, err)
 	}
@@ -177,7 +178,7 @@ func (r *repository) ListKeyVersions(ctx context.Context, statuses []types.KeySt
 		query = "status=in.(" + strings.Join(values, ",") + ")&" + query
 	}
 
-	data, err := r.base.Request(ctx, "GET", keyRotationsTable, nil, query)
+	data, err := r.base.Request(ctx, http.MethodGet, keyRotationsTable, nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("list %s: %w", keyRotationsTable, err)
 	}
@@ -251,7 +252,7 @@ func (r *repository) StoreAttestation(ctx context.Context, keyVersion string, at
 		},
 	}
 
-	_, err = r.base.Request(ctx, "POST", attestationArtifactsTable, payload, "")
+	_, err = r.base.Request(ctx, http.MethodPost, attestationArtifactsTable, payload, "")
 	if err != nil {
 		return fmt.Errorf("create %s: %w", attestationArtifactsTable, err)
 	}
@@ -275,7 +276,7 @@ func (r *repository) GetAttestation(ctx context.Context, keyVersion string) (*ty
 		Limit(1).
 		Build()
 
-	data, err := r.base.Request(ctx, "GET", attestationArtifactsTable, nil, query)
+	data, err := r.base.Request(ctx, http.MethodGet, attestationArtifactsTable, nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("get %s: %w", attestationArtifactsTable, err)
 	}

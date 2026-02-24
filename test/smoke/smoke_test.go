@@ -271,7 +271,6 @@ func TestEndpointResponsivenessSmoke(t *testing.T) {
 
 // TestNeoOracleSmoke performs basic smoke tests on the NeoOracle service.
 func TestNeoOracleSmoke(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Run("service creates successfully", func(t *testing.T) {
 		m, err := marble.New(marble.Config{MarbleType: "neooracle"})
 		if err != nil {
@@ -315,7 +314,6 @@ func TestNeoOracleSmoke(t *testing.T) {
 
 // TestNeoFeedsSmoke performs basic smoke tests on the NeoFeeds/Datafeed service.
 func TestNeoFeedsSmoke(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Run("service creates successfully", func(t *testing.T) {
 		m, err := marble.New(marble.Config{MarbleType: "neofeeds"})
@@ -360,7 +358,6 @@ func TestNeoFeedsSmoke(t *testing.T) {
 
 // TestNeoGasBankSmoke performs basic smoke tests on the NeoGasBank service.
 func TestNeoGasBankSmoke(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Run("service creates successfully", func(t *testing.T) {
 		m, err := marble.New(marble.Config{MarbleType: "neogasbank"})
@@ -408,7 +405,6 @@ func TestNeoGasBankSmoke(t *testing.T) {
 
 // TestTxProxySmoke performs basic smoke tests on the TxProxy service.
 func TestTxProxySmoke(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Run("service creates successfully", func(t *testing.T) {
 		m, err := marble.New(marble.Config{MarbleType: "txproxy"})
@@ -510,7 +506,6 @@ func TestNeoFlowSmoke(t *testing.T) {
 
 // TestAllServicesHealthSmoke verifies all 6 TEE services can start and respond to health checks.
 func TestAllServicesHealthSmoke(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Run("NeoAccounts", func(t *testing.T) {
 		m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})

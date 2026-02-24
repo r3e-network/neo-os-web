@@ -110,6 +110,208 @@ type Service struct {
 	listenerCancel context.CancelFunc
 }
 
+// resolveContractHash resolves a contract hash from the config value, then
+// falls back to environment variables and marble secrets in order.
+func resolveContractHash(cfgValue string, m *marble.Marble, envKeys ...string) string {
+	if h := normalizeContractHash(cfgValue); h != "" {
+		return h
+	}
+	for _, key := range envKeys {
+		if h := normalizeContractHash(os.Getenv(key)); h != "" {
+			return h
+		}
+	}
+	for _, key := range envKeys {
+		if secret, ok := m.Secret(key); ok && len(secret) > 0 {
+			if h := normalizeContractHash(string(secret)); h != "" {
+				return h
+			}
+		}
+	}
+	return ""
+}
+
+// resolveHTTPClient returns an HTTP client from the config, falling back to
+// the marble client or a default. It disables redirects when no explicit
+// client was provided to prevent SSRF via redirect chains.
+func resolveHTTPClient(cfg Config) *http.Client {
+	if cfg.HTTPClient != nil {
+		return cfg.HTTPClient
+	}
+	c := cfg.Marble.HTTPClient()
+	if c == nil {
+		c = &http.Client{Timeout: 30 * time.Second}
+	}
+	c.CheckRedirect = func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return c
+}
+
+// resolvedConfig holds all values resolved from Config + env vars + secrets.
+type resolvedConfig struct {
+	serviceGatewayHash      string
+	appRegistryHash         string
+	paymentHubHash          string
+	maxResult               int
+	maxErrorLen             int
+	rngMode                 string
+	chainID                 string
+	txWait                  bool
+	statsRollupInterval     time.Duration
+	onchainUsage            bool
+	onchainTxUsage          bool
+	enforceAppRegistry      bool
+	requireManifestContract bool
+	requestIndexTTL         time.Duration
+	cacheSeconds            int
+}
+
+// resolveConfig resolves all configuration values from the Config struct,
+// environment variables, and marble secrets.
+func resolveConfig(cfg Config) resolvedConfig {
+	m := cfg.Marble
+
+	rc := resolvedConfig{
+		serviceGatewayHash: resolveContractHash(cfg.ServiceGatewayHash, m,
+			"CONTRACT_SERVICEGATEWAY_HASH", "CONTRACT_SERVICE_GATEWAY_HASH"),
+		appRegistryHash: resolveContractHash(cfg.AppRegistryHash, m,
+			"CONTRACT_APPREGISTRY_HASH", "CONTRACT_APP_REGISTRY_HASH"),
+		paymentHubHash: resolveContractHash(cfg.PaymentHubHash, m,
+			"CONTRACT_PAYMENTHUB_HASH", "CONTRACT_PAYMENT_HUB_HASH", "CONTRACT_GATEWAY_HASH"),
+	}
+
+	// maxResult
+	rc.maxResult = runtime.LoadEnvInt("NEOREQUESTS_MAX_RESULT_BYTES", cfg.MaxResultBytes, defaultMaxResultBytes)
+
+	// maxErrorLen
+	rc.maxErrorLen = runtime.LoadEnvInt("NEOREQUESTS_MAX_ERROR_LEN", cfg.MaxErrorLen, defaultMaxErrorLen)
+
+	// rngMode
+	rc.rngMode = strings.ToLower(strings.TrimSpace(cfg.RNGResultMode))
+	if rc.rngMode == "" {
+		rc.rngMode = strings.ToLower(strings.TrimSpace(os.Getenv("NEOREQUESTS_RNG_RESULT_MODE")))
+	}
+	if rc.rngMode != "raw" && rc.rngMode != "json" {
+		rc.rngMode = "raw"
+	}
+
+	// chainID
+	rc.chainID = strings.TrimSpace(cfg.ChainID)
+	if rc.chainID == "" {
+		rc.chainID = resolveChainID()
+	}
+
+	// txWait
+	rc.txWait = cfg.TxWait
+	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_WAIT")); raw != "" {
+		rc.txWait = strings.EqualFold(raw, "true") || raw == "1"
+	}
+
+	// statsRollupInterval
+	rc.statsRollupInterval = cfg.StatsRollupInterval
+	if rc.statsRollupInterval <= 0 {
+		if parsed, ok := runtime.ParseEnvDuration("NEOREQUESTS_STATS_ROLLUP_INTERVAL"); ok {
+			rc.statsRollupInterval = parsed
+		} else {
+			rc.statsRollupInterval = 30 * time.Minute
+		}
+	}
+
+	// onchainUsage
+	rc.onchainUsage = cfg.OnchainUsage
+	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ONCHAIN_USAGE")); raw != "" {
+		rc.onchainUsage = runtime.ParseEnvBool(raw)
+	}
+	rc.onchainTxUsage = cfg.OnchainTxUsage
+	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_USAGE")); raw != "" {
+		rc.onchainTxUsage = runtime.ParseEnvBool(raw)
+	} else if !rc.onchainTxUsage {
+		rc.onchainTxUsage = true
+	}
+
+	// enforceAppRegistry
+	rc.enforceAppRegistry = cfg.EnforceAppRegistry
+	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ENFORCE_APPREGISTRY")); raw != "" {
+		rc.enforceAppRegistry = runtime.ParseEnvBool(raw)
+	}
+	if !rc.enforceAppRegistry && rc.appRegistryHash != "" && cfg.ChainClient != nil {
+		rc.enforceAppRegistry = true
+	}
+
+	// requireManifestContract
+	rc.requireManifestContract = cfg.RequireManifestContract
+	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT")); raw != "" {
+		rc.requireManifestContract = runtime.ParseEnvBool(raw)
+	} else if !rc.requireManifestContract {
+		rc.requireManifestContract = true
+	}
+
+	// requestIndexTTL
+	rc.requestIndexTTL = cfg.RequestIndexTTL
+	if rc.requestIndexTTL <= 0 {
+		if parsed, ok := runtime.ParseEnvDuration("NEOREQUESTS_REQUEST_INDEX_TTL"); ok {
+			rc.requestIndexTTL = parsed
+		}
+	}
+	if rc.requestIndexTTL <= 0 {
+		rc.requestIndexTTL = defaultRequestIndexTTL
+	}
+
+	// cacheSeconds
+	rc.cacheSeconds = cfg.AppRegistryCacheSeconds
+	if rc.cacheSeconds <= 0 {
+		if parsed, ok := runtime.ParseEnvInt("NEOREQUESTS_APPREGISTRY_CACHE_SECONDS"); ok && parsed >= 0 {
+			rc.cacheSeconds = parsed
+		}
+	}
+	if rc.cacheSeconds <= 0 {
+		rc.cacheSeconds = 60
+	}
+
+	return rc
+}
+
+// initAppRegistry validates and initializes the AppRegistry contract on the
+// service. It may disable enforcement in non-strict mode if prerequisites are
+// missing.
+func (s *Service) initAppRegistry(strict bool) error {
+	if s.enforceAppRegistry {
+		if s.appRegistryHash == "" {
+			if strict {
+				return fmt.Errorf("neorequests: AppRegistry hash required when enforcement enabled")
+			}
+			s.Logger().WithContext(context.Background()).Warn("AppRegistry enforcement enabled but hash missing; disabling enforcement")
+			s.enforceAppRegistry = false
+		}
+		if s.chainClient == nil {
+			if strict {
+				return fmt.Errorf("neorequests: chain client required when AppRegistry enforcement enabled")
+			}
+			s.Logger().WithContext(context.Background()).Warn("AppRegistry enforcement enabled but chain client missing; disabling enforcement")
+			s.enforceAppRegistry = false
+		}
+	}
+	if s.enforceAppRegistry && s.chainClient != nil && s.appRegistryHash != "" {
+		s.appRegistry = chain.NewAppRegistryContract(s.chainClient, s.appRegistryHash)
+	}
+	return nil
+}
+
+// resolveServiceURLs fills in service URLs from environment variables when
+// not already set from the config.
+func (s *Service) resolveServiceURLs() {
+	if s.vrfURL == "" {
+		s.vrfURL = strings.TrimSpace(os.Getenv("NEOVRF_URL"))
+	}
+	if s.oracleURL == "" {
+		s.oracleURL = strings.TrimSpace(os.Getenv("NEOORACLE_URL"))
+	}
+	if s.computeURL == "" {
+		s.computeURL = strings.TrimSpace(os.Getenv("NEOCOMPUTE_URL"))
+	}
+}
+
 // New creates a new NeoRequests service.
 func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once at startup.
 	if cfg.Marble == nil {
@@ -142,245 +344,55 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		}
 	}
 
-	httpClient := cfg.HTTPClient
-	if httpClient == nil {
-		httpClient = cfg.Marble.HTTPClient()
-		if httpClient == nil {
-			httpClient = &http.Client{Timeout: 30 * time.Second}
-		}
-	}
-	// Disable automatic redirects to prevent SSRF via redirect chains
-	// when fetching TEE scripts from external manifest URLs.
-	if cfg.HTTPClient == nil {
-		httpClient.CheckRedirect = func(*http.Request, []*http.Request) error {
-			return http.ErrUseLastResponse
-		}
-	}
+	rc := resolveConfig(cfg)
 
-	serviceGatewayHash := normalizeContractHash(cfg.ServiceGatewayHash)
-	if serviceGatewayHash == "" {
-		serviceGatewayHash = normalizeContractHash(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
-	}
-	if serviceGatewayHash == "" {
-		serviceGatewayHash = normalizeContractHash(os.Getenv("CONTRACT_SERVICE_GATEWAY_HASH"))
-	}
-	if serviceGatewayHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_SERVICEGATEWAY_HASH"); ok && len(secret) > 0 {
-			serviceGatewayHash = normalizeContractHash(string(secret))
-		}
-	}
-	if serviceGatewayHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_SERVICE_GATEWAY_HASH"); ok && len(secret) > 0 {
-			serviceGatewayHash = normalizeContractHash(string(secret))
-		}
-	}
-	if strict && serviceGatewayHash == "" {
+	if strict && rc.serviceGatewayHash == "" {
 		return nil, fmt.Errorf("neorequests: ServiceLayerGateway hash required in strict/enclave mode")
 	}
 
-	appRegistryHash := normalizeContractHash(cfg.AppRegistryHash)
-	if appRegistryHash == "" {
-		appRegistryHash = normalizeContractHash(os.Getenv("CONTRACT_APPREGISTRY_HASH"))
-	}
-	if appRegistryHash == "" {
-		appRegistryHash = normalizeContractHash(os.Getenv("CONTRACT_APP_REGISTRY_HASH"))
-	}
-	if appRegistryHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_APPREGISTRY_HASH"); ok && len(secret) > 0 {
-			appRegistryHash = normalizeContractHash(string(secret))
-		}
-	}
-	if appRegistryHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_APP_REGISTRY_HASH"); ok && len(secret) > 0 {
-			appRegistryHash = normalizeContractHash(string(secret))
-		}
-	}
-
-	paymentHubHash := normalizeContractHash(cfg.PaymentHubHash)
-	if paymentHubHash == "" {
-		paymentHubHash = normalizeContractHash(os.Getenv("CONTRACT_PAYMENTHUB_HASH"))
-	}
-	if paymentHubHash == "" {
-		paymentHubHash = normalizeContractHash(os.Getenv("CONTRACT_PAYMENT_HUB_HASH"))
-	}
-	if paymentHubHash == "" {
-		paymentHubHash = normalizeContractHash(os.Getenv("CONTRACT_GATEWAY_HASH"))
-	}
-	if paymentHubHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_PAYMENTHUB_HASH"); ok && len(secret) > 0 {
-			paymentHubHash = normalizeContractHash(string(secret))
-		}
-	}
-	if paymentHubHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_PAYMENT_HUB_HASH"); ok && len(secret) > 0 {
-			paymentHubHash = normalizeContractHash(string(secret))
-		}
-	}
-	if paymentHubHash == "" {
-		if secret, ok := cfg.Marble.Secret("CONTRACT_GATEWAY_HASH"); ok && len(secret) > 0 {
-			paymentHubHash = normalizeContractHash(string(secret))
-		}
-	}
-
-	maxResult := cfg.MaxResultBytes
-	if maxResult <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOREQUESTS_MAX_RESULT_BYTES"); ok && parsed > 0 {
-			maxResult = parsed
-		} else {
-			maxResult = defaultMaxResultBytes
-		}
-	}
-
-	maxErrorLen := cfg.MaxErrorLen
-	if maxErrorLen <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOREQUESTS_MAX_ERROR_LEN"); ok && parsed > 0 {
-			maxErrorLen = parsed
-		} else {
-			maxErrorLen = defaultMaxErrorLen
-		}
-	}
-
-	rngMode := strings.ToLower(strings.TrimSpace(cfg.RNGResultMode))
-	if rngMode == "" {
-		rngMode = strings.ToLower(strings.TrimSpace(os.Getenv("NEOREQUESTS_RNG_RESULT_MODE")))
-	}
-	if rngMode == "" {
-		rngMode = "raw"
-	}
-	if rngMode != "raw" && rngMode != "json" {
-		rngMode = "raw"
-	}
-
-	chainID := strings.TrimSpace(cfg.ChainID)
-	if chainID == "" {
-		chainID = resolveChainID()
-	}
-
-	txWait := cfg.TxWait
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_WAIT")); raw != "" {
-		txWait = strings.EqualFold(raw, "true") || raw == "1"
-	}
-
-	statsRollupInterval := cfg.StatsRollupInterval
-	if statsRollupInterval <= 0 {
-		if parsed, ok := runtime.ParseEnvDuration("NEOREQUESTS_STATS_ROLLUP_INTERVAL"); ok {
-			statsRollupInterval = parsed
-		} else {
-			statsRollupInterval = 30 * time.Minute
-		}
-	}
-
-	onchainUsage := cfg.OnchainUsage
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ONCHAIN_USAGE")); raw != "" {
-		onchainUsage = runtime.ParseEnvBool(raw)
-	}
-	onchainTxUsage := cfg.OnchainTxUsage
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_TX_USAGE")); raw != "" {
-		onchainTxUsage = runtime.ParseEnvBool(raw)
-	} else if !onchainTxUsage {
-		onchainTxUsage = true
-	}
-
-	enforceAppRegistry := cfg.EnforceAppRegistry
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ENFORCE_APPREGISTRY")); raw != "" {
-		enforceAppRegistry = runtime.ParseEnvBool(raw)
-	}
-	if !enforceAppRegistry && appRegistryHash != "" && cfg.ChainClient != nil {
-		enforceAppRegistry = true
-	}
-
-	requireManifestContract := cfg.RequireManifestContract
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT")); raw != "" {
-		requireManifestContract = runtime.ParseEnvBool(raw)
-	} else if !requireManifestContract {
-		requireManifestContract = true
-	}
-
-	requestIndexTTL := cfg.RequestIndexTTL
-	if requestIndexTTL <= 0 {
-		if parsed, ok := runtime.ParseEnvDuration("NEOREQUESTS_REQUEST_INDEX_TTL"); ok {
-			requestIndexTTL = parsed
-		}
-	}
-	if requestIndexTTL <= 0 {
-		requestIndexTTL = defaultRequestIndexTTL
-	}
-
-	cacheSeconds := cfg.AppRegistryCacheSeconds
-	if cacheSeconds <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOREQUESTS_APPREGISTRY_CACHE_SECONDS"); ok && parsed >= 0 {
-			cacheSeconds = parsed
-		}
-	}
-	if cacheSeconds <= 0 {
-		cacheSeconds = 60
-	}
+	cacheTTL := time.Duration(rc.cacheSeconds) * time.Second
 
 	s := &Service{
 		BaseService:             base,
 		repo:                    repo,
 		eventListener:           cfg.EventListener,
 		txProxy:                 cfg.TxProxy,
-		serviceGatewayHash:      serviceGatewayHash,
-		appRegistryHash:         appRegistryHash,
+		serviceGatewayHash:      rc.serviceGatewayHash,
+		appRegistryHash:         rc.appRegistryHash,
 		chainClient:             cfg.ChainClient,
-		enforceAppRegistry:      enforceAppRegistry,
+		enforceAppRegistry:      rc.enforceAppRegistry,
 		appRegistryCache:        map[string]appRegistryCacheEntry{},
-		appRegistryTTL:          time.Duration(cacheSeconds) * time.Second,
+		appRegistryTTL:          cacheTTL,
 		miniAppCache:            map[string]miniAppCacheEntry{},
-		miniAppCacheTTL:         time.Duration(cacheSeconds) * time.Second,
-		requireManifestContract: requireManifestContract,
-		paymentHubHash:          paymentHubHash,
-		httpClient:              httpClient,
+		miniAppCacheTTL:         cacheTTL,
+		requireManifestContract: rc.requireManifestContract,
+		paymentHubHash:          rc.paymentHubHash,
+		httpClient:              resolveHTTPClient(cfg),
 		vrfURL:                  strings.TrimSpace(cfg.NeoVRFURL),
 		oracleURL:               strings.TrimSpace(cfg.NeoOracleURL),
 		computeURL:              strings.TrimSpace(cfg.NeoComputeURL),
 		scriptsURL:              strings.TrimSpace(cfg.ScriptsBaseURL),
-		chainID:                 chainID,
-		txWait:                  txWait,
-		maxResult:               maxResult,
-		maxErrorLen:             maxErrorLen,
-		rngMode:                 rngMode,
-		statsRollupInterval:     statsRollupInterval,
-		onchainUsage:            onchainUsage,
-		onchainTxUsage:          onchainTxUsage,
-		requestIndexTTL:         requestIndexTTL,
+		chainID:                 rc.chainID,
+		txWait:                  rc.txWait,
+		maxResult:               rc.maxResult,
+		maxErrorLen:             rc.maxErrorLen,
+		rngMode:                 rc.rngMode,
+		statsRollupInterval:     rc.statsRollupInterval,
+		onchainUsage:            rc.onchainUsage,
+		onchainTxUsage:          rc.onchainTxUsage,
+		requestIndexTTL:         rc.requestIndexTTL,
 	}
 
-	if s.enforceAppRegistry {
-		if s.appRegistryHash == "" {
-			if strict {
-				return nil, fmt.Errorf("neorequests: AppRegistry hash required when enforcement enabled")
-			}
-			s.Logger().WithContext(context.Background()).Warn("AppRegistry enforcement enabled but hash missing; disabling enforcement")
-			s.enforceAppRegistry = false
-		}
-		if s.chainClient == nil {
-			if strict {
-				return nil, fmt.Errorf("neorequests: chain client required when AppRegistry enforcement enabled")
-			}
-			s.Logger().WithContext(context.Background()).Warn("AppRegistry enforcement enabled but chain client missing; disabling enforcement")
-			s.enforceAppRegistry = false
-		}
+	if err := s.initAppRegistry(strict); err != nil {
+		return nil, err
 	}
-	if s.enforceAppRegistry && s.chainClient != nil && s.appRegistryHash != "" {
-		s.appRegistry = chain.NewAppRegistryContract(s.chainClient, s.appRegistryHash)
-	}
-
-	if s.vrfURL == "" {
-		s.vrfURL = strings.TrimSpace(os.Getenv("NEOVRF_URL"))
-	}
-	if s.oracleURL == "" {
-		s.oracleURL = strings.TrimSpace(os.Getenv("NEOORACLE_URL"))
-	}
-	if s.computeURL == "" {
-		s.computeURL = strings.TrimSpace(os.Getenv("NEOCOMPUTE_URL"))
-	}
+	s.resolveServiceURLs()
 
 	base.RegisterStandardRoutes()
 	s.registerHandlers()
 	s.registerStatsRollup()
 	s.registerRequestIndexCleanup()
+	s.registerMiniAppCacheCleanup()
 
 	return s, nil
 }

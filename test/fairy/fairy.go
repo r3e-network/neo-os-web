@@ -56,7 +56,7 @@ func (c *Client) call(method string, params ...interface{}) (*chain.RPCResponse,
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequest("POST", c.url, bytes.NewReader(body))
+	httpReq, err := http.NewRequest(http.MethodPost, c.url, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}

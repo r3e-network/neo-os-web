@@ -3,6 +3,7 @@ package neogasbank
 import (
 	"net/http"
 
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
 )
 
@@ -11,10 +12,10 @@ import (
 func (s *Service) registerRoutes() {
 	router := s.Router()
 
-	// User-facing endpoints (user auth handled in handler via httputil.RequireUserID)
-	router.HandleFunc("/account", s.handleGetAccount).Methods(http.MethodGet)
-	router.HandleFunc("/transactions", s.handleGetTransactions).Methods(http.MethodGet)
-	router.HandleFunc("/deposits", s.handleGetDeposits).Methods(http.MethodGet)
+	// User-facing endpoints (user auth via withUserAuth wrapper)
+	router.HandleFunc("/account", httputil.WithUserAuth(s.handleGetAccount)).Methods(http.MethodGet)
+	router.HandleFunc("/transactions", httputil.WithUserAuth(s.handleGetTransactions)).Methods(http.MethodGet)
+	router.HandleFunc("/deposits", httputil.WithUserAuth(s.handleGetDeposits)).Methods(http.MethodGet)
 
 	// Service-to-service endpoints (require mTLS service authentication)
 	router.Handle("/deduct", middleware.RequireServiceAuth(http.HandlerFunc(s.handleDeductFee))).Methods(http.MethodPost)

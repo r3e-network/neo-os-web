@@ -542,7 +542,7 @@ func (s *Simulation) updatePriceFeed() (string, error) {
 func (s *Simulation) getPoolAccounts(limit int) ([]PoolAccount, error) {
 	url := fmt.Sprintf("%s%s?select=id,address,encrypted_wif&limit=%d",
 		s.supabaseURL, PoolAccountsURL, limit)
-	req, _ := http.NewRequestWithContext(s.ctx, "GET", url, nil)
+	req, _ := http.NewRequestWithContext(s.ctx, http.MethodGet, url, nil)
 	req.Header.Set("apikey", s.supabaseKey)
 	req.Header.Set("Authorization", "Bearer "+s.supabaseKey)
 
@@ -862,7 +862,7 @@ func (s *Simulation) updateServiceRequest(reqID int64, success bool, fulfillTx s
 func (s *Simulation) postToSupabase(table string, payload map[string]interface{}) {
 	body, _ := json.Marshal(payload)
 	url := fmt.Sprintf("%s/rest/v1/%s", s.supabaseURL, table)
-	req, _ := http.NewRequest("POST", url, strings.NewReader(string(body)))
+	req, _ := http.NewRequest(http.MethodPost, url, strings.NewReader(string(body)))
 	req.Header.Set("apikey", s.supabaseKey)
 	req.Header.Set("Authorization", "Bearer "+s.supabaseKey)
 	req.Header.Set("Content-Type", "application/json")
@@ -881,7 +881,7 @@ func (s *Simulation) postToSupabase(table string, payload map[string]interface{}
 func (s *Simulation) patchToSupabase(table, filter string, payload map[string]interface{}) {
 	body, _ := json.Marshal(payload)
 	url := fmt.Sprintf("%s/rest/v1/%s?%s", s.supabaseURL, table, filter)
-	req, _ := http.NewRequest("PATCH", url, strings.NewReader(string(body)))
+	req, _ := http.NewRequest(http.MethodPatch, url, strings.NewReader(string(body)))
 	req.Header.Set("apikey", s.supabaseKey)
 	req.Header.Set("Authorization", "Bearer "+s.supabaseKey)
 	req.Header.Set("Content-Type", "application/json")

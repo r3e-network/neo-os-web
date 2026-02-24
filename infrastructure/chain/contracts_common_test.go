@@ -30,7 +30,7 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 	defer func() {
 		for k, v := range saved {
 			if v != "" {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			} else {
 				os.Unsetenv(k)
 			}
@@ -38,13 +38,13 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 	}()
 
 	t.Run("primary env vars", func(t *testing.T) {
-		os.Setenv("CONTRACT_PAYMENTHUB_HASH", "0xpayment")
-		os.Setenv("CONTRACT_GOVERNANCE_HASH", "0xgov")
-		os.Setenv("CONTRACT_PRICEFEED_HASH", "0xprice")
-		os.Setenv("CONTRACT_RANDOMNESSLOG_HASH", "0xrandom")
-		os.Setenv("CONTRACT_APPREGISTRY_HASH", "0xapp")
-		os.Setenv("CONTRACT_AUTOMATIONANCHOR_HASH", "0xauto")
-		os.Setenv("CONTRACT_SERVICEGATEWAY_HASH", "0xservice")
+		t.Setenv("CONTRACT_PAYMENTHUB_HASH", "0xpayment")
+		t.Setenv("CONTRACT_GOVERNANCE_HASH", "0xgov")
+		t.Setenv("CONTRACT_PRICEFEED_HASH", "0xprice")
+		t.Setenv("CONTRACT_RANDOMNESSLOG_HASH", "0xrandom")
+		t.Setenv("CONTRACT_APPREGISTRY_HASH", "0xapp")
+		t.Setenv("CONTRACT_AUTOMATIONANCHOR_HASH", "0xauto")
+		t.Setenv("CONTRACT_SERVICEGATEWAY_HASH", "0xservice")
 		defer func() {
 			for _, k := range envVars {
 				os.Unsetenv(k)
@@ -78,12 +78,12 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 	})
 
 	t.Run("fallback env vars", func(t *testing.T) {
-		os.Setenv("CONTRACT_PAYMENT_HUB_HASH", "0xpayment2")
-		os.Setenv("CONTRACT_PRICE_FEED_HASH", "0xprice2")
-		os.Setenv("CONTRACT_RANDOMNESS_LOG_HASH", "0xrandom2")
-		os.Setenv("CONTRACT_APP_REGISTRY_HASH", "0xapp2")
-		os.Setenv("CONTRACT_AUTOMATION_ANCHOR_HASH", "0xauto2")
-		os.Setenv("CONTRACT_SERVICE_GATEWAY_HASH", "0xservice2")
+		t.Setenv("CONTRACT_PAYMENT_HUB_HASH", "0xpayment2")
+		t.Setenv("CONTRACT_PRICE_FEED_HASH", "0xprice2")
+		t.Setenv("CONTRACT_RANDOMNESS_LOG_HASH", "0xrandom2")
+		t.Setenv("CONTRACT_APP_REGISTRY_HASH", "0xapp2")
+		t.Setenv("CONTRACT_AUTOMATION_ANCHOR_HASH", "0xauto2")
+		t.Setenv("CONTRACT_SERVICE_GATEWAY_HASH", "0xservice2")
 		defer func() {
 			for _, k := range envVars {
 				os.Unsetenv(k)
@@ -127,8 +127,7 @@ func TestContractAddressesLoadFromEnv(t *testing.T) {
 }
 
 func TestContractAddressesFromEnv(t *testing.T) {
-	os.Setenv("CONTRACT_GOVERNANCE_HASH", "0xtest")
-	defer os.Unsetenv("CONTRACT_GOVERNANCE_HASH")
+	t.Setenv("CONTRACT_GOVERNANCE_HASH", "0xtest")
 
 	c := ContractAddressesFromEnv()
 	if c.Governance != "0xtest" {
@@ -249,13 +248,13 @@ func TestFirstStackItem(t *testing.T) {
 }
 
 func TestFirstNonEmptyEnv(t *testing.T) {
-	os.Setenv("TEST_ENV_A", "")
-	os.Setenv("TEST_ENV_B", "value_b")
-	os.Setenv("TEST_ENV_C", "value_c")
+	t.Setenv("TEST_ENV_A", "")
+	t.Setenv("TEST_ENV_B", "value_b")
+	t.Setenv("TEST_ENV_C", "value_c")
 	defer func() {
-		os.Unsetenv("TEST_ENV_A")
-		os.Unsetenv("TEST_ENV_B")
-		os.Unsetenv("TEST_ENV_C")
+		t.Setenv("TEST_ENV_A", "")
+		t.Setenv("TEST_ENV_B", "")
+		t.Setenv("TEST_ENV_C", "")
 	}()
 
 	t.Run("first non-empty", func(t *testing.T) {

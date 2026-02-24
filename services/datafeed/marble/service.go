@@ -253,14 +253,7 @@ func New(cfg Config) (*Service, error) {
 		s.sources[src.ID] = src
 	}
 
-	sourceConcurrency := cfg.SourceConcurrency
-	if sourceConcurrency <= 0 {
-		if parsed, ok := runtime.ParseEnvInt("NEOFEEDS_SOURCE_CONCURRENCY"); ok && parsed > 0 && parsed <= 64 {
-			sourceConcurrency = parsed
-		} else {
-			sourceConcurrency = 8
-		}
-	}
+	sourceConcurrency := runtime.LoadEnvInt("NEOFEEDS_SOURCE_CONCURRENCY", cfg.SourceConcurrency, 8)
 	if sourceConcurrency > 64 {
 		sourceConcurrency = 64
 	}

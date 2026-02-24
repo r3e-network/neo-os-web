@@ -35,8 +35,8 @@ func (s *Service) handleRandom(w http.ResponseWriter, r *http.Request) {
 	if requestID == "" {
 		requestID = uuid.New().String()
 	}
-	if !s.markSeen(r.Context(), requestID) {
-		httputil.WriteError(w, http.StatusConflict, "request_id already used")
+	if !s.replayGuard.MarkSeen(r.Context(), requestID) {
+		httputil.WriteErrorResponse(w, r, http.StatusConflict, "CONFLICT", "request_id already used", nil)
 		return
 	}
 
@@ -48,12 +48,12 @@ func (s *Service) handleRandom(w http.ResponseWriter, r *http.Request) {
 	signature, err := crypto.Sign(s.privateKey, []byte(requestID))
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to sign VRF request", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 	if len(signature) == 0 {
 		s.Logger().Error(r.Context(), "crypto.Sign returned empty signature", nil, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 

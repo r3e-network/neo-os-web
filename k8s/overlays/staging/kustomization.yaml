@@ -1,16 +1,14 @@
-# SGX Hardware overlay for real SGX environment
+# Staging overlay: SGX hardware mode with hardening (merged from sgx-hardware + sgx-hardware-hardened)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: service-layer
 
 resources:
-  # Build on top of the production overlay, then add SGX resource limits.
-  - ../production
+  - ../prod
 
-# Patch all deployments for SGX hardware mode - only add SGX resources
 patches:
-  # NeoFeeds SGX patch
+  # SGX hardware patches: aesmd socket + enclave resources for all services
   - target:
       kind: Deployment
       name: neofeeds
@@ -34,7 +32,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoFlow SGX patch - increased memory for enclave
   - target:
       kind: Deployment
       name: neoflow
@@ -61,7 +58,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/memory
         value: "2Gi"
 
-  # NeoAccounts SGX patch
   - target:
       kind: Deployment
       name: neoaccounts
@@ -85,7 +81,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoCompute SGX patch
   - target:
       kind: Deployment
       name: neocompute
@@ -109,7 +104,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoVRF SGX patch
   - target:
       kind: Deployment
       name: neovrf
@@ -133,7 +127,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoOracle SGX patch
   - target:
       kind: Deployment
       name: neooracle
@@ -157,7 +150,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoRequests SGX patch
   - target:
       kind: Deployment
       name: neorequests
@@ -181,7 +173,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # GlobalSigner SGX patch
   - target:
       kind: Deployment
       name: globalsigner
@@ -205,7 +196,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # TxProxy SGX patch
   - target:
       kind: Deployment
       name: txproxy
@@ -229,7 +219,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoGasBank SGX patch
   - target:
       kind: Deployment
       name: neogasbank
@@ -253,7 +242,6 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
 
-  # NeoSimulation SGX patch
   - target:
       kind: Deployment
       name: neosimulation
@@ -276,5 +264,3 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/resources/limits/sgx.intel.com~1provision
         value: "1"
-
-  # Production overlay already sets COORDINATOR_MESH_ADDR; no extra patch needed here.

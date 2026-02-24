@@ -133,9 +133,9 @@ func (b *BaseService) RegisterStandardRoutes() {
 // Use SkipInfo: true when the service provides a custom /info endpoint.
 func (b *BaseService) RegisterStandardRoutesWithOptions(opts RouteOptions) {
 	router := b.Router()
-	router.HandleFunc("/health", HealthHandler(b)).Methods("GET")
-	router.HandleFunc("/ready", ReadinessHandler(b)).Methods("GET")
+	router.HandleFunc("/health", HealthHandler(b)).Methods(http.MethodGet)
+	router.HandleFunc("/ready", ReadinessHandler(b)).Methods(http.MethodGet)
 	if !opts.SkipInfo {
-		router.HandleFunc("/info", InfoHandler(b)).Methods("GET")
+		router.HandleFunc("/info", InfoHandler(b)).Methods(http.MethodGet)
 	}
 }

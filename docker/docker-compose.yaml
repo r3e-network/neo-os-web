@@ -1,3 +1,34 @@
+# ---------------------------------------------------------------------------
+# Shared configuration anchors
+# ---------------------------------------------------------------------------
+x-service-defaults: &service-defaults
+  volumes:
+    - /var/run/aesmd:/var/run/aesmd
+    - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
+  devices:
+    - /dev/sgx_enclave:/dev/sgx_enclave
+    - /dev/sgx_provision:/dev/sgx_provision
+  mem_limit: 512m
+  cpus: 1.0
+  restart: unless-stopped
+  depends_on:
+    coordinator:
+      condition: service_healthy
+
+x-build-defaults: &build-defaults
+  context: ..
+  dockerfile: docker/Dockerfile.service
+
+x-build-args: &build-args
+  EGO_VERSION: ${EGO_VERSION:-1.8.0}
+  EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
+
+x-healthcheck-timing: &healthcheck-timing
+  interval: 15s
+  timeout: 5s
+  retries: 3
+  start_period: 30s
+
 services:
   # =============================================================================
   # MarbleRun Coordinator
@@ -34,14 +65,13 @@ services:
   # NeoFeeds Service Marble
   # =============================================================================
   neofeeds:
+    <<: *service-defaults
     image: service-layer/neofeeds:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neofeeds
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-neofeeds
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -54,7 +84,7 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
-      - POOL_MASTER_KEY
+      - POOL_MASTER_KEY=${POOL_MASTER_KEY}
       - COORD_MASTER_SEED
       - NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY
       - NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS
@@ -66,37 +96,21 @@ services:
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8083/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
-    depends_on:
-      coordinator:
-        condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # NeoFlow Service Marble
   # =============================================================================
   neoflow:
+    <<: *service-defaults
     image: service-layer/neoflow:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neoflow
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-neoflow
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -118,39 +132,26 @@ services:
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8084/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
-    depends_on:
-      coordinator:
-        condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # AccountPool Service Marble (Internal)
   # =============================================================================
   neoaccounts:
+    <<: *service-defaults
     image: service-layer/neoaccounts:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: accountpool
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-accountpool
     environment:
+      - NEO_TESTNET_WIF=${TEE_PRIVATE_KEY}
+      - NEO_NETWORK_FEE=10000000
+      - TEE_PRIVATE_KEY=${TEE_PRIVATE_KEY}
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
       - EDG_MARBLE_TYPE=neoaccounts
       - EDG_MARBLE_DNS_NAMES=localhost,neoaccounts,accountpool
@@ -161,40 +162,24 @@ services:
       - SUPABASE_SERVICE_KEY
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
-      - POOL_MASTER_KEY
-      - POOL_ENCRYPTION_KEY
+      - POOL_MASTER_KEY=${POOL_MASTER_KEY}
+      - POOL_ENCRYPTION_KEY=${POOL_ENCRYPTION_KEY}
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8085/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
-    depends_on:
-      coordinator:
-        condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # NeoGasBank Service Marble
   # =============================================================================
   neogasbank:
+    <<: *service-defaults
     image: service-layer/neogasbank:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neogasbank
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-neogasbank
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -215,39 +200,26 @@ services:
       - SIMULATION_TX_INTERVAL_MIN_MS
       - SIMULATION_TX_INTERVAL_MAX_MS
       - SIMULATION_WORKERS_PER_APP
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8091/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
     depends_on:
       coordinator:
         condition: service_healthy
       neoaccounts:
         condition: service_started
-    restart: unless-stopped
 
   # =============================================================================
   # NeoCompute Service Marble
   # =============================================================================
   neocompute:
+    <<: *service-defaults
     image: service-layer/neocompute:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neocompute
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-neocompute
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -263,37 +235,21 @@ services:
       - SECRETS_MASTER_KEY
       - NEOCOMPUTE_RESULT_TTL
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8086/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
-    depends_on:
-      coordinator:
-        condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # NeoVRF Service Marble
   # =============================================================================
   neovrf:
+    <<: *service-defaults
     image: service-layer/neovrf:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neovrf
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-neovrf
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -307,37 +263,21 @@ services:
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8087/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
-    depends_on:
-      coordinator:
-        condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # NeoOracle Service Marble
   # =============================================================================
   neooracle:
+    <<: *service-defaults
     image: service-layer/neooracle:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neooracle
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-neooracle
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -355,37 +295,21 @@ services:
       - ORACLE_TIMEOUT
       - ORACLE_MAX_SIZE
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8088/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
-    depends_on:
-      coordinator:
-        condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # NeoRequests Service Marble
   # =============================================================================
   neorequests:
+    <<: *service-defaults
     image: service-layer/neorequests:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neorequests
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-neorequests
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -415,37 +339,21 @@ services:
       - NEOREQUESTS_STATS_ROLLUP_INTERVAL
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8094/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
-    depends_on:
-      coordinator:
-        condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # TxProxy Service Marble
   # =============================================================================
   txproxy:
+    <<: *service-defaults
     image: service-layer/txproxy:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: txproxy
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-txproxy
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -460,39 +368,23 @@ services:
       - NEO_NETWORK_MAGIC
       - CONTRACT_PAYMENTHUB_HASH
       - CONTRACT_GOVERNANCE_HASH
-      - TXPROXY_ALLOWLIST
+      - TXPROXY_ALLOWLIST={"contracts":{"0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5":["*"],"0xd2a4cff31913016155e38e474a2c06d08be276cf":["*"],"0x4f494f1cc883015fcefb45f1b5182a4d3dc6be0b":["*"]}}
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8090/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
-    depends_on:
-      coordinator:
-        condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # GlobalSigner Service Marble
   # =============================================================================
   globalsigner:
+    <<: *service-defaults
     image: service-layer/globalsigner:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: globalsigner
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-globalsigner
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -505,41 +397,24 @@ services:
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
       - GLOBALSIGNER_MASTER_SEED
-      - GLOBALSIGNER_DOMAIN_ALLOWLIST
       - GLOBALSIGNER_SIGN_RAW_ALLOWLIST
       - GLOBALSIGNER_MAX_BODY_BYTES
       - GLOBALSIGNER_REQUIRE_QUOTE
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:${GLOBALSIGNER_PORT:-8092}/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
-    depends_on:
-      coordinator:
-        condition: service_healthy
-    restart: unless-stopped
 
   # =============================================================================
   # NeoSimulation Service Marble
   # =============================================================================
   neosimulation:
+    <<: *service-defaults
     image: service-layer/neosimulation:latest
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.service
+      <<: *build-defaults
       args:
+        <<: *build-args
         SERVICE: neosimulation
-        EGO_VERSION: ${EGO_VERSION:-1.8.0}
-        EGO_STRICT_SIGNING: ${EGO_STRICT_SIGNING:-1}
     container_name: service-neosimulation
     environment:
       - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
@@ -561,26 +436,14 @@ services:
       - SIMULATION_TX_INTERVAL_MIN_MS
       - SIMULATION_TX_INTERVAL_MAX_MS
       - SIMULATION_WORKERS_PER_APP
-    volumes:
-      - /var/run/aesmd:/var/run/aesmd
-      - /etc/sgx_default_qcnl.conf:/etc/sgx_default_qcnl.conf:ro
-    devices:
-      - /dev/sgx_enclave:/dev/sgx_enclave
-      - /dev/sgx_provision:/dev/sgx_provision
     healthcheck:
+      <<: *healthcheck-timing
       test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8093/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    mem_limit: 512m
-    cpus: 1.0
     depends_on:
       coordinator:
         condition: service_healthy
       neoaccounts:
         condition: service_started
-    restart: unless-stopped
 
 volumes:
   coordinator-data:

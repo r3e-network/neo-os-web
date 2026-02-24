@@ -4,6 +4,7 @@ package neoflow
 import (
 	"net/http"
 
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
 )
 
@@ -15,13 +16,13 @@ import (
 // Note: /health, /ready, and /info are registered by BaseService.RegisterStandardRoutes().
 func (s *Service) registerRoutes() {
 	router := s.Router()
-	router.Handle("/triggers", middleware.RequireServiceAuth(http.HandlerFunc(s.handleListTriggers))).Methods("GET")
-	router.Handle("/triggers", middleware.RequireServiceAuth(http.HandlerFunc(s.handleCreateTrigger))).Methods("POST")
-	router.Handle("/triggers/{id}", middleware.RequireServiceAuth(http.HandlerFunc(s.handleGetTrigger))).Methods("GET")
-	router.Handle("/triggers/{id}", middleware.RequireServiceAuth(http.HandlerFunc(s.handleUpdateTrigger))).Methods("PUT")
-	router.Handle("/triggers/{id}", middleware.RequireServiceAuth(http.HandlerFunc(s.handleDeleteTrigger))).Methods("DELETE")
-	router.Handle("/triggers/{id}/enable", middleware.RequireServiceAuth(http.HandlerFunc(s.handleEnableTrigger))).Methods("POST")
-	router.Handle("/triggers/{id}/disable", middleware.RequireServiceAuth(http.HandlerFunc(s.handleDisableTrigger))).Methods("POST")
-	router.Handle("/triggers/{id}/executions", middleware.RequireServiceAuth(http.HandlerFunc(s.handleListExecutions))).Methods("GET")
-	router.Handle("/triggers/{id}/resume", middleware.RequireServiceAuth(http.HandlerFunc(s.handleResumeTrigger))).Methods("POST")
+	router.Handle("/triggers", middleware.RequireServiceAuth(httputil.WithUserAuth(s.withRepo(s.handleListTriggers)))).Methods(http.MethodGet)
+	router.Handle("/triggers", middleware.RequireServiceAuth(httputil.WithUserAuth(s.withRepo(s.handleCreateTrigger)))).Methods(http.MethodPost)
+	router.Handle("/triggers/{id}", middleware.RequireServiceAuth(httputil.WithUserAuth(s.withRepo(s.handleGetTrigger)))).Methods(http.MethodGet)
+	router.Handle("/triggers/{id}", middleware.RequireServiceAuth(httputil.WithUserAuth(s.withRepo(s.handleUpdateTrigger)))).Methods(http.MethodPut)
+	router.Handle("/triggers/{id}", middleware.RequireServiceAuth(httputil.WithUserAuth(s.withRepo(s.handleDeleteTrigger)))).Methods(http.MethodDelete)
+	router.Handle("/triggers/{id}/enable", middleware.RequireServiceAuth(httputil.WithUserAuth(s.withRepo(s.handleEnableTrigger)))).Methods(http.MethodPost)
+	router.Handle("/triggers/{id}/disable", middleware.RequireServiceAuth(httputil.WithUserAuth(s.withRepo(s.handleDisableTrigger)))).Methods(http.MethodPost)
+	router.Handle("/triggers/{id}/executions", middleware.RequireServiceAuth(httputil.WithUserAuth(s.withRepo(s.handleListExecutions)))).Methods(http.MethodGet)
+	router.Handle("/triggers/{id}/resume", middleware.RequireServiceAuth(httputil.WithUserAuth(s.withRepo(s.handleResumeTrigger)))).Methods(http.MethodPost)
 }

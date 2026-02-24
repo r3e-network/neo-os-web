@@ -21,7 +21,6 @@ import (
 // =============================================================================
 
 func TestNew(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 
 	svc, err := New(Config{
@@ -56,7 +55,6 @@ func TestServiceConstants(t *testing.T) {
 }
 
 func TestInitDefaultSources(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := New(Config{Marble: m})
 
@@ -157,7 +155,6 @@ func TestSignPriceWithKey(t *testing.T) {
 }
 
 func TestSignPriceWithoutKey(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := New(Config{Marble: m})
 
@@ -204,7 +201,6 @@ func TestHandleGetPriceMissingPair(t *testing.T) {
 }
 
 func TestHandleGetPrices(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -230,7 +226,6 @@ func TestHandleGetPrices(t *testing.T) {
 }
 
 func TestHandleListFeeds(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := New(Config{Marble: m})
 
@@ -320,7 +315,6 @@ func TestPriceResponseJSON(t *testing.T) {
 // =============================================================================
 
 func TestGetPriceWithMockSources(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	// Create mock price API server
 	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -379,7 +373,6 @@ func TestGetPriceWithMockSources(t *testing.T) {
 }
 
 func TestGetPriceNoSources(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	emptyConfig := &NeoFeedsConfig{
@@ -402,7 +395,6 @@ func TestGetPriceNoSources(t *testing.T) {
 }
 
 func TestGetPriceAllSourcesFail(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	// Create mock server that always fails
 	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -430,7 +422,6 @@ func TestGetPriceAllSourcesFail(t *testing.T) {
 }
 
 func TestGetPriceWithSigningKey(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -464,7 +455,6 @@ func TestGetPriceWithSigningKey(t *testing.T) {
 }
 
 func TestFetchPriceSuccess(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -493,7 +483,6 @@ func TestFetchPriceSuccess(t *testing.T) {
 }
 
 func TestFetchPriceInvalidJSON(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -519,7 +508,6 @@ func TestFetchPriceInvalidJSON(t *testing.T) {
 }
 
 func TestFetchPriceMissingPath(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -544,7 +532,6 @@ func TestFetchPriceMissingPath(t *testing.T) {
 }
 
 func TestFetchPriceHTTPError(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -570,7 +557,6 @@ func TestFetchPriceHTTPError(t *testing.T) {
 }
 
 func TestFetchPriceConnectionError(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := New(Config{Marble: m})
@@ -589,7 +575,6 @@ func TestFetchPriceConnectionError(t *testing.T) {
 }
 
 func TestHandleGetPriceSuccess(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -631,7 +616,6 @@ func TestHandleGetPriceSuccess(t *testing.T) {
 }
 
 func TestHandleGetPriceLegacySlashPair(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -676,7 +660,6 @@ func TestHandleGetPriceLegacySlashPair(t *testing.T) {
 }
 
 func TestHandleGetPriceError(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	emptyConfig := &NeoFeedsConfig{

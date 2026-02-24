@@ -84,7 +84,7 @@ func (c *Client) ethCall(ctx context.Context, to, data string) (string, error) {
 		return "", err
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.rpcURL, bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.rpcURL, bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
