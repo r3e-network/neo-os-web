@@ -2,7 +2,6 @@ package neogasbank
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -26,7 +25,6 @@ func TestTopUpConstants(t *testing.T) {
 }
 
 func TestIsAutoTopUpEnabled(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -46,8 +44,7 @@ func TestIsAutoTopUpEnabled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("TOPUP_ENABLED", tt.envValue)
-			defer os.Unsetenv("TOPUP_ENABLED")
+			t.Setenv("TOPUP_ENABLED", tt.envValue)
 
 			got := svc.isAutoTopUpEnabled()
 			if got != tt.want {
@@ -58,7 +55,6 @@ func TestIsAutoTopUpEnabled(t *testing.T) {
 }
 
 func TestProcessAutoTopUpNoChainClient(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -69,13 +65,12 @@ func TestProcessAutoTopUpNoChainClient(t *testing.T) {
 }
 
 func TestProcessAutoTopUpDisabled(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
 
 	// Ensure TOPUP_ENABLED is not set
-	os.Unsetenv("TOPUP_ENABLED")
+	t.Setenv("TOPUP_ENABLED", "")
 
 	ctx := context.Background()
 	svc.processAutoTopUp(ctx)
@@ -83,13 +78,12 @@ func TestProcessAutoTopUpDisabled(t *testing.T) {
 }
 
 func TestGetAccountPoolClient(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
 
 	// Test with default URL
-	os.Unsetenv("NEOACCOUNTS_SERVICE_URL")
+	t.Setenv("NEOACCOUNTS_SERVICE_URL", "")
 	client, err := svc.getAccountPoolClient()
 	if err != nil {
 		t.Fatalf("getAccountPoolClient() error = %v", err)
@@ -99,8 +93,7 @@ func TestGetAccountPoolClient(t *testing.T) {
 	}
 
 	// Test with custom URL
-	os.Setenv("NEOACCOUNTS_SERVICE_URL", "http://custom:9090")
-	defer os.Unsetenv("NEOACCOUNTS_SERVICE_URL")
+	t.Setenv("NEOACCOUNTS_SERVICE_URL", "http://custom:9090")
 	client, err = svc.getAccountPoolClient()
 	if err != nil {
 		t.Fatalf("getAccountPoolClient() error = %v", err)
@@ -111,7 +104,6 @@ func TestGetAccountPoolClient(t *testing.T) {
 }
 
 func TestTopUpAccountSimulated(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -135,13 +127,11 @@ func TestTopUpAccountSimulated(t *testing.T) {
 }
 
 func TestStatisticsIncludesTopUp(t *testing.T) {
-	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
 
-	os.Setenv("TOPUP_ENABLED", "true")
-	defer os.Unsetenv("TOPUP_ENABLED")
+	t.Setenv("TOPUP_ENABLED", "true")
 
 	stats := svc.statistics()
 
@@ -210,14 +200,12 @@ func TestTopUpCheckIntervalReasonable(t *testing.T) {
 }
 
 func TestGetAccountPoolClientWithEmptyURL(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
 
 	// Test with whitespace-only URL
-	os.Setenv("NEOACCOUNTS_SERVICE_URL", "   ")
-	defer os.Unsetenv("NEOACCOUNTS_SERVICE_URL")
+	t.Setenv("NEOACCOUNTS_SERVICE_URL", "   ")
 
 	client, err := svc.getAccountPoolClient()
 	if err != nil {
@@ -229,7 +217,6 @@ func TestGetAccountPoolClientWithEmptyURL(t *testing.T) {
 }
 
 func TestTopUpAccountWithEmptyAddress(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -246,7 +233,6 @@ func TestTopUpAccountWithEmptyAddress(t *testing.T) {
 }
 
 func TestTopUpAccountWithZeroAmount(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -264,7 +250,6 @@ func TestTopUpAccountWithZeroAmount(t *testing.T) {
 }
 
 func TestTopUpAccountWithNegativeAmount(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})

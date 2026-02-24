@@ -6,21 +6,18 @@ import (
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
+const defaultQueryLimit = 50
+
 // =============================================================================
 // HTTP Handlers
 // =============================================================================
 
 // handleGetAccount returns the gas bank account for the authenticated user.
-func (s *Service) handleGetAccount(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-
+func (s *Service) handleGetAccount(w http.ResponseWriter, r *http.Request, userID string) {
 	account, err := s.GetAccount(r.Context(), userID)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to get gas bank account", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -35,10 +32,9 @@ func (s *Service) handleDeductFee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get service ID from mTLS certificate or header
 	serviceID := httputil.GetServiceID(r)
 	if serviceID == "" {
-		httputil.WriteError(w, http.StatusForbidden, "service authentication required")
+		httputil.WriteErrorResponse(w, r, http.StatusForbidden, "FORBIDDEN", "service authentication required", nil)
 		return
 	}
 	req.ServiceID = serviceID
@@ -46,7 +42,7 @@ func (s *Service) handleDeductFee(w http.ResponseWriter, r *http.Request) {
 	resp, err := s.DeductFee(r.Context(), &req)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to deduct fee", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -56,7 +52,7 @@ func (s *Service) handleDeductFee(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if resp.Error == "fee deduction failed" {
-			httputil.InternalError(w, "internal error")
+			httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 			return
 		}
 		httputil.WriteJSON(w, http.StatusPaymentRequired, resp)
@@ -75,14 +71,14 @@ func (s *Service) handleReserveFunds(w http.ResponseWriter, r *http.Request) {
 
 	serviceID := httputil.GetServiceID(r)
 	if serviceID == "" {
-		httputil.WriteError(w, http.StatusForbidden, "service authentication required")
+		httputil.WriteErrorResponse(w, r, http.StatusForbidden, "FORBIDDEN", "service authentication required", nil)
 		return
 	}
 
 	resp, err := s.ReserveFunds(r.Context(), &req)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to reserve funds", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -107,14 +103,14 @@ func (s *Service) handleReleaseFunds(w http.ResponseWriter, r *http.Request) {
 
 	serviceID := httputil.GetServiceID(r)
 	if serviceID == "" {
-		httputil.WriteError(w, http.StatusForbidden, "service authentication required")
+		httputil.WriteErrorResponse(w, r, http.StatusForbidden, "FORBIDDEN", "service authentication required", nil)
 		return
 	}
 
 	resp, err := s.ReleaseFunds(r.Context(), &req)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to release funds", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -127,16 +123,11 @@ func (s *Service) handleReleaseFunds(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGetTransactions returns transaction history for the authenticated user.
-func (s *Service) handleGetTransactions(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-
+func (s *Service) handleGetTransactions(w http.ResponseWriter, r *http.Request, userID string) {
 	account, err := s.db.GetGasBankAccount(r.Context(), userID)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to get gas bank account", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 	if account == nil {
@@ -144,11 +135,11 @@ func (s *Service) handleGetTransactions(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	limit := 50 // Default limit
+	limit := defaultQueryLimit
 	txs, err := s.db.GetGasBankTransactions(r.Context(), account.ID, limit)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to get gas bank transactions", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 
@@ -170,17 +161,12 @@ func (s *Service) handleGetTransactions(w http.ResponseWriter, r *http.Request) 
 }
 
 // handleGetDeposits returns deposit history for the authenticated user.
-func (s *Service) handleGetDeposits(w http.ResponseWriter, r *http.Request) {
-	userID, ok := httputil.RequireUserID(w, r)
-	if !ok {
-		return
-	}
-
-	limit := 50 // Default limit
+func (s *Service) handleGetDeposits(w http.ResponseWriter, r *http.Request, userID string) {
+	limit := defaultQueryLimit
 	deposits, err := s.db.GetDepositRequests(r.Context(), userID, limit)
 	if err != nil {
 		s.Logger().Error(r.Context(), "failed to get deposit requests", err, nil)
-		httputil.InternalError(w, "internal error")
+		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 

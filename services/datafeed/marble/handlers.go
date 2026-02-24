@@ -4,6 +4,7 @@ package neofeeds
 import (
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/gorilla/mux"
 
@@ -55,15 +56,15 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 		// Distinguish error types for appropriate HTTP status codes
 		errMsg := err.Error()
 		switch {
-		case contains(errMsg, "pair required"):
+		case strings.Contains(errMsg, "pair required"):
 			httputil.BadRequest(w, "pair required")
-		case contains(errMsg, "not found"), contains(errMsg, "unsupported"), contains(errMsg, "unknown feed"):
+		case strings.Contains(errMsg, "not found"), strings.Contains(errMsg, "unsupported"), strings.Contains(errMsg, "unknown feed"):
 			httputil.NotFound(w, "price feed not found")
-		case contains(errMsg, "no sources"), contains(errMsg, "no prices"):
+		case strings.Contains(errMsg, "no sources"), strings.Contains(errMsg, "no prices"):
 			httputil.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "price data unavailable"})
 		default:
 			s.Logger().Error(r.Context(), "failed to get price", err, nil)
-			httputil.InternalError(w, "internal error")
+			httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		}
 		return
 	}
@@ -71,24 +72,6 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, price)
 }
 
-func contains(s, substr string) bool {
-	if substr == "" {
-		return true
-	}
-	if len(s) < len(substr) {
-		return false
-	}
-	return s == substr || findSubstring(s, substr)
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
 
 func (s *Service) handleGetPrices(w http.ResponseWriter, r *http.Request) {
 	if s.DB() == nil {

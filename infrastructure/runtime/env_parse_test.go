@@ -8,10 +8,9 @@ import (
 
 func TestParseEnvInt(t *testing.T) {
 	const key = "TEST_PARSE_ENV_INT"
-	defer os.Unsetenv(key)
 
 	t.Run("valid integer", func(t *testing.T) {
-		os.Setenv(key, "42")
+		t.Setenv(key, "42")
 		v, ok := ParseEnvInt(key)
 		if !ok || v != 42 {
 			t.Errorf("got (%d, %v), want (42, true)", v, ok)
@@ -19,7 +18,7 @@ func TestParseEnvInt(t *testing.T) {
 	})
 
 	t.Run("negative integer", func(t *testing.T) {
-		os.Setenv(key, "-7")
+		t.Setenv(key, "-7")
 		v, ok := ParseEnvInt(key)
 		if !ok || v != -7 {
 			t.Errorf("got (%d, %v), want (-7, true)", v, ok)
@@ -27,7 +26,7 @@ func TestParseEnvInt(t *testing.T) {
 	})
 
 	t.Run("zero", func(t *testing.T) {
-		os.Setenv(key, "0")
+		t.Setenv(key, "0")
 		v, ok := ParseEnvInt(key)
 		if !ok || v != 0 {
 			t.Errorf("got (%d, %v), want (0, true)", v, ok)
@@ -35,7 +34,7 @@ func TestParseEnvInt(t *testing.T) {
 	})
 
 	t.Run("whitespace trimmed", func(t *testing.T) {
-		os.Setenv(key, "  99  ")
+		t.Setenv(key, "  99  ")
 		v, ok := ParseEnvInt(key)
 		if !ok || v != 99 {
 			t.Errorf("got (%d, %v), want (99, true)", v, ok)
@@ -43,7 +42,7 @@ func TestParseEnvInt(t *testing.T) {
 	})
 
 	t.Run("empty string", func(t *testing.T) {
-		os.Setenv(key, "")
+		t.Setenv(key, "")
 		_, ok := ParseEnvInt(key)
 		if ok {
 			t.Error("expected ok=false for empty string")
@@ -59,7 +58,7 @@ func TestParseEnvInt(t *testing.T) {
 	})
 
 	t.Run("non-numeric", func(t *testing.T) {
-		os.Setenv(key, "abc")
+		t.Setenv(key, "abc")
 		_, ok := ParseEnvInt(key)
 		if ok {
 			t.Error("expected ok=false for non-numeric value")
@@ -67,10 +66,70 @@ func TestParseEnvInt(t *testing.T) {
 	})
 
 	t.Run("float value", func(t *testing.T) {
-		os.Setenv(key, "3.14")
+		t.Setenv(key, "3.14")
 		_, ok := ParseEnvInt(key)
 		if ok {
 			t.Error("expected ok=false for float value")
+		}
+	})
+}
+
+func TestLoadEnvInt(t *testing.T) {
+	const key = "TEST_LOAD_ENV_INT"
+
+	t.Run("config value takes precedence", func(t *testing.T) {
+		t.Setenv(key, "99")
+		v := LoadEnvInt(key, 42, 10)
+		if v != 42 {
+			t.Errorf("got %d, want 42 (config value)", v)
+		}
+	})
+
+	t.Run("env var used when config is zero", func(t *testing.T) {
+		t.Setenv(key, "77")
+		v := LoadEnvInt(key, 0, 10)
+		if v != 77 {
+			t.Errorf("got %d, want 77 (env value)", v)
+		}
+	})
+
+	t.Run("env var used when config is negative", func(t *testing.T) {
+		t.Setenv(key, "55")
+		v := LoadEnvInt(key, -1, 10)
+		if v != 55 {
+			t.Errorf("got %d, want 55 (env value)", v)
+		}
+	})
+
+	t.Run("default when config zero and env unset", func(t *testing.T) {
+		os.Unsetenv(key)
+		v := LoadEnvInt(key, 0, 25)
+		if v != 25 {
+			t.Errorf("got %d, want 25 (default)", v)
+		}
+	})
+
+	t.Run("default when config zero and env negative", func(t *testing.T) {
+		t.Setenv(key, "-3")
+		v := LoadEnvInt(key, 0, 25)
+		if v != 25 {
+			t.Errorf("got %d, want 25 (default)", v)
+		}
+	})
+
+	t.Run("default when config zero and env zero", func(t *testing.T) {
+		t.Setenv(key, "0")
+		v := LoadEnvInt(key, 0, 25)
+		if v != 25 {
+			t.Errorf("got %d, want 25 (default)", v)
+		}
+	})
+
+	t.Run("default when config zero and env invalid", func(t *testing.T) {
+		t.Setenv(key, "abc")
+		v := LoadEnvInt(key, 0, 12)
+		if v != 12 {
+			t.Errorf("got %d, want 12 (default)", v)
 		}
 	})
 }
@@ -99,17 +158,16 @@ func TestParseEnvBool(t *testing.T) {
 
 func TestParseEnvBoolKey(t *testing.T) {
 	const key = "TEST_PARSE_ENV_BOOL_KEY"
-	defer os.Unsetenv(key)
 
 	t.Run("truthy value", func(t *testing.T) {
-		os.Setenv(key, "true")
+		t.Setenv(key, "true")
 		if !ParseEnvBoolKey(key) {
 			t.Error("ParseEnvBoolKey should return true for 'true'")
 		}
 	})
 
 	t.Run("falsy value", func(t *testing.T) {
-		os.Setenv(key, "no")
+		t.Setenv(key, "no")
 		if ParseEnvBoolKey(key) {
 			t.Error("ParseEnvBoolKey should return false for 'no'")
 		}
@@ -123,14 +181,14 @@ func TestParseEnvBoolKey(t *testing.T) {
 	})
 
 	t.Run("empty string", func(t *testing.T) {
-		os.Setenv(key, "")
+		t.Setenv(key, "")
 		if ParseEnvBoolKey(key) {
 			t.Error("ParseEnvBoolKey should return false for empty string")
 		}
 	})
 
 	t.Run("numeric truthy", func(t *testing.T) {
-		os.Setenv(key, "1")
+		t.Setenv(key, "1")
 		if !ParseEnvBoolKey(key) {
 			t.Error("ParseEnvBoolKey should return true for '1'")
 		}
@@ -139,10 +197,9 @@ func TestParseEnvBoolKey(t *testing.T) {
 
 func TestParseEnvDuration(t *testing.T) {
 	const key = "TEST_PARSE_ENV_DURATION"
-	defer os.Unsetenv(key)
 
 	t.Run("valid duration", func(t *testing.T) {
-		os.Setenv(key, "5s")
+		t.Setenv(key, "5s")
 		v, ok := ParseEnvDuration(key)
 		if !ok || v != 5*time.Second {
 			t.Errorf("got (%v, %v), want (5s, true)", v, ok)
@@ -150,7 +207,7 @@ func TestParseEnvDuration(t *testing.T) {
 	})
 
 	t.Run("minutes", func(t *testing.T) {
-		os.Setenv(key, "10m")
+		t.Setenv(key, "10m")
 		v, ok := ParseEnvDuration(key)
 		if !ok || v != 10*time.Minute {
 			t.Errorf("got (%v, %v), want (10m, true)", v, ok)
@@ -158,7 +215,7 @@ func TestParseEnvDuration(t *testing.T) {
 	})
 
 	t.Run("complex duration", func(t *testing.T) {
-		os.Setenv(key, "1h30m")
+		t.Setenv(key, "1h30m")
 		v, ok := ParseEnvDuration(key)
 		if !ok || v != 90*time.Minute {
 			t.Errorf("got (%v, %v), want (1h30m, true)", v, ok)
@@ -166,7 +223,7 @@ func TestParseEnvDuration(t *testing.T) {
 	})
 
 	t.Run("whitespace trimmed", func(t *testing.T) {
-		os.Setenv(key, "  2s  ")
+		t.Setenv(key, "  2s  ")
 		v, ok := ParseEnvDuration(key)
 		if !ok || v != 2*time.Second {
 			t.Errorf("got (%v, %v), want (2s, true)", v, ok)
@@ -174,7 +231,7 @@ func TestParseEnvDuration(t *testing.T) {
 	})
 
 	t.Run("empty string", func(t *testing.T) {
-		os.Setenv(key, "")
+		t.Setenv(key, "")
 		_, ok := ParseEnvDuration(key)
 		if ok {
 			t.Error("expected ok=false for empty string")
@@ -190,7 +247,7 @@ func TestParseEnvDuration(t *testing.T) {
 	})
 
 	t.Run("invalid duration", func(t *testing.T) {
-		os.Setenv(key, "notaduration")
+		t.Setenv(key, "notaduration")
 		_, ok := ParseEnvDuration(key)
 		if ok {
 			t.Error("expected ok=false for invalid duration")
@@ -198,7 +255,7 @@ func TestParseEnvDuration(t *testing.T) {
 	})
 
 	t.Run("bare number without unit", func(t *testing.T) {
-		os.Setenv(key, "42")
+		t.Setenv(key, "42")
 		_, ok := ParseEnvDuration(key)
 		if ok {
 			t.Error("expected ok=false for bare number without unit")

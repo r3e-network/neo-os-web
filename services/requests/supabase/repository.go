@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -148,7 +149,7 @@ func (r *Repository) LogMiniAppTx(
 		"p_block_time":     blockTime,
 	}
 
-	if _, err := r.base.RequestRPC(ctx, "POST", "rpc/miniapp_tx_log", payload, ""); err != nil {
+	if _, err := r.base.RequestRPC(ctx, http.MethodPost, "rpc/miniapp_tx_log", payload, ""); err != nil {
 		return fmt.Errorf("log miniapp tx: %w", err)
 	}
 	return nil
@@ -167,7 +168,7 @@ func (r *Repository) RollupMiniAppStats(ctx context.Context, date time.Time) err
 		"p_date": date.Format("2006-01-02"),
 	}
 
-	if _, err := r.base.RequestRPC(ctx, "POST", "rpc/miniapp_stats_rollup", payload, ""); err != nil {
+	if _, err := r.base.RequestRPC(ctx, http.MethodPost, "rpc/miniapp_stats_rollup", payload, ""); err != nil {
 		return fmt.Errorf("rollup miniapp stats: %w", err)
 	}
 	return nil
@@ -203,7 +204,7 @@ func (r *Repository) BumpMiniAppUsage(ctx context.Context, userID, appID string,
 		"p_governance_cap":   nil,
 	}
 
-	if _, err := r.base.RequestRPC(ctx, "POST", "rpc/miniapp_usage_bump", payload, ""); err != nil {
+	if _, err := r.base.RequestRPC(ctx, http.MethodPost, "rpc/miniapp_usage_bump", payload, ""); err != nil {
 		return fmt.Errorf("bump miniapp usage: %w", err)
 	}
 	return nil

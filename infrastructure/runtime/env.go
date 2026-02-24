@@ -70,6 +70,18 @@ func ParseEnvInt(key string) (int, bool) {
 	return value, true
 }
 
+// LoadEnvInt resolves an integer configuration value using a three-tier
+// fallback: configValue (if > 0) → environment variable → defaultValue.
+func LoadEnvInt(envVar string, configValue, defaultValue int) int {
+	if configValue > 0 {
+		return configValue
+	}
+	if parsed, ok := ParseEnvInt(envVar); ok && parsed > 0 {
+		return parsed
+	}
+	return defaultValue
+}
+
 // ParseEnvBool interprets a raw string as a boolean.
 // Recognizes "1", "true", "yes", "y", "on" (case-insensitive) as true;
 // everything else (including empty) is false.

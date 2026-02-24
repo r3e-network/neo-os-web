@@ -4,6 +4,7 @@ package supabase
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
@@ -103,7 +104,7 @@ func (r *Repository) UpdateTrigger(ctx context.Context, trigger *Trigger) error 
 		Eq("user_id", trigger.UserID).
 		Build()
 
-	_, err := r.base.Request(ctx, "PATCH", triggersTable, trigger, query)
+	_, err := r.base.Request(ctx, http.MethodPatch, triggersTable, trigger, query)
 	if err != nil {
 		return fmt.Errorf("update neoflow trigger: %w", err)
 	}
@@ -121,7 +122,7 @@ func (r *Repository) DeleteTrigger(ctx context.Context, id, userID string) error
 		Eq("user_id", userID).
 		Build()
 
-	_, err := r.base.Request(ctx, "DELETE", triggersTable, nil, query)
+	_, err := r.base.Request(ctx, http.MethodDelete, triggersTable, nil, query)
 	if err != nil {
 		return fmt.Errorf("delete neoflow trigger: %w", err)
 	}
@@ -144,7 +145,7 @@ func (r *Repository) SetTriggerEnabled(ctx context.Context, id, userID string, e
 		Eq("user_id", userID).
 		Build()
 
-	_, err := r.base.Request(ctx, "PATCH", triggersTable, update, query)
+	_, err := r.base.Request(ctx, http.MethodPatch, triggersTable, update, query)
 	if err != nil {
 		return fmt.Errorf("set neoflow trigger enabled: %w", err)
 	}

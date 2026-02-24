@@ -16,20 +16,20 @@ func TestNewFromEnv(t *testing.T) {
 	savedFormat := os.Getenv("LOG_FORMAT")
 	defer func() {
 		if savedLevel != "" {
-			os.Setenv("LOG_LEVEL", savedLevel)
+			t.Setenv("LOG_LEVEL", savedLevel)
 		} else {
-			os.Unsetenv("LOG_LEVEL")
+			t.Setenv("LOG_LEVEL", "")
 		}
 		if savedFormat != "" {
-			os.Setenv("LOG_FORMAT", savedFormat)
+			t.Setenv("LOG_FORMAT", savedFormat)
 		} else {
-			os.Unsetenv("LOG_FORMAT")
+			t.Setenv("LOG_FORMAT", "")
 		}
 	}()
 
 	t.Run("defaults when env not set", func(t *testing.T) {
-		os.Unsetenv("LOG_LEVEL")
-		os.Unsetenv("LOG_FORMAT")
+		t.Setenv("LOG_LEVEL", "")
+		t.Setenv("LOG_FORMAT", "")
 
 		logger := NewFromEnv("test-service")
 		if logger == nil {
@@ -38,8 +38,8 @@ func TestNewFromEnv(t *testing.T) {
 	})
 
 	t.Run("custom level and format", func(t *testing.T) {
-		os.Setenv("LOG_LEVEL", "debug")
-		os.Setenv("LOG_FORMAT", "text")
+		t.Setenv("LOG_LEVEL", "debug")
+		t.Setenv("LOG_FORMAT", "text")
 
 		logger := NewFromEnv("test-service")
 		if logger == nil {
@@ -48,8 +48,8 @@ func TestNewFromEnv(t *testing.T) {
 	})
 
 	t.Run("whitespace trimmed", func(t *testing.T) {
-		os.Setenv("LOG_LEVEL", "  warn  ")
-		os.Setenv("LOG_FORMAT", "  json  ")
+		t.Setenv("LOG_LEVEL", "  warn  ")
+		t.Setenv("LOG_FORMAT", "  json  ")
 
 		logger := NewFromEnv("test-service")
 		if logger == nil {

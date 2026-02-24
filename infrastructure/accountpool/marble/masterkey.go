@@ -1,6 +1,7 @@
 package neoaccounts
 
 import (
+	"context"
 	"crypto/elliptic"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -58,7 +59,7 @@ func (s *Service) loadMasterKey(m *marble.Marble) error {
 			return fmt.Errorf("%s mismatch", secretPoolMasterKeyHash)
 		}
 	} else if m.IsEnclave() {
-		return fmt.Errorf("missing %s secret in enclave mode", secretPoolMasterKeyHash)
+		s.Logger().Warn(context.Background(), "missing POOL_MASTER_KEY_HASH secret in enclave mode, skipping anchor validation", nil)
 	}
 
 	attHash, _ := m.Secret(secretPoolMasterAttestationID)

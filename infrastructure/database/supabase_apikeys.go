@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 )
@@ -21,7 +22,7 @@ func (r *Repository) CreateAPIKey(ctx context.Context, key *APIKey) error {
 		return err
 	}
 
-	data, err := r.client.request(ctx, "POST", "api_keys", key, "")
+	data, err := r.client.request(ctx, http.MethodPost, "api_keys", key, "")
 	if err != nil {
 		return fmt.Errorf("%w: create api key: %v", ErrDatabaseError, err)
 	}
@@ -43,7 +44,7 @@ func (r *Repository) GetAPIKeys(ctx context.Context, userID string) ([]APIKey, e
 	}
 
 	query := fmt.Sprintf("user_id=eq.%s&revoked=eq.false&order=created_at.desc", url.QueryEscape(userID))
-	data, err := r.client.request(ctx, "GET", "api_keys", nil, query)
+	data, err := r.client.request(ctx, http.MethodGet, "api_keys", nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: get api keys: %v", ErrDatabaseError, err)
 	}
@@ -63,7 +64,7 @@ func (r *Repository) GetAPIKeyByHash(ctx context.Context, keyHash string) (*APIK
 	keyHash = SanitizeString(keyHash)
 
 	query := fmt.Sprintf("key_hash=eq.%s&revoked=eq.false&limit=1", url.QueryEscape(keyHash))
-	data, err := r.client.request(ctx, "GET", "api_keys", nil, query)
+	data, err := r.client.request(ctx, http.MethodGet, "api_keys", nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: get api key by hash: %v", ErrDatabaseError, err)
 	}
@@ -91,7 +92,7 @@ func (r *Repository) RevokeAPIKey(ctx context.Context, keyID, userID string) err
 		"revoked": true,
 	}
 	query := fmt.Sprintf("id=eq.%s&user_id=eq.%s", url.QueryEscape(keyID), url.QueryEscape(userID))
-	_, err := r.client.request(ctx, "PATCH", "api_keys", update, query)
+	_, err := r.client.request(ctx, http.MethodPatch, "api_keys", update, query)
 	if err != nil {
 		return fmt.Errorf("%w: revoke api key: %v", ErrDatabaseError, err)
 	}
@@ -107,7 +108,7 @@ func (r *Repository) UpdateAPIKeyLastUsed(ctx context.Context, keyID string) err
 	update := map[string]interface{}{
 		"last_used": time.Now(),
 	}
-	_, err := r.client.request(ctx, "PATCH", "api_keys", update, "id=eq."+url.QueryEscape(keyID))
+	_, err := r.client.request(ctx, http.MethodPatch, "api_keys", update, "id=eq."+url.QueryEscape(keyID))
 	if err != nil {
 		return fmt.Errorf("%w: update api key last used: %v", ErrDatabaseError, err)
 	}

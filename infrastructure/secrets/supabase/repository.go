@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
@@ -25,7 +26,7 @@ func (r *repository) GetEncryptedSecret(ctx context.Context, userID, serviceID, 
 	query := fmt.Sprintf("user_id=eq.%s&service_id=eq.%s&secret_name=eq.%s&limit=1",
 		url.QueryEscape(userID), url.QueryEscape(serviceID), url.QueryEscape(secretName))
 
-	data, err := r.base.Request(ctx, "GET", secretsTable, nil, query)
+	data, err := r.base.Request(ctx, http.MethodGet, secretsTable, nil, query)
 	if err != nil {
 		return nil, fmt.Errorf("secrets: get encrypted secret: %w", err)
 	}

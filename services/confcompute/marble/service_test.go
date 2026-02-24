@@ -14,11 +14,11 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 func TestNew(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, err := New(Config{Marble: m})
@@ -43,7 +43,6 @@ func TestServiceConstants(t *testing.T) {
 }
 
 func TestResultTTLConfiguredViaEnv(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	t.Setenv("NEOCOMPUTE_RESULT_TTL", "2h")
 
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
@@ -56,7 +55,6 @@ func TestResultTTLConfiguredViaEnv(t *testing.T) {
 }
 
 func TestGetJobRespectsTTL(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{Marble: m, ResultTTL: time.Millisecond})
@@ -77,7 +75,6 @@ func TestGetJobRespectsTTL(t *testing.T) {
 }
 
 func TestCleanupWorkerRemovesExpiredJobs(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{
@@ -110,7 +107,6 @@ func TestCleanupWorkerRemovesExpiredJobs(t *testing.T) {
 }
 
 func TestExecute(t *testing.T) {
-	t.Setenv("OE_SIMULATION", "1")
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{Marble: m})
@@ -213,14 +209,14 @@ func TestHandleExecuteUnauthorized(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/execute", nil)
 	rr := httptest.NewRecorder()
-	svc.handleExecute(rr, req)
+	httputil.WithUserAuth(svc.handleExecute).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
 	}
 }
 
-func skip_TestHandleExecuteInvalidBody(t *testing.T) {
+func TestHandleExecuteInvalidBody(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{Marble: m})
@@ -228,14 +224,14 @@ func skip_TestHandleExecuteInvalidBody(t *testing.T) {
 	req := httptest.NewRequest("POST", "/execute", bytes.NewReader([]byte("invalid")))
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
-	svc.handleExecute(rr, req)
+	httputil.WithUserAuth(svc.handleExecute).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
 	}
 }
 
-func skip_TestHandleExecuteMissingScript(t *testing.T) {
+func TestHandleExecuteMissingScript(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{Marble: m})
@@ -245,14 +241,14 @@ func skip_TestHandleExecuteMissingScript(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
-	svc.handleExecute(rr, req)
+	httputil.WithUserAuth(svc.handleExecute).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusBadRequest)
 	}
 }
 
-func skip_TestHandleExecuteSuccess(t *testing.T) {
+func TestHandleExecuteSuccess(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{Marble: m})
@@ -262,14 +258,14 @@ func skip_TestHandleExecuteSuccess(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
-	svc.handleExecute(rr, req)
+	httputil.WithUserAuth(svc.handleExecute).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
 	}
 }
 
-func skip_TestHandleGetJob(t *testing.T) {
+func TestHandleGetJob(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{Marble: m})
@@ -281,14 +277,14 @@ func skip_TestHandleGetJob(t *testing.T) {
 	req.Header.Set("X-User-ID", "user-123")
 	req = mux.SetURLVars(req, map[string]string{"id": "job-123"})
 	rr := httptest.NewRecorder()
-	svc.handleGetJob(rr, req)
+	httputil.WithUserAuth(svc.handleGetJob).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)
 	}
 }
 
-func skip_TestHandleListJobs(t *testing.T) {
+func TestHandleListJobs(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{Marble: m})
@@ -298,7 +294,7 @@ func skip_TestHandleListJobs(t *testing.T) {
 	req := httptest.NewRequest("GET", "/jobs", nil)
 	req.Header.Set("X-User-ID", "user-123")
 	rr := httptest.NewRecorder()
-	svc.handleListJobs(rr, req)
+	httputil.WithUserAuth(svc.handleListJobs).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rr.Code, http.StatusOK)

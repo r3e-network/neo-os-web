@@ -9,7 +9,7 @@ import (
 func onlyGetOrHead(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			httputil.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+			httputil.WriteErrorResponse(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed", nil)
 			return
 		}
 		next(w, r)

@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -327,7 +328,7 @@ func insertBatch(ctx context.Context, repo *database.Repository, accounts []*Gen
 	}
 
 	// Pass accounts directly - repo.Request will marshal to JSON
-	resp, err := repo.Request(ctx, "POST", "pool_accounts", accounts, "")
+	resp, err := repo.Request(ctx, http.MethodPost, "pool_accounts", accounts, "")
 	if err != nil {
 		fmt.Printf("   ⚠️  Insert error: %v\n", err)
 		fmt.Printf("   ⚠️  First account: %s\n", accounts[0].Address)

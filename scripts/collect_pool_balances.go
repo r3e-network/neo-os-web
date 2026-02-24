@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -243,7 +244,7 @@ func printConfig(cfg *config) {
 
 func fetchPoolAccounts(ctx context.Context, repo *database.Repository) ([]PoolAccount, error) {
 	// Query all pool accounts using the Repository's Request method
-	resp, err := repo.Request(ctx, "GET", "pool_accounts", nil, "select=id,address,locked_by,is_retiring")
+	resp, err := repo.Request(ctx, http.MethodGet, "pool_accounts", nil, "select=id,address,locked_by,is_retiring")
 	if err != nil {
 		return nil, fmt.Errorf("query pool_accounts: %w", err)
 	}

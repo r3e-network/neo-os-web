@@ -91,7 +91,7 @@ func (d *Deployer) call(method string, params ...interface{}) (*chain.RPCRespons
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequest("POST", d.rpcURL, bytes.NewReader(body))
+	httpReq, err := http.NewRequest(http.MethodPost, d.rpcURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}

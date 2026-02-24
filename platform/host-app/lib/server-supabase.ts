@@ -1,4 +1,3 @@
-// TODO: generate typed Database with `supabase gen types typescript` and import here.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const BUILD_FALLBACK_URL = "https://localhost.supabase.co";

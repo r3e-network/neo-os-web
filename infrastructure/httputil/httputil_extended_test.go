@@ -20,14 +20,14 @@ func TestNormalizeServiceBaseURL(t *testing.T) {
 	savedStrict := os.Getenv("STRICT_IDENTITY_MODE")
 	defer func() {
 		if savedStrict != "" {
-			os.Setenv("STRICT_IDENTITY_MODE", savedStrict)
+			t.Setenv("STRICT_IDENTITY_MODE", savedStrict)
 		} else {
-			os.Unsetenv("STRICT_IDENTITY_MODE")
+			t.Setenv("STRICT_IDENTITY_MODE", "")
 		}
 	}()
 
 	t.Run("valid https URL", func(t *testing.T) {
-		os.Unsetenv("STRICT_IDENTITY_MODE")
+		t.Setenv("STRICT_IDENTITY_MODE", "")
 		baseURL, parsed, err := NormalizeServiceBaseURL("https://example.com/api/")
 		if err != nil {
 			t.Fatalf("NormalizeServiceBaseURL() error = %v", err)
@@ -41,7 +41,7 @@ func TestNormalizeServiceBaseURL(t *testing.T) {
 	})
 
 	t.Run("valid http URL in non-strict mode", func(t *testing.T) {
-		os.Unsetenv("STRICT_IDENTITY_MODE")
+		t.Setenv("STRICT_IDENTITY_MODE", "")
 		baseURL, _, err := NormalizeServiceBaseURL("http://localhost:8080")
 		if err != nil {
 			t.Fatalf("NormalizeServiceBaseURL() error = %v", err)
@@ -75,20 +75,20 @@ func TestStrictIdentityMode(t *testing.T) {
 	savedStrict := os.Getenv("STRICT_IDENTITY_MODE")
 	defer func() {
 		if savedStrict != "" {
-			os.Setenv("STRICT_IDENTITY_MODE", savedStrict)
+			t.Setenv("STRICT_IDENTITY_MODE", savedStrict)
 		} else {
-			os.Unsetenv("STRICT_IDENTITY_MODE")
+			t.Setenv("STRICT_IDENTITY_MODE", "")
 		}
 	}()
 
 	t.Run("disabled by default", func(t *testing.T) {
-		os.Unsetenv("STRICT_IDENTITY_MODE")
+		t.Setenv("STRICT_IDENTITY_MODE", "")
 		// Just verify it doesn't panic
 		_ = StrictIdentityMode()
 	})
 
 	t.Run("enabled when set", func(t *testing.T) {
-		os.Setenv("STRICT_IDENTITY_MODE", "true")
+		t.Setenv("STRICT_IDENTITY_MODE", "true")
 		// Just verify it doesn't panic
 		_ = StrictIdentityMode()
 	})

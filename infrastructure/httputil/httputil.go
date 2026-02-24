@@ -324,6 +324,19 @@ func RequireUserID(w http.ResponseWriter, r *http.Request) (string, bool) {
 	return userID, true
 }
 
+// WithUserAuth wraps a handler that requires an authenticated user ID.
+// It extracts the user ID via RequireUserID and passes it to fn.
+// Returns 401 Unauthorized if no user ID is present.
+func WithUserAuth(fn func(w http.ResponseWriter, r *http.Request, userID string)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, ok := RequireUserID(w, r)
+		if !ok {
+			return
+		}
+		fn(w, r, userID)
+	}
+}
+
 // RequireAdminRole verifies the user role is admin or super_admin.
 // Returns false and writes a 403 Forbidden response if the role check fails.
 func RequireAdminRole(w http.ResponseWriter, r *http.Request) bool {
