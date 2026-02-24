@@ -41,17 +41,18 @@ CREATE INDEX IF NOT EXISTS pool_accounts_is_retiring_idx ON pool_accounts (is_re
 -- =============================================================================
 -- Account Balances (multi-token support)
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS account_balances (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS pool_pool_account_balances (
     account_id UUID NOT NULL REFERENCES pool_accounts(id) ON DELETE CASCADE,
-    token TEXT NOT NULL,
-    balance BIGINT NOT NULL DEFAULT 0,
+    token_type VARCHAR(32) NOT NULL,
+    script_hash VARCHAR(66) NOT NULL,
+    amount BIGINT NOT NULL DEFAULT 0,
+    decimals INT NOT NULL DEFAULT 8,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(account_id, token)
+    PRIMARY KEY (account_id, token_type)
 );
 
-CREATE INDEX IF NOT EXISTS account_balances_account_idx ON account_balances(account_id);
-CREATE INDEX IF NOT EXISTS account_balances_token_idx ON account_balances(token);
+CREATE INDEX IF NOT EXISTS pool_pool_account_balances_account_idx ON pool_pool_account_balances(account_id);
+CREATE INDEX IF NOT EXISTS pool_pool_account_balances_token_idx ON pool_pool_account_balances(token_type);
 
 -- =============================================================================
 -- Chain Transactions (audit trail)
@@ -90,7 +91,7 @@ CREATE INDEX IF NOT EXISTS contract_events_event_idx ON contract_events(event_na
 -- =============================================================================
 -- Simulation Transactions (for neosimulation service)
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS simulation_txs (
+CREATE TABLE IF NOT EXISTS simulation_transactions (
     id BIGSERIAL PRIMARY KEY,
     app_id TEXT NOT NULL,
     account_address TEXT NOT NULL,
@@ -101,49 +102,49 @@ CREATE TABLE IF NOT EXISTS simulation_txs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS simulation_txs_app_idx ON simulation_txs(app_id);
-CREATE INDEX IF NOT EXISTS simulation_txs_created_idx ON simulation_txs(created_at DESC);
-CREATE INDEX IF NOT EXISTS simulation_txs_tx_hash_idx ON simulation_txs(tx_hash);
+CREATE INDEX IF NOT EXISTS simulation_transactions_app_idx ON simulation_transactions(app_id);
+CREATE INDEX IF NOT EXISTS simulation_transactions_created_idx ON simulation_transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS simulation_transactions_tx_hash_idx ON simulation_transactions(tx_hash);
 
 -- =============================================================================
 -- Row Level Security
 -- =============================================================================
 ALTER TABLE pool_accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE account_balances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pool_account_balances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chain_txs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contract_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE simulation_txs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE simulation_transactions ENABLE ROW LEVEL SECURITY;
 
 -- Service role policies (allow all for service role)
 DO $$
 BEGIN
     -- Drop existing policies if they exist
     DROP POLICY IF EXISTS service_all ON pool_accounts;
-    DROP POLICY IF EXISTS service_all ON account_balances;
+    DROP POLICY IF EXISTS service_all ON pool_account_balances;
     DROP POLICY IF EXISTS service_all ON chain_txs;
     DROP POLICY IF EXISTS service_all ON contract_events;
-    DROP POLICY IF EXISTS service_all ON simulation_txs;
+    DROP POLICY IF EXISTS service_all ON simulation_transactions;
 EXCEPTION WHEN undefined_object THEN
     NULL;
 END $$;
 
 CREATE POLICY service_all ON pool_accounts FOR ALL TO service_role USING (true);
-CREATE POLICY service_all ON account_balances FOR ALL TO service_role USING (true);
+CREATE POLICY service_all ON pool_account_balances FOR ALL TO service_role USING (true);
 CREATE POLICY service_all ON chain_txs FOR ALL TO service_role USING (true);
 CREATE POLICY service_all ON contract_events FOR ALL TO service_role USING (true);
-CREATE POLICY service_all ON simulation_txs FOR ALL TO service_role USING (true);
+CREATE POLICY service_all ON simulation_transactions FOR ALL TO service_role USING (true);
 
 -- Grant permissions to authenticated and anon roles for read access
 GRANT SELECT ON pool_accounts TO authenticated, anon;
-GRANT SELECT ON account_balances TO authenticated, anon;
+GRANT SELECT ON pool_account_balances TO authenticated, anon;
 GRANT SELECT ON chain_txs TO authenticated, anon;
 GRANT SELECT ON contract_events TO authenticated, anon;
-GRANT SELECT ON simulation_txs TO authenticated, anon;
+GRANT SELECT ON simulation_transactions TO authenticated, anon;
 
 -- Grant all permissions to service_role
 GRANT ALL ON pool_accounts TO service_role;
-GRANT ALL ON account_balances TO service_role;
+GRANT ALL ON pool_account_balances TO service_role;
 GRANT ALL ON chain_txs TO service_role;
 GRANT ALL ON contract_events TO service_role;
-GRANT ALL ON simulation_txs TO service_role;
+GRANT ALL ON simulation_transactions TO service_role;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO service_role;
