@@ -13,7 +13,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 
@@ -59,7 +59,7 @@ func TestServiceConstants(t *testing.T) {
 }
 
 func TestDeductFeeValidation(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -95,7 +95,7 @@ func TestDeductFeeValidation(t *testing.T) {
 }
 
 func TestDeductFeeInsufficientBalance(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -127,7 +127,7 @@ func TestDeductFeeInsufficientBalance(t *testing.T) {
 }
 
 func TestDeductFeeSuccess(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -163,7 +163,7 @@ func TestDeductFeeSuccess(t *testing.T) {
 }
 
 func TestReserveFundsValidation(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -190,7 +190,7 @@ func TestReserveFundsValidation(t *testing.T) {
 }
 
 func TestReserveFundsSuccess(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -220,7 +220,7 @@ func TestReserveFundsSuccess(t *testing.T) {
 }
 
 func TestReleaseFundsValidation(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -237,7 +237,7 @@ func TestReleaseFundsValidation(t *testing.T) {
 }
 
 func TestGetAccountCreatesNew(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -257,7 +257,7 @@ func TestGetAccountCreatesNew(t *testing.T) {
 }
 
 func TestHandleDeductFeeNoServiceID(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -276,7 +276,7 @@ func TestHandleDeductFeeNoServiceID(t *testing.T) {
 }
 
 func TestHandleDeductFeeWithServiceID(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -363,7 +363,7 @@ func TestTypesJSONSerialization(t *testing.T) {
 }
 
 func TestHandleGetAccountNoUserID(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -380,7 +380,7 @@ func TestHandleGetAccountNoUserID(t *testing.T) {
 }
 
 func TestHandleGetAccountSuccess(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -405,7 +405,7 @@ func TestHandleGetAccountSuccess(t *testing.T) {
 }
 
 func TestHandleReserveFundsNoServiceID(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -423,7 +423,7 @@ func TestHandleReserveFundsNoServiceID(t *testing.T) {
 }
 
 func TestHandleReserveFundsSuccess(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -450,7 +450,7 @@ func TestHandleReserveFundsSuccess(t *testing.T) {
 }
 
 func TestHandleReleaseFundsNoServiceID(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -468,7 +468,7 @@ func TestHandleReleaseFundsNoServiceID(t *testing.T) {
 }
 
 func TestHandleReleaseFundsSuccess(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -495,7 +495,7 @@ func TestHandleReleaseFundsSuccess(t *testing.T) {
 }
 
 func TestReleaseFundsWithCommit(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -525,7 +525,7 @@ func TestReleaseFundsWithCommit(t *testing.T) {
 }
 
 func TestReleaseFundsInsufficientReserved(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -551,7 +551,7 @@ func TestReleaseFundsInsufficientReserved(t *testing.T) {
 }
 
 func TestReserveFundsInsufficientBalance(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -577,7 +577,7 @@ func TestReserveFundsInsufficientBalance(t *testing.T) {
 }
 
 func TestGetAccountEmptyUserID(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -589,7 +589,7 @@ func TestGetAccountEmptyUserID(t *testing.T) {
 }
 
 func TestStatistics(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -669,7 +669,7 @@ func TestDepositInfoJSONSerialization(t *testing.T) {
 }
 
 func TestHandleDeductFeePaymentRequired(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -696,7 +696,7 @@ func TestHandleDeductFeePaymentRequired(t *testing.T) {
 }
 
 func TestHandleReserveFundsPaymentRequired(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -723,7 +723,7 @@ func TestHandleReserveFundsPaymentRequired(t *testing.T) {
 }
 
 func TestHandleReleaseFundsBadRequest(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -750,7 +750,7 @@ func TestHandleReleaseFundsBadRequest(t *testing.T) {
 }
 
 func TestHandleGetTransactionsNoUserID(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -766,7 +766,7 @@ func TestHandleGetTransactionsNoUserID(t *testing.T) {
 }
 
 func TestHandleGetTransactionsSuccess(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -791,7 +791,7 @@ func TestHandleGetTransactionsSuccess(t *testing.T) {
 }
 
 func TestHandleGetDepositsNoUserID(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -807,7 +807,7 @@ func TestHandleGetDepositsNoUserID(t *testing.T) {
 }
 
 func TestHandleGetDepositsSuccess(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -824,7 +824,7 @@ func TestHandleGetDepositsSuccess(t *testing.T) {
 }
 
 func TestProcessDepositVerificationNoChainClient(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -849,7 +849,7 @@ func TestGetPendingDepositsNilDB(t *testing.T) {
 }
 
 func TestVerifyTransactionNoChainClient(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -861,7 +861,7 @@ func TestVerifyTransactionNoChainClient(t *testing.T) {
 }
 
 func TestCleanupExpiredDeposits(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -897,7 +897,7 @@ func TestRequiredConfirmationsConstant(t *testing.T) {
 }
 
 func TestHandleDeductFeeInvalidJSON(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -915,7 +915,7 @@ func TestHandleDeductFeeInvalidJSON(t *testing.T) {
 }
 
 func TestHandleReserveFundsInvalidJSON(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -933,7 +933,7 @@ func TestHandleReserveFundsInvalidJSON(t *testing.T) {
 }
 
 func TestHandleReleaseFundsInvalidJSON(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -951,7 +951,7 @@ func TestHandleReleaseFundsInvalidJSON(t *testing.T) {
 }
 
 func TestReleaseFundsValidationEmptyUserID(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -969,7 +969,7 @@ func TestReleaseFundsValidationEmptyUserID(t *testing.T) {
 }
 
 func TestReleaseFundsValidationZeroAmount(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -987,7 +987,7 @@ func TestReleaseFundsValidationZeroAmount(t *testing.T) {
 }
 
 func TestDeductFeeNegativeAmount(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1006,7 +1006,7 @@ func TestDeductFeeNegativeAmount(t *testing.T) {
 }
 
 func TestReserveFundsNegativeAmount(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1024,7 +1024,7 @@ func TestReserveFundsNegativeAmount(t *testing.T) {
 }
 
 func TestReleaseFundsNegativeAmount(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1042,7 +1042,7 @@ func TestReleaseFundsNegativeAmount(t *testing.T) {
 }
 
 func TestGetPendingDepositsWithDB(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1065,7 +1065,7 @@ func TestProcessDepositVerificationNilDB(t *testing.T) {
 }
 
 func TestReserveFundsResponseFields(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1094,7 +1094,7 @@ func TestReserveFundsResponseFields(t *testing.T) {
 }
 
 func TestReleaseFundsResponseFields(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1121,7 +1121,7 @@ func TestReleaseFundsResponseFields(t *testing.T) {
 }
 
 func TestDeductFeeTransactionRecorded(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1153,7 +1153,7 @@ func TestDeductFeeTransactionRecorded(t *testing.T) {
 }
 
 func TestGetAccountResponseFields(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1188,7 +1188,7 @@ func TestGetAccountResponseFields(t *testing.T) {
 }
 
 func TestDeductFeeErrorMessage(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1218,7 +1218,7 @@ func TestDeductFeeErrorMessage(t *testing.T) {
 }
 
 func TestReserveFundsBalanceAfterOnFailure(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})
@@ -1244,7 +1244,7 @@ func TestReserveFundsBalanceAfterOnFailure(t *testing.T) {
 }
 
 func TestReleaseFundsBalanceAfterOnFailure(t *testing.T) {
-        t.Skip("Skipping SGX dependent test on non-SGX host")
+	t.Skip("Skipping SGX dependent test on non-SGX host")
 	m, _ := marble.New(marble.Config{MarbleType: ServiceID})
 	mockDB := database.NewMockRepository()
 	svc, _ := New(Config{Marble: m, DB: mockDB})

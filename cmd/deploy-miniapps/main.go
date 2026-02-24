@@ -13,16 +13,16 @@ import (
 )
 
 var newMiniApps = []string{
-        "MiniAppCandidateVote",
-        "MiniAppCoinFlip",
-        "MiniAppDevTipping",
-        "MiniAppDiceGame",
-        "MiniAppGasCircle",
-        "MiniAppLottery",
-        "MiniAppPredictionMarket",
-        "MiniAppRedEnvelope",
-        "MiniAppSecretVote",
-        "MiniAppTemplates",
+	"MiniAppCandidateVote",
+	"MiniAppCoinFlip",
+	"MiniAppDevTipping",
+	"MiniAppDiceGame",
+	"MiniAppGasCircle",
+	"MiniAppLottery",
+	"MiniAppPredictionMarket",
+	"MiniAppRedEnvelope",
+	"MiniAppSecretVote",
+	"MiniAppTemplates",
 }
 
 type DeployResult struct {

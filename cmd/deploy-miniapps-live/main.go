@@ -20,7 +20,7 @@ import (
 )
 
 var miniApps = []string{
-        "MiniAppTemplates",
+	"MiniAppTemplates",
 }
 
 const (
