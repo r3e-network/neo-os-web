@@ -25,13 +25,13 @@ type Config struct {
 	PostgresPassword string `json:"-"`
 	PostgresSSLMode  string
 
-	        // Neo N3 RPC endpoints
-	        MainnetRPCURL string
-	        TestnetRPCURL string
-	
-	        // Neo X (EVM) RPC endpoints
-	        NeoXMainnetRPCURL string
-	        NeoXTestnetRPCURL string
+	// Neo N3 RPC endpoints
+	MainnetRPCURL string
+	TestnetRPCURL string
+
+	// Neo X (EVM) RPC endpoints
+	NeoXMainnetRPCURL string
+	NeoXTestnetRPCURL string
 	// Indexer settings
 	Networks   []Network // Support multiple networks
 	StartBlock uint64
@@ -107,20 +107,20 @@ func LoadFromEnv() (*Config, error) {
 	if cfg.MainnetRPCURL == "" {
 		cfg.MainnetRPCURL = "https://mainnet1.neo.coz.io:443"
 	}
-	    cfg.TestnetRPCURL = os.Getenv("INDEXER_NEO_TESTNET_RPC")
-	    if cfg.TestnetRPCURL == "" {
-	        cfg.TestnetRPCURL = "https://testnet1.neo.coz.io:443"
-	    }
-	
-	    cfg.NeoXMainnetRPCURL = os.Getenv("INDEXER_NEOX_MAINNET_RPC")
-	    if cfg.NeoXMainnetRPCURL == "" {
-	        cfg.NeoXMainnetRPCURL = "https://mainnet-1.rpc.banelabs.org"
-	    }
-	
-	    cfg.NeoXTestnetRPCURL = os.Getenv("INDEXER_NEOX_TESTNET_RPC")
-	    if cfg.NeoXTestnetRPCURL == "" {
-	        cfg.NeoXTestnetRPCURL = "https://testnet.rpc.banelabs.org"
-	    }
+	cfg.TestnetRPCURL = os.Getenv("INDEXER_NEO_TESTNET_RPC")
+	if cfg.TestnetRPCURL == "" {
+		cfg.TestnetRPCURL = "https://testnet1.neo.coz.io:443"
+	}
+
+	cfg.NeoXMainnetRPCURL = os.Getenv("INDEXER_NEOX_MAINNET_RPC")
+	if cfg.NeoXMainnetRPCURL == "" {
+		cfg.NeoXMainnetRPCURL = "https://mainnet-1.rpc.banelabs.org"
+	}
+
+	cfg.NeoXTestnetRPCURL = os.Getenv("INDEXER_NEOX_TESTNET_RPC")
+	if cfg.NeoXTestnetRPCURL == "" {
+		cfg.NeoXTestnetRPCURL = "https://testnet.rpc.banelabs.org"
+	}
 	// Network selection - supports "both", "mainnet", "testnet", or comma-separated
 	if net := os.Getenv("INDEXER_NETWORKS"); net != "" {
 		cfg.Networks = parseNetworks(net)
