@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
@@ -153,7 +154,7 @@ func (r *Repository) TryLockAccount(ctx context.Context, accountID, serviceID st
 		IsFalse("is_retiring").
 		Build()
 
-	data, err := r.base.Request(ctx, "PATCH", tableName, update, query)
+	data, err := r.base.Request(ctx, http.MethodPatch, tableName, update, query)
 	if err != nil {
 		return false, err
 	}
@@ -264,42 +265,46 @@ func (r *Repository) ListByLockerWithBalances(ctx context.Context, lockerID stri
 
 // ListLowBalanceAccounts returns accounts with balance below the specified threshold.
 // This is useful for auto top-up workers that need to find accounts requiring funding.
+// Pushes filtering to the database to avoid loading all accounts into memory.
 func (r *Repository) ListLowBalanceAccounts(ctx context.Context, tokenType string, maxBalance int64, limit int) ([]AccountWithBalances, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 10
 	}
 
-	// Get all accounts (we need to check balances)
-	accounts, err := r.List(ctx)
+	// Query balances table directly for low-balance rows
+	balQuery := database.NewQuery().
+		Eq("token_type", tokenType).
+		Lt("amount", fmt.Sprintf("%d", maxBalance)).
+		Limit(limit).
+		Build()
+
+	balances, err := database.GenericListWithQuery[AccountBalance](r.base, ctx, balancesTableName, balQuery)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list low balances: %w", err)
 	}
 
-	// Hydrate with balances
-	accountsWithBalances, err := r.hydrateAccountsWithBalances(ctx, accounts)
+	if len(balances) == 0 {
+		return []AccountWithBalances{}, nil
+	}
+
+	// Collect unique account IDs from balance rows
+	accountIDs := make([]string, 0, len(balances))
+	for i := range balances {
+		accountIDs = append(accountIDs, balances[i].AccountID)
+	}
+
+	// Fetch only those accounts, excluding retiring ones
+	accQuery := database.NewQuery().
+		In("id", accountIDs).
+		IsFalse("is_retiring").
+		Build()
+
+	accounts, err := database.GenericListWithQuery[Account](r.base, ctx, tableName, accQuery)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list accounts for low balances: %w", err)
 	}
 
-	// Filter by token balance below threshold
-	filtered := make([]AccountWithBalances, 0, limit)
-	for i := range accountsWithBalances {
-		acc := &accountsWithBalances[i]
-		// Skip retiring accounts
-		if acc.IsRetiring {
-			continue
-		}
-		// Check if balance is below threshold
-		balance := acc.GetBalance(tokenType)
-		if balance < maxBalance {
-			filtered = append(filtered, *acc)
-			if len(filtered) >= limit {
-				break
-			}
-		}
-	}
-
-	return filtered, nil
+	return r.hydrateAccountsWithBalances(ctx, accounts)
 }
 
 // ListRotationCandidatesWithBalances returns unlocked, non-retiring accounts
@@ -462,16 +467,10 @@ func (r *Repository) DeleteBalances(ctx context.Context, accountID string) error
 // =============================================================================
 
 // AggregateTokenStats calculates aggregate statistics for a token type.
-// Uses batch query to avoid N+1 problem.
+// Queries balances directly, then fetches only the relevant accounts for lock/retire status.
 func (r *Repository) AggregateTokenStats(ctx context.Context, tokenType string) (*TokenStats, error) {
 	if tokenType == "" {
 		return nil, fmt.Errorf("token_type is required")
-	}
-
-	// Get all accounts
-	accounts, err := r.List(ctx)
-	if err != nil {
-		return nil, err
 	}
 
 	scriptHash, _ := GetDefaultTokenConfig(tokenType)
@@ -480,36 +479,40 @@ func (r *Repository) AggregateTokenStats(ctx context.Context, tokenType string) 
 		ScriptHash: scriptHash,
 	}
 
-	if len(accounts) == 0 {
-		return stats, nil
-	}
-
-	// Collect all account IDs for batch query
-	accountIDs := make([]string, len(accounts))
-	for i := range accounts {
-		accountIDs[i] = accounts[i].ID
-	}
-
-	// Fetch all balances for the specific token type in a single query
-	query := database.NewQuery().
-		In("account_id", accountIDs).
+	// Query balances table directly filtered by token_type
+	balQuery := database.NewQuery().
 		Eq("token_type", tokenType).
 		Build()
 
-	balances, err := database.GenericListWithQuery[AccountBalance](r.base, ctx, balancesTableName, query)
+	balances, err := database.GenericListWithQuery[AccountBalance](r.base, ctx, balancesTableName, balQuery)
 	if err != nil {
-		return stats, nil // Return empty stats on error
+		return stats, nil
 	}
 
-	// Build a map of account_id -> balance for O(1) lookup
-	balanceMap := make(map[string]*AccountBalance)
+	if len(balances) == 0 {
+		return stats, nil
+	}
+
+	// Build balance map and collect account IDs
+	balanceMap := make(map[string]*AccountBalance, len(balances))
+	accountIDs := make([]string, 0, len(balances))
 	for i := range balances {
 		bal := &balances[i]
 		balanceMap[bal.AccountID] = bal
-		// Update script hash from actual data if available
+		accountIDs = append(accountIDs, bal.AccountID)
 		if bal.ScriptHash != "" {
 			stats.ScriptHash = bal.ScriptHash
 		}
+	}
+
+	// Fetch only accounts that have balances
+	accQuery := database.NewQuery().
+		In("id", accountIDs).
+		Build()
+
+	accounts, err := database.GenericListWithQuery[Account](r.base, ctx, tableName, accQuery)
+	if err != nil {
+		return stats, nil
 	}
 
 	// Calculate stats
