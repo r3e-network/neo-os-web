@@ -43,8 +43,8 @@ func main() {
 		`CREATE POLICY anon_all ON pool_accounts FOR ALL TO anon USING (true) WITH CHECK (true)`,
 
 		// Account Balances
-		`DROP POLICY IF EXISTS anon_all ON account_balances`,
-		`CREATE POLICY anon_all ON account_balances FOR ALL TO anon USING (true) WITH CHECK (true)`,
+		`DROP POLICY IF EXISTS anon_all ON pool_account_balances`,
+		`CREATE POLICY anon_all ON pool_account_balances FOR ALL TO anon USING (true) WITH CHECK (true)`,
 
 		// Chain Transactions
 		`DROP POLICY IF EXISTS anon_all ON chain_txs`,
@@ -55,15 +55,15 @@ func main() {
 		`CREATE POLICY anon_all ON contract_events FOR ALL TO anon USING (true) WITH CHECK (true)`,
 
 		// Simulation Transactions
-		`DROP POLICY IF EXISTS anon_all ON simulation_txs`,
-		`CREATE POLICY anon_all ON simulation_txs FOR ALL TO anon USING (true) WITH CHECK (true)`,
+		`DROP POLICY IF EXISTS anon_all ON simulation_transactions`,
+		`CREATE POLICY anon_all ON simulation_transactions FOR ALL TO anon USING (true) WITH CHECK (true)`,
 
 		// Grant permissions
 		`GRANT ALL ON pool_accounts TO anon`,
-		`GRANT ALL ON account_balances TO anon`,
+		`GRANT ALL ON pool_account_balances TO anon`,
 		`GRANT ALL ON chain_txs TO anon`,
 		`GRANT ALL ON contract_events TO anon`,
-		`GRANT ALL ON simulation_txs TO anon`,
+		`GRANT ALL ON simulation_transactions TO anon`,
 		`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon`,
 	}
 
@@ -81,7 +81,7 @@ func main() {
 	rows, err := db.QueryContext(ctx, `
 		SELECT tablename, policyname, roles, cmd
 		FROM pg_policies
-		WHERE tablename IN ('pool_accounts', 'account_balances', 'chain_txs', 'contract_events', 'simulation_txs')
+		WHERE tablename IN ('pool_accounts', 'pool_account_balances', 'chain_txs', 'contract_events', 'simulation_transactions')
 		ORDER BY tablename, policyname
 	`)
 	if err != nil {

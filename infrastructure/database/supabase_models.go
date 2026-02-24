@@ -11,12 +11,13 @@ import (
 
 // User represents a user account.
 type User struct {
-	ID        string    `json:"id"`
-	Address   string    `json:"address,omitempty"`
-	Email     string    `json:"email,omitempty"`
-	Nonce     string    `json:"nonce,omitempty"` // For signature verification
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	ID         string    `json:"id"`
+	Address    string    `json:"address,omitempty"`
+	Email      string    `json:"email,omitempty"`
+	Nonce      string    `json:"nonce,omitempty"` // For signature verification
+	WalletType string    `json:"wallet_type,omitempty"`
+	CreatedAt  time.Time `json:"created_at,omitempty"`
+	UpdatedAt  time.Time `json:"updated_at,omitempty"`
 }
 
 // APIKey represents an API key.
@@ -28,6 +29,7 @@ type APIKey struct {
 	Prefix      string    `json:"prefix"`
 	Scopes      []string  `json:"scopes"`
 	Description string    `json:"description,omitempty"`
+	Revoked     bool      `json:"revoked"`
 	ExpiresAt   time.Time `json:"expires_at,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	LastUsed    time.Time `json:"last_used,omitempty"`
@@ -75,6 +77,7 @@ type UserWallet struct {
 	UserID                string    `json:"user_id"`
 	Address               string    `json:"address"`
 	Label                 string    `json:"label,omitempty"`
+	WalletType            string    `json:"wallet_type,omitempty"`
 	IsPrimary             bool      `json:"is_primary"`
 	Verified              bool      `json:"verified"`
 	VerificationMessage   string    `json:"verification_message,omitempty"`

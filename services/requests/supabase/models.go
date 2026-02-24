@@ -7,20 +7,30 @@ import (
 
 // MiniApp represents a minimal MiniApp registry row needed for on-chain requests.
 type MiniApp struct {
-	AppID           string          `json:"app_id"`
-	DeveloperUserID string          `json:"developer_user_id"`
-	Manifest        json.RawMessage `json:"manifest"`
-	Status          string          `json:"status"`
-	ManifestHash    string          `json:"manifest_hash"`
-	EntryURL        string          `json:"entry_url"`
-	ContractHash    string          `json:"contract_hash"`
-	Name            string          `json:"name"`
-	Description     string          `json:"description"`
-	Icon            string          `json:"icon"`
-	Banner          string          `json:"banner"`
-	LogoURL         string          `json:"logo_url"`
-	DocsURL         string          `json:"docs_url"`
-	Category        string          `json:"category"`
+	AppID                   string          `json:"app_id"`
+	DeveloperUserID         string          `json:"developer_user_id"`
+	DeveloperPubKey         string          `json:"developer_pubkey,omitempty"`
+	Manifest                json.RawMessage `json:"manifest"`
+	Status                  string          `json:"status"`
+	ManifestHash            string          `json:"manifest_hash"`
+	EntryURL                string          `json:"entry_url"`
+	ContractHash            string          `json:"contract_hash"`
+	Name                    string          `json:"name"`
+	Description             string          `json:"description"`
+	Icon                    string          `json:"icon"`
+	Banner                  string          `json:"banner"`
+	BannerURL               string          `json:"banner_url,omitempty"`
+	LogoURL                 string          `json:"logo_url"`
+	DocsURL                 string          `json:"docs_url"`
+	Category                string          `json:"category"`
+	Permissions             json.RawMessage `json:"permissions,omitempty"`
+	Limits                  json.RawMessage `json:"limits,omitempty"`
+	AssetsAllowed           []string        `json:"assets_allowed,omitempty"`
+	GovernanceAssetsAllowed []string        `json:"governance_assets_allowed,omitempty"`
+	NewsIntegration         *bool           `json:"news_integration,omitempty"`
+	StatsDisplay            []string        `json:"stats_display,omitempty"`
+	CreatedAt               *time.Time      `json:"created_at,omitempty"`
+	UpdatedAt               *time.Time      `json:"updated_at,omitempty"`
 }
 
 // MiniAppRegistryUpdate represents a partial update from AppRegistry sync.
@@ -34,6 +44,9 @@ type MiniAppRegistryUpdate struct {
 	Description     string    `json:"description,omitempty"`
 	Icon            string    `json:"icon,omitempty"`
 	Banner          string    `json:"banner,omitempty"`
+	BannerURL       string    `json:"banner_url,omitempty"`
+	LogoURL         string    `json:"logo_url,omitempty"`
+	DocsURL         string    `json:"docs_url,omitempty"`
 	Category        string    `json:"category,omitempty"`
 	UpdatedAt       time.Time `json:"updated_at,omitempty"`
 }
