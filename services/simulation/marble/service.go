@@ -490,9 +490,9 @@ func (s *Service) recordTransaction(ctx context.Context, tx *SimulationTx) error
 	}
 
 	// Insert using generic repository method
-	err := database.GenericCreate(repo, ctx, "simulation_txs", &record, nil)
+	err := database.GenericCreate(repo, ctx, "simulation_transactions", &record, nil)
 	if err != nil {
-		return fmt.Errorf("insert simulation_txs: %w", err)
+		return fmt.Errorf("insert simulation_transactions: %w", err)
 	}
 
 	return nil
