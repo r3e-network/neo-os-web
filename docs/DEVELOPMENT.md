@@ -108,6 +108,8 @@ Start MarbleRun coordinator + enclave services in simulation mode:
 
 ```bash
 make docker-up
+# Validate runtime liveness of all simulation services
+make docker-smoke
 ```
 
 This will:
