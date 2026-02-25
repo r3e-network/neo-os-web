@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-shopt -s nullglob extglob
+shopt -s nullglob
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -33,7 +33,13 @@ else
     ! -name "README.md" \
     -exec rm -rf {} +
 
-  cp -R "$SRC_DIR"/!(README.md|.gitignore) "$DEST_DIR"/
+  for item in "$SRC_DIR"/*; do
+    base="$(basename "$item")"
+    if [[ "$base" == "README.md" || "$base" == ".gitignore" ]]; then
+      continue
+    fi
+    cp -R "$item" "$DEST_DIR"/
+  done
 
   # Match the rsync behavior for nested files as well.
   find "$DEST_DIR" -mindepth 2 \
