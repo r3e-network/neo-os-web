@@ -21,6 +21,10 @@ Options:
                (or <package>-private.pem) for neofeeds/.../globalsigner
   --skip-signer-check
                Skip comparing key-derived SignerIDs against manifests/manifest.json (not recommended).
+Environment:
+  MARBLERUN_STRICT_TLS=1
+               In SGX mode, require strict TLS verification for marblerun CLI calls.
+               Default behavior for localhost coordinator is to use --insecure.
   -h, --help   Show this help.
 EOF
 }
@@ -116,6 +120,13 @@ else
   COMPOSE_FILE="${PROJECT_ROOT}/docker/docker-compose.yaml"
   MANIFEST_FILE="${PROJECT_ROOT}/manifests/manifest.json"
   MARBLERUN_FLAGS=()
+
+  # Local SGX compose deployments use coordinator-generated certs. Unless
+  # explicitly overridden, use --insecure for local marblerun CLI operations so
+  # status/manifest checks do not fail on self-signed cert verification.
+  if [[ "${MARBLERUN_STRICT_TLS:-0}" != "1" ]] && [[ "$COORDINATOR_CLIENT_ADDR" =~ ^(localhost|127\.0\.0\.1|\[::1\]): ]]; then
+    MARBLERUN_FLAGS=(--insecure)
+  fi
 fi
 
 if [[ ! -f "$COMPOSE_FILE" ]]; then
