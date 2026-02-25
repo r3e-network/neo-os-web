@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Service Layer Kubernetes Deployment Script
-# Supports multiple environments: dev, test, prod
+# Supports multiple environments: dev, test, staging, prod
 # Features: Docker build, registry push, rolling updates, health checks
 #
 set -e
@@ -67,7 +67,7 @@ Commands:
   all         Build, push, and deploy (default)
 
 Options:
-  --env <env>           Environment: dev, test, prod (default: dev)
+  --env <env>           Environment: dev, test, staging, prod (default: dev)
   --overlay <path>      Override the kustomize overlay path (e.g. k8s/overlays/prod)
   --registry <url>      Docker registry URL (e.g., docker.io/myorg). Images will be pushed as: <registry>/service-layer/<service>:<tag>
   --push                Push images to registry after build
@@ -95,8 +95,8 @@ Examples:
   # Deploy to test environment
   $0 --env test deploy
 
-  # Deploy staging (SGX hardware) overlay
-  $0 --env prod --overlay k8s/overlays/staging deploy
+  # Deploy staging (SGX hardware)
+  $0 --env staging deploy
 
 EOF
 }
@@ -173,8 +173,8 @@ parse_args() {
     COMMAND="${COMMAND:-all}"
 
     # Validate environment
-    if [[ ! "$ENVIRONMENT" =~ ^(dev|test|prod)$ ]]; then
-        log_error "Invalid environment: $ENVIRONMENT (must be dev, test, or prod)"
+    if [[ ! "$ENVIRONMENT" =~ ^(dev|test|staging|prod)$ ]]; then
+        log_error "Invalid environment: $ENVIRONMENT (must be dev, test, staging, or prod)"
         exit 1
     fi
 
@@ -205,6 +205,7 @@ resolve_overlay_path() {
     case "$ENVIRONMENT" in
         dev) echo "k8s/overlays/dev" ;;
         test) echo "k8s/overlays/dev" ;;
+        staging) echo "k8s/overlays/staging" ;;
         prod) echo "k8s/overlays/prod" ;;
         *) echo "k8s/overlays/dev" ;;
     esac
@@ -351,14 +352,14 @@ preflight_checks() {
     fi
 
     # Production builds require stable enclave signing keys that match the manifest.
-    if [[ "$ENVIRONMENT" == "prod" ]] && [[ "$SKIP_BUILD" != "true" ]] && [[ "$DRY_RUN" != "true" ]]; then
+    if [[ "$ENVIRONMENT" =~ ^(prod|staging)$ ]] && [[ "$SKIP_BUILD" != "true" ]] && [[ "$DRY_RUN" != "true" ]]; then
         if [[ -z "$SIGNING_KEY" && -z "$SIGNING_KEY_DIR" ]]; then
-            log_error "Production builds require enclave signing keys."
+            log_error "SGX builds (staging/prod) require enclave signing keys."
             log_error "Provide --signing-key-dir <dir> (recommended) or --signing-key <path>, or use --skip-build and ensure images exist."
             exit 1
         fi
         if [[ "$SKIP_SIGNER_CHECK" != "true" ]] && ! command -v jq &> /dev/null; then
-            log_error "jq is required for signer ID checks in prod. Install jq or use --skip-signer-check."
+            log_error "jq is required for signer ID checks in staging/prod. Install jq or use --skip-signer-check."
             exit 1
         fi
     fi
@@ -423,7 +424,7 @@ build_images() {
 
     cd "$PROJECT_ROOT"
 
-    if [[ "$ENVIRONMENT" == "prod" ]] && [[ "$DRY_RUN" != "true" ]]; then
+    if [[ "$ENVIRONMENT" =~ ^(prod|staging)$ ]] && [[ "$DRY_RUN" != "true" ]]; then
         export DOCKER_BUILDKIT=1
         verify_signerids
     fi
@@ -441,7 +442,7 @@ build_images() {
 
         local service_binary
         service_binary="$(default_service_binary "$service")"
-        if [[ "$ENVIRONMENT" == "prod" ]]; then
+        if [[ "$ENVIRONMENT" =~ ^(prod|staging)$ ]]; then
             local key_path
             if ! key_path="$(resolve_signing_key "$service")"; then
                 log_error "Missing signing key for ${service}. Provide --signing-key or --signing-key-dir."
@@ -593,7 +594,7 @@ setup_marblerun_manifest() {
     local flags=()
     local manifest_file="$PROJECT_ROOT/manifests/manifest.json"
     local tmp_manifest=""
-    if [[ "$ENVIRONMENT" != "prod" ]]; then
+    if [[ ! "$ENVIRONMENT" =~ ^(prod|staging)$ ]]; then
         flags+=(--insecure)
         if command -v jq &> /dev/null; then
             tmp_manifest="$(mktemp -t service-layer-manifest.simulation.XXXXXX.json)"
