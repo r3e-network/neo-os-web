@@ -61,23 +61,23 @@ func TestRedEnvelopeContract(t *testing.T) {
 
 // testRedEnvelopeAdmin tests admin functionality
 func testRedEnvelopeAdmin(t *testing.T, nx *NeoExpress, contract *chain.DeployedContract, account string) {
-	// Test Admin() returns deployer address
-	result, err := nx.InvokeWithAccountResults(contract.Hash, "Admin", account)
+	// Test admin() returns deployer address
+	result, err := nx.InvokeWithAccountResults(contract.Hash, "admin", account)
 	if err != nil {
-		t.Fatalf("Admin() invoke failed: %v", err)
+		t.Fatalf("admin() invoke failed: %v", err)
 	}
 	if result == nil || len(result.Stack) == 0 {
-		t.Fatal("Admin() returned empty stack")
+		t.Fatal("admin() returned empty stack")
 	}
 	t.Logf("Admin: %v", result.Stack[0])
 }
 
 // testRedEnvelopeGateway tests gateway functionality
 func testRedEnvelopeGateway(t *testing.T, nx *NeoExpress, contract *chain.DeployedContract, account string) {
-	// Test Gateway() initially returns null/empty
-	result, err := nx.InvokeWithAccountResults(contract.Hash, "Gateway", account)
+	// Test gateway() initially returns null/empty
+	result, err := nx.InvokeWithAccountResults(contract.Hash, "gateway", account)
 	if err != nil {
-		t.Fatalf("Gateway() invoke failed: %v", err)
+		t.Fatalf("gateway() invoke failed: %v", err)
 	}
 	t.Logf("Gateway: %v", result)
 }
