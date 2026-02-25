@@ -162,7 +162,7 @@ make marblerun-manifest
 marblerun status localhost:4433 --insecure
 
 # Example: check an internal service health endpoint from inside the mesh
-docker compose -f docker/docker-compose.simulation.yaml exec neocompute \
+docker compose --env-file .env -f docker/docker-compose.simulation.yaml exec neocompute \
   sh -c 'wget -qO- http://localhost:8086/health || curl -fsS http://localhost:8086/health'
 ```
 
@@ -320,7 +320,7 @@ DOCKER_BUILDKIT=1 docker build \
   .
 
 # Start without building (uses the images you built/pulled)
-docker compose -f docker/docker-compose.yaml up -d --no-build
+docker compose --env-file .env -f docker/docker-compose.yaml up -d --no-build
 ```
 
 Helper (recommended): `./scripts/up.sh` supports `--signing-key` / `--signing-key-dir` to build signed images and verify `SignerID`s against `manifests/manifest.json` before starting the stack.
