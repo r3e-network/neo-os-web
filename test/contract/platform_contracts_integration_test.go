@@ -207,7 +207,11 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	appID := "app-1"
 	manifestHash := "0x" + strings.Repeat("cc", 32)
 	entryURL := "https://example.com/app"
-	developerPubKey := "0x" + strings.Repeat("dd", 33)
+	developerAccount := "node1"
+	developerPubKey, publicKeyErr := nx.GetWalletPublicKey(developerAccount)
+	if publicKeyErr != nil {
+		t.Fatalf("GetWalletPublicKey(%s): %v", developerAccount, publicKeyErr)
+	}
 	contractHash := "0x" + strings.Repeat("aa", 20)
 	appName := "MiniApp One"
 	appDescription := "Test miniapp registry entry"
@@ -215,7 +219,7 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 	appBanner := "https://example.com/banner.png"
 	appCategory := "gaming"
 
-	if _, err := nx.InvokeWithAccount(appRegistry.Hash, "registerApp", account,
+	if _, err := nx.InvokeWithAccount(appRegistry.Hash, "registerApp", developerAccount,
 		appID, manifestHash, entryURL, developerPubKey, contractHash, appName, appDescription, appIcon, appBanner, appCategory,
 	); err != nil {
 		t.Fatalf("AppRegistry.registerApp: %v", err)
