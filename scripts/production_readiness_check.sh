@@ -2,7 +2,7 @@
 # Production Readiness Check Script
 # Scans codebase for TODO, FIXME, placeholder, and other non-production patterns
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -33,17 +33,12 @@ CRITICAL_PATTERNS=(
 )
 
 WARNING_PATTERNS=(
-    "placeholder"
+    # Target temporary stub comments, not legitimate UI/schema placeholder fields.
+    "placeholder[[:space:]]+(for|-)"
     "for now"
     "dev-only"
     "workaround"
 )
-
-# Directories to exclude
-EXCLUDE_DIRS="--exclude-dir=node_modules --exclude-dir=vendor --exclude-dir=.git --exclude-dir=dist --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.next --exclude-dir=coverage"
-
-# Files to exclude
-EXCLUDE_FILES="--exclude=*.md --exclude=*.txt --exclude=README* --exclude=CHANGELOG* --exclude=LICENSE* --exclude=.gitleaks.toml --exclude=*_test.go --exclude=*_test.cs --exclude=*.test.ts --exclude=*.test.tsx --exclude=*.spec.ts --exclude=*.spec.tsx --exclude=production_readiness_check.sh --exclude=go.sum --exclude=package-lock.json --exclude=yarn.lock"
 
 check_pattern() {
     local pattern=$1
@@ -73,6 +68,9 @@ check_pattern() {
         ! -path "*/__pycache__/*" \
         ! -path "*/.next/*" \
         ! -path "*/coverage/*" \
+        ! -path "*/test/*" \
+        ! -path "*/tests/*" \
+        ! -path "*/__tests__/*" \
         ! -name "*_test.go" \
         ! -name "*_test.cs" \
         ! -name "*.test.ts" \
@@ -80,41 +78,16 @@ check_pattern() {
         ! -name "*.spec.ts" \
         ! -name "*.spec.tsx" \
         ! -name "production_readiness_check.sh" \
-        -exec grep -lni $word_flag "$pattern" {} \; 2>/dev/null | while read -r file; do
-            grep -ni $word_flag "$pattern" "$file" 2>/dev/null | while read -r line; do
+        -exec grep -lEni $word_flag "$pattern" {} \; 2>/dev/null | while read -r file; do
+            grep -Eni $word_flag "$pattern" "$file" 2>/dev/null | while read -r line; do
                 echo "$file:$line"
             done
         done || true)
 
-    # Filter out false positives:
-    # - HTML placeholder attributes (placeholder="...")
-    # - Legitimate schema/property keys (placeholder:)
-    # - Property access (.placeholder)
-    # - StatusTemporaryRedirect (Go HTTP status)
-    # - Tailwind placeholder- classes
-    # - Tailwind placeholder:text- classes
-    # - JSX placeholder props
-    # - Placeholder prop signatures
-    # - Build placeholder constants
-    # - "Bug bounty" application names (not actual bugs)
-    # - Input component placeholder props
-    # - SENDER placeholder in SDK (intentional design)
-    if [[ -n "$results" ]]; then
+    # Filter out known false positives by pattern.
+    if [[ -n "$results" && "$pattern" == "placeholder[[:space:]]+(for|-)" ]]; then
         results=$(echo "$results" | \
-            grep -v 'placeholder="' | \
-            grep -v "placeholder='" | \
-            grep -v "placeholder={" | \
-            grep -v "placeholder:" | \
-            grep -v "\.placeholder" | \
-            grep -v "StatusTemporaryRedirect" | \
-            grep -v "placeholder-" | \
-            grep -v "placeholder:text-" | \
-            grep -v "placeholder, label" | \
-            grep -v "build-time-placeholder" | \
-            grep -v -i "bug bounty" | \
-            grep -v -i "bounty.hunter" | \
-            grep -v "placeholder?: string" | \
-            grep -v "SENDER placeholder" || true)
+            grep -Evi "StatusTemporaryRedirect|build-time-placeholder|SENDER placeholder|bug bounty|bounty\.hunter" || true)
     fi
 
     if [[ -n "$results" ]]; then
