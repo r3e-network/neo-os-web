@@ -112,7 +112,15 @@ make docker-up
 make docker-smoke
 # SGX hardware runtime smoke check
 make docker-smoke-sgx
+# SGX smoke with signed-image build (single key)
+./scripts/docker_smoke.sh --sgx --build --signing-key /path/to/private.pem
+# SGX smoke with per-service signing keys
+./scripts/docker_smoke.sh --sgx --build --signing-key-dir /path/to/signing-keys
 ```
+
+If SGX smoke fails and services keep restarting, check for a SignerID mismatch
+between built images and `manifests/manifest.json`. The smoke script prints
+remediation commands when this is detected.
 
 This will:
 1. Start MarbleRun coordinator (simulation mode)

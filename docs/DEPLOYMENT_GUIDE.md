@@ -166,6 +166,12 @@ make docker-smoke
 
 # Full SGX stack smoke check (requires SGX host + signed images)
 make docker-smoke-sgx
+
+# SGX smoke with signed-image build (single key)
+./scripts/docker_smoke.sh --sgx --build --signing-key /path/to/private.pem
+
+# SGX smoke with per-service signing keys
+./scripts/docker_smoke.sh --sgx --build --signing-key-dir /path/to/signing-keys
 ```
 
 ---
