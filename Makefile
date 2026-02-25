@@ -3,7 +3,7 @@
 # MarbleRun + EGo + Supabase + Vercel Architecture
 # =============================================================================
 
-.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke
+.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-sgx
 .PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
 .PHONY: edge-check edge-dev
 
@@ -138,6 +138,9 @@ docker-up: ## Start all services in simulation mode
 
 docker-smoke: ## Smoke-check simulation stack health end-to-end
 	./scripts/docker_smoke.sh
+
+docker-smoke-sgx: ## Smoke-check SGX stack health end-to-end
+	./scripts/docker_smoke.sh --sgx
 
 docker-up-sgx: ## Start all services with SGX hardware
 	./scripts/up.sh

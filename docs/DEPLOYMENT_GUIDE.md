@@ -163,6 +163,9 @@ marblerun status localhost:4433 --insecure
 
 # Full simulation stack smoke check (startup + coordinator + service listeners)
 make docker-smoke
+
+# Full SGX stack smoke check (requires SGX host + signed images)
+make docker-smoke-sgx
 ```
 
 ---
