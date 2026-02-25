@@ -10,8 +10,11 @@
 # Variables
 CMD_BINARIES := marble create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
 ENCLAVE_BINARIES := marble
-DOCKER_COMPOSE_SIM := docker compose -f docker/docker-compose.simulation.yaml
-DOCKER_COMPOSE_SGX := docker compose -f docker/docker-compose.yaml
+# Compose resolves relative .env files from the compose file directory (`docker/`).
+# Prefer the repository root `.env` when present to keep runtime vars consistent.
+DOCKER_COMPOSE_ENV_FILE ?= $(if $(wildcard .env),--env-file .env,)
+DOCKER_COMPOSE_SIM := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.simulation.yaml
+DOCKER_COMPOSE_SGX := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.yaml
 # Default to simulation mode for local development.
 DOCKER_COMPOSE := $(DOCKER_COMPOSE_SIM)
 
