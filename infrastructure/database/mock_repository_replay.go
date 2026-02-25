@@ -42,6 +42,18 @@ func (m *MockRepository) MarkRequestSeen(ctx context.Context, serviceID, request
 	return true, nil
 }
 
+func (m *MockRepository) DeleteSeenRequest(ctx context.Context, serviceID, requestID string) error {
+	if err := m.checkError(); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	key := serviceID + ":" + requestID
+	delete(m.replayStore(), key)
+	return nil
+}
+
 func (m *MockRepository) CleanupSeenRequests(ctx context.Context, serviceID string) (int, error) {
 	if err := m.checkError(); err != nil {
 		return 0, err

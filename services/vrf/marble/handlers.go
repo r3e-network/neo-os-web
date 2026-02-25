@@ -41,17 +41,20 @@ func (s *Service) handleRandom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.privateKey == nil {
+		s.replayGuard.UnmarkSeen(r.Context(), requestID)
 		httputil.ServiceUnavailable(w, "signing key not configured")
 		return
 	}
 
 	signature, err := crypto.Sign(s.privateKey, []byte(requestID))
 	if err != nil {
+		s.replayGuard.UnmarkSeen(r.Context(), requestID)
 		s.Logger().Error(r.Context(), "failed to sign VRF request", err, nil)
 		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
 	}
 	if len(signature) == 0 {
+		s.replayGuard.UnmarkSeen(r.Context(), requestID)
 		s.Logger().Error(r.Context(), "crypto.Sign returned empty signature", nil, nil)
 		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return

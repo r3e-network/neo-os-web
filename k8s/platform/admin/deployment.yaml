@@ -27,7 +27,7 @@ spec:
       containers:
         - name: admin-console
           image: admin-console:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

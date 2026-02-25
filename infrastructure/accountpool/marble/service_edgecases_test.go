@@ -437,6 +437,7 @@ func TestSignTransaction_RepositoryNotConfigured(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleSignTransaction_MissingFieldsReturnsBadRequest(t *testing.T) {
 	svc, _ := newTestServiceWithMock(t)
 
@@ -461,6 +462,7 @@ func skip_TestHandleSignTransaction_MissingFieldsReturnsBadRequest(t *testing.T)
 	}
 }
 
+//nolint:unused
 func skip_TestHandleUpdateBalance_MissingAccountIDReturnsBadRequest(t *testing.T) {
 	svc, _ := newTestServiceWithMock(t)
 

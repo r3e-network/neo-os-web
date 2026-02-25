@@ -106,18 +106,25 @@ generate_secrets() {
     local database_url=""
 
     if [[ -f "$SECRETS_FILE" ]]; then
-        log_warn "Secrets file already exists; reusing $SECRETS_FILE"
         postgres_password=$(sed -n 's/^  POSTGRES_PASSWORD: "\(.*\)"$/\1/p' "$SECRETS_FILE")
         database_url=$(sed -n 's/^  DATABASE_URL: "\(.*\)"$/\1/p' "$SECRETS_FILE")
         jwt_secret=$(sed -n 's/^  JWT_SECRET: "\(.*\)"$/\1/p' "$SECRETS_FILE")
         anon_key=$(sed -n 's/^  ANON_KEY: "\(.*\)"$/\1/p' "$SECRETS_FILE")
         service_role_key=$(sed -n 's/^  SERVICE_ROLE_KEY: "\(.*\)"$/\1/p' "$SECRETS_FILE")
 
-        if [[ -z "$postgres_password" || -z "$database_url" || -z "$jwt_secret" || -z "$anon_key" || -z "$service_role_key" ]]; then
-            log_error "Failed to parse existing secrets from $SECRETS_FILE; delete it and rerun."
-            exit 1
+        if [[ -n "$postgres_password" && -n "$database_url" && -n "$jwt_secret" && -n "$anon_key" && -n "$service_role_key" ]]; then
+            log_warn "Secrets file already exists; reusing $SECRETS_FILE"
+        else
+            log_warn "Secrets file contains placeholders/empty values; generating fresh secrets in $SECRETS_FILE"
+            postgres_password=""
+            database_url=""
+            jwt_secret=""
+            anon_key=""
+            service_role_key=""
         fi
-    else
+    fi
+
+    if [[ -z "$postgres_password" || -z "$database_url" || -z "$jwt_secret" || -z "$anon_key" || -z "$service_role_key" ]]; then
         postgres_password=$(generate_password)
         jwt_secret=$(generate_jwt_secret)
         anon_key=$(generate_jwt_token "$jwt_secret" "anon")

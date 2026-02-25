@@ -90,6 +90,8 @@ type ReplayRepository interface {
 	// MarkRequestSeen atomically checks and marks a request as seen.
 	// Returns true if the request is new (not a replay), false if already seen.
 	MarkRequestSeen(ctx context.Context, serviceID, requestID string, windowSeconds int) (bool, error)
+	// DeleteSeenRequest removes a request marker so it can be retried.
+	DeleteSeenRequest(ctx context.Context, serviceID, requestID string) error
 	// CleanupSeenRequests removes expired entries. Pass empty serviceID to clean all.
 	CleanupSeenRequests(ctx context.Context, serviceID string) (int, error)
 }

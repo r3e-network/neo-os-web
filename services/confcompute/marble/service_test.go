@@ -162,7 +162,9 @@ func TestExecuteWithSecretRefs(t *testing.T) {
 	}
 
 	svc, err := New(Config{Marble: m, SecretProvider: provider})
-	if err != nil { t.Fatalf("New() error = %v", err) }
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	ctx := context.Background()
 	req := &ExecuteRequest{
@@ -381,7 +383,9 @@ func TestConsoleLogSuppressedWhenSecretsPresent(t *testing.T) {
 		},
 	}
 	svc, err := New(Config{Marble: m, SecretProvider: provider})
-	if err != nil { t.Fatalf("New() error = %v", err) }
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	ctx := context.Background()
 	// Script that tries to exfiltrate secrets via console.log
