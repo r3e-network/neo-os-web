@@ -338,7 +338,7 @@ preflight_checks() {
     fi
 
     # Check if k3s is running (for dev environment)
-    if [ "$ENVIRONMENT" == "dev" ]; then
+    if [ "$ENVIRONMENT" == "dev" ] && [ "$DRY_RUN" != "true" ]; then
         if ! kubectl get nodes &> /dev/null; then
             log_error "Kubernetes cluster not accessible. Is k3s running?"
             exit 1
@@ -351,7 +351,7 @@ preflight_checks() {
     fi
 
     # Production builds require stable enclave signing keys that match the manifest.
-    if [[ "$ENVIRONMENT" == "prod" ]] && [[ "$SKIP_BUILD" != "true" ]]; then
+    if [[ "$ENVIRONMENT" == "prod" ]] && [[ "$SKIP_BUILD" != "true" ]] && [[ "$DRY_RUN" != "true" ]]; then
         if [[ -z "$SIGNING_KEY" && -z "$SIGNING_KEY_DIR" ]]; then
             log_error "Production builds require enclave signing keys."
             log_error "Provide --signing-key-dir <dir> (recommended) or --signing-key <path>, or use --skip-build and ensure images exist."
@@ -708,6 +708,11 @@ rolling_update() {
 # =============================================================================
 show_status() {
     log_step "Deployment Status (environment: $ENVIRONMENT)"
+
+    if [ "$DRY_RUN" == "true" ]; then
+        log_info "[DRY RUN] Skipping live cluster status checks"
+        return 0
+    fi
 
     echo ""
     echo "=== Kubernetes Nodes ==="

@@ -305,8 +305,8 @@ tidy: ## Tidy go modules
 # =============================================================================
 
 deploy-staging: ## Deploy to staging
-	@echo "Deploying to staging (Kubernetes test overlay)..."
-	@./scripts/deploy_k8s.sh --env test
+	@echo "Deploying to staging (Kubernetes staging overlay)..."
+	@./scripts/deploy_k8s.sh --env prod --overlay k8s/overlays/staging
 
 deploy-production: ## Deploy to production
 	@echo "Deploying to production (Kubernetes prod overlay)..."
