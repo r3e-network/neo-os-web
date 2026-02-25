@@ -37,6 +37,8 @@
           "MARBLE_EXTRA_CLIENT_CA": "",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
           "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
+          "POOL_ENCRYPTION_KEY": "{{ hex .Secrets.POOL_ENCRYPTION_KEY.Private }}",
+          "POOL_MASTER_KEY": "{{ hex .Secrets.POOL_MASTER_KEY.Private }}",
           "SERVICE_TYPE": "neoaccounts"
         }
       }
