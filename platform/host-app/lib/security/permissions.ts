@@ -75,8 +75,7 @@ export function requirePermission(permission: Permission) {
       return false;
     }
     
-    // For now, we'll use a simple permission model
-    // In production, this would check against a permission service/database
+    // Use an environment-backed admin allowlist plus default authenticated permissions.
     const permissions = getPermissionsForWallet(wallet);
     
     if (!hasPermission(permissions, permission)) {

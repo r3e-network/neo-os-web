@@ -14,7 +14,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Import templates (would need to be compiled first or use dynamic import)
-// For now, we'll define them inline based on the source
+// Define templates inline based on the current source snapshot.
 
 const TEMPLATES = {
   // Gaming (15)
