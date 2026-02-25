@@ -110,6 +110,8 @@ Start MarbleRun coordinator + enclave services in simulation mode:
 make docker-up
 # Validate runtime liveness of all simulation services
 make docker-smoke
+# SGX hardware runtime smoke check
+make docker-smoke-sgx
 ```
 
 This will:
