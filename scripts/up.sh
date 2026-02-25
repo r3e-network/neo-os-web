@@ -285,6 +285,12 @@ resolve_signing_key() {
   return 1
 }
 
+looks_like_pem_private_key() {
+  local key_path="$1"
+  # Accept common PEM private-key headers used for enclave signing keys.
+  grep -Eq '^-----BEGIN (EC |RSA |ENCRYPTED )?PRIVATE KEY-----' "$key_path"
+}
+
 ego_image() {
   echo "ghcr.io/edgelesssys/ego-dev:v${EGO_VERSION:-1.8.0}"
 }
@@ -353,6 +359,11 @@ build_signed_images() {
     fi
     if [[ ! -r "$key_path" ]]; then
       echo "Signing key not readable: $key_path" >&2
+      exit 1
+    fi
+    if ! looks_like_pem_private_key "$key_path"; then
+      echo "Signing key file does not look like a PEM private key: $key_path" >&2
+      echo "Provide a real enclave signing key (placeholder text files are not valid)." >&2
       exit 1
     fi
 
