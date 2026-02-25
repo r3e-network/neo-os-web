@@ -423,7 +423,7 @@ build_images() {
 
     cd "$PROJECT_ROOT"
 
-    if [[ "$ENVIRONMENT" == "prod" ]]; then
+    if [[ "$ENVIRONMENT" == "prod" ]] && [[ "$DRY_RUN" != "true" ]]; then
         export DOCKER_BUILDKIT=1
         verify_signerids
     fi
