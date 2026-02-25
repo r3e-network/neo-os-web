@@ -330,20 +330,20 @@ Fairy plugin installed under:
 Start Fairy:
 
 ```bash
-NEOROOT=/path/to/neo-node ./test/fairy/start-fairy.sh
+NEOROOT=/path/to/neo-node make fairy-start
 ```
 
 Run Fairy tests:
 
 ```bash
 # Connectivity/session tests
-go test -count=1 -v ./test/fairy/...
+make test-fairy
 ```
 
 To run virtual deploy/read-only contract flows (not skipped), set a wallet WIF:
 
 ```bash
-NEO_TESTNET_WIF=<your-wif> go test -count=1 -v ./test/fairy/...
+NEO_TESTNET_WIF=<your-wif> make test-fairy-full
 ```
 
 ### Watch Mode
