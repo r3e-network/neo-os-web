@@ -1352,7 +1352,8 @@ func TestHandleInfoEndpoint(t *testing.T) {
 	}
 }
 
-func skip_TestHandleListAccountsEndpoint(t *testing.T) {
+func TestHandleListAccountsEndpoint(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -1398,7 +1399,8 @@ func TestHandleListAccountsMissingServiceID(t *testing.T) {
 	}
 }
 
-func skip_TestHandleListAccountsWithTokenFilter(t *testing.T) {
+func TestHandleListAccountsWithTokenFilter(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -1430,7 +1432,8 @@ func skip_TestHandleListAccountsWithTokenFilter(t *testing.T) {
 	}
 }
 
-func skip_TestHandleRequestAccountsEndpoint(t *testing.T) {
+func TestHandleRequestAccountsEndpoint(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -1469,7 +1472,8 @@ func TestHandleRequestAccountsMissingServiceID(t *testing.T) {
 	}
 }
 
-func skip_TestHandleReleaseAccountsEndpoint(t *testing.T) {
+func TestHandleReleaseAccountsEndpoint(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -1498,7 +1502,8 @@ func skip_TestHandleReleaseAccountsEndpoint(t *testing.T) {
 	}
 }
 
-func skip_TestHandleReleaseAccountsAll(t *testing.T) {
+func TestHandleReleaseAccountsAll(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -1529,7 +1534,8 @@ func skip_TestHandleReleaseAccountsAll(t *testing.T) {
 	}
 }
 
-func skip_TestHandleSignTransactionEndpoint(t *testing.T) {
+func TestHandleSignTransactionEndpoint(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -1552,7 +1558,8 @@ func skip_TestHandleSignTransactionEndpoint(t *testing.T) {
 	}
 }
 
-func skip_TestHandleSignTransactionMissingFields(t *testing.T) {
+func TestHandleSignTransactionMissingFields(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{Marble: m, NeoAccountsRepo: newMockNeoAccountsRepo()})
@@ -1570,7 +1577,8 @@ func skip_TestHandleSignTransactionMissingFields(t *testing.T) {
 	}
 }
 
-func skip_TestHandleBatchSignEndpoint(t *testing.T) {
+func TestHandleBatchSignEndpoint(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -1593,7 +1601,8 @@ func skip_TestHandleBatchSignEndpoint(t *testing.T) {
 	}
 }
 
-func skip_TestHandleUpdateBalanceEndpoint(t *testing.T) {
+func TestHandleUpdateBalanceEndpoint(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -1625,7 +1634,8 @@ func skip_TestHandleUpdateBalanceEndpoint(t *testing.T) {
 	}
 }
 
-func skip_TestHandleUpdateBalanceDefaultToken(t *testing.T) {
+func TestHandleUpdateBalanceDefaultToken(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -1936,7 +1946,8 @@ func TestHandleBatchSignMissingServiceID(t *testing.T) {
 	}
 }
 
-func skip_TestHandleUpdateBalanceMissingFields(t *testing.T) {
+func TestHandleUpdateBalanceMissingFields(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{Marble: m, NeoAccountsRepo: newMockNeoAccountsRepo()})
@@ -1954,7 +1965,8 @@ func skip_TestHandleUpdateBalanceMissingFields(t *testing.T) {
 	}
 }
 
-func skip_TestHandleRequestAccountsDefaultCount(t *testing.T) {
+func TestHandleRequestAccountsDefaultCount(t *testing.T) {
+	t.Skip("temporarily disabled")
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 
@@ -2138,7 +2150,8 @@ func TestServiceRegistersTickerWorkers(t *testing.T) {
 // More Handler Edge Cases
 // =============================================================================
 
-func skip_TestHandleSignTransactionSuccess(t *testing.T) {
+func TestHandleSignTransactionSuccess(t *testing.T) {
+	t.Skip("temporarily disabled")
 	svc, mockRepo := newTestServiceWithMock(t)
 
 	// Setup: create account and lock it
@@ -2170,7 +2183,8 @@ func skip_TestHandleSignTransactionSuccess(t *testing.T) {
 	}
 }
 
-func skip_TestHandleListAccountsWithMinBalance(t *testing.T) {
+func TestHandleListAccountsWithMinBalance(t *testing.T) {
+	t.Skip("temporarily disabled")
 	svc, mockRepo := newTestServiceWithMock(t)
 
 	// Create account with balance
@@ -2193,7 +2207,8 @@ func skip_TestHandleListAccountsWithMinBalance(t *testing.T) {
 	}
 }
 
-func skip_TestHandleListAccountsInvalidMinBalance(t *testing.T) {
+func TestHandleListAccountsInvalidMinBalance(t *testing.T) {
+	t.Skip("temporarily disabled")
 	svc, mockRepo := newTestServiceWithMock(t)
 
 	acc := &neoaccountssupabase.Account{

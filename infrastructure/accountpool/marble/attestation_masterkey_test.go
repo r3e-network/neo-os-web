@@ -11,8 +11,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 	"time"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
@@ -120,7 +121,8 @@ func TestGetQuote_ReturnsErrorOutsideEnclave(t *testing.T) {
 	}
 }
 
-func skip_TestResolveServiceID_Behavior(t *testing.T) {
+func TestResolveServiceID_Behavior(t *testing.T) {
+	t.Skip("temporarily disabled")
 	t.Setenv("MARBLE_ENV", "development")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
