@@ -14,11 +14,14 @@ import (
 )
 
 // mockSecretProvider implements secrets.Provider for testing.
+//
+//nolint:unused // reserved for future test cases that inject secret retrieval behavior.
 type mockSecretProvider struct {
 	secret string
 	err    error
 }
 
+//nolint:unused // reserved for future test cases that inject secret retrieval behavior.
 func (m *mockSecretProvider) GetSecret(_ context.Context, _, _ string) (string, error) {
 	return m.secret, m.err
 }

@@ -29,28 +29,14 @@ type SecretsState = {
   clearError: () => void;
 };
 
-const STORAGE_KEY = "neo_miniapp_secrets_tokens_v1";
+let inMemoryTokens: SecretToken[] = [];
 
 function readTokensFromStorage(): SecretToken[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item) => item && typeof item === "object") as SecretToken[];
-  } catch {
-    return [];
-  }
+  return inMemoryTokens.slice();
 }
 
 function writeTokensToStorage(tokens: SecretToken[]): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
-  } catch {
-    // Ignore storage errors and keep in-memory state.
-  }
+  inMemoryTokens = tokens.slice();
 }
 
 function nowISO(): string {
@@ -58,6 +44,9 @@ function nowISO(): string {
 }
 
 function generateTokenId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `sec_${crypto.randomUUID()}`;
+  }
   return `sec_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 

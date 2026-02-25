@@ -27,7 +27,7 @@ spec:
       containers:
         - name: edge-gateway
           image: service-layer/edge-gateway:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

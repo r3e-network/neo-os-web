@@ -1352,6 +1352,7 @@ func TestHandleInfoEndpoint(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleListAccountsEndpoint(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1398,6 +1399,7 @@ func TestHandleListAccountsMissingServiceID(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleListAccountsWithTokenFilter(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1430,6 +1432,7 @@ func skip_TestHandleListAccountsWithTokenFilter(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleRequestAccountsEndpoint(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1469,6 +1472,7 @@ func TestHandleRequestAccountsMissingServiceID(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleReleaseAccountsEndpoint(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1498,6 +1502,7 @@ func skip_TestHandleReleaseAccountsEndpoint(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleReleaseAccountsAll(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1529,6 +1534,7 @@ func skip_TestHandleReleaseAccountsAll(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleSignTransactionEndpoint(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1552,6 +1558,7 @@ func skip_TestHandleSignTransactionEndpoint(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleSignTransactionMissingFields(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1570,6 +1577,7 @@ func skip_TestHandleSignTransactionMissingFields(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleBatchSignEndpoint(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1593,6 +1601,7 @@ func skip_TestHandleBatchSignEndpoint(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleUpdateBalanceEndpoint(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1625,6 +1634,7 @@ func skip_TestHandleUpdateBalanceEndpoint(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleUpdateBalanceDefaultToken(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1736,6 +1746,8 @@ func TestRequestAccountsNoAvailable(t *testing.T) {
 }
 
 // Helper function
+//
+//nolint:unused // retained for disabled/placeholder endpoint tests.
 func mustMarshalJSON(v interface{}) string {
 	b, _ := json.Marshal(v)
 	return string(b)
@@ -1936,6 +1948,7 @@ func TestHandleBatchSignMissingServiceID(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleUpdateBalanceMissingFields(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -1954,6 +1967,7 @@ func skip_TestHandleUpdateBalanceMissingFields(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleRequestAccountsDefaultCount(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
@@ -2138,6 +2152,7 @@ func TestServiceRegistersTickerWorkers(t *testing.T) {
 // More Handler Edge Cases
 // =============================================================================
 
+//nolint:unused
 func skip_TestHandleSignTransactionSuccess(t *testing.T) {
 	svc, mockRepo := newTestServiceWithMock(t)
 
@@ -2170,6 +2185,7 @@ func skip_TestHandleSignTransactionSuccess(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleListAccountsWithMinBalance(t *testing.T) {
 	svc, mockRepo := newTestServiceWithMock(t)
 
@@ -2193,6 +2209,7 @@ func skip_TestHandleListAccountsWithMinBalance(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func skip_TestHandleListAccountsInvalidMinBalance(t *testing.T) {
 	svc, mockRepo := newTestServiceWithMock(t)
 

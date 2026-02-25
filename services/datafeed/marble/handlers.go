@@ -72,7 +72,6 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, price)
 }
 
-
 func (s *Service) handleGetPrices(w http.ResponseWriter, r *http.Request) {
 	if s.DB() == nil {
 		httputil.WriteJSON(w, http.StatusOK, []PriceResponse{})

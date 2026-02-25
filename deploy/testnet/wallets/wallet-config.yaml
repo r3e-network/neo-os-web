@@ -1,2 +1,2 @@
 Path: deploy/testnet/wallets/testnet.json
-Password: testnetpassword
+Password: REPLACE_WITH_DEPLOYER_WALLET_PASSWORD

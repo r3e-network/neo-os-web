@@ -8,7 +8,7 @@ x-service-defaults: &service-defaults
   devices:
     - /dev/sgx_enclave:/dev/sgx_enclave
     - /dev/sgx_provision:/dev/sgx_provision
-  mem_limit: 512m
+  mem_limit: 1g
   cpus: 1.0
   restart: unless-stopped
   depends_on:
@@ -18,6 +18,8 @@ x-service-defaults: &service-defaults
 x-build-defaults: &build-defaults
   context: ..
   dockerfile: docker/Dockerfile.service
+  secrets:
+    - ego_private_key
 
 x-build-args: &build-args
   EGO_VERSION: ${EGO_VERSION:-1.8.0}
@@ -368,7 +370,8 @@ services:
       - NEO_NETWORK_MAGIC
       - CONTRACT_PAYMENTHUB_HASH
       - CONTRACT_GOVERNANCE_HASH
-      - TXPROXY_ALLOWLIST={"contracts":{"0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5":["*"],"0xd2a4cff31913016155e38e474a2c06d08be276cf":["*"],"0x4f494f1cc883015fcefb45f1b5182a4d3dc6be0b":["*"]}}
+      # Must be provided via environment/secret. Empty value means deny-all.
+      - TXPROXY_ALLOWLIST
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     healthcheck:
       <<: *healthcheck-timing
@@ -447,3 +450,7 @@ services:
 
 volumes:
   coordinator-data:
+
+secrets:
+  ego_private_key:
+    file: ../private.pem

@@ -75,6 +75,8 @@ func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
 
 // newTestService creates a txproxy Service in simulation mode with the given allowlist JSON.
 // chainClient and signer are left nil (non-strict mode).
+//
+//nolint:unparam // allowlistJSON is kept for readability at call sites in tests.
 func newTestService(t *testing.T, allowlistJSON string) *Service {
 	t.Helper()
 

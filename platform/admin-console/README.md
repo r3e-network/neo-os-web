@@ -54,11 +54,11 @@ ADMIN_CONSOLE_API_KEY=your-admin-api-key
 ```
 
 The admin API routes require a matching key in `X-Admin-Key` (or `Authorization: Bearer`).
-For browser calls, either set `NEXT_PUBLIC_ADMIN_CONSOLE_API_KEY` at build time or store
-the key locally:
+For browser calls, set `NEXT_PUBLIC_ADMIN_CONSOLE_API_KEY` at build time or inject a
+runtime key in a meta tag:
 
-```js
-localStorage.setItem("admin_api_key", "your-admin-api-key");
+```html
+<meta name="admin-api-key" content="your-admin-api-key" />
 ```
 
 ## Deployment

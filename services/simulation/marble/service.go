@@ -227,7 +227,8 @@ func New(cfg Config) (*Service, error) {
 		running:          false,
 		txCounts:         make(map[string]int64),
 		lastTxTimes:      make(map[string]time.Time),
-		rng:              rand.New(rand.NewSource(time.Now().UnixNano())),
+		// #nosec G404 -- simulation jitter/amount randomness is non-cryptographic by design.
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	// Register statistics provider for /info endpoint
@@ -529,4 +530,3 @@ func shortHash(hash string) string {
 	}
 	return hash[:16] + "..."
 }
-

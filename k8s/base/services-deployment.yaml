@@ -36,7 +36,7 @@ spec:
       containers:
       - name: neofeeds
         image: service-layer/neofeeds:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -268,7 +268,7 @@ spec:
       containers:
       - name: neoflow
         image: service-layer/neoflow:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -480,7 +480,7 @@ spec:
       containers:
       - name: neoaccounts
         image: service-layer/neoaccounts:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -666,7 +666,7 @@ spec:
       containers:
       - name: neocompute
         image: service-layer/neocompute:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -852,7 +852,7 @@ spec:
       containers:
       - name: neovrf
         image: service-layer/neovrf:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -1026,7 +1026,7 @@ spec:
       containers:
       - name: neooracle
         image: service-layer/neooracle:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -1223,7 +1223,7 @@ spec:
       containers:
       - name: neorequests
         image: service-layer/neorequests:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -1482,7 +1482,7 @@ spec:
       containers:
       - name: txproxy
         image: service-layer/txproxy:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -1672,7 +1672,7 @@ spec:
       containers:
       - name: globalsigner
         image: service-layer/globalsigner:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -1861,7 +1861,7 @@ spec:
       containers:
       - name: neogasbank
         image: service-layer/neogasbank:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -2078,7 +2078,7 @@ spec:
       containers:
       - name: neosimulation
         image: service-layer/neosimulation:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
