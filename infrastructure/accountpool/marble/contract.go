@@ -317,9 +317,9 @@ func (s *Service) InvokeContract(ctx context.Context, serviceID, accountID, cont
 	// Convert params to chain.ContractParam
 	chainParams := make([]chain.ContractParam, len(params))
 	for i, p := range params {
-		cp, err := convertToChainParam(p)
-		if err != nil {
-			return nil, fmt.Errorf("convert param %d: %w", i, err)
+		cp, convErr := convertToChainParam(p)
+		if convErr != nil {
+			return nil, fmt.Errorf("convert param %d: %w", i, convErr)
 		}
 		chainParams[i] = cp
 	}
@@ -462,9 +462,9 @@ func (s *Service) SimulateContract(ctx context.Context, serviceID, accountID, co
 	// Convert params to chain.ContractParam
 	chainParams := make([]chain.ContractParam, len(params))
 	for i, p := range params {
-		cp, err := convertToChainParam(p)
-		if err != nil {
-			return nil, fmt.Errorf("convert param %d: %w", i, err)
+		cp, convErr := convertToChainParam(p)
+		if convErr != nil {
+			return nil, fmt.Errorf("convert param %d: %w", i, convErr)
 		}
 		chainParams[i] = cp
 	}
