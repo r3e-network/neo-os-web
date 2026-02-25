@@ -3,7 +3,7 @@
 # MarbleRun + EGo + Supabase + Vercel Architecture
 # =============================================================================
 
-.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts export-miniapps export-supabase-functions check-git
+.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git
 .PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
 .PHONY: edge-check edge-dev
 
@@ -80,6 +80,28 @@ test-integration: ## Run integration tests
 test-e2e: ## Run end-to-end tests
 	@echo "Running e2e tests..."
 	go test -v -tags=e2e ./test/e2e/...
+
+fairy-start: ## Start Neo Fairy (requires NEOROOT)
+	@if [ -z "$$NEOROOT" ]; then \
+		echo "NEOROOT is required (path to neo-node checkout)"; \
+		exit 1; \
+	fi
+	NEOROOT="$$NEOROOT" ./test/fairy/start-fairy.sh
+
+fairy-stop: ## Stop Neo Fairy
+	./test/fairy/stop-fairy.sh
+
+test-fairy: ## Run Neo Fairy connectivity/session tests
+	@echo "Running Neo Fairy tests..."
+	go test -count=1 -v ./test/fairy/...
+
+test-fairy-full: ## Run full Neo Fairy tests (requires NEO_TESTNET_WIF)
+	@if [ -z "$$NEO_TESTNET_WIF" ]; then \
+		echo "NEO_TESTNET_WIF is required for full Fairy tests"; \
+		exit 1; \
+	fi
+	@echo "Running full Neo Fairy tests..."
+	NEO_TESTNET_WIF="$$NEO_TESTNET_WIF" go test -count=1 -v ./test/fairy/...
 
 test-race: ## Run tests with race detector
 	go test -race ./...
