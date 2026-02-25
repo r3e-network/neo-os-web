@@ -161,9 +161,8 @@ make marblerun-manifest
 # Check MarbleRun status
 marblerun status localhost:4433 --insecure
 
-# Example: check an internal service health endpoint from inside the mesh
-docker compose --env-file .env -f docker/docker-compose.simulation.yaml exec neocompute \
-  sh -c 'wget -qO- http://localhost:8086/health || curl -fsS http://localhost:8086/health'
+# Full simulation stack smoke check (startup + coordinator + service listeners)
+make docker-smoke
 ```
 
 ---
