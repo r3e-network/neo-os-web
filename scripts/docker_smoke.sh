@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/docker_smoke.sh [--build] [--sgx] [--keep-running]
+Usage: ./scripts/docker_smoke.sh [--build] [--sgx] [--signing-key PATH | --signing-key-dir DIR] [--keep-running]
 
 Runs an end-to-end smoke check for the local stack:
 1) Starts stack via ./scripts/up.sh (simulation by default)
@@ -13,6 +13,10 @@ Runs an end-to-end smoke check for the local stack:
 Options:
   --build         Build images during startup (default: no build).
   --sgx           Run smoke checks against SGX compose mode (docker-compose.yaml).
+  --signing-key PATH
+                  Forwarded to scripts/up.sh in SGX mode to build signed images.
+  --signing-key-dir DIR
+                  Forwarded to scripts/up.sh in SGX mode to build signed images.
   --keep-running  Do not tear down the stack on exit.
   -h, --help      Show this help.
 EOF
@@ -27,6 +31,8 @@ KEEP_RUNNING="false"
 MODE="simulation"
 CHECK_RETRIES=20
 CHECK_DELAY_SECONDS=1
+SIGNING_KEY=""
+SIGNING_KEY_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,6 +43,22 @@ while [[ $# -gt 0 ]]; do
     --sgx)
       MODE="sgx"
       shift
+      ;;
+    --signing-key)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value for --signing-key" >&2
+        exit 2
+      fi
+      SIGNING_KEY="$2"
+      shift 2
+      ;;
+    --signing-key-dir)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value for --signing-key-dir" >&2
+        exit 2
+      fi
+      SIGNING_KEY_DIR="$2"
+      shift 2
       ;;
     --keep-running)
       KEEP_RUNNING="true"
@@ -56,8 +78,10 @@ done
 
 if [[ "$MODE" == "sgx" ]]; then
   COMPOSE_FILE="${PROJECT_ROOT}/docker/docker-compose.yaml"
-  COORDINATOR_STATUS_CMD=(marblerun status localhost:4433)
+  # Local compose deployments use coordinator-generated certs by default.
+  COORDINATOR_STATUS_CMD=(marblerun status localhost:4433 --insecure)
   UP_ARGS=()
+  echo "SGX mode requires images signed with keys matching manifests/manifest.json."
 else
   COMPOSE_FILE="${PROJECT_ROOT}/docker/docker-compose.simulation.yaml"
   COORDINATOR_STATUS_CMD=(marblerun status localhost:4433 --insecure)
@@ -86,6 +110,12 @@ trap cleanup EXIT
 echo "Starting ${MODE} stack..."
 if [[ "$BUILD" != "true" ]]; then
   UP_ARGS+=(--no-build)
+fi
+if [[ -n "$SIGNING_KEY" ]]; then
+  UP_ARGS+=(--signing-key "$SIGNING_KEY")
+fi
+if [[ -n "$SIGNING_KEY_DIR" ]]; then
+  UP_ARGS+=(--signing-key-dir "$SIGNING_KEY_DIR")
 fi
 "${PROJECT_ROOT}/scripts/up.sh" "${UP_ARGS[@]}"
 
@@ -146,6 +176,19 @@ done < <(printf "%s\n" "${!SERVICES[@]}" | sort)
 
 echo ""
 if [[ "$failures" -gt 0 ]]; then
+  if [[ "$MODE" == "sgx" ]]; then
+    sgx_logs="$(compose logs --no-color --tail 500 2>/dev/null || true)"
+    if printf "%s\n" "$sgx_logs" | grep -Eq "PackageProperties not compliant|marble verification failed"; then
+      echo ""
+      echo "Detected SGX signer mismatch: image SignerID does not match manifests/manifest.json."
+    else
+      echo ""
+      echo "SGX smoke failed. A common cause is image SignerID mismatch against manifests/manifest.json."
+    fi
+    echo "Provide production signing keys and run one of:"
+    echo "  ./scripts/docker_smoke.sh --sgx --build --signing-key /path/to/private.pem"
+    echo "  ./scripts/docker_smoke.sh --sgx --build --signing-key-dir /path/to/keys"
+  fi
   echo "Smoke check failed: ${failures} service check(s) failed."
   exit 1
 fi
