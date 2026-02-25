@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // =============================================================================
@@ -40,6 +41,22 @@ func (r *Repository) MarkRequestSeen(ctx context.Context, serviceID, requestID s
 		return false, fmt.Errorf("%w: unmarshal mark_request_seen: %v", ErrDatabaseError, err)
 	}
 	return result, nil
+}
+
+// DeleteSeenRequest removes a replay marker for a request.
+func (r *Repository) DeleteSeenRequest(ctx context.Context, serviceID, requestID string) error {
+	if serviceID == "" {
+		return fmt.Errorf("%w: service_id cannot be empty", ErrInvalidInput)
+	}
+	if requestID == "" {
+		return fmt.Errorf("%w: request_id cannot be empty", ErrInvalidInput)
+	}
+
+	query := "service_id=eq." + url.QueryEscape(serviceID) + "&request_id=eq." + url.QueryEscape(requestID)
+	if _, err := r.client.request(ctx, http.MethodDelete, "seen_requests", nil, query); err != nil {
+		return fmt.Errorf("%w: delete seen request: %v", ErrDatabaseError, err)
+	}
+	return nil
 }
 
 // CleanupSeenRequests calls the cleanup_seen_requests RPC function.

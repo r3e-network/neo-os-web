@@ -173,7 +173,7 @@ func NewContractInvoker(cfg ContractInvokerConfig) (*ContractInvoker, error) {
 		lockedAccounts:   make(map[string]string),
 		accountAddresses: make(map[string]string),
 		accountBalances:  make(map[string]int64),
-		roundID:          time.Now().Unix(),
+		roundID:          time.Now().UnixMilli(),
 	}, nil
 }
 

@@ -37,11 +37,7 @@
           "MARBLE_EXTRA_CLIENT_CA": "",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
           "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
-          "POOL_ENCRYPTION_KEY": "{{ hex .Secrets.POOL_ENCRYPTION_KEY }}",
-          "POOL_MASTER_KEY": "{{ hex .Secrets.POOL_MASTER_KEY }}",
-          "POOL_MASTER_KEY_HASH": "f4ed77abb30baf9e1ea6ff8577d7c112f1d85dcd91b41402249f97302f3bc210",
-          "SERVICE_TYPE": "neoaccounts",
-          "TEE_PRIVATE_KEY": "{{ hex .Secrets.TEE_PRIVATE_KEY.Private }}"
+          "SERVICE_TYPE": "neoaccounts"
         }
       }
     },
@@ -210,8 +206,7 @@
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
           "MARBLE_ROOT_CA": "{{ pem .MarbleRun.RootCA.Cert }}",
           "SERVICE_TYPE": "txproxy",
-          "TEE_PRIVATE_KEY": "{{ hex .Secrets.TEE_PRIVATE_KEY.Private }}",
-          "TXPROXY_ALLOWLIST": "{\"contracts\":{\"0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5\":[\"*\"],\"0xd2a4cff31913016155e38e474a2c06d08be276cf\":[\"*\"],\"0x4f494f1cc883015fcefb45f1b5182a4d3dc6be0b\":[\"*\"]}}"
+          "TEE_PRIVATE_KEY": "{{ hex .Secrets.TEE_PRIVATE_KEY.Private }}"
         }
       }
     }
@@ -229,7 +224,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "96f7c022f87609cfe4e9718049e12c8afa0379dbbc90e101d556a5adb4d8d397"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "neoaccounts": {
       "AcceptedTCBStatuses": [
@@ -243,7 +238,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "3c6a461c72562a2ccc6b1cac23e02053fc8785cf7f6649144638b9870d6c169a"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "neocompute": {
       "AcceptedTCBStatuses": [
@@ -257,7 +252,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "8820ec9b1b15d680d25812b8f9a4d5faf8795476ff3899ddb4b162c539ebc86a"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "neofeeds": {
       "AcceptedTCBStatuses": [
@@ -271,7 +266,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "8bc8a4abfb9166fac503531359126776779960d3b4774e2eeaca04b73edbd323"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "neoflow": {
       "AcceptedTCBStatuses": [
@@ -285,7 +280,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "afc2b8a8693f6d967546d3948d32417544918a65d1f0735134dd4a508ee5f89f"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "neogasbank": {
       "AcceptedTCBStatuses": [
@@ -299,7 +294,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "11b26fc2ff90b0bc060bdef79b5ba7fdac365f50c4c60e081e652f824d5f46f0"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "neooracle": {
       "AcceptedTCBStatuses": [
@@ -313,7 +308,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "7a5771d5fabb7cc1a9dd24c749fb34e948f3cae01e177562873aa5308e77f218"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "neorequests": {
       "AcceptedTCBStatuses": [
@@ -327,7 +322,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "b82f158a45ecdf3026b20725dd8b41b10b25bd095c40fa4ae7304f0851722aa5"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "neosimulation": {
       "AcceptedTCBStatuses": [
@@ -341,7 +336,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "d71abc21cedd7b7f9d8cd14ee2bca6a4ee677a5d757f528a11bf21b1bc12f7ad"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "neovrf": {
       "AcceptedTCBStatuses": [
@@ -355,7 +350,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "6f1a73abe7b5601099d613e753755eb1c7b1787676fe330733f4acc84766b84d"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     },
     "txproxy": {
       "AcceptedTCBStatuses": [
@@ -369,7 +364,7 @@
       "Debug": false,
       "ProductID": 1,
       "SecurityVersion": 1,
-      "SignerID": "1905809a66acbf87675d9b77c68f55d529103a3f85d2234b28e98ad56235711a"
+      "SignerID": "422b1602704b79e5b297136b62bbfbc18963e25224019afdacf24cd12d9c9312"
     }
   },
   "Secrets": {

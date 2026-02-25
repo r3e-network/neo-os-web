@@ -134,6 +134,8 @@ func resolveContractHash(cfgValue string, m *marble.Marble, envKeys ...string) s
 // resolveHTTPClient returns an HTTP client from the config, falling back to
 // the marble client or a default. It disables redirects when no explicit
 // client was provided to prevent SSRF via redirect chains.
+//
+//nolint:gocritic // Config is read-only during service bootstrap and passed by value by design.
 func resolveHTTPClient(cfg Config) *http.Client {
 	if cfg.HTTPClient != nil {
 		return cfg.HTTPClient
@@ -169,6 +171,8 @@ type resolvedConfig struct {
 
 // resolveConfig resolves all configuration values from the Config struct,
 // environment variables, and marble secrets.
+//
+//nolint:gocritic // Config is read-only during service bootstrap and passed by value by design.
 func resolveConfig(cfg Config) resolvedConfig {
 	m := cfg.Marble
 

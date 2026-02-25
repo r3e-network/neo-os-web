@@ -110,7 +110,6 @@ func New(cfg Config) (*Service, error) {
 	return s, nil
 }
 
-
 func (s *Service) initSigningKey() error {
 	if len(s.signingKey) >= 32 {
 		priv, pub, err := deriveSigningKey(s.signingKey)

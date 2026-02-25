@@ -11,6 +11,7 @@ import (
 // DBChecker abstracts the database operations needed for replay protection.
 type DBChecker interface {
 	MarkRequestSeen(ctx context.Context, serviceID, requestID string, windowSeconds int) (bool, error)
+	DeleteSeenRequest(ctx context.Context, serviceID, requestID string) error
 	CleanupSeenRequests(ctx context.Context, serviceID string) (int, error)
 }
 
@@ -105,6 +106,31 @@ func (g *Guard) markSeenInMemory(requestID string) bool {
 
 	g.seen[requestID] = now.Add(g.replayWindow)
 	return true
+}
+
+// UnmarkSeen removes a request from replay protection. Use this when request
+// processing fails before any side effects are committed.
+func (g *Guard) UnmarkSeen(ctx context.Context, requestID string) {
+	requestID = strings.TrimSpace(requestID)
+	if requestID == "" {
+		return
+	}
+
+	if g.db != nil {
+		dbCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		if err := g.db.DeleteSeenRequest(dbCtx, g.serviceID, requestID); err != nil && g.logger != nil {
+			g.logger("failed to delete seen request in DB", err)
+		}
+	}
+
+	g.unmarkSeenInMemory(requestID)
+}
+
+func (g *Guard) unmarkSeenInMemory(requestID string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	delete(g.seen, requestID)
 }
 
 // Cleanup removes expired entries from both the database (if configured)

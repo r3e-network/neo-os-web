@@ -22,6 +22,7 @@ type Syncer struct {
 	mu      sync.Mutex
 	running bool
 	stopCh  chan struct{}
+	wg      sync.WaitGroup
 }
 
 // NewSyncer creates a new transaction syncer for all configured networks.
@@ -83,24 +84,35 @@ func (s *Syncer) Start(ctx context.Context) error {
 		return fmt.Errorf("syncer already running")
 	}
 	s.running = true
+	s.stopCh = make(chan struct{})
+	stopCh := s.stopCh
+	s.wg.Add(1)
 	s.mu.Unlock()
 
 	s.log.Info(ctx, "starting transaction syncer", nil)
-	go s.syncLoop(ctx)
+	go s.syncLoop(ctx, stopCh)
 	return nil
 }
 
 // Stop stops the synchronization loop.
 func (s *Syncer) Stop() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.running {
-		close(s.stopCh)
-		s.running = false
+	if !s.running {
+		s.mu.Unlock()
+		return
 	}
+	stopCh := s.stopCh
+	s.running = false
+	s.mu.Unlock()
+
+	if stopCh != nil {
+		close(stopCh)
+	}
+	s.wg.Wait()
 }
 
-func (s *Syncer) syncLoop(ctx context.Context) {
+func (s *Syncer) syncLoop(ctx context.Context, stopCh <-chan struct{}) {
+	defer s.wg.Done()
 	defer func() {
 		if r := recover(); r != nil {
 			s.log.Error(ctx, "syncLoop panicked", fmt.Errorf("%v", r), nil)
@@ -116,7 +128,7 @@ func (s *Syncer) syncLoop(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-s.stopCh:
+		case <-stopCh:
 			return
 		case <-ticker.C:
 			s.syncAllNetworks(ctx)

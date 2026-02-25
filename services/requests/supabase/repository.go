@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -93,10 +94,10 @@ func (r *Repository) GetMiniAppByContractHash(ctx context.Context, contractHash 
 	}
 	if len(rows) == 0 {
 		// Backward-compatible fallback while caches are backfilled.
-		fallbackQuery := database.NewQuery().
-			Eq("manifest->>contract_hash", contractHash).
-			Limit(1).
-			Build()
+		params := url.Values{}
+		params.Set("manifest->>contract_hash", "eq."+contractHash)
+		params.Set("limit", "1")
+		fallbackQuery := params.Encode()
 		rows, err = database.GenericListWithQuery[MiniApp](r.base, ctx, miniappsTable, fallbackQuery)
 		if err != nil {
 			return nil, err

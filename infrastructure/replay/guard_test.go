@@ -92,6 +92,16 @@ func (m *mockDB) CleanupSeenRequests(_ context.Context, _ string) (int, error) {
 	return 0, m.err
 }
 
+func (m *mockDB) DeleteSeenRequest(_ context.Context, serviceID, requestID string) error {
+	if m.err != nil {
+		return m.err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.seen, serviceID+":"+requestID)
+	return nil
+}
+
 func TestMarkSeenWithDB(t *testing.T) {
 	db := &mockDB{seen: make(map[string]bool)}
 	g := New("test-svc", 5*time.Minute, WithDB(db))
@@ -118,5 +128,30 @@ func TestMarkSeenDBErrorFallsBackToMemory(t *testing.T) {
 	}
 	if !logged {
 		t.Fatal("expected logger to be called on DB error")
+	}
+}
+
+func TestUnmarkSeenInMemory(t *testing.T) {
+	g := New("test-svc", 5*time.Minute)
+	if !g.MarkSeen(context.Background(), "req-rollback") {
+		t.Fatal("first call should return true")
+	}
+
+	g.UnmarkSeen(context.Background(), "req-rollback")
+	if !g.MarkSeen(context.Background(), "req-rollback") {
+		t.Fatal("request should be accepted after unmark")
+	}
+}
+
+func TestUnmarkSeenWithDB(t *testing.T) {
+	db := &mockDB{seen: make(map[string]bool)}
+	g := New("test-svc", 5*time.Minute, WithDB(db))
+
+	if !g.MarkSeen(context.Background(), "db-rollback") {
+		t.Fatal("first DB call should return true")
+	}
+	g.UnmarkSeen(context.Background(), "db-rollback")
+	if !g.MarkSeen(context.Background(), "db-rollback") {
+		t.Fatal("request should be accepted after DB unmark")
 	}
 }

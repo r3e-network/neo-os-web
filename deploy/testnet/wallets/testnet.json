@@ -1,1 +1,30 @@
-{"version":"1.0","accounts":[{"address":"NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu","key":"REDACTED_SECRET_PURGED_FROM_HISTORY","label":"deployer","contract":{"script":"DCED8117oJ8KFPCg+P3SzS2zlkfIAnD2WlLQPSzOs2tSUMVBVuezJw==","parameters":[{"name":"parameter0","type":"Signature"}],"deployed":false},"lock":false,"isDefault":false}],"scrypt":{"n":16384,"r":8,"p":8},"extra":{"Tokens":null}}
+{
+  "version": "1.0",
+  "accounts": [
+    {
+      "address": "REPLACE_WITH_DEPLOYER_ADDRESS",
+      "key": "REPLACE_WITH_ENCRYPTED_WIF",
+      "label": "deployer",
+      "contract": {
+        "script": "",
+        "parameters": [
+          {
+            "name": "parameter0",
+            "type": "Signature"
+          }
+        ],
+        "deployed": false
+      },
+      "lock": false,
+      "isDefault": false
+    }
+  ],
+  "scrypt": {
+    "n": 16384,
+    "r": 8,
+    "p": 8
+  },
+  "extra": {
+    "Tokens": null
+  }
+}

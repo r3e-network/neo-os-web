@@ -186,9 +186,9 @@ func (s *Service) InvokeMaster(ctx context.Context, contractHash, method string,
 	// Convert params to chain.ContractParam
 	chainParams := make([]chain.ContractParam, len(params))
 	for i, p := range params {
-		cp, err := convertToChainParam(p)
-		if err != nil {
-			return nil, fmt.Errorf("convert param %d: %w", i, err)
+		cp, paramErr := convertToChainParam(p)
+		if paramErr != nil {
+			return nil, fmt.Errorf("convert param %d: %w", i, paramErr)
 		}
 		chainParams[i] = cp
 	}

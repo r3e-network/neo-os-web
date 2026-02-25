@@ -417,24 +417,70 @@ wait_for_tcp() {
   return 1
 }
 
+wait_for_coordinator_api() {
+  local deadline="$((SECONDS + 60))"
+  while (( SECONDS < deadline )); do
+    if marblerun status "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  return 1
+}
+
+set_manifest_with_retries() {
+  local attempts="${1:-10}"
+  local sleep_seconds="${2:-2}"
+  local attempt
+
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if marblerun manifest set "$MANIFEST_FILE" "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}"; then
+      return 0
+    fi
+    echo "Warning: 'marblerun manifest set' failed (attempt ${attempt}/${attempts})." >&2
+    if (( attempt < attempts )); then
+      sleep "$sleep_seconds"
+    fi
+  done
+
+  return 1
+}
+
+coordinator_requires_manifest() {
+  local status_out
+  status_out="$(marblerun status "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}" 2>&1 || true)"
+  echo "$status_out" | grep -Eiq 'recovery mode|waiting for (a )?manifest|ready to accept a manifest'
+}
+
 echo "Waiting for coordinator at ${COORDINATOR_CLIENT_ADDR}..."
 if ! wait_for_tcp "$COORDINATOR_CLIENT_ADDR"; then
   echo "Coordinator not reachable at ${COORDINATOR_CLIENT_ADDR} (timeout)" >&2
   exit 1
 fi
 
-set +e
-marblerun manifest set "$MANIFEST_FILE" "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}"
-MANIFEST_RC=$?
-set -e
+if ! wait_for_coordinator_api; then
+  echo "Warning: Coordinator API was slow to initialize; continuing with manifest retries." >&2
+fi
 
-if [[ $MANIFEST_RC -ne 0 ]]; then
-  echo "Warning: 'marblerun manifest set' failed (rc=$MANIFEST_RC). It may already be set." >&2
-  if marblerun manifest update apply --help >/dev/null 2>&1; then
-    if ! marblerun manifest update apply "$MANIFEST_FILE" "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}"; then
-      echo "Warning: 'marblerun manifest update apply' failed. Coordinator may not be ready or update cert/key missing." >&2
+if coordinator_requires_manifest; then
+  if ! set_manifest_with_retries 10 2; then
+    echo "Warning: 'marblerun manifest set' failed after retries." >&2
+    if coordinator_requires_manifest; then
+      if marblerun manifest update apply --help >/dev/null 2>&1; then
+        if ! marblerun manifest update apply "$MANIFEST_FILE" "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}"; then
+          echo "Error: failed to configure coordinator manifest (set + update both failed)." >&2
+          exit 1
+        fi
+      else
+        echo "Error: coordinator still requires a manifest and update command is unavailable." >&2
+        exit 1
+      fi
     fi
   fi
+else
+  echo "Coordinator already has an active manifest; skipping manifest set." >&2
+  echo "If you changed ${MANIFEST_FILE}, reset coordinator state first (e.g. docker compose -f ${COMPOSE_FILE} down -v)." >&2
 fi
 
 marblerun status "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}" || true

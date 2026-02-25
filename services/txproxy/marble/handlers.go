@@ -61,6 +61,7 @@ func (s *Service) handleInvoke(w http.ResponseWriter, r *http.Request) {
 		req.Wait,
 	)
 	if err != nil {
+		s.replayGuard.UnmarkSeen(r.Context(), reqID)
 		s.Logger().Error(r.Context(), "failed to invoke contract", err, nil)
 		httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 		return
