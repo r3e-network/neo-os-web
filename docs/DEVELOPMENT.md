@@ -112,6 +112,10 @@ make docker-up
 make docker-smoke
 # SGX hardware runtime smoke check
 make docker-smoke-sgx
+# SGX smoke with signed-image build (uses Make vars)
+make docker-smoke-sgx-build SIGNING_KEY=/path/to/private.pem
+# or
+make docker-smoke-sgx-build SIGNING_KEY_DIR=/path/to/signing-keys
 # SGX smoke with signed-image build (single key)
 ./scripts/docker_smoke.sh --sgx --build --signing-key /path/to/private.pem
 # SGX smoke with per-service signing keys

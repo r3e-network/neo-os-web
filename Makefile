@@ -3,7 +3,7 @@
 # MarbleRun + EGo + Supabase + Vercel Architecture
 # =============================================================================
 
-.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-sgx
+.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-sgx docker-smoke-sgx-build
 .PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
 .PHONY: edge-check edge-dev
 
@@ -141,6 +141,16 @@ docker-smoke: ## Smoke-check simulation stack health end-to-end
 
 docker-smoke-sgx: ## Smoke-check SGX stack health end-to-end
 	./scripts/docker_smoke.sh --sgx
+
+docker-smoke-sgx-build: ## Smoke-check SGX stack with signed-image build (set SIGNING_KEY or SIGNING_KEY_DIR)
+	@if [ -n "$(SIGNING_KEY)" ]; then \
+		./scripts/docker_smoke.sh --sgx --build --signing-key "$(SIGNING_KEY)"; \
+	elif [ -n "$(SIGNING_KEY_DIR)" ]; then \
+		./scripts/docker_smoke.sh --sgx --build --signing-key-dir "$(SIGNING_KEY_DIR)"; \
+	else \
+		echo "Set SIGNING_KEY=/path/to/private.pem or SIGNING_KEY_DIR=/path/to/signing-keys"; \
+		exit 1; \
+	fi
 
 docker-up-sgx: ## Start all services with SGX hardware
 	./scripts/up.sh
