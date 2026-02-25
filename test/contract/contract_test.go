@@ -41,7 +41,7 @@ func TestContractCompilation(t *testing.T) {
 
 	specs := []contractSpec{
 		{
-			name:       "PaymentHub",
+			name:       "PaymentHubV2",
 			sourceFile: filepath.Join("..", "..", "contracts", "PaymentHub", "PaymentHub.cs"),
 		},
 		{

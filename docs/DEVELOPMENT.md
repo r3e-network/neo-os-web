@@ -320,6 +320,32 @@ If you only want to compile contracts (without running Go tests):
 make contracts-build
 ```
 
+### Neo Fairy Integration
+
+Fairy tests live under `test/fairy` and require a local `neo-cli` with the
+Fairy plugin installed under:
+
+- `$NEOROOT/bin/Neo.CLI/net10.0/Plugins/Fairy`
+
+Start Fairy:
+
+```bash
+NEOROOT=/path/to/neo-node ./test/fairy/start-fairy.sh
+```
+
+Run Fairy tests:
+
+```bash
+# Connectivity/session tests
+go test -count=1 -v ./test/fairy/...
+```
+
+To run virtual deploy/read-only contract flows (not skipped), set a wallet WIF:
+
+```bash
+NEO_TESTNET_WIF=<your-wif> go test -count=1 -v ./test/fairy/...
+```
+
 ### Watch Mode
 
 Automatically run tests when files change:

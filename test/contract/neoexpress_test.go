@@ -49,22 +49,85 @@ func NewNeoExpress(t *testing.T) *NeoExpress {
 	}
 }
 
-func (n *NeoExpress) neoxpCmd() string {
+func isUsableDotnetRoot(root string) bool {
+	root = strings.TrimSpace(root)
+	if root == "" {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(root, "shared", "Microsoft.NETCore.App")); err == nil {
+		return true
+	}
+	return false
+}
+
+func resolveDotnetRoot() string {
+	if root := strings.TrimSpace(os.Getenv("DOTNET_ROOT")); isUsableDotnetRoot(root) {
+		return root
+	}
+
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".dotnet", "tools", neoxpPath)
+	if home != "" {
+		root := filepath.Join(home, ".dotnet")
+		if isUsableDotnetRoot(root) {
+			return root
+		}
+	}
+
+	const systemDotnetRoot = "/usr/lib/dotnet"
+	if isUsableDotnetRoot(systemDotnetRoot) {
+		return systemDotnetRoot
+	}
+
+	if home != "" {
+		return filepath.Join(home, ".dotnet")
+	}
+	return systemDotnetRoot
+}
+
+func resolveNeoXpCmd() string {
+	home, _ := os.UserHomeDir()
+	if home != "" {
+		toolPath := filepath.Join(home, ".dotnet", "tools", neoxpPath)
+		if _, err := os.Stat(toolPath); err == nil {
+			return toolPath
+		}
+	}
+
+	if lp, err := exec.LookPath(neoxpPath); err == nil {
+		return lp
+	}
+
+	if home != "" {
+		return filepath.Join(home, ".dotnet", "tools", neoxpPath)
+	}
+	return neoxpPath
+}
+
+func prependPathEntries(base string, entries ...string) string {
+	parts := make([]string, 0, len(entries)+1)
+	for _, entry := range entries {
+		entry = strings.TrimSpace(entry)
+		if entry != "" {
+			parts = append(parts, entry)
+		}
+	}
+	base = strings.TrimSpace(base)
+	if base != "" {
+		parts = append(parts, base)
+	}
+	return strings.Join(parts, string(os.PathListSeparator))
+}
+
+func (n *NeoExpress) neoxpCmd() string {
+	return resolveNeoXpCmd()
 }
 
 func (n *NeoExpress) dotnetEnv() []string {
 	home, _ := os.UserHomeDir()
-	dotnetRoot := filepath.Join(home, ".dotnet")
+	dotnetRoot := resolveDotnetRoot()
 	tools := filepath.Join(home, ".dotnet", "tools")
 
-	path := os.Getenv("PATH")
-	if path == "" {
-		path = tools
-	} else {
-		path = dotnetRoot + string(os.PathListSeparator) + tools + string(os.PathListSeparator) + path
-	}
+	path := prependPathEntries(os.Getenv("PATH"), dotnetRoot, tools)
 
 	return []string{
 		"DOTNET_ROOT=" + dotnetRoot,
@@ -354,6 +417,76 @@ func (n *NeoExpress) GetWalletScriptHash(name string) (string, error) {
 	return "", fmt.Errorf("wallet %s script-hash not found in response", name)
 }
 
+func (n *NeoExpress) GetWalletPublicKey(name string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	if err := n.ensureCreated(ctx); err != nil {
+		return "", err
+	}
+
+	out, err := n.command(ctx, "wallet", "list", "-i", n.dataFile, "-j").CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("list wallets: %s: %w", string(out), err)
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal(out, &parsed); err != nil {
+		return "", fmt.Errorf("parse wallet list json: %w", err)
+	}
+
+	entry, ok := parsed[name]
+	if !ok {
+		return "", fmt.Errorf("wallet %s not found", name)
+	}
+
+	extract := func(m map[string]any) (string, bool) {
+		pub, ok := m["public-key"].(string)
+		pub = strings.TrimSpace(pub)
+		if !ok || len(pub) != 66 {
+			return "", false
+		}
+		switch strings.ToLower(pub[:2]) {
+		case "02", "03":
+			return "0x" + strings.ToLower(pub), true
+		default:
+			return "", false
+		}
+	}
+
+	switch v := entry.(type) {
+	case map[string]any:
+		if pub, ok := extract(v); ok {
+			return pub, nil
+		}
+	case []any:
+		// Prefer the default account when present.
+		for _, item := range v {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if label, ok := m["account-label"].(string); ok && strings.TrimSpace(label) != "Default" {
+				continue
+			}
+			if pub, ok := extract(m); ok {
+				return pub, nil
+			}
+		}
+		for _, item := range v {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if pub, ok := extract(m); ok {
+				return pub, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("wallet %s public-key not found in response", name)
+}
+
 func (n *NeoExpress) TransferGAS(from, to string, amount float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -605,9 +738,8 @@ func SkipIfNoNeoExpress(t *testing.T) {
 	if !hasDotnet() {
 		t.Skip("dotnet not installed, skipping neo-express contract tests")
 	}
-	home, _ := os.UserHomeDir()
-	neoxp := filepath.Join(home, ".dotnet", "tools", neoxpPath)
-	if _, err := os.Stat(neoxp); os.IsNotExist(err) {
+	neoxp := resolveNeoXpCmd()
+	if _, err := os.Stat(neoxp); err != nil {
 		t.Skip("neo-express not installed, skipping contract tests")
 	}
 
@@ -708,15 +840,10 @@ func hasNCCS() bool {
 
 func dotnetToolEnv() []string {
 	home, _ := os.UserHomeDir()
-	dotnetRoot := filepath.Join(home, ".dotnet")
+	dotnetRoot := resolveDotnetRoot()
 	tools := filepath.Join(home, ".dotnet", "tools")
 
-	path := os.Getenv("PATH")
-	if path == "" {
-		path = tools
-	} else {
-		path = dotnetRoot + string(os.PathListSeparator) + tools + string(os.PathListSeparator) + path
-	}
+	path := prependPathEntries(os.Getenv("PATH"), dotnetRoot, tools)
 
 	return []string{
 		"DOTNET_ROOT=" + dotnetRoot,
