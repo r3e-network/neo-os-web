@@ -121,6 +121,8 @@ make docker-smoke-sgx
 If SGX smoke fails and services keep restarting, check for a SignerID mismatch
 between built images and `manifests/manifest.json`. The smoke script prints
 remediation commands when this is detected.
+Note: repository-root `private.pem` is a placeholder and not a usable enclave
+signing key.
 
 This will:
 1. Start MarbleRun coordinator (simulation mode)

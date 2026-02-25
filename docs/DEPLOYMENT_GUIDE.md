@@ -308,6 +308,7 @@ the MarbleRun manifest.
 See: `manifests/manifest.json`.
 
 **Signer IDs and build keys:** `SignerID` is derived from the enclave signing key (MRSIGNER). For production deployments you must use a stable signing key (stored securely in CI/build secrets) so rebuilt images continue to match the manifest. Never ship or commit the enclave signing private key (`private.pem`) in runtime images or source control.
+The repository-root `private.pem` is a placeholder and is not a valid signing key.
 
 #### Building signed images (SGX hardware / production)
 
