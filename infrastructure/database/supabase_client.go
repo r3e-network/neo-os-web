@@ -62,7 +62,6 @@ func NewClient(cfg Config) (*Client, error) {
 	strict := runtime.StrictIdentityMode()
 	allowInsecure := strings.EqualFold(os.Getenv("SUPABASE_ALLOW_INSECURE"), "true") || strings.EqualFold(os.Getenv("SUPABASE_ALLOW_INSECURE"), "1")
 	// If allow insecure is explicitly set, just use it for testing, don't fail.
-	
 
 	usingMockURL := false
 	if baseURL == "" {
