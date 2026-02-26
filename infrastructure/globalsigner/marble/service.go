@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -229,7 +230,7 @@ func (s *Service) hydrate(ctx context.Context) error {
 			s.Logger().Warn(ctx, "Failed to load key versions", map[string]interface{}{"error": err.Error()})
 		} else {
 			for _, v := range versions {
-				if err := s.loadKeyVersion(v); err != nil {
+				if err := s.loadKeyVersion(ctx, v); err != nil {
 					s.Logger().Warn(ctx, "Failed to load key version", map[string]interface{}{"version": v.Version, "error": err.Error()})
 				}
 			}
@@ -249,10 +250,25 @@ func (s *Service) hydrate(ctx context.Context) error {
 }
 
 // loadKeyVersion derives and loads a key version into memory.
-func (s *Service) loadKeyVersion(v *KeyVersion) error {
+func (s *Service) loadKeyVersion(ctx context.Context, v *KeyVersion) error {
+	if v == nil {
+		return fmt.Errorf("key version is nil")
+	}
 	priv, err := s.deriveKeyForVersion(v.Version)
 	if err != nil {
 		return err
+	}
+	derivedPubKeyHex, derivedPubKeyHash := derivePubKeyMetadata(priv)
+	if !equalHexNoPrefix(v.PubKeyHex, derivedPubKeyHex) || !equalHexNoPrefix(v.PubKeyHash, derivedPubKeyHash) {
+		s.Logger().Warn(ctx, "GlobalSigner key metadata drift detected; using derived metadata", map[string]interface{}{
+			"version":             v.Version,
+			"stored_pubkey":       v.PubKeyHex,
+			"derived_pubkey":      derivedPubKeyHex,
+			"stored_pubkey_hash":  v.PubKeyHash,
+			"derived_pubkey_hash": derivedPubKeyHash,
+		})
+		v.PubKeyHex = derivedPubKeyHex
+		v.PubKeyHash = derivedPubKeyHash
 	}
 
 	s.mu.Lock()
@@ -292,6 +308,22 @@ func (s *Service) deriveKeyForVersion(version string) (*ecdsa.PrivateKey, error)
 	priv.PublicKey.X, priv.PublicKey.Y = curve.ScalarBaseMult(d.Bytes())
 
 	return priv, nil
+}
+
+func derivePubKeyMetadata(priv *ecdsa.PrivateKey) (pubKeyHex, pubKeyHash string) {
+	pubKeyBytes := elliptic.MarshalCompressed(priv.Curve, priv.PublicKey.X, priv.PublicKey.Y)
+	pubHash := sha256.Sum256(pubKeyBytes)
+	return hex.EncodeToString(pubKeyBytes), hex.EncodeToString(pubHash[:])
+}
+
+func equalHexNoPrefix(a, b string) bool {
+	normalize := func(v string) string {
+		v = strings.TrimSpace(v)
+		v = strings.TrimPrefix(v, "0x")
+		v = strings.TrimPrefix(v, "0X")
+		return strings.ToLower(v)
+	}
+	return normalize(a) == normalize(b)
 }
 
 // statistics returns service statistics for the /info endpoint.
