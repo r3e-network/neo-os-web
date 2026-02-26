@@ -75,17 +75,17 @@ For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Platform Contracts
 
-Deployed on Neo N3 Testnet:
+Deployed on Neo N3 Testnet (current `.env` values, validated on **February 26, 2026**):
 
 | Contract            | Hash                                         | Description               |
 | ------------------- | -------------------------------------------- | ------------------------- |
-| PaymentHub          | `0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193` | GAS payment processing    |
-| Governance          | `0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05` | NEO staking and voting    |
-| PriceFeed           | `0xc5d9117d255054489d1cf59b2c1d188c01bc9954` | Oracle price data         |
-| RandomnessLog       | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` | VRF attestation anchoring |
-| AppRegistry         | `0x79d16bee03122e992bb80c478ad4ed405f33bc7f` | MiniApp registration      |
-| AutomationAnchor    | `0x1c888d699ce76b0824028af310d90c3c18adeab5` | Periodic task scheduling  |
-| ServiceLayerGateway | `0x27b79cf631eff4b520dd9d95cd1425ec33025a53` | Service request routing   |
+| PaymentHub          | `0x340cb33d770b38f26d066716dd1f9df5283d629e` | GAS payment processing    |
+| Governance          | `0x2ec930202e6d03313d97198259b298cc3c29295e` | NEO staking and voting    |
+| PriceFeed           | `0x5284ef25f1bbbf36d139f6f94356e46b89138602` | Oracle price data         |
+| RandomnessLog       | `0xa24f83dcbafff909d4209ac76ca5d09237c0cda6` | VRF attestation anchoring |
+| AppRegistry         | `0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d` | MiniApp registration      |
+| AutomationAnchor    | `0xa016f7be94ad7c4d87ad2f8d38784797c2dc494b` | Periodic task scheduling  |
+| ServiceLayerGateway | `0x194fcb975c47952c5a030e89946a5907b33efd23` | Service request routing   |
 
 ## MiniApps (62 Apps)
 
@@ -187,7 +187,7 @@ All MiniApp contracts use the shared `MiniAppContract` partial class pattern and
 
 ### Prerequisites
 
-- Go 1.21+
+- Go 1.24+
 - Docker & Docker Compose
 - Node.js 18+
 - Neo N3 wallet with testnet GAS
@@ -213,6 +213,26 @@ cd platform/host-app && npm run dev
 
 See [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md) for detailed setup.
 
+## Production/Testnet Verification
+
+Use these commands to verify readiness and live testnet workflows:
+
+```bash
+set -a; source .env; set +a
+
+# SGX signing-key + production-readiness checks
+./scripts/check_enclave_signing_key.sh --key "$EGO_PRIVATE_KEY_FILE"
+./scripts/production_readiness_check.sh
+
+# End-to-end on-chain testnet workflow verification
+./scripts/verify_testnet_workflows.sh --env-file .env
+
+# PriceFeed freshness for current required symbols
+env PRICEFEED_WATCH_SYMBOLS='NEO-USD,GAS-USD,USDT-USD,USDC-USD,BTC-USD,ETH-USD,XRP-USD,BNB-USD,SOL-USD,TRX-USD,DOGE-USD,XAU-USD,XAG-USD,NVDA-USD,AAPL-USD,GOOGL-USD,MSFT-USD,META-USD,TSM-USD,TSLA-USD,TCEHY-USD' \
+  PRICEFEED_WATCH_MAX_STALENESS='24h' \
+  go run -tags=scripts scripts/check_pricefeed_freshness.go
+```
+
 ## Environment Variables
 
 | Variable                    | Description                |
@@ -223,6 +243,8 @@ See [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md) for detailed setup.
 | `NEO_RPC_URL`               | Neo N3 RPC endpoint        |
 | `NEO_NETWORK_MAGIC`         | Network magic number       |
 | `CONTRACT_*_HASH`           | Platform contract hashes   |
+| `EGO_PRIVATE_KEY_FILE`      | Enclave signing key path   |
+| `NEOFEEDS_PUBLISH_*`        | Datafeed publish policy    |
 
 See [`.env.example`](.env.example) for complete list.
 
