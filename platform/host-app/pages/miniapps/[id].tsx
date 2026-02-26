@@ -649,13 +649,13 @@ function buildInvokeArgs(
 // Server-Side Props
 export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async (context) => {
   const { id } = context.params as { id: string };
-  const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
   const encodedId = encodeURIComponent(id);
 
   // First check if it's a registry miniapp - return immediately if found
   const fallback = getMiniApp(id);
 
   try {
+    const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
     // Parallel fetch with shorter timeout (2s) for faster page load
     const [catalogRes, statsRes, notifRes] = await Promise.all([
       fetchWithTimeout(`${baseUrl}/api/miniapps/catalog?app_id=${encodedId}`, {}, 2000).catch(() => null),
@@ -699,6 +699,16 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
     };
   } catch (loadError) {
     logger.error("Failed to fetch app details:", loadError);
+    if (fallback) {
+      return {
+        props: {
+          app: sanitizeForJson(fallback),
+          stats: null,
+          notifications: [],
+          error: "Using fallback app metadata while live API data is unavailable",
+        },
+      };
+    }
     return {
       props: {
         app: null,

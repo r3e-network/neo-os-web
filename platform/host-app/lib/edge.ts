@@ -94,26 +94,46 @@ type RequestLike = {
   headers?: Record<string, string | string[] | undefined>;
 };
 
+function normalizeBaseUrl(raw: string): string | null {
+  const value = String(raw || "").trim().replace(/\/$/, "");
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (/^[a-zA-Z0-9._-]+(:\d+)?$/.test(value)) return `https://${value}`;
+  return null;
+}
+
+function fromHeaderValue(value?: string | string[]): string {
+  if (Array.isArray(value)) return String(value[0] || "").trim();
+  return String(value || "").trim();
+}
+
 /**
  * Resolve the base URL for internal API calls during SSR.
- * Priority: NEXT_PUBLIC_API_URL env > request host header > error
+ * Priority: NEXT_PUBLIC_API_URL env > Vercel runtime URL > request host header > error
  */
 export function resolveInternalBaseUrl(req?: RequestLike): string {
-  const envBase = String(process.env.NEXT_PUBLIC_API_URL || "").trim();
+  const envBase = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL || "");
   if (envBase) return envBase;
 
-  // In production, require explicit env var to prevent Host header cache poisoning
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("NEXT_PUBLIC_API_URL must be set in production");
-  }
+  const vercelBase = normalizeBaseUrl(
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      || process.env.VERCEL_BRANCH_URL
+      || process.env.VERCEL_URL
+      || "",
+  );
+  if (vercelBase) return vercelBase;
 
-  const rawHost = Array.isArray(req?.headers?.host) ? req?.headers?.host[0] : req?.headers?.host;
+  const rawForwardedHost = fromHeaderValue(req?.headers?.["x-forwarded-host"]);
+  const rawHost = rawForwardedHost || fromHeaderValue(req?.headers?.host);
   if (rawHost && /^[a-zA-Z0-9._-]+(:\d+)?$/.test(rawHost)) {
-    const protoHeader = req?.headers?.["x-forwarded-proto"];
-    const rawProto = Array.isArray(protoHeader) ? protoHeader[0] : protoHeader;
-    const proto = rawProto === "https" ? "https" : "http";
+    const rawProto = fromHeaderValue(req?.headers?.["x-forwarded-proto"]);
+    const proto = rawProto === "https" || (process.env.NODE_ENV === "production" && !rawProto)
+      ? "https"
+      : "http";
     return `${proto}://${rawHost}`;
   }
 
-  throw new Error("Unable to resolve base URL: no NEXT_PUBLIC_API_URL env and no host header");
+  throw new Error(
+    "Unable to resolve base URL: set NEXT_PUBLIC_API_URL, or provide VERCEL_URL / valid host headers",
+  );
 }
