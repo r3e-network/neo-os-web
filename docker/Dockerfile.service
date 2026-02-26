@@ -22,6 +22,30 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Fail fast when strict signing is enabled but the BuildKit signing key is
+# missing or malformed, to avoid wasting time on a full compile first.
+RUN --mount=type=secret,id=ego_private_key,target=/tmp/private.pem,required=false \
+    if [ "${EGO_STRICT_SIGNING:-0}" = "1" ]; then \
+      if [ ! -s /tmp/private.pem ]; then \
+        echo "ERROR: missing enclave signing key (BuildKit secret id=ego_private_key)." >&2; \
+        echo "Provide a valid PEM key via --secret id=ego_private_key,src=/path/to/private.pem" >&2; \
+        exit 1; \
+      fi; \
+      if ! openssl pkey -in /tmp/private.pem -noout >/dev/null 2>&1; then \
+        echo "ERROR: invalid enclave signing key (PEM parse failed)." >&2; \
+        echo "The repository root private.pem is a placeholder and cannot sign enclaves." >&2; \
+        exit 1; \
+      fi; \
+      if ! openssl rsa -in /tmp/private.pem -text -noout 2>/dev/null | grep -q "Private-Key: (3072 bit"; then \
+        echo "ERROR: invalid enclave signing key (expected RSA-3072)." >&2; \
+        exit 1; \
+      fi; \
+      if ! openssl rsa -in /tmp/private.pem -text -noout 2>/dev/null | grep -q "publicExponent: 3 (0x3)"; then \
+        echo "ERROR: invalid enclave signing key (expected publicExponent=3)." >&2; \
+        exit 1; \
+      fi; \
+    fi
+
 # Copy source code
 COPY . .
 
@@ -126,6 +150,13 @@ cat > enclave.json <<JSON
         {"name": "NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT", "fromHost": true},
         {"name": "NEOREQUESTS_STATS_ROLLUP_INTERVAL", "fromHost": true},
         {"name": "NEOFEEDS_ALLOW_PRIVATE_NETWORKS", "fromHost": true},
+        {"name": "NEOFEEDS_UPDATE_INTERVAL", "fromHost": true},
+        {"name": "NEOFEEDS_PUBLISH_THRESHOLD_BPS", "fromHost": true},
+        {"name": "NEOFEEDS_PUBLISH_HYSTERESIS_BPS", "fromHost": true},
+        {"name": "NEOFEEDS_PUBLISH_MIN_INTERVAL", "fromHost": true},
+        {"name": "NEOFEEDS_PUBLISH_MAX_PER_MINUTE", "fromHost": true},
+        {"name": "NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL", "fromHost": true},
+        {"name": "NEOFEEDS_SOURCE_CONCURRENCY", "fromHost": true},
         {"name": "CONTRACT_GAS_HASH", "fromHost": true},
         {"name": "NEO_EVENT_START_BLOCK", "fromHost": true},
         {"name": "NEO_EVENT_BACKFILL_BLOCKS", "fromHost": true},
@@ -154,10 +185,25 @@ EOF
 
 # Sign the enclave
 RUN --mount=type=secret,id=ego_private_key,target=/app/private.pem,required=false \
-    if [ "${EGO_STRICT_SIGNING:-0}" = "1" ] && [ ! -f /app/private.pem ]; then \
-      echo "ERROR: missing enclave signing key. Provide a BuildKit secret:" >&2; \
-      echo "  docker build --secret id=ego_private_key,src=/path/to/private.pem --build-arg EGO_STRICT_SIGNING=1 -f docker/Dockerfile.service --build-arg SERVICE=${SERVICE} -t service-layer/<package>:latest ." >&2; \
-      exit 1; \
+    if [ "${EGO_STRICT_SIGNING:-0}" = "1" ]; then \
+      if [ ! -s /app/private.pem ]; then \
+        echo "ERROR: missing enclave signing key. Provide a BuildKit secret:" >&2; \
+        echo "  docker build --secret id=ego_private_key,src=/path/to/private.pem --build-arg EGO_STRICT_SIGNING=1 -f docker/Dockerfile.service --build-arg SERVICE=${SERVICE} -t service-layer/<package>:latest ." >&2; \
+        exit 1; \
+      fi; \
+      if ! openssl pkey -in /app/private.pem -noout >/dev/null 2>&1; then \
+        echo "ERROR: invalid enclave signing key (PEM parse failed)." >&2; \
+        echo "Use a real enclave signing key; placeholder files cannot sign enclaves." >&2; \
+        exit 1; \
+      fi; \
+      if ! openssl rsa -in /app/private.pem -text -noout 2>/dev/null | grep -q "Private-Key: (3072 bit"; then \
+        echo "ERROR: invalid enclave signing key (expected RSA-3072)." >&2; \
+        exit 1; \
+      fi; \
+      if ! openssl rsa -in /app/private.pem -text -noout 2>/dev/null | grep -q "publicExponent: 3 (0x3)"; then \
+        echo "ERROR: invalid enclave signing key (expected publicExponent=3)." >&2; \
+        exit 1; \
+      fi; \
     fi; \
     ego sign enclave.json
 

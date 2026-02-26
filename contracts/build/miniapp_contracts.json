@@ -1,0 +1,62 @@
+[
+  {
+    "name": "MiniAppLottery",
+    "hash": "0x9509dadd3dc79d2148b363cc384baa1628cad968"
+  },
+  {
+    "name": "MiniAppCoinFlip",
+    "hash": "0x20cafc6ccabac6aa8ff25a5cae84098b2bc8fe76"
+  },
+  {
+    "name": "MiniAppDiceGame",
+    "hash": "0xf0482306a147a5fce41465df8f143484ba7c39ed"
+  },
+  {
+    "name": "MiniAppScratchCard",
+    "hash": "0x2f91a83108517f8b439fb160e56f49b9035ac691"
+  },
+  {
+    "name": "MiniAppPredictionMarket",
+    "hash": "0xdea44562c18895cfe47ec027bf4a78d40c5222a8"
+  },
+  {
+    "name": "MiniAppFlashLoan",
+    "hash": "0x270a2754722ee0af027a0e9464cac0644db1c587"
+  },
+  {
+    "name": "MiniAppPriceTicker",
+    "hash": "0xa338938600975ac3a4b9eb9564dbbf60e7ca46c4"
+  },
+  {
+    "name": "MiniAppSecretVote",
+    "hash": "0x929281f91760c1a7b02e09c4f68b57574cd05b27"
+  },
+  {
+    "name": "MiniAppSecretPoker",
+    "hash": "0x1b40f014c8bd0f47471a380ab46c0693c6f79a53"
+  },
+  {
+    "name": "MiniAppRedEnvelope",
+    "hash": "0x8c6ea73e655e8dcc8028b7fafc6039c48e6c1b96"
+  },
+  {
+    "name": "MiniAppGasCircle",
+    "hash": "0x1e4bfa38339f2823d8750fe95d11f3060bfa0739"
+  },
+  {
+    "name": "MiniAppFogChess",
+    "hash": "0x7ea339b9befacb93d0a3588249aa3003e60ff376"
+  },
+  {
+    "name": "MiniAppGovBooster",
+    "hash": "0xc614412d72082da55b14fa952b81f47d5834f6aa"
+  },
+  {
+    "name": "MiniAppILGuard",
+    "hash": "0xc556aecaee90b23027ddd0cd48a9e51ae3e16313"
+  },
+  {
+    "name": "MiniAppGuardianPolicy",
+    "hash": "0x8b8201246cd30618beb3b5b15ae54faf9ca5bf52"
+  }
+]

@@ -93,7 +93,22 @@ func main() {
 	fmt.Println("=== MiniApp Contracts Batch Deployment ===")
 	fmt.Printf("RPC: %s\n", rpcURL)
 	fmt.Printf("Deployer: %s\n", deployerAddr)
-	fmt.Printf("Contracts to deploy: %d\n\n", len(miniAppContracts))
+
+	availableContracts := make([]string, 0, len(miniAppContracts))
+	skippedMissing := make([]string, 0)
+	for _, name := range miniAppContracts {
+		if _, _, ok := resolveContractArtifactPaths(buildDir, name); ok {
+			availableContracts = append(availableContracts, name)
+			continue
+		}
+		skippedMissing = append(skippedMissing, name)
+	}
+
+	fmt.Printf("Contracts to deploy: %d\n", len(availableContracts))
+	if len(skippedMissing) > 0 {
+		fmt.Printf("Skipped (missing artifacts): %d\n", len(skippedMissing))
+	}
+	fmt.Println()
 
 	ctx := context.Background()
 	client, err := rpcclient.New(ctx, rpcURL, rpcclient.Options{})
@@ -115,8 +130,8 @@ func main() {
 	var results []DeployResult
 	var failures []string
 
-	for i, contractName := range miniAppContracts {
-		fmt.Printf("\n[%d/%d] Deploying %s...\n", i+1, len(miniAppContracts), contractName)
+	for i, contractName := range availableContracts {
+		fmt.Printf("\n[%d/%d] Deploying %s...\n", i+1, len(availableContracts), contractName)
 
 		hash, err := deployContract(ctx, client, act, buildDir, contractName, deployerHash, gatewayHash)
 		if err != nil {
@@ -135,10 +150,17 @@ func main() {
 	fmt.Println("\n=== Deployment Summary ===")
 	fmt.Printf("Successful: %d\n", len(results))
 	fmt.Printf("Failed: %d\n", len(failures))
+	fmt.Printf("Skipped (missing artifacts): %d\n", len(skippedMissing))
 
 	if len(failures) > 0 {
 		fmt.Println("\nFailed contracts:")
 		for _, name := range failures {
+			fmt.Printf("  - %s\n", name)
+		}
+	}
+	if len(skippedMissing) > 0 {
+		fmt.Println("\nSkipped contracts (missing artifacts in contracts/build):")
+		for _, name := range skippedMissing {
 			fmt.Printf("  - %s\n", name)
 		}
 	}
@@ -164,8 +186,10 @@ func main() {
 }
 
 func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Actor, buildDir, contractName string, deployerHash, gatewayHash util.Uint160) (string, error) {
-	nefPath := filepath.Join(buildDir, contractName+".nef")
-	manifestPath := filepath.Join(buildDir, contractName+".manifest.json")
+	nefPath, manifestPath, ok := resolveContractArtifactPaths(buildDir, contractName)
+	if !ok {
+		return "", fmt.Errorf("artifacts not found for %s", contractName)
+	}
 
 	nefFile, err := loadNEF(nefPath)
 	if err != nil {
@@ -210,6 +234,25 @@ func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Ac
 	}
 
 	return contractHash, nil
+}
+
+func resolveContractArtifactPaths(buildDir, contractName string) (nefPath, manifestPath string, ok bool) {
+	nefPath = filepath.Join(buildDir, contractName+".nef")
+	if _, err := os.Stat(nefPath); err != nil {
+		return "", "", false
+	}
+
+	candidates := []string{
+		filepath.Join(buildDir, contractName+".manifest.json"),
+		filepath.Join(buildDir, contractName, contractName+".manifest.json"),
+	}
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			return nefPath, p, true
+		}
+	}
+
+	return "", "", false
 }
 
 func loadNEF(path string) (*nef.File, error) {

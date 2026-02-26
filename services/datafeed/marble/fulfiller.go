@@ -71,6 +71,7 @@ func (s *Service) PushSinglePrice(ctx context.Context, feedID string) error {
 	}
 	state.lastRoundID = next
 	state.lastPublishedPrice = latest.Price
+	state.lastPublishedTS = uint64(timestampSecs)
 	state.lastPublishedAt = time.Now()
 	state.publishTimes = append(state.publishTimes, state.lastPublishedAt)
 	s.publishMu.Unlock()

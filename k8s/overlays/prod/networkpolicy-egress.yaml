@@ -41,6 +41,15 @@ spec:
         - protocol: TCP
           port: 2001
 
+    # Allow access to self-hosted Supabase PostgREST API in the supabase namespace.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: supabase
+      ports:
+        - protocol: TCP
+          port: 3000
+
     # Allow internal service-to-service traffic within the service-layer namespace.
     - to:
         - podSelector: {}

@@ -77,6 +77,13 @@ type Service struct {
 	priceCacheMu  sync.RWMutex
 	priceCacheTTL time.Duration
 
+	// Yahoo quote cache (batched endpoint result shared across symbols).
+	yahooCacheMu        sync.Mutex
+	yahooQuoteCache     map[string]float64
+	yahooCacheFetchedAt time.Time
+	yahooCacheTTL       time.Duration
+	yahooRetryAfter     time.Time
+
 	// Singleflight deduplicates concurrent upstream fetches for the same pair.
 	priceFlight singleflight.Group
 }
@@ -173,11 +180,30 @@ func New(cfg Config) (*Service, error) {
 		httpClient = httputil.CopyHTTPClientWithTimeout(cfg.Marble.ExternalHTTPClient(), 0, true)
 		httpClient.Transport = httputil.NewSafeTransport()
 	}
-
 	// Use config-specified interval, then service config, then default
 	updateInterval := feedsConfig.UpdateInterval
 	if cfg.UpdateInterval > 0 {
 		updateInterval = cfg.UpdateInterval
+	}
+	if override, ok := runtime.ParseEnvDuration("NEOFEEDS_UPDATE_INTERVAL"); ok && override > 0 {
+		updateInterval = override
+	}
+
+	publishPolicy := feedsConfig.PublishPolicy
+	if override, ok := runtime.ParseEnvInt("NEOFEEDS_PUBLISH_THRESHOLD_BPS"); ok && override > 0 {
+		publishPolicy.ThresholdBps = override
+	}
+	if override, ok := runtime.ParseEnvInt("NEOFEEDS_PUBLISH_HYSTERESIS_BPS"); ok && override > 0 {
+		publishPolicy.HysteresisBps = override
+	}
+	if override, ok := runtime.ParseEnvDuration("NEOFEEDS_PUBLISH_MIN_INTERVAL"); ok && override > 0 {
+		publishPolicy.MinInterval = override
+	}
+	if override, ok := runtime.ParseEnvInt("NEOFEEDS_PUBLISH_MAX_PER_MINUTE"); ok && override > 0 {
+		publishPolicy.MaxPerMinute = override
+	}
+	if override, ok := runtime.ParseEnvDuration("NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL"); ok && override >= 0 {
+		publishPolicy.HeartbeatInterval = override
 	}
 
 	s := &Service{
@@ -189,18 +215,23 @@ func New(cfg Config) (*Service, error) {
 		chainClient:     cfg.ChainClient,
 		priceFeedHash:   cfg.PriceFeedHash,
 		txProxy:         cfg.TxProxy,
-		publishPolicy:   feedsConfig.PublishPolicy,
+		publishPolicy:   publishPolicy,
 		publishState:    make(map[string]*pricePublishState),
 		updateInterval:  updateInterval,
 		enableChainPush: cfg.EnableChainPush,
 		gasbank:         cfg.GasBank,
 		priceCache:      make(map[string]*priceCacheEntry),
 		priceCacheTTL:   15 * time.Second,
+		yahooQuoteCache: make(map[string]float64),
+		yahooCacheTTL:   30 * time.Second,
 	}
 
 	// Allow TTL override via environment variable.
 	if ttlSec, ok := runtime.ParseEnvInt("PRICE_CACHE_TTL_SECONDS"); ok && ttlSec > 0 {
 		s.priceCacheTTL = time.Duration(ttlSec) * time.Second
+	}
+	if ttlSec, ok := runtime.ParseEnvInt("YAHOO_CACHE_TTL_SECONDS"); ok && ttlSec > 0 {
+		s.yahooCacheTTL = time.Duration(ttlSec) * time.Second
 	}
 
 	s.attestationHash = computeAttestationHash(cfg.Marble)
@@ -235,8 +266,8 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	// Initialize optional Chainlink client (disabled unless ArbitrumRPC is set).
-	// This keeps default behavior aligned with the platform blueprint: use 3
-	// HTTP sources and median aggregation.
+	// This keeps default behavior aligned with the platform blueprint: use
+	// HTTP-source median aggregation unless Chainlink is explicitly enabled.
 	if strings.TrimSpace(cfg.ArbitrumRPC) != "" {
 		chainlinkClient, err := NewChainlinkClient(cfg.ArbitrumRPC)
 		if err != nil {

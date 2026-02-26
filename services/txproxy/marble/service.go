@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
+	"github.com/nspcc-dev/neo-go/pkg/util"
+
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
@@ -31,6 +34,8 @@ type Service struct {
 	gasHash        string
 	paymentHubHash string
 	governanceHash string
+	signerHash     string
+	signerAddress  string
 
 	chainClient *chain.Client
 	signer      chain.TEESigner
@@ -103,6 +108,8 @@ func New(cfg Config) (*Service, error) {
 		governanceHash = strings.TrimSpace(contracts.Governance)
 	}
 
+	allowlist = mergePlatformAllowlist(allowlist, contracts, gasHash)
+
 	if strict {
 		if cfg.ChainClient == nil {
 			return nil, fmt.Errorf("txproxy: chain client is required in strict/enclave mode")
@@ -138,6 +145,17 @@ func New(cfg Config) (*Service, error) {
 		chainClient:    cfg.ChainClient,
 		signer:         cfg.Signer,
 	}
+	if cfg.Signer != nil {
+		scriptHash := cfg.Signer.ScriptHash()
+		if scriptHash != (util.Uint160{}) {
+			s.signerHash = "0x" + scriptHash.StringLE()
+			s.signerAddress = address.Uint160ToString(scriptHash)
+			base.Logger().WithFields(map[string]interface{}{
+				"signer_hash":    s.signerHash,
+				"signer_address": s.signerAddress,
+			}).Info("txproxy signer configured")
+		}
+	}
 
 	var replayOpts []replay.Option
 	if cfg.DB != nil {
@@ -158,6 +176,25 @@ func New(cfg Config) (*Service, error) {
 	}, commonservice.WithTickerWorkerName("replay-cleanup"))
 
 	return s, nil
+}
+
+// mergePlatformAllowlist adds baseline platform methods keyed by the currently
+// configured contract hashes. This keeps txproxy policy aligned after contract
+// redeployments/rotations while preserving any user-provided allowlist entries.
+func mergePlatformAllowlist(allowlist *Allowlist, contracts chain.ContractAddresses, gasHash string) *Allowlist {
+	if allowlist == nil {
+		allowlist = &Allowlist{Contracts: map[string]ContractAllowlist{}}
+	}
+
+	allowlist.Add(contracts.PriceFeed, "update")
+	allowlist.Add(contracts.RandomnessLog, "record")
+	allowlist.Add(contracts.AutomationAnchor, "markExecuted")
+	allowlist.Add(contracts.ServiceLayerGateway, "fulfillRequest")
+	allowlist.Add(contracts.PaymentHub, "pay")
+	allowlist.Add(contracts.Governance, "stake", "unstake", "vote")
+	allowlist.Add(gasHash, "transfer")
+
+	return allowlist
 }
 
 func (s *Service) registerRoutes() {

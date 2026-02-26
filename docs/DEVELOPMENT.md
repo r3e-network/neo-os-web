@@ -128,6 +128,17 @@ remediation commands when this is detected.
 Note: repository-root `private.pem` is a placeholder and not a usable enclave
 signing key.
 
+Validate a signing key before SGX builds:
+
+```bash
+# generate a compatible key (RSA-3072, exponent 3)
+openssl genrsa -3 -out /path/to/private.pem 3072
+
+./scripts/check_enclave_signing_key.sh --key /path/to/private.pem
+# optional strict match check
+./scripts/check_enclave_signing_key.sh --key /path/to/private.pem --expected-signer <hex64>
+```
+
 This will:
 1. Start MarbleRun coordinator (simulation mode)
 2. Build + start all enabled marbles (Neo* services + infrastructure marbles)

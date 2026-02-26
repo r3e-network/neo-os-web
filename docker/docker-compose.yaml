@@ -95,12 +95,18 @@ services:
       - GASBANK_URL=${GASBANK_URL:-https://neogasbank:8091}
       # NeoFeeds delegates all on-chain writes to txproxy (single allowlist gate).
       - NEOFEEDS_ALLOW_PRIVATE_NETWORKS
+      - NEOFEEDS_UPDATE_INTERVAL
+      - NEOFEEDS_PUBLISH_THRESHOLD_BPS
+      - NEOFEEDS_PUBLISH_HYSTERESIS_BPS
+      - NEOFEEDS_PUBLISH_MIN_INTERVAL
+      - NEOFEEDS_PUBLISH_MAX_PER_MINUTE
+      - NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
       - TXPROXY_URL=${TXPROXY_URL:-https://txproxy:8090}
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8083/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
 
   # =============================================================================
   # NeoFlow Service Marble
@@ -136,7 +142,7 @@ services:
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8084/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
 
   # =============================================================================
   # AccountPool Service Marble (Internal)
@@ -169,7 +175,7 @@ services:
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8085/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
 
   # =============================================================================
   # NeoGasBank Service Marble
@@ -204,7 +210,7 @@ services:
       - SIMULATION_WORKERS_PER_APP
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8091/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
     depends_on:
       coordinator:
         condition: service_healthy
@@ -239,7 +245,7 @@ services:
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8086/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
 
   # =============================================================================
   # NeoVRF Service Marble
@@ -267,7 +273,7 @@ services:
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8087/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
 
   # =============================================================================
   # NeoOracle Service Marble
@@ -299,7 +305,7 @@ services:
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8088/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
 
   # =============================================================================
   # NeoRequests Service Marble
@@ -325,6 +331,10 @@ services:
       - NEO_RPC_URL
       - NEO_NETWORK_MAGIC
       - CONTRACT_SERVICEGATEWAY_HASH
+      - NEO_EVENT_START_BLOCK
+      - NEO_EVENT_BACKFILL_BLOCKS
+      - NEO_EVENT_CONFIRMATIONS
+      - NEO_EVENT_LISTEN_ALL
       - NEOVRF_URL
       - NEOORACLE_URL
       - NEOCOMPUTE_URL
@@ -343,7 +353,7 @@ services:
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8094/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
 
   # =============================================================================
   # TxProxy Service Marble
@@ -370,12 +380,16 @@ services:
       - NEO_NETWORK_MAGIC
       - CONTRACT_PAYMENTHUB_HASH
       - CONTRACT_GOVERNANCE_HASH
+      - CONTRACT_PRICEFEED_HASH
+      - CONTRACT_RANDOMNESSLOG_HASH
+      - CONTRACT_AUTOMATIONANCHOR_HASH
+      - CONTRACT_SERVICEGATEWAY_HASH
       # Must be provided via environment/secret. Empty value means deny-all.
       - TXPROXY_ALLOWLIST
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8090/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
 
   # =============================================================================
   # GlobalSigner Service Marble
@@ -405,7 +419,7 @@ services:
       - GLOBALSIGNER_REQUIRE_QUOTE
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:${GLOBALSIGNER_PORT:-8092}/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
 
   # =============================================================================
   # NeoSimulation Service Marble
@@ -441,7 +455,7 @@ services:
       - SIMULATION_WORKERS_PER_APP
     healthcheck:
       <<: *healthcheck-timing
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "-O", "/dev/null", "https://localhost:8093/health"]
+      test: ["CMD", "pgrep", "-f", "ego-host .*ego-enclave:service"]
     depends_on:
       coordinator:
         condition: service_healthy
@@ -453,4 +467,4 @@ volumes:
 
 secrets:
   ego_private_key:
-    file: ../private.pem
+    file: ${EGO_PRIVATE_KEY_FILE:-../private.pem}

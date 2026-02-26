@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -58,17 +59,51 @@ func TestInitDefaultSources(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := New(Config{Marble: m})
 
-	// Default config should include 3 sources (multi-source median)
-	if len(svc.sources) != 3 {
-		t.Errorf("len(sources) = %d, want 3", len(svc.sources))
+	// Default config should include 7 sources.
+	if len(svc.sources) != 7 {
+		t.Errorf("len(sources) = %d, want 7", len(svc.sources))
 	}
 
 	// Check source names
-	expectedSources := []string{"binance", "coinbase", "okx"}
+	expectedSources := []string{"binance", "coinbase", "okx", "yahoo", "stooq", "nasdaq_stocks", "nasdaq_etf"}
 	for _, name := range expectedSources {
 		if _, ok := svc.sources[name]; !ok {
 			t.Errorf("Source %s not found", name)
 		}
+	}
+}
+
+func TestNewEnvOverridesPublishPolicy(t *testing.T) {
+	t.Setenv("NEOFEEDS_UPDATE_INTERVAL", "2s")
+	t.Setenv("NEOFEEDS_PUBLISH_THRESHOLD_BPS", "10")
+	t.Setenv("NEOFEEDS_PUBLISH_HYSTERESIS_BPS", "8")
+	t.Setenv("NEOFEEDS_PUBLISH_MIN_INTERVAL", "1s")
+	t.Setenv("NEOFEEDS_PUBLISH_MAX_PER_MINUTE", "120")
+	t.Setenv("NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL", "15m")
+
+	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+	svc, err := New(Config{Marble: m})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	if svc.updateInterval != 2*time.Second {
+		t.Errorf("updateInterval = %v, want 2s", svc.updateInterval)
+	}
+	if svc.publishPolicy.ThresholdBps != 10 {
+		t.Errorf("threshold_bps = %d, want 10", svc.publishPolicy.ThresholdBps)
+	}
+	if svc.publishPolicy.HysteresisBps != 8 {
+		t.Errorf("hysteresis_bps = %d, want 8", svc.publishPolicy.HysteresisBps)
+	}
+	if svc.publishPolicy.MinInterval != 1*time.Second {
+		t.Errorf("min_interval = %v, want 1s", svc.publishPolicy.MinInterval)
+	}
+	if svc.publishPolicy.MaxPerMinute != 120 {
+		t.Errorf("max_per_minute = %d, want 120", svc.publishPolicy.MaxPerMinute)
+	}
+	if svc.publishPolicy.HeartbeatInterval != 15*time.Minute {
+		t.Errorf("heartbeat_interval = %v, want 15m", svc.publishPolicy.HeartbeatInterval)
 	}
 }
 
@@ -369,6 +404,119 @@ func TestGetPriceWithMockSources(t *testing.T) {
 	expectedPrice := int64(50000.50 * 1e8)
 	if price.Price != expectedPrice {
 		t.Errorf("Price = %d, want %d", price.Price, expectedPrice)
+	}
+}
+
+func TestGetPriceYahooBatchFetchesOncePerCacheWindow(t *testing.T) {
+	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
+
+	var requestCount atomic.Int32
+	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"quoteResponse": map[string]interface{}{
+				"result": []map[string]interface{}{
+					{"symbol": "NVDA", "regularMarketPrice": 100.5},
+					{"symbol": "AAPL", "regularMarketPrice": 200.25},
+				},
+			},
+		})
+	}))
+	defer mockServer.Close()
+
+	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+	cfg := &NeoFeedsConfig{
+		Version: "1.0",
+		Sources: []SourceConfig{
+			{
+				ID:       "yahoo",
+				Name:     "Yahoo",
+				URL:      mockServer.URL + "?symbols={symbols}",
+				JSONPath: "quoteResponse.result.0.regularMarketPrice",
+				Weight:   1,
+				Timeout:  5 * time.Second,
+			},
+		},
+		Feeds: []FeedConfig{
+			{ID: "NVDA-USD", Base: "NVDA", Quote: "USD", Decimals: 8, Sources: []string{"yahoo"}, Enabled: true},
+			{ID: "AAPL-USD", Base: "AAPL", Quote: "USD", Decimals: 8, Sources: []string{"yahoo"}, Enabled: true},
+		},
+		UpdateInterval: 60 * time.Second,
+	}
+
+	svc, err := New(Config{Marble: m, FeedsConfig: cfg, HTTPClient: &http.Client{}})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	svc.yahooCacheTTL = time.Minute
+
+	nvda, err := svc.GetPrice(context.Background(), "NVDA-USD")
+	if err != nil {
+		t.Fatalf("GetPrice(NVDA-USD) error = %v", err)
+	}
+	if got, want := nvda.Price, int64(100.5*1e8); got != want {
+		t.Fatalf("NVDA price = %d, want %d", got, want)
+	}
+
+	aapl, err := svc.GetPrice(context.Background(), "AAPL-USD")
+	if err != nil {
+		t.Fatalf("GetPrice(AAPL-USD) error = %v", err)
+	}
+	if got, want := aapl.Price, int64(200.25*1e8); got != want {
+		t.Fatalf("AAPL price = %d, want %d", got, want)
+	}
+
+	if got := requestCount.Load(); got != 1 {
+		t.Fatalf("Yahoo batch request count = %d, want 1", got)
+	}
+}
+
+func TestGetPriceYahooBatchBackoffOnFailure(t *testing.T) {
+	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
+
+	var requestCount atomic.Int32
+	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		http.Error(w, "rate limited", http.StatusTooManyRequests)
+	}))
+	defer mockServer.Close()
+
+	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+	cfg := &NeoFeedsConfig{
+		Version: "1.0",
+		Sources: []SourceConfig{
+			{
+				ID:       "yahoo",
+				Name:     "Yahoo",
+				URL:      mockServer.URL + "?symbols={symbols}",
+				JSONPath: "quoteResponse.result.0.regularMarketPrice",
+				Weight:   1,
+				Timeout:  5 * time.Second,
+			},
+		},
+		Feeds: []FeedConfig{
+			{ID: "NVDA-USD", Base: "NVDA", Quote: "USD", Decimals: 8, Sources: []string{"yahoo"}, Enabled: true},
+			{ID: "AAPL-USD", Base: "AAPL", Quote: "USD", Decimals: 8, Sources: []string{"yahoo"}, Enabled: true},
+		},
+		UpdateInterval: 60 * time.Second,
+	}
+
+	svc, err := New(Config{Marble: m, FeedsConfig: cfg, HTTPClient: &http.Client{}})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	svc.yahooCacheTTL = time.Minute
+
+	if _, err := svc.GetPrice(context.Background(), "NVDA-USD"); err == nil {
+		t.Fatal("GetPrice(NVDA-USD) expected error")
+	}
+	if _, err := svc.GetPrice(context.Background(), "AAPL-USD"); err == nil {
+		t.Fatal("GetPrice(AAPL-USD) expected error")
+	}
+
+	if got := requestCount.Load(); got != 1 {
+		t.Fatalf("Yahoo batch request count = %d, want 1 after backoff", got)
 	}
 }
 

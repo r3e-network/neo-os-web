@@ -1,0 +1,29 @@
+{
+  "app_id": "miniapp-lottery",
+  "name": "MiniApp Lottery Workflow",
+  "version": "1.0.0",
+  "entry_url": "mf://manifest?app=miniapp-lottery",
+  "developer_pubkey": "",
+  "permissions": {
+    "wallet": [
+      "read-address"
+    ],
+    "payments": true,
+    "rng": true,
+    "oracle": true,
+    "compute": true
+  },
+  "limits": {
+    "max_gas_per_tx": "5",
+    "daily_gas_cap_per_user": "20"
+  },
+  "assets_allowed": [
+    "GAS"
+  ],
+  "governance_assets_allowed": [
+    "BNEO"
+  ],
+  "callback_contract": "",
+  "callback_method": "onServiceCallback",
+  "news_integration": false
+}

@@ -53,20 +53,28 @@ type MiniAppRegistryUpdate struct {
 
 // ServiceRequest represents a service_requests row for audit tracking.
 type ServiceRequest struct {
-	ID          string          `json:"id,omitempty"`
-	UserID      string          `json:"user_id"`
-	ServiceType string          `json:"service_type"`
-	Status      string          `json:"status"`
-	Payload     json.RawMessage `json:"payload"`
-	Result      json.RawMessage `json:"result,omitempty"`
-	Error       string          `json:"error,omitempty"`
-	GasUsed     int64           `json:"gas_used,omitempty"`
-	CompletedAt *time.Time      `json:"completed_at,omitempty"`
-	ChainTxID   *int64          `json:"chain_tx_id,omitempty"`
-	RetryCount  int             `json:"retry_count,omitempty"`
-	LastError   string          `json:"last_error,omitempty"`
-	Signature   []byte          `json:"signature,omitempty"`
-	SignerKeyID string          `json:"signer_key_id,omitempty"`
+	ID               string          `json:"id,omitempty"`
+	RequestID        *int64          `json:"request_id,omitempty"`
+	AppID            string          `json:"app_id,omitempty"`
+	ServiceType      string          `json:"service_type"`
+	Requester        string          `json:"requester,omitempty"`
+	CallbackContract string          `json:"callback_contract,omitempty"`
+	CallbackMethod   string          `json:"callback_method,omitempty"`
+	Payload          json.RawMessage `json:"payload"`
+	Status           string          `json:"status"`
+	Success          *bool           `json:"success,omitempty"`
+	Result           json.RawMessage `json:"result,omitempty"`
+	ErrorMessage     string          `json:"error_message,omitempty"`
+	RequestTx        string          `json:"request_tx,omitempty"`
+	FulfillTx        string          `json:"fulfill_tx,omitempty"`
+	FulfilledAt      *time.Time      `json:"fulfilled_at,omitempty"`
+	CreatedAt        *time.Time      `json:"created_at,omitempty"`
+	ChainID          string          `json:"chain_id,omitempty"`
+	ChainTxID        *int64          `json:"chain_tx_id,omitempty"`
+	RetryCount       int             `json:"retry_count,omitempty"`
+	LastError        string          `json:"last_error,omitempty"`
+	Signature        []byte          `json:"signature,omitempty"`
+	SignerKeyID      string          `json:"signer_key_id,omitempty"`
 }
 
 // ChainTx represents a chain_txs row for callback auditing.
@@ -86,18 +94,20 @@ type ChainTx struct {
 	RPCEndpoint     string          `json:"rpc_endpoint,omitempty"`
 	SubmittedAt     *time.Time      `json:"submitted_at,omitempty"`
 	ConfirmedAt     *time.Time      `json:"confirmed_at,omitempty"`
+	ChainID         string          `json:"chain_id,omitempty"`
 }
 
 // ContractEvent represents a contract_events row.
 type ContractEvent struct {
-	ID           int64           `json:"id,omitempty"`
-	TxHash       string          `json:"tx_hash"`
-	BlockIndex   uint64          `json:"block_index"`
-	ContractHash string          `json:"contract_hash"`
-	EventName    string          `json:"event_name"`
-	AppID        *string         `json:"app_id,omitempty"`
-	State        json.RawMessage `json:"state,omitempty"`
-	CreatedAt    *time.Time      `json:"created_at,omitempty"`
+	ID              int64           `json:"id,omitempty"`
+	ChainID         string          `json:"chain_id"`
+	TxHash          string          `json:"tx_hash"`
+	BlockIndex      uint64          `json:"block_index"`
+	ContractAddress string          `json:"contract_address"`
+	EventName       string          `json:"event_name"`
+	AppID           *string         `json:"app_id,omitempty"`
+	State           json.RawMessage `json:"state,omitempty"`
+	CreatedAt       *time.Time      `json:"created_at,omitempty"`
 }
 
 // ProcessedEvent represents a processed_events row for idempotency.

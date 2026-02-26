@@ -80,6 +80,42 @@ func (a *Allowlist) Allows(contractHash, method string) bool {
 	return ok
 }
 
+// Add allows one or more methods for a contract hash.
+// Invalid/empty inputs are ignored.
+func (a *Allowlist) Add(contractHash string, methods ...string) {
+	if a == nil {
+		return
+	}
+
+	normalized := normalizeContractHash(contractHash)
+	if normalized == "" {
+		return
+	}
+
+	if a.Contracts == nil {
+		a.Contracts = make(map[string]ContractAllowlist)
+	}
+
+	entry := a.Contracts[normalized]
+	if entry.Methods == nil {
+		entry.Methods = make(map[string]struct{})
+	}
+
+	for _, method := range methods {
+		m := strings.TrimSpace(method)
+		if m == "" {
+			continue
+		}
+		if m == "*" {
+			entry.AllowAll = true
+			continue
+		}
+		entry.Methods[canonicalizeMethodName(m)] = struct{}{}
+	}
+
+	a.Contracts[normalized] = entry
+}
+
 func normalizeContractHash(raw string) string {
 	return chain.NormalizeContractHash(raw)
 }
