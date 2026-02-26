@@ -121,8 +121,8 @@ func TestGetQuote_ReturnsErrorOutsideEnclave(t *testing.T) {
 	}
 }
 
-//nolint:unused
-func skip_TestResolveServiceID_Behavior(t *testing.T) {
+func TestResolveServiceID_Behavior(t *testing.T) {
+	t.Skip("temporarily disabled")
 	t.Setenv("MARBLE_ENV", "development")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
