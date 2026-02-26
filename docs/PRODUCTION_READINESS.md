@@ -52,6 +52,24 @@ Injected via MarbleRun secrets (values depend on which services you run):
   `NEOREQUESTS_ENFORCE_APPREGISTRY`, `NEOREQUESTS_APPREGISTRY_CACHE_SECONDS`,
   `NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT`, `NEO_EVENT_CONFIRMATIONS`,
   `NEO_EVENT_BACKFILL_BLOCKS`
+- NeoFeeds publish policy (recommended explicit values):
+  `NEOFEEDS_UPDATE_INTERVAL`, `NEOFEEDS_PUBLISH_THRESHOLD_BPS`,
+  `NEOFEEDS_PUBLISH_HYSTERESIS_BPS`, `NEOFEEDS_PUBLISH_MIN_INTERVAL`,
+  `NEOFEEDS_PUBLISH_MAX_PER_MINUTE`, `NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL`
+
+### Enclave Image Signing Key (SGX Production)
+
+- `EGO_PRIVATE_KEY_FILE` must point to a valid enclave signing key.
+- Required key properties:
+  - RSA private key
+  - 3072-bit modulus
+  - public exponent `3`
+- Validate before SGX image builds:
+
+```bash
+set -a; source .env; set +a
+./scripts/check_enclave_signing_key.sh --key "$EGO_PRIVATE_KEY_FILE"
+```
 
 ## Chain / Contract Configuration
 
@@ -68,6 +86,16 @@ Contract hashes are configured via environment variables (0x-prefixed Uint160 st
 The gateway for user workflows is **Supabase Edge** (there is no on-chain
 gateway contract in the current blueprint).
 
+Current testnet values (from `.env`, validated on **February 26, 2026**):
+
+- `CONTRACT_PAYMENTHUB_HASH=0x340cb33d770b38f26d066716dd1f9df5283d629e`
+- `CONTRACT_GOVERNANCE_HASH=0x2ec930202e6d03313d97198259b298cc3c29295e`
+- `CONTRACT_PRICEFEED_HASH=0x5284ef25f1bbbf36d139f6f94356e46b89138602`
+- `CONTRACT_RANDOMNESSLOG_HASH=0xa24f83dcbafff909d4209ac76ca5d09237c0cda6`
+- `CONTRACT_APPREGISTRY_HASH=0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d`
+- `CONTRACT_AUTOMATIONANCHOR_HASH=0xa016f7be94ad7c4d87ad2f8d38784797c2dc494b`
+- `CONTRACT_SERVICEGATEWAY_HASH=0x194fcb975c47952c5a030e89946a5907b33efd23`
+
 ## Identity / Trust Boundary
 
 - **Production should run in strict identity mode** (MarbleRun TLS injected).
@@ -78,8 +106,16 @@ gateway contract in the current blueprint).
 ## Validation Commands
 
 ```bash
+set -a; source .env; set +a
+
 go test ./...
 go vet ./...
+./scripts/production_readiness_check.sh
+./scripts/verify_testnet_workflows.sh --env-file .env
+
+env PRICEFEED_WATCH_SYMBOLS='NEO-USD,GAS-USD,USDT-USD,USDC-USD,BTC-USD,ETH-USD,XRP-USD,BNB-USD,SOL-USD,TRX-USD,DOGE-USD,XAU-USD,XAG-USD,NVDA-USD,AAPL-USD,GOOGL-USD,MSFT-USD,META-USD,TSM-USD,TSLA-USD,TCEHY-USD' \
+  PRICEFEED_WATCH_MAX_STALENESS='24h' \
+  go run -tags=scripts scripts/check_pricefeed_freshness.go
 ```
 
 Local simulation:

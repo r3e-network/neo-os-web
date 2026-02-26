@@ -115,15 +115,15 @@ Wallet ──▶ Neo N3 chain (PaymentHub / Governance)
 ## Dataflow: Datafeed Updates (NeoFeeds)
 
 ```
-External Data Sources (Binance, Coinbase, OKX, Chainlink)
+External Data Sources (Binance, OKX, Coinbase, Nasdaq/Yahoo; optional Chainlink)
   │
   ▼
 NeoFeeds Service
   ├─ Fetch prices from multiple sources (HTTP)
   ├─ Apply aggregation algorithm (median/TWAP)
-  ├─ Check deviation threshold (e.g., 0.5%)
+  ├─ Check publish policy (default threshold: 10 bps = 0.1%)
   │
-  ├─ If threshold exceeded:
+  ├─ If threshold exceeded (or heartbeat policy allows):
   │   └─ TxProxy.invoke(PriceFeed.updatePrice)
   │       └─ PriceFeed contract stores new price
   │       └─ PriceUpdated event emitted
@@ -138,7 +138,8 @@ NeoFeeds Service
 1. **Startup**: Load feed configurations, initialize source clients
 2. **Polling Loop**: Fetch prices every N seconds (configurable)
 3. **Aggregation**: Compute median across sources, filter outliers
-4. **Publishing**: Submit on-chain update if deviation > threshold
+4. **Publishing**: Submit on-chain update when threshold is reached; optional
+   heartbeat publishes can occur when source timestamp advances
 5. **Caching**: Store latest prices for API queries
 
 ## Dataflow: GasBank Deposits (NeoGasBank)

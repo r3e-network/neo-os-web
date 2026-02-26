@@ -43,20 +43,31 @@ Optional: if `ARBITRUM_RPC` is configured, Chainlink (Arbitrum) is enabled as an
 
 ## Default Feeds (Configurable)
 
-The feed list is configured via YAML/JSON; the default config includes crypto, stablecoin, metals, and equities feeds such as:
+The feed list is configured via YAML/JSON; the active config includes crypto, stablecoin, metals, and equities feeds:
 
 | Feed ID | Base | Quote | Decimals |
 |---------|------|-------|----------|
-| BTC-USD | BTC | USD | 8 |
-| ETH-USD | ETH | USD | 8 |
 | NEO-USD | NEO | USD | 8 |
 | GAS-USD | GAS | USD | 8 |
 | USDT-USD | USDT | USD | 8 |
 | USDC-USD | USDC | USD | 8 |
+| BTC-USD | BTC | USD | 8 |
+| ETH-USD | ETH | USD | 8 |
+| XRP-USD | XRP | USD | 8 |
+| BNB-USD | BNB | USD | 8 |
+| SOL-USD | SOL | USD | 8 |
+| TRX-USD | TRX | USD | 8 |
+| DOGE-USD | DOGE | USD | 8 |
 | XAU-USD | GLD (ETF proxy) | USD | 8 |
 | XAG-USD | SLV (ETF proxy) | USD | 8 |
 | NVDA-USD | NVDA | USD | 8 |
 | AAPL-USD | AAPL | USD | 8 |
+| GOOGL-USD | GOOGL | USD | 8 |
+| MSFT-USD | MSFT | USD | 8 |
+| META-USD | META | USD | 8 |
+| TSM-USD | TSM | USD | 8 |
+| TSLA-USD | TSLA | USD | 8 |
+| TCEHY-USD | TCEHY | USD | 8 |
 
 ## Data Sources
 
@@ -151,6 +162,18 @@ sources:
 | `NEOFEEDS_PUBLISH_HYSTERESIS_BPS` | Optional secondary bps setting for compatibility |
 | `NEOFEEDS_PUBLISH_MIN_INTERVAL` | Minimum time between publishes per symbol |
 | `NEOFEEDS_PUBLISH_MAX_PER_MINUTE` | Max publish operations per symbol per minute |
+| `NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL` | Optional heartbeat publish interval |
+
+Typical testnet profile (from `.env`):
+
+```bash
+NEOFEEDS_UPDATE_INTERVAL=1s
+NEOFEEDS_PUBLISH_THRESHOLD_BPS=10
+NEOFEEDS_PUBLISH_HYSTERESIS_BPS=8
+NEOFEEDS_PUBLISH_MIN_INTERVAL=1s
+NEOFEEDS_PUBLISH_MAX_PER_MINUTE=120
+NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL=15m
+```
 
 ## Aggregation Algorithm
 
