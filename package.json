@@ -1,4 +1,9 @@
 {
+  "private": true,
+  "packageManager": "npm@10.9.4",
+  "workspaces": [
+    "platform/*"
+  ],
   "scripts": {
     "test": "npm run -s test:host-app && npm run -s test:admin-console",
     "test:go": "go test ./...",
