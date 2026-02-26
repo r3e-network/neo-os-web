@@ -437,8 +437,8 @@ func TestSignTransaction_RepositoryNotConfigured(t *testing.T) {
 	}
 }
 
-//nolint:unused
-func skip_TestHandleSignTransaction_MissingFieldsReturnsBadRequest(t *testing.T) {
+func TestHandleSignTransaction_MissingFieldsReturnsBadRequest(t *testing.T) {
+	t.Skip("temporarily disabled")
 	svc, _ := newTestServiceWithMock(t)
 
 	body, err := json.Marshal(map[string]any{
@@ -462,8 +462,8 @@ func skip_TestHandleSignTransaction_MissingFieldsReturnsBadRequest(t *testing.T)
 	}
 }
 
-//nolint:unused
-func skip_TestHandleUpdateBalance_MissingAccountIDReturnsBadRequest(t *testing.T) {
+func TestHandleUpdateBalance_MissingAccountIDReturnsBadRequest(t *testing.T) {
+	t.Skip("temporarily disabled")
 	svc, _ := newTestServiceWithMock(t)
 
 	body, err := json.Marshal(map[string]any{
