@@ -259,11 +259,18 @@ based on the latest block timestamp.
 
 ## Datafeed Workflow (0.1% Threshold)
 
-1. `neofeeds` polls configured sources every second.
-2. Computes a median price.
-3. Triggers an on-chain update if `abs(delta) / last >= 0.001`.
-4. Throttles to max 1 tx per symbol per 5 seconds and uses hysteresis.
-5. `PriceFeed` stores the update and emits events for subscribers.
+1. `neofeeds` polls configured sources on `NEOFEEDS_UPDATE_INTERVAL` (commonly `1s`).
+2. Computes a median price across configured sources.
+3. Triggers on-chain update when `abs(delta) / last` exceeds `NEOFEEDS_PUBLISH_THRESHOLD_BPS` (default `10`, i.e. `0.1%`).
+4. Applies hysteresis + throttling via `NEOFEEDS_PUBLISH_HYSTERESIS_BPS`, `NEOFEEDS_PUBLISH_MIN_INTERVAL`, and `NEOFEEDS_PUBLISH_MAX_PER_MINUTE`.
+5. Optional heartbeat publishes are controlled by `NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL` when source timestamps advance.
+6. `PriceFeed` stores the update and emits events for subscribers.
+
+Current production/testnet symbol set includes:
+`NEO-USD`, `GAS-USD`, `USDT-USD`, `USDC-USD`, `BTC-USD`, `ETH-USD`, `XRP-USD`,
+`BNB-USD`, `SOL-USD`, `TRX-USD`, `DOGE-USD`, `XAU-USD`, `XAG-USD`, `NVDA-USD`,
+`AAPL-USD`, `GOOGL-USD`, `MSFT-USD`, `META-USD`, `TSM-USD`, `TSLA-USD`,
+`TCEHY-USD`.
 
 ## Automation Workflow (Optional On-Chain Anchoring)
 
@@ -409,8 +416,9 @@ Required environment variables:
 - `CONTRACT_SERVICEGATEWAY_HASH`
 - `CONTRACT_APPREGISTRY_HASH`
 
-You can also set `CONTRACT_MINIAPP_CONSUMER_HASH` or `MINIAPP_CONTRACT_HASH`
-in `.env` instead of passing `--miniapp-hash`.
+You can also set one of these in `.env` instead of passing `--miniapp-hash`:
+`MINIAPP_CALLBACK_CONTRACT_HASH`, `MINIAPP_CONSUMER_HASH`,
+`MINIAPP_CONTRACT_HASH`, or `CONTRACT_MINIAPP_CONSUMER_HASH`.
 
 ## Automation Workflow (Periodic Tasks with GAS Deposit Pool)
 
