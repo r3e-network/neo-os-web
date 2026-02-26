@@ -32,7 +32,9 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient/nep17"
 	"github.com/nspcc-dev/neo-go/pkg/smartcontract"
 	"github.com/nspcc-dev/neo-go/pkg/util"
+	"github.com/nspcc-dev/neo-go/pkg/vm/stackitem"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
+	slcrypto "github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
 )
 
 const (
@@ -61,6 +63,7 @@ type Simulation struct {
 	supabaseURL   string
 	supabaseKey   string
 	encryptionKey []byte
+	masterKey     []byte
 
 	// Stats
 	txSent    int64
@@ -137,9 +140,37 @@ func NewSimulation() (*Simulation, error) {
 
 	gasContract := gas.New(act)
 
-	// Load encryption key
-	encKeyHex := os.Getenv("POOL_ENCRYPTION_KEY")
-	encKey, _ := hex.DecodeString(encKeyHex)
+	// Load optional key material for pool-account private key recovery.
+	var encKey []byte
+	encKeyHex := strings.TrimSpace(os.Getenv("POOL_ENCRYPTION_KEY"))
+	if encKeyHex != "" {
+		decoded, decodeErr := hex.DecodeString(encKeyHex)
+		switch {
+		case decodeErr != nil:
+			fmt.Printf("⚠️  Invalid POOL_ENCRYPTION_KEY hex: %v (encrypted_wif accounts disabled)\n", decodeErr)
+		case len(decoded) != 32:
+			fmt.Printf("⚠️  POOL_ENCRYPTION_KEY must be 32 bytes (got %d); encrypted_wif accounts disabled\n", len(decoded))
+		default:
+			encKey = decoded
+		}
+	}
+
+	var masterKey []byte
+	masterKeyHex := strings.TrimSpace(os.Getenv("NEOACCOUNTS_MASTER_KEY"))
+	if masterKeyHex == "" {
+		masterKeyHex = strings.TrimSpace(os.Getenv("POOL_MASTER_KEY"))
+	}
+	if masterKeyHex != "" {
+		decoded, decodeErr := hex.DecodeString(masterKeyHex)
+		switch {
+		case decodeErr != nil:
+			fmt.Printf("⚠️  Invalid master key hex: %v (account-id derivation disabled)\n", decodeErr)
+		case len(decoded) != 32:
+			fmt.Printf("⚠️  Master key must be 32 bytes (got %d); account-id derivation disabled\n", len(decoded))
+		default:
+			masterKey = decoded
+		}
+	}
 
 	contracts := loadContracts()
 
@@ -157,6 +188,7 @@ func NewSimulation() (*Simulation, error) {
 		supabaseURL:   os.Getenv("SUPABASE_URL"),
 		supabaseKey:   os.Getenv("SUPABASE_SERVICE_KEY"),
 		encryptionKey: encKey,
+		masterKey:     masterKey,
 		startTime:     time.Now(),
 	}, nil
 }
@@ -185,6 +217,67 @@ func getMiniApps() []MiniAppConfig {
 	}
 }
 
+func (s *Simulation) filterConfiguredMiniApps(candidates []MiniAppConfig) ([]MiniAppConfig, error) {
+	paymentHub := s.contracts["PaymentHub"]
+	if paymentHub.Equals(util.Uint160{}) {
+		return nil, fmt.Errorf("PaymentHub contract not configured")
+	}
+
+	filtered := make([]MiniAppConfig, 0, len(candidates))
+	for _, app := range candidates {
+		configured, err := s.isAppConfigured(paymentHub, app.AppID)
+		if err != nil {
+			fmt.Printf("   ⚠️  getApp(%s) check failed: %v\n", app.AppID, err)
+			continue
+		}
+		if configured {
+			filtered = append(filtered, app)
+		} else {
+			fmt.Printf("   ⏭️  Skipping unconfigured app: %s\n", app.AppID)
+		}
+	}
+	return filtered, nil
+}
+
+func (s *Simulation) isAppConfigured(paymentHub util.Uint160, appID string) (bool, error) {
+	result, err := s.rpc.InvokeFunction(paymentHub, "getApp", []smartcontract.Parameter{
+		{Type: smartcontract.StringType, Value: appID},
+	}, nil)
+	if err != nil {
+		return false, err
+	}
+	if result == nil {
+		return false, fmt.Errorf("empty invocation result")
+	}
+	if result.State != "HALT" {
+		if strings.Contains(strings.ToLower(result.FaultException), "app not found") {
+			return false, nil
+		}
+		return false, fmt.Errorf(result.FaultException)
+	}
+	if len(result.Stack) == 0 {
+		return false, nil
+	}
+	cfgItems, ok := result.Stack[0].Value().([]stackitem.Item)
+	if !ok || len(cfgItems) == 0 {
+		return false, nil
+	}
+	owner := cfgItems[0]
+	if owner.Type() == stackitem.AnyT {
+		return false, nil
+	}
+	ownerBytes, err := owner.TryBytes()
+	if err != nil || len(ownerBytes) != 20 {
+		return false, nil
+	}
+	for _, b := range ownerBytes {
+		if b != 0 {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *Simulation) Run() {
 	fmt.Println("\n🚀 Starting simulation...")
 
@@ -207,7 +300,15 @@ func (s *Simulation) Run() {
 		accountPtrs[i] = &accounts[i]
 	}
 
-	miniapps := getMiniApps()
+	miniapps, err := s.filterConfiguredMiniApps(getMiniApps())
+	if err != nil {
+		fmt.Printf("❌ Failed to resolve configured MiniApps: %v\n", err)
+		return
+	}
+	if len(miniapps) == 0 {
+		fmt.Println("❌ No configured MiniApps found in PaymentHub")
+		return
+	}
 	fmt.Printf("🎮 Simulating %d MiniApps\n\n", len(miniapps))
 
 	// Semaphore for concurrency control
@@ -367,17 +468,10 @@ func (s *Simulation) topUpAccount(acc *PoolAccount) error {
 }
 
 func (s *Simulation) simulateMiniApp(acc PoolAccount, app MiniAppConfig) error {
-	// Decrypt WIF to get account
-	wif, err := s.decryptWIF(acc.EncryptedWIF)
+	userAccount, err := s.resolveUserAccount(acc)
 	if err != nil {
-		return fmt.Errorf("decrypt WIF: %w", err)
+		return err
 	}
-
-	privKey, err := keys.NewPrivateKeyFromWIF(wif)
-	if err != nil {
-		return fmt.Errorf("parse WIF: %w", err)
-	}
-	userAccount := wallet.NewAccountFromPrivateKey(privKey)
 
 	// Create actor for this account
 	userActor, err := actor.NewSimple(s.rpc, userAccount)
@@ -409,6 +503,9 @@ func (s *Simulation) simulateMiniApp(acc PoolAccount, app MiniAppConfig) error {
 }
 
 func (s *Simulation) decryptWIF(encryptedWIF string) (string, error) {
+	if strings.TrimSpace(encryptedWIF) == "" {
+		return "", fmt.Errorf("empty encrypted_wif")
+	}
 	if len(s.encryptionKey) != 32 {
 		return "", fmt.Errorf("invalid encryption key length")
 	}
@@ -440,6 +537,45 @@ func (s *Simulation) decryptWIF(encryptedWIF string) (string, error) {
 	}
 
 	return string(plaintext), nil
+}
+
+func (s *Simulation) resolveUserAccount(acc PoolAccount) (*wallet.Account, error) {
+	if strings.TrimSpace(acc.EncryptedWIF) != "" {
+		wif, err := s.decryptWIF(acc.EncryptedWIF)
+		if err != nil {
+			return nil, fmt.Errorf("decrypt WIF: %w", err)
+		}
+		privKey, err := keys.NewPrivateKeyFromWIF(wif)
+		if err != nil {
+			return nil, fmt.Errorf("parse WIF: %w", err)
+		}
+		account := wallet.NewAccountFromPrivateKey(privKey)
+		if account.Address != acc.Address {
+			return nil, fmt.Errorf("decrypted key address mismatch: got %s want %s", account.Address, acc.Address)
+		}
+		return account, nil
+	}
+
+	// Legacy rows can omit encrypted_wif; derive deterministically from master key.
+	if len(s.masterKey) == 32 {
+		derivedKey, err := slcrypto.DeriveKey(s.masterKey, []byte(acc.ID), "pool-account", 32)
+		if err != nil {
+			return nil, fmt.Errorf("derive account key: %w", err)
+		}
+		defer slcrypto.ZeroBytes(derivedKey)
+
+		privKey, err := keys.NewPrivateKeyFromBytes(derivedKey)
+		if err != nil {
+			return nil, fmt.Errorf("create private key from derived bytes: %w", err)
+		}
+		account := wallet.NewAccountFromPrivateKey(privKey)
+		if account.Address != acc.Address {
+			return nil, fmt.Errorf("derived key address mismatch: got %s want %s", account.Address, acc.Address)
+		}
+		return account, nil
+	}
+
+	return nil, fmt.Errorf("account %s has no encrypted_wif and no valid master key is configured", acc.ID)
 }
 
 func (s *Simulation) printInlineStats() {

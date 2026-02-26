@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -31,9 +32,11 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient/actor"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient/gas"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient/nep17"
+	"github.com/nspcc-dev/neo-go/pkg/smartcontract"
 	"github.com/nspcc-dev/neo-go/pkg/util"
 	"github.com/nspcc-dev/neo-go/pkg/vm/stackitem"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
+	slcrypto "github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
 )
 
 const (
@@ -55,15 +58,20 @@ type Simulation struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
 	rpc           *rpcclient.Client
+	miniApps      []string
+	fulfillTx     int32
 	teeAccount    *wallet.Account
 	teeActor      *actor.Actor
 	funderAccount *wallet.Account
 	funderActor   *actor.Actor
 	gasContract   *nep17.Token
 	contracts     map[string]util.Uint160
+	chainID       int64
+	directTx      bool
 	supabaseURL   string
 	supabaseKey   string
 	encryptionKey []byte
+	masterKey     []byte
 
 	// Stats
 	txSent           int64
@@ -124,43 +132,100 @@ func NewSimulation() (*Simulation, error) {
 		cancel()
 		return nil, fmt.Errorf("NEO_TESTNET_WIF required")
 	}
-	funderKey, _ := keys.NewPrivateKeyFromWIF(funderWIF)
+	funderKey, err := keys.NewPrivateKeyFromWIF(funderWIF)
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("parse funder WIF: %w", err)
+	}
 	funderAccount := wallet.NewAccountFromPrivateKey(funderKey)
-	funderActor, _ := actor.NewSimple(rpc, funderAccount)
+	funderActor, err := actor.NewSimple(rpc, funderAccount)
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("create funder actor: %w", err)
+	}
 
 	// TEE account (for service callbacks - RandomnessLog, PriceFeed)
 	teeKeyHex := strings.TrimSpace(os.Getenv("TEE_PRIVATE_KEY"))
 	var teeAccount *wallet.Account
 	var teeActor *actor.Actor
 	if teeKeyHex != "" {
-		teeKeyBytes, _ := hex.DecodeString(teeKeyHex)
-		teeKey, _ := keys.NewPrivateKeyFromBytes(teeKeyBytes)
-		teeAccount = wallet.NewAccountFromPrivateKey(teeKey)
-		teeActor, _ = actor.NewSimple(rpc, teeAccount)
-		fmt.Printf("📍 TEE Signer: %s\n", teeAccount.Address)
+		teeKey, parseErr := parseOptionalPrivateKey(teeKeyHex)
+		if parseErr != nil {
+			fmt.Printf("⚠️  Invalid TEE_PRIVATE_KEY: %v (TEE callback steps disabled)\n", parseErr)
+		} else {
+			teeAccount = wallet.NewAccountFromPrivateKey(teeKey)
+			actorValue, actorErr := actor.NewSimple(rpc, teeAccount)
+			if actorErr != nil {
+				fmt.Printf("⚠️  Failed to create TEE actor: %v (TEE callback steps disabled)\n", actorErr)
+			} else {
+				teeActor = actorValue
+				fmt.Printf("📍 TEE Signer: %s\n", teeAccount.Address)
+			}
+		}
 	}
 
 	gasContract := gas.New(funderActor)
-	encKeyHex := os.Getenv("POOL_ENCRYPTION_KEY")
-	encKey, _ := hex.DecodeString(encKeyHex)
+	var encKey []byte
+	encKeyHex := strings.TrimSpace(os.Getenv("POOL_ENCRYPTION_KEY"))
+	if encKeyHex != "" {
+		decoded, decodeErr := hex.DecodeString(encKeyHex)
+		switch {
+		case decodeErr != nil:
+			fmt.Printf("⚠️  Invalid POOL_ENCRYPTION_KEY hex: %v (encrypted_wif accounts disabled)\n", decodeErr)
+		case len(decoded) != 32:
+			fmt.Printf("⚠️  POOL_ENCRYPTION_KEY must be 32 bytes (got %d); encrypted_wif accounts disabled\n", len(decoded))
+		default:
+			encKey = decoded
+		}
+	}
+
+	var masterKey []byte
+	masterKeyHex := strings.TrimSpace(os.Getenv("NEOACCOUNTS_MASTER_KEY"))
+	if masterKeyHex == "" {
+		masterKeyHex = strings.TrimSpace(os.Getenv("POOL_MASTER_KEY"))
+	}
+	if masterKeyHex != "" {
+		decoded, decodeErr := hex.DecodeString(masterKeyHex)
+		switch {
+		case decodeErr != nil:
+			fmt.Printf("⚠️  Invalid master key hex: %v (account-id derivation disabled)\n", decodeErr)
+		case len(decoded) != 32:
+			fmt.Printf("⚠️  Master key must be 32 bytes (got %d); account-id derivation disabled\n", len(decoded))
+		default:
+			masterKey = decoded
+		}
+	}
 	contracts := loadContracts()
+	chainID := parseInt64Env("NEO_NETWORK_MAGIC", 894710606)
+	directTx := parseBoolEnv("SIM_ENABLE_DIRECT_CALLBACKS", false)
+	fulfillTx := int32(0)
+	if teeActor != nil {
+		fulfillTx = 1
+	}
 
 	fmt.Printf("📍 Funder: %s\n", funderAccount.Address)
 	fmt.Printf("📍 RPC: %s\n", rpcURL)
+	if !directTx {
+		fmt.Println("ℹ️  Direct callback txs disabled (set SIM_ENABLE_DIRECT_CALLBACKS=true to enable)")
+	}
 
 	return &Simulation{
 		ctx:           ctx,
 		cancel:        cancel,
 		rpc:           rpc,
+		fulfillTx:     fulfillTx,
 		teeAccount:    teeAccount,
 		teeActor:      teeActor,
 		funderAccount: funderAccount,
 		funderActor:   funderActor,
 		gasContract:   gasContract,
 		contracts:     contracts,
+		chainID:       chainID,
+		directTx:      directTx,
 		supabaseURL:   os.Getenv("SUPABASE_URL"),
 		supabaseKey:   os.Getenv("SUPABASE_SERVICE_KEY"),
 		encryptionKey: encKey,
+		masterKey:     masterKey,
 		startTime:     time.Now(),
 	}, nil
 }
@@ -168,8 +233,34 @@ func NewSimulation() (*Simulation, error) {
 func loadContracts() map[string]util.Uint160 {
 	contracts := make(map[string]util.Uint160)
 	load := func(name, env string) {
-		h, _ := util.Uint160DecodeStringLE(strings.TrimPrefix(os.Getenv(env), "0x"))
+		raw := strings.TrimSpace(os.Getenv(env))
+		if raw == "" {
+			contracts[name] = util.Uint160{}
+			return
+		}
+		h, err := util.Uint160DecodeStringLE(strings.TrimPrefix(raw, "0x"))
+		if err != nil {
+			fmt.Printf("⚠️  Invalid %s (%s): %v\n", env, name, err)
+			contracts[name] = util.Uint160{}
+			return
+		}
 		contracts[name] = h
+	}
+	loadFirst := func(name string, envs ...string) {
+		for _, env := range envs {
+			raw := strings.TrimSpace(os.Getenv(env))
+			if raw == "" {
+				continue
+			}
+			h, err := util.Uint160DecodeStringLE(strings.TrimPrefix(raw, "0x"))
+			if err != nil {
+				fmt.Printf("⚠️  Invalid %s (%s): %v\n", env, name, err)
+				continue
+			}
+			contracts[name] = h
+			return
+		}
+		contracts[name] = util.Uint160{}
 	}
 	load("PaymentHub", "CONTRACT_PAYMENTHUB_HASH")
 	load("PriceFeed", "CONTRACT_PRICEFEED_HASH")
@@ -177,7 +268,14 @@ func loadContracts() map[string]util.Uint160 {
 	load("Governance", "CONTRACT_GOVERNANCE_HASH")
 	load("ServiceGateway", "CONTRACT_SERVICEGATEWAY_HASH")
 	load("AppRegistry", "CONTRACT_APPREGISTRY_HASH")
-	load("Consumer", "CONTRACT_CONSUMER_HASH")
+	loadFirst(
+		"Consumer",
+		"CONTRACT_CONSUMER_HASH",
+		"MINIAPP_CALLBACK_CONTRACT_HASH",
+		"MINIAPP_CONSUMER_HASH",
+		"MINIAPP_CONTRACT_HASH",
+		"CONTRACT_MINIAPP_CONSUMER_HASH",
+	)
 	return contracts
 }
 
@@ -195,6 +293,13 @@ func (s *Simulation) Run() {
 		fmt.Println("❌ No pool accounts available")
 		return
 	}
+
+	s.miniApps = s.filterConfiguredAppIDs(getCandidateAppIDs())
+	if len(s.miniApps) == 0 {
+		fmt.Println("❌ No configured MiniApps found in PaymentHub")
+		return
+	}
+	fmt.Printf("🎮 Simulating %d configured MiniApps\n", len(s.miniApps))
 
 	accountPtrs := make([]*PoolAccount, len(accounts))
 	for i := range accounts {
@@ -264,7 +369,12 @@ func (s *Simulation) Run() {
 
 // runWorkflow executes a complete MiniApp workflow with service callbacks
 func (s *Simulation) runWorkflow(acc *PoolAccount, round int, mu *sync.Mutex) {
-	appID := getRandomAppID()
+	appID, appErr := s.randomAppID()
+	if appErr != nil {
+		atomic.AddInt64(&s.txFailed, 1)
+		fmt.Printf("   ❌ Workflow failed: %v\n", appErr)
+		return
+	}
 	atomic.AddInt64(&s.txSent, 1)
 	paymentHub := s.contracts["PaymentHub"].StringLE()
 	gateway := s.contracts["ServiceGateway"].StringLE()
@@ -302,23 +412,31 @@ func (s *Simulation) runWorkflow(acc *PoolAccount, round int, mu *sync.Mutex) {
 			go s.fetchAndStoreEvents(reqTx, appID)
 
 			// Step 3: Service Fulfillment (TEE callback)
-			fmt.Printf("   [3/5] 📥 ServiceGateway.fulfillRequest()\n")
-			fulfillTx, err := s.fulfillRequest(reqID)
-			if err != nil {
-				fmt.Printf("   ⚠️  Fulfill failed: %v\n", err)
+			if atomic.LoadInt32(&s.fulfillTx) == 0 {
+				fmt.Printf("   [3/5] ⏭️  ServiceGateway.fulfillRequest() skipped\n")
 				s.updateServiceRequest(reqID, false, "")
 			} else {
-				atomic.AddInt64(&s.serviceFulfillTx, 1)
-				fmt.Printf("   ✅ Fulfill TX: %s\n", fulfillTx[:16])
-				s.storeTx(fulfillTx, "fulfill", appID, "", gateway, "fulfillRequest", 0, "success")
-				s.updateServiceRequest(reqID, true, fulfillTx)
-				go s.fetchAndStoreEvents(fulfillTx, appID)
+				fmt.Printf("   [3/5] 📥 ServiceGateway.fulfillRequest()\n")
+				fulfillTx, err := s.fulfillRequest(reqID)
+				if err != nil {
+					fmt.Printf("   ⚠️  Fulfill failed: %v\n", err)
+					if isUnauthorizedError(err) && atomic.CompareAndSwapInt32(&s.fulfillTx, 1, 0) {
+						fmt.Println("   ⚠️  Disabling fulfill step: signer is unauthorized")
+					}
+					s.updateServiceRequest(reqID, false, "")
+				} else {
+					atomic.AddInt64(&s.serviceFulfillTx, 1)
+					fmt.Printf("   ✅ Fulfill TX: %s\n", fulfillTx[:16])
+					s.storeTx(fulfillTx, "fulfill", appID, "", gateway, "fulfillRequest", 0, "success")
+					s.updateServiceRequest(reqID, true, fulfillTx)
+					go s.fetchAndStoreEvents(fulfillTx, appID)
+				}
 			}
 		}
 	}
 
 	// Step 4: Direct contract callbacks (RandomnessLog, PriceFeed)
-	if s.teeActor != nil && !s.contracts["RandomnessLog"].Equals(util.Uint160{}) {
+	if s.directTx && s.teeActor != nil && !s.contracts["RandomnessLog"].Equals(util.Uint160{}) {
 		fmt.Printf("   [4/5] 🎲 RandomnessLog.record()\n")
 		rngTx, err := s.recordRandomness(round)
 		if err != nil {
@@ -348,19 +466,87 @@ func (s *Simulation) runWorkflow(acc *PoolAccount, round int, mu *sync.Mutex) {
 	atomic.AddInt64(&s.txSuccess, 1)
 }
 
-func getRandomAppID() string {
-	apps := []string{
-		"miniapp-gas-spin",      // Lucky wheel with VRF
-		"miniapp-price-predict", // Binary options with datafeed
-		"miniapp-secretvote",    // Privacy governance voting
+func getCandidateAppIDs() []string {
+	return []string{
+		"miniapp-gas-spin",
+		"miniapp-price-predict",
+		"miniapp-secretvote",
 		"miniapp-lottery",
 		"miniapp-coinflip",
 		"miniapp-dicegame",
-		"miniapp-secret-poker",  // TEE Texas Hold'em
-		"miniapp-micro-predict", // High-freq 60s prediction
-		"miniapp-redenvelope",   // Social GAS packets
+		"miniapp-secret-poker",
+		"miniapp-micro-predict",
+		"miniapp-redenvelope",
 	}
-	return apps[mrand.Intn(len(apps))]
+}
+
+func (s *Simulation) filterConfiguredAppIDs(candidates []string) []string {
+	paymentHub := s.contracts["PaymentHub"]
+	if paymentHub.Equals(util.Uint160{}) {
+		fmt.Println("⚠️  PaymentHub contract not configured; app filtering skipped")
+		return nil
+	}
+
+	filtered := make([]string, 0, len(candidates))
+	for _, appID := range candidates {
+		configured, err := s.isAppConfigured(paymentHub, appID)
+		if err != nil {
+			fmt.Printf("   ⚠️  getApp(%s) check failed: %v\n", appID, err)
+			continue
+		}
+		if configured {
+			filtered = append(filtered, appID)
+		} else {
+			fmt.Printf("   ⏭️  Skipping unconfigured app: %s\n", appID)
+		}
+	}
+	return filtered
+}
+
+func (s *Simulation) randomAppID() (string, error) {
+	if len(s.miniApps) == 0 {
+		return "", fmt.Errorf("no configured miniapps available")
+	}
+	return s.miniApps[mrand.Intn(len(s.miniApps))], nil
+}
+
+func (s *Simulation) isAppConfigured(paymentHub util.Uint160, appID string) (bool, error) {
+	result, err := s.rpc.InvokeFunction(paymentHub, "getApp", []smartcontract.Parameter{
+		{Type: smartcontract.StringType, Value: appID},
+	}, nil)
+	if err != nil {
+		return false, err
+	}
+	if result == nil {
+		return false, fmt.Errorf("empty invocation result")
+	}
+	if result.State != "HALT" {
+		if strings.Contains(strings.ToLower(result.FaultException), "app not found") {
+			return false, nil
+		}
+		return false, fmt.Errorf(result.FaultException)
+	}
+	if len(result.Stack) == 0 {
+		return false, nil
+	}
+	cfgItems, ok := result.Stack[0].Value().([]stackitem.Item)
+	if !ok || len(cfgItems) == 0 {
+		return false, nil
+	}
+	owner := cfgItems[0]
+	if owner.Type() == stackitem.AnyT {
+		return false, nil
+	}
+	ownerBytes, err := owner.TryBytes()
+	if err != nil || len(ownerBytes) != 20 {
+		return false, nil
+	}
+	for _, b := range ownerBytes {
+		if b != 0 {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // requestService calls ServiceLayerGateway.requestService() and returns real requestID from chain
@@ -456,13 +642,14 @@ func (s *Simulation) fulfillRequest(requestID int64) (string, error) {
 
 // sendPayment sends GAS to PaymentHub with appID as data
 func (s *Simulation) sendPayment(acc *PoolAccount, appID string) (string, error) {
-	wif, err := s.decryptWIF(acc.EncryptedWIF)
+	userAccount, err := s.resolveUserAccount(*acc)
 	if err != nil {
 		return "", err
 	}
-	privKey, _ := keys.NewPrivateKeyFromWIF(wif)
-	userAccount := wallet.NewAccountFromPrivateKey(privKey)
-	userActor, _ := actor.NewSimple(s.rpc, userAccount)
+	userActor, err := actor.NewSimple(s.rpc, userAccount)
+	if err != nil {
+		return "", fmt.Errorf("create user actor: %w", err)
+	}
 
 	paymentHub := s.contracts["PaymentHub"]
 	txHash, _, err := userActor.SendCall(
@@ -588,12 +775,24 @@ func (s *Simulation) topUpAccount(acc *PoolAccount) error {
 }
 
 func (s *Simulation) decryptWIF(encryptedWIF string) (string, error) {
+	if strings.TrimSpace(encryptedWIF) == "" {
+		return "", fmt.Errorf("empty encrypted_wif")
+	}
 	if len(s.encryptionKey) != 32 {
 		return "", fmt.Errorf("invalid encryption key")
 	}
-	ciphertext, _ := base64.StdEncoding.DecodeString(encryptedWIF)
-	block, _ := aes.NewCipher(s.encryptionKey)
-	gcm, _ := cipher.NewGCM(block)
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedWIF)
+	if err != nil {
+		return "", fmt.Errorf("base64 decode: %w", err)
+	}
+	block, err := aes.NewCipher(s.encryptionKey)
+	if err != nil {
+		return "", fmt.Errorf("create cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("create GCM: %w", err)
+	}
 	nonceSize := gcm.NonceSize()
 	if len(ciphertext) < nonceSize {
 		return "", fmt.Errorf("ciphertext too short")
@@ -601,7 +800,7 @@ func (s *Simulation) decryptWIF(encryptedWIF string) (string, error) {
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("decrypt: %w", err)
 	}
 	return string(plaintext), nil
 }
@@ -631,32 +830,34 @@ func (s *Simulation) PrintStats() {
 	fmt.Printf("   💰 Top-ups:           %d\n", atomic.LoadInt64(&s.topUps))
 }
 
-// storeTx stores a transaction record in Supabase
-func (s *Simulation) storeTx(txHash, txType, appID, account, contract, method string, amount int64, status string) {
+// storeTx stores a transaction record in Supabase.
+func (s *Simulation) storeTx(txHash, txType, appID, account, _, _ string, amount int64, status string) {
+	if strings.TrimSpace(txHash) == "" {
+		return
+	}
 	payload := map[string]interface{}{
 		"tx_hash":         txHash,
 		"tx_type":         txType,
 		"app_id":          appID,
 		"account_address": account,
-		"contract_hash":   contract,
-		"method_name":     method,
 		"amount":          amount,
 		"status":          status,
+		"created_at":      time.Now().UTC().Format(time.RFC3339),
 	}
 	go s.postToSupabase("simulation_transactions", payload)
 }
 
-// storeEvent stores a contract event in Supabase (matches actual contract_events table schema)
+// storeEvent stores a contract event in Supabase.
 func (s *Simulation) storeEvent(txHash string, blockIndex int64, contract, eventName, appID string, state map[string]interface{}) {
-	// Add contract_hash to state data for reference
-	state["contract_hash"] = contract
-
 	payload := map[string]interface{}{
-		"tx_hash":      txHash,
-		"app_id":       appID,
-		"event_name":   eventName,
-		"block_number": blockIndex,
-		"data":         state,
+		"tx_hash":          txHash,
+		"app_id":           appID,
+		"event_name":       eventName,
+		"block_index":      blockIndex,
+		"chain_id":         s.chainID,
+		"contract_address": contract,
+		"state":            state,
+		"created_at":       time.Now().UTC().Format(time.RFC3339),
 	}
 	go s.postToSupabase("contract_events", payload)
 }
@@ -874,7 +1075,11 @@ func (s *Simulation) postToSupabase(table string, payload map[string]interface{}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
 		respBody, _ := io.ReadAll(resp.Body)
-		fmt.Printf("   ⚠️  Supabase %s error %d: %s\n", table, resp.StatusCode, string(respBody)[:100])
+		msg := strings.TrimSpace(string(respBody))
+		if len(msg) > 180 {
+			msg = msg[:180]
+		}
+		fmt.Printf("   ⚠️  Supabase %s error %d: %s\n", table, resp.StatusCode, msg)
 	}
 }
 
@@ -886,4 +1091,101 @@ func (s *Simulation) patchToSupabase(table, filter string, payload map[string]in
 	req.Header.Set("Authorization", "Bearer "+s.supabaseKey)
 	req.Header.Set("Content-Type", "application/json")
 	http.DefaultClient.Do(req)
+}
+
+func (s *Simulation) resolveUserAccount(acc PoolAccount) (*wallet.Account, error) {
+	if strings.TrimSpace(acc.EncryptedWIF) != "" {
+		wif, err := s.decryptWIF(acc.EncryptedWIF)
+		if err != nil {
+			return nil, fmt.Errorf("decrypt WIF: %w", err)
+		}
+		privKey, err := keys.NewPrivateKeyFromWIF(wif)
+		if err != nil {
+			return nil, fmt.Errorf("parse WIF: %w", err)
+		}
+		account := wallet.NewAccountFromPrivateKey(privKey)
+		if account.Address != acc.Address {
+			return nil, fmt.Errorf("decrypted key address mismatch: got %s want %s", account.Address, acc.Address)
+		}
+		return account, nil
+	}
+
+	if len(s.masterKey) == 32 {
+		derivedKey, err := slcrypto.DeriveKey(s.masterKey, []byte(acc.ID), "pool-account", 32)
+		if err != nil {
+			return nil, fmt.Errorf("derive account key: %w", err)
+		}
+		defer slcrypto.ZeroBytes(derivedKey)
+
+		privKey, err := keys.NewPrivateKeyFromBytes(derivedKey)
+		if err != nil {
+			return nil, fmt.Errorf("create private key from derived bytes: %w", err)
+		}
+		account := wallet.NewAccountFromPrivateKey(privKey)
+		if account.Address != acc.Address {
+			return nil, fmt.Errorf("derived key address mismatch: got %s want %s", account.Address, acc.Address)
+		}
+		return account, nil
+	}
+
+	return nil, fmt.Errorf("account %s has no encrypted_wif and no valid master key is configured", acc.ID)
+}
+
+func parseInt64Env(key string, fallback int64) int64 {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.ParseInt(raw, 0, 64)
+	if err != nil {
+		fmt.Printf("⚠️  Invalid %s=%q, using default %d\n", key, raw, fallback)
+		return fallback
+	}
+	return value
+}
+
+func parseBoolEnv(key string, fallback bool) bool {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		fmt.Printf("⚠️  Invalid %s=%q, using default %t\n", key, raw, fallback)
+		return fallback
+	}
+	return value
+}
+
+func isUnauthorizedError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "unauthorized")
+}
+
+func parseOptionalPrivateKey(raw string) (*keys.PrivateKey, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	if k, err := keys.NewPrivateKeyFromWIF(trimmed); err == nil {
+		return k, nil
+	}
+
+	hexKey := strings.TrimPrefix(strings.TrimPrefix(trimmed, "0x"), "0X")
+	decoded, err := hex.DecodeString(hexKey)
+	if err != nil {
+		return nil, fmt.Errorf("not WIF and hex decode failed: %w", err)
+	}
+	if len(decoded) != 32 {
+		return nil, fmt.Errorf("hex private key must be 32 bytes, got %d", len(decoded))
+	}
+
+	k, err := keys.NewPrivateKeyFromBytes(decoded)
+	if err != nil {
+		return nil, fmt.Errorf("parse hex private key: %w", err)
+	}
+	return k, nil
 }
