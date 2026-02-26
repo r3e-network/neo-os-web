@@ -246,7 +246,13 @@ func uint64ToUnixTime(v uint64) time.Time {
 	if v > math.MaxInt64 {
 		return time.Time{}
 	}
-	return time.Unix(int64(v), 0).UTC()
+	ts := int64(v)
+	// Neo block time values are Unix milliseconds on N3, but older callers may
+	// still pass seconds. Detect by magnitude to keep backward compatibility.
+	if ts >= 1_000_000_000_000 {
+		return time.UnixMilli(ts).UTC()
+	}
+	return time.Unix(ts, 0).UTC()
 }
 
 // processTransaction processes a transaction for events.

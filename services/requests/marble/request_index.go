@@ -28,6 +28,41 @@ func (s *Service) storeRequestIndex(requestID, appID string) {
 	})
 }
 
+func (s *Service) claimRequestIndex(requestID, appID string) (bool, string) {
+	if s == nil || s.requestIndexTTL <= 0 {
+		return true, ""
+	}
+	requestID = strings.TrimSpace(requestID)
+	appID = strings.TrimSpace(appID)
+	if requestID == "" || appID == "" {
+		return true, ""
+	}
+
+	now := time.Now()
+	entry := requestIndexEntry{
+		appID:     appID,
+		expiresAt: now.Add(s.requestIndexTTL),
+	}
+
+	raw, loaded := s.requestIndex.LoadOrStore(requestID, entry)
+	if !loaded {
+		return true, ""
+	}
+
+	existing, ok := raw.(requestIndexEntry)
+	if !ok {
+		s.requestIndex.Store(requestID, entry)
+		return true, ""
+	}
+
+	if s.requestIndexTTL > 0 && !existing.expiresAt.IsZero() && now.After(existing.expiresAt) {
+		s.requestIndex.Store(requestID, entry)
+		return true, ""
+	}
+
+	return false, strings.TrimSpace(existing.appID)
+}
+
 func (s *Service) lookupRequestIndex(requestID string) string {
 	if s == nil {
 		return ""

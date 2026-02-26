@@ -25,6 +25,17 @@ Environment:
   MARBLERUN_STRICT_TLS=1
                In SGX mode, require strict TLS verification for marblerun CLI calls.
                Default behavior for localhost coordinator is to use --insecure.
+  AUTO_FUND_TXPROXY_SIGNER=1|0
+               Auto-top-up txproxy signer balance after startup.
+               Defaults to 1 in --insecure mode, 0 otherwise.
+  TXPROXY_SIGNER_MIN_GAS
+               Minimum signer GAS balance target (default: 30).
+  TXPROXY_SIGNER_TOPUP_GAS
+               Top-up transfer amount when below minimum (default: 100).
+  AUTO_FUND_TXPROXY_SIGNER_REQUIRED=1
+               Fail startup if signer funding step fails.
+  EGO_PRIVATE_KEY_FILE
+               Default SGX enclave signing key path (used when --signing-key is not provided).
   -h, --help   Show this help.
 EOF
 }
@@ -253,6 +264,132 @@ if [[ -n "$ENV_FILE_PATH" ]]; then
   DOCKER_COMPOSE+=(--env-file "$ENV_FILE_PATH")
 fi
 
+# Allow configuring the default SGX signing key path once via environment.
+# Explicit --signing-key / --signing-key-dir still take precedence.
+if [[ -z "$SIGNING_KEY" && -n "${EGO_PRIVATE_KEY_FILE:-}" ]]; then
+  SIGNING_KEY="${EGO_PRIVATE_KEY_FILE}"
+fi
+if [[ -n "$SIGNING_KEY" && "$SIGNING_KEY" != /* ]]; then
+  SIGNING_KEY="${PROJECT_ROOT}/${SIGNING_KEY}"
+fi
+if [[ -n "$SIGNING_KEY" ]]; then
+  export EGO_PRIVATE_KEY_FILE="$SIGNING_KEY"
+fi
+
+read_env_file_var() {
+  local file="$1"
+  local key="$2"
+  if [[ -z "$file" || ! -f "$file" ]]; then
+    return 1
+  fi
+
+  local value
+  value="$(awk -F= -v key="$key" '
+    $0 ~ /^[[:space:]]*#/ { next }
+    index($0, key "=") == 1 {
+      out = substr($0, length(key) + 2)
+      print out
+    }
+  ' "$file" | tail -n1)"
+
+  if [[ -z "$value" ]]; then
+    return 1
+  fi
+
+  # Trim optional single/double quotes used in .env files.
+  if [[ "$value" =~ ^\".*\"$ ]]; then
+    value="${value:1:${#value}-2}"
+  elif [[ "$value" =~ ^\'.*\'$ ]]; then
+    value="${value:1:${#value}-2}"
+  fi
+
+  printf '%s' "$value"
+}
+
+resolve_runtime_var() {
+  local key="$1"
+  local value="${!key:-}"
+
+  if [[ -n "$value" ]]; then
+    printf '%s' "$value"
+    return 0
+  fi
+
+  if value="$(read_env_file_var "$ENV_FILE_PATH" "$key")"; then
+    printf '%s' "$value"
+    return 0
+  fi
+
+  return 1
+}
+
+is_truthy() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|on|ON|y|Y) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+SUPABASE_URL_VALUE="$(resolve_runtime_var SUPABASE_URL || true)"
+SUPABASE_SERVICE_KEY_VALUE="$(resolve_runtime_var SUPABASE_SERVICE_KEY || true)"
+GLOBALSIGNER_MASTER_SEED_VALUE="$(resolve_runtime_var GLOBALSIGNER_MASTER_SEED || true)"
+TEE_PRIVATE_KEY_VALUE="$(resolve_runtime_var TEE_PRIVATE_KEY || true)"
+SECRETS_MASTER_KEY_VALUE="$(resolve_runtime_var SECRETS_MASTER_KEY || true)"
+POOL_MASTER_KEY_VALUE="$(resolve_runtime_var POOL_MASTER_KEY || true)"
+POOL_ENCRYPTION_KEY_VALUE="$(resolve_runtime_var POOL_ENCRYPTION_KEY || true)"
+COMPUTE_MASTER_KEY_VALUE="$(resolve_runtime_var COMPUTE_MASTER_KEY || true)"
+NEOFEEDS_SIGNING_KEY_VALUE="$(resolve_runtime_var NEOFEEDS_SIGNING_KEY || true)"
+NEOVRF_SIGNING_KEY_VALUE="$(resolve_runtime_var NEOVRF_SIGNING_KEY || true)"
+NEO_TESTNET_WIF_VALUE="$(resolve_runtime_var NEO_TESTNET_WIF || true)"
+NEO_RPC_URL_VALUE="$(resolve_runtime_var NEO_RPC_URL || true)"
+NEO_NETWORK_MAGIC_VALUE="$(resolve_runtime_var NEO_NETWORK_MAGIC || true)"
+
+if [[ -z "$SUPABASE_URL_VALUE" || -z "$SUPABASE_SERVICE_KEY_VALUE" ]]; then
+  echo "SUPABASE_URL and SUPABASE_SERVICE_KEY are required for MarbleRun services." >&2
+  echo "Set them in the environment or ${ENV_FILE_PATH:-PROJECT_ROOT/.env} before running this script." >&2
+  exit 1
+fi
+if [[ -z "$GLOBALSIGNER_MASTER_SEED_VALUE" ]]; then
+  echo "GLOBALSIGNER_MASTER_SEED is required for deterministic GlobalSigner signatures." >&2
+  echo "Set it in the environment or ${ENV_FILE_PATH:-PROJECT_ROOT/.env} before running this script." >&2
+  exit 1
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "jq not found in PATH (required to inject runtime SUPABASE_* values into the manifest)" >&2
+  exit 1
+fi
+
+MANIFEST_WITH_RUNTIME_ENV="$(mktemp -t service-layer-manifest.runtime.XXXXXX.json)"
+cleanup_files+=("$MANIFEST_WITH_RUNTIME_ENV")
+jq \
+  --arg supabase_url "$SUPABASE_URL_VALUE" \
+  --arg supabase_service_key "$SUPABASE_SERVICE_KEY_VALUE" \
+  --arg globalsigner_master_seed "$GLOBALSIGNER_MASTER_SEED_VALUE" \
+  --arg tee_private_key "$TEE_PRIVATE_KEY_VALUE" \
+  --arg secrets_master_key "$SECRETS_MASTER_KEY_VALUE" \
+  --arg pool_master_key "$POOL_MASTER_KEY_VALUE" \
+  --arg pool_encryption_key "$POOL_ENCRYPTION_KEY_VALUE" \
+  --arg compute_master_key "$COMPUTE_MASTER_KEY_VALUE" \
+  --arg neofeeds_signing_key "$NEOFEEDS_SIGNING_KEY_VALUE" \
+  --arg neovrf_signing_key "$NEOVRF_SIGNING_KEY_VALUE" \
+  '.Marbles |= with_entries(
+      .value.Parameters.Env.SUPABASE_URL = $supabase_url |
+      .value.Parameters.Env.SUPABASE_SERVICE_KEY = $supabase_service_key |
+      .value.Parameters.Env |= (
+        if has("GLOBALSIGNER_MASTER_SEED") then .GLOBALSIGNER_MASTER_SEED = $globalsigner_master_seed else . end |
+        if $tee_private_key != "" and has("TEE_PRIVATE_KEY") then .TEE_PRIVATE_KEY = $tee_private_key else . end |
+        if $secrets_master_key != "" and has("SECRETS_MASTER_KEY") then .SECRETS_MASTER_KEY = $secrets_master_key else . end |
+        if $pool_master_key != "" and has("POOL_MASTER_KEY") then .POOL_MASTER_KEY = $pool_master_key else . end |
+        if $pool_encryption_key != "" and has("POOL_ENCRYPTION_KEY") then .POOL_ENCRYPTION_KEY = $pool_encryption_key else . end |
+        if $compute_master_key != "" and has("COMPUTE_MASTER_KEY") then .COMPUTE_MASTER_KEY = $compute_master_key else . end |
+        if $neofeeds_signing_key != "" and has("NEOFEEDS_SIGNING_KEY") then .NEOFEEDS_SIGNING_KEY = $neofeeds_signing_key else . end |
+        if $neovrf_signing_key != "" and has("NEOVRF_SIGNING_KEY") then .NEOVRF_SIGNING_KEY = $neovrf_signing_key else . end
+      )
+    )' \
+  "$MANIFEST_FILE" > "$MANIFEST_WITH_RUNTIME_ENV"
+MANIFEST_FILE="$MANIFEST_WITH_RUNTIME_ENV"
+
 default_service_binary() {
   local pkg="$1"
   case "$pkg" in
@@ -312,7 +449,7 @@ ego_signerid_from_private_key() {
 
   local signer
   signer="$(ego_signerid "$key_path" 2>/dev/null | tr -d '\r\n' || true)"
-  if [[ -n "$signer" ]]; then
+  if [[ "$signer" =~ ^[0-9a-fA-F]{64}$ ]]; then
     echo "$signer"
     return 0
   fi
@@ -327,7 +464,7 @@ ego_signerid_from_private_key() {
     fi
     signer="$(ego_signerid "$tmp_pub" 2>/dev/null | tr -d '\r\n' || true)"
     rm -f "$tmp_pub"
-    if [[ -n "$signer" ]]; then
+    if [[ "$signer" =~ ^[0-9a-fA-F]{64}$ ]]; then
       echo "$signer"
       return 0
     fi
@@ -337,7 +474,7 @@ ego_signerid_from_private_key() {
   local image
   image="$(ego_image)"
   signer="$("${DOCKER[@]}" run --rm -v "${key_path}:/signing-key:ro" "$image" sh -c 'openssl rsa -in /signing-key -pubout -out /tmp/pub.pem >/dev/null 2>&1 && ego signerid /tmp/pub.pem' 2>/dev/null | tr -d '\r\n' || true)"
-  if [[ -n "$signer" ]]; then
+  if [[ "$signer" =~ ^[0-9a-fA-F]{64}$ ]]; then
     echo "$signer"
     return 0
   fi
@@ -346,7 +483,19 @@ ego_signerid_from_private_key() {
 }
 
 build_signed_images() {
-  local packages=(neofeeds neoflow neoaccounts neocompute neovrf neooracle neorequests txproxy globalsigner)
+  local packages=(
+    neofeeds
+    neoflow
+    neoaccounts
+    neocompute
+    neovrf
+    neooracle
+    neorequests
+    txproxy
+    neogasbank
+    neosimulation
+    globalsigner
+  )
   local pkg
 
   export DOCKER_BUILDKIT=1
@@ -451,6 +600,59 @@ wait_for_coordinator_api() {
   return 1
 }
 
+maybe_fund_txproxy_signer() {
+  local auto_fund="${AUTO_FUND_TXPROXY_SIGNER:-}"
+  if [[ -z "$auto_fund" ]]; then
+    if [[ "$INSECURE" == "true" ]]; then
+      auto_fund="1"
+    else
+      auto_fund="0"
+    fi
+  fi
+  if ! is_truthy "$auto_fund"; then
+    return 0
+  fi
+
+  if ! command -v go >/dev/null 2>&1; then
+    echo "Warning: go not found; skipping txproxy signer auto-funding." >&2
+    return 0
+  fi
+
+  if [[ -z "$NEO_TESTNET_WIF_VALUE" ]]; then
+    echo "Warning: NEO_TESTNET_WIF is not set; skipping txproxy signer auto-funding." >&2
+    if is_truthy "${AUTO_FUND_TXPROXY_SIGNER_REQUIRED:-0}"; then
+      return 1
+    fi
+    return 0
+  fi
+
+  local min_gas="${TXPROXY_SIGNER_MIN_GAS:-30}"
+  local topup_gas="${TXPROXY_SIGNER_TOPUP_GAS:-100}"
+
+  echo "Ensuring txproxy signer balance >= ${min_gas} GAS (top-up amount: ${topup_gas} GAS)..."
+  local -a env_args
+  env_args=(
+    "NEO_TESTNET_WIF=${NEO_TESTNET_WIF_VALUE}"
+    "GAS_TRANSFER_MIN_BALANCE=${min_gas}"
+    "GAS_TRANSFER_AMOUNT=${topup_gas}"
+  )
+  if [[ -n "$NEO_RPC_URL_VALUE" ]]; then
+    env_args+=("NEO_RPC_URL=${NEO_RPC_URL_VALUE}")
+  fi
+  if [[ -n "$NEO_NETWORK_MAGIC_VALUE" ]]; then
+    env_args+=("NEO_NETWORK_MAGIC=${NEO_NETWORK_MAGIC_VALUE}")
+  fi
+
+  if ! (
+    cd "$PROJECT_ROOT" && env "${env_args[@]}" go run -tags=scripts scripts/transfer_gas_to_signer.go
+  ); then
+    echo "Warning: txproxy signer auto-funding failed." >&2
+    if is_truthy "${AUTO_FUND_TXPROXY_SIGNER_REQUIRED:-0}"; then
+      return 1
+    fi
+  fi
+}
+
 set_manifest_with_retries() {
   local attempts="${1:-10}"
   local sleep_seconds="${2:-2}"
@@ -502,10 +704,23 @@ if coordinator_requires_manifest; then
   fi
 else
   echo "Coordinator already has an active manifest; skipping manifest set." >&2
-  echo "If you changed ${MANIFEST_FILE}, reset coordinator state first (e.g. docker compose -f ${COMPOSE_FILE} down -v)." >&2
+  if marblerun manifest update apply --help >/dev/null 2>&1; then
+    echo "Applying manifest update to running coordinator..." >&2
+    if ! marblerun manifest update apply "$MANIFEST_FILE" "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}"; then
+      echo "Warning: failed to apply manifest update; existing manifest remains active." >&2
+      echo "If required, reset coordinator state (e.g. docker compose -f ${COMPOSE_FILE} down -v)." >&2
+    fi
+  else
+    echo "If you changed ${MANIFEST_FILE}, reset coordinator state first (e.g. docker compose -f ${COMPOSE_FILE} down -v)." >&2
+  fi
 fi
 
 marblerun status "$COORDINATOR_CLIENT_ADDR" "${MARBLERUN_FLAGS[@]}" || true
 
 # Now that the manifest is set, start (or update) the rest of the stack.
 "${DOCKER_COMPOSE[@]}" "${compose_up_args[@]}"
+
+if ! maybe_fund_txproxy_signer; then
+  echo "Error: txproxy signer auto-funding failed and is required." >&2
+  exit 1
+fi

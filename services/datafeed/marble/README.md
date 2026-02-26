@@ -5,7 +5,7 @@ MarbleRun/EGo enclave mesh.
 
 ## Responsibilities
 
-- Poll multiple external HTTP sources (default: **Binance**, **Coinbase**, **OKX**) on a fixed interval (default: **1s**).
+- Poll multiple external HTTP sources (default source set: **Binance** + **OKX**; with feed-specific sources like **Coinbase** and **Nasdaq API**) on a fixed interval (default: **1s**).
 - Aggregate values via **weighted median**.
 - Sign responses with an enclave-held key (`NEOFEEDS_SIGNING_KEY`).
 - Optionally push updates on-chain to the platform `PriceFeed` contract (preferred).
@@ -52,7 +52,7 @@ publish_policy:
   min_interval: 5s
   max_per_minute: 30
 
-default_sources: [binance, coinbase, okx]
+default_sources: [binance, okx]
 
 sources:
   - id: binance
@@ -70,6 +70,14 @@ sources:
     json_path: data.0.last
     pair_template: "{base}-{quote}"
     quote_override: USDT
+
+  - id: yahoo
+    url: "https://query1.finance.yahoo.com/v7/finance/quote?symbols={base}"
+    json_path: quoteResponse.result.0.regularMarketPrice
+
+  - id: nasdaq_stocks
+    url: "https://api.nasdaq.com/api/quote/{base}/info?assetclass=stocks"
+    json_path: data.primaryData.lastSalePrice
 
 feeds:
   - id: BTC-USD
@@ -95,8 +103,8 @@ The `PriceFeed` contract enforces monotonic `round_id` to prevent replay.
 ## Optional Chainlink
 
 The codebase contains an optional Chainlink Arbitrum reader. It is **disabled by
-default** to keep default behavior aligned with the platform blueprint (3 HTTP
-sources + median). To enable it, set `ARBITRUM_RPC` for the `neofeeds` marble
+default** to keep default behavior aligned with the platform blueprint (HTTP
+source median aggregation). To enable it, set `ARBITRUM_RPC` for the `neofeeds` marble
 and pass it via `Config.ArbitrumRPC`.
 
 ## Required Secrets

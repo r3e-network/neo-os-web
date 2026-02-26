@@ -329,8 +329,62 @@ func TestParseBooleanEdgeCases(t *testing.T) {
 				Type:  "Integer",
 				Value: json.RawMessage(`"1"`),
 			},
+			expected: true,
+			wantErr:  false,
+		},
+		{
+			name: "bytes one",
+			item: StackItem{
+				Type:  "ByteString",
+				Value: json.RawMessage(`"AQ=="`),
+			},
+			expected: true,
+			wantErr:  false,
+		},
+		{
+			name: "bytes zero",
+			item: StackItem{
+				Type:  "ByteString",
+				Value: json.RawMessage(`"AA=="`),
+			},
 			expected: false,
-			wantErr:  true,
+			wantErr:  false,
+		},
+		{
+			name: "bytes true text",
+			item: StackItem{
+				Type:  "ByteString",
+				Value: json.RawMessage(`"dHJ1ZQ=="`),
+			},
+			expected: true,
+			wantErr:  false,
+		},
+		{
+			name: "bytes false text",
+			item: StackItem{
+				Type:  "ByteString",
+				Value: json.RawMessage(`"ZmFsc2U="`),
+			},
+			expected: false,
+			wantErr:  false,
+		},
+		{
+			name: "bytes multi-byte one",
+			item: StackItem{
+				Type:  "ByteString",
+				Value: json.RawMessage(`"AQA="`),
+			},
+			expected: true,
+			wantErr:  false,
+		},
+		{
+			name: "bytes multi-byte zero",
+			item: StackItem{
+				Type:  "ByteString",
+				Value: json.RawMessage(`"AAA="`),
+			},
+			expected: false,
+			wantErr:  false,
 		},
 	}
 

@@ -27,9 +27,11 @@ const (
 
 	// Neo notifications are capped at 1024 bytes. Keep a safe default
 	// to avoid callback failures when ServiceLayerGateway emits events.
-	defaultMaxResultBytes  = 800
-	defaultMaxErrorLen     = 256
-	defaultRequestIndexTTL = time.Hour
+	defaultMaxResultBytes       = 800
+	defaultMaxErrorLen          = 256
+	defaultRequestIndexTTL      = time.Hour
+	defaultServiceTimeout       = 20 * time.Second
+	defaultPreValidationTimeout = 8 * time.Second
 )
 
 // Config holds NeoRequests service configuration.
@@ -64,6 +66,8 @@ type Config struct {
 	OnchainUsage            bool
 	OnchainTxUsage          bool
 	RequestIndexTTL         time.Duration
+	ServiceTimeout          time.Duration
+	PreValidationTimeout    time.Duration
 }
 
 // Service implements the NeoRequests service.
@@ -99,11 +103,14 @@ type Service struct {
 	rngMode     string
 
 	statsRollupInterval time.Duration
+	statsRollupDisabled bool
 	onchainUsage        bool
 	onchainTxUsage      bool
 
-	requestIndex    sync.Map
-	requestIndexTTL time.Duration
+	requestIndex         sync.Map
+	requestIndexTTL      time.Duration
+	serviceTimeout       time.Duration
+	preValidationTimeout time.Duration
 
 	listenerMu     sync.Mutex
 	listenerCtx    context.Context
@@ -166,6 +173,8 @@ type resolvedConfig struct {
 	enforceAppRegistry      bool
 	requireManifestContract bool
 	requestIndexTTL         time.Duration
+	serviceTimeout          time.Duration
+	preValidationTimeout    time.Duration
 	cacheSeconds            int
 }
 
@@ -235,12 +244,15 @@ func resolveConfig(cfg Config) resolvedConfig {
 	}
 
 	// enforceAppRegistry
-	rc.enforceAppRegistry = cfg.EnforceAppRegistry
-	if raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ENFORCE_APPREGISTRY")); raw != "" {
+	switch raw := strings.TrimSpace(os.Getenv("NEOREQUESTS_ENFORCE_APPREGISTRY")); {
+	case raw != "":
+		// Explicit env override must always win, including explicit "false".
 		rc.enforceAppRegistry = runtime.ParseEnvBool(raw)
-	}
-	if !rc.enforceAppRegistry && rc.appRegistryHash != "" && cfg.ChainClient != nil {
+	case cfg.EnforceAppRegistry:
 		rc.enforceAppRegistry = true
+	default:
+		// Auto-enable only when not explicitly configured.
+		rc.enforceAppRegistry = rc.appRegistryHash != "" && cfg.ChainClient != nil
 	}
 
 	// requireManifestContract
@@ -260,6 +272,31 @@ func resolveConfig(cfg Config) resolvedConfig {
 	}
 	if rc.requestIndexTTL <= 0 {
 		rc.requestIndexTTL = defaultRequestIndexTTL
+	}
+
+	// serviceTimeout
+	rc.serviceTimeout = cfg.ServiceTimeout
+	if rc.serviceTimeout <= 0 {
+		if parsed, ok := runtime.ParseEnvDuration("NEOREQUESTS_SERVICE_TIMEOUT"); ok && parsed > 0 {
+			rc.serviceTimeout = parsed
+		}
+	}
+	if rc.serviceTimeout <= 0 {
+		rc.serviceTimeout = defaultServiceTimeout
+	}
+
+	// preValidationTimeout
+	rc.preValidationTimeout = cfg.PreValidationTimeout
+	if rc.preValidationTimeout <= 0 {
+		if parsed, ok := runtime.ParseEnvDuration("NEOREQUESTS_PREVALIDATION_TIMEOUT"); ok && parsed > 0 {
+			rc.preValidationTimeout = parsed
+		}
+	}
+	if rc.preValidationTimeout <= 0 {
+		rc.preValidationTimeout = defaultPreValidationTimeout
+	}
+	if rc.serviceTimeout > 0 && rc.preValidationTimeout > rc.serviceTimeout {
+		rc.preValidationTimeout = rc.serviceTimeout
 	}
 
 	// cacheSeconds
@@ -385,6 +422,8 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		onchainUsage:            rc.onchainUsage,
 		onchainTxUsage:          rc.onchainTxUsage,
 		requestIndexTTL:         rc.requestIndexTTL,
+		serviceTimeout:          rc.serviceTimeout,
+		preValidationTimeout:    rc.preValidationTimeout,
 	}
 
 	if err := s.initAppRegistry(strict); err != nil {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/big"
 	"net/http"
 	"net/url"
 	"path"
@@ -48,35 +49,96 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 		"app_id":       appID,
 		"service_type": serviceType,
 	})
+	logger.Info("service request received")
+
+	if claimed, existingAppID := s.claimRequestIndex(requestID, appID); !claimed {
+		logger.WithFields(map[string]interface{}{
+			"inflight_app_id": existingAppID,
+		}).Info("duplicate service request already in-flight locally")
+		return nil
+	}
 
 	if s.repo != nil {
-		processed, markErr := s.markEventProcessed(ctx, event, parsed)
+		markStarted := time.Now()
+		markCtx, cancelMark := s.withPreValidationTimeout(ctx)
+		processed, markErr := s.markEventProcessed(markCtx, event, parsed)
+		cancelMark()
+		markDuration := time.Since(markStarted)
+		logger.WithFields(map[string]interface{}{
+			"step":        "mark_event_processed",
+			"duration_ms": markDuration.Milliseconds(),
+			"processed":   processed,
+		}).Info("service request pre-validation step completed")
 		if markErr != nil {
-			logger.WithError(markErr).Warn("failed to mark event processed")
+			logger.WithFields(map[string]interface{}{
+				"step":        "mark_event_processed",
+				"duration_ms": markDuration.Milliseconds(),
+			}).WithError(markErr).Warn("service request pre-validation step failed")
 		}
 		if !processed {
-			return nil
+			pending, pendingErr := s.isGatewayRequestPending(ctx, requestID)
+			if pendingErr != nil {
+				logger.WithFields(map[string]interface{}{
+					"step": "check_gateway_request_status",
+				}).WithError(pendingErr).Warn("failed to verify duplicate service request state; skipping event")
+				return nil
+			}
+			if !pending {
+				logger.WithFields(map[string]interface{}{
+					"step": "check_gateway_request_status",
+				}).Info("service request already resolved on-chain; skipping duplicate event")
+				return nil
+			}
+
+			logger.WithFields(map[string]interface{}{
+				"step": "check_gateway_request_status",
+			}).Info("service request still pending on-chain after processed_events dedupe; continuing recovery processing")
 		}
 	}
 
-	s.storeRequestIndex(requestID, appID)
-	if storeErr := s.storeContractEvent(ctx, event, &appID, buildServiceRequestedState(parsed)); storeErr != nil {
+	storeStarted := time.Now()
+	storeCtx, cancelStore := s.withPreValidationTimeout(ctx)
+	storeErr := s.storeContractEvent(storeCtx, event, &appID, buildServiceRequestedState(parsed))
+	cancelStore()
+	storeDuration := time.Since(storeStarted)
+	logger.WithFields(map[string]interface{}{
+		"step":        "store_contract_event",
+		"duration_ms": storeDuration.Milliseconds(),
+	}).Info("service request pre-validation step completed")
+	if storeErr != nil {
 		logger.WithError(storeErr).Warn("failed to store service requested contract event")
 	}
 
-	app, err := s.loadMiniApp(ctx, appID)
+	loadStarted := time.Now()
+	loadCtx, cancelLoad := s.withPreValidationTimeout(ctx)
+	app, err := s.loadMiniApp(loadCtx, appID)
+	cancelLoad()
+	loadDuration := time.Since(loadStarted)
+	logger.WithFields(map[string]interface{}{
+		"step":        "load_miniapp",
+		"duration_ms": loadDuration.Milliseconds(),
+	}).Info("service request pre-validation step completed")
 	if err != nil {
 		logger.WithError(err).Warn("miniapp not found")
 		return nil
 	}
 	if !isAppActive(app.Status) {
-		logger.WithError(nil).Warn("miniapp disabled")
+		logger.WithField("miniapp_status", app.Status).Warn("miniapp disabled")
 		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
 		s.updateServiceRequest(ctx, serviceReq, nil, "miniapp is not active")
 		return nil
 	}
 
-	if validateErr := s.validateAppRegistry(ctx, app); validateErr != nil {
+	validateStarted := time.Now()
+	validateCtx, cancelValidate := s.withPreValidationTimeout(ctx)
+	validateErr := s.validateAppRegistry(validateCtx, app)
+	cancelValidate()
+	validateDuration := time.Since(validateStarted)
+	logger.WithFields(map[string]interface{}{
+		"step":        "validate_app_registry",
+		"duration_ms": validateDuration.Milliseconds(),
+	}).Info("service request pre-validation step completed")
+	if validateErr != nil {
 		logger.WithError(validateErr).Warn("app registry validation failed")
 		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
 		s.updateServiceRequest(ctx, serviceReq, nil, sanitizeError(validateErr.Error(), s.maxErrorLen))
@@ -94,7 +156,7 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 	}
 
 	if !permissionEnabled(manifestInfo.Permissions, serviceTypePermission(serviceType)) {
-		logger.WithError(nil).Warn("permission denied")
+		logger.WithField("permission", serviceTypePermission(serviceType)).Warn("permission denied")
 		serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
 		s.updateServiceRequest(ctx, serviceReq, nil, "service permission not granted")
 		return nil
@@ -115,8 +177,16 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 	}
 
 	serviceReq := s.createServiceRequest(ctx, app, parsed, serviceType)
+	logger.Info("service request validated")
 
-	result, execErr := s.executeService(ctx, app.DeveloperUserID, appID, requestID, serviceType, parsed.Payload)
+	execCtx := ctx
+	cancelExec := func() {}
+	if s.serviceTimeout > 0 {
+		execCtx, cancelExec = context.WithTimeout(ctx, s.serviceTimeout)
+	}
+	defer cancelExec()
+
+	result, execErr := s.executeService(execCtx, app.DeveloperUserID, appID, requestID, serviceType, parsed.Payload)
 	if execErr == nil && len(result.ResultBytes) > s.maxResult {
 		execErr = fmt.Errorf("result exceeds max size")
 	}
@@ -125,6 +195,8 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 	fulfillErr := s.fulfillRequest(ctx, parsed, result, execErr, serviceReq)
 	if fulfillErr != nil {
 		logger.WithError(fulfillErr).Warn("callback fulfillment failed")
+	} else {
+		logger.Info("service request fulfillment submitted")
 	}
 
 	if !success {
@@ -132,6 +204,66 @@ func (s *Service) handleServiceRequested(ctx context.Context, event *chain.Contr
 	}
 
 	return nil
+}
+
+func (s *Service) withPreValidationTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if s == nil || s.preValidationTimeout <= 0 {
+		return ctx, func() {}
+	}
+	return context.WithTimeout(ctx, s.preValidationTimeout)
+}
+
+func (s *Service) isGatewayRequestPending(ctx context.Context, requestID string) (bool, error) {
+	if s == nil || s.chainClient == nil || s.serviceGatewayHash == "" {
+		return false, fmt.Errorf("gateway status check unavailable")
+	}
+
+	reqNum, ok := new(big.Int).SetString(strings.TrimSpace(requestID), 10)
+	if !ok || reqNum.Sign() <= 0 {
+		return false, fmt.Errorf("invalid request_id")
+	}
+
+	checkCtx, cancel := s.withPreValidationTimeout(ctx)
+	defer cancel()
+
+	res, err := s.chainClient.InvokeFunction(
+		checkCtx,
+		"0x"+s.serviceGatewayHash,
+		"getRequest",
+		[]chain.ContractParam{chain.NewIntegerParam(reqNum)},
+	)
+	if err != nil {
+		return false, err
+	}
+	if res == nil {
+		return false, fmt.Errorf("empty getRequest result")
+	}
+	if !strings.EqualFold(strings.TrimSpace(res.State), "HALT") {
+		if strings.TrimSpace(res.Exception) == "" {
+			return false, fmt.Errorf("getRequest did not HALT")
+		}
+		return false, fmt.Errorf("getRequest fault: %s", strings.TrimSpace(res.Exception))
+	}
+	if len(res.Stack) == 0 {
+		return false, fmt.Errorf("empty getRequest stack")
+	}
+
+	items, err := chain.ParseArray(res.Stack[0])
+	if err != nil {
+		return false, err
+	}
+	if len(items) < 8 {
+		return false, fmt.Errorf("unexpected getRequest payload")
+	}
+
+	status, err := chain.ParseInteger(items[7])
+	if err != nil {
+		return false, err
+	}
+	return status.Sign() == 0, nil
 }
 
 func (s *Service) handleServiceFulfilled(ctx context.Context, event *chain.ContractEvent) error {
@@ -208,7 +340,8 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 		return err
 	}
 
-	requestKey := fmt.Sprintf("%s:%s:%s", ServiceID, req.AppID, req.RequestID)
+	requestKey := buildTxProxyRequestID(ServiceID, s.serviceGatewayHash, req.AppID, req.RequestID)
+	txProxyRequestID := requestKey
 	chainTx := &neorequestsupabase.ChainTx{
 		RequestID:       requestKey,
 		FromService:     ServiceID,
@@ -217,6 +350,7 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 		MethodName:      "fulfillRequest",
 		Params:          neorequestsupabase.MarshalParams(params),
 		Status:          "pending",
+		ChainID:         s.chainID,
 	}
 
 	if s.repo != nil {
@@ -230,13 +364,44 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 		}
 	}
 
-	resp, err := s.txProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
-		RequestID:    requestKey,
-		ContractHash: "0x" + s.serviceGatewayHash,
-		Method:       "fulfillRequest",
-		Params:       params,
-		Wait:         s.txWait,
-	})
+	invoke := func(requestID string) (*txproxytypes.InvokeResponse, error) {
+		return s.txProxy.Invoke(ctx, &txproxytypes.InvokeRequest{
+			RequestID:    requestID,
+			ContractHash: "0x" + s.serviceGatewayHash,
+			Method:       "fulfillRequest",
+			Params:       params,
+			Wait:         s.txWait,
+		})
+	}
+
+	resp, err := invoke(txProxyRequestID)
+	if err != nil && isTxProxyRequestIDConflict(err) {
+		pending, pendingErr := s.isGatewayRequestPending(ctx, req.RequestID)
+		switch {
+		case pendingErr != nil:
+			s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
+				"request_id":          req.RequestID,
+				"txproxy_request_id":  requestKey,
+				"gateway_contract":    "0x" + s.serviceGatewayHash,
+				"pending_check_error": pendingErr.Error(),
+			}).WithError(err).Warn("txproxy request_id conflict and gateway pending state check failed")
+		case !pending:
+			s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
+				"request_id":         req.RequestID,
+				"txproxy_request_id": requestKey,
+			}).Info("gateway request already resolved; treating txproxy request_id conflict as idempotent")
+			resp = &txproxytypes.InvokeResponse{RequestID: requestKey}
+			err = nil
+		default:
+			txProxyRequestID = requestKey + ":retry:" + fmt.Sprintf("%d", time.Now().UTC().UnixNano())
+			s.Logger().WithContext(ctx).WithFields(map[string]interface{}{
+				"request_id":               req.RequestID,
+				"txproxy_request_id":       requestKey,
+				"retry_txproxy_request_id": txProxyRequestID,
+			}).Warn("txproxy request_id conflict on pending gateway request; retrying with alternate request_id")
+			resp, err = invoke(txProxyRequestID)
+		}
+	}
 	if err != nil {
 		chainTx.Status = "failed"
 		chainTx.ErrorMessage = sanitizeError(err.Error(), s.maxErrorLen)
@@ -265,24 +430,50 @@ func (s *Service) fulfillRequest(ctx context.Context, req *chain.ServiceRequeste
 		s.Logger().WithContext(ctx).WithError(updateChainErr).Warn("failed to persist chain tx update")
 	}
 
-	finalStatus := "completed"
+	finalStatus := "fulfilled"
 	if !success || status == "failed" {
 		finalStatus = "failed"
 	}
 
-	completedAt := time.Now().UTC()
+	fulfilledAt := time.Now().UTC()
 	if serviceReq != nil {
 		serviceReq.Status = finalStatus
-		serviceReq.CompletedAt = &completedAt
+		serviceReq.FulfilledAt = &fulfilledAt
+		serviceReq.Success = ptrBool(success)
 		serviceReq.Result = result.AuditJSON
 		if !success {
-			serviceReq.Error = errorMsg
+			serviceReq.ErrorMessage = errorMsg
 		}
+		serviceReq.LastError = serviceReq.ErrorMessage
+		serviceReq.ChainID = s.chainID
 		if updateReqErr := s.repo.UpdateServiceRequest(ctx, serviceReq); updateReqErr != nil {
 			s.Logger().WithContext(ctx).WithError(updateReqErr).Warn("failed to finalize service request status")
 		}
 	}
 	return nil
+}
+
+func buildTxProxyRequestID(serviceID, gatewayHash, appID, requestID string) string {
+	parts := []string{strings.TrimSpace(serviceID)}
+	if normalizedGateway := normalizeContractHash(gatewayHash); normalizedGateway != "" {
+		parts = append(parts, normalizedGateway)
+	}
+	if trimmedAppID := strings.TrimSpace(appID); trimmedAppID != "" {
+		parts = append(parts, trimmedAppID)
+	}
+	parts = append(parts, strings.TrimSpace(requestID))
+	return strings.Join(parts, ":")
+}
+
+func isTxProxyRequestIDConflict(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(strings.TrimSpace(err.Error()))
+	if !strings.Contains(msg, "409 conflict") {
+		return false
+	}
+	return strings.Contains(msg, "request_id already used") || strings.Contains(msg, "\"code\":\"conflict\"")
 }
 
 func (s *Service) updateChainTx(ctx context.Context, chainTx *neorequestsupabase.ChainTx) error {
@@ -297,13 +488,16 @@ func (s *Service) updateServiceRequest(ctx context.Context, req *neorequestsupab
 		return
 	}
 	req.Status = "failed"
+	req.Success = ptrBool(false)
 	if len(result) > 0 {
 		req.Result = result
 	}
 	if errMsg != "" {
-		req.Error = sanitizeError(errMsg, s.maxErrorLen)
+		req.ErrorMessage = sanitizeError(errMsg, s.maxErrorLen)
+		req.LastError = req.ErrorMessage
 	}
-	req.CompletedAt = ptrTime(time.Now().UTC())
+	req.FulfilledAt = ptrTime(time.Now().UTC())
+	req.ChainID = s.chainID
 	if updateErr := s.repo.UpdateServiceRequest(ctx, req); updateErr != nil {
 		s.Logger().WithContext(ctx).WithError(updateErr).Warn("failed to update service request")
 	}
@@ -325,10 +519,15 @@ func (s *Service) createServiceRequest(ctx context.Context, app *neorequestsupab
 	}
 
 	req := &neorequestsupabase.ServiceRequest{
-		UserID:      app.DeveloperUserID,
-		ServiceType: serviceType,
-		Status:      "processing",
-		Payload:     neorequestsupabase.MarshalParams(payloadAudit),
+		RequestID:        parseRequestID(parsed.RequestID),
+		AppID:            parsed.AppID,
+		ServiceType:      serviceType,
+		Requester:        parsed.Requester,
+		CallbackContract: parsed.CallbackContract,
+		CallbackMethod:   parsed.CallbackMethod,
+		Status:           "pending",
+		Payload:          neorequestsupabase.MarshalParams(payloadAudit),
+		ChainID:          s.chainID,
 	}
 
 	if err := s.repo.CreateServiceRequest(ctx, req); err != nil {
@@ -426,12 +625,13 @@ func (s *Service) storeContractEvent(ctx context.Context, event *chain.ContractE
 	}
 
 	record := &neorequestsupabase.ContractEvent{
-		TxHash:       event.TxHash,
-		BlockIndex:   event.BlockIndex,
-		ContractHash: event.Contract,
-		EventName:    event.EventName,
-		AppID:        appID,
-		State:        state,
+		ChainID:         s.chainID,
+		TxHash:          event.TxHash,
+		BlockIndex:      event.BlockIndex,
+		ContractAddress: event.Contract,
+		EventName:       event.EventName,
+		AppID:           appID,
+		State:           state,
 	}
 
 	return s.repo.CreateContractEvent(ctx, record)

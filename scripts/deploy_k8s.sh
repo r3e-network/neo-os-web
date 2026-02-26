@@ -211,6 +211,54 @@ resolve_overlay_path() {
     esac
 }
 
+read_env_file_var() {
+    local file="$1"
+    local key="$2"
+    if [[ -z "$file" || ! -f "$file" ]]; then
+        return 1
+    fi
+
+    local value
+    value="$(awk -F= -v key="$key" '
+        $0 ~ /^[[:space:]]*#/ { next }
+        index($0, key "=") == 1 {
+            out = substr($0, length(key) + 2)
+            print out
+        }
+    ' "$file" | tail -n1)"
+
+    if [[ -z "$value" ]]; then
+        return 1
+    fi
+
+    # Trim optional single/double quotes used in .env files.
+    if [[ "$value" =~ ^\".*\"$ ]]; then
+        value="${value:1:${#value}-2}"
+    elif [[ "$value" =~ ^\'.*\'$ ]]; then
+        value="${value:1:${#value}-2}"
+    fi
+
+    printf '%s' "$value"
+}
+
+resolve_runtime_var() {
+    local key="$1"
+    local env_file="${2:-}"
+    local value="${!key:-}"
+
+    if [[ -n "$value" ]]; then
+        printf '%s' "$value"
+        return 0
+    fi
+
+    if value="$(read_env_file_var "$env_file" "$key")"; then
+        printf '%s' "$value"
+        return 0
+    fi
+
+    return 1
+}
+
 resolve_signing_key() {
     local pkg="$1"
     if [[ -n "$SIGNING_KEY" ]]; then
@@ -253,7 +301,7 @@ ego_signerid_from_private_key() {
 
     local signer
     signer="$(ego_signerid "$key_path" 2>/dev/null | tr -d '\r\n' || true)"
-    if [[ -n "$signer" ]]; then
+    if [[ "$signer" =~ ^[0-9a-fA-F]{64}$ ]]; then
         echo "$signer"
         return 0
     fi
@@ -265,7 +313,7 @@ ego_signerid_from_private_key() {
             signer="$(ego_signerid "$tmp_pub" 2>/dev/null | tr -d '\r\n' || true)"
         fi
         rm -f "$tmp_pub"
-        if [[ -n "$signer" ]]; then
+        if [[ "$signer" =~ ^[0-9a-fA-F]{64}$ ]]; then
             echo "$signer"
             return 0
         fi
@@ -594,18 +642,109 @@ setup_marblerun_manifest() {
     local flags=()
     local manifest_file="$PROJECT_ROOT/manifests/manifest.json"
     local tmp_manifest=""
+    local env_file="$PROJECT_ROOT/.env"
+    local supabase_url
+    local supabase_service_key
+    local globalsigner_master_seed
+    local tee_private_key
+    local secrets_master_key
+    local pool_master_key
+    local pool_encryption_key
+    local compute_master_key
+    local neofeeds_signing_key
+    local neovrf_signing_key
+
+    supabase_url="$(resolve_runtime_var SUPABASE_URL "$env_file" || true)"
+    supabase_service_key="$(resolve_runtime_var SUPABASE_SERVICE_KEY "$env_file" || true)"
+    globalsigner_master_seed="$(resolve_runtime_var GLOBALSIGNER_MASTER_SEED "$env_file" || true)"
+    tee_private_key="$(resolve_runtime_var TEE_PRIVATE_KEY "$env_file" || true)"
+    secrets_master_key="$(resolve_runtime_var SECRETS_MASTER_KEY "$env_file" || true)"
+    pool_master_key="$(resolve_runtime_var POOL_MASTER_KEY "$env_file" || true)"
+    pool_encryption_key="$(resolve_runtime_var POOL_ENCRYPTION_KEY "$env_file" || true)"
+    compute_master_key="$(resolve_runtime_var COMPUTE_MASTER_KEY "$env_file" || true)"
+    neofeeds_signing_key="$(resolve_runtime_var NEOFEEDS_SIGNING_KEY "$env_file" || true)"
+    neovrf_signing_key="$(resolve_runtime_var NEOVRF_SIGNING_KEY "$env_file" || true)"
+    if [[ -z "$supabase_url" || -z "$supabase_service_key" ]]; then
+        log_error "SUPABASE_URL and SUPABASE_SERVICE_KEY are required for MarbleRun services."
+        log_error "Export them in the shell or set them in ${env_file} before deployment."
+        return 1
+    fi
+    if [[ -z "$globalsigner_master_seed" ]]; then
+        log_error "GLOBALSIGNER_MASTER_SEED is required for deterministic GlobalSigner signatures."
+        log_error "Export it in the shell or set it in ${env_file} before deployment."
+        return 1
+    fi
+
+    if ! command -v jq &> /dev/null; then
+        log_error "jq not found; required to inject runtime SUPABASE_* values into the MarbleRun manifest."
+        return 1
+    fi
+
+    tmp_manifest="$(mktemp -t service-layer-manifest.runtime.XXXXXX.json)"
     if [[ ! "$ENVIRONMENT" =~ ^(prod|staging)$ ]]; then
         flags+=(--insecure)
-        if command -v jq &> /dev/null; then
-            tmp_manifest="$(mktemp -t service-layer-manifest.simulation.XXXXXX.json)"
-            jq --arg signerid "0000000000000000000000000000000000000000000000000000000000000000" \
-                '.Packages |= with_entries(.value.SignerID = $signerid)' \
-                "$manifest_file" > "$tmp_manifest"
-            manifest_file="$tmp_manifest"
-        else
-            log_warn "jq not found; using manifest with existing SignerIDs"
-        fi
+        jq \
+            --arg signerid "0000000000000000000000000000000000000000000000000000000000000000" \
+            --arg supabase_url "$supabase_url" \
+            --arg supabase_service_key "$supabase_service_key" \
+            --arg globalsigner_master_seed "$globalsigner_master_seed" \
+            --arg tee_private_key "$tee_private_key" \
+            --arg secrets_master_key "$secrets_master_key" \
+            --arg pool_master_key "$pool_master_key" \
+            --arg pool_encryption_key "$pool_encryption_key" \
+            --arg compute_master_key "$compute_master_key" \
+            --arg neofeeds_signing_key "$neofeeds_signing_key" \
+            --arg neovrf_signing_key "$neovrf_signing_key" \
+            '
+            .Packages |= with_entries(.value.SignerID = $signerid)
+            | .Marbles |= with_entries(
+                .value.Parameters.Env.SUPABASE_URL = $supabase_url
+                | .value.Parameters.Env.SUPABASE_SERVICE_KEY = $supabase_service_key
+                | .value.Parameters.Env |= (
+                    if has("GLOBALSIGNER_MASTER_SEED") then .GLOBALSIGNER_MASTER_SEED = $globalsigner_master_seed else . end
+                    | if $tee_private_key != "" and has("TEE_PRIVATE_KEY") then .TEE_PRIVATE_KEY = $tee_private_key else . end
+                    | if $secrets_master_key != "" and has("SECRETS_MASTER_KEY") then .SECRETS_MASTER_KEY = $secrets_master_key else . end
+                    | if $pool_master_key != "" and has("POOL_MASTER_KEY") then .POOL_MASTER_KEY = $pool_master_key else . end
+                    | if $pool_encryption_key != "" and has("POOL_ENCRYPTION_KEY") then .POOL_ENCRYPTION_KEY = $pool_encryption_key else . end
+                    | if $compute_master_key != "" and has("COMPUTE_MASTER_KEY") then .COMPUTE_MASTER_KEY = $compute_master_key else . end
+                    | if $neofeeds_signing_key != "" and has("NEOFEEDS_SIGNING_KEY") then .NEOFEEDS_SIGNING_KEY = $neofeeds_signing_key else . end
+                    | if $neovrf_signing_key != "" and has("NEOVRF_SIGNING_KEY") then .NEOVRF_SIGNING_KEY = $neovrf_signing_key else . end
+                  )
+              )
+            ' \
+            "$manifest_file" > "$tmp_manifest"
+    else
+        jq \
+            --arg supabase_url "$supabase_url" \
+            --arg supabase_service_key "$supabase_service_key" \
+            --arg globalsigner_master_seed "$globalsigner_master_seed" \
+            --arg tee_private_key "$tee_private_key" \
+            --arg secrets_master_key "$secrets_master_key" \
+            --arg pool_master_key "$pool_master_key" \
+            --arg pool_encryption_key "$pool_encryption_key" \
+            --arg compute_master_key "$compute_master_key" \
+            --arg neofeeds_signing_key "$neofeeds_signing_key" \
+            --arg neovrf_signing_key "$neovrf_signing_key" \
+            '
+            .Marbles |= with_entries(
+                .value.Parameters.Env.SUPABASE_URL = $supabase_url
+                | .value.Parameters.Env.SUPABASE_SERVICE_KEY = $supabase_service_key
+                | .value.Parameters.Env |= (
+                    if has("GLOBALSIGNER_MASTER_SEED") then .GLOBALSIGNER_MASTER_SEED = $globalsigner_master_seed else . end
+                    | if $tee_private_key != "" and has("TEE_PRIVATE_KEY") then .TEE_PRIVATE_KEY = $tee_private_key else . end
+                    | if $secrets_master_key != "" and has("SECRETS_MASTER_KEY") then .SECRETS_MASTER_KEY = $secrets_master_key else . end
+                    | if $pool_master_key != "" and has("POOL_MASTER_KEY") then .POOL_MASTER_KEY = $pool_master_key else . end
+                    | if $pool_encryption_key != "" and has("POOL_ENCRYPTION_KEY") then .POOL_ENCRYPTION_KEY = $pool_encryption_key else . end
+                    | if $compute_master_key != "" and has("COMPUTE_MASTER_KEY") then .COMPUTE_MASTER_KEY = $compute_master_key else . end
+                    | if $neofeeds_signing_key != "" and has("NEOFEEDS_SIGNING_KEY") then .NEOFEEDS_SIGNING_KEY = $neofeeds_signing_key else . end
+                    | if $neovrf_signing_key != "" and has("NEOVRF_SIGNING_KEY") then .NEOVRF_SIGNING_KEY = $neovrf_signing_key else . end
+                  )
+              )
+            ' \
+            "$manifest_file" > "$tmp_manifest"
     fi
+    manifest_file="$tmp_manifest"
+
     if ! marblerun manifest set "$manifest_file" "localhost:4433" "${flags[@]}"; then
         log_warn "Manifest set failed; attempting manifest update"
         if marblerun manifest update apply --help >/dev/null 2>&1; then
@@ -648,11 +787,19 @@ deploy_k8s() {
     fi
 
     # Apply Kubernetes manifests with image overrides to match the environment tag.
+    local sed_expr=(
+        -e "s#(^[[:space:]]*image:[[:space:]]*)service-layer/#\\1${IMAGE_PREFIX}#"
+        -e "s#(^[[:space:]]*image:[[:space:]].*):latest#\\1:${ENVIRONMENT}#"
+    )
+
+    # When deploying local images (no registry prefix), avoid forced remote pulls.
+    if [[ "$IMAGE_PREFIX" == "service-layer/" || "$FORCE_K3S_IMPORT" == "true" ]]; then
+        sed_expr+=(-e "s#(^[[:space:]]*imagePullPolicy:[[:space:]]*)Always#\\1IfNotPresent#")
+    fi
+
     log_info "Applying Kubernetes manifests from $overlay_path..."
     kubectl kustomize "$overlay_path" | \
-        sed -E \
-            -e "s#(^[[:space:]]*image:[[:space:]]*)service-layer/#\\1${IMAGE_PREFIX}#" \
-            -e "s#(^[[:space:]]*image:[[:space:]].*):latest#\\1:${ENVIRONMENT}#" | \
+        sed -E "${sed_expr[@]}" | \
         kubectl apply -f - || {
             log_error "Failed to apply Kubernetes manifests"
             exit 1

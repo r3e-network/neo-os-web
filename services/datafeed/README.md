@@ -4,7 +4,7 @@ Price oracle service for the Neo Service Layer.
 
 ## Overview
 
-The NeoFeeds service provides aggregated price feeds from multiple sources with TEE attestation. It fetches prices from multiple **HTTP sources** (Binance, Coinbase, OKX by default), aggregates them using a (weighted) median, and signs responses with the TEE-held signing key. When configured, it also anchors updates to the platform `PriceFeed` contract on Neo N3 via `txproxy` (allowlisted sign+broadcast) using the `≥0.1%` publish policy.
+The NeoFeeds service provides aggregated price feeds from multiple sources with TEE attestation. It fetches prices from multiple **HTTP sources** (Binance + OKX default, with feed-specific Coinbase/Nasdaq sources), aggregates them using a (weighted) median, and signs responses with the TEE-held signing key. When configured, it also anchors updates to the platform `PriceFeed` contract on Neo N3 via `txproxy` (allowlisted sign+broadcast) using the `≥0.1%` publish policy.
 
 Optional: if `ARBITRUM_RPC` is configured, Chainlink (Arbitrum) is enabled as an additional data source (it does not replace HTTP sources).
 
@@ -43,7 +43,7 @@ Optional: if `ARBITRUM_RPC` is configured, Chainlink (Arbitrum) is enabled as an
 
 ## Default Feeds (Configurable)
 
-The feed list is configured via YAML/JSON; the default config includes common USD feeds such as:
+The feed list is configured via YAML/JSON; the default config includes crypto, stablecoin, metals, and equities feeds such as:
 
 | Feed ID | Base | Quote | Decimals |
 |---------|------|-------|----------|
@@ -51,14 +51,22 @@ The feed list is configured via YAML/JSON; the default config includes common US
 | ETH-USD | ETH | USD | 8 |
 | NEO-USD | NEO | USD | 8 |
 | GAS-USD | GAS | USD | 8 |
+| USDT-USD | USDT | USD | 8 |
+| USDC-USD | USDC | USD | 8 |
+| XAU-USD | GLD (ETF proxy) | USD | 8 |
+| XAG-USD | SLV (ETF proxy) | USD | 8 |
+| NVDA-USD | NVDA | USD | 8 |
+| AAPL-USD | AAPL | USD | 8 |
 
 ## Data Sources
 
 | Source | Type | Default | Weight |
 |--------|------|---------|--------|
 | Binance | HTTP API | Yes | 1 |
-| Coinbase | HTTP API | Yes | 1 |
 | OKX | HTTP API | Yes | 1 |
+| Coinbase | HTTP API | Feed-specific | 1 |
+| Nasdaq API | HTTP API | Feed-specific | 1 |
+| Yahoo Finance | HTTP API | Optional | 1 |
 | Chainlink (Arbitrum) | On-chain | Optional | 1 |
 
 ## Request/Response Types
@@ -102,7 +110,7 @@ publish_policy:
   hysteresis_bps: 8
   min_interval: 3s
   max_per_minute: 30
-default_sources: [binance, coinbase, okx]
+default_sources: [binance, okx]
 feeds:
   - id: "BTC-USD"
     decimals: 8
@@ -138,6 +146,11 @@ sources:
 | Variable | Description |
 |----------|-------------|
 | `ARBITRUM_RPC` | Arbitrum RPC URL for Chainlink |
+| `NEOFEEDS_UPDATE_INTERVAL` | On-chain push worker interval (Go duration, e.g. `1s`) |
+| `NEOFEEDS_PUBLISH_THRESHOLD_BPS` | Publish trigger threshold in bps (default `10`) |
+| `NEOFEEDS_PUBLISH_HYSTERESIS_BPS` | Optional secondary bps setting for compatibility |
+| `NEOFEEDS_PUBLISH_MIN_INTERVAL` | Minimum time between publishes per symbol |
+| `NEOFEEDS_PUBLISH_MAX_PER_MINUTE` | Max publish operations per symbol per minute |
 
 ## Aggregation Algorithm
 

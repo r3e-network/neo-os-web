@@ -5,22 +5,21 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"hash/fnv"
 	"math/big"
 	"sort"
 	"strings"
 	"time"
 )
 
-type pendingPublish struct {
-	startedAt time.Time
-}
-
 type pricePublishState struct {
 	lastRoundID        int64
 	lastPublishedPrice int64
+	lastPublishedTS    uint64
 	lastPublishedAt    time.Time
+	lastEvaluatedAt    time.Time
+	nextEvaluationAt   time.Time
 
-	pending      *pendingPublish
 	publishTimes []time.Time
 }
 
@@ -81,6 +80,9 @@ func (s *Service) hydratePriceFeedState(ctx context.Context) error {
 		if !lastAt.IsZero() {
 			state.lastPublishedAt = lastAt
 		}
+		if rec != nil && rec.Timestamp > 0 {
+			state.lastPublishedTS = rec.Timestamp
+		}
 		s.publishMu.Unlock()
 	}
 
@@ -111,6 +113,14 @@ func (s *Service) pushPricesToPriceFeed(ctx context.Context) {
 			continue
 		}
 
+		evaluateInterval := feeds[i].UpdateInterval
+		if evaluateInterval <= 0 {
+			evaluateInterval = s.updateInterval
+		}
+		if !s.markFeedEvaluated(symbol, evaluateInterval, time.Now()) {
+			continue
+		}
+
 		price, err := s.GetPrice(ctx, symbol)
 		if err != nil {
 			continue
@@ -129,16 +139,59 @@ func (s *Service) pushPricesToPriceFeed(ctx context.Context) {
 	}
 }
 
+func (s *Service) markFeedEvaluated(symbol string, minInterval time.Duration, now time.Time) bool {
+	if s == nil {
+		return false
+	}
+	if minInterval <= 0 {
+		return true
+	}
+
+	s.publishMu.Lock()
+	defer s.publishMu.Unlock()
+
+	state := s.publishState[symbol]
+	if state == nil {
+		state = &pricePublishState{}
+		s.publishState[symbol] = state
+	}
+
+	// Spread symbols with the same interval across time windows so source calls
+	// do not burst all at once (especially important for rate-limited APIs).
+	if state.nextEvaluationAt.IsZero() {
+		next := now.Truncate(minInterval).Add(stableIntervalOffset(symbol, minInterval))
+		if next.Before(now) {
+			next = next.Add(minInterval)
+		}
+		state.nextEvaluationAt = next
+	}
+
+	if now.Before(state.nextEvaluationAt) {
+		return false
+	}
+	state.lastEvaluatedAt = now
+
+	for !state.nextEvaluationAt.After(now) {
+		state.nextEvaluationAt = state.nextEvaluationAt.Add(minInterval)
+	}
+	return true
+}
+
+func stableIntervalOffset(symbol string, interval time.Duration) time.Duration {
+	if interval <= 0 {
+		return 0
+	}
+
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(strings.ToUpper(strings.TrimSpace(symbol))))
+	return time.Duration(int64(h.Sum32()) % int64(interval))
+}
+
 func (s *Service) tryPublishPrice(ctx context.Context, symbol string, newPrice int64, timestamp uint64, sourceSetID *big.Int) {
 	now := time.Now()
 	thresholdBps := int64(s.publishPolicy.ThresholdBps)
-	hysteresisBps := int64(s.publishPolicy.HysteresisBps)
-
 	if thresholdBps <= 0 {
 		thresholdBps = 10
-	}
-	if hysteresisBps <= 0 {
-		hysteresisBps = 8
 	}
 
 	minInterval := s.publishPolicy.MinInterval
@@ -150,12 +203,16 @@ func (s *Service) tryPublishPrice(ctx context.Context, symbol string, newPrice i
 	if maxPerMinute <= 0 {
 		maxPerMinute = 30
 	}
+	heartbeatInterval := s.publishPolicy.HeartbeatInterval
+	if heartbeatInterval < 0 {
+		heartbeatInterval = 0
+	}
 
 	var (
 		lastRoundID int64
 		lastPrice   int64
 		lastAt      time.Time
-		confirm     bool
+		lastTS      uint64
 		nextRoundID int64
 	)
 
@@ -182,40 +239,31 @@ func (s *Service) tryPublishPrice(ctx context.Context, symbol string, newPrice i
 	lastRoundID = state.lastRoundID
 	lastPrice = state.lastPublishedPrice
 	lastAt = state.lastPublishedAt
+	lastTS = state.lastPublishedTS
 
 	change := changeBps(lastPrice, newPrice)
-
-	// Two-step publish confirmation:
-	// - first observation must cross threshold (0.1% default)
-	// - second observation must stay beyond hysteresis (0.08% default)
-	if state.pending == nil {
-		if change < thresholdBps {
-			s.publishMu.Unlock()
-			return
+	forceByHeartbeat := false
+	if change < thresholdBps {
+		// Optional heartbeat path: publish even below threshold when source data
+		// has a newer timestamp and the symbol has been idle long enough.
+		if heartbeatInterval > 0 &&
+			!lastAt.IsZero() &&
+			now.Sub(lastAt) >= heartbeatInterval &&
+			timestamp > lastTS {
+			forceByHeartbeat = true
 		}
-		state.pending = &pendingPublish{startedAt: now}
+	}
+	if change < thresholdBps && !forceByHeartbeat {
 		s.publishMu.Unlock()
 		return
 	}
 
-	if change < hysteresisBps {
-		state.pending = nil
-		s.publishMu.Unlock()
-		return
-	}
-
-	// Confirm publish.
-	state.pending = nil
-	confirm = true
+	// Publish immediately once change crosses the configured threshold.
 	nextRoundID = lastRoundID + 1
 	if nextRoundID <= 0 {
 		nextRoundID = 1
 	}
 	s.publishMu.Unlock()
-
-	if !confirm {
-		return
-	}
 
 	priceBig := big.NewInt(newPrice)
 	roundBig := big.NewInt(nextRoundID)
@@ -258,6 +306,7 @@ func (s *Service) tryPublishPrice(ctx context.Context, symbol string, newPrice i
 	}
 	state.lastRoundID = roundBig.Int64()
 	state.lastPublishedPrice = newPrice
+	state.lastPublishedTS = timestamp
 	state.lastPublishedAt = time.Now()
 	state.publishTimes = append(state.publishTimes, time.Now())
 	s.publishMu.Unlock()
@@ -348,10 +397,11 @@ func (s *Service) publishPolicySummary() map[string]any {
 		return map[string]any{}
 	}
 	return map[string]any{
-		"threshold_bps":    s.publishPolicy.ThresholdBps,
-		"hysteresis_bps":   s.publishPolicy.HysteresisBps,
-		"min_interval":     s.publishPolicy.MinInterval.String(),
-		"max_per_minute":   s.publishPolicy.MaxPerMinute,
-		"attestation_hash": fmt.Sprintf("%x", s.attestationHash),
+		"threshold_bps":      s.publishPolicy.ThresholdBps,
+		"hysteresis_bps":     s.publishPolicy.HysteresisBps,
+		"min_interval":       s.publishPolicy.MinInterval.String(),
+		"max_per_minute":     s.publishPolicy.MaxPerMinute,
+		"heartbeat_interval": s.publishPolicy.HeartbeatInterval.String(),
+		"attestation_hash":   fmt.Sprintf("%x", s.attestationHash),
 	}
 }

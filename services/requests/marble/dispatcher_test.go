@@ -2,6 +2,7 @@ package neorequests
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -360,5 +361,45 @@ func TestServiceTypePermission(t *testing.T) {
 		if got := serviceTypePermission(tc.input); got != tc.want {
 			t.Errorf("serviceTypePermission(%q) = %q, want %q", tc.input, got, tc.want)
 		}
+	}
+}
+
+func TestBuildTxProxyRequestID(t *testing.T) {
+	t.Parallel()
+
+	got := buildTxProxyRequestID(
+		"neorequests",
+		"0xd2a4cff31913016155e38e474a2c06d08be276cf",
+		"miniapp-lottery",
+		"105",
+	)
+
+	want := "neorequests:d2a4cff31913016155e38e474a2c06d08be276cf:miniapp-lottery:105"
+	if got != want {
+		t.Fatalf("buildTxProxyRequestID() = %q, want %q", got, want)
+	}
+}
+
+func TestBuildTxProxyRequestIDWithoutGateway(t *testing.T) {
+	t.Parallel()
+
+	got := buildTxProxyRequestID("neorequests", "", "miniapp-lottery", "105")
+	want := "neorequests:miniapp-lottery:105"
+	if got != want {
+		t.Fatalf("buildTxProxyRequestID() = %q, want %q", got, want)
+	}
+}
+
+func TestIsTxProxyRequestIDConflict(t *testing.T) {
+	t.Parallel()
+
+	if !isTxProxyRequestIDConflict(errors.New(`request failed: 409 Conflict - {"code":"CONFLICT","message":"request_id already used"}`)) {
+		t.Fatal("expected conflict error to be detected")
+	}
+	if isTxProxyRequestIDConflict(errors.New(`request failed: 500 Internal Server Error`)) {
+		t.Fatal("did not expect non-conflict error to match")
+	}
+	if isTxProxyRequestIDConflict(nil) {
+		t.Fatal("nil error should not match")
 	}
 }

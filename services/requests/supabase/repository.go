@@ -216,8 +216,14 @@ func (r *Repository) CreateServiceRequest(ctx context.Context, req *ServiceReque
 	if req == nil {
 		return fmt.Errorf("service request cannot be nil")
 	}
-	if req.UserID == "" {
-		return fmt.Errorf("user_id cannot be empty")
+	if req.RequestID == nil {
+		return fmt.Errorf("request_id cannot be empty")
+	}
+	if req.AppID == "" {
+		return fmt.Errorf("app_id cannot be empty")
+	}
+	if req.Requester == "" {
+		return fmt.Errorf("requester cannot be empty")
 	}
 	if req.ServiceType == "" {
 		return fmt.Errorf("service_type cannot be empty")
@@ -245,6 +251,9 @@ func (r *Repository) UpdateServiceRequest(ctx context.Context, req *ServiceReque
 func (r *Repository) CreateChainTx(ctx context.Context, tx *ChainTx) error {
 	if tx == nil {
 		return fmt.Errorf("chain tx cannot be nil")
+	}
+	if tx.ChainID == "" {
+		return fmt.Errorf("chain_id cannot be empty")
 	}
 	if tx.RequestID == "" {
 		return fmt.Errorf("request_id cannot be empty")
@@ -279,7 +288,7 @@ func (r *Repository) CreateContractEvent(ctx context.Context, event *ContractEve
 	if event == nil {
 		return fmt.Errorf("contract event cannot be nil")
 	}
-	if event.TxHash == "" || event.ContractHash == "" || event.EventName == "" {
+	if event.ChainID == "" || event.TxHash == "" || event.ContractAddress == "" || event.EventName == "" {
 		return fmt.Errorf("contract event missing required fields")
 	}
 	return database.GenericCreate(r.base, ctx, contractEventsTable, event, nil)

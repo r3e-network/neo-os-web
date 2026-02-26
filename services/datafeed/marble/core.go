@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -232,10 +233,17 @@ func (s *Service) fetchAndCachePrice(ctx context.Context, normalizedPair, origin
 			Sources:   response.Sources,
 			Signature: response.Signature,
 		}); err != nil {
-			s.Logger().WithContext(ctx).WithError(err).WithFields(map[string]interface{}{
+			fields := map[string]interface{}{
 				"feed_id": feedID,
 				"pair":    originalPair,
-			}).Warn("failed to persist price feed")
+			}
+			if isDuplicatePriceFeedError(err) {
+				// feed_id is unique in price_feeds, so repeated snapshots are
+				// expected to collide. Treat duplicates as idempotent.
+				s.Logger().WithContext(ctx).WithError(err).WithFields(fields).Debug("price feed already exists; skipping create")
+			} else {
+				s.Logger().WithContext(ctx).WithError(err).WithFields(fields).Warn("failed to persist price feed")
+			}
 		}
 	}
 
@@ -258,6 +266,15 @@ func (s *Service) evictOldestCacheEntryLocked() {
 	if oldestKey != "" {
 		delete(s.priceCache, oldestKey)
 	}
+}
+
+func isDuplicatePriceFeedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "duplicate") && strings.Contains(msg, "23505")
 }
 
 // findFeedByPair finds a feed config by pair or feed ID.
@@ -302,6 +319,10 @@ func (s *Service) getSourcesForFeed(feed *FeedConfig) []*SourceConfig {
 
 // fetchPriceFromSource fetches price from a single source.
 func (s *Service) fetchPriceFromSource(ctx context.Context, pair string, feed *FeedConfig, src *SourceConfig) (float64, error) {
+	if src != nil && strings.EqualFold(strings.TrimSpace(src.ID), "yahoo") && feed != nil {
+		return s.fetchYahooPrice(ctx, pair, feed, src)
+	}
+
 	url := formatSourceURLNew(src.URL, pair, feed, src)
 
 	timeout := src.Timeout
@@ -356,7 +377,222 @@ func (s *Service) fetchPriceFromSource(ctx context.Context, pair string, feed *F
 		return 0, fmt.Errorf("price not found in response")
 	}
 
-	return result.Float(), nil
+	price, err := parsePriceResult(result)
+	if err != nil {
+		return 0, err
+	}
+	return price, nil
+}
+
+func (s *Service) fetchYahooPrice(ctx context.Context, pair string, feed *FeedConfig, src *SourceConfig) (float64, error) {
+	symbol := yahooSymbolForFeed(pair, feed, src)
+	if symbol == "" {
+		return 0, fmt.Errorf("yahoo symbol not resolved")
+	}
+
+	prices, err := s.getYahooQuoteMap(ctx, src)
+	if err != nil {
+		return 0, err
+	}
+
+	price, ok := prices[symbol]
+	if !ok || price <= 0 {
+		return 0, fmt.Errorf("price not found in yahoo response for %s", symbol)
+	}
+
+	return price, nil
+}
+
+func (s *Service) getYahooQuoteMap(ctx context.Context, src *SourceConfig) (map[string]float64, error) {
+	s.yahooCacheMu.Lock()
+	defer s.yahooCacheMu.Unlock()
+
+	now := time.Now()
+	if len(s.yahooQuoteCache) > 0 && now.Sub(s.yahooCacheFetchedAt) < s.yahooCacheTTL {
+		return clonePriceMap(s.yahooQuoteCache), nil
+	}
+	if len(s.yahooQuoteCache) == 0 && !s.yahooRetryAfter.IsZero() && now.Before(s.yahooRetryAfter) {
+		return nil, fmt.Errorf("yahoo refresh backoff active")
+	}
+
+	prices, err := s.refreshYahooQuoteMap(ctx, src)
+	if err != nil {
+		s.yahooRetryAfter = now.Add(s.yahooCacheTTL)
+		// Prefer stale cache over hard failure when upstream temporarily limits us.
+		if len(s.yahooQuoteCache) > 0 {
+			return clonePriceMap(s.yahooQuoteCache), nil
+		}
+		return nil, err
+	}
+
+	s.yahooQuoteCache = prices
+	s.yahooCacheFetchedAt = now
+	s.yahooRetryAfter = time.Time{}
+	return clonePriceMap(s.yahooQuoteCache), nil
+}
+
+func (s *Service) refreshYahooQuoteMap(ctx context.Context, src *SourceConfig) (map[string]float64, error) {
+	symbols := s.yahooQuoteSymbols()
+	if len(symbols) == 0 {
+		return nil, fmt.Errorf("no yahoo symbols configured")
+	}
+
+	url := buildYahooBatchURL(src, symbols)
+	timeout := 10 * time.Second
+	if src != nil && src.Timeout > 0 {
+		timeout = src.Timeout
+	}
+
+	requestCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, url, http.NoBody)
+	if err != nil {
+		return nil, err
+	}
+	if src != nil {
+		for k, v := range src.Headers {
+			req.Header.Set(k, resolveEnvVar(v))
+		}
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
+		if readErr != nil {
+			return nil, readErr
+		}
+		msg := strings.TrimSpace(string(respBody))
+		if truncated {
+			msg += "...(truncated)"
+		}
+		return nil, fmt.Errorf("price source returned HTTP %d: %s", resp.StatusCode, msg)
+	}
+
+	body, err := httputil.ReadAllStrict(resp.Body, 1<<20)
+	if err != nil {
+		return nil, err
+	}
+
+	items := gjson.GetBytes(body, "quoteResponse.result").Array()
+	if len(items) == 0 {
+		return nil, fmt.Errorf("price not found in response")
+	}
+
+	prices := make(map[string]float64, len(items))
+	for _, item := range items {
+		symbol := strings.ToUpper(strings.TrimSpace(item.Get("symbol").String()))
+		price := item.Get("regularMarketPrice").Float()
+		if symbol == "" || price <= 0 {
+			continue
+		}
+		prices[symbol] = price
+	}
+	if len(prices) == 0 {
+		return nil, fmt.Errorf("price not found in response")
+	}
+
+	return prices, nil
+}
+
+func (s *Service) yahooQuoteSymbols() []string {
+	feeds := s.GetEnabledFeeds()
+	if len(feeds) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(feeds))
+	symbols := make([]string, 0, len(feeds))
+	for i := range feeds {
+		feed := feeds[i]
+		if !feedUsesSource(feed, "yahoo") {
+			continue
+		}
+
+		symbol := strings.ToUpper(strings.TrimSpace(feed.Base))
+		if symbol == "" {
+			base, _ := parseBaseQuoteFromPair(feed.ID)
+			symbol = strings.ToUpper(strings.TrimSpace(base))
+		}
+		if symbol == "" {
+			continue
+		}
+		if _, ok := seen[symbol]; ok {
+			continue
+		}
+		seen[symbol] = struct{}{}
+		symbols = append(symbols, symbol)
+	}
+	sort.Strings(symbols)
+	return symbols
+}
+
+func feedUsesSource(feed FeedConfig, sourceID string) bool {
+	for _, src := range feed.Sources {
+		if strings.EqualFold(strings.TrimSpace(src), strings.TrimSpace(sourceID)) {
+			return true
+		}
+	}
+	return false
+}
+
+func yahooSymbolForFeed(pair string, feed *FeedConfig, src *SourceConfig) string {
+	symbol := ""
+	if feed != nil {
+		symbol = strings.TrimSpace(feed.Base)
+	}
+	if symbol == "" {
+		base, _ := parseBaseQuoteFromPair(pair)
+		symbol = base
+	}
+	if src != nil {
+		if override := strings.TrimSpace(src.BaseOverride); override != "" {
+			symbol = override
+		}
+	}
+	return strings.ToUpper(strings.TrimSpace(symbol))
+}
+
+func buildYahooBatchURL(src *SourceConfig, symbols []string) string {
+	joined := strings.Join(symbols, ",")
+	escaped := url.QueryEscape(joined)
+
+	template := ""
+	if src != nil {
+		template = strings.TrimSpace(src.URL)
+	}
+	if template == "" {
+		template = "https://query1.finance.yahoo.com/v7/finance/quote?symbols={symbols}"
+	}
+
+	switch {
+	case strings.Contains(template, "{symbols}"):
+		return strings.ReplaceAll(template, "{symbols}", escaped)
+	case strings.Contains(template, "{base}"):
+		url := strings.ReplaceAll(template, "{base}", escaped)
+		url = strings.ReplaceAll(url, "{quote}", "")
+		url = strings.ReplaceAll(url, "{pair}", escaped)
+		return url
+	default:
+		sep := "?"
+		if strings.Contains(template, "?") {
+			sep = "&"
+		}
+		return template + sep + "symbols=" + escaped
+	}
+}
+
+func clonePriceMap(in map[string]float64) map[string]float64 {
+	out := make(map[string]float64, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }
 
 func (s *Service) fetchPrice(ctx context.Context, pair string, source PriceSource) (float64, error) {
@@ -398,7 +634,11 @@ func (s *Service) fetchPrice(ctx context.Context, pair string, source PriceSourc
 		return 0, fmt.Errorf("price not found in response")
 	}
 
-	return result.Float(), nil
+	price, err := parsePriceResult(result)
+	if err != nil {
+		return 0, err
+	}
+	return price, nil
 }
 
 func (s *Service) calculateMedian(prices []float64) float64 {
@@ -530,6 +770,55 @@ func formatJSONPath(tmpl string, feed *FeedConfig, src *SourceConfig) string {
 		path = strings.ReplaceAll(path, "{quote}", quote)
 	}
 	return path
+}
+
+func parsePriceResult(result gjson.Result) (float64, error) {
+	switch result.Type {
+	case gjson.Number:
+		price := result.Float()
+		if price <= 0 || math.IsNaN(price) || math.IsInf(price, 0) {
+			return 0, fmt.Errorf("price not found in response")
+		}
+		return price, nil
+	default:
+		raw := strings.TrimSpace(result.String())
+		if raw == "" {
+			return 0, fmt.Errorf("price not found in response")
+		}
+
+		normalized := normalizeNumericString(raw)
+		if normalized == "" {
+			return 0, fmt.Errorf("price not found in response")
+		}
+
+		price, err := strconv.ParseFloat(normalized, 64)
+		if err != nil || price <= 0 || math.IsNaN(price) || math.IsInf(price, 0) {
+			return 0, fmt.Errorf("price not found in response")
+		}
+		return price, nil
+	}
+}
+
+func normalizeNumericString(raw string) string {
+	var b strings.Builder
+	b.Grow(len(raw))
+
+	dotSeen := false
+	signWritten := false
+	for i, r := range raw {
+		switch {
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == '.' && !dotSeen:
+			b.WriteRune(r)
+			dotSeen = true
+		case (r == '-' || r == '+') && !signWritten && i == 0:
+			b.WriteRune(r)
+			signWritten = true
+		}
+	}
+
+	return strings.TrimSpace(b.String())
 }
 
 func (s *Service) acquireSourceSlot(ctx context.Context) bool {

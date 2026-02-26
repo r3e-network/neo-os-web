@@ -110,13 +110,30 @@ func TestHandleRandomDuplicateRequestID(t *testing.T) {
 	if rr1.Code != http.StatusOK {
 		t.Fatalf("first request: status = %d, want %d", rr1.Code, http.StatusOK)
 	}
+	var resp1 RandomResponse
+	if err := json.NewDecoder(rr1.Body).Decode(&resp1); err != nil {
+		t.Fatalf("decode first response: %v", err)
+	}
 
-	// Second request with same ID should be rejected.
+	// Second request with same ID should return the same deterministic result.
 	req2 := httptest.NewRequest("POST", "/random", strings.NewReader(`{"request_id":"dup-id"}`))
 	req2.Header.Set("X-User-ID", "user1")
 	rr2 := httptest.NewRecorder()
 	svc.handleRandom(rr2, req2)
-	if rr2.Code != http.StatusConflict {
-		t.Errorf("duplicate request: status = %d, want %d", rr2.Code, http.StatusConflict)
+	if rr2.Code != http.StatusOK {
+		t.Errorf("duplicate request: status = %d, want %d", rr2.Code, http.StatusOK)
+	}
+	var resp2 RandomResponse
+	if err := json.NewDecoder(rr2.Body).Decode(&resp2); err != nil {
+		t.Fatalf("decode second response: %v", err)
+	}
+	if resp2.RequestID != resp1.RequestID {
+		t.Errorf("duplicate request_id = %q, want %q", resp2.RequestID, resp1.RequestID)
+	}
+	if resp2.Randomness != resp1.Randomness {
+		t.Errorf("duplicate randomness mismatch: got %q, want %q", resp2.Randomness, resp1.Randomness)
+	}
+	if resp2.Signature != resp1.Signature {
+		t.Errorf("duplicate signature mismatch: got %q, want %q", resp2.Signature, resp1.Signature)
 	}
 }

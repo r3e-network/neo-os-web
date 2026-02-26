@@ -189,3 +189,77 @@ func TestHandleInvokeNoChainClient(t *testing.T) {
 		t.Fatalf("expected 503, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestNewMergesPlatformAllowlistHashes(t *testing.T) {
+	t.Setenv("CONTRACT_PRICEFEED_HASH", "0x1111111111111111111111111111111111111111")
+	t.Setenv("CONTRACT_RANDOMNESSLOG_HASH", "0x2222222222222222222222222222222222222222")
+	t.Setenv("CONTRACT_AUTOMATIONANCHOR_HASH", "0x3333333333333333333333333333333333333333")
+	t.Setenv("CONTRACT_SERVICEGATEWAY_HASH", "0x4444444444444444444444444444444444444444")
+	t.Setenv("CONTRACT_PAYMENTHUB_HASH", "0x5555555555555555555555555555555555555555")
+	t.Setenv("CONTRACT_GOVERNANCE_HASH", "0x6666666666666666666666666666666666666666")
+	t.Setenv("CONTRACT_GAS_HASH", "0x7777777777777777777777777777777777777777")
+
+	m, err := marble.New(marble.Config{MarbleType: ServiceID})
+	if err != nil {
+		t.Fatalf("marble.New: %v", err)
+	}
+
+	allowlist, err := ParseAllowlist(`{"contracts":{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa":["foo"]}}`)
+	if err != nil {
+		t.Fatalf("ParseAllowlist: %v", err)
+	}
+
+	svc, err := New(Config{
+		Marble:    m,
+		Allowlist: allowlist,
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	if !svc.allowlist.Allows("0x1111111111111111111111111111111111111111", "update") {
+		t.Fatal("expected pricefeed update to be allowlisted")
+	}
+	if !svc.allowlist.Allows("0x2222222222222222222222222222222222222222", "record") {
+		t.Fatal("expected randomnesslog record to be allowlisted")
+	}
+	if !svc.allowlist.Allows("0x3333333333333333333333333333333333333333", "markExecuted") {
+		t.Fatal("expected automation markExecuted to be allowlisted")
+	}
+	if !svc.allowlist.Allows("0x4444444444444444444444444444444444444444", "fulfillRequest") {
+		t.Fatal("expected service gateway fulfillRequest to be allowlisted")
+	}
+	if !svc.allowlist.Allows("0x5555555555555555555555555555555555555555", "pay") {
+		t.Fatal("expected payment hub pay to be allowlisted")
+	}
+	if !svc.allowlist.Allows("0x6666666666666666666666666666666666666666", "stake") {
+		t.Fatal("expected governance stake to be allowlisted")
+	}
+	if !svc.allowlist.Allows("0x7777777777777777777777777777777777777777", "transfer") {
+		t.Fatal("expected GAS transfer to be allowlisted")
+	}
+	if !svc.allowlist.Allows("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "foo") {
+		t.Fatal("expected existing allowlist entry to be preserved")
+	}
+}
+
+func TestNewEmptyAllowlistStillAllowsPriceFeedUpdate(t *testing.T) {
+	t.Setenv("CONTRACT_PRICEFEED_HASH", "0x9999999999999999999999999999999999999999")
+
+	m, err := marble.New(marble.Config{MarbleType: ServiceID})
+	if err != nil {
+		t.Fatalf("marble.New: %v", err)
+	}
+
+	svc, err := New(Config{
+		Marble:       m,
+		AllowlistRaw: "",
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	if !svc.allowlist.Allows("0x9999999999999999999999999999999999999999", "update") {
+		t.Fatal("expected pricefeed update to be allowlisted even when TXPROXY_ALLOWLIST is empty")
+	}
+}

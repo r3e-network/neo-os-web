@@ -23,6 +23,23 @@ import (
 
 const defaultRPC = "https://testnet1.neo.coz.io:443"
 
+const (
+	requestStatusPending   = 0
+	requestStatusFulfilled = 1
+	requestStatusFailed    = 2
+)
+
+type gatewayRequest struct {
+	RequestID   string
+	AppID       string
+	ServiceType string
+	Status      int64
+	Success     bool
+	Result      []byte
+	Error       string
+	FulfilledAt *big.Int
+}
+
 func main() {
 	wif := strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
 	if wif == "" {
@@ -30,20 +47,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	miniappHashRaw := resolveMiniAppHash()
-	if miniappHashRaw == "" {
-		fmt.Println("MiniApp contract hash not set (MINIAPP_CONSUMER_HASH or CONTRACT_MINIAPP_CONSUMER_HASH)")
+	gatewayHashRaw := strings.TrimSpace(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
+	if gatewayHashRaw == "" {
+		fmt.Println("CONTRACT_SERVICEGATEWAY_HASH environment variable not set")
 		os.Exit(1)
+	}
+
+	callbackContractRaw := resolveCallbackContractHash()
+	if callbackContractRaw == "" {
+		fmt.Println("MiniApp callback contract hash not set (MINIAPP_CALLBACK_CONTRACT_HASH or MINIAPP_CONSUMER_HASH)")
+		os.Exit(1)
+	}
+
+	callbackMethod := strings.TrimSpace(os.Getenv("MINIAPP_CALLBACK_METHOD"))
+	if callbackMethod == "" {
+		callbackMethod = "onServiceCallback"
 	}
 
 	appID := strings.TrimSpace(os.Getenv("MINIAPP_APP_ID"))
 	if appID == "" {
-		appID = "com.test.consumer"
+		appID = "miniapp-lottery"
 	}
 
 	serviceType := strings.ToLower(strings.TrimSpace(os.Getenv("MINIAPP_SERVICE_TYPE")))
 	if serviceType == "" {
-		serviceType = "rng"
+		serviceType = "oracle"
 	}
 
 	payload := strings.TrimSpace(os.Getenv("MINIAPP_SERVICE_PAYLOAD"))
@@ -62,9 +90,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	miniappHash, err := parseHash160(miniappHashRaw)
+	gatewayHash, err := parseHash160(gatewayHashRaw)
 	if err != nil {
-		fmt.Printf("Invalid MiniApp contract hash: %v\n", err)
+		fmt.Printf("Invalid ServiceGateway hash: %v\n", err)
+		os.Exit(1)
+	}
+
+	callbackContract, err := parseHash160(callbackContractRaw)
+	if err != nil {
+		fmt.Printf("Invalid MiniApp callback contract hash: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -82,10 +116,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("=== MiniApp Service Request ===")
+	fmt.Println("=== MiniApp Service Request (via ServiceLayerGateway) ===")
 	fmt.Printf("RPC: %s\n", rpcURL)
 	fmt.Printf("Caller: %s\n", address.Uint160ToString(privateKey.GetScriptHash()))
-	fmt.Printf("MiniApp: 0x%s\n", miniappHash.StringLE())
+	fmt.Printf("ServiceGateway: 0x%s\n", gatewayHash.StringLE())
+	fmt.Printf("Callback Contract: 0x%s\n", callbackContract.StringLE())
+	fmt.Printf("Callback Method: %s\n", callbackMethod)
 	fmt.Printf("App ID: %s\n", appID)
 	fmt.Printf("Service Type: %s\n", serviceType)
 	fmt.Printf("Payload: %s\n", payload)
@@ -95,7 +131,7 @@ func main() {
 		payloadBytes = []byte{}
 	}
 
-	testResult, err := act.Call(miniappHash, "requestService", appID, serviceType, payloadBytes)
+	testResult, err := act.Call(gatewayHash, "requestService", appID, serviceType, payloadBytes, callbackContract, callbackMethod)
 	if err != nil {
 		fmt.Printf("Test invoke failed: %v\n", err)
 		os.Exit(1)
@@ -105,7 +141,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	txHash, vub, err := act.SendCall(miniappHash, "requestService", appID, serviceType, payloadBytes)
+	txHash, vub, err := act.SendCall(gatewayHash, "requestService", appID, serviceType, payloadBytes, callbackContract, callbackMethod)
 	if err != nil {
 		fmt.Printf("Send failed: %v\n", err)
 		os.Exit(1)
@@ -128,18 +164,23 @@ func main() {
 
 	if requestID != "" && parseEnvBool("MINIAPP_WAIT_CALLBACK") {
 		timeout := parseEnvDuration("MINIAPP_CALLBACK_TIMEOUT_SECONDS", 180*time.Second)
-		fmt.Printf("Waiting for callback (timeout: %s)...\n", timeout)
-		record, err := waitForCallback(ctx, act, miniappHash, requestID, timeout)
+		fmt.Printf("Waiting for gateway fulfillment (timeout: %s)...\n", timeout)
+		req, err := waitForGatewayFulfillment(ctx, act, gatewayHash, requestID, timeout)
 		if err != nil {
-			fmt.Printf("❌ Callback wait failed: %v\n", err)
+			fmt.Printf("❌ Fulfillment wait failed: %v\n", err)
 			os.Exit(1)
 		}
-		printCallback(record)
+		printGatewayRequest(req)
+		if req.Status == requestStatusFailed || !req.Success {
+			fmt.Println("❌ Request fulfilled with failure")
+			os.Exit(1)
+		}
 	}
 }
 
-func resolveMiniAppHash() string {
+func resolveCallbackContractHash() string {
 	for _, key := range []string{
+		"MINIAPP_CALLBACK_CONTRACT_HASH",
 		"MINIAPP_CONSUMER_HASH",
 		"MINIAPP_CONTRACT_HASH",
 		"CONTRACT_MINIAPP_CONSUMER_HASH",
@@ -163,6 +204,8 @@ func waitForAppLog(ctx context.Context, client *rpcclient.Client, txHash util.Ui
 
 	for {
 		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		case <-timeout:
 			return nil, fmt.Errorf("timeout waiting for application log")
 		case <-ticker.C:
@@ -182,125 +225,6 @@ func waitForAppLog(ctx context.Context, client *rpcclient.Client, txHash util.Ui
 	}
 }
 
-type callbackRecord struct {
-	RequestID   string
-	AppID       string
-	ServiceType string
-	Success     bool
-	Result      []byte
-	Error       string
-	Timestamp   *big.Int
-}
-
-func waitForCallback(ctx context.Context, act *actor.Actor, contract util.Uint160, requestID string, timeout time.Duration) (*callbackRecord, error) {
-	ticker := time.NewTicker(4 * time.Second)
-	defer ticker.Stop()
-	deadline := time.After(timeout)
-
-	for {
-		select {
-		case <-deadline:
-			return nil, fmt.Errorf("timeout waiting for callback")
-		case <-ticker.C:
-			record, err := fetchCallback(ctx, act, contract)
-			if err != nil {
-				continue
-			}
-			if record != nil && record.RequestID == requestID {
-				return record, nil
-			}
-		}
-	}
-}
-
-func fetchCallback(ctx context.Context, act *actor.Actor, contract util.Uint160) (*callbackRecord, error) {
-	result, err := act.Call(contract, "getLastCallback")
-	if err != nil {
-		return nil, err
-	}
-	if result.State != "HALT" || len(result.Stack) == 0 {
-		return nil, fmt.Errorf("callback call failed: %s", result.State)
-	}
-
-	items, ok := result.Stack[0].Value().([]stackitem.Item)
-	if !ok || len(items) < 7 {
-		return nil, fmt.Errorf("unexpected callback payload")
-	}
-
-	reqID, err := items[0].TryInteger()
-	if err != nil {
-		return nil, fmt.Errorf("callback request id invalid")
-	}
-	appID, err := itemToString(items[1])
-	if err != nil {
-		return nil, err
-	}
-	serviceType, err := itemToString(items[2])
-	if err != nil {
-		return nil, err
-	}
-	success, err := items[3].TryBool()
-	if err != nil {
-		return nil, fmt.Errorf("callback success invalid")
-	}
-	resultBytes, err := items[4].TryBytes()
-	if err != nil {
-		resultBytes = nil
-	}
-	errorMsg, err := itemToString(items[5])
-	if err != nil {
-		errorMsg = ""
-	}
-	timestamp, err := items[6].TryInteger()
-	if err != nil {
-		timestamp = big.NewInt(0)
-	}
-
-	return &callbackRecord{
-		RequestID:   reqID.String(),
-		AppID:       appID,
-		ServiceType: serviceType,
-		Success:     success,
-		Result:      resultBytes,
-		Error:       errorMsg,
-		Timestamp:   timestamp,
-	}, nil
-}
-
-func itemToString(item stackitem.Item) (string, error) {
-	bytes, err := item.TryBytes()
-	if err != nil {
-		return "", fmt.Errorf("callback string invalid")
-	}
-	return string(bytes), nil
-}
-
-func printCallback(record *callbackRecord) {
-	if record == nil {
-		return
-	}
-
-	resultHex := ""
-	if len(record.Result) > 0 {
-		resultHex = hex.EncodeToString(record.Result)
-	}
-
-	fmt.Println("=== Callback Received ===")
-	fmt.Printf("Request ID: %s\n", record.RequestID)
-	fmt.Printf("App ID: %s\n", record.AppID)
-	fmt.Printf("Service: %s\n", record.ServiceType)
-	fmt.Printf("Success: %t\n", record.Success)
-	if record.Error != "" {
-		fmt.Printf("Error: %s\n", record.Error)
-	}
-	if resultHex != "" {
-		fmt.Printf("Result (hex): %s\n", resultHex)
-	}
-	if record.Timestamp != nil {
-		fmt.Printf("Timestamp: %s\n", record.Timestamp.String())
-	}
-}
-
 func extractRequestID(appLog *result.ApplicationLog) string {
 	if appLog == nil {
 		return ""
@@ -311,22 +235,135 @@ func extractRequestID(appLog *result.ApplicationLog) string {
 			continue
 		}
 		for _, evt := range exec.Events {
-			if evt.Name != "ServiceRequested" {
-				continue
-			}
-			if evt.Item == nil {
+			if evt.Name != "ServiceRequested" || evt.Item == nil {
 				continue
 			}
 			items, ok := evt.Item.Value().([]stackitem.Item)
 			if !ok || len(items) == 0 {
 				continue
 			}
-			if reqID, ok := items[0].Value().(*big.Int); ok {
+			reqID, err := items[0].TryInteger()
+			if err == nil {
 				return reqID.String()
 			}
 		}
 	}
 	return ""
+}
+
+func waitForGatewayFulfillment(ctx context.Context, act *actor.Actor, gateway util.Uint160, requestID string, timeout time.Duration) (*gatewayRequest, error) {
+	reqNum, ok := new(big.Int).SetString(requestID, 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid request id: %s", requestID)
+	}
+
+	ticker := time.NewTicker(4 * time.Second)
+	defer ticker.Stop()
+	deadline := time.After(timeout)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-deadline:
+			return nil, fmt.Errorf("timeout waiting for fulfillment")
+		case <-ticker.C:
+			req, err := fetchGatewayRequest(act, gateway, reqNum)
+			if err != nil {
+				continue
+			}
+			if req == nil {
+				continue
+			}
+			if req.Status != requestStatusPending {
+				return req, nil
+			}
+		}
+	}
+}
+
+func fetchGatewayRequest(act *actor.Actor, gateway util.Uint160, requestID *big.Int) (*gatewayRequest, error) {
+	res, err := act.Call(gateway, "getRequest", requestID)
+	if err != nil {
+		return nil, err
+	}
+	if res.State != "HALT" || len(res.Stack) == 0 {
+		return nil, fmt.Errorf("getRequest failed: %s", res.State)
+	}
+
+	items, ok := res.Stack[0].Value().([]stackitem.Item)
+	if !ok || len(items) < 13 {
+		return nil, fmt.Errorf("unexpected getRequest payload")
+	}
+
+	id, err := items[0].TryInteger()
+	if err != nil {
+		return nil, fmt.Errorf("invalid request id payload")
+	}
+	appID, _ := itemToString(items[1])
+	serviceType, _ := itemToString(items[2])
+	status, err := items[7].TryInteger()
+	if err != nil {
+		return nil, fmt.Errorf("invalid request status payload")
+	}
+	fulfilledAt, _ := items[9].TryInteger()
+	success, _ := items[10].TryBool()
+	resultBytes, _ := items[11].TryBytes()
+	errMsg, _ := itemToString(items[12])
+
+	return &gatewayRequest{
+		RequestID:   id.String(),
+		AppID:       appID,
+		ServiceType: serviceType,
+		Status:      status.Int64(),
+		Success:     success,
+		Result:      resultBytes,
+		Error:       errMsg,
+		FulfilledAt: fulfilledAt,
+	}, nil
+}
+
+func itemToString(item stackitem.Item) (string, error) {
+	bytes, err := item.TryBytes()
+	if err != nil {
+		return "", fmt.Errorf("string decode failed")
+	}
+	return string(bytes), nil
+}
+
+func printGatewayRequest(req *gatewayRequest) {
+	if req == nil {
+		return
+	}
+
+	resultHex := ""
+	if len(req.Result) > 0 {
+		resultHex = hex.EncodeToString(req.Result)
+	}
+
+	status := "PENDING"
+	switch req.Status {
+	case requestStatusFulfilled:
+		status = "FULFILLED"
+	case requestStatusFailed:
+		status = "FAILED"
+	}
+
+	fmt.Println("=== Gateway Request Status ===")
+	fmt.Printf("Request ID: %s\n", req.RequestID)
+	fmt.Printf("App ID: %s\n", req.AppID)
+	fmt.Printf("Service: %s\n", req.ServiceType)
+	fmt.Printf("Status: %s\n", status)
+	fmt.Printf("Success: %t\n", req.Success)
+	if req.Error != "" {
+		fmt.Printf("Error: %s\n", req.Error)
+	}
+	if resultHex != "" {
+		fmt.Printf("Result (hex): %s\n", resultHex)
+	}
+	if req.FulfilledAt != nil {
+		fmt.Printf("Fulfilled At: %s\n", req.FulfilledAt.String())
+	}
 }
 
 func defaultPayload(serviceType string) string {
@@ -335,6 +372,8 @@ func defaultPayload(serviceType string) string {
 		return `{"url":"https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT","json_path":"price"}`
 	case "compute":
 		return `{"script":"function main(){return {ok:true,sum:input.a+input.b};}","entry_point":"main","input":{"a":2,"b":3}}`
+	case "rng":
+		return ""
 	default:
 		return ""
 	}
