@@ -26,23 +26,25 @@ patches:
               matchLabels:
                 app: neooracle
 
-  # Hardening: read-only root filesystem + writable /tmp
+  # SGX device nodes are root-owned (660). Run enclave processes as uid 0 in
+  # hardware overlays so OpenEnclave can access /dev/sgx_*.
   - target:
       kind: Deployment
     patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/securityContext/runAsNonRoot
+        value: false
+      - op: replace
+        path: /spec/template/spec/containers/0/securityContext/runAsUser
+        value: 0
       - op: add
-        path: /spec/template/spec/volumes/-
+        path: /spec/template/spec/containers/0/env/-
         value:
-          name: tmp
-          emptyDir: {}
-      - op: add
-        path: /spec/template/spec/containers/0/volumeMounts/-
-        value:
-          name: tmp
-          mountPath: /tmp
-      - op: add
-        path: /spec/template/spec/containers/0/securityContext/readOnlyRootFilesystem
-        value: true
+          name: HOME
+          value: /tmp
+
+  # Hardening is already defined in k8s/base/services-deployment.yaml
+  # (readOnlyRootFilesystem + writable /tmp). Keep overlay additive-only.
 
 # Production replicas
 replicas:

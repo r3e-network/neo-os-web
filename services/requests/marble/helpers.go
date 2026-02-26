@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -286,4 +287,20 @@ func truncateString(value string, limit int) string {
 
 func ptrTime(t time.Time) *time.Time {
 	return &t
+}
+
+func ptrBool(v bool) *bool {
+	return &v
+}
+
+func parseRequestID(raw string) *int64 {
+	id := strings.TrimSpace(raw)
+	if id == "" {
+		return nil
+	}
+	parsed, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil
+	}
+	return &parsed
 }

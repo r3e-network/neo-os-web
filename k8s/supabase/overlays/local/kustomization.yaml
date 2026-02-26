@@ -44,8 +44,38 @@ configMapGenerator:
       - ../../../../supabase/migrations/20000101000022_neoflow_schema.sql
       - ../../../../supabase/migrations/20000101000023_cleanup_legacy_request_tables.sql
       - ../../../../supabase/migrations/20000101000024_rate_limit_bump.sql
-      - ../../../../supabase/migrations/20000101000025_contract_events.sql
-      - ../../../../supabase/migrations/20000101000027_simulation_txs.sql
-      - ../../../../supabase/migrations/20000101000028_service_role_grants.sql
-      - ../../../../supabase/migrations/20000101000029_miniapps.sql
-      - ../../../../supabase/migrations/20000101000030_miniapp_usage.sql
+      - ../../../../supabase/migrations/20000101000025_miniapps.sql
+      - ../../../../supabase/migrations/20000101000026_miniapp_usage.sql
+      - ../../../../supabase/migrations/20000101000027_service_role_grants.sql
+      - ../../../../supabase/migrations/20000101000028_pool_accounts_stored_keys.sql
+      - ../../../../supabase/migrations/20000101000029_miniapp_stats_notifications.sql
+      - ../../../../supabase/migrations/20000101000030_miniapp_stats_daily.sql
+      - ../../../../supabase/migrations/20000101000031_miniapp_usage_stats_rollup.sql
+      - ../../../../supabase/migrations/20000101000032_miniapp_usage_check.sql
+      - ../../../../supabase/migrations/20000101000033_app_status_pending.sql
+      - ../../../../supabase/migrations/20000101000034_miniapp_tx_events.sql
+      - ../../../../supabase/migrations/20000101000035_miniapp_onchain_metadata.sql
+      - ../../../../supabase/migrations/20000101000036_community_system.sql
+      - ../../../../supabase/migrations/20000101000037_community_indexes.sql
+      - ../../../../supabase/migrations/20000101000038_stats_rollup_idempotency.sql
+      - ../../../../supabase/migrations/20000101000039_gas_sponsor.sql
+      - ../../../../supabase/migrations/20000101000040_gas_sponsor_atomic_quota.sql
+      - ../../../../supabase/migrations/20000101000041_gasbank_atomic_deduct.sql
+      - ../../../../supabase/migrations/20000101000042_replay_protection.sql
+      - ../../../../supabase/migrations/20000101000043_oauth_providers.sql
+      - ../../../../supabase/migrations/20000101000044_miniapp_submissions.sql
+      - ../../../../supabase/migrations/20000101000045_forum_gamification.sql
+      - ../../../../supabase/migrations/20000101000046_miniapp_content_fields.sql
+      - ../../../../supabase/migrations/20000101000047_security_definer_search_path.sql
+      - ../../../../supabase/migrations/20000101000048_missing_fk_indexes.sql
+      - ../../../../supabase/migrations/20000101000049_performance_indexes.sql
+      - ../../../../supabase/migrations/20000101000050_platform_stats_rpc.sql
+      - ../../../../supabase/migrations/20000101000051_submissions_rls_restrict.sql
+      - ../../../../supabase/migrations/20000101000052_deposit_tx_hash_unique.sql
+      - ../../../../supabase/migrations/20000101000053_miniapp_versions.sql
+      - ../../../../supabase/migrations/20000101000054_miniapp_publish_requests.sql
+      - ../../../../supabase/migrations/20000101000055_miniapp_publish_request_audit.sql
+      - ../../../../supabase/migrations/20000101000055_template_marketplace.sql
+      - ../../../../supabase/migrations/20000101000056_auth0_identities.sql
+      - ../../../../supabase/migrations/20000101000056_template_marketplace_source_type_miniapp.sql
+      - ../../../../supabase/migrations/20000101000057_runtime_schema_sync.sql

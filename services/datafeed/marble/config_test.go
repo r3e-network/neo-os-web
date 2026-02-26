@@ -4,6 +4,7 @@ package neofeeds
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -15,16 +16,114 @@ func TestDefaultConfig(t *testing.T) {
 		t.Errorf("Version = %s, want 1.0", cfg.Version)
 	}
 
-	if len(cfg.Sources) != 3 {
-		t.Errorf("len(Sources) = %d, want 3", len(cfg.Sources))
+	if len(cfg.Sources) != 7 {
+		t.Errorf("len(Sources) = %d, want 7", len(cfg.Sources))
 	}
 
-	if len(cfg.Feeds) != 20 {
-		t.Errorf("len(Feeds) = %d, want 20", len(cfg.Feeds))
+	if len(cfg.Feeds) != 32 {
+		t.Errorf("len(Feeds) = %d, want 32", len(cfg.Feeds))
 	}
 
 	if cfg.UpdateInterval != 1*time.Second {
 		t.Errorf("UpdateInterval = %v, want 1s", cfg.UpdateInterval)
+	}
+	if cfg.PublishPolicy.HeartbeatInterval != 0 {
+		t.Errorf("PublishPolicy.HeartbeatInterval = %v, want 0", cfg.PublishPolicy.HeartbeatInterval)
+	}
+}
+
+func TestDefaultConfigRequestedAssets(t *testing.T) {
+	cfg := DefaultConfig()
+
+	requiredFeedIDs := []string{
+		"NEO-USD", "GAS-USD", "USDT-USD", "USDC-USD",
+		"BTC-USD", "ETH-USD", "XRP-USD", "BNB-USD", "SOL-USD", "TRX-USD", "DOGE-USD",
+		"XAU-USD", "XAG-USD",
+		"NVDA-USD", "AAPL-USD", "GOOGL-USD", "MSFT-USD", "META-USD", "TSM-USD", "TSLA-USD", "TCEHY-USD",
+	}
+
+	for _, id := range requiredFeedIDs {
+		if cfg.GetFeed(id) == nil {
+			t.Errorf("default config missing feed %q", id)
+		}
+	}
+
+	yahoo := cfg.GetSource("yahoo")
+	if yahoo == nil {
+		t.Fatal("default config missing yahoo source")
+	}
+	if yahoo.URL == "" {
+		t.Error("yahoo source URL should not be empty")
+	}
+	stooq := cfg.GetSource("stooq")
+	if stooq == nil {
+		t.Fatal("default config missing stooq source")
+	}
+	if stooq.URL == "" {
+		t.Error("stooq source URL should not be empty")
+	}
+	nasdaqStocks := cfg.GetSource("nasdaq_stocks")
+	if nasdaqStocks == nil {
+		t.Fatal("default config missing nasdaq_stocks source")
+	}
+	if nasdaqStocks.URL == "" {
+		t.Error("nasdaq_stocks source URL should not be empty")
+	}
+	nasdaqETF := cfg.GetSource("nasdaq_etf")
+	if nasdaqETF == nil {
+		t.Fatal("default config missing nasdaq_etf source")
+	}
+	if nasdaqETF.URL == "" {
+		t.Error("nasdaq_etf source URL should not be empty")
+	}
+
+	expectedSources := map[string][]string{
+		"USDT-USD":  {"coinbase"},
+		"USDC-USD":  {"coinbase", "binance"},
+		"XAU-USD":   {"nasdaq_etf"},
+		"XAG-USD":   {"nasdaq_etf"},
+		"NVDA-USD":  {"nasdaq_stocks"},
+		"AAPL-USD":  {"nasdaq_stocks"},
+		"GOOGL-USD": {"nasdaq_stocks"},
+		"MSFT-USD":  {"nasdaq_stocks"},
+		"META-USD":  {"nasdaq_stocks"},
+		"TSM-USD":   {"nasdaq_stocks"},
+		"TSLA-USD":  {"nasdaq_stocks"},
+		"TCEHY-USD": {"nasdaq_stocks"},
+	}
+
+	for feedID, want := range expectedSources {
+		feed := cfg.GetFeed(feedID)
+		if feed == nil {
+			t.Errorf("default config missing feed %q", feedID)
+			continue
+		}
+		if !reflect.DeepEqual(feed.Sources, want) {
+			t.Errorf("feed %q sources = %v, want %v", feedID, feed.Sources, want)
+		}
+	}
+
+	expectedUpdateIntervals := map[string]time.Duration{
+		"XAU-USD":   30 * time.Second,
+		"XAG-USD":   30 * time.Second,
+		"NVDA-USD":  30 * time.Second,
+		"AAPL-USD":  30 * time.Second,
+		"GOOGL-USD": 30 * time.Second,
+		"MSFT-USD":  30 * time.Second,
+		"META-USD":  30 * time.Second,
+		"TSM-USD":   30 * time.Second,
+		"TSLA-USD":  30 * time.Second,
+		"TCEHY-USD": 30 * time.Second,
+	}
+	for feedID, want := range expectedUpdateIntervals {
+		feed := cfg.GetFeed(feedID)
+		if feed == nil {
+			t.Errorf("default config missing feed %q", feedID)
+			continue
+		}
+		if feed.UpdateInterval != want {
+			t.Errorf("feed %q update interval = %v, want %v", feedID, feed.UpdateInterval, want)
+		}
 	}
 }
 

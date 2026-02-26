@@ -69,6 +69,10 @@ type PublishPolicyConfig struct {
 	// MaxPerMinute caps publish frequency per symbol (soft cap; enforced in-process).
 	// Default: 30.
 	MaxPerMinute int `json:"max_per_minute,omitempty" yaml:"max_per_minute,omitempty"`
+	// HeartbeatInterval triggers a publish even below threshold when source
+	// data timestamp advanced and no publish happened for this duration.
+	// Default: 0 (disabled).
+	HeartbeatInterval time.Duration `json:"heartbeat_interval,omitempty" yaml:"heartbeat_interval,omitempty"`
 }
 
 // FeedsConfig is the root configuration for the neofeeds service.
@@ -194,6 +198,9 @@ func (c *FeedsConfig) Validate() error {
 	if c.PublishPolicy.MaxPerMinute <= 0 {
 		c.PublishPolicy.MaxPerMinute = 30
 	}
+	if c.PublishPolicy.HeartbeatInterval < 0 {
+		c.PublishPolicy.HeartbeatInterval = 0
+	}
 
 	return nil
 }
@@ -233,10 +240,12 @@ func (c *FeedsConfig) GetEnabledFeeds() []FeedConfig {
 // DefaultConfig returns the default configuration.
 //
 // By default this is aligned with the MiniApp platform blueprint:
-// - 3 HTTP sources (binance, coinbase, okx)
-// - 1s evaluation interval
-// - 0.10% publish threshold with 0.08% hysteresis
-// - 5s minimum publish interval per symbol
+//   - 4 HTTP sources (binance, coinbase, okx, yahoo)
+//     with default multi-source aggregation on binance/coinbase/okx
+//   - 1s evaluation interval
+//   - 0.10% publish threshold with 0.08% hysteresis
+//   - 5s minimum publish interval per symbol
+//   - heartbeat disabled by default (set if you need periodic anchors)
 //
 // Some feed IDs are also present in the optional Chainlink map (Arbitrum), but
 // Chainlink is disabled unless explicitly configured.
@@ -273,11 +282,61 @@ func DefaultConfig() *FeedsConfig {
 				PairTemplate:  "{base}-{quote}",
 				QuoteOverride: "USDT",
 			},
+			{
+				ID:       "yahoo",
+				Name:     "Yahoo Finance",
+				URL:      "https://query1.finance.yahoo.com/v7/finance/quote?symbols={base}",
+				JSONPath: "quoteResponse.result.0.regularMarketPrice",
+				Weight:   1,
+				Timeout:  5 * time.Second,
+			},
+			{
+				ID:       "stooq",
+				Name:     "Stooq",
+				URL:      "https://stooq.com/q/l/?s={base}&f=sd2t2ohlc&h&e=json",
+				JSONPath: "symbols.0.close",
+				Weight:   1,
+				Timeout:  5 * time.Second,
+			},
+			{
+				ID:       "nasdaq_stocks",
+				Name:     "Nasdaq API (Stocks)",
+				URL:      "https://api.nasdaq.com/api/quote/{base}/info?assetclass=stocks",
+				JSONPath: "data.primaryData.lastSalePrice",
+				Weight:   1,
+				Timeout:  8 * time.Second,
+				Headers: map[string]string{
+					"Accept":          "application/json, text/plain, */*",
+					"Accept-Language": "en-US,en;q=0.9",
+					"Cache-Control":   "no-cache",
+					"Origin":          "https://www.nasdaq.com",
+					"Pragma":          "no-cache",
+					"Referer":         "https://www.nasdaq.com/",
+					"User-Agent":      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+				},
+			},
+			{
+				ID:       "nasdaq_etf",
+				Name:     "Nasdaq API (ETF)",
+				URL:      "https://api.nasdaq.com/api/quote/{base}/info?assetclass=etf",
+				JSONPath: "data.primaryData.lastSalePrice",
+				Weight:   1,
+				Timeout:  8 * time.Second,
+				Headers: map[string]string{
+					"Accept":          "application/json, text/plain, */*",
+					"Accept-Language": "en-US,en;q=0.9",
+					"Cache-Control":   "no-cache",
+					"Origin":          "https://www.nasdaq.com",
+					"Pragma":          "no-cache",
+					"Referer":         "https://www.nasdaq.com/",
+					"User-Agent":      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+				},
+			},
 		},
 		Feeds: []FeedConfig{
 			// Common feeds (Chainlink optional; HTTP sources always queried).
-			{ID: "BTC-USD", Name: "Bitcoin", DataType: DataTypePrice, Pair: "BTCUSDT", Decimals: 8, Enabled: true},
-			{ID: "ETH-USD", Name: "Ethereum", DataType: DataTypePrice, Pair: "ETHUSDT", Decimals: 8, Enabled: true},
+			{ID: "BTC-USD", Name: "Bitcoin", DataType: DataTypePrice, Pair: "BTCUSDT", Decimals: 8, Sources: []string{"binance", "coinbase", "okx"}, Enabled: true},
+			{ID: "ETH-USD", Name: "Ethereum", DataType: DataTypePrice, Pair: "ETHUSDT", Decimals: 8, Sources: []string{"binance", "coinbase", "okx"}, Enabled: true},
 			{ID: "XRP-USD", Name: "Ripple", DataType: DataTypePrice, Pair: "XRPUSDT", Decimals: 8, Enabled: true},
 			{ID: "BNB-USD", Name: "BNB", DataType: DataTypePrice, Pair: "BNBUSDT", Decimals: 8, Enabled: true},
 			{ID: "SOL-USD", Name: "Solana", DataType: DataTypePrice, Pair: "SOLUSDT", Decimals: 8, Enabled: true},
@@ -291,20 +350,36 @@ func DefaultConfig() *FeedsConfig {
 			{ID: "NEO-USD", Name: "Neo", DataType: DataTypePrice, Pair: "NEOUSDT", Decimals: 8, Enabled: true},
 			{ID: "GAS-USD", Name: "Gas", DataType: DataTypePrice, Pair: "GASUSDT", Decimals: 8, Enabled: true},
 			{ID: "TRX-USD", Name: "Tron", DataType: DataTypePrice, Pair: "TRXUSDT", Decimals: 8, Enabled: true},
-			{ID: "HYPE-USD", Name: "Hyperliquid", DataType: DataTypePrice, Pair: "HYPEUSDT", Decimals: 8, Enabled: true},
-			{ID: "XMR-USD", Name: "Monero", DataType: DataTypePrice, Pair: "XMRUSDT", Decimals: 8, Enabled: true},
+			{ID: "HYPE-USD", Name: "Hyperliquid", DataType: DataTypePrice, Pair: "HYPEUSDT", Decimals: 8, Sources: []string{"okx"}, Enabled: true},
+			{ID: "XMR-USD", Name: "Monero", DataType: DataTypePrice, Pair: "XMRUSDT", Decimals: 8, Sources: []string{"binance"}, Enabled: true},
 			{ID: "ZEC-USD", Name: "Zcash", DataType: DataTypePrice, Pair: "ZECUSDT", Decimals: 8, Enabled: true},
 			{ID: "SUI-USD", Name: "Sui", DataType: DataTypePrice, Pair: "SUIUSDT", Decimals: 8, Enabled: true},
 			{ID: "BCH-USD", Name: "Bitcoin Cash", DataType: DataTypePrice, Pair: "BCHUSDT", Decimals: 8, Enabled: true},
 			{ID: "ASTR-USD", Name: "Astar", DataType: DataTypePrice, Pair: "ASTRUSDT", Decimals: 8, Enabled: true},
+			// Stablecoins (USD pegs).
+			{ID: "USDT-USD", Name: "Tether", DataType: DataTypePrice, Pair: "USDT-USD", Decimals: 8, Sources: []string{"coinbase"}, Enabled: true},
+			{ID: "USDC-USD", Name: "USD Coin", DataType: DataTypePrice, Pair: "USDC-USD", Decimals: 8, Sources: []string{"coinbase", "binance"}, Enabled: true},
+			// Metals via Nasdaq ETF proxies.
+			{ID: "XAU-USD", Name: "Gold", DataType: DataTypePrice, Base: "GLD", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_etf"}, UpdateInterval: 30 * time.Second, Enabled: true},
+			{ID: "XAG-USD", Name: "Silver", DataType: DataTypePrice, Base: "SLV", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_etf"}, UpdateInterval: 30 * time.Second, Enabled: true},
+			// Equities via Nasdaq API.
+			{ID: "NVDA-USD", Name: "NVIDIA", DataType: DataTypePrice, Base: "NVDA", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
+			{ID: "AAPL-USD", Name: "Apple", DataType: DataTypePrice, Base: "AAPL", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
+			{ID: "GOOGL-USD", Name: "Alphabet", DataType: DataTypePrice, Base: "GOOGL", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
+			{ID: "MSFT-USD", Name: "Microsoft", DataType: DataTypePrice, Base: "MSFT", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
+			{ID: "META-USD", Name: "Meta", DataType: DataTypePrice, Base: "META", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
+			{ID: "TSM-USD", Name: "TSMC", DataType: DataTypePrice, Base: "TSM", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
+			{ID: "TSLA-USD", Name: "Tesla", DataType: DataTypePrice, Base: "TSLA", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
+			{ID: "TCEHY-USD", Name: "Tencent", DataType: DataTypePrice, Base: "TCEHY", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
 		},
-		DefaultSources: []string{"binance", "coinbase", "okx"},
+		DefaultSources: []string{"binance", "okx"},
 		UpdateInterval: 1 * time.Second,
 		PublishPolicy: PublishPolicyConfig{
-			ThresholdBps:  10,
-			HysteresisBps: 8,
-			MinInterval:   5 * time.Second,
-			MaxPerMinute:  30,
+			ThresholdBps:      10,
+			HysteresisBps:     8,
+			MinInterval:       5 * time.Second,
+			MaxPerMinute:      30,
+			HeartbeatInterval: 0,
 		},
 	}
 }

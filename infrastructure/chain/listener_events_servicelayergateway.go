@@ -104,9 +104,25 @@ func ParseServiceFulfilledEvent(event *ContractEvent) (*ServiceFulfilledEvent, e
 		return nil, fmt.Errorf("parse result: %w", err)
 	}
 
-	errorMsg, err := ParseStringFromItem(event.State[3])
-	if err != nil {
-		return nil, fmt.Errorf("parse error: %w", err)
+	errorMsg := ""
+	switch event.State[3].Type {
+	case "Null":
+		// No error payload provided.
+	case "Boolean":
+		// Some gateways emit a boolean sentinel instead of an empty string.
+		flag, parseErr := ParseBoolean(event.State[3])
+		if parseErr != nil {
+			return nil, fmt.Errorf("parse error flag: %w", parseErr)
+		}
+		if flag {
+			errorMsg = "true"
+		}
+	default:
+		parsedErr, parseErr := ParseStringFromItem(event.State[3])
+		if parseErr != nil {
+			return nil, fmt.Errorf("parse error: %w", parseErr)
+		}
+		errorMsg = parsedErr
 	}
 
 	return &ServiceFulfilledEvent{

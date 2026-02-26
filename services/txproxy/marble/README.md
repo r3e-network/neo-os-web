@@ -80,6 +80,11 @@ Example (allow platform contracts):
 2. `TXPROXY_ALLOWLIST` environment variable
 3. Empty allowlist (blocks all)
 
+After loading, TxProxy merges baseline platform methods using current contract
+hash environment variables (`CONTRACT_PRICEFEED_HASH`, `CONTRACT_RANDOMNESSLOG_HASH`,
+`CONTRACT_AUTOMATIONANCHOR_HASH`, `CONTRACT_SERVICEGATEWAY_HASH`, `CONTRACT_PAYMENTHUB_HASH`,
+`CONTRACT_GOVERNANCE_HASH`) plus GAS `transfer`. This keeps policy aligned after contract rotations.
+
 ## Intent Policy Gating
 
 Request field `intent` enables stricter checks for platform user flows:
@@ -115,6 +120,10 @@ Note: the allowlist must still permit GAS `transfer` when using the `payments` i
 | `CONTRACT_PAYMENTHUB_HASH` | PaymentHub contract   | For payments intent   |
 | `CONTRACT_GAS_HASH`        | GAS contract hash     | Optional override     |
 | `CONTRACT_GOVERNANCE_HASH` | Governance contract   | For governance intent |
+| `CONTRACT_PRICEFEED_HASH` | PriceFeed contract | For `update` |
+| `CONTRACT_RANDOMNESSLOG_HASH` | RandomnessLog contract | For `record` |
+| `CONTRACT_AUTOMATIONANCHOR_HASH` | AutomationAnchor contract | For `markExecuted` |
+| `CONTRACT_SERVICEGATEWAY_HASH` | ServiceLayerGateway contract | For `fulfillRequest` |
 
 ## Security
 

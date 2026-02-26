@@ -356,6 +356,29 @@ If the callback does not arrive, verify:
 - `CONTRACT_SERVICEGATEWAY_HASH` + `NEO_RPC_URL` + `NEO_NETWORK_MAGIC` match the target network.
 - `NEOVRF_URL` / `NEOORACLE_URL` / `NEOCOMPUTE_URL` are reachable by `neorequests`.
 
+### Recover a Stuck ServiceGateway Request
+
+Use this only when a request is permanently stuck in `PENDING` and normal service
+fulfillment cannot complete it (for example after signer/key drift).
+
+```bash
+set -a; source .env; set +a
+
+# preview actions only
+go run scripts/recover_gateway_request.go --request-id 105 --dry-run
+
+# execute recovery: mark request as FAILED and restore previous updater
+go run scripts/recover_gateway_request.go --request-id 105 --error "manual recovery"
+```
+
+Safety behavior of the script:
+
+- Refuses to run unless `NEO_TESTNET_WIF` is the current `ServiceLayerGateway.admin`.
+- Captures the current updater, temporarily sets updater to admin, fulfills the
+  request as failed, then restores the original updater.
+- Verifies post-state (`status=FAILED`, `success=false`, expected error text,
+  updater restored).
+
 ## Automated Full Workflow (Testnet)
 
 Use the helper script to run **payments**, **governance**, and **service callback**
@@ -364,6 +387,19 @@ flows in one sequence.
 ```bash
 ./scripts/verify_testnet_workflows.sh --env-file .env --miniapp-hash 0x...
 ```
+
+By default, the workflow runs three pre-flight checks before sending any
+testnet transactions:
+
+- txproxy signer funding check
+- PriceFeed freshness watchdog
+- `miniapp_stats_rollup` compatibility check
+
+Optional skip flags:
+
+- `--skip-signer-funding`
+- `--skip-pricefeed-watchdog`
+- `--skip-stats-rollup-check`
 
 Required environment variables:
 

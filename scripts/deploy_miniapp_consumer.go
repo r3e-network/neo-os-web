@@ -129,6 +129,8 @@ func main() {
 		}
 		fmt.Println("✅ Gateway configured")
 	}
+
+	saveDeploymentRecord(buildDir, contractHash)
 }
 
 func loadNEF(path string) (*nef.File, error) {
@@ -267,4 +269,32 @@ func waitForDeployment(ctx context.Context, client *rpcclient.Client, txHash uti
 			return "", fmt.Errorf("deploy succeeded but contract hash not found in logs")
 		}
 	}
+}
+
+type consumerDeploymentRecord struct {
+	Name       string `json:"name"`
+	Hash       string `json:"hash"`
+	DeployedAt string `json:"deployed_at"`
+}
+
+func saveDeploymentRecord(buildDir, hash string) {
+	record := consumerDeploymentRecord{
+		Name:       contractName,
+		Hash:       strings.ToLower(strings.TrimSpace(hash)),
+		DeployedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+
+	data, err := json.MarshalIndent(record, "", "  ")
+	if err != nil {
+		fmt.Printf("Warning: failed to encode deployment record: %v\n", err)
+		return
+	}
+
+	outputPath := filepath.Join(buildDir, "miniapp_consumer_deployed_live.json")
+	if err := os.WriteFile(outputPath, data, 0644); err != nil {
+		fmt.Printf("Warning: failed to write deployment record: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Saved deployment record: %s\n", outputPath)
 }

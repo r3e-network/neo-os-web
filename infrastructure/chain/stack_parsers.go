@@ -123,6 +123,44 @@ func ParseBoolean(item StackItem) (bool, error) {
 		}
 		return value, nil
 	}
+	if item.Type == "Integer" {
+		n, err := ParseInteger(item)
+		if err != nil {
+			return false, err
+		}
+		return n.Sign() != 0, nil
+	}
+	if item.Type == "ByteString" || item.Type == "Buffer" {
+		var value string
+		if err := json.Unmarshal(item.Value, &value); err != nil {
+			return false, err
+		}
+		bytes, err := decodeStackBytes(value)
+		if err != nil {
+			return false, err
+		}
+		switch len(bytes) {
+		case 0:
+			return false, nil
+		case 1:
+			return bytes[0] != 0, nil
+		default:
+			switch strings.ToLower(strings.TrimSpace(string(bytes))) {
+			case "true", "1":
+				return true, nil
+			case "false", "0":
+				return false, nil
+			}
+			// Fallback for VM-encoded integer booleans represented as multi-byte
+			// little-endian values (for example 0x01 0x00).
+			for _, b := range bytes {
+				if b != 0 {
+					return true, nil
+				}
+			}
+			return false, nil
+		}
+	}
 	return false, fmt.Errorf("unexpected type: %s", item.Type)
 }
 

@@ -88,6 +88,13 @@ data:
   NEOREQUESTS_STATS_ROLLUP_INTERVAL: "5m"
   # Allow NeoFeeds to fetch from private/RFC1918 source URLs (default false).
   NEOFEEDS_ALLOW_PRIVATE_NETWORKS: "false"
+  # NeoFeeds on-chain publish cadence/policy overrides.
+  NEOFEEDS_UPDATE_INTERVAL: "1s"
+  NEOFEEDS_PUBLISH_THRESHOLD_BPS: "10"
+  NEOFEEDS_PUBLISH_HYSTERESIS_BPS: "8"
+  NEOFEEDS_PUBLISH_MIN_INTERVAL: "1s"
+  NEOFEEDS_PUBLISH_MAX_PER_MINUTE: "120"
+  NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL: "15m"
 
   # Simulation service defaults (dev/test only).
   SIMULATION_ENABLED: "false"

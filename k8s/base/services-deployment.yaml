@@ -179,6 +179,42 @@ spec:
               name: service-layer-config
               key: NEOFEEDS_ALLOW_PRIVATE_NETWORKS
               optional: true
+        - name: NEOFEEDS_UPDATE_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOFEEDS_UPDATE_INTERVAL
+              optional: true
+        - name: NEOFEEDS_PUBLISH_THRESHOLD_BPS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOFEEDS_PUBLISH_THRESHOLD_BPS
+              optional: true
+        - name: NEOFEEDS_PUBLISH_HYSTERESIS_BPS
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOFEEDS_PUBLISH_HYSTERESIS_BPS
+              optional: true
+        - name: NEOFEEDS_PUBLISH_MIN_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOFEEDS_PUBLISH_MIN_INTERVAL
+              optional: true
+        - name: NEOFEEDS_PUBLISH_MAX_PER_MINUTE
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOFEEDS_PUBLISH_MAX_PER_MINUTE
+              optional: true
+        - name: NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL
+              optional: true
         - name: SERVICE_TYPE
           value: "neofeeds"
         - name: GLOBALSIGNER_SERVICE_URL
@@ -1572,6 +1608,26 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: CONTRACT_GOVERNANCE_HASH
+        - name: CONTRACT_PRICEFEED_HASH
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_PRICEFEED_HASH
+        - name: CONTRACT_RANDOMNESSLOG_HASH
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_RANDOMNESSLOG_HASH
+        - name: CONTRACT_AUTOMATIONANCHOR_HASH
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_AUTOMATIONANCHOR_HASH
+        - name: CONTRACT_SERVICEGATEWAY_HASH
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: CONTRACT_SERVICEGATEWAY_HASH
         - name: TXPROXY_ALLOWLIST
           valueFrom:
             configMapKeyRef:
