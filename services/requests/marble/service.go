@@ -134,7 +134,7 @@ func resolveContractHash(cfgValue string, m *marble.Marble, envKeys ...string) s
 // resolveHTTPClient returns an HTTP client from the config, falling back to
 // the marble client or a default. It disables redirects when no explicit
 // client was provided to prevent SSRF via redirect chains.
-func resolveHTTPClient(cfg Config) *http.Client {
+func resolveHTTPClient(cfg *Config) *http.Client {
 	if cfg.HTTPClient != nil {
 		return cfg.HTTPClient
 	}
@@ -169,7 +169,7 @@ type resolvedConfig struct {
 
 // resolveConfig resolves all configuration values from the Config struct,
 // environment variables, and marble secrets.
-func resolveConfig(cfg Config) resolvedConfig {
+func resolveConfig(cfg *Config) resolvedConfig {
 	m := cfg.Marble
 
 	rc := resolvedConfig{
@@ -344,7 +344,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		}
 	}
 
-	rc := resolveConfig(cfg)
+	rc := resolveConfig(&cfg)
 
 	if strict && rc.serviceGatewayHash == "" {
 		return nil, fmt.Errorf("neorequests: ServiceLayerGateway hash required in strict/enclave mode")
@@ -367,7 +367,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		miniAppCacheTTL:         cacheTTL,
 		requireManifestContract: rc.requireManifestContract,
 		paymentHubHash:          rc.paymentHubHash,
-		httpClient:              resolveHTTPClient(cfg),
+		httpClient:              resolveHTTPClient(&cfg),
 		vrfURL:                  strings.TrimSpace(cfg.NeoVRFURL),
 		oracleURL:               strings.TrimSpace(cfg.NeoOracleURL),
 		computeURL:              strings.TrimSpace(cfg.NeoComputeURL),
