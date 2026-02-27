@@ -30,16 +30,7 @@ describe("publish reminder sender", () => {
             isEscalated: true,
           },
         },
-      ] as Array<{
-        id: string;
-        app_id: string;
-        status: "pending";
-        timing: {
-          ageMinutes: number;
-          isSlaBreached: boolean;
-          isEscalated: boolean;
-        };
-      }>,
+      ] as any,
     });
 
     expect(result.success).toBe(true);
@@ -70,16 +61,7 @@ describe("publish reminder sender", () => {
             isEscalated: false,
           },
         },
-      ] as Array<{
-        id: string;
-        app_id: string;
-        status: "pending";
-        timing: {
-          ageMinutes: number;
-          isSlaBreached: boolean;
-          isEscalated: boolean;
-        };
-      }>,
+      ] as any,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
