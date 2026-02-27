@@ -74,4 +74,28 @@ describe("AppDetailHeader", () => {
 
     expect(screen.getByText("defi")).toBeInTheDocument();
   });
+
+  it("displays Online status when app status is active", () => {
+    const onBack = jest.fn();
+    const activeApp = { ...mockApp, status: "active" as const };
+    render(<AppDetailHeader app={activeApp} onBack={onBack} />);
+
+    expect(screen.getByText(/online/i)).toBeInTheDocument();
+  });
+
+  it("displays Maintenance status when app status is disabled", () => {
+    const onBack = jest.fn();
+    const disabledApp = { ...mockApp, status: "disabled" as const };
+    render(<AppDetailHeader app={disabledApp} onBack={onBack} />);
+
+    expect(screen.getByText(/maintenance/i)).toBeInTheDocument();
+  });
+
+  it("displays Pending status when app status is pending", () => {
+    const onBack = jest.fn();
+    const pendingApp = { ...mockApp, status: "pending" as const };
+    render(<AppDetailHeader app={pendingApp} onBack={onBack} />);
+
+    expect(screen.getByText(/pending/i)).toBeInTheDocument();
+  });
 });

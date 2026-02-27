@@ -21,14 +21,14 @@ describe("resolveInternalBaseUrl", () => {
   });
 
   it("uses VERCEL_URL in production when NEXT_PUBLIC_API_URL is missing", () => {
-    process.env.NODE_ENV = "production";
+    Object.defineProperty(process.env, "NODE_ENV", { value: "production", writable: true });
     process.env.VERCEL_URL = "miniapps.example.vercel.app";
     const { resolveInternalBaseUrl } = require("../../lib/edge");
     expect(resolveInternalBaseUrl()).toBe("https://miniapps.example.vercel.app");
   });
 
   it("falls back to forwarded host headers when env URLs are unavailable", () => {
-    process.env.NODE_ENV = "production";
+    Object.defineProperty(process.env, "NODE_ENV", { value: "production", writable: true });
     const { resolveInternalBaseUrl } = require("../../lib/edge");
     expect(
       resolveInternalBaseUrl({
@@ -41,7 +41,7 @@ describe("resolveInternalBaseUrl", () => {
   });
 
   it("throws when no trusted URL source is available", () => {
-    process.env.NODE_ENV = "production";
+    Object.defineProperty(process.env, "NODE_ENV", { value: "production", writable: true });
     const { resolveInternalBaseUrl } = require("../../lib/edge");
     expect(() =>
       resolveInternalBaseUrl({
