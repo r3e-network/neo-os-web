@@ -165,6 +165,7 @@ deploy_contract "RandomnessLog"
 deploy_contract "AppRegistry"
 deploy_contract "AutomationAnchor"
 deploy_contract "ServiceLayerGateway"
+deploy_contract "zNEP17"
 
 echo ""
 echo "=== Deployment Complete ==="

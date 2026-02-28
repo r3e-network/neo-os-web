@@ -1,0 +1,10 @@
+{
+  "name": "zk-privacy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "zNEP17 Zero-Knowledge Privacy Token Protocol UI",
+  "dependencies": {
+    "snarkjs": "^0.7.0",
+    "circomlibjs": "^0.1.7"
+  }
+}

@@ -16,7 +16,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Minimal callback consumer for ServiceLayerGateway verification")]
     [ContractPermission("*", "*")]
-    public class MiniAppServiceConsumer : SmartContract
+    public partial class MiniAppContract : SmartContract
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
