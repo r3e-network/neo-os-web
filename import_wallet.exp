@@ -1,0 +1,10 @@
+#!/usr/bin/expect -f
+set timeout -1
+spawn neo-go wallet import -w deploy/wallets/testnet_wallet.json --wif L4cNA7HKn5CRtPeKJCSedTFpej8Yq2E5s1xvhxoHKBjcFcvqG9HZ
+expect "Enter the name of the account >"
+send "deployer\r"
+expect "Enter new password >"
+send "password\r"
+expect "Confirm password >"
+send "password\r"
+expect eof
