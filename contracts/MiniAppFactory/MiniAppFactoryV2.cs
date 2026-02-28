@@ -25,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "2.0.0")]
     [ManifestExtra("Description", "Enhanced template-based miniapp contract factory with schema support")]
     [ContractPermission("*", "*")]
-    public class MiniAppFactoryV2 : SmartContract
+    public partial class MiniAppContract : SmartContract
     {
         #region Storage Prefixes
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };

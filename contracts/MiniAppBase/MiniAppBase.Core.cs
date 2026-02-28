@@ -211,7 +211,7 @@ namespace NeoMiniAppPlatform.Contracts
             object receiptObj = Contract.Call(hub, "getReceipt", CallFlags.ReadOnly, receiptId);
             ExecutionEngine.Assert(receiptObj != null, "receipt not found");
 
-            object[] receipt = (object[])receiptObj;
+            object[] receipt = (object[])receiptObj!;
             ExecutionEngine.Assert(receipt.Length >= 6, "receipt not found");
 
             string receiptAppId = (string)receipt[1];

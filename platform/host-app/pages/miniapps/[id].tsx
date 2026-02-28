@@ -14,6 +14,7 @@ import {
   MiniAppDetailTab,
   MiniAppDetailTabType,
 } from "../../components";
+import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
 import type { OperationEntry, OperationParam } from "../../components/types";
 import { ActivityTicker } from "../../components/ActivityTicker";
 import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
@@ -177,10 +178,6 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     router.push("/miniapps");
   };
 
-  const handleLaunch = () => {
-    router.push(`/launch/${app.app_id}`);
-  };
-
   const handleInvoke = useCallback(async (operation: OperationEntry, values: Record<string, string>) => {
     setInvokeFeedback(null);
     try {
@@ -239,7 +236,6 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
   const operationPanel = app.detail_template?.operation_panel;
   const operationTitle = operationPanel?.title || (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
   const operationSubtitle = operationPanel?.subtitle;
-  const launchLabel = operationPanel?.cta_label || "Launch App";
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-16">
@@ -282,6 +278,10 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
           <section className="space-y-6">
+            <section className="w-full relative z-10">
+              <MiniAppPlayfield app={app} />
+            </section>
+            
             <section>
               <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={140} scrollSpeed={20} />
             </section>
@@ -386,14 +386,6 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
                   Connect wallet from the top navigation to submit on-chain transactions.
                 </p>
               )}
-
-              <button
-                type="button"
-                className="mt-4 w-full px-6 py-3 rounded-xl border-none bg-neo text-black text-sm font-bold cursor-pointer transition-all hover:bg-neo/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-                onClick={handleLaunch}
-              >
-                {launchLabel} →
-              </button>
             </section>
 
             <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 p-4 sm:p-5">

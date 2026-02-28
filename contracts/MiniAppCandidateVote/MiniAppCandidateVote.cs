@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Vote for platform candidate and earn proportional GAS rewards")]
     [ContractPermission("*", "*")]
-    public class MiniAppCandidateVote : SmartContract
+    public partial class MiniAppContract : SmartContract
     {
         private const string APP_ID = "miniapp-candidate-vote";
         private const long EPOCH_DURATION = 604800000;

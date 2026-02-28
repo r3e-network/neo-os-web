@@ -29,7 +29,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Template-based miniapp contract factory")]
     [ContractPermission("*", "*")]
-    public class MiniAppFactory : SmartContract
+    public partial class MiniAppContract : SmartContract
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_TEMPLATE = new byte[] { 0x02 };
