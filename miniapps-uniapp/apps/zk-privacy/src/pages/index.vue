@@ -1,111 +1,77 @@
 <template>
-  <MiniAppLayout>
-    
-    <!-- Playfield: The core visual or logical area of the MiniApp -->
-    <template #playfield>
-      <view class="playfield-content">
+  <view class="zk-container">
+    <view class="hero-section">
+      <view class="hero-bg">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+      </view>
+      
+      <view class="hero-content">
         <image class="hero-icon" src="https://neo.org/images/neo-logo-white.svg" mode="aspectFit" />
-        <text class="hero-title">zNEP17 Anonymity Pool</text>
-        <text class="hero-subtitle">Zero-Knowledge Token Escrow & Gasless Relay</text>
+        <text class="hero-title">zNEP17 Privacy</text>
+        <text class="hero-subtitle">Zero-Knowledge Token Escrow</text>
+      </view>
+    </view>
+
+    <view class="interactive-section">
+      <!-- Shield Funds -->
+      <view class="action-card">
+        <view class="card-header">
+          <text class="card-title">1. Shield Funds</text>
+          <text class="card-desc">Deposit 1.0 GAS to generate an anonymous note.</text>
+        </view>
         
-        <view class="stats-board">
-          <view class="stat-item">
-            <text class="stat-value">1.0 GAS</text>
-            <text class="stat-label">Fixed Denomination</text>
-          </view>
-          <view class="stat-item">
-            <text class="stat-value">BLS12-381</text>
-            <text class="stat-label">Pairing Curve</text>
-          </view>
-          <view class="stat-item">
-            <text class="stat-value">SGX</text>
-            <text class="stat-label">TEE Relayer</text>
-          </view>
+        <button 
+          class="btn btn-primary" 
+          :loading="isDepositing" 
+          :disabled="isDepositing"
+          @click="handleDeposit">
+          {{ isDepositing ? 'Escrowing...' : 'Deposit 1.0 GAS' }}
+        </button>
+        
+        <view v-if="depositNote" class="result-box success-box slide-down">
+          <text class="box-label">Success! Save your note:</text>
+          <textarea class="note-area" :value="depositNote" readonly :maxlength="-1"></textarea>
+          <button class="btn btn-small" @click="copyToClipboard(depositNote)">Copy Note</button>
         </view>
       </view>
-    </template>
 
-    <!-- Info Tabs -->
-    <template #intro>
-      <view class="prose">
-        <text class="p">Welcome to the **zNEP17 Privacy Protocol**. This MiniApp allows you to break on-chain linkability between sender and receiver addresses.</text>
-        <text class="p mt-2">By depositing fixed denominations of GAS into the escrow pool, you generate an offline Zero-Knowledge credential. Later, you (or anyone you share the credential with) can provide a cryptographic proof to withdraw the funds to a completely fresh, unfunded wallet.</text>
-      </view>
-    </template>
-
-    <template #info>
-      <view class="prose">
-        <text class="h3">How it Works</text>
-        <text class="p mt-2">1. **Deposit**: A secret and nullifier are randomly generated in your browser. Their hash (commitment) is sent to the Neo N3 smart contract.</text>
-        <text class="p mt-2">2. **Wait**: The SGX Enclave indexes the deposit into a Poseidon Merkle Tree.</text>
-        <text class="p mt-2">3. **Withdraw**: Your browser generates a Groth16 ZK-Proof proving you know the secret for an unspent commitment in the tree, without revealing which one. The TEE relays the transaction, paying the network fee on your behalf in exchange for a small relayer cut.</text>
-      </view>
-    </template>
-
-    <template #reviews>
-      <view class="review-list">
-        <view class="review-item">
-          <text class="reviewer">NeoCoreDev</text>
-          <text class="stars">⭐⭐⭐⭐⭐</text>
-          <text class="review-text">Incredible use of TEEs to solve the initial GAS problem for privacy relayer networks.</text>
+      <!-- Unshield Funds -->
+      <view class="action-card">
+        <view class="card-header">
+          <text class="card-title">2. Unshield Funds</text>
+          <text class="card-desc">Withdraw via TEE Relayer with zero initial GAS.</text>
         </view>
-      </view>
-    </template>
-
-    <!-- Operations Panel -->
-    <template #operations>
-      <view class="operations-wrapper">
-        <text class="op-section-title">1. Shield Funds</text>
-        <view class="op-card">
-          <button 
-            class="btn btn-primary" 
-            :loading="isDepositing" 
-            :disabled="isDepositing"
-            @click="handleDeposit">
-            {{ isDepositing ? 'Escrowing...' : 'Deposit 1.0 GAS' }}
-          </button>
-          
-          <view v-if="depositNote" class="result-box success-box slide-down">
-            <text class="box-label">Success! Save your note:</text>
-            <textarea class="note-area" :value="depositNote" readonly :maxlength="-1"></textarea>
-            <button class="btn btn-small" @click="copyToClipboard(depositNote)">Copy Note</button>
-          </view>
+        
+        <view class="input-group">
+          <text class="label">Privacy Note</text>
+          <input class="input" v-model="withdrawNote" placeholder="neo-zk://..." />
         </view>
 
-        <text class="op-section-title mt-4">2. Unshield Funds</text>
-        <view class="op-card">
-          <view class="input-group">
-            <text class="label">Privacy Note</text>
-            <input class="input" v-model="withdrawNote" placeholder="neo-zk://..." />
-          </view>
+        <view class="input-group">
+          <text class="label">Recipient Address</text>
+          <input class="input" v-model="recipientAddress" placeholder="N..." />
+        </view>
 
-          <view class="input-group">
-            <text class="label">Recipient Address</text>
-            <input class="input" v-model="recipientAddress" placeholder="N..." />
-          </view>
+        <button 
+          class="btn btn-success" 
+          :loading="isWithdrawing" 
+          :disabled="isWithdrawing || !withdrawNote || !recipientAddress"
+          @click="handleWithdraw">
+          {{ isWithdrawing ? 'Proving & Relaying...' : 'Gasless Withdraw' }}
+        </button>
 
-          <button 
-            class="btn btn-success" 
-            :loading="isWithdrawing" 
-            :disabled="isWithdrawing || !withdrawNote || !recipientAddress"
-            @click="handleWithdraw">
-            {{ isWithdrawing ? 'Proving...' : 'Gasless Withdraw' }}
-          </button>
-
-          <view v-if="withdrawTxHash" class="result-box success-box slide-down">
-            <text class="box-label">Withdrawal Successful!</text>
-            <text class="tx-hash">{{ withdrawTxHash }}</text>
-          </view>
+        <view v-if="withdrawTxHash" class="result-box success-box slide-down">
+          <text class="box-label">Withdrawal Successful!</text>
+          <text class="tx-hash">{{ withdrawTxHash }}</text>
         </view>
       </view>
-    </template>
-
-  </MiniAppLayout>
+    </view>
+  </view>
 </template>
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import MiniAppLayout from '../components/MiniAppLayout.vue';
 
 const isDepositing = ref(false);
 const depositNote = ref('');
@@ -185,17 +151,77 @@ async function handleWithdraw() {
 </script>
 
 <style scoped>
-/* Playfield Styling */
-.playfield-content {
+.zk-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  background-color: #0f172a;
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .zk-container {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .interactive-section {
+    width: 100% !important;
+    height: auto !important;
+  }
+  .hero-section {
+    min-height: 300px;
+  }
+}
+
+/* Left side: Hero Banner */
+.hero-section {
+  flex: 1;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  padding: 40px 20px;
+  padding: 40px;
   background: linear-gradient(135deg, #00e599 0%, #007aff 100%);
-  border-radius: 12px;
-  color: white;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.circle-1 {
+  width: 300px;
+  height: 300px;
+  top: -100px;
+  left: -100px;
+}
+
+.circle-2 {
+  width: 400px;
+  height: 400px;
+  bottom: -150px;
+  right: -100px;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
   text-align: center;
 }
 
@@ -203,109 +229,71 @@ async function handleWithdraw() {
   width: 80px;
   height: 80px;
   margin-bottom: 24px;
-  opacity: 0.9;
 }
 
 .hero-title {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  display: block;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .hero-subtitle {
-  font-size: 16px;
-  opacity: 0.9;
-  margin-bottom: 40px;
-  font-weight: 500;
-}
-
-.stats-board {
-  display: flex;
-  gap: 32px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 20px 32px;
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.stat-label {
-  font-size: 12px;
-  opacity: 0.8;
-  margin-top: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Info Typography */
-.prose {
-  color: #334155;
-  line-height: 1.6;
-}
-
-.h3 {
   font-size: 18px;
-  font-weight: 600;
-  color: #0f172a;
+  opacity: 0.9;
+  font-weight: 500;
   display: block;
 }
 
-.p {
-  font-size: 15px;
-  display: block;
-}
-
-.mt-2 { margin-top: 12px; }
-.mt-4 { margin-top: 24px; }
-
-/* Reviews */
-.review-item {
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f1f5f9;
-}
-.reviewer { font-weight: 600; font-size: 14px; margin-right: 8px; }
-.stars { font-size: 12px; }
-.review-text { font-size: 14px; color: #475569; display: block; margin-top: 6px; }
-
-/* Operations */
-.operations-wrapper {
+/* Right side: Interactive Actions */
+.interactive-section {
+  width: 420px;
+  background-color: #ffffff;
+  color: #1e293b;
   display: flex;
   flex-direction: column;
+  padding: 32px 24px;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
-.op-section-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 12px;
-  display: block;
-}
-
-.op-card {
+.action-card {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
-/* Form Controls */
+.card-header {
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.card-desc {
+  font-size: 13px;
+  color: #64748b;
+  display: block;
+  line-height: 1.4;
+}
+
 .input-group {
   margin-bottom: 16px;
 }
 
 .label {
   font-size: 13px;
-  color: #64748b;
+  color: #475569;
   margin-bottom: 6px;
   display: block;
   font-weight: 600;
@@ -313,14 +301,15 @@ async function handleWithdraw() {
 
 .input {
   width: 100%;
-  height: 44px;
+  height: 40px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   padding: 0 12px;
   font-size: 14px;
   background: white;
   box-sizing: border-box;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
+  color: #1e293b;
 }
 
 .input:focus {
@@ -350,7 +339,6 @@ async function handleWithdraw() {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
 .btn-primary {
@@ -376,7 +364,6 @@ async function handleWithdraw() {
   background-color: #f1f5f9;
 }
 
-/* Results */
 .result-box {
   margin-top: 16px;
   padding: 12px;
@@ -398,15 +385,16 @@ async function handleWithdraw() {
 
 .note-area {
   width: 100%;
-  height: 60px;
+  height: 50px;
   background: white;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   padding: 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: #334155;
   box-sizing: border-box;
+  resize: none;
 }
 
 .tx-hash {
