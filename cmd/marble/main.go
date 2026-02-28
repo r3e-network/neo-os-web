@@ -53,6 +53,7 @@ var availableServices = []string{
 	"neoflow",
 	"neogasbank",
 	"neooracle",
+	"neoprivacy",
 	"neorequests",
 	"neosimulation",
 	"neovrf",
@@ -481,6 +482,8 @@ func main() {
 		svc, err = newNeoGasBank(sctx)
 	case "neosimulation":
 		svc, err = newNeoSimulation(sctx)
+	case "neoprivacy":
+		svc, err = newNeoPrivacy(sctx)
 	case "txproxy":
 		svc, err = newTxProxy(sctx)
 	default:

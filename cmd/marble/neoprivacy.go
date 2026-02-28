@@ -1,0 +1,14 @@
+package main
+
+import (
+	"github.com/r3e-network/neo-miniapp-platform/services/neoprivacy/marble"
+)
+
+func newNeoPrivacy(ctx *serviceContext) (ServiceRunner, error) {
+	return neoprivacy.New(neoprivacy.Config{
+		Marble:         ctx.m,
+		DB:             ctx.db,
+		ChainClient:    ctx.chainClient,
+		TxProxyInvoker: ctx.txProxyInvoker,
+	})
+}

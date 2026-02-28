@@ -79,3 +79,10 @@ services:
     enabled: true
     port: 8093
     description: "Continuous transaction simulation for MiniApp testing and load generation"
+
+  # NeoPrivacy - Zero-Knowledge Privacy Token Protocol
+  # Use cases: Anonymous transfers, Tornado Cash style credentials
+  neoprivacy:
+    enabled: true
+    port: 8095
+    description: "zNEP17 Privacy Relayer and Merkle Tree Indexer"

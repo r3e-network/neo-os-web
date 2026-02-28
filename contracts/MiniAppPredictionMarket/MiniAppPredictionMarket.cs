@@ -1,3 +1,4 @@
+#pragma warning disable CS8618
 using System;
 using System.ComponentModel;
 using System.Numerics;
@@ -113,7 +114,7 @@ namespace NeoMiniAppPlatform.Contracts
             PredictionData prediction = new PredictionData
             {
                 Player = player,
-                Symbol = symbol,
+                Symbol = symbol!,
                 Direction = direction,
                 Amount = amount,
                 StartPrice = startPrice,
@@ -122,7 +123,7 @@ namespace NeoMiniAppPlatform.Contracts
             };
             StorePrediction(predictionId, prediction);
 
-            OnPredictionPlaced(player, symbol, direction, amount, predictionId);
+            OnPredictionPlaced(player, symbol!, direction, amount, predictionId);
             return predictionId;
         }
 
@@ -192,7 +193,7 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 prediction.Resolved = true;
                 StorePrediction(predictionId, prediction);
-                OnPredictionResolved(prediction.Player, false, 0, predictionId);
+                OnPredictionResolved(prediction.Player!, false, 0, predictionId);
                 return;
             }
 
@@ -210,7 +211,7 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Delete(Storage.CurrentContext,
                 Helper.Concat(PREFIX_REQUEST_TO_PRED, (ByteString)requestId.ToByteArray()));
 
-            OnPredictionResolved(prediction.Player, won, payout, predictionId);
+            OnPredictionResolved(prediction.Player!, won, payout, predictionId);
         }
 
         #endregion
@@ -235,7 +236,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static UInt160 AutomationAnchor()
         {
             ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR);
-            return data != null ? (UInt160)data : UInt160.Zero;
+            if (data == null) return UInt160.Zero;
+            return (UInt160)data;
         }
 
         /// <summary>
@@ -245,7 +247,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void SetAutomationAnchor(UInt160 anchor)
         {
             ValidateAdmin();
-            ValidateAddress(anchor);
+            ExecutionEngine.Assert(anchor != null && anchor.IsValid, "invalid anchor address");
             Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR, anchor);
         }
 

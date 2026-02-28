@@ -1,3 +1,4 @@
+#pragma warning disable CS8618
 using System;
 using System.ComponentModel;
 using System.Numerics;
@@ -179,7 +180,7 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 bet.Resolved = true;
                 StoreBet(betId, bet);
-                OnDiceRolled(bet.Player, bet.ChosenNumber, 0, 0, betId);
+                OnDiceRolled(bet.Player!, bet.ChosenNumber, 0, 0, betId);
                 return;
             }
 
@@ -194,7 +195,7 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Delete(Storage.CurrentContext,
                 Helper.Concat(PREFIX_REQUEST_TO_BET, (ByteString)requestId.ToByteArray()));
 
-            OnDiceRolled(bet.Player, bet.ChosenNumber, rolled, payout, betId);
+            OnDiceRolled(bet.Player!, bet.ChosenNumber, rolled, payout, betId);
         }
 
         #endregion
@@ -219,7 +220,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static UInt160 AutomationAnchor()
         {
             ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR);
-            return data != null ? (UInt160)data : UInt160.Zero;
+            if (data == null) return UInt160.Zero;
+            return (UInt160)data;
         }
 
         /// <summary>
@@ -229,7 +231,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void SetAutomationAnchor(UInt160 anchor)
         {
             ValidateAdmin();
-            ValidateAddress(anchor);
+            ExecutionEngine.Assert(anchor != null && anchor.IsValid, "invalid anchor address");
             Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR, anchor);
         }
 

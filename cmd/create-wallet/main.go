@@ -1,67 +1,36 @@
-// Command create-wallet creates a Neo N3 wallet from WIF.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
 )
 
 func main() {
-	wif := os.Getenv("NEO_TESTNET_WIF")
-	if wif == "" {
-		log.Fatal("NEO_TESTNET_WIF not set")
-	}
+	wif := "***REMOVED***"
+	password := "password"
 
-	privateKey, err := keys.NewPrivateKeyFromWIF(wif)
+	w, err := wallet.NewWallet("deploy/wallets/testnet_wallet.json")
 	if err != nil {
-		log.Fatalf("Invalid WIF: %v", err)
+		log.Fatal(err)
 	}
 
-	walletPath := "deploy/testnet/wallets/testnet.json"
-	if len(os.Args) > 1 {
-		walletPath = os.Args[1]
-	}
-
-	if mkdirErr := os.MkdirAll(filepath.Dir(walletPath), 0o755); mkdirErr != nil {
-		log.Fatalf("Failed to create wallet directory: %v", mkdirErr)
-	}
-
-	w, err := wallet.NewWallet(walletPath)
+	pk, err := keys.NewPrivateKeyFromWIF(wif)
 	if err != nil {
-		log.Fatalf("Failed to create wallet: %v", err)
+		log.Fatal(err)
 	}
 
-	password := "testnetpassword"
-	acc, err := wallet.NewAccountFromWIF(wif)
-	if err != nil {
-		log.Fatalf("Failed to create account: %v", err)
+	acc := wallet.NewAccountFromPrivateKey(pk)
+	if err := acc.Encrypt(password, w.Scrypt); err != nil {
+		log.Fatal(err)
 	}
 	acc.Label = "deployer"
 
-	if encryptErr := acc.Encrypt(password, w.Scrypt); encryptErr != nil {
-		log.Fatalf("Failed to encrypt account: %v", encryptErr)
-	}
-
 	w.AddAccount(acc)
-	if saveErr := w.Save(); saveErr != nil {
-		log.Fatalf("Failed to save wallet: %v", saveErr)
+	if err := w.Save(); err != nil {
+		log.Fatal(err)
 	}
-
-	fmt.Println("Wallet created successfully!")
-	fmt.Printf("Path: %s\n", walletPath)
-	fmt.Printf("Address: %s\n", acc.Address)
-	fmt.Printf("Script Hash: %s\n", acc.ScriptHash())
-	fmt.Printf("Public Key: %s\n", privateKey.PublicKey().String())
-	fmt.Println("\nWallet JSON:")
-	data, err := json.MarshalIndent(w, "", "  ")
-	if err != nil {
-		log.Fatalf("Failed to marshal wallet: %v", err)
-	}
-	fmt.Println(string(data))
+	fmt.Println("Wallet successfully created at deploy/wallets/testnet_wallet.json")
 }

@@ -22,6 +22,7 @@ var contracts = []string{
 	"AppRegistry",
 	"AutomationAnchor",
 	"ServiceLayerGateway",
+	"zNEP17",
 }
 
 func main() {
