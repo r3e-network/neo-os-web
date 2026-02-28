@@ -532,6 +532,7 @@ func (s *Service) yahooQuoteSymbols() []string {
 	return symbols
 }
 
+//nolint:gocritic
 func feedUsesSource(feed FeedConfig, sourceID string) bool {
 	for _, src := range feed.Sources {
 		if strings.EqualFold(strings.TrimSpace(src), strings.TrimSpace(sourceID)) {
@@ -772,6 +773,7 @@ func formatJSONPath(tmpl string, feed *FeedConfig, src *SourceConfig) string {
 	return path
 }
 
+//nolint:gocritic
 func parsePriceResult(result gjson.Result) (float64, error) {
 	switch result.Type {
 	case gjson.Number:

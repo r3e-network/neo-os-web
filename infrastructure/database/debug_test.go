@@ -1,9 +1,10 @@
 package database
 
 import (
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 	"os"
 	"testing"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 )
 
 func TestDebug(t *testing.T) {

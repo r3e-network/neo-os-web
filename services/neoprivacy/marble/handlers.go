@@ -69,19 +69,19 @@ func (s *Service) handleRelay(w http.ResponseWriter, r *http.Request) {
 
 	// Build parameters for the zNEP17 'Withdraw' method:
 	// Withdraw(byte[] proof, byte[] nullifierHash, byte[] root, UInt160 recipient, BigInteger relayerFee, UInt160 asset, BigInteger amount)
-	
+
 	proofBytes, err := hex.DecodeString(strings.TrimPrefix(req.Proof, "0x"))
 	if err != nil {
 		httputil.BadRequest(w, "invalid hex format for proof")
 		return
 	}
-	
+
 	nullifierBytes, err := hex.DecodeString(strings.TrimPrefix(req.NullifierHash, "0x"))
 	if err != nil {
 		httputil.BadRequest(w, "invalid hex format for nullifierHash")
 		return
 	}
-	
+
 	rootBytes, err := hex.DecodeString(strings.TrimPrefix(req.Root, "0x"))
 	if err != nil {
 		httputil.BadRequest(w, "invalid hex format for root")

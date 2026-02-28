@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
@@ -100,10 +100,10 @@ func (s *Service) pollDepositEvents(ctx context.Context) error {
 		return nil
 	}
 
-	// In a full production scenario, we would use s.db to query the latest processed block height 
+	// In a full production scenario, we would use s.db to query the latest processed block height
 	// from the zNEP17_deposits table and only query logs from that point forward.
 	// For now, we structure the polling to handle recent blocks securely.
-	
+
 	// Example structured logging and resilient block indexing pattern:
 	height, err := s.chainClient.GetBlockCount(ctx)
 	if err != nil {

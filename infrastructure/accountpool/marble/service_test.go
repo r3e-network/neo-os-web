@@ -1747,7 +1747,7 @@ func TestRequestAccountsNoAvailable(t *testing.T) {
 
 // Helper function
 //
-//nolint:unused // retained for disabled/placeholder endpoint tests.
+
 func mustMarshalJSON(v interface{}) string {
 	b, _ := json.Marshal(v)
 	return string(b)
