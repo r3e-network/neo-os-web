@@ -13,21 +13,7 @@ type requestIndexEntry struct {
 	expiresAt time.Time
 }
 
-func (s *Service) storeRequestIndex(requestID, appID string) {
-	if s == nil || s.requestIndexTTL <= 0 {
-		return
-	}
-	requestID = strings.TrimSpace(requestID)
-	appID = strings.TrimSpace(appID)
-	if requestID == "" || appID == "" {
-		return
-	}
-	s.requestIndex.Store(requestID, requestIndexEntry{
-		appID:     appID,
-		expiresAt: time.Now().Add(s.requestIndexTTL),
-	})
-}
-
+//nolint:gocritic
 func (s *Service) claimRequestIndex(requestID, appID string) (bool, string) {
 	if s == nil || s.requestIndexTTL <= 0 {
 		return true, ""

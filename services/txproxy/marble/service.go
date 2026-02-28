@@ -181,6 +181,8 @@ func New(cfg Config) (*Service, error) {
 // mergePlatformAllowlist adds baseline platform methods keyed by the currently
 // configured contract hashes. This keeps txproxy policy aligned after contract
 // redeployments/rotations while preserving any user-provided allowlist entries.
+//
+//nolint:gocritic
 func mergePlatformAllowlist(allowlist *Allowlist, contracts chain.ContractAddresses, gasHash string) *Allowlist {
 	if allowlist == nil {
 		allowlist = &Allowlist{Contracts: map[string]ContractAllowlist{}}

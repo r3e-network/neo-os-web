@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/r3e-network/neo-miniapp-platform/services/neoprivacy/marble"
+	neoprivacy "github.com/r3e-network/neo-miniapp-platform/services/neoprivacy/marble"
 )
 
 func newNeoPrivacy(ctx *serviceContext) (ServiceRunner, error) {

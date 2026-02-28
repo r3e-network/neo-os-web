@@ -56,15 +56,18 @@ func TestLoadMasterKey_SetsDerivedFields(t *testing.T) {
 }
 
 func TestLoadMasterKey_FailsOnMissingSecrets(t *testing.T) {
-	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
-	t.Setenv("NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY", "true")
-	svc, _ := New(Config{Marble: m})
+        t.Setenv("POOL_MASTER_KEY", "")
+        t.Setenv("COORDINATOR_MASTER_SEED", "")
+        t.Setenv("NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY", "false")
+        
+        m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+        
+        s, err := New(Config{Marble: m})
 
-	if err := svc.loadMasterKey(m); err == nil {
-		t.Fatalf("expected error when secrets are missing")
-	}
+        if err == nil {
+                t.Fatalf("expected error when secrets are missing, got svc with key: %x", s.masterKey)
+        }
 }
-
 func TestLoadMasterKey_FailsOnHashMismatch(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	key := bytes.Repeat([]byte{0x03}, 32)
