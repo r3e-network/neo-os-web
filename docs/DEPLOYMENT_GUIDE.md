@@ -125,5 +125,5 @@ kubectl -n service-layer rollout status deployment/neocompute
 
 ## 9. Notes
 
-- Legacy Open Enclave build and deployment paths are no longer supported in this repository.
+- Legacy non-Nitro build and deployment paths are no longer supported in this repository.
 - Keep Nitro attestation and strict identity settings consistent across environments.

@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The Neo Service Layer has been reviewed for production readiness. All core services are functional, tests pass, and the architecture follows security best practices with TEE (Trusted Execution Environment) integration via MarbleRun + EGo.
+The Neo Service Layer has been reviewed for production readiness. All core services are functional, tests pass, and the architecture follows security best practices with TEE (Trusted Execution Environment) integration via MarbleRun + Nitro runtime.
 
 ### Overall Assessment: ✅ PRODUCTION READY
 
@@ -64,7 +64,7 @@ The Neo Service Layer has been reviewed for production readiness. All core servi
 
 ### 3.1 Security Architecture ✅
 
-- **TEE Integration**: All services run inside EGo MarbleRun TEEs
+- **TEE Integration**: All services run inside Nitro runtime MarbleRun TEEs
 - **Secret Management**: Secrets injected via MarbleRun Coordinator
 - **mTLS**: Inter-service communication secured with mutual TLS
 - **Key Protection**: Private keys never leave TEE memory

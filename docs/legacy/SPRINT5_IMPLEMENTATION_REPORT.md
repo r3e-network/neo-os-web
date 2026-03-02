@@ -93,8 +93,8 @@ make clean-all          # Deep clean (including Docker)
 ```
 
 **install_dev_env.sh Features**:
-- MarbleRun/EGo SDK installation
-- EGo runtime setup
+- MarbleRun/Nitro runtime SDK installation
+- Nitro runtime runtime setup
 - MarbleRun CLI installation
 - k3s (Kubernetes) deployment
 - Helm installation
