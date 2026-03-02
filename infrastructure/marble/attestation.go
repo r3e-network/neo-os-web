@@ -2,7 +2,9 @@ package marble
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"strconv"
 	"strings"
@@ -159,9 +161,48 @@ func (m *Marble) Provider() TEEProvider {
 	return m.provider
 }
 
-// IsTEE returns true when a non-simulation TEE backend is configured.
+// IsTEE returns true when TEE runtime signals are present.
+//
+// This is intentionally stricter than checking only TEE_BACKEND so local
+// developer flows can select a backend without triggering strict enclave-only
+// guards when no enclave runtime is actually available.
 func (m *Marble) IsTEE() bool {
-	return m.Provider() != TEEProviderSimulation
+	if m == nil {
+		return false
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	switch m.provider {
+	case TEEProviderSimulation:
+		return false
+	case TEEProviderSGX:
+		if strings.TrimSpace(os.Getenv("OE_SIMULATION")) == "0" {
+			return true
+		}
+		if m.report == nil {
+			return false
+		}
+		return strings.TrimSpace(m.report.Document) != "" ||
+			strings.TrimSpace(m.report.Quote) != "" ||
+			strings.TrimSpace(m.report.MRENCLAVE) != "" ||
+			strings.TrimSpace(m.report.MRSIGNER) != ""
+	case TEEProviderNitro:
+		if m.report != nil && strings.TrimSpace(m.report.Document) != "" {
+			return true
+		}
+		// Nitro enclaves expose /dev/nsm.
+		if _, err := os.Stat("/dev/nsm"); err == nil {
+			return true
+		} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			// Be conservative for unusual filesystem errors.
+			return true
+		}
+		return false
+	default:
+		return false
+	}
 }
 
 // Attest returns provider-specific attestation evidence bound to caller data.

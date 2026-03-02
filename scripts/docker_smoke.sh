@@ -149,25 +149,26 @@ else
   echo "Skipping MarbleRun coordinator check in Nitro mode."
 fi
 
-declare -A SERVICES=(
-  [neofeeds]=8083
-  [neoflow]=8084
-  [neoaccounts]=8085
-  [neocompute]=8086
-  [neovrf]=8087
-  [neooracle]=8088
-  [txproxy]=8090
-  [neogasbank]=8091
-  [globalsigner]=8092
-  [neosimulation]=8093
-  [neorequests]=8094
+SERVICES=(
+  "globalsigner:8092"
+  "neoaccounts:8085"
+  "neocompute:8086"
+  "neofeeds:8083"
+  "neoflow:8084"
+  "neogasbank:8091"
+  "neooracle:8088"
+  "neorequests:8094"
+  "neosimulation:8093"
+  "neovrf:8087"
+  "txproxy:8090"
 )
 
 echo ""
 echo "Checking service runtime status and local listener ports..."
 failures=0
-while IFS= read -r service; do
-  port="${SERVICES[$service]}"
+for entry in "${SERVICES[@]}"; do
+  service="${entry%%:*}"
+  port="${entry##*:}"
 
   if ! compose ps --status running "$service" | awk 'NR>1 {print}' | grep -q .; then
     echo "  [FAIL] ${service} is not running"
@@ -193,7 +194,7 @@ while IFS= read -r service; do
     echo "  [FAIL] ${service} tcp:${port} listener check failed after ${CHECK_RETRIES}s"
     failures=$((failures + 1))
   fi
-done < <(printf "%s\n" "${!SERVICES[@]}" | sort)
+done
 
 echo ""
 if [[ "$failures" -gt 0 ]]; then
