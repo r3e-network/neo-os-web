@@ -30,23 +30,23 @@ export function MonitoringPanel({
   const [errors, setErrors] = useState<TrackedError[]>([]);
   const [metrics, setMetrics] = useState<ReturnType<typeof getPerformanceMetrics>>([]);
   const [bufferedEvents, setBufferedEvents] = useState<ReturnType<typeof getBufferedEvents>>([]);
-  
+
   // In production, check for admin role
   if (requireAdmin && process.env.NODE_ENV === "production") {
     // Add admin check logic here
     // if (!isAdmin) return null;
   }
-  
+
   const positionClasses = {
     "top-right": "top-4 right-4",
     "bottom-right": "bottom-4 right-4",
     "top-left": "top-4 left-4",
     "bottom-left": "bottom-4 left-4",
   };
-  
+
   useEffect(() => {
     if (!isOpen) return;
-    
+
     const updateData = () => {
       setSession(getSession());
       setErrorCount(getErrorCount());
@@ -54,18 +54,18 @@ export function MonitoringPanel({
       setMetrics(getPerformanceMetrics());
       setBufferedEvents(getBufferedEvents());
     };
-    
+
     updateData();
     const interval = setInterval(updateData, 2000);
     return () => clearInterval(interval);
   }, [isOpen]);
-  
+
   return (
     <>
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed ${positionClasses[position]} z-50 p-2 bg-neo hover:bg-neo/80 text-white rounded-lg shadow-lg transition-colors`}
+        className={`fixed ${positionClasses[position]} z-50 p-3 bg-white/80 dark:bg-[#0A0B10]/80 backdrop-blur-xl border border-gray-200/50 dark:border-white/10 hover:border-neo/50 text-gray-900 dark:text-white rounded-2xl shadow-xl transition-all hover:scale-105 hover:bg-white dark:hover:bg-white/5`}
         title="Monitoring Dashboard"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,27 +77,26 @@ export function MonitoringPanel({
           </span>
         )}
       </button>
-      
+
       {/* Dashboard Panel */}
       {isOpen && (
-        <div className={`fixed ${positionClasses[position]} mt-14 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50`}>
+        <div className={`fixed ${positionClasses[position]} mt-16 w-96 bg-white/90 dark:bg-[#0A0B10]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden z-50 transition-all`}>
           {/* Tabs */}
-          <div className="flex border-b border-gray-200 dark:border-gray-700">
+          <div className="flex border-b border-gray-200/50 dark:border-white/10">
             {(["overview", "errors", "performance", "analytics"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2 px-3 text-xs font-medium capitalize transition-colors ${
-                  activeTab === tab
-                    ? "bg-neo text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                }`}
+                className={`flex-1 py-3 px-3 text-xs font-bold capitalize transition-all focus-visible:outline-none ${activeTab === tab
+                    ? "text-neo border-b-2 border-neo bg-neo/5"
+                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                  }`}
               >
                 {tab}
               </button>
             ))}
           </div>
-          
+
           {/* Content */}
           <div className="p-4 max-h-[70vh] overflow-y-auto">
             {activeTab === "overview" && (
@@ -108,15 +107,15 @@ export function MonitoringPanel({
                 eventsCount={bufferedEvents.length}
               />
             )}
-            
+
             {activeTab === "errors" && (
               <ErrorsTab errors={errors} />
             )}
-            
+
             {activeTab === "performance" && (
               <PerformanceTab metrics={metrics} />
             )}
-            
+
             {activeTab === "analytics" && (
               <AnalyticsTab
                 session={session}
@@ -147,8 +146,8 @@ function OverviewTab({
   return (
     <div className="space-y-4">
       {/* Session Info */}
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+      <div className="bg-white/50 dark:bg-[#1A1C25]/50 border border-gray-200/50 dark:border-white/5 rounded-2xl p-4">
+        <h4 className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
           Session
         </h4>
         <div className="space-y-1 text-sm">
@@ -168,9 +167,9 @@ function OverviewTab({
           </div>
         </div>
       </div>
-      
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard
           label="Errors"
           value={errorCount}
@@ -210,25 +209,23 @@ function ErrorsTab({ errors }: { errors: TrackedError[] }) {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-2">
       {errors.map((error) => (
         <div
           key={error.id}
-          className={`p-3 rounded-lg border ${
-            error.severity === "critical" || error.severity === "high"
-              ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-              : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700"
-          }`}
+          className={`p-4 rounded-2xl border transition-all hover:scale-[1.02] ${error.severity === "critical" || error.severity === "high"
+              ? "bg-red-50/50 dark:bg-red-900/10 border-red-200/50 dark:border-red-900/30"
+              : "bg-white/50 dark:bg-[#1A1C25]/50 border-gray-200/50 dark:border-white/5 hover:border-gray-300 dark:hover:border-white/10"
+            }`}
         >
           <div className="flex items-start justify-between mb-1">
-            <span className={`text-xs font-semibold uppercase ${
-              error.severity === "critical" ? "text-red-600" :
-              error.severity === "high" ? "text-orange-600" :
-              error.severity === "medium" ? "text-yellow-600" :
-              "text-gray-600"
-            }`}>
+            <span className={`text-xs font-semibold uppercase ${error.severity === "critical" ? "text-red-600" :
+                error.severity === "high" ? "text-orange-600" :
+                  error.severity === "medium" ? "text-yellow-600" :
+                    "text-gray-600"
+              }`}>
               {error.severity}
             </span>
             <span className="text-xs text-gray-500">
@@ -264,7 +261,7 @@ function PerformanceTab({ metrics }: { metrics: ReturnType<typeof getPerformance
     acc[m.name].push(m);
     return acc;
   }, {} as Record<string, typeof metrics>);
-  
+
   const latest = Object.entries(grouped).map(([name, values]) => ({
     name,
     value: values[values.length - 1]?.value ?? 0,
@@ -272,7 +269,7 @@ function PerformanceTab({ metrics }: { metrics: ReturnType<typeof getPerformance
     count: values.length,
     avg: values.reduce((sum, v) => sum + v.value, 0) / values.length,
   }));
-  
+
   if (latest.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -280,13 +277,13 @@ function PerformanceTab({ metrics }: { metrics: ReturnType<typeof getPerformance
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-3">
       {latest.map((metric) => (
-        <div key={metric.name} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+        <div key={metric.name} className="bg-white/50 dark:bg-[#1A1C25]/50 border border-gray-200/50 dark:border-white/5 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-bold text-gray-900 dark:text-white">
               {metric.name}
             </span>
             <span className="text-xs text-gray-500">
@@ -323,7 +320,7 @@ function AnalyticsTab({
     acc[e.type] = (acc[e.type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  
+
   return (
     <div className="space-y-4">
       {/* Event Types */}
@@ -342,7 +339,7 @@ function AnalyticsTab({
           ))}
         </div>
       </div>
-      
+
       {/* Recent Events */}
       <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
         <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
@@ -374,11 +371,11 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-center">
-      <div className={`text-2xl font-bold ${color}`}>
+    <div className="bg-white/50 dark:bg-[#1A1C25]/50 border border-gray-200/50 dark:border-white/5 rounded-2xl p-4 text-center hover:border-neo/30 transition-colors">
+      <div className={`text-3xl font-black ${color}`}>
         {value}
       </div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">
+      <div className="text-[10px] uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400 mt-1">
         {label}
       </div>
     </div>
@@ -392,7 +389,7 @@ function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes % 60}m`;
   }
@@ -407,7 +404,7 @@ function formatDuration(ms: number): string {
  */
 function formatTimeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  
+
   if (seconds < 60) return `${seconds}s ago`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;

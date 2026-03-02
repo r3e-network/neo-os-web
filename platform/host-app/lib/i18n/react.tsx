@@ -66,14 +66,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      return typeof value === "string" ? value : key;
+      return typeof value === "string" ? value : String(value || key);
     },
     [locale],
   );
-
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
@@ -87,7 +83,7 @@ export function useI18n() {
   if (!context) {
     return {
       locale: defaultLocale,
-      setLocale: () => {},
+      setLocale: () => { },
       t: defaultT,
     };
   }

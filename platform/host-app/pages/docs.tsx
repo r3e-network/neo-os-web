@@ -35,15 +35,15 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
   };
 
   return (
-    <div className="relative group rounded-xl bg-gray-900 dark:bg-black/50 border border-gray-800 dark:border-gray-700 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800 dark:border-gray-700 bg-gray-800/50">
-        <span className="text-xs text-gray-400 font-mono">{language}</span>
-        <button type="button" onClick={handleCopy} aria-label="Copy code" className="p-1.5 rounded-md hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50">
-          {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-gray-400" />}
+    <div className="relative group rounded-3xl bg-gray-900/90 dark:bg-[#0A0B10]/80 backdrop-blur-2xl border border-gray-800 dark:border-white/10 overflow-hidden shadow-2xl my-6">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 dark:border-white/5 bg-gray-800/50 dark:bg-white/5 text-gray-300">
+        <span className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-400">{language}</span>
+        <button type="button" onClick={handleCopy} aria-label="Copy code" className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 hover:scale-105 transition-all cursor-pointer shadow-sm backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50">
+          {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-gray-300" />}
         </button>
       </div>
-      <pre className="p-4 overflow-x-auto text-sm">
-        <code className="text-neo font-mono">{code}</code>
+      <pre className="p-5 overflow-x-auto text-sm">
+        <code className="text-[#a5d6ff] font-mono leading-relaxed tracking-wide">{code}</code>
       </pre>
     </div>
   );
@@ -110,11 +110,10 @@ export default function DocsPage() {
                       key={section.id}
                       onClick={() => setActiveSection(section.id)}
                       aria-current={isActive ? "page" : undefined}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
-                        isActive
-                          ? "bg-neo/10 text-neo font-medium"
-                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
-                      }`}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all cursor-pointer focus-visible:outline-none ${isActive
+                          ? "border-l-2 border-neo bg-neo/5 shadow-[inset_0_0_20px_rgba(0,229,153,0.05)] text-neo font-bold"
+                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 border-l-2 border-transparent"
+                        }`}
                     >
                       <Icon size={18} aria-hidden="true" />
                       {section.title}
