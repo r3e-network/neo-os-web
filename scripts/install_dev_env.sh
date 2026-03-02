@@ -109,6 +109,19 @@ install_ego() {
 }
 
 # ============================================================================
+# 3b. Install AWS Nitro Enclaves Tooling
+# ============================================================================
+install_nitro_tools() {
+    log_info "Installing AWS Nitro Enclaves tooling..."
+    if sudo apt-get install -y aws-nitro-enclaves-cli >/dev/null 2>&1; then
+        log_info "aws-nitro-enclaves-cli installed."
+    else
+        log_warn "aws-nitro-enclaves-cli package not found in apt repositories."
+        log_warn "Install Nitro tooling manually per AWS documentation."
+    fi
+}
+
+# ============================================================================
 # 4. Install MarbleRun CLI
 # ============================================================================
 install_marblerun() {
@@ -204,7 +217,7 @@ deploy_marblerun() {
 # ============================================================================
 main() {
     echo "=============================================="
-    echo "  MarbleRun + EGo + Kubernetes Installation"
+    echo "  TEE Dev Environment Installation"
     echo "  Target: Ubuntu 24.04 LTS"
     echo "=============================================="
     echo ""
@@ -215,9 +228,11 @@ main() {
     SKIP_SGX=false
     SKIP_K8S=false
     DEPLOY_MARBLERUN=false
+    BACKEND="sgx"
 
     while [[ $# -gt 0 ]]; do
         case $1 in
+            --backend) BACKEND="${2:-}"; shift 2 ;;
             --skip-sgx) SKIP_SGX=true; shift ;;
             --skip-k8s) SKIP_K8S=true; shift ;;
             --deploy-marblerun) DEPLOY_MARBLERUN=true; shift ;;
@@ -226,6 +241,7 @@ main() {
                 echo "Usage: $0 [OPTIONS]"
                 echo ""
                 echo "Options:"
+                echo "  --backend <sgx|nitro|sim>  Select tooling profile (default: sgx)"
                 echo "  --skip-sgx          Skip Intel SGX SDK installation"
                 echo "  --skip-k8s          Skip Kubernetes (k3s) installation"
                 echo "  --deploy-marblerun  Deploy MarbleRun to Kubernetes after install"
@@ -237,21 +253,39 @@ main() {
         esac
     done
 
+    BACKEND="$(echo "$BACKEND" | tr 'A-Z' 'a-z')"
+    case "$BACKEND" in
+        sgx|nitro|sim) ;;
+        *)
+            log_error "Invalid backend: $BACKEND (expected sgx|nitro|sim)"
+            exit 1
+            ;;
+    esac
+
     # Step 1: Prerequisites
     install_prerequisites
 
     # Step 2: Intel SGX SDK
-    if [ "$SKIP_SGX" = false ]; then
+    if [ "$BACKEND" = "sgx" ] && [ "$SKIP_SGX" = false ]; then
         install_sgx_sdk
     else
         log_info "Skipping SGX SDK installation."
     fi
 
-    # Step 3: EGo Runtime
-    install_ego
+    # Step 3: Backend-specific runtime tooling
+    if [ "$BACKEND" = "sgx" ] || [ "$BACKEND" = "sim" ]; then
+        install_ego
+    fi
+    if [ "$BACKEND" = "nitro" ]; then
+        install_nitro_tools
+    fi
 
-    # Step 4: MarbleRun CLI
-    install_marblerun
+    # Step 4: MarbleRun CLI (SGX/simulation only)
+    if [ "$BACKEND" = "sgx" ] || [ "$BACKEND" = "sim" ]; then
+        install_marblerun
+    else
+        log_info "Skipping MarbleRun CLI installation for Nitro backend."
+    fi
 
     # Step 5: Kubernetes (k3s)
     if [ "$SKIP_K8S" = false ]; then
@@ -262,7 +296,7 @@ main() {
     fi
 
     # Step 6: Deploy MarbleRun (optional)
-    if [ "$DEPLOY_MARBLERUN" = true ] && [ "$SKIP_K8S" = false ]; then
+    if [ "$DEPLOY_MARBLERUN" = true ] && [ "$SKIP_K8S" = false ] && [ "$BACKEND" != "nitro" ]; then
         deploy_marblerun
     fi
 
@@ -272,8 +306,13 @@ main() {
     echo "=============================================="
     echo ""
     log_info "Installed components:"
-    echo "  - EGo runtime (SGX development framework)"
-    echo "  - MarbleRun CLI (confidential computing orchestration)"
+    if [ "$BACKEND" = "sgx" ] || [ "$BACKEND" = "sim" ]; then
+        echo "  - EGo runtime (SGX development framework)"
+        echo "  - MarbleRun CLI (confidential computing orchestration)"
+    fi
+    if [ "$BACKEND" = "nitro" ]; then
+        echo "  - AWS Nitro Enclaves tooling"
+    fi
     if [ "$SKIP_K8S" = false ]; then
         echo "  - k3s (lightweight Kubernetes)"
         echo "  - Helm (Kubernetes package manager)"
@@ -283,7 +322,7 @@ main() {
     echo ""
 
     # Check SGX status
-    if [ ! -e /dev/sgx_enclave ] && [ ! -e /dev/sgx/enclave ]; then
+    if [ "$BACKEND" = "sgx" ] && [ ! -e /dev/sgx_enclave ] && [ ! -e /dev/sgx/enclave ]; then
         log_warn "SGX devices not detected. To enable SGX:"
         echo "  1. Enable SGX in BIOS (Intel Software Guard Extensions)"
         echo "  2. Reboot the system"
@@ -296,9 +335,14 @@ main() {
     log_info "Next steps:"
     echo "  1. source ~/.bashrc"
     echo "  2. kubectl get nodes  # Verify Kubernetes"
-    echo "  3. ego --help         # Verify EGo"
-    echo "  4. marblerun --help   # Verify MarbleRun"
-    if [ "$DEPLOY_MARBLERUN" = false ] && [ "$SKIP_K8S" = false ]; then
+    if [ "$BACKEND" = "sgx" ] || [ "$BACKEND" = "sim" ]; then
+        echo "  3. ego --help         # Verify EGo"
+        echo "  4. marblerun --help   # Verify MarbleRun"
+    fi
+    if [ "$BACKEND" = "nitro" ]; then
+        echo "  3. nitro-cli --help   # Verify Nitro CLI"
+    fi
+    if [ "$DEPLOY_MARBLERUN" = false ] && [ "$SKIP_K8S" = false ] && [ "$BACKEND" != "nitro" ]; then
         echo "  5. marblerun install --simulation  # Deploy MarbleRun (dev mode)"
     fi
 }

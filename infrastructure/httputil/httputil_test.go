@@ -76,7 +76,7 @@ func TestGetUserID_NonProductionAllowsHeaderFallback(t *testing.T) {
 
 func TestGetUserID_StrictModeRequiresVerifiedMTLS(t *testing.T) {
 	t.Setenv("MARBLE_ENV", "development")
-	t.Setenv("OE_SIMULATION", "0")
+	t.Setenv("TEE_STRICT_MODE", "true")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set(serviceauth.UserIDHeader, "user-789")
@@ -109,7 +109,7 @@ func TestGetServiceID_HeaderFallbackNonProduction(t *testing.T) {
 
 func TestGetServiceID_StrictModeRequiresVerifiedMTLS(t *testing.T) {
 	t.Setenv("MARBLE_ENV", "development")
-	t.Setenv("OE_SIMULATION", "0")
+	t.Setenv("TEE_STRICT_MODE", "true")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set(serviceauth.ServiceIDHeader, "gateway")
@@ -376,7 +376,7 @@ func TestRequireAdminRole(t *testing.T) {
 
 func TestGetUserRole_StrictModeRequiresVerifiedMTLS(t *testing.T) {
 	t.Setenv("MARBLE_ENV", "development")
-	t.Setenv("OE_SIMULATION", "0")
+	t.Setenv("TEE_STRICT_MODE", "true")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("X-User-Role", "admin")

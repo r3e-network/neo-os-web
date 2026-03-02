@@ -1,5 +1,5 @@
-// Package marble provides the core Marble SDK for MarbleRun integration.
-// Each service runs as a Marble inside an EGo SGX enclave.
+// Package marble provides the core Marble SDK for confidential runtime integration.
+// Each service runs as a Marble inside a configured TEE backend (Nitro/SGX/simulation).
 package marble
 
 import (
@@ -15,14 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/edgelesssys/ego/attestation"
-	"github.com/edgelesssys/ego/enclave"
-
 	slhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
 )
 
-// Marble represents a MarbleRun Marble instance.
+// Marble represents a confidential service runtime instance.
 // It handles attestation, secrets injection, and secure communication.
 type Marble struct {
 	mu sync.RWMutex
@@ -42,8 +39,9 @@ type Marble struct {
 	// Secrets injected by Coordinator
 	secrets map[string][]byte
 
-	// Enclave report
-	report *attestation.Report
+	// TEE attestation report and provider
+	provider TEEProvider
+	report   *AttestationReport
 
 	// State
 	initialized bool
@@ -62,14 +60,8 @@ func New(cfg Config) (*Marble, error) {
 		secrets:    make(map[string][]byte),
 	}
 
-	// Get enclave self-report for attestation
-	report, err := enclave.GetSelfReport()
-	if err != nil {
-		// Running outside enclave (simulation mode)
-		m.report = nil
-	} else {
-		m.report = &report
-	}
+	m.provider = detectTEEProvider()
+	m.report = detectInitialReport(m.provider)
 
 	return m, nil
 }
@@ -343,11 +335,11 @@ func (m *Marble) UseSecret(name string, fn func([]byte) error) error {
 	return fn(secretCopy)
 }
 
-// Report returns the enclave self-report.
-func (m *Marble) Report() *attestation.Report {
+// Report returns the active TEE attestation report (if available).
+func (m *Marble) Report() *AttestationReport {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.report
+	return m.report.clone()
 }
 
 // UUID returns the Marble's unique identifier.
@@ -362,9 +354,10 @@ func (m *Marble) MarbleType() string {
 	return m.marbleType
 }
 
-// IsEnclave returns true if running inside an SGX enclave.
+// IsEnclave returns true if running inside a non-simulation TEE backend.
+// Kept for backward compatibility.
 func (m *Marble) IsEnclave() bool {
-	return m.report != nil
+	return m.IsTEE()
 }
 
 // zeroBytes securely zeros a byte slice.
@@ -382,10 +375,19 @@ func (m *Marble) SetTestSecret(name string, value []byte) {
 	m.secrets[name] = value
 }
 
-// SetTestReport sets an enclave report for testing purposes only.
+// SetTestReport sets a TEE report for testing purposes only.
 // This method should only be used in tests.
-func (m *Marble) SetTestReport(report *attestation.Report) {
+func (m *Marble) SetTestReport(report *AttestationReport) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.report = report
+	if report == nil {
+		m.provider = TEEProviderSimulation
+		return
+	}
+	if provider := strings.TrimSpace(report.Provider); provider != "" {
+		m.provider = TEEProvider(strings.ToLower(provider))
+	} else {
+		m.provider = TEEProviderSGX
+	}
 }

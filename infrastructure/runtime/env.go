@@ -20,6 +20,15 @@ const (
 	Production  Environment = "production"
 )
 
+// TEEBackend represents the configured confidential-computing backend.
+type TEEBackend string
+
+const (
+	TEESim   TEEBackend = "sim"
+	TEESGX   TEEBackend = "sgx"
+	TEENitro TEEBackend = "nitro"
+)
+
 // ParseEnvironment parses an environment string (case-insensitive) into a known
 // Environment value. It returns ok=false for unknown inputs.
 func ParseEnvironment(raw string) (env Environment, ok bool) {
@@ -54,6 +63,32 @@ func IsProduction() bool  { return Env() == Production }
 func IsDevelopmentOrTesting() bool {
 	env := Env()
 	return env == Development || env == Testing
+}
+
+// Backend returns the configured TEE backend.
+// Priority:
+// 1) TEE_BACKEND (sim|sgx|nitro)
+// 2) Nitro evidence env
+// 3) OE_SIMULATION=0 (legacy SGX signal)
+// 4) simulation
+func Backend() TEEBackend {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("TEE_BACKEND"))) {
+	case "nitro", "aws-nitro", "aws_nitro":
+		return TEENitro
+	case "sgx":
+		return TEESGX
+	case "sim", "simulation", "none", "disabled":
+		return TEESim
+	}
+
+	if strings.TrimSpace(os.Getenv("NITRO_ATTESTATION_DOCUMENT_B64")) != "" {
+		return TEENitro
+	}
+	if strings.TrimSpace(os.Getenv("OE_SIMULATION")) == "0" {
+		return TEESGX
+	}
+
+	return TEESim
 }
 
 // ParseEnvInt returns the integer value of the named environment variable.

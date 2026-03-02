@@ -19,6 +19,8 @@ import (
 const (
 	keyRotationsTable         = "signer_key_rotations"
 	attestationArtifactsTable = "attestation_artifacts"
+	artifactTypeTEEEvidence   = "tee_evidence"
+	artifactTypeLegacyQuote   = "quote"
 )
 
 // =============================================================================
@@ -241,13 +243,14 @@ func (r *repository) StoreAttestation(ctx context.Context, keyVersion string, at
 
 	payload := map[string]any{
 		"service_name":  types.ServiceID,
-		"artifact_type": "quote",
+		"artifact_type": artifactTypeTEEEvidence,
 		"artifact_hash": hashHex,
 		"artifact_data": raw,
 		"public_key":    strings.TrimSpace(att.PubKeyHex),
 		"key_id":        keyVersion,
 		"metadata": map[string]any{
 			"pubkey_hash": strings.TrimSpace(att.PubKeyHash),
+			"provider":    strings.TrimSpace(att.Provider),
 			"simulated":   att.Simulated,
 		},
 	}
@@ -271,7 +274,7 @@ func (r *repository) GetAttestation(ctx context.Context, keyVersion string) (*ty
 	query := database.NewQuery().
 		Eq("service_name", types.ServiceID).
 		Eq("key_id", keyVersion).
-		Eq("artifact_type", "quote").
+		In("artifact_type", []string{artifactTypeTEEEvidence, artifactTypeLegacyQuote}).
 		OrderDesc("created_at").
 		Limit(1).
 		Build()

@@ -19,16 +19,21 @@ import (
 
 // masterBundle pulls /master-key, wraps it, and prints SHA-256(bundle) for on-chain anchoring.
 type masterKeyResponse struct {
-	Hash      string `json:"hash"`
-	PubKey    string `json:"pubkey"`
-	Quote     string `json:"quote"`
-	MRENCLAVE string `json:"mrenclave"`
-	MRSIGNER  string `json:"mrsigner"`
-	ProdID    uint16 `json:"prod_id"`
-	ISVSVN    uint16 `json:"isvsvn"`
-	Timestamp string `json:"timestamp"`
-	Source    string `json:"source"`
-	Simulated bool   `json:"simulated"`
+	Hash           string            `json:"hash"`
+	PubKey         string            `json:"pubkey"`
+	Provider       string            `json:"provider,omitempty"`
+	EvidenceFormat string            `json:"evidence_format,omitempty"`
+	Evidence       string            `json:"evidence,omitempty"`
+	ModuleID       string            `json:"module_id,omitempty"`
+	PCRs           map[string]string `json:"pcrs,omitempty"`
+	Quote          string            `json:"quote,omitempty"` // Deprecated: use Evidence
+	MRENCLAVE      string            `json:"mrenclave,omitempty"`
+	MRSIGNER       string            `json:"mrsigner,omitempty"`
+	ProdID         uint16            `json:"prod_id,omitempty"`
+	ISVSVN         uint16            `json:"isvsvn,omitempty"`
+	Timestamp      string            `json:"timestamp"`
+	Source         string            `json:"source"`
+	Simulated      bool              `json:"simulated"`
 }
 
 func main() {

@@ -11,7 +11,7 @@ import (
 // BaseURLOptions configures NormalizeBaseURL.
 type BaseURLOptions struct {
 	// RequireHTTPSInStrictMode enforces https URLs whenever runtime.StrictIdentityMode()
-	// is enabled (production/SGX/MarbleRun TLS).
+	// is enabled.
 	RequireHTTPSInStrictMode bool
 }
 

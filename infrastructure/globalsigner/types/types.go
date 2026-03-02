@@ -112,7 +112,22 @@ type MasterKeyAttestation struct {
 	// PubKeyHash is SHA-256(pubkey), bound to SGX report data.
 	PubKeyHash string `json:"pubkey_hash"`
 
-	// Quote is the base64-encoded SGX quote.
+	// Provider identifies the TEE backend (e.g. "nitro", "sgx").
+	Provider string `json:"provider,omitempty"`
+
+	// EvidenceFormat identifies the evidence encoding (e.g. "aws_nitro_attestation_document", "sgx_quote").
+	EvidenceFormat string `json:"evidence_format,omitempty"`
+
+	// Evidence is the provider-specific attestation document.
+	Evidence string `json:"evidence,omitempty"`
+
+	// ModuleID is the Nitro module identifier when available.
+	ModuleID string `json:"module_id,omitempty"`
+
+	// PCRs contains Nitro PCR index->value mappings when available.
+	PCRs map[string]string `json:"pcrs,omitempty"`
+
+	// Quote is the base64-encoded SGX quote (deprecated: use Evidence).
 	Quote string `json:"quote,omitempty"`
 
 	// MRENCLAVE is the enclave measurement.
@@ -138,7 +153,7 @@ type MasterKeyAttestation struct {
 type AttestationArtifact struct {
 	ID              int64     `json:"id"`
 	KeyID           string    `json:"key_id"`
-	ArtifactType    string    `json:"artifact_type"` // "sgx_quote", "bundle"
+	ArtifactType    string    `json:"artifact_type"` // "tee_evidence", "quote" (legacy), "bundle"
 	ArtifactData    []byte    `json:"artifact_data"`
 	PubKeyHash      string    `json:"pubkey_hash"`
 	AttestationHash string    `json:"attestation_hash"`

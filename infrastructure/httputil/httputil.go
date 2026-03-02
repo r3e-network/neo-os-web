@@ -282,10 +282,8 @@ func GetUserID(r *http.Request) string {
 		return ""
 	}
 
-	// In production, only trust headers when the request is authenticated over
-	// verified mTLS (i.e., the caller is another Marble). We treat running on SGX
-	// hardware (OE_SIMULATION=0) and MarbleRun-injected TLS credentials as strict
-	// too, so a mis-set MARBLE_ENV cannot silently weaken trust boundaries.
+	// In strict identity mode, only trust headers when the request is authenticated
+	// over verified mTLS (i.e., the caller is another service Marble).
 	if runtime.StrictIdentityMode() && !hasVerifiedMTLS(r) {
 		return ""
 	}
@@ -445,8 +443,8 @@ func serviceIDFromVerifiedMTLS(state *tls.ConnectionState) string {
 }
 
 // GetServiceID returns the authenticated caller service ID.
-// In strict environments (production/SGX/MarbleRun TLS), this is derived from
-// the verified mTLS peer identity to avoid header spoofing.
+// In strict environments, this is derived from the verified mTLS peer identity
+// to avoid header spoofing.
 func GetServiceID(r *http.Request) string {
 	strict := runtime.StrictIdentityMode()
 	if strict {
