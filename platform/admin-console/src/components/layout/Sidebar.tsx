@@ -17,6 +17,7 @@ export function Sidebar() {
   const navigation = [
     { name: t("navigation.dashboard"), href: "/", icon: "📊" },
     { name: t("navigation.services"), href: "/services", icon: "🔧" },
+    { name: t("navigation.simulations"), href: "/simulations", icon: "🤖" },
     { name: t("navigation.miniapps"), href: "/miniapps", icon: "📱" },
     { name: t("navigation.templateStudio"), href: "/templates", icon: "🧱" },
     { name: t("navigation.users"), href: "/users", icon: "👥" },

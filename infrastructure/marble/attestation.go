@@ -57,6 +57,7 @@ func (r *AttestationReport) clone() *AttestationReport {
 	return &out
 }
 
+//nolint:unparam // detectTEEProvider may support more providers in the future
 func detectTEEProvider() TEEProvider {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("TEE_BACKEND"))) {
 	case "nitro", "aws-nitro", "aws_nitro":
@@ -145,7 +146,7 @@ func (m *Marble) IsTEE() bool {
 		// Nitro enclaves expose /dev/nsm.
 		if _, err := os.Stat("/dev/nsm"); err == nil {
 			return true
-		} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		} else if !errors.Is(err, fs.ErrNotExist) {
 			// Be conservative for unusual filesystem errors.
 			return true
 		}
@@ -185,8 +186,7 @@ func (m *Marble) Attest(userData []byte) (*AttestationReport, error) {
 		}
 	}
 
-	switch provider {
-	case TEEProviderNitro:
+	if provider == TEEProviderNitro {
 		if nsmReport, nsmErr := attestNitroWithNSM(normalized); nsmErr == nil && nsmReport != nil {
 			base.Provider = nsmReport.Provider
 			base.Format = nsmReport.Format

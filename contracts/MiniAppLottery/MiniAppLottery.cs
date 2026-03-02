@@ -335,6 +335,12 @@ namespace NeoMiniAppPlatform.Contracts
         /// SECURITY: Only admin can register.
         /// CORRECTNESS: AutomationAnchor must be set first.
         /// </summary>
+        public static UInt160 AutomationAnchor()
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR);
+            return data == null ? UInt160.Zero : (UInt160)data;
+        }
+
         public static BigInteger RegisterAutomation(string triggerType, string schedule)
         {
             ValidateAdmin();

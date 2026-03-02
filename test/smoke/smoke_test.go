@@ -271,6 +271,7 @@ func TestEndpointResponsivenessSmoke(t *testing.T) {
 
 // TestNeoOracleSmoke performs basic smoke tests on the NeoOracle service.
 func TestNeoOracleSmoke(t *testing.T) {
+	t.Setenv("ORACLE_HTTP_ALLOWLIST", "*")
 	t.Run("service creates successfully", func(t *testing.T) {
 		m, err := marble.New(marble.Config{MarbleType: "neooracle"})
 		if err != nil {

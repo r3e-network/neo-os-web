@@ -13,6 +13,7 @@ import (
 // newTestVRF returns a VRF service with ephemeral signing key for testing.
 func newTestVRF(t *testing.T) *Service {
 	t.Helper()
+	t.Setenv("TEE_BACKEND", "simulation")
 	m, _ := marble.New(marble.Config{MarbleType: "neovrf"})
 	svc, err := New(Config{Marble: m})
 	if err != nil {
