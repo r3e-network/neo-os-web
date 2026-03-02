@@ -13,7 +13,7 @@ import (
 // - MARBLE_ENV=production
 // - STRICT_IDENTITY_MODE=true or TEE_STRICT_MODE=true
 // - Marble TLS credentials are injected (MARBLE_CERT/MARBLE_KEY/MARBLE_ROOT_CA)
-// - STRICT_IDENTITY_ON_TEE=true and backend is nitro
+// - STRICT_IDENTITY_ON_TEE=true (nitro-only runtime)
 func StrictIdentityMode() bool {
 	env := Env()
 	if env == Production {
@@ -31,5 +31,5 @@ func StrictIdentityMode() bool {
 		return true
 	}
 
-	return ParseEnvBoolKey("STRICT_IDENTITY_ON_TEE") && Backend() != TEESim
+	return ParseEnvBoolKey("STRICT_IDENTITY_ON_TEE")
 }

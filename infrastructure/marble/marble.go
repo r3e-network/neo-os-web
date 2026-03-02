@@ -380,14 +380,12 @@ func (m *Marble) SetTestSecret(name string, value []byte) {
 func (m *Marble) SetTestReport(report *AttestationReport) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.report = report
+	m.provider = TEEProviderNitro
 	if report == nil {
-		m.provider = TEEProviderSimulation
+		m.report = nil
 		return
 	}
-	if provider := strings.TrimSpace(report.Provider); provider != "" {
-		m.provider = TEEProvider(strings.ToLower(provider))
-	} else {
-		m.provider = TEEProviderNitro
-	}
+	cloned := report.clone()
+	cloned.Provider = string(TEEProviderNitro)
+	m.report = cloned
 }

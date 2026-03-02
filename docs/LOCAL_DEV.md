@@ -394,7 +394,7 @@ Edit the following files to customize your setup:
 
 - `k8s/namespaces.yaml`: Add/modify namespaces
 - `k8s/ingress/wildcard-cert.yaml`: Add more DNS names
-- `k8s/marblerun/overlays/simulation/coordinator.yaml`: Adjust coordinator resources
+- `k8s/marblerun/overlays/nitro/coordinator.yaml`: Adjust coordinator resources
 - `scripts/k3s-local-setup.sh`: Modify installation steps
 
 ## Development Workflow

@@ -136,7 +136,7 @@ func TestHandleAttestationSuccess(t *testing.T) {
 		t.Error("expected non-empty key version")
 	}
 	if !resp.Simulated {
-		t.Error("expected simulated=true in test mode")
+		t.Error("expected simulated=true when running outside enclave in tests")
 	}
 }
 
