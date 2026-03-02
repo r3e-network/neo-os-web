@@ -15,6 +15,7 @@
     "@auth0/nextjs-auth0": "^3.8.0",
     "@aws-sdk/client-s3": "^3.995.0",
     "@aws-sdk/s3-request-presigner": "^3.995.0",
+    "@cityofzion/neon-js": "^5.8.1",
     "@module-federation/nextjs-mf": "^8.1.0",
     "@sendgrid/mail": "^8.1.6",
     "@supabase/supabase-js": "^2.89.0",
@@ -36,6 +37,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.6.0",
+    "resend": "^6.9.3",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^3.4.0",
     "zustand": "^5.0.9"
