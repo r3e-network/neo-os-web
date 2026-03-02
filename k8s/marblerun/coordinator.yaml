@@ -1,11 +1,6 @@
 # =============================================================================
-# MarbleRun Coordinator Deployment for SGX Hardware
+# MarbleRun Coordinator Deployment (Nitro-oriented)
 # =============================================================================
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: marblerun
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -56,17 +51,11 @@ spec:
               value: "coordinator,coordinator.marblerun,coordinator.marblerun.svc.cluster.local,localhost"
             - name: EDG_COORDINATOR_SEAL_DIR
               value: "/coordinator/data"
-            - name: OE_SIMULATION
-              value: "0"
+            - name: TEE_BACKEND
+              value: "nitro"
           volumeMounts:
             - name: coordinator-data
               mountPath: /coordinator/data
-            - name: aesmd-socket
-              mountPath: /var/run/aesmd
-            - name: qcnl-config
-              mountPath: /etc/sgx_default_qcnl.conf
-              subPath: sgx_default_qcnl.conf
-              readOnly: true
           resources:
             requests:
               memory: "512Mi"
@@ -74,8 +63,6 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1000m"
-              sgx.intel.com/enclave: "1"
-              sgx.intel.com/provision: "1"
           readinessProbe:
             httpGet:
               path: /metrics
@@ -98,13 +85,6 @@ spec:
         - name: coordinator-data
           persistentVolumeClaim:
             claimName: coordinator-pvc
-        - name: aesmd-socket
-          hostPath:
-            path: /var/run/aesmd
-            type: Directory
-        - name: qcnl-config
-          configMap:
-            name: sgx-qcnl-config
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

@@ -40,60 +40,28 @@ WARNING_PATTERNS=(
     "workaround"
 )
 
-check_enclave_signing_key() {
-    local strict_signing="${EGO_STRICT_SIGNING:-1}"
-    local key_file="${EGO_PRIVATE_KEY_FILE:-$PROJECT_ROOT/private.pem}"
-
-    if [[ "$key_file" != /* ]]; then
-        key_file="$PROJECT_ROOT/$key_file"
-    fi
-
-    echo -e "${BLUE}=== Checking enclave signing key (strict mode) ===${NC}"
+check_nitro_attestation_config() {
+    echo -e "${BLUE}=== Checking Nitro attestation configuration ===${NC}"
     echo ""
 
-    if [[ "$strict_signing" != "1" ]]; then
-        echo -e "${YELLOW}[warning] EGO_STRICT_SIGNING=${strict_signing}; strict enclave signing is disabled${NC}"
+    if [[ -z "${NITRO_ATTESTATION_DOCUMENT_B64:-}" ]]; then
+        echo -e "${YELLOW}[warning] NITRO_ATTESTATION_DOCUMENT_B64 is not set in current environment${NC}"
+        echo "  Set this variable in production runtime to enable attestation verification."
         WARNINGS_FOUND=$((WARNINGS_FOUND + 1))
         echo ""
         return
     fi
 
-    if [[ ! -f "$key_file" ]]; then
-        echo -e "${RED}[critical] missing enclave signing key file: ${key_file}${NC}"
-        echo "  Provide a real key via ./scripts/up.sh --signing-key /path/to/private.pem"
+    if "$PROJECT_ROOT/scripts/check_enclave_signing_key.sh" --backend nitro >/dev/null 2>&1; then
+        echo -e "${GREEN}Nitro attestation configuration is valid.${NC}"
         echo ""
-        ISSUES_FOUND=$((ISSUES_FOUND + 1))
         return
     fi
 
-    if ! openssl pkey -in "$key_file" -noout >/dev/null 2>&1; then
-        echo -e "${RED}[critical] invalid enclave signing key in ${key_file}${NC}"
-        echo "  This file is likely a placeholder and SGX image builds will fail."
-        echo "  Use ./scripts/up.sh --signing-key /path/to/private.pem or --signing-key-dir /path/to/keys"
-        echo ""
-        ISSUES_FOUND=$((ISSUES_FOUND + 1))
-        return
-    fi
-
-    local key_meta
-    key_meta="$(openssl rsa -in "$key_file" -text -noout 2>/dev/null || true)"
-    if ! grep -q "Private-Key: (3072 bit" <<<"$key_meta"; then
-        echo -e "${RED}[critical] invalid enclave signing key size in ${key_file}${NC}"
-        echo "  SGX signing requires RSA-3072."
-        echo ""
-        ISSUES_FOUND=$((ISSUES_FOUND + 1))
-        return
-    fi
-    if ! grep -q "publicExponent: 3 (0x3)" <<<"$key_meta"; then
-        echo -e "${RED}[critical] invalid enclave signing key exponent in ${key_file}${NC}"
-        echo "  SGX signing requires publicExponent=3."
-        echo ""
-        ISSUES_FOUND=$((ISSUES_FOUND + 1))
-        return
-    fi
-
-    echo -e "${GREEN}Valid enclave signing key detected: ${key_file}${NC}"
+    echo -e "${RED}[critical] Nitro attestation configuration is invalid${NC}"
+    echo "  Ensure NITRO_ATTESTATION_DOCUMENT_B64 is present and valid base64."
     echo ""
+    ISSUES_FOUND=$((ISSUES_FOUND + 1))
 }
 
 check_pattern() {
@@ -186,7 +154,7 @@ for pattern in "${WARNING_PATTERNS[@]}"; do
     check_pattern "$pattern" "warning"
 done
 
-check_enclave_signing_key
+check_nitro_attestation_config
 
 echo "========================================"
 echo "  Summary"

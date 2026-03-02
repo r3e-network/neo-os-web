@@ -33,7 +33,7 @@ The Service Layer is a TEE-based (Trusted Execution Environment) platform for Ne
 - **Backend**: Go 1.21+
 - **Smart Contracts**: C# (Neo N3)
 - **Frontend**: TypeScript, React
-- **TEE**: MarbleRun (EGo framework)
+- **TEE**: MarbleRun with Nitro-oriented runtime integration
 - **Database**: Supabase (PostgreSQL)
 - **Blockchain**: Neo N3
 
@@ -424,9 +424,9 @@ platform/sdk/src/
 
 ```
 docker/
-├── docker-compose.simulation.yaml  # Simulation environment
-├── docker-compose.yaml             # Production environment
-└── Dockerfile.service              # Service container build
+├── docker-compose.simulation.yaml  # Base local stack
+├── docker-compose.nitro.yaml       # Nitro overrides
+└── Dockerfile.service.nitro        # Service container build
 ```
 
 **Review Focus**:
@@ -447,7 +447,7 @@ manifests/
 
 **Review Focus**:
 
-1. Package signer verification
+1. Attestation configuration correctness
 2. Secret provisioning
 3. Environment variable injection
 4. TCB status acceptance policy

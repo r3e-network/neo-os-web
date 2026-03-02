@@ -89,9 +89,9 @@ k8s/
 │   ├── kustomization.yaml
 │   └── services-deployment.yaml
 └── overlays/
-    ├── simulation/          # 模拟环境 (无 SGX)
+    ├── simulation/          # 开发环境 (Nitro 配置)
     │   └── kustomization.yaml
-    └── production/          # 生产环境 (SGX 硬件)
+    └── production/          # 生产环境 (Nitro 配置)
         └── kustomization.yaml
 ```
 
@@ -113,7 +113,7 @@ patchesStrategicMerge:
 bases:
   - ../../base
 patchesStrategicMerge:
-  - sgx-patch.yaml # 启用 SGX 资源
+  - nitro-patch.yaml # 启用 Nitro 资源配置
   - resource-patch.yaml # 生产资源配置
   - networkpolicy.yaml # 网络策略
 ```

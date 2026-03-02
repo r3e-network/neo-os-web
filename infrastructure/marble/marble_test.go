@@ -47,8 +47,8 @@ func TestMarbleType(t *testing.T) {
 func TestMarbleIsEnclave(t *testing.T) {
 	m, _ := New(Config{MarbleType: "test"})
 
-	// Outside enclave, report should be nil
-	// This test runs outside SGX, so IsEnclave should return false
+	// Outside enclave, report should be nil.
+	// This test runs outside Nitro enclaves, so IsEnclave should return false.
 	if m.IsEnclave() {
 		t.Log("Running inside enclave (unexpected in test environment)")
 	} else {

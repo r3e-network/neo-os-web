@@ -392,7 +392,7 @@ func RequireServiceAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Derive the caller identity from verified mTLS in strict mode, falling back
 		// to service-auth context / headers in development. This avoids trusting
-		// spoofable headers in production/SGX environments.
+		// spoofable headers in strict production/Nitro-oriented environments.
 		serviceID := internalhttputil.GetServiceID(r)
 		if serviceID == "" {
 			internalhttputil.WriteErrorResponse(w, r, http.StatusUnauthorized, "AUTH_REQUIRED", "service authentication required", nil)

@@ -178,7 +178,7 @@ GasBank has a split architecture where user-facing read operations go through Ed
                     ▼                               ▼
 ┌─────────────────────────────┐     ┌─────────────────────────────────┐
 │     Edge Functions          │     │      TEE Service (neogasbank)   │
-│  (Supabase Edge Runtime)    │     │      (MarbleRun SGX Enclave)    │
+│  (Supabase Edge Runtime)    │     │      (MarbleRun TEE Enclave)    │
 ├─────────────────────────────┤     ├─────────────────────────────────┤
 │ /gasbank-account   (GET)    │     │ /deduct   (POST, mTLS)          │
 │ /gasbank-deposits  (GET)    │     │ /reserve  (POST, mTLS)          │

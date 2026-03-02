@@ -15,7 +15,7 @@ For end-to-end flow details, see `docs/WORKFLOWS.md` and `docs/DATAFLOWS.md`.
 
 - **Settlement**: GAS only (PaymentHub rejects all other assets).
 - **Governance**: bNEO only (Governance rejects all other assets).
-- **Confidentiality**: MarbleRun + EGo enclaves for sensitive services.
+- **Confidentiality**: MarbleRun + Nitro-oriented enclaves for sensitive services.
 - **Gateway**: Supabase Edge Functions (Auth + routing + RLS).
 - **Dev stack**: k3s + local Supabase for development.
 
@@ -97,7 +97,7 @@ Enclave services should not implement login/registration flows.
 
 ### Strict Identity Mode
 
-In production/SGX mode, internal services only trust identity headers over verified
+In strict production mode, internal services only trust identity headers over verified
 mTLS. This is enforced by `infrastructure/runtime.StrictIdentityMode()` and
 `infrastructure/middleware`.
 
@@ -259,7 +259,7 @@ Each service follows the same internal pattern:
 Platform contracts live under `contracts/` and are written by the enclave-managed
 signer (Updater pattern) when needed.
 
-## EGo Boundary (What belongs in the enclave)
+## Nitro Runtime Boundary (What belongs in the enclave)
 
 Keep enclave code focused on operations that need:
 

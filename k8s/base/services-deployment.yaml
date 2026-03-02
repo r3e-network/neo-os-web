@@ -8,7 +8,6 @@ metadata:
   namespace: service-layer
   labels:
     app: neofeeds
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -18,7 +17,6 @@ spec:
     metadata:
       labels:
         app: neofeeds
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -28,9 +26,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -60,6 +55,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -156,11 +156,6 @@ spec:
               name: service-layer-config
               key: ARBITRUM_RPC
               optional: true
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY
           valueFrom:
             configMapKeyRef:
@@ -225,10 +220,6 @@ spec:
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -276,7 +267,6 @@ metadata:
   namespace: service-layer
   labels:
     app: neoflow
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -286,7 +276,6 @@ spec:
     metadata:
       labels:
         app: neoflow
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -296,9 +285,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -328,6 +314,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -411,11 +402,6 @@ spec:
               name: service-layer-config
               key: GASBANK_URL
               optional: true
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS
           valueFrom:
             configMapKeyRef:
@@ -437,10 +423,6 @@ spec:
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -488,7 +470,6 @@ metadata:
   namespace: service-layer
   labels:
     app: neoaccounts
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -498,7 +479,6 @@ spec:
     metadata:
       labels:
         app: neoaccounts
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -508,9 +488,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -540,6 +517,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -596,11 +578,6 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "neoaccounts"
         - name: POOL_MASTER_KEY
@@ -623,10 +600,6 @@ spec:
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -674,7 +647,6 @@ metadata:
   namespace: service-layer
   labels:
     app: neocompute
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -684,7 +656,6 @@ spec:
     metadata:
       labels:
         app: neocompute
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -694,9 +665,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -726,6 +694,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -782,11 +755,6 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "neocompute"
         - name: GLOBALSIGNER_SERVICE_URL
@@ -809,10 +777,6 @@ spec:
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -860,7 +824,6 @@ metadata:
   namespace: service-layer
   labels:
     app: neovrf
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -870,7 +833,6 @@ spec:
     metadata:
       labels:
         app: neovrf
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -880,9 +842,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -912,6 +871,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -968,11 +932,6 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "neovrf"
         - name: GLOBALSIGNER_SERVICE_URL
@@ -983,10 +942,6 @@ spec:
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1034,7 +989,6 @@ metadata:
   namespace: service-layer
   labels:
     app: neooracle
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -1044,7 +998,6 @@ spec:
     metadata:
       labels:
         app: neooracle
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -1054,9 +1007,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -1086,6 +1036,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -1142,11 +1097,6 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "neooracle"
         - name: GLOBALSIGNER_SERVICE_URL
@@ -1180,10 +1130,6 @@ spec:
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1231,7 +1177,6 @@ metadata:
   namespace: service-layer
   labels:
     app: neorequests
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -1241,7 +1186,6 @@ spec:
     metadata:
       labels:
         app: neorequests
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -1251,9 +1195,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -1283,6 +1224,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -1405,11 +1351,6 @@ spec:
               name: service-layer-config
               key: TXPROXY_TIMEOUT
               optional: true
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: NEOREQUESTS_ONCHAIN_USAGE
           valueFrom:
             configMapKeyRef:
@@ -1439,10 +1380,6 @@ spec:
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1490,7 +1427,6 @@ metadata:
   namespace: service-layer
   labels:
     app: txproxy
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -1500,7 +1436,6 @@ spec:
     metadata:
       labels:
         app: txproxy
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -1510,9 +1445,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -1542,6 +1474,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -1639,20 +1576,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: GLOBALSIGNER_SERVICE_URL
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "txproxy"
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1700,7 +1628,6 @@ metadata:
   namespace: service-layer
   labels:
     app: globalsigner
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -1710,7 +1637,6 @@ spec:
     metadata:
       labels:
         app: globalsigner
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -1720,9 +1646,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -1752,6 +1675,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -1804,11 +1732,6 @@ spec:
               name: service-layer-secrets
               key: GLOBALSIGNER_MASTER_SEED
               optional: true
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "globalsigner"
         - name: GLOBALSIGNER_DOMAIN_ALLOWLIST
@@ -1838,10 +1761,6 @@ spec:
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1889,7 +1808,6 @@ metadata:
   namespace: service-layer
   labels:
     app: neogasbank
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -1899,7 +1817,6 @@ spec:
     metadata:
       labels:
         app: neogasbank
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -1909,9 +1826,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -1941,6 +1855,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -2045,20 +1964,11 @@ spec:
               name: service-layer-config
               key: SIMULATION_WORKERS_PER_APP
               optional: true
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "neogasbank"
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:
@@ -2106,7 +2016,6 @@ metadata:
   namespace: service-layer
   labels:
     app: neosimulation
-    marblerun/inject: "true"
 spec:
   replicas: 1
   selector:
@@ -2116,7 +2025,6 @@ spec:
     metadata:
       labels:
         app: neosimulation
-        marblerun/inject: "true"
     spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
@@ -2126,9 +2034,6 @@ spec:
       volumes:
       - name: marble-data
         emptyDir: {}
-      - name: qcnl-config
-        configMap:
-          name: sgx-qcnl-config
       - name: tmp
         emptyDir: {}
       containers:
@@ -2158,6 +2063,11 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: MARBLE_ENV
+        - name: TEE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: service-layer-config
+              key: TEE_BACKEND
         - name: MARBLE_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
@@ -2237,20 +2147,11 @@ spec:
               name: service-layer-config
               key: NEOACCOUNTS_SERVICE_URL
               optional: true
-        - name: OE_SIMULATION
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: OE_SIMULATION
         - name: SERVICE_TYPE
           value: "neosimulation"
         volumeMounts:
         - name: marble-data
           mountPath: /marble
-        - name: qcnl-config
-          mountPath: /etc/sgx_default_qcnl.conf
-          subPath: sgx_default_qcnl.conf
-          readOnly: true
         - name: tmp
           mountPath: /tmp
         resources:

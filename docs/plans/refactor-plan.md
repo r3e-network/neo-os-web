@@ -10,7 +10,7 @@ Cross-validated findings marked with [XV] — independently discovered by multip
 - **Action**: Add `defer crypto.ZeroBytes(keyBytes)` and `defer crypto.ZeroBytes(dBytes)` after every key derivation. Also zeroize hex string intermediates.
 - **Pattern**: Lines 158, 242, 347, 490, 610, 754 — all follow same pattern.
 
-### 1.2 SGX Manifest TCB Hardening
+### 1.2 Nitro Manifest TCB Hardening
 - **File**: `manifests/manifest-dev.json`
 - **Action**: Create `manifests/manifest-prod.json` with only `UpToDate` and `SWHardeningNeeded`. Keep dev manifest as-is but add warning comment.
 
@@ -30,7 +30,7 @@ Cross-validated findings marked with [XV] — independently discovered by multip
 - **Files**: 40+ occurrences across all `handlers.go` files
 - **Action**: Replace all `httputil.InternalError(w, err.Error())` with `httputil.InternalError(w, "internal error")`. Log real error server-side.
 
-## Phase 2: Memory Critical (SGX 512MB Heap)
+## Phase 2: Memory Critical (Nitro 512MB Heap)
 
 ### 2.1 [XV] Rate Limiter Bounded Eviction
 - **File**: `infrastructure/middleware/ratelimit.go`

@@ -6,7 +6,7 @@ usage() {
 Usage: ./scripts/up_nitro.sh [--no-build] [--env-file PATH | --no-env-file]
 
 Starts the local stack with Nitro-compatible service images by composing:
-  - docker/docker-compose.simulation.yaml (shared service baseline)
+  - docker/docker-compose.simulation.yaml (shared base service stack)
   - docker/docker-compose.nitro.yaml
 
 Options:
@@ -78,7 +78,7 @@ export TEE_BACKEND="${TEE_BACKEND:-nitro}"
 
 echo "Starting Nitro stack with TEE_BACKEND=${TEE_BACKEND}"
 echo "Compose files:"
-echo "  - docker/docker-compose.simulation.yaml"
+echo "  - docker/docker-compose.simulation.yaml (base stack)"
 echo "  - docker/docker-compose.nitro.yaml"
 
 up_args=(up -d)

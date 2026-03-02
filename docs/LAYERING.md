@@ -3,7 +3,7 @@
 This repo is intentionally split into three layers:
 
 1. **Infrastructure**: reusable building blocks (storage, networking, chain I/O, runtime, auth primitives).
-2. **Services**: product services that implement off-chain logic (typically running inside EGo/SGX).
+2. **Services**: product services that implement off-chain logic (typically running inside Nitro-oriented TEE runtime).
 3. **Dapps**: frontends and app integrations that consume the gateway + services.
 
 The goal is **one module = one responsibility**, with **no duplicated chain I/O** or HTTP middleware across services.
@@ -20,7 +20,7 @@ The goal is **one module = one responsibility**, with **no duplicated chain I/O*
 ### `infrastructure/` (shared building blocks)
 
 - `infrastructure/database`: Supabase/PostgREST client + generic repository helpers (**storage**).
-- `infrastructure/marble`: MarbleRun/EGo integration (**execution engine + enclave runtime glue**).
+- `infrastructure/marble`: MarbleRun/Nitro runtime integration (**execution engine + enclave runtime glue**).
 - `infrastructure/middleware`: HTTP middleware used everywhere (**middleware only lives here**).
 - `infrastructure/runtime`: environment/identity strictness helpers (**runtime**).
 - `infrastructure/chain`: Neo N3 RPC, tx building/submission, event monitoring, contract invocation (**chain module**).
@@ -58,9 +58,9 @@ contracts live under `contracts/` and are written by the enclave-managed signer
 User-facing host app consuming Supabase Edge + services. This should not contain
 service-layer business logic.
 
-## EGo / SGX Boundary (What runs where)
+## Nitro Runtime Boundary (What runs where)
 
-### Inside EGo (enclave)
+### Inside TEE Runtime (enclave)
 
 Keep enclave code focused on sensitive operations and verifiable execution:
 
@@ -75,7 +75,7 @@ In code, this is primarily:
 - `infrastructure/marble`
 - `cmd/marble`
 
-### Outside EGo (non-enclave)
+### Outside TEE Runtime (non-enclave)
 
 Keep non-enclave code focused on user/product workflow and “web2 plumbing”:
 

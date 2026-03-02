@@ -6,7 +6,7 @@ constraints:
 
 - **Settlement:** **GAS only** (payments/settlement must reject other assets)
 - **Governance:** **bNEO only** (voting/staking)
-- **Confidential services:** **MarbleRun + EGo (SGX TEE)** with attested TLS
+- **Confidential services:** **MarbleRun + Nitro runtime (Nitro TEE)** with attested TLS
 - **Gateway/Data:** **Supabase** (Auth + Postgres + RLS + Edge Functions)
 - **Frontend host:** **Vercel + Next.js** + micro‑frontends
 - **Platform engine:** **Indexer + analytics + notifications**
@@ -45,8 +45,8 @@ For the expanded Chinese spec, see:
 
 ### B. Service Layer (Confidential Computing)
 
-- **Hardware:** Intel SGX nodes (or simulation for dev)
-- **Enclave runtime:** **EGo** (Go inside enclaves)
+- **Hardware:** AWS Nitro nodes (or simulation for dev)
+- **Enclave runtime:** **Nitro runtime** (Go inside enclaves)
 - **Orchestration:** **MarbleRun** (attestation, secrets distribution, scaling)
 - **Language:** **Go**
 - **Networking:** REST (or gRPC) over attested TLS
@@ -98,7 +98,7 @@ neo-miniapp-platform/
 │   ├── AutomationAnchor/       # Task registry + anti-replay nonce
 │   └── ServiceLayerGateway/    # On-chain service requests + callbacks
 │
-├── services/                   # [Go] EGo + MarbleRun TEE services
+├── services/                   # [Go] Nitro runtime + MarbleRun TEE services
 │   ├── datafeed-service/       # Price aggregation + publish policy
 │   ├── oracle-gateway/         # Allowlisted HTTP fetch + secret injection
 │   ├── vrf-service/            # Verifiable randomness generation

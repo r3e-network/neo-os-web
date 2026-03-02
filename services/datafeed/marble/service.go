@@ -157,7 +157,7 @@ func New(cfg Config) (*Service, error) {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	// In production/SGX mode, enforce TLS for all outbound price sources.
+	// In strict production mode, enforce TLS for all outbound price sources.
 	if strict {
 		for i := range feedsConfig.Sources {
 			src := &feedsConfig.Sources[i]

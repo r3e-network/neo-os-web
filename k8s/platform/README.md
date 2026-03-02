@@ -17,7 +17,7 @@
 **交付物**:
 
 - `scripts/k3s-install.sh` - 幂等安装脚本
-- Intel SGX device plugin 配置
+- Nitro 运行时配置
 - Namespace 创建: apps, platform, monitoring
 - ResourceQuota 配置
 - 安装验证脚本
@@ -26,7 +26,7 @@
 
 - [x] k3s 安装脚本幂等可重复执行
 - [x] kubectl 可访问集群，节点状态 Ready
-- [x] 配置 Intel SGX device plugin
+- [x] 配置 Nitro 运行时策略
 - [x] 设置适当的资源限制和 QoS 类
 - [x] 文档记录单 VM 资源分配策略
 
@@ -301,8 +301,8 @@ kubectl get nodes -o wide
 kubectl get namespace
 kubectl get resourcequota -A
 
-# SGX Device Plugin
-kubectl get daemonset intel-sgx-plugin -n kube-system
+# Nitro Runtime Check
+kubectl get nodes -o wide
 ```
 
 ### 证书管理

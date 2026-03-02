@@ -6,7 +6,6 @@ namespace: service-layer
 resources:
   - namespace.yaml
   - configmap.yaml
-  - sgx-qcnl-configmap.yaml
   - services-deployment.yaml
 
 labels:

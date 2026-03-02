@@ -4,7 +4,7 @@ kind: Kustomization
 namespace: service-layer
 
 resources:
-  - ../../base
+  - ../nitro
 
 # Local dev/test images are built/imported with the `:test` tag.
 images:
@@ -27,15 +27,12 @@ images:
   - name: service-layer/globalsigner
     newTag: test
 
-# Dev overlay: OE simulation mode, local Supabase, test contract hashes.
+# Dev overlay: local Supabase, test contract hashes.
 patches:
   - target:
       kind: ConfigMap
       name: service-layer-config
     patch: |-
-      - op: replace
-        path: /data/OE_SIMULATION
-        value: "1"
       - op: replace
         path: /data/MARBLE_ENV
         value: "testing"

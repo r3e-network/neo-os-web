@@ -9,7 +9,7 @@ strictly enforced.
 >
 > - **Settlement:** **GAS Only** (PaymentHub rejects all other assets).
 > - **Governance:** **bNEO Only** (Voting/Staking).
-> - **Confidentiality:** Service layer via **MarbleRun + EGo (SGX TEE)**.
+> - **Confidentiality:** Service layer via **MarbleRun + Nitro runtime (Nitro TEE)**.
 > - **Gateway:** **Supabase** (Auth, DB, Edge).
 > - **Frontend:** **Vercel** + **Next.js** + **Micro-frontends**.
 > - **High-Freq Data:** **Datafeed** (Push on ≥0.1% deviation).
@@ -34,8 +34,8 @@ strictly enforced.
 
 ### B. Service Layer (Confidential Computing)
 
-- **Hardware Requirement:** Intel SGX-enabled servers (Azure Confidential Computing or bare metal).
-- **Enclave Runtime:** **EGo** (Go).
+- **Hardware Requirement:** AWS Nitro-enabled servers (Azure Confidential Computing or bare metal).
+- **Enclave Runtime:** **Nitro runtime** (Go).
 - **Orchestration:** **MarbleRun**.
 - **Service Language:** **Go**.
 - **Networking:** gRPC or REST (attested TLS).
@@ -84,7 +84,7 @@ neo-miniapp-platform/
 │   ├── AutomationAnchor/       # Logic: Task registry
 │   └── ServiceLayerGateway/    # Logic: Service request + callback router
 │
-├── services/                   # [Go] EGo + MarbleRun TEE Services
+├── services/                   # [Go] Nitro runtime + MarbleRun TEE Services
 │   ├── datafeed/               # High-freq polling, threshold logic
 │   ├── conforacle/             # Confidential oracle fetcher
 │   ├── vrf/                    # Verifiable randomness generation
@@ -137,7 +137,7 @@ neo-miniapp-platform/
 
 ### B. TEE Services (The "Black Box")
 
-All services run inside EGo enclaves. Keys **never** leave the enclave.
+All services run inside Nitro runtime enclaves. Keys **never** leave the enclave.
 
 1. **txproxy**
     - Holds platform signing key(s).
@@ -248,5 +248,5 @@ interface MiniAppSDK {
 
 1. Infra setup (neo-express, Supabase, CI).
 2. Deploy PaymentHub + AppRegistry + ServiceLayerGateway to local chain.
-3. TEE skeleton (EGo hello world, txproxy, requests).
+3. TEE skeleton (Nitro runtime hello world, txproxy, requests).
 4. End-to-end `payGAS` + on-chain service request callbacks with a built-in MiniApp.

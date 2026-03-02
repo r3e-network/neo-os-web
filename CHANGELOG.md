@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated documentation for the current Supabase Edge + platform-contract architecture
 - Standardized chain writes through `txproxy` with contract+method allowlisting
-- Hardened outbound request policies (URL allowlists, SSRF mitigations) in strict identity/SGX mode
+- Hardened outbound request policies (URL allowlists, SSRF mitigations) in strict identity/Nitro mode
 
 ### Removed
 
@@ -42,23 +42,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Added strict identity/SGX-mode safeguards and safer defaults for internal services
+- Added strict identity/Nitro mode safeguards and safer defaults for internal services
 
 ## [0.1.0] - 2024-12-10
 
 ### Added
 
-- Initial release with MarbleRun + EGo + Supabase + Vercel architecture
+- Initial release with MarbleRun + Nitro runtime + Supabase + Vercel architecture
 - 9 core services: Gateway, NeoRand (VRF), NeoVault, NeoOracle, NeoFlow, NeoAccounts (AccountPool), NeoCompute, NeoStore (Secrets), NeoFeeds
 - Neo N3 smart contracts for service integration
-- TEE protection with MarbleRun/EGo
+- TEE protection with MarbleRun/Nitro runtime
 - Remote attestation via MarbleRun
 - Multi-tenant database with Row Level Security
 - Deterministic Shared Seed Privacy NeoVault (v4.1)
 
 ### Security
 
-- All services run inside EGo MarbleRun TEE
+- All services run inside Nitro runtime MarbleRun TEE
 - Secrets never leave the TEE
 - TLS termination inside TEE
 - ECDSA secp256r1 (Neo N3 compatible)
