@@ -25,7 +25,7 @@ Neo Service Layer 是一个基于可信执行环境 (TEE) 的生产级服务平�
 
 | 组件         | 技术                  | 用途                           |
 | ------------ | --------------------- | ------------------------------ |
-| **机密计算** | MarbleRun + EGo       | MarbleRun TEE 编排和 Go 运行时 |
+| **机密计算** | MarbleRun + Nitro runtime       | MarbleRun TEE 编排和 Go 运行时 |
 | **数据库**   | Supabase (PostgreSQL) | 持久化存储 + RLS 安全策略      |
 | **前端托管** | Vercel                | 静态站点部署 + CDN             |
 | **编程语言** | Go 1.24+              | 后端服务实现                   |
@@ -103,12 +103,12 @@ Neo Service Layer 是一个基于可信执行环境 (TEE) 的生产级服务平�
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 MarbleRun + EGo 集成
+### 2.2 MarbleRun + Nitro runtime 集成
 
 #### 2.2.1 Marble 生命周期
 
 ```
-1. Marble 在 EGo TEE 内启动
+1. Marble 在 Nitro runtime TEE 内启动
          │
          ▼
 2. Marble 生成远程证明报告 (attestation quote)
@@ -383,7 +383,7 @@ Response:
 NeoVault 服务在 Neo N3 账户模型下提供一种 **隐私增强的资产流转方式**，通过：
 
 - 由 TEE 控制的一组 **HD 派生池地址** 作为中转和混淆节点
-- 链下混币逻辑运行在 TEE（EGo + MarbleRun）中
+- 链下混币逻辑运行在 TEE（Nitro runtime + MarbleRun）中
 - **用户直接给池地址转账**，而不是先通过链上 NeoVault 合约请求
 - 使用 **请求哈希 (request hash) + TEE 签名** 为每次混币建立可审计凭证
 - 在正常路径下尽量提供隐私混淆
@@ -902,13 +902,13 @@ MarbleRun Coordinator
 
 ## 6. 数据流程
 
-### 6.0 核心架构：MarbleRun + EGo + Supabase + Neo N3 区块链
+### 6.0 核心架构：MarbleRun + Nitro runtime + Supabase + Neo N3 区块链
 
 本平台基于四大核心技术构建完整的可信计算数据流：
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│              完整架构：MarbleRun + EGo + Supabase + Neo N3 Blockchain                 │
+│              完整架构：MarbleRun + Nitro runtime + Supabase + Neo N3 Blockchain                 │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │
 │  ┌────────────────────────────────────────────────────────────────────────────┐     │
@@ -921,11 +921,11 @@ MarbleRun Coordinator
 │                                 │ 远程证明 + 密钥注入                                  │
 │                                 ▼                                                   │
 │  ┌────────────────────────────────────────────────────────────────────────────┐     │
-│  │                          EGo TEE 层 (可信执行)                           │     │
+│  │                          Nitro runtime TEE 层 (可信执行)                           │     │
 │  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐            │     │
 │  │  │  Gateway   │  │    VRF     │  │   NeoVault    │  │ NeoFeeds  │  ...       │     │
 │  │  │  Marble    │  │  Marble    │  │  Marble    │  │  Marble    │            │     │
-│  │  │ (EGo+MarbleRun)  │  │ (EGo+MarbleRun)  │  │ (EGo+MarbleRun)  │  │ (EGo+MarbleRun)  │            │     │
+│  │  │ (Nitro runtime+MarbleRun)  │  │ (Nitro runtime+MarbleRun)  │  │ (Nitro runtime+MarbleRun)  │  │ (Nitro runtime+MarbleRun)  │            │     │
 │  │  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘            │     │
 │  │         │               │               │               │                  │     │
 │  │         └───────────────┴───────┬───────┴───────────────┘                  │     │
@@ -967,7 +967,7 @@ MarbleRun Coordinator
 | 组件                      | 技术                | 职责                                             |
 | ------------------------- | ------------------- | ------------------------------------------------ |
 | **MarbleRun Coordinator** | MarbleRun v1.7+     | 管理 manifest、验证远程证明、注入密钥和 TLS 证书 |
-| **EGo TEE**               | EGo + MarbleRun/EGo | 在隔离环境中运行 Go 服务，保护密钥和敏感计算     |
+| **Nitro runtime TEE**               | Nitro runtime + MarbleRun/Nitro runtime | 在隔离环境中运行 Go 服务，保护密钥和敏感计算     |
 | **Supabase**              | PostgreSQL + RLS    | 持久化所有业务数据，通过 RLS 实现行级安全        |
 | **Neo N3 智能合约**       | Neo N3 区块链       | 链上请求管理、费用结算、回调执行、状态验证       |
 
@@ -988,9 +988,9 @@ MarbleRun Coordinator
 │                         Marble 启动流程 (以 VRF 服务为例)                          │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
-│   VRF Marble (EGo)                        MarbleRun Coordinator                 │
+│   VRF Marble (Nitro runtime)                        MarbleRun Coordinator                 │
 │        │                                           │                            │
-│        │  1. 启动 EGo TEE                       │                            │
+│        │  1. 启动 Nitro runtime TEE                       │                            │
 │        │  2. 生成 MarbleRun Quote (远程证明)               │                            │
 │        │ ─────────────────────────────────────────►│                            │
 │        │                                           │                            │
@@ -1021,7 +1021,7 @@ MarbleRun Coordinator
 │                    完整数据流 (链上请求 → TEE 处理 → 链上回调)                               │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                         │
-│   用户/DApp           Neo N3 区块链                TEE (EGo TEE)          Supabase    │
+│   用户/DApp           Neo N3 区块链                TEE (Nitro runtime TEE)          Supabase    │
 │      │                    │                              │                      │       │
 │      │  1. 调用用户合约     │                              │                      │       │
 │      │ ──────────────────►│                              │                      │       │
@@ -1296,7 +1296,7 @@ Marble                          Coordinator
 
 **硬件要求**:
 
-- MarbleRun/EGo 支持的 CPU (生产环境)
+- MarbleRun/Nitro runtime 支持的 CPU (生产环境)
 - 最少 8GB RAM
 - 50GB SSD
 
@@ -1324,7 +1324,7 @@ docker compose -f docker/docker-compose.simulation.yaml logs -f gateway
 ls /dev/tee
 
 # 使用脚本启动（会先启动 Coordinator，然后应用 manifest，再启动所有 marbles）
-make docker-up-sgx
+make docker-up-nitro
 # 或：./scripts/up.sh
 ```
 
@@ -1335,7 +1335,7 @@ make docker-up-sgx
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_KEY=eyJxxx...
 NEO_RPC_URL=https://mainnet.neo.coz.io
-OE_SIMULATION=1
+TEE_BACKEND=nitro=1
 ```
 
 ### 7.5 健康检查
@@ -1430,7 +1430,7 @@ Authorization: Bearer <JWT_TOKEN>
 
 ### 9.2 信任假设
 
-- **信任** MarbleRun/EGo / TEE 硬件 + MarbleRun 协调器能够：
+- **信任** MarbleRun/Nitro runtime / TEE 硬件 + MarbleRun 协调器能够：
     - 保证 NeoVault Marble 二进制以及内部密钥不会被恶意方篡改或泄露
 - **不信任**：
     - 外部操作系统、云平台、网络
@@ -1506,7 +1506,7 @@ Neo Service Layer 的密钥管理设计确保 **TEE 升级不会影响任何业�
 │               │ 证明通过后注入        │ 证明通过后注入                           │
 │               ▼                     ▼                                       │
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                     EGo TEE (可升级)                             │   │
+│   │                     Nitro runtime TEE (可升级)                             │   │
 │   │                                                                     │   │
 │   │   NeoRand Service                    NeoVault Service                      │   │
 │   │   ┌─────────────────┐           ┌─────────────────────────────────┐ │   │
@@ -1578,7 +1578,7 @@ func DeriveKey(masterKey []byte, salt []byte, info string, keyLen int) ([]byte, 
 │                                                                             │
 │  1. 准备新版本                                                                │
 │     ┌─────────────────────────────────────────────────────────────────┐     │
-│     │  • 构建新的 EGo TEE 二进制                                    │     │
+│     │  • 构建新的 Nitro runtime TEE 二进制                                    │     │
 │     │  • 获取新的 MRENCLAVE 值                                          │     │
 │     │  • 代码审计确保无 sealing key 或 TEE ID 依赖                    │     │
 │     └─────────────────────────────────────────────────────────────────┘     │
@@ -1662,12 +1662,12 @@ func DeriveKey(masterKey []byte, salt []byte, info string, keyLen int) ([]byte, 
 - **变更记录**:
     - v3.2.0: 添加 AccountPool 内部服务，重构 NeoVault 使用 AccountPool 进行账户管理
     - v3.1.0: 添加服务升级安全性章节 (Section 10)
-    - v3.0.0: 添加完整四层架构文档 (MarbleRun + EGo + Supabase + Neo N3)
+    - v3.0.0: 添加完整四层架构文档 (MarbleRun + Nitro runtime + Supabase + Neo N3)
 
 ### C. 参考链接
 
 - [MarbleRun 文档](https://docs.edgeless.systems/marblerun)
-- [EGo 文档](https://docs.edgeless.systems/ego)
+- [AWS Nitro Enclaves 文档](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html)
 - [Supabase 文档](https://supabase.com/docs)
 - [Vercel 文档](https://vercel.com/docs)
 - [Neo N3 文档](https://docs.neo.org)

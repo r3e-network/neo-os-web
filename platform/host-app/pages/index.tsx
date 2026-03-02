@@ -366,7 +366,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <FeatureItem icon={Shield} title="Confidential TEE" desc="Run private logic in Intel SGX enclaves where even operators can't see the data." />
+            <FeatureItem icon={Shield} title="Confidential TEE" desc="Run private logic in AWS Nitro enclaves where even operators can't see the data." />
             <FeatureItem icon={Zap} title="Native VRF" desc="Integrated verifiable randomness directly into the consensus layer for guaranteed fairness." />
             <FeatureItem icon={Globe} title="Oracle Network" desc="Securely access real-world data without external dependencies or heavy fees." />
             <FeatureItem icon={Cpu} title="NeoFS Storage" desc="De-centralized metadata and vast asset storage baked directly into the protocol." />
