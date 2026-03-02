@@ -15,9 +15,11 @@ import (
 type TEEProvider string
 
 const (
+	// TEEProviderSimulation is an explicit local opt-out mode.
 	TEEProviderSimulation TEEProvider = "sim"
-	TEEProviderSGX        TEEProvider = "sgx"
-	TEEProviderNitro      TEEProvider = "nitro"
+	// TEEProviderSGX is kept for legacy compatibility only.
+	TEEProviderSGX   TEEProvider = "sgx"
+	TEEProviderNitro TEEProvider = "nitro"
 )
 
 // AttestationReport is a provider-neutral attestation payload with legacy SGX fields.
@@ -64,7 +66,8 @@ func detectTEEProvider() TEEProvider {
 	case "nitro", "aws-nitro", "aws_nitro":
 		return TEEProviderNitro
 	case "sgx":
-		return TEEProviderSGX
+		// Legacy SGX config now resolves to Nitro.
+		return TEEProviderNitro
 	case "sim", "simulation", "none", "disabled":
 		return TEEProviderSimulation
 	}
@@ -73,11 +76,14 @@ func detectTEEProvider() TEEProvider {
 		return TEEProviderNitro
 	}
 
-	if strings.TrimSpace(os.Getenv("OE_SIMULATION")) == "0" || strings.TrimSpace(os.Getenv("SGX_QUOTE_B64")) != "" {
-		return TEEProviderSGX
+	if strings.TrimSpace(os.Getenv("OE_SIMULATION")) == "0" ||
+		strings.TrimSpace(os.Getenv("SGX_QUOTE_B64")) != "" ||
+		strings.TrimSpace(os.Getenv("SGX_QUOTE")) != "" {
+		// Legacy SGX runtime signals are mapped into Nitro orientation.
+		return TEEProviderNitro
 	}
 
-	return TEEProviderSimulation
+	return TEEProviderNitro
 }
 
 func detectInitialReport(provider TEEProvider) *AttestationReport {
@@ -154,7 +160,7 @@ func normalizeReportData(userData []byte) []byte {
 // Provider returns the configured TEE provider for this marble.
 func (m *Marble) Provider() TEEProvider {
 	if m == nil {
-		return TEEProviderSimulation
+		return TEEProviderNitro
 	}
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -178,6 +184,7 @@ func (m *Marble) IsTEE() bool {
 	case TEEProviderSimulation:
 		return false
 	case TEEProviderSGX:
+		// Legacy SGX path preserved for backward compatibility.
 		if strings.TrimSpace(os.Getenv("OE_SIMULATION")) == "0" {
 			return true
 		}
@@ -217,7 +224,7 @@ func (m *Marble) Attest(userData []byte) (*AttestationReport, error) {
 	m.mu.RUnlock()
 
 	if provider == TEEProviderSimulation || base == nil {
-		return nil, fmt.Errorf("attestation unavailable in simulation mode")
+		return nil, fmt.Errorf("attestation unavailable (backend disabled)")
 	}
 
 	if base.Timestamp == "" {
