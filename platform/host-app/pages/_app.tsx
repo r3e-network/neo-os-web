@@ -11,7 +11,11 @@ import { MonitoringPanel } from "@/components/MonitoringPanel";
 import { PerformanceReportPanel } from "@/components/PerformanceReport";
 import { useAuthStore } from "@/lib/auth/store";
 import { initAllMonitoring } from "@/lib/monitoring";
+import { Inter, Outfit } from "next/font/google";
 import "@/styles/globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 function AuthSync({ children }: { children: ReactNode }) {
   const { user } = useUser();
@@ -28,42 +32,44 @@ function MonitoringInit() {
     // Initialize all monitoring systems
     initAllMonitoring();
   }, []);
-  
+
   return null;
 }
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <ErrorBoundary>
-      <MotionConfig reducedMotion="user">
-        <UserProvider>
-          <AuthSync>
-            <I18nProvider>
-              <QueryProvider>
-                <ThemeProvider>
-                  <AnalyticsProvider>
-                    <MonitoringInit />
-                    <Component {...pageProps} />
-                    
-                    {/* Development monitoring panels */}
-                    {process.env.NODE_ENV === "development" && (
-                      <>
-                        <PerformanceReportPanel
-                          devOnly={true}
-                          position="bottom-right"
-                        />
-                        <MonitoringPanel
-                          position="bottom-right"
-                        />
-                      </>
-                    )}
-                  </AnalyticsProvider>
-                </ThemeProvider>
-              </QueryProvider>
-            </I18nProvider>
-          </AuthSync>
-        </UserProvider>
-      </MotionConfig>
-    </ErrorBoundary>
+    <div className={`${inter.variable} ${outfit.variable} font-sans`}>
+      <ErrorBoundary>
+        <MotionConfig reducedMotion="user">
+          <UserProvider>
+            <AuthSync>
+              <I18nProvider>
+                <QueryProvider>
+                  <ThemeProvider>
+                    <AnalyticsProvider>
+                      <MonitoringInit />
+                      <Component {...pageProps} />
+
+                      {/* Development monitoring panels */}
+                      {process.env.NODE_ENV === "development" && (
+                        <>
+                          <PerformanceReportPanel
+                            devOnly={true}
+                            position="bottom-right"
+                          />
+                          <MonitoringPanel
+                            position="bottom-right"
+                          />
+                        </>
+                      )}
+                    </AnalyticsProvider>
+                  </ThemeProvider>
+                </QueryProvider>
+              </I18nProvider>
+            </AuthSync>
+          </UserProvider>
+        </MotionConfig>
+      </ErrorBoundary>
+    </div>
   );
 }

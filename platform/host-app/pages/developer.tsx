@@ -532,7 +532,7 @@ export default function DeveloperPage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="glass-card rounded-2xl p-8 bg-white dark:bg-gray-900/50"
+              className="glass-card rounded-3xl p-8 bg-white/60 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10 hover:shadow-[0_0_40px_rgba(0,229,153,0.15)]"
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neo to-emerald-600 flex items-center justify-center">
@@ -543,10 +543,10 @@ export default function DeveloperPage() {
                   <p className="text-gray-600 dark:text-gray-400 text-sm">No-code + config-driven workflow</p>
                 </div>
               </div>
-              <div className="rounded-xl bg-gray-900 dark:bg-black/50 p-4 font-mono text-sm overflow-x-auto">
-                <div className="text-gray-500"># Build from templates</div>
+              <div className="rounded-xl bg-gray-900 dark:bg-[#12131C] border border-gray-800 dark:border-white/5 p-4 font-mono text-sm overflow-x-auto shadow-inner">
+                <div className="text-gray-400 dark:text-gray-500"># Build from templates</div>
                 <div className="text-neo">Generate JSON or YAML miniapp definition</div>
-                <div className="text-gray-500 mt-3"># Validate + save</div>
+                <div className="text-gray-400 dark:text-gray-500 mt-3"># Validate + save</div>
                 <div className="text-neo">POST /api/miniapps/admin/definition-preview</div>
               </div>
               <Link href="/docs">
@@ -561,7 +561,7 @@ export default function DeveloperPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="glass-card rounded-2xl p-8 bg-white dark:bg-gray-900/50"
+              className="glass-card rounded-3xl p-8 bg-white/60 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10 hover:shadow-[0_0_40px_rgba(255,165,0,0.15)]"
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
@@ -612,7 +612,7 @@ export default function DeveloperPage() {
 
           <div className="grid gap-3 md:grid-cols-5 mb-4">
             <select
-              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50"
+              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all cursor-pointer"
               value={marketKind}
               onChange={(e) => setMarketKind(e.target.value as "all" | MarketTemplateKind)}
               aria-label="Filter kind"
@@ -622,7 +622,7 @@ export default function DeveloperPage() {
               <option value="contract">Contract</option>
             </select>
             <select
-              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50"
+              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all cursor-pointer"
               value={marketCategory}
               onChange={(e) => setMarketCategory(e.target.value as "all" | FormData["category"])}
               aria-label="Filter category"
@@ -635,7 +635,7 @@ export default function DeveloperPage() {
               ))}
             </select>
             <select
-              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50"
+              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all cursor-pointer"
               value={marketSource}
               onChange={(e) => setMarketSource(e.target.value as "all" | MarketTemplateSource)}
               aria-label="Filter source"
@@ -646,7 +646,7 @@ export default function DeveloperPage() {
               <option value="miniapp">MiniApp</option>
             </select>
             <select
-              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50"
+              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all cursor-pointer"
               value={marketVerified}
               onChange={(e) => setMarketVerified(e.target.value as "all" | "true")}
               aria-label="Filter verified"
@@ -658,8 +658,8 @@ export default function DeveloperPage() {
               type="text"
               value={marketSearch}
               onChange={(e) => setMarketSearch(e.target.value)}
-              placeholder="Search template ID/name"
-              className="w-full rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50"
+              placeholder="Search ID/name..."
+              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all"
             />
           </div>
 
@@ -678,7 +678,7 @@ export default function DeveloperPage() {
               {marketTemplates.slice(0, 18).map((item) => (
                 <div
                   key={`${item.template_kind}:${item.template_id}:${item.version}`}
-                  className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-4"
+                  className="rounded-3xl border border-gray-200/50 dark:border-white/10 bg-white/60 dark:bg-[#0C0D14]/70 backdrop-blur-xl p-5 hover:border-neo/40 hover:shadow-[0_10px_30px_rgba(0,229,153,0.1)] transition-all"
                 >
                   <div className="flex items-center gap-2 mb-2 text-xs">
                     <span className={`rounded-full px-2 py-0.5 ${item.template_kind === "contract" ? "bg-orange-500/20 text-orange-300" : "bg-neo/20 text-neo"}`}>
@@ -762,11 +762,10 @@ export default function DeveloperPage() {
           >
             <div
               role="alert"
-              className={`rounded-xl p-4 shadow-2xl backdrop-blur-xl ${
-                result.success
+              className={`rounded-xl p-4 shadow-2xl backdrop-blur-xl ${result.success
                   ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
                   : "bg-red-500/20 border border-red-500/30 text-red-400"
-              }`}
+                }`}
             >
               {result.message}
             </div>
@@ -1111,11 +1110,10 @@ export default function DeveloperPage() {
                   {previewResult && (
                     <div
                       role="alert"
-                      className={`mt-3 rounded-xl p-3 text-xs ${
-                        previewResult.ok
+                      className={`mt-3 rounded-xl p-3 text-xs ${previewResult.ok
                           ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-300"
                           : "bg-red-500/20 border border-red-500/30 text-red-300"
-                      }`}
+                        }`}
                     >
                       {previewResult.message}
                     </div>
@@ -1125,11 +1123,10 @@ export default function DeveloperPage() {
                 {result && (
                   <div
                     role="alert"
-                    className={`rounded-xl p-4 ${
-                      result.success
+                    className={`rounded-xl p-4 ${result.success
                         ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
                         : "bg-red-500/20 border border-red-500/30 text-red-400"
-                    }`}
+                      }`}
                   >
                     {result.message}
                   </div>

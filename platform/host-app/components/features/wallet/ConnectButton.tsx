@@ -13,7 +13,7 @@ export function ConnectButton() {
   const auth = useAuthStore();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  
+
   // Connect Modal State
   const [showConnectModal, setShowConnectModal] = useState(false);
 
@@ -95,7 +95,7 @@ export function ConnectButton() {
     setShowConnectModal(false);
     await auth.loginWallet(provider);
   };
-  
+
   const handleNeoXConnect = async () => {
     try {
       setShowConnectModal(false);
@@ -119,7 +119,7 @@ export function ConnectButton() {
         type="button"
         onClick={() => setShowConnectModal(true)}
         disabled={wallet.loading || auth.loading}
-        className="group relative flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-5 py-2.5 text-sm font-bold text-white dark:text-gray-900 transition-all hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo shadow-sm hover:shadow"
+        className="group relative flex items-center gap-2 rounded-xl bg-black/5 dark:bg-white/5 backdrop-blur-md px-5 py-2.5 text-sm font-bold text-gray-900 dark:text-white transition-all hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 shadow-[0_0_15px_rgba(0,229,153,0.1)] hover:shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:border-neo/50 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
       >
         <span className="relative z-10">{wallet.loading || auth.loading ? "Connecting..." : "Log In / Sign Up"}</span>
       </button>
@@ -136,7 +136,7 @@ export function ConnectButton() {
             >
               <X size={20} />
             </button>
-            
+
             <div className="text-center mb-8">
               <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Welcome to R3E</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">Connect a wallet or sign in with email to continue.</p>
@@ -178,25 +178,34 @@ export function ConnectButton() {
                       onClick={() => handleConnect(w.id)}
                       className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1A1C25] p-4 hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] transition-all group cursor-pointer"
                     >
-                      <img src={w.icon} alt={w.name} className="h-8 w-8 object-contain group-hover:scale-110 transition-transform" />
+                      <img
+                        src={w.icon}
+                        alt={w.name}
+                        className="h-8 w-8 object-contain group-hover:scale-110 transition-transform"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                        }}
+                      />
+                      <Wallet className="fallback-icon hidden h-8 w-8 text-neo group-hover:scale-110 transition-transform" />
                       <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{w.name}</span>
                     </button>
                   ))}
-                  
+
                   {/* Neo X Option */}
                   <button
                     onClick={handleNeoXConnect}
                     className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1A1C25] p-4 hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] transition-all group cursor-pointer"
                   >
                     <div className="h-8 w-8 rounded-full bg-[#1A1C25] dark:bg-white flex items-center justify-center">
-                       <span className="text-white dark:text-black font-black text-xs leading-none">X</span>
+                      <span className="text-white dark:text-black font-black text-xs leading-none">X</span>
                     </div>
                     <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Neo X</span>
                   </button>
                 </div>
               </div>
             </div>
-            
+
             <p className="mt-8 text-center text-xs text-gray-400">
               By connecting, you agree to our Terms of Service and Privacy Policy.
             </p>
