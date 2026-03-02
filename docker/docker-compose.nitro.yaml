@@ -19,6 +19,8 @@ services:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
+      # Local Nitro smoke runs without coordinator key provisioning.
+      NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY: ${NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY:-true}
 
   neogasbank:
     build:
@@ -61,6 +63,10 @@ services:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
+      # Local Nitro smoke still runs behind Marble TLS env, which enables strict
+      # identity checks. Provide explicit defaults so globalsigner can start.
+      GLOBALSIGNER_DOMAIN_ALLOWLIST: ${GLOBALSIGNER_DOMAIN_ALLOWLIST:-globalsigner:*,neoaccounts:*,neocompute:*,neofeeds:*,neoflow:*,neogasbank:*,neooracle:*,neoprivacy:*,neorequests:*,neosimulation:*,neovrf:*,txproxy:*}
+      GLOBALSIGNER_SIGN_RAW_ALLOWLIST: ${GLOBALSIGNER_SIGN_RAW_ALLOWLIST:-globalsigner,neoaccounts,neocompute,neofeeds,neoflow,neogasbank,neooracle,neoprivacy,neorequests,neosimulation,neovrf,txproxy}
 
   neosimulation:
     build:
