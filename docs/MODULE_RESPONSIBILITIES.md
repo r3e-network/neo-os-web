@@ -4,7 +4,7 @@ This document is the **responsibility map** for the repository. The goal is:
 
 - one module = one responsibility
 - no duplicated chain I/O / middleware implementations across services
-- explicit TEE boundary (what runs inside MarbleRun/EGo vs outside)
+- explicit TEE boundary (what runs inside MarbleRun/Nitro runtime vs outside)
 - strict enforcement of constraints: **payments = GAS only**, **governance = bNEO only**
 
 For the end-to-end architecture, see `docs/ARCHITECTURE.md`. For the platform
@@ -143,7 +143,7 @@ Reusable building blocks used by multiple services:
 - `infrastructure/errors`: consistent error typing for services
 - `infrastructure/database`: Supabase/PostgREST client + repositories
 - `infrastructure/secrets`: secret encryption + permissions policy + audit hooks
-- `infrastructure/marble`: MarbleRun/EGo glue (attested TLS, secret injection)
+- `infrastructure/marble`: MarbleRun/Nitro runtime glue (attested TLS, secret injection)
 - `infrastructure/chain`: Neo N3 RPC, tx building/broadcast, typed stack parsing, event monitoring
 - `infrastructure/txproxy`: shared txproxy client + request/response DTOs (delegating chain writes)
 - `infrastructure/globalsigner`: enclave-held signing root + domain-separated signing + rotation

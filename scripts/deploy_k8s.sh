@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Service Layer Kubernetes Deployment Script
-# Supports multiple environments: dev, test, staging, prod
+# Supports multiple environments: dev, test, staging, prod (Nitro-only)
 # Features: Docker build, registry push, rolling updates, health checks
 #
 set -e
@@ -29,9 +29,6 @@ SKIP_TESTS=false
 ROLLING_UPDATE=false
 WAIT_TIMEOUT=300
 DRY_RUN=false
-SIGNING_KEY=""
-SIGNING_KEY_DIR=""
-SKIP_SIGNER_CHECK=false
 OVERLAY_PATH=""
 FORCE_K3S_IMPORT="${FORCE_K3S_IMPORT:-false}"
 
@@ -75,10 +72,6 @@ Options:
   --skip-tests          Skip running tests before deployment
   --rolling-update      Perform rolling update instead of recreate
   --timeout <seconds>   Wait timeout for deployments (default: 300)
-  --signing-key <path>  Enclave signing key (PEM). Required for prod builds unless images are already available.
-  --signing-key-dir <dir>
-                        Per-service signing keys named <service>.pem or <service>-private.pem (recommended for prod).
-  --skip-signer-check   Skip comparing key-derived SignerIDs against manifests/manifest.json (not recommended).
   --dry-run             Show what would be done without executing
   -h, --help            Show this help message
 
@@ -95,7 +88,7 @@ Examples:
   # Deploy to test environment
   $0 --env test deploy
 
-  # Deploy staging (SGX hardware)
+  # Deploy staging (Nitro)
   $0 --env staging deploy
 
 EOF
@@ -137,17 +130,13 @@ parse_args() {
                 WAIT_TIMEOUT="$2"
                 shift 2
                 ;;
-            --signing-key)
-                SIGNING_KEY="$2"
-                shift 2
-                ;;
-            --signing-key-dir)
-                SIGNING_KEY_DIR="$2"
-                shift 2
-                ;;
-            --skip-signer-check)
-                SKIP_SIGNER_CHECK=true
-                shift
+            --signing-key|--signing-key-dir|--skip-signer-check)
+                log_warn "$1 is deprecated and ignored in Nitro-only mode."
+                if [[ "$1" == "--signing-key" || "$1" == "--signing-key-dir" ]]; then
+                    shift 2
+                else
+                    shift
+                fi
                 ;;
             --dry-run)
                 DRY_RUN=true
@@ -259,115 +248,6 @@ resolve_runtime_var() {
     return 1
 }
 
-resolve_signing_key() {
-    local pkg="$1"
-    if [[ -n "$SIGNING_KEY" ]]; then
-        echo "$SIGNING_KEY"
-        return 0
-    fi
-    if [[ -n "$SIGNING_KEY_DIR" ]]; then
-        local candidates=(
-            "${SIGNING_KEY_DIR}/${pkg}.pem"
-            "${SIGNING_KEY_DIR}/${pkg}-private.pem"
-            "${SIGNING_KEY_DIR}/${pkg}.key"
-            "${SIGNING_KEY_DIR}/${pkg}-private.key"
-        )
-        local candidate
-        for candidate in "${candidates[@]}"; do
-            if [[ -f "$candidate" ]]; then
-                echo "$candidate"
-                return 0
-            fi
-        done
-    fi
-    return 1
-}
-
-ego_image() {
-    echo "ghcr.io/edgelesssys/ego-dev:v${EGO_VERSION:-1.8.0}"
-}
-
-ego_signerid() {
-    local key_path="$1"
-    if command -v ego &> /dev/null; then
-        ego signerid "$key_path"
-        return $?
-    fi
-    docker run --rm -v "${key_path}:/signing-key:ro" "$(ego_image)" ego signerid /signing-key
-}
-
-ego_signerid_from_private_key() {
-    local key_path="$1"
-
-    local signer
-    signer="$(ego_signerid "$key_path" 2>/dev/null | tr -d '\r\n' || true)"
-    if [[ "$signer" =~ ^[0-9a-fA-F]{64}$ ]]; then
-        echo "$signer"
-        return 0
-    fi
-
-    if command -v openssl &> /dev/null; then
-        local tmp_pub
-        tmp_pub="$(mktemp -t service-layer-signingkey.pub.XXXXXX.pem)"
-        if openssl rsa -in "$key_path" -pubout -out "$tmp_pub" &>/dev/null; then
-            signer="$(ego_signerid "$tmp_pub" 2>/dev/null | tr -d '\r\n' || true)"
-        fi
-        rm -f "$tmp_pub"
-        if [[ "$signer" =~ ^[0-9a-fA-F]{64}$ ]]; then
-            echo "$signer"
-            return 0
-        fi
-    fi
-
-    return 1
-}
-
-verify_signerids() {
-    if [[ "$SKIP_SIGNER_CHECK" == "true" ]]; then
-        log_warn "Skipping signer ID checks (--skip-signer-check)"
-        return 0
-    fi
-
-    local manifest="$PROJECT_ROOT/manifests/manifest.json"
-    if [[ ! -f "$manifest" ]]; then
-        log_error "Manifest not found: $manifest"
-        exit 1
-    fi
-
-    for pkg in "${SERVICES[@]}"; do
-        local key_path
-        if ! key_path="$(resolve_signing_key "$pkg")"; then
-            log_error "Missing signing key for ${pkg}. Provide --signing-key or --signing-key-dir."
-            exit 1
-        fi
-        if [[ ! -r "$key_path" ]]; then
-            log_error "Signing key not readable: $key_path"
-            exit 1
-        fi
-
-        local expected actual
-        expected="$(jq -r --arg pkg "$pkg" '.Packages[$pkg].SignerID' "$manifest" 2>/dev/null || true)"
-        if [[ -z "$expected" || "$expected" == "null" ]]; then
-            log_error "Manifest does not define Packages.${pkg}.SignerID"
-            exit 1
-        fi
-
-        actual="$(ego_signerid_from_private_key "$key_path" || true)"
-        if [[ -z "$actual" ]]; then
-            log_error "Unable to compute SignerID from signing key: $key_path"
-            log_error "Install the ego CLI or ensure Docker can pull $(ego_image), or use --skip-signer-check."
-            exit 1
-        fi
-
-        if [[ "$expected" != "$actual" ]]; then
-            log_error "SignerID mismatch for '${pkg}': manifest expects ${expected}, signing key yields ${actual}"
-            exit 1
-        fi
-    done
-
-    log_info "SignerID checks passed"
-}
-
 # =============================================================================
 # Pre-flight Checks
 # =============================================================================
@@ -397,19 +277,6 @@ preflight_checks() {
     # Check if MarbleRun is installed
     if ! command -v marblerun &> /dev/null; then
         log_warn "marblerun CLI not found. Some features may not work."
-    fi
-
-    # Production builds require stable enclave signing keys that match the manifest.
-    if [[ "$ENVIRONMENT" =~ ^(prod|staging)$ ]] && [[ "$SKIP_BUILD" != "true" ]] && [[ "$DRY_RUN" != "true" ]]; then
-        if [[ -z "$SIGNING_KEY" && -z "$SIGNING_KEY_DIR" ]]; then
-            log_error "SGX builds (staging/prod) require enclave signing keys."
-            log_error "Provide --signing-key-dir <dir> (recommended) or --signing-key <path>, or use --skip-build and ensure images exist."
-            exit 1
-        fi
-        if [[ "$SKIP_SIGNER_CHECK" != "true" ]] && ! command -v jq &> /dev/null; then
-            log_error "jq is required for signer ID checks in staging/prod. Install jq or use --skip-signer-check."
-            exit 1
-        fi
     fi
 
     # Check cert-manager ClusterIssuer email configuration
@@ -472,16 +339,11 @@ build_images() {
 
     cd "$PROJECT_ROOT"
 
-    if [[ "$ENVIRONMENT" =~ ^(prod|staging)$ ]] && [[ "$DRY_RUN" != "true" ]]; then
-        export DOCKER_BUILDKIT=1
-        verify_signerids
-    fi
-
     for service in "${SERVICES[@]}"; do
         log_info "Building $service..."
 
         local image_name="${IMAGE_PREFIX}${service}:${ENVIRONMENT}"
-        local dockerfile="docker/Dockerfile.service"
+        local dockerfile="docker/Dockerfile.service.nitro"
 
         if [ "$DRY_RUN" == "true" ]; then
             log_info "[DRY RUN] Would build: $image_name"
@@ -490,28 +352,12 @@ build_images() {
 
         local service_binary
         service_binary="$(default_service_binary "$service")"
-        if [[ "$ENVIRONMENT" =~ ^(prod|staging)$ ]]; then
-            local key_path
-            if ! key_path="$(resolve_signing_key "$service")"; then
-                log_error "Missing signing key for ${service}. Provide --signing-key or --signing-key-dir."
-                exit 1
-            fi
-            docker build -t "$image_name" \
-                --secret id=ego_private_key,src="$key_path" \
-                --build-arg EGO_STRICT_SIGNING=1 \
-                --build-arg SERVICE="$service_binary" \
-                -f "$dockerfile" . || {
-                log_error "Failed to build $service"
-                exit 1
-            }
-        else
-            docker build -t "$image_name" \
-                --build-arg SERVICE="$service_binary" \
-                -f "$dockerfile" . || {
-                log_error "Failed to build $service"
-                exit 1
-            }
-        fi
+        docker build -t "$image_name" \
+            --build-arg SERVICE="$service_binary" \
+            -f "$dockerfile" . || {
+            log_error "Failed to build $service"
+            exit 1
+        }
 
         # Also tag as latest for the environment
         docker tag "$image_name" "${IMAGE_PREFIX}${service}:latest"
@@ -684,7 +530,6 @@ setup_marblerun_manifest() {
     if [[ ! "$ENVIRONMENT" =~ ^(prod|staging)$ ]]; then
         flags+=(--insecure)
         jq \
-            --arg signerid "0000000000000000000000000000000000000000000000000000000000000000" \
             --arg supabase_url "$supabase_url" \
             --arg supabase_service_key "$supabase_service_key" \
             --arg globalsigner_master_seed "$globalsigner_master_seed" \
@@ -696,8 +541,7 @@ setup_marblerun_manifest() {
             --arg neofeeds_signing_key "$neofeeds_signing_key" \
             --arg neovrf_signing_key "$neovrf_signing_key" \
             '
-            .Packages |= with_entries(.value.SignerID = $signerid)
-            | .Marbles |= with_entries(
+            .Marbles |= with_entries(
                 .value.Parameters.Env.SUPABASE_URL = $supabase_url
                 | .value.Parameters.Env.SUPABASE_SERVICE_KEY = $supabase_service_key
                 | .value.Parameters.Env |= (

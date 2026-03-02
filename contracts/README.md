@@ -32,7 +32,7 @@ gateway + TEE services, with final enforcement at the contract layer.
                              │
                              ▼
 ┌────────────────────────────────────────────────────────────────┐
-│                    TEE Service Layer (EGo)                     │
+│                    TEE Service Layer (Nitro-oriented)                     │
 │   rng / pricefeed / bridge-oracle / compute (attested TLS)     │
 └────────────────────────────────────────────────────────────────┘
                              │ onServiceCallback()

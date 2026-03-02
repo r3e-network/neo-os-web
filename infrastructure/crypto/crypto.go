@@ -32,7 +32,7 @@ import (
 //
 // This function intentionally does NOT use:
 //   - MRENCLAVE or MRSIGNER (enclave identity)
-//   - SGX sealing keys (tied to enclave measurement)
+//   - hardware-specific sealing keys (tied to enclave measurement)
 //   - Any enclave report fields
 //
 // As long as the manifest secrets remain unchanged, derived keys will be

@@ -7,7 +7,7 @@ Complete guide for setting up the local k3s development environment for the Neo 
 The local development stack provides a complete Kubernetes environment running on your machine with:
 
 - **k3s**: Lightweight Kubernetes distribution
-- **MarbleRun Coordinator**: TEE orchestration (simulation mode)
+- **MarbleRun Coordinator**: TEE orchestration for local Nitro-oriented workflows
 - **Traefik**: Ingress controller with TLS
 - **cert-manager**: Automatic TLS certificate management
 - **Self-signed certificates**: For `*.localhost` domains
@@ -75,7 +75,7 @@ This will:
 2. Create all required namespaces
 3. Install cert-manager
 4. Set up self-signed TLS certificates
-5. Deploy MarbleRun coordinator (simulation mode)
+5. Deploy MarbleRun coordinator (local development mode)
 
 ### 2. Verify Installation
 
@@ -357,9 +357,9 @@ kubectl -n marblerun logs -f deployment/coordinator
 # Check coordinator status
 kubectl -n marblerun get pods
 
-# Verify simulation mode
-kubectl -n marblerun get deployment coordinator -o yaml | grep OE_SIMULATION
-# Should show: value: "1"
+# Verify Nitro backend declaration
+kubectl -n marblerun get deployment coordinator -o yaml | grep TEE_BACKEND
+# Should show: value: nitro
 ```
 
 ### Clean Slate Reset

@@ -60,7 +60,7 @@ Balances are stored in `pool_account_balances` keyed by:
 
 ## Security Notes
 
-- In strict identity mode (production/SGX/MarbleRun TLS), the `service_id` is
+- In strict identity mode (strict production/MarbleRun TLS), the `service_id` is
   derived from verified mTLS peer identity and the API rejects spoofed headers.
 - Master key material is injected via MarbleRun and never leaves the enclave.
   Use a stable `POOL_MASTER_KEY` or `COORD_MASTER_SEED` to ensure persisted

@@ -1,68 +1,30 @@
-# Production overlay with hardening (merged from production + production-hardened)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: service-layer
 
 resources:
-  - ../../base
+  - ../nitro-prod
   - pdb.yaml
   - networkpolicy.yaml
   - networkpolicy-egress.yaml
-
-patches:
-  # Spread replicas across nodes for higher availability.
-  - target:
-      kind: Deployment
-      name: neooracle
-    patch: |-
-      - op: add
-        path: /spec/template/spec/topologySpreadConstraints
-        value:
-          - maxSkew: 1
-            topologyKey: kubernetes.io/hostname
-            whenUnsatisfiable: ScheduleAnyway
-            labelSelector:
-              matchLabels:
-                app: neooracle
-
-  # SGX device nodes are root-owned (660). Run enclave processes as uid 0 in
-  # hardware overlays so OpenEnclave can access /dev/sgx_*.
-  - target:
-      kind: Deployment
-    patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/securityContext/runAsNonRoot
-        value: false
-      - op: replace
-        path: /spec/template/spec/containers/0/securityContext/runAsUser
-        value: 0
-      - op: add
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: HOME
-          value: /tmp
-
-  # Hardening is already defined in k8s/base/services-deployment.yaml
-  # (readOnlyRootFilesystem + writable /tmp). Keep overlay additive-only.
 
 # Production replicas
 replicas:
   - name: neooracle
     count: 2
 
-# Production resource limits
+# Production resource limits and mainnet values
 configMapGenerator:
   - name: service-layer-config
     behavior: merge
     literals:
       - COORDINATOR_MESH_ADDR=coordinator-mesh-api.marblerun.svc.cluster.local:2001
       - COORDINATOR_CLIENT_ADDR=coordinator-client-api.marblerun.svc.cluster.local:4433
-      - OE_SIMULATION=0
       - MARBLE_ENV=production
       - METRICS_ENABLED=true
       # Neo N3 network (MainNet)
       - NEO_RPC_URL=https://mainnet1.neo.coz.io:443
       - NEO_NETWORK_MAGIC=860833102
-      # External allowlist (required in production/SGX mode)
+      # External allowlist (required in strict production mode)
       - ORACLE_HTTP_ALLOWLIST=https://api.binance.com,https://api.coinbase.com

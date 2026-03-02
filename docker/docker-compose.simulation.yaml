@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Shared configuration anchors (Simulation Mode)
+# Shared configuration anchors (Base Runtime Stack)
 # ---------------------------------------------------------------------------
 x-sim-defaults: &sim-defaults
   restart: unless-stopped
@@ -8,15 +8,11 @@ x-sim-defaults: &sim-defaults
 
 x-build-defaults: &build-defaults
   context: ..
-  dockerfile: docker/Dockerfile.service
-
-x-build-args: &build-args
-  EGO_VERSION: ${EGO_VERSION:-1.8.0}
-  EGO_STRICT_SIGNING: 0
+  dockerfile: docker/Dockerfile.service.nitro
 
 services:
   # =============================================================================
-  # MarbleRun Coordinator (Simulation Mode)
+  # MarbleRun Coordinator (Base Runtime Stack)
   # =============================================================================
   coordinator:
     image: ${MARBLERUN_COORDINATOR_IMAGE:-ghcr.io/edgelesssys/marblerun/coordinator:v1.8.0}
@@ -29,7 +25,6 @@ services:
       - EDG_COORDINATOR_CLIENT_ADDR=0.0.0.0:4433
       - EDG_COORDINATOR_DNS_NAMES=localhost,coordinator
       - EDG_COORDINATOR_SEAL_DIR=/coordinator/data
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - POOL_ENCRYPTION_KEY
     volumes:
       - coordinator-data:/coordinator/data
@@ -37,7 +32,7 @@ services:
     restart: unless-stopped
 
   # =============================================================================
-  # NeoFeeds Service Marble - Simulation Mode
+  # NeoFeeds Service Marble
   # =============================================================================
   neofeeds:
     <<: *sim-defaults
@@ -45,7 +40,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: neofeeds
     container_name: service-neofeeds
     ports:
@@ -55,7 +49,6 @@ services:
       - EDG_MARBLE_TYPE=neofeeds
       - EDG_MARBLE_DNS_NAMES=localhost,neofeeds
       - SERVICE_TYPE=neofeeds
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${NEOFEEDS_PORT:-8083}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -78,7 +71,7 @@ services:
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
 
   # =============================================================================
-  # NeoFlow Service Marble - Simulation Mode
+  # NeoFlow Service Marble
   # =============================================================================
   neoflow:
     <<: *sim-defaults
@@ -86,7 +79,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: neoflow
     container_name: service-neoflow
     ports:
@@ -96,7 +88,6 @@ services:
       - EDG_MARBLE_TYPE=neoflow
       - EDG_MARBLE_DNS_NAMES=localhost,neoflow
       - SERVICE_TYPE=neoflow
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${NEOFLOW_PORT:-8084}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -114,7 +105,7 @@ services:
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
 
   # =============================================================================
-  # NeoAccounts Service Marble - Simulation Mode
+  # NeoAccounts Service Marble
   # =============================================================================
   neoaccounts:
     <<: *sim-defaults
@@ -122,7 +113,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: accountpool
     container_name: service-neoaccounts
     ports:
@@ -132,7 +122,6 @@ services:
       - EDG_MARBLE_TYPE=neoaccounts
       - EDG_MARBLE_DNS_NAMES=localhost,neoaccounts,accountpool
       - SERVICE_TYPE=neoaccounts
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${NEOACCOUNTS_PORT:-8085}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -154,7 +143,7 @@ services:
         condition: service_healthy
 
   # =============================================================================
-  # NeoGasBank Service Marble - Simulation Mode
+  # NeoGasBank Service Marble
   # =============================================================================
   neogasbank:
     <<: *sim-defaults
@@ -162,7 +151,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: neogasbank
     container_name: service-neogasbank
     ports:
@@ -172,7 +160,6 @@ services:
       - EDG_MARBLE_TYPE=neogasbank
       - EDG_MARBLE_DNS_NAMES=localhost,neogasbank
       - SERVICE_TYPE=neogasbank
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${NEOGASBANK_PORT:-8091}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -190,7 +177,7 @@ services:
         condition: service_started
 
   # =============================================================================
-  # NeoCompute Service Marble - Simulation Mode
+  # NeoCompute Service Marble
   # =============================================================================
   neocompute:
     <<: *sim-defaults
@@ -198,7 +185,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: neocompute
     container_name: service-neocompute
     ports:
@@ -208,7 +194,6 @@ services:
       - EDG_MARBLE_TYPE=neocompute
       - EDG_MARBLE_DNS_NAMES=localhost,neocompute
       - SERVICE_TYPE=neocompute
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${NEOCOMPUTE_PORT:-8086}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -220,7 +205,7 @@ services:
       - NEOCOMPUTE_RESULT_TTL
 
   # =============================================================================
-  # NeoVRF Service Marble - Simulation Mode
+  # NeoVRF Service Marble
   # =============================================================================
   neovrf:
     <<: *sim-defaults
@@ -228,7 +213,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: neovrf
     container_name: service-neovrf
     ports:
@@ -238,7 +222,6 @@ services:
       - EDG_MARBLE_TYPE=neovrf
       - EDG_MARBLE_DNS_NAMES=localhost,neovrf,vrf
       - SERVICE_TYPE=neovrf
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${NEOVRF_PORT:-8087}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -248,7 +231,7 @@ services:
       - NEO_NETWORK_MAGIC
 
   # =============================================================================
-  # NeoOracle Service Marble - Simulation Mode
+  # NeoOracle Service Marble
   # =============================================================================
   neooracle:
     <<: *sim-defaults
@@ -256,7 +239,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: neooracle
     container_name: service-neooracle
     ports:
@@ -266,7 +248,6 @@ services:
       - EDG_MARBLE_TYPE=neooracle
       - EDG_MARBLE_DNS_NAMES=localhost,neooracle,oracle
       - SERVICE_TYPE=neooracle
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${NEOORACLE_PORT:-8088}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -280,7 +261,7 @@ services:
       - ORACLE_MAX_SIZE
 
   # =============================================================================
-  # NeoRequests Service Marble - Simulation Mode
+  # NeoRequests Service Marble
   # =============================================================================
   neorequests:
     <<: *sim-defaults
@@ -288,7 +269,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: neorequests
     container_name: service-neorequests
     ports:
@@ -298,7 +278,6 @@ services:
       - EDG_MARBLE_TYPE=neorequests
       - EDG_MARBLE_DNS_NAMES=localhost,neorequests
       - SERVICE_TYPE=neorequests
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${NEOREQUESTS_PORT:-8094}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -324,7 +303,7 @@ services:
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
 
   # =============================================================================
-  # TxProxy Service Marble - Simulation Mode
+  # TxProxy Service Marble
   # =============================================================================
   txproxy:
     <<: *sim-defaults
@@ -332,7 +311,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: txproxy
     container_name: service-txproxy
     ports:
@@ -342,7 +320,6 @@ services:
       - EDG_MARBLE_TYPE=txproxy
       - EDG_MARBLE_DNS_NAMES=localhost,txproxy
       - SERVICE_TYPE=txproxy
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${TXPROXY_PORT:-8090}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -365,7 +342,7 @@ services:
         condition: service_healthy
 
   # =============================================================================
-  # GlobalSigner Service Marble - Simulation Mode
+  # GlobalSigner Service Marble
   # =============================================================================
   globalsigner:
     <<: *sim-defaults
@@ -373,7 +350,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: globalsigner
     container_name: service-globalsigner
     ports:
@@ -383,7 +359,6 @@ services:
       - EDG_MARBLE_TYPE=globalsigner
       - EDG_MARBLE_DNS_NAMES=localhost,globalsigner
       - SERVICE_TYPE=globalsigner
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${GLOBALSIGNER_PORT:-8092}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED
@@ -401,7 +376,7 @@ services:
       start_period: 15s
 
   # =============================================================================
-  # NeoSimulation Service Marble - Simulation Mode
+  # NeoSimulation Service Marble
   # =============================================================================
   neosimulation:
     <<: *sim-defaults
@@ -409,7 +384,6 @@ services:
     build:
       <<: *build-defaults
       args:
-        <<: *build-args
         SERVICE: neosimulation
     container_name: service-neosimulation
     ports:
@@ -419,7 +393,6 @@ services:
       - EDG_MARBLE_TYPE=neosimulation
       - EDG_MARBLE_DNS_NAMES=localhost,neosimulation
       - SERVICE_TYPE=neosimulation
-      - OE_SIMULATION=${OE_SIMULATION:-1}
       - PORT=${NEOSIMULATION_PORT:-8093}
       - MARBLE_ENV=${MARBLE_ENV:-development}
       - METRICS_ENABLED

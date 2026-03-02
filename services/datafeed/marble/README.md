@@ -1,7 +1,7 @@
 # NeoFeeds Marble Service
 
 TEE-secured price aggregation + on-chain anchoring service running inside the
-MarbleRun/EGo enclave mesh.
+MarbleRun/Nitro-oriented enclave mesh.
 
 ## Responsibilities
 

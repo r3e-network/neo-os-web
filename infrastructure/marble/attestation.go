@@ -17,13 +17,11 @@ type TEEProvider string
 const (
 	// TEEProviderSimulation is an explicit local opt-out mode.
 	TEEProviderSimulation TEEProvider = "sim"
-	// TEEProviderSGX is kept for legacy compatibility only.
-	TEEProviderSGX   TEEProvider = "sgx"
 	TEEProviderNitro TEEProvider = "nitro"
 )
 
-// AttestationReport is a provider-neutral attestation payload with legacy SGX fields.
-// It is intentionally permissive to preserve backward compatibility while supporting Nitro.
+// AttestationReport is a provider-neutral attestation payload.
+// Legacy quote-shaped fields are retained for backward compatibility with existing clients.
 type AttestationReport struct {
 	Provider  string            `json:"provider,omitempty"`
 	Format    string            `json:"format,omitempty"`
@@ -33,7 +31,7 @@ type AttestationReport struct {
 	Claims    map[string]string `json:"claims,omitempty"`
 	Timestamp string            `json:"timestamp,omitempty"`
 
-	// Legacy SGX fields kept for existing clients.
+	// Deprecated compatibility fields.
 	Quote     string `json:"quote,omitempty"`
 	MRENCLAVE string `json:"mrenclave,omitempty"`
 	MRSIGNER  string `json:"mrsigner,omitempty"`
@@ -65,9 +63,6 @@ func detectTEEProvider() TEEProvider {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("TEE_BACKEND"))) {
 	case "nitro", "aws-nitro", "aws_nitro":
 		return TEEProviderNitro
-	case "sgx":
-		// Legacy SGX config now resolves to Nitro.
-		return TEEProviderNitro
 	case "sim", "simulation", "none", "disabled":
 		return TEEProviderSimulation
 	}
@@ -76,33 +71,11 @@ func detectTEEProvider() TEEProvider {
 		return TEEProviderNitro
 	}
 
-	if strings.TrimSpace(os.Getenv("OE_SIMULATION")) == "0" ||
-		strings.TrimSpace(os.Getenv("SGX_QUOTE_B64")) != "" ||
-		strings.TrimSpace(os.Getenv("SGX_QUOTE")) != "" {
-		// Legacy SGX runtime signals are mapped into Nitro orientation.
-		return TEEProviderNitro
-	}
-
 	return TEEProviderNitro
 }
 
 func detectInitialReport(provider TEEProvider) *AttestationReport {
 	switch provider {
-	case TEEProviderSGX:
-		report := &AttestationReport{
-			Provider: string(TEEProviderSGX),
-			Format:   "sgx_quote",
-		}
-		report.Quote = strings.TrimSpace(os.Getenv("SGX_QUOTE_B64"))
-		if report.Quote == "" {
-			report.Quote = strings.TrimSpace(os.Getenv("SGX_QUOTE"))
-		}
-		report.Document = report.Quote
-		report.MRENCLAVE = strings.TrimSpace(os.Getenv("SGX_MRENCLAVE"))
-		report.MRSIGNER = strings.TrimSpace(os.Getenv("SGX_MRSIGNER"))
-		report.ProdID = parseUint16Env("SGX_PROD_ID")
-		report.ISVSVN = parseUint16Env("SGX_ISVSVN")
-		return report
 	case TEEProviderNitro:
 		report := &AttestationReport{
 			Provider: string(TEEProviderNitro),
@@ -129,18 +102,6 @@ func loadNitroPCRs() map[string]string {
 		return nil
 	}
 	return out
-}
-
-func parseUint16Env(key string) uint16 {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return 0
-	}
-	parsed, err := strconv.ParseUint(raw, 10, 16)
-	if err != nil {
-		return 0
-	}
-	return uint16(parsed)
 }
 
 func normalizeReportData(userData []byte) []byte {
@@ -183,18 +144,6 @@ func (m *Marble) IsTEE() bool {
 	switch m.provider {
 	case TEEProviderSimulation:
 		return false
-	case TEEProviderSGX:
-		// Legacy SGX path preserved for backward compatibility.
-		if strings.TrimSpace(os.Getenv("OE_SIMULATION")) == "0" {
-			return true
-		}
-		if m.report == nil {
-			return false
-		}
-		return strings.TrimSpace(m.report.Document) != "" ||
-			strings.TrimSpace(m.report.Quote) != "" ||
-			strings.TrimSpace(m.report.MRENCLAVE) != "" ||
-			strings.TrimSpace(m.report.MRSIGNER) != ""
 	case TEEProviderNitro:
 		if m.report != nil && strings.TrimSpace(m.report.Document) != "" {
 			return true
@@ -243,13 +192,6 @@ func (m *Marble) Attest(userData []byte) (*AttestationReport, error) {
 	}
 
 	switch provider {
-	case TEEProviderSGX:
-		if strings.TrimSpace(base.Quote) == "" && strings.TrimSpace(base.Document) == "" {
-			return nil, fmt.Errorf("sgx quote is not available")
-		}
-		if base.Document == "" {
-			base.Document = base.Quote
-		}
 	case TEEProviderNitro:
 		if nsmReport, nsmErr := attestNitroWithNSM(normalized); nsmErr == nil && nsmReport != nil {
 			base.Provider = nsmReport.Provider

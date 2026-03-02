@@ -85,7 +85,7 @@ POST /execute
 |----------|-------------|
 | `NEOCOMPUTE_RESULT_TTL` | Result retention TTL (e.g. `24h`) |
 
-Required secrets (strict identity / SGX mode):
+Required secrets (strict identity mode):
 
 - `COMPUTE_MASTER_KEY` (32 bytes+): master key used for output encryption + signing key derivation.
 - `SECRETS_MASTER_KEY` (32 bytes): required when using `secret_refs` (shared secrets subsystem).
