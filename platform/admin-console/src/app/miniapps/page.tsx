@@ -216,7 +216,7 @@ export default function MiniAppsPage() {
   };
 
   const handleDelete = (app: MiniApp) => {
-    if (!window.confirm(`Disable "${app.app_id}"?\n\n${SOFT_DELETE_WARNING}`)) return;
+    if (!window.confirm(`Hide "${app.app_id}"?\n\n${SOFT_DELETE_WARNING}`)) return;
     deleteMutation.mutate(app.app_id);
   };
 

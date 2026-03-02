@@ -103,7 +103,7 @@ export function MiniAppsTableCard({
                           disabled={deletePending}
                           className="text-danger-600 dark:text-danger-400"
                         >
-                          Disable
+                          Hide
                         </Button>
                       </div>
                     </TableCell>

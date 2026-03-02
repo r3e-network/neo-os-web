@@ -31,6 +31,7 @@ func mockBaseService() *commonservice.BaseService {
 
 // TestNew tests service creation.
 func TestNew(t *testing.T) {
+	t.Setenv("TEE_BACKEND", "simulation")
 	t.Run("requires marble", func(t *testing.T) {
 		_, err := New(Config{})
 		assert.Error(t, err)
@@ -406,6 +407,7 @@ func TestConcurrentRandomAmount(t *testing.T) {
 
 // TestHTTPHandlers tests HTTP route handlers.
 func TestHTTPHandlers(t *testing.T) {
+	t.Setenv("TEE_BACKEND", "simulation")
 	s := &Service{
 		BaseService: mockBaseService(),
 		running:     false,
@@ -471,6 +473,7 @@ func TestHTTPHandlers(t *testing.T) {
 
 // TestHTTPHandlersWithConfig tests HTTP handlers with configuration override.
 func TestHTTPHandlersWithConfig(t *testing.T) {
+	t.Setenv("TEE_BACKEND", "simulation")
 	s := &Service{
 		BaseService: mockBaseService(),
 		running:     false,

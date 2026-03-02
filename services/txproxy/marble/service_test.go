@@ -13,6 +13,7 @@ import (
 )
 
 func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
+	t.Setenv("TEE_BACKEND", "simulation")
 	m, err := marble.New(marble.Config{MarbleType: ServiceID})
 	if err != nil {
 		t.Fatalf("marble.New: %v", err)
@@ -79,6 +80,7 @@ func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
 //nolint:unparam // allowlistJSON is kept for readability at call sites in tests.
 func newTestService(t *testing.T, allowlistJSON string) *Service {
 	t.Helper()
+	t.Setenv("TEE_BACKEND", "simulation")
 
 	m, err := marble.New(marble.Config{MarbleType: ServiceID})
 	if err != nil {
@@ -191,6 +193,7 @@ func TestHandleInvokeNoChainClient(t *testing.T) {
 }
 
 func TestNewMergesPlatformAllowlistHashes(t *testing.T) {
+	t.Setenv("TEE_BACKEND", "simulation")
 	t.Setenv("CONTRACT_PRICEFEED_HASH", "0x1111111111111111111111111111111111111111")
 	t.Setenv("CONTRACT_RANDOMNESSLOG_HASH", "0x2222222222222222222222222222222222222222")
 	t.Setenv("CONTRACT_AUTOMATIONANCHOR_HASH", "0x3333333333333333333333333333333333333333")
@@ -244,6 +247,7 @@ func TestNewMergesPlatformAllowlistHashes(t *testing.T) {
 }
 
 func TestNewEmptyAllowlistStillAllowsPriceFeedUpdate(t *testing.T) {
+	t.Setenv("TEE_BACKEND", "simulation")
 	t.Setenv("CONTRACT_PRICEFEED_HASH", "0x9999999999999999999999999999999999999999")
 
 	m, err := marble.New(marble.Config{MarbleType: ServiceID})

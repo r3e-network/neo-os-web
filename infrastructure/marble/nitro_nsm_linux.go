@@ -61,6 +61,7 @@ func describeNitroPCRs(sess *nsm.Session, maxPCRs int) map[string]string {
 
 	out := make(map[string]string)
 	for i := 0; i < maxPCRs; i++ {
+		// #nosec G115 -- maxPCRs is clamped to 32
 		resp, err := sess.Send(&request.DescribePCR{Index: uint16(i)})
 		if err != nil || resp.Error != "" || resp.DescribePCR == nil || len(resp.DescribePCR.Data) == 0 {
 			continue
