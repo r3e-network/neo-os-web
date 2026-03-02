@@ -8,8 +8,8 @@ data:
   # - Client API (4433): used by MarbleRun CLI (marblerun *)
   COORDINATOR_MESH_ADDR: "marblerun-coordinator.marblerun.svc.cluster.local:2001"
   COORDINATOR_CLIENT_ADDR: "marblerun-coordinator-client-api.marblerun.svc.cluster.local:4433"
-  # Default to SGX hardware mode; overlays can override (e.g. simulation).
-  OE_SIMULATION: "0"
+  # Nitro is the only supported TEE backend.
+  TEE_BACKEND: "nitro"
   # Application environment; overlays should set this to "production" for real deployments.
   MARBLE_ENV: "development"
 
@@ -44,7 +44,7 @@ data:
   ORACLE_MAX_SIZE: "1MiB"
   # Optional Arbitrum RPC override for Chainlink (NeoFeeds). Defaults to https://arb1.arbitrum.io/rpc.
   ARBITRUM_RPC: "https://arb1.arbitrum.io/rpc"
-  # NeoFlow webhook security (production/SGX): block private networks by default.
+  # NeoFlow webhook security (strict production mode): block private networks by default.
   NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS: "false"
   # System user ID for NeoFlow scheduled automation jobs.
   NEOFLOW_SCHEDULER_USER_ID: ""

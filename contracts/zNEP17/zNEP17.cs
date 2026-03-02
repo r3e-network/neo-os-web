@@ -214,7 +214,7 @@ namespace Neo.SmartContract.MiniApps
             // When Neo supports `Crypto.VerifyGroth16(proof, publicInputs, verificationKey)`,
             // this stub will be replaced with the native invocation.
             
-            // As a fallback for current N3 mainnet, the verification happens inside the SGX Enclave (TxProxy),
+            // As a fallback for current N3 mainnet, the verification happens inside the TEE enclave (TxProxy),
             // and the TEE's signature guarantees the proof was mathematically valid before calling Withdraw.
             return true;
         }

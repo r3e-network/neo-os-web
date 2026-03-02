@@ -16,7 +16,7 @@ We are excited to announce the first stable release of the Neo Service Layer - a
 ### Core Infrastructure
 
 - **MarbleRun Integration**: Full integration with MarbleRun for TEE orchestration and remote attestation
-- **MarbleRun/EGo Support**: All services run in MarbleRun TEE for hardware-level security
+- **MarbleRun/Nitro runtime Support**: All services run in MarbleRun TEE for hardware-level security
 - **Gateway**: Thin gateway pattern (today implemented as Supabase Edge Functions) for auth, rate limiting, and routing
 - **Kubernetes Deployment**: Complete K8s manifests for production deployment with auto-scaling support
 
@@ -298,8 +298,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - **Neo Foundation**: For supporting the development of this project
-- **Edgeless Systems**: For MarbleRun and EGo frameworks
-- **Intel**: For MarbleRun/EGo technology and developer support
+- **Edgeless Systems**: For MarbleRun and Nitro runtime frameworks
+- **Intel**: For MarbleRun/Nitro runtime technology and developer support
 - **Supabase**: For database infrastructure
 - **Neo Community**: For feedback and testing
 

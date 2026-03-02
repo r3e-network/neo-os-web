@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 // buildAttestation generates a TEE attestation for a key version.
@@ -53,8 +51,8 @@ func (s *Service) buildAttestation(ctx context.Context, version, pubKeyHex, pubK
 		}
 	}
 
-	// Backward-compatible SGX fields for existing consumers.
-	if report.Provider == string(marble.TEEProviderSGX) {
+	// Deprecated compatibility fields for older consumers.
+	if report.Quote != "" || report.MRENCLAVE != "" || report.MRSIGNER != "" || report.ProdID != 0 || report.ISVSVN != 0 {
 		att.Quote = report.Quote
 		att.MRENCLAVE = report.MRENCLAVE
 		att.MRSIGNER = report.MRSIGNER

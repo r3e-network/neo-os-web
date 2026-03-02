@@ -11,7 +11,7 @@ Service Layer as described in `docs/ARCHITECTURE.md`.
 - Delegated payments / gas bank (stored in Supabase)
 - Service proxy routes (mTLS inside the mesh)
 
-**Enclave workloads (MarbleRun + EGo)**:
+**Enclave workloads (MarbleRun + Nitro-oriented runtime)**:
 - Infrastructure marbles: `infrastructure/accountpool`, `infrastructure/globalsigner`
 - Product services: `services/datafeed`, `services/automation`, `services/confcompute`, `services/conforacle`, `services/txproxy`
 
@@ -57,18 +57,15 @@ Injected via MarbleRun secrets (values depend on which services you run):
   `NEOFEEDS_PUBLISH_HYSTERESIS_BPS`, `NEOFEEDS_PUBLISH_MIN_INTERVAL`,
   `NEOFEEDS_PUBLISH_MAX_PER_MINUTE`, `NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL`
 
-### Enclave Image Signing Key (SGX Production)
+### Nitro Attestation Configuration (Production)
 
-- `EGO_PRIVATE_KEY_FILE` must point to a valid enclave signing key.
-- Required key properties:
-  - RSA private key
-  - 3072-bit modulus
-  - public exponent `3`
-- Validate before SGX image builds:
+- `NITRO_ATTESTATION_DOCUMENT_B64` must be present at runtime.
+- Optional: `NITRO_MODULE_ID`, `NITRO_PCR0..NITRO_PCR31`.
+- Validate before deployment:
 
 ```bash
 set -a; source .env; set +a
-./scripts/check_enclave_signing_key.sh --key "$EGO_PRIVATE_KEY_FILE"
+./scripts/check_enclave_signing_key.sh --backend nitro
 ```
 
 ## Chain / Contract Configuration

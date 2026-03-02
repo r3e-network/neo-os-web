@@ -3,7 +3,7 @@
 Planned pipelines:
 
 - contracts build + tests (Neo.TestingFramework)
-- EGo build + measurement capture + manifest generation
+- Nitro build + attestation capture + manifest generation
 - Next.js host + SDK build + lint
 - Supabase Edge build + security checks
 

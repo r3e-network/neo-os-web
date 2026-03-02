@@ -72,7 +72,7 @@ POST /query
 | Feature | Description |
 |---------|-------------|
 | HTTP Methods | GET/POST/PUT/etc via `method` |
-| URL allowlist | Restrict outbound destinations (required in strict identity / SGX mode) |
+| URL allowlist | Restrict outbound destinations (required in strict identity mode) |
 | Secret injection | Inject a user secret into a header (`secret_name`, `secret_as_key`) |
 | Response cap | Enforced max body size (default 2MB) |
 

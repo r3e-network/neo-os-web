@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: ./scripts/docker_smoke.sh [--build] [--nitro] [--keep-running]
+Usage: ./scripts/docker_smoke.sh [--build] [--keep-running]
 
 Runs an end-to-end smoke check for the local Nitro stack:
 1) Starts stack via ./scripts/up_nitro.sh
@@ -11,13 +11,7 @@ Runs an end-to-end smoke check for the local Nitro stack:
 
 Options:
   --build         Build images during startup (default: no build).
-  --nitro         Explicitly select Nitro mode (default).
   --keep-running  Do not tear down the stack on exit.
-
-Deprecated (unsupported):
-  --sgx
-  --signing-key PATH
-  --signing-key-dir DIR
 
   -h, --help      Show this help.
 USAGE
@@ -39,21 +33,9 @@ while [[ $# -gt 0 ]]; do
       BUILD="true"
       shift
       ;;
-    --nitro)
-      MODE="nitro"
-      shift
-      ;;
     --keep-running)
       KEEP_RUNNING="true"
       shift
-      ;;
-    --sgx)
-      echo "--sgx is no longer supported. This project is Nitro-only." >&2
-      exit 2
-      ;;
-    --signing-key|--signing-key-dir)
-      echo "$1 is no longer supported in Nitro-only mode." >&2
-      exit 2
       ;;
     -h|--help)
       usage

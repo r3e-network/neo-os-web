@@ -38,7 +38,7 @@ Complements `refactor-plan.md`. Focuses on configuration deduplication, cleanup,
 ### 3.3 Consolidate K8s overlays
 - Merge `test` + `simulation` → `dev`
 - Merge `production` + `production-hardened` → `prod` (with hardening as default)
-- Keep `sgx-hardware-hardened` as `staging`
+- Keep `nitro-prod` as `staging`
 - Result: 3 overlays (dev/staging/prod) instead of 6
 
 ## Phase 4: CI/CD Hardening

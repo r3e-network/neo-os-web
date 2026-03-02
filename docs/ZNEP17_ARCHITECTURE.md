@@ -21,7 +21,7 @@ This document outlines a complete zNEP17 (Zero-Knowledge Privacy Token Protocol 
                                     │ mTLS
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                             ENCLAVE WORKLOADS (SGX)                         │
+│                             ENCLAVE WORKLOADS (Nitro)                         │
 │                                                                             │
 │  [Existing] - TxProxy      (GlobalSigner signature, whitelist tx relay)     │
 │  [Existing] - NeoGasBank   (Gas sponsorship & billing system)               │
@@ -49,7 +49,7 @@ Deployed on Neo N3 as a platform contract.
 - **Methods**: `Deposit`, `Withdraw` (includes BLS12-381 Pairing zero-knowledge verification).
 
 ## 2. TEE Microservice: `neoprivacy` (Go)
-Runs in SGX as a standard microservice.
+Runs in Nitro as a standard microservice.
 - **TreeIndexer**: Polls the blockchain for `DepositEvent`, updates the Poseidon Merkle tree in memory, and synchronizes state with `Supabase` tables (`zNEP17_deposits`, `zNEP17_roots`).
 - **Endpoints**:
   - `GET /api/v1/privacy/merkle-path/{commitment}`: Returns path elements and indices for ZKP generation.
@@ -60,6 +60,6 @@ Runs in SGX as a standard microservice.
 - **Withdraw Flow**: The receiver parses the note, fetches the Merkle path from the `neoprivacy` service, generates a Groth16 proof locally, and submits it to the relayer endpoint.
 
 ## 4. Advantages
-1. **Extreme Security (TEE + ZKP)**: ZKP mathematically proves validity, while SGX hardware isolation prevents MITM IP/request correlation.
+1. **Extreme Security (TEE + ZKP)**: ZKP mathematically proves validity, while Nitro hardware isolation prevents MITM IP/request correlation.
 2. **Solves the "No Initial Gas" Problem**: `txproxy` (the relayer) pays the transaction fee on behalf of the user, taking a `relayerFee` directly from the withdrawn amount via the contract.
 3. **Trustless & Decentralized**: Off-chain credential sharing `neo-zk://` avoids the pitfalls of centralized storage or on-chain message encryption.

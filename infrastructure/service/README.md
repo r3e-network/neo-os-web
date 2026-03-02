@@ -297,7 +297,7 @@ func (b *BaseService) Stop() error {
 
 | Package | Purpose |
 |---------|---------|
-| `infrastructure/marble` | MarbleRun/EGo integration |
+| `infrastructure/marble` | MarbleRun/Nitro runtime integration |
 | `infrastructure/database` | Repository interface |
 | `infrastructure/chain` | Blockchain interaction |
 | `infrastructure/httputil` | HTTP response helpers |

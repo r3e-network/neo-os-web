@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # =============================================================================
-# Service Dockerfile (AWS Nitro / non-EGo runtime)
+# Service Dockerfile (AWS Nitro runtime)
 # =============================================================================
 
 ARG GO_VERSION=1.24

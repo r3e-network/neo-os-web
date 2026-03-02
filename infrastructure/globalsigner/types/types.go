@@ -109,13 +109,13 @@ type MasterKeyAttestation struct {
 	// PubKeyHex is the compressed public key.
 	PubKeyHex string `json:"pubkey_hex"`
 
-	// PubKeyHash is SHA-256(pubkey), bound to SGX report data.
+	// PubKeyHash is SHA-256(pubkey), bound to attestation report data.
 	PubKeyHash string `json:"pubkey_hash"`
 
-	// Provider identifies the TEE backend (e.g. "nitro", "sgx").
+	// Provider identifies the TEE backend (e.g. "nitro").
 	Provider string `json:"provider,omitempty"`
 
-	// EvidenceFormat identifies the evidence encoding (e.g. "aws_nitro_attestation_document", "sgx_quote").
+	// EvidenceFormat identifies the evidence encoding (e.g. "aws_nitro_attestation_document").
 	EvidenceFormat string `json:"evidence_format,omitempty"`
 
 	// Evidence is the provider-specific attestation document.
@@ -127,7 +127,7 @@ type MasterKeyAttestation struct {
 	// PCRs contains Nitro PCR index->value mappings when available.
 	PCRs map[string]string `json:"pcrs,omitempty"`
 
-	// Quote is the base64-encoded SGX quote (deprecated: use Evidence).
+	// Quote is a deprecated compatibility field (use Evidence).
 	Quote string `json:"quote,omitempty"`
 
 	// MRENCLAVE is the enclave measurement.

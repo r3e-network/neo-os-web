@@ -25,9 +25,6 @@ type TEEBackend string
 
 const (
 	TEESim TEEBackend = "sim"
-	// TEESGX is kept as a legacy identifier for backward compatibility only.
-	// Nitro is the only supported production TEE backend.
-	TEESGX   TEEBackend = "sgx"
 	TEENitro TEEBackend = "nitro"
 )
 
@@ -69,10 +66,9 @@ func IsDevelopmentOrTesting() bool {
 
 // Backend returns the configured TEE backend.
 // Priority:
-// 1) TEE_BACKEND (nitro preferred; "sgx" treated as legacy alias to nitro)
+// 1) TEE_BACKEND (nitro or sim)
 // 2) Nitro evidence env
-// 3) Legacy SGX env signals (mapped to nitro)
-// 4) Nitro default
+// 3) Nitro default
 //
 // Explicit opt-out:
 // - TEE_BACKEND=sim|simulation|none|disabled
@@ -80,20 +76,11 @@ func Backend() TEEBackend {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("TEE_BACKEND"))) {
 	case "nitro", "aws-nitro", "aws_nitro":
 		return TEENitro
-	case "sgx":
-		// Legacy SGX config now resolves to Nitro.
-		return TEENitro
 	case "sim", "simulation", "none", "disabled":
 		return TEESim
 	}
 
 	if strings.TrimSpace(os.Getenv("NITRO_ATTESTATION_DOCUMENT_B64")) != "" {
-		return TEENitro
-	}
-	if strings.TrimSpace(os.Getenv("SGX_QUOTE_B64")) != "" ||
-		strings.TrimSpace(os.Getenv("SGX_QUOTE")) != "" ||
-		strings.TrimSpace(os.Getenv("OE_SIMULATION")) == "0" {
-		// Legacy SGX signals are treated as Nitro orientation.
 		return TEENitro
 	}
 

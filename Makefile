@@ -1,19 +1,17 @@
 # =============================================================================
 # Neo Service Layer - Makefile
-# MarbleRun + EGo + Supabase + Vercel Architecture
+# MarbleRun + AWS Nitro + Supabase + Vercel Architecture
 # =============================================================================
 
-.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-nitro docker-smoke-sgx docker-smoke-sgx-build
+.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-nitro
 .PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
 .PHONY: edge-check edge-dev
 
 # Variables
 CMD_BINARIES := marble create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
-ENCLAVE_BINARIES := marble
 # Compose resolves relative .env files from the compose file directory (`docker/`).
 # Prefer the repository root `.env` when present to keep runtime vars consistent.
 DOCKER_COMPOSE_ENV_FILE ?= $(if $(wildcard .env),--env-file .env,)
-DOCKER_COMPOSE_SIM := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.simulation.yaml
 DOCKER_COMPOSE_NITRO := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.simulation.yaml -f docker/docker-compose.nitro.yaml
 # Default to Nitro mode for local development.
 DOCKER_COMPOSE := $(DOCKER_COMPOSE_NITRO)
@@ -42,12 +40,6 @@ build: ## Build all services
 		go build -o bin/$$bin ./cmd/$$bin; \
 	done
 	@echo "Build complete"
-
-build-ego: ## Deprecated (SGX path removed)
-	@echo "build-ego is deprecated: project now targets Nitro-only runtime."
-
-sign-enclaves: ## Deprecated (SGX path removed)
-	@echo "sign-enclaves is deprecated: project now targets Nitro-only runtime."
 
 # =============================================================================
 # Test
@@ -128,22 +120,10 @@ docker-up: ## Start all services in Nitro mode
 	./scripts/up_nitro.sh
 
 docker-smoke: ## Smoke-check Nitro stack health end-to-end
-	./scripts/docker_smoke.sh --nitro
+	./scripts/docker_smoke.sh
 
 docker-smoke-nitro: ## Smoke-check Nitro stack health end-to-end
-	./scripts/docker_smoke.sh --nitro
-
-docker-smoke-sgx: ## Deprecated alias (runs Nitro smoke)
-	@echo "docker-smoke-sgx is deprecated; running Nitro smoke instead."
-	./scripts/docker_smoke.sh --nitro
-
-docker-smoke-sgx-build: ## Deprecated alias (runs Nitro smoke build)
-	@echo "docker-smoke-sgx-build is deprecated; running Nitro smoke build instead."
-	./scripts/docker_smoke.sh --nitro --build
-
-docker-up-sgx: ## Deprecated alias (runs Nitro stack)
-	@echo "docker-up-sgx is deprecated; starting Nitro stack instead."
-	./scripts/up_nitro.sh
+	./scripts/docker_smoke.sh
 
 docker-up-nitro: ## Start all services with Nitro backend
 	./scripts/up_nitro.sh
@@ -332,7 +312,7 @@ docs: ## Generate documentation
 
 version: ## Show version
 	@echo "Neo Service Layer v1.0.0"
-	@echo "MarbleRun + EGo + Supabase + Vercel"
+	@echo "MarbleRun + AWS Nitro + Supabase + Vercel"
 
 install-tools: ## Install development tools
 	@echo "Installing development tools..."

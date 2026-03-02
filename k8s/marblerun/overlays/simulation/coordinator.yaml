@@ -1,13 +1,8 @@
 # =============================================================================
-# MarbleRun Coordinator Deployment for Simulation / Development
-# - Runs with OE_SIMULATION=1 (no SGX required)
-# - Does not mount AESM/DCAP host resources
+# MarbleRun Coordinator Deployment for Local Development
+# - Uses insecure coordinator mode for local workflows
+# - Keeps the backend declaration Nitro-oriented
 # =============================================================================
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: marblerun
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -58,8 +53,8 @@ spec:
               value: "coordinator,coordinator.marblerun,coordinator.marblerun.svc.cluster.local,localhost"
             - name: EDG_COORDINATOR_SEAL_DIR
               value: "/coordinator/data"
-            - name: OE_SIMULATION
-              value: "1"
+            - name: TEE_BACKEND
+              value: "nitro"
           volumeMounts:
             - name: coordinator-data
               mountPath: /coordinator/data

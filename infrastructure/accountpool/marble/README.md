@@ -223,7 +223,7 @@ not recoverable after restart).
 - Signatures computed inside TEE
 - Only public info (address, per-token balances) exposed via API
 
-In strict identity mode (production/SGX/MarbleRun TLS), caller identity is
+In strict identity mode (strict production/MarbleRun TLS), caller identity is
 derived from verified mTLS peer identity; inter-service calls should use the
 MarbleRun-provided mTLS HTTP client.
 

@@ -6,7 +6,7 @@ This repository uses a **TEE-managed signer** for all platform “service-layer 
 ## Components
 
 - **MarbleRun**: attestation + secret distribution + mTLS identities inside the enclave mesh.
-- **EGo**: enclave runtime for services.
+- **Nitro runtime integration**: enclave runtime path for services.
 - **GlobalSigner** (`infrastructure/globalsigner`): holds the active signing key (inside the enclave) and exposes:
   - `/attestation` (public key + metadata)
   - `/sign` (raw signing; key never leaves enclave)

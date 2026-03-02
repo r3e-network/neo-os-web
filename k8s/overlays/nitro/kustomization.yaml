@@ -6,50 +6,16 @@ namespace: service-layer
 resources:
   - ../../base
 
-# Nitro overlay keeps base manifests mostly intact while switching runtime hints
-# away from SGX-specific defaults.
+# Nitro overlay keeps base manifests mostly intact and sets non-production
+# runtime defaults.
 patches:
-  - target:
-      kind: ConfigMap
-      name: sgx-qcnl-config
-    patch: |-
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: sgx-qcnl-config
-      $patch: delete
   - target:
       kind: ConfigMap
       name: service-layer-config
     patch: |-
-      - op: add
-        path: /data/TEE_BACKEND
-        value: "nitro"
-      - op: replace
-        path: /data/OE_SIMULATION
-        value: "1"
       - op: replace
         path: /data/MARBLE_ENV
         value: "testing"
-  - target:
-      kind: Deployment
-    patch: |-
-      - op: remove
-        path: /metadata/labels/marblerun~1inject
-      - op: remove
-        path: /spec/template/metadata/labels/marblerun~1inject
-      - op: remove
-        path: /spec/template/spec/volumes/1
-      - op: remove
-        path: /spec/template/spec/containers/0/volumeMounts/1
-      - op: add
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: TEE_BACKEND
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: TEE_BACKEND
 
 labels:
   - includeSelectors: true

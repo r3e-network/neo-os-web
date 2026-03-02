@@ -6,4 +6,3 @@ namespace: marblerun
 resources:
   - namespace.yaml
   - coordinator.yaml
-  - sgx-qcnl-configmap.yaml
