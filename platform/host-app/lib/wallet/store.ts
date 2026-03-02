@@ -5,11 +5,12 @@ import {
   NeoLineAdapter,
   O3Adapter,
   OneGateAdapter,
+  Web3AuthAdapter,
   WalletBalance,
   WalletNotInstalledError,
 } from "./adapters";
 
-export type WalletProvider = "neoline" | "o3" | "onegate";
+export type WalletProvider = "neoline" | "o3" | "onegate" | "web3auth";
 
 interface WalletState {
   connected: boolean;
@@ -34,6 +35,7 @@ const adapters: Record<WalletProvider, WalletAdapter> = {
   neoline: new NeoLineAdapter(),
   o3: new O3Adapter(),
   onegate: new OneGateAdapter(),
+  web3auth: new Web3AuthAdapter(),
 };
 
 export const useWalletStore = create<WalletStore>()(
@@ -126,4 +128,5 @@ export const walletOptions = [
   { id: "neoline" as const, name: "NeoLine", icon: "https://neoline.io/favicon.ico" },
   { id: "o3" as const, name: "O3", icon: "https://o3.network/favicon.ico" },
   { id: "onegate" as const, name: "OneGate", icon: "https://onegate.space/favicon.ico" },
+  { id: "web3auth" as const, name: "Web3Auth", icon: "https://web3auth.io/images/w3a-L-Favicon-1.svg" },
 ];
