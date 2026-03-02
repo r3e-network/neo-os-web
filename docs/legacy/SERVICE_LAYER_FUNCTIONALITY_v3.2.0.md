@@ -13,7 +13,7 @@
 
 ## Architecture Overview
 
-The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platform built on **MarbleRun + EGo** for neocompute computing on the Neo N3 blockchain. It provides oracle services, verifiable randomness, privacy mixing, automated task execution, and price feeds through a secure TEE-based architecture.
+The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platform built on **MarbleRun + Nitro runtime** for neocompute computing on the Neo N3 blockchain. It provides oracle services, verifiable randomness, privacy mixing, automated task execution, and price feeds through a secure TEE-based architecture.
 
 ### High-Level Architecture
 
@@ -26,7 +26,7 @@ The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platf
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          API GATEWAY (EGo TEE)                          │
+│                          API GATEWAY (Nitro runtime TEE)                          │
 │                    Authentication, Routing, Rate Limiting                   │
 │                         JWT + Neo Wallet Signature Auth                     │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -35,11 +35,11 @@ The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platf
                     ▼                 ▼                 ▼
 ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
 │   NeoRand Service         │ │   NeoVault Service       │ │   NeoFeeds Service   │
-│   (EGo TEE)       │ │   (EGo TEE)       │ │   (EGo TEE)       │
+│   (Nitro runtime TEE)       │ │   (Nitro runtime TEE)       │ │   (Nitro runtime TEE)       │
 └───────────────────────┘ └───────────────────────┘ └───────────────────────┘
 ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
 │   NeoFlow Service  │ │   AccountPool Service │ │   NeoCompute Service│
-│   (EGo TEE)       │ │   (EGo TEE)       │ │   (EGo TEE)       │
+│   (Nitro runtime TEE)       │ │   (Nitro runtime TEE)       │ │   (Nitro runtime TEE)       │
 └───────────────────────┘ └───────────────────────┘ └───────────────────────┘
                                       │
                     ┌─────────────────┼─────────────────┐
@@ -65,7 +65,7 @@ The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platf
 
 | Component     | Technology             | Purpose                                     |
 | ------------- | ---------------------- | ------------------------------------------- |
-| TEE Runtime   | EGo (Edgeless Systems) | MarbleRun TEE execution                     |
+| TEE Runtime   | Nitro runtime (Edgeless Systems) | MarbleRun TEE execution                     |
 | Orchestration | MarbleRun              | Multi-TEE coordination, secrets management  |
 | Database      | Supabase (PostgreSQL)  | Persistent storage, real-time subscriptions |
 | HTTP Router   | Gorilla Mux            | REST API routing                            |
@@ -86,7 +86,7 @@ The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platf
 | ----------- | --------------------- | --------------------------- |
 | Secrets     | MarbleRun Coordinator | TEE secret injection        |
 | TLS         | mTLS (MarbleRun)      | Inter-service communication |
-| Attestation | MarbleRun/EGo         | Remote attestation          |
+| Attestation | MarbleRun/Nitro runtime         | Remote attestation          |
 
 ---
 
@@ -413,7 +413,7 @@ sources:
 
 ## Integration Workflows
 
-### MarbleRun + EGo Integration
+### MarbleRun + Nitro runtime Integration
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -428,7 +428,7 @@ sources:
                     ┌─────────────────┼─────────────────┐
                     ▼                 ▼                 ▼
 ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
-│   EGo TEE         │ │   EGo TEE         │ │   EGo TEE         │
+│   Nitro runtime TEE         │ │   Nitro runtime TEE         │ │   Nitro runtime TEE         │
 │   (NeoRand Service)       │ │   (NeoVault Service)     │ │   (Gateway)           │
 │                       │ │                       │ │                       │
 │ MARBLE_CERT           │ │ MARBLE_CERT           │ │ MARBLE_CERT           │
@@ -478,7 +478,7 @@ DOCKER_BUILDKIT=1 docker build \
   .
 ```
 
-For SGX hardware runs, prefer `./scripts/up.sh --signing-key` or `./scripts/up.sh --signing-key-dir` which verifies `SignerID` values against `manifests/manifest.json` and starts Docker Compose with `--no-build` (Compose cannot pass BuildKit secrets).
+For Nitro hardware runs, prefer `./scripts/up.sh --signing-key` or `./scripts/up.sh --signing-key-dir` which verifies `SignerID` values against `manifests/manifest.json` and starts Docker Compose with `--no-build` (Compose cannot pass BuildKit secrets).
 
 ### Supabase Integration
 
@@ -603,7 +603,7 @@ base (for example `https://api.yourdomain.tld/api/v1`).
 │  │                                                                      │   │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │   │
 │  │  │ MarbleRun    │  │ Gateway Pod  │  │ Service Pods │               │   │
-│  │  │ Coordinator  │  │ (EGo)        │  │ (EGo)        │               │   │
+│  │  │ Coordinator  │  │ (Nitro runtime)        │  │ (Nitro runtime)        │               │   │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘               │   │
 │  │                                                                      │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
@@ -680,6 +680,6 @@ When `OAUTH_COOKIE_MODE=true`, the gateway also sets an HTTP-only cookie (`sl_au
 ## References
 
 - [MarbleRun Documentation](https://docs.edgeless.systems/marblerun)
-- [EGo Documentation](https://docs.edgeless.systems/ego)
+- [AWS Nitro Enclaves Documentation](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html)
 - [Neo N3 Documentation](https://docs.neo.org/)
 - [Supabase Documentation](https://supabase.com/docs)

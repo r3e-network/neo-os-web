@@ -158,7 +158,7 @@ grep -r "// +build.*sim|//go:build.*sim" --include="*.go"
 Result: No simulation build tags found
 
 # Check for simulation environment variables
-grep -r "OE_SIMULATION|SGX_MODE.*SIM|sgx_sim" --include="*.go"
+grep -r "TEE_BACKEND=nitro|SGX_MODE.*SIM|sgx_sim" --include="*.go"
 Result: No MarbleRun simulation code found in Go files
 ```
 

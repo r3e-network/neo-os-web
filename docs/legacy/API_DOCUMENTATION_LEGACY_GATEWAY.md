@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Neo Service Layer provides a comprehensive set of TEE-protected services for the Neo N3 blockchain. All services are protected by MarbleRun/EGo TEE and coordinated through MarbleRun.
+The Neo Service Layer provides a comprehensive set of TEE-protected services for the Neo N3 blockchain. All services are protected by MarbleRun/Nitro runtime TEE and coordinated through MarbleRun.
 
 ## Base URL
 
@@ -161,7 +161,7 @@ POST /api/v1/neooracle/query
 
 - Backward-compatible alias: `POST /api/v1/neooracle/fetch` (same handler).
 - Legacy gateway alias: `POST /api/v1/oracle/query`.
-- In production/SGX (strict identity mode), only `https://` URLs are allowed.
+- In production/Nitro (strict identity mode), only `https://` URLs are allowed.
 - Access to external URLs is restricted by `ORACLE_HTTP_ALLOWLIST`.
 - Optional secret injection fields: `secret_name` and `secret_as_key`.
 
@@ -509,7 +509,7 @@ use:
 GET /attestation
 ```
 
-For SGX hardware deployments, ensure:
+For Nitro hardware deployments, ensure:
 
 1. Enclave images are signed with stable keys and `SignerID`s match `manifests/manifest.json`.
 2. Services communicate over MarbleRun-provisioned mTLS (verified chains).
@@ -552,7 +552,7 @@ console.log(await resp.json());
 
 NeoFlow supports executing **webhook actions** as part of triggers.
 
-**Security note:** In production/SGX (strict identity mode), webhook targets must be `https://` URLs. Internal service-to-service webhooks should use mesh DNS names and will be dispatched over HTTPS+mTLS when MarbleRun credentials are available. External webhooks are blocked from targeting private/loopback/link-local networks by default; override with `NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS=true` only if required.
+**Security note:** In production/Nitro (strict identity mode), webhook targets must be `https://` URLs. Internal service-to-service webhooks should use mesh DNS names and will be dispatched over HTTPS+mTLS when MarbleRun credentials are available. External webhooks are blocked from targeting private/loopback/link-local networks by default; override with `NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS=true` only if required.
 
 Webhook URLs are configured inside a NeoFlow trigger’s `action` payload.
 
