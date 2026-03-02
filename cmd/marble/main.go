@@ -100,11 +100,10 @@ func main() {
 		log.Fatalf("Failed to initialize marble: %v", initErr)
 	}
 
-	// In production/SGX mode, require MarbleRun-injected mTLS credentials.
-	// This ensures service-to-service identity headers can be trusted and prevents
-	// accidentally deploying plaintext HTTP within the mesh.
-	if (runtime.StrictIdentityMode() || m.IsEnclave()) && m.TLSConfig() == nil {
-		log.Fatalf("CRITICAL: MarbleRun TLS credentials are required in production/SGX mode (missing MARBLE_CERT/MARBLE_KEY/MARBLE_ROOT_CA)")
+	// In strict identity mode, require injected mTLS credentials so service
+	// identity headers cannot be spoofed over plaintext links.
+	if runtime.StrictIdentityMode() && m.TLSConfig() == nil {
+		log.Fatalf("CRITICAL: mTLS credentials are required in strict identity mode (missing MARBLE_CERT/MARBLE_KEY/MARBLE_ROOT_CA)")
 	}
 
 	// Initialize database

@@ -56,17 +56,17 @@ func TestLoadMasterKey_SetsDerivedFields(t *testing.T) {
 }
 
 func TestLoadMasterKey_FailsOnMissingSecrets(t *testing.T) {
-        t.Setenv("POOL_MASTER_KEY", "")
-        t.Setenv("COORDINATOR_MASTER_SEED", "")
-        t.Setenv("NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY", "false")
-        
-        m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
-        
-        s, err := New(Config{Marble: m})
+	t.Setenv("POOL_MASTER_KEY", "")
+	t.Setenv("COORDINATOR_MASTER_SEED", "")
+	t.Setenv("NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY", "false")
 
-        if err == nil {
-                t.Fatalf("expected error when secrets are missing, got svc with key: %x", s.masterKey)
-        }
+	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+
+	s, err := New(Config{Marble: m})
+
+	if err == nil {
+		t.Fatalf("expected error when secrets are missing, got svc with key: %x", s.masterKey)
+	}
 }
 func TestLoadMasterKey_FailsOnHashMismatch(t *testing.T) {
 	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
@@ -114,13 +114,14 @@ func TestBuildMasterKeyAttestation_NonEnclaveIsSimulated(t *testing.T) {
 	}
 }
 
-func TestGetQuote_ReturnsErrorOutsideEnclave(t *testing.T) {
-	report, quote, err := getQuote([]byte("hello"))
+func TestMarbleAttest_ReturnsErrorOutsideEnclave(t *testing.T) {
+	m, err := marble.New(marble.Config{MarbleType: "neoaccounts"})
 	if err != nil {
-		return
+		t.Fatalf("marble.New: %v", err)
 	}
-	if report == nil || len(quote) == 0 {
-		t.Fatalf("expected report and quote when no error returned")
+
+	if _, err := m.Attest([]byte("hello")); err == nil {
+		t.Fatalf("expected Attest to fail outside TEE backend")
 	}
 }
 

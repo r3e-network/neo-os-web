@@ -10,9 +10,18 @@ func TestStrictIdentityMode(t *testing.T) {
 		}
 	})
 
-	t.Run("hardware mode", func(t *testing.T) {
+	t.Run("explicit strict mode", func(t *testing.T) {
 		t.Setenv("MARBLE_ENV", "development")
-		t.Setenv("OE_SIMULATION", "0")
+		t.Setenv("TEE_STRICT_MODE", "true")
+		if !StrictIdentityMode() {
+			t.Fatalf("StrictIdentityMode() = false, want true")
+		}
+	})
+
+	t.Run("tee backend strict opt-in", func(t *testing.T) {
+		t.Setenv("MARBLE_ENV", "development")
+		t.Setenv("TEE_BACKEND", "nitro")
+		t.Setenv("STRICT_IDENTITY_ON_TEE", "true")
 		if !StrictIdentityMode() {
 			t.Fatalf("StrictIdentityMode() = false, want true")
 		}

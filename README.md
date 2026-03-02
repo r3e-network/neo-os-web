@@ -23,7 +23,7 @@ The R3E MiniApps Platform enables developers and operators to deploy sophisticat
 - **JSON-Driven Polymorphic UI**: Build complex interfaces (like Polymarket, DAOs, or Lotteries) using reusable component layouts and dynamically rendered operation sidebars. No frontend coding required per app.
 - **Universal Contract Templates**: Instantiate parameter-driven factory contracts (`Template.Prediction.cs`, `Template.Lottery.cs`) via JSON config, bypassing custom C# development and audits for standard DApp behaviors.
 - **Universal Multi-Chain Auth**: A unified Polymarket-style connection flow supporting **Web2 Social Logins** (via Auth0 to custodial wallets), native **Neo N3** wallets, and EVM-based **Neo X** wallets (via MetaMask).
-- **TEE Security**: Powered by Intel SGX enclaves and Supabase Edge for confidential computation and scalable off-chain logic.
+- **TEE Security**: Powered by AWS Nitro Enclaves (primary) with SGX compatibility, plus Supabase Edge for scalable off-chain logic.
 
 ## Architecture
 
@@ -220,8 +220,8 @@ Use these commands to verify readiness and live testnet workflows:
 ```bash
 set -a; source .env; set +a
 
-# SGX signing-key + production-readiness checks
-./scripts/check_enclave_signing_key.sh --key "$EGO_PRIVATE_KEY_FILE"
+# Nitro attestation + production-readiness checks
+./scripts/check_enclave_signing_key.sh --backend nitro
 ./scripts/production_readiness_check.sh
 
 # End-to-end on-chain testnet workflow verification
@@ -239,11 +239,13 @@ env PRICEFEED_WATCH_SYMBOLS='NEO-USD,GAS-USD,USDT-USD,USDC-USD,BTC-USD,ETH-USD,X
 | --------------------------- | -------------------------- |
 | `SUPABASE_URL`              | Supabase project URL       |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key  |
+| `TEE_BACKEND`               | TEE backend (`sim/sgx/nitro`) |
 | `SECRETS_MASTER_KEY`        | Encryption key for secrets |
 | `NEO_RPC_URL`               | Neo N3 RPC endpoint        |
 | `NEO_NETWORK_MAGIC`         | Network magic number       |
 | `CONTRACT_*_HASH`           | Platform contract hashes   |
-| `EGO_PRIVATE_KEY_FILE`      | Enclave signing key path   |
+| `NITRO_ATTESTATION_DOCUMENT_B64` | Nitro attestation document |
+| `EGO_PRIVATE_KEY_FILE`      | SGX-only enclave signing key path |
 | `NEOFEEDS_PUBLISH_*`        | Datafeed publish policy    |
 
 See [`.env.example`](.env.example) for complete list.

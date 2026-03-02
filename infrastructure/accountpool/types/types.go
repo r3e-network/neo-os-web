@@ -176,16 +176,21 @@ type TransferWithDataResponse struct {
 // is bound to enclave report data. The quote is intended for off-chain
 // verification; the account pool does not parse or validate it here.
 type MasterKeyAttestation struct {
-	Hash      string `json:"hash"`
-	PubKey    string `json:"pubkey,omitempty"`
-	Quote     string `json:"quote,omitempty"`
-	MRENCLAVE string `json:"mrenclave,omitempty"`
-	MRSIGNER  string `json:"mrsigner,omitempty"`
-	ProdID    uint16 `json:"prod_id,omitempty"`
-	ISVSVN    uint16 `json:"isvsvn,omitempty"`
-	Timestamp string `json:"timestamp"`
-	Source    string `json:"source"`
-	Simulated bool   `json:"simulated"`
+	Hash           string            `json:"hash"`
+	PubKey         string            `json:"pubkey,omitempty"`
+	Provider       string            `json:"provider,omitempty"`
+	EvidenceFormat string            `json:"evidence_format,omitempty"`
+	Evidence       string            `json:"evidence,omitempty"`
+	ModuleID       string            `json:"module_id,omitempty"`
+	PCRs           map[string]string `json:"pcrs,omitempty"`
+	Quote          string            `json:"quote,omitempty"` // Deprecated: use Evidence
+	MRENCLAVE      string            `json:"mrenclave,omitempty"`
+	MRSIGNER       string            `json:"mrsigner,omitempty"`
+	ProdID         uint16            `json:"prod_id,omitempty"`
+	ISVSVN         uint16            `json:"isvsvn,omitempty"`
+	Timestamp      string            `json:"timestamp"`
+	Source         string            `json:"source"`
+	Simulated      bool              `json:"simulated"`
 }
 
 // ContractParam represents a parameter for contract invocation.

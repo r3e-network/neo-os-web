@@ -35,10 +35,10 @@ type Service struct {
 	mu sync.RWMutex
 
 	// Request policy
-	maxBodyBytes     int64
-	domainAllowlist  map[string][]string
-	signRawAllowlist map[string]bool
-	requireQuote     bool
+	maxBodyBytes       int64
+	domainAllowlist    map[string][]string
+	signRawAllowlist   map[string]bool
+	requireAttestation bool
 
 	// Configuration
 	rotationConfig *RotationConfig
@@ -81,10 +81,11 @@ type Config struct {
 const (
 	defaultMaxBodyBytes = 1 << 20 // 1MiB
 
-	envDomainAllowlist  = "GLOBALSIGNER_DOMAIN_ALLOWLIST"
-	envSignRawAllowlist = "GLOBALSIGNER_SIGN_RAW_ALLOWLIST"
-	envMaxBodyBytes     = "GLOBALSIGNER_MAX_BODY_BYTES"
-	envRequireQuote     = "GLOBALSIGNER_REQUIRE_QUOTE"
+	envDomainAllowlist    = "GLOBALSIGNER_DOMAIN_ALLOWLIST"
+	envSignRawAllowlist   = "GLOBALSIGNER_SIGN_RAW_ALLOWLIST"
+	envMaxBodyBytes       = "GLOBALSIGNER_MAX_BODY_BYTES"
+	envRequireAttestation = "GLOBALSIGNER_REQUIRE_ATTESTATION"
+	envRequireQuoteLegacy = "GLOBALSIGNER_REQUIRE_QUOTE"
 )
 
 // =============================================================================
@@ -134,35 +135,39 @@ func New(cfg Config) (*Service, error) {
 		signRawAllowlist = parseServiceIDAllowlist(splitAndTrimCSV(strings.TrimSpace(os.Getenv(envSignRawAllowlist))))
 	}
 
-	requireQuote := cfg.Marble != nil && cfg.Marble.IsEnclave()
-	if raw := strings.TrimSpace(os.Getenv(envRequireQuote)); raw != "" {
+	requireAttestation := cfg.Marble != nil && cfg.Marble.IsEnclave()
+	rawRequireAttestation := strings.TrimSpace(os.Getenv(envRequireAttestation))
+	if rawRequireAttestation == "" {
+		rawRequireAttestation = strings.TrimSpace(os.Getenv(envRequireQuoteLegacy))
+	}
+	if raw := rawRequireAttestation; raw != "" {
 		if parsed, err := strconv.ParseBool(raw); err == nil {
-			requireQuote = parsed
+			requireAttestation = parsed
 		} else {
-			base.Logger().Warn(context.Background(), "Invalid GLOBALSIGNER_REQUIRE_QUOTE; using default", map[string]interface{}{
+			base.Logger().Warn(context.Background(), "Invalid GLOBALSIGNER_REQUIRE_ATTESTATION/GLOBALSIGNER_REQUIRE_QUOTE; using default", map[string]interface{}{
 				"value": raw,
 			})
 		}
 	}
 
 	s := &Service{
-		BaseService:      base,
-		maxBodyBytes:     maxBodyBytes,
-		domainAllowlist:  domainAllowlist,
-		signRawAllowlist: signRawAllowlist,
-		requireQuote:     requireQuote,
-		rotationConfig:   cfg.RotationConfig,
-		keys:             make(map[string]*keyEntry),
-		repo:             cfg.Repository,
-		startTime:        time.Now(),
+		BaseService:        base,
+		maxBodyBytes:       maxBodyBytes,
+		domainAllowlist:    domainAllowlist,
+		signRawAllowlist:   signRawAllowlist,
+		requireAttestation: requireAttestation,
+		rotationConfig:     cfg.RotationConfig,
+		keys:               make(map[string]*keyEntry),
+		repo:               cfg.Repository,
+		startTime:          time.Now(),
 	}
 
 	strict := runtime.StrictIdentityMode() || (cfg.Marble != nil && cfg.Marble.IsEnclave())
 	if strict && len(s.domainAllowlist) == 0 {
-		return nil, fmt.Errorf("GLOBALSIGNER_DOMAIN_ALLOWLIST must be set in strict/enclave mode")
+		return nil, fmt.Errorf("GLOBALSIGNER_DOMAIN_ALLOWLIST must be set in strict/TEE mode")
 	}
 	if strict && len(s.signRawAllowlist) == 0 {
-		return nil, fmt.Errorf("GLOBALSIGNER_SIGNRAW_ALLOWLIST must be set in strict/enclave mode")
+		return nil, fmt.Errorf("GLOBALSIGNER_SIGNRAW_ALLOWLIST must be set in strict/TEE mode")
 	}
 
 	// Set up hydration to load keys on startup

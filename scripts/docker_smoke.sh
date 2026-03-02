@@ -3,16 +3,17 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/docker_smoke.sh [--build] [--sgx] [--signing-key PATH | --signing-key-dir DIR] [--keep-running]
+Usage: ./scripts/docker_smoke.sh [--build] [--sgx|--nitro] [--signing-key PATH | --signing-key-dir DIR] [--keep-running]
 
 Runs an end-to-end smoke check for the local stack:
-1) Starts stack via ./scripts/up.sh (simulation by default)
-2) Verifies MarbleRun coordinator status
+1) Starts stack via ./scripts/up.sh (simulation/sgx) or ./scripts/up_nitro.sh (nitro)
+2) Verifies MarbleRun coordinator status (simulation/sgx only)
 3) Verifies each service is running and listening on its local service port
 
 Options:
   --build         Build images during startup (default: no build).
   --sgx           Run smoke checks against SGX compose mode (docker-compose.yaml).
+  --nitro         Run smoke checks against Nitro compose mode.
   --signing-key PATH
                   Forwarded to scripts/up.sh in SGX mode to build signed images.
   --signing-key-dir DIR
@@ -42,6 +43,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --sgx)
       MODE="sgx"
+      shift
+      ;;
+    --nitro)
+      MODE="nitro"
       shift
       ;;
     --signing-key)
@@ -77,20 +82,27 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$MODE" == "sgx" ]]; then
-  COMPOSE_FILE="${PROJECT_ROOT}/docker/docker-compose.yaml"
+  COMPOSE_FILES=(-f "${PROJECT_ROOT}/docker/docker-compose.yaml")
   # Local compose deployments use coordinator-generated certs by default.
   COORDINATOR_STATUS_CMD=(marblerun status localhost:4433 --insecure)
+  START_CMD=("${PROJECT_ROOT}/scripts/up.sh")
   UP_ARGS=()
   echo "SGX mode requires images signed with keys matching manifests/manifest.json."
+elif [[ "$MODE" == "nitro" ]]; then
+  COMPOSE_FILES=(-f "${PROJECT_ROOT}/docker/docker-compose.simulation.yaml" -f "${PROJECT_ROOT}/docker/docker-compose.nitro.yaml")
+  COORDINATOR_STATUS_CMD=()
+  START_CMD=("${PROJECT_ROOT}/scripts/up_nitro.sh")
+  UP_ARGS=()
 else
-  COMPOSE_FILE="${PROJECT_ROOT}/docker/docker-compose.simulation.yaml"
+  COMPOSE_FILES=(-f "${PROJECT_ROOT}/docker/docker-compose.simulation.yaml")
   COORDINATOR_STATUS_CMD=(marblerun status localhost:4433 --insecure)
+  START_CMD=("${PROJECT_ROOT}/scripts/up.sh")
   UP_ARGS=(--insecure)
 fi
 
-DOCKER_COMPOSE=(docker compose -f "$COMPOSE_FILE")
+DOCKER_COMPOSE=(docker compose "${COMPOSE_FILES[@]}")
 if [[ -f "$ENV_FILE" ]]; then
-  DOCKER_COMPOSE=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
+  DOCKER_COMPOSE=(docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}")
 fi
 
 compose() {
@@ -117,15 +129,24 @@ fi
 if [[ -n "$SIGNING_KEY_DIR" ]]; then
   UP_ARGS+=(--signing-key-dir "$SIGNING_KEY_DIR")
 fi
-"${PROJECT_ROOT}/scripts/up.sh" "${UP_ARGS[@]}"
-
-echo ""
-echo "Checking MarbleRun coordinator..."
-if "${COORDINATOR_STATUS_CMD[@]}" >/dev/null 2>&1; then
-  echo "  [OK] ${COORDINATOR_STATUS_CMD[*]}"
+if [[ "${#UP_ARGS[@]}" -gt 0 ]]; then
+  "${START_CMD[@]}" "${UP_ARGS[@]}"
 else
-  echo "  [FAIL] marblerun coordinator status check failed"
-  exit 1
+  "${START_CMD[@]}"
+fi
+
+if [[ "${#COORDINATOR_STATUS_CMD[@]}" -gt 0 ]]; then
+  echo ""
+  echo "Checking MarbleRun coordinator..."
+  if "${COORDINATOR_STATUS_CMD[@]}" >/dev/null 2>&1; then
+    echo "  [OK] ${COORDINATOR_STATUS_CMD[*]}"
+  else
+    echo "  [FAIL] marblerun coordinator status check failed"
+    exit 1
+  fi
+else
+  echo ""
+  echo "Skipping MarbleRun coordinator check in Nitro mode."
 fi
 
 declare -A SERVICES=(

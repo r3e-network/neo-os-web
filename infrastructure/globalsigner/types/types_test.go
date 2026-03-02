@@ -227,7 +227,7 @@ func TestAttestationArtifactStruct(t *testing.T) {
 	art := AttestationArtifact{
 		ID:              1,
 		KeyID:           "key-1",
-		ArtifactType:    "sgx_quote",
+		ArtifactType:    "tee_evidence",
 		ArtifactData:    []byte("data"),
 		PubKeyHash:      "hash",
 		AttestationHash: "att-hash",
@@ -237,7 +237,7 @@ func TestAttestationArtifactStruct(t *testing.T) {
 	if art.ID != 1 {
 		t.Errorf("ID = %d, want 1", art.ID)
 	}
-	if art.ArtifactType != "sgx_quote" {
-		t.Errorf("ArtifactType = %q, want %q", art.ArtifactType, "sgx_quote")
+	if art.ArtifactType != "tee_evidence" {
+		t.Errorf("ArtifactType = %q, want %q", art.ArtifactType, "tee_evidence")
 	}
 }

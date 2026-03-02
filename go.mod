@@ -4,10 +4,10 @@ go 1.24.13
 
 require (
 	github.com/dop251/goja v0.0.0-20260216154549-8b74ce4618c5
-	github.com/edgelesssys/ego v1.8.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
+	github.com/hf/nsm v0.0.0-20220930140112-cd181bd646b9
 	github.com/lib/pq v1.11.2
 	github.com/nspcc-dev/neo-go v0.114.0
 	github.com/nspcc-dev/rfc6979 v0.2.4
@@ -33,7 +33,7 @@ require (
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/ebitengine/purego v0.9.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/pprof v0.0.0-20251208000136-3d256cb9ff16 // indirect
@@ -57,6 +57,7 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect

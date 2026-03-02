@@ -1,0 +1,69 @@
+# ---------------------------------------------------------------------------
+# Nitro backend overrides (applied on top of docker-compose.simulation.yaml)
+# ---------------------------------------------------------------------------
+services:
+  neofeeds:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  neoflow:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  neoaccounts:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  neogasbank:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  neocompute:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  neovrf:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  neooracle:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  neorequests:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  txproxy:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  globalsigner:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}
+
+  neosimulation:
+    build:
+      dockerfile: docker/Dockerfile.service.nitro
+    environment:
+      TEE_BACKEND: ${TEE_BACKEND:-nitro}

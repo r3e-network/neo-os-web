@@ -37,7 +37,8 @@ Protected (service-auth required):
   (example: `neovrf:randomness:*|vrf:*,neofeeds:datafeed:*`)
 - `GLOBALSIGNER_SIGN_RAW_ALLOWLIST`: optional CSV of service IDs allowed to call `sign-raw`
 - `GLOBALSIGNER_MAX_BODY_BYTES`: optional request body limit (bytes; default 1048576)
-- `GLOBALSIGNER_REQUIRE_QUOTE`: optional override for SGX quote enforcement in enclave mode
+- `GLOBALSIGNER_REQUIRE_ATTESTATION`: optional override for TEE evidence enforcement
+  (`GLOBALSIGNER_REQUIRE_QUOTE` is kept as a legacy alias)
 
 ## Signing API Example
 

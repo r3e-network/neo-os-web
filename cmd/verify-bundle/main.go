@@ -18,7 +18,7 @@ import (
 )
 
 // Verifies a master-key attestation bundle hash matches the expected on-chain attestation hash.
-// Bundle fields expected: pubkey, hash (sha256(pubkey)), quote (optional for this check).
+// Bundle fields expected: pubkey, hash (sha256(pubkey)), plus optional provider evidence fields.
 func main() {
 	bundleURI := flag.String("bundle", "", "Bundle URI (file:///path or https://...) containing pubkey/hash/quote")
 	expected := flag.String("expected-hash", "", "Expected SHA-256(bundle) hex (on-chain attestation hash)")

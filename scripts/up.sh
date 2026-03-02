@@ -3,11 +3,16 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/up.sh [--insecure] [--no-build] [--env-file PATH | --no-env-file] [--signing-key PATH | --signing-key-dir DIR] [--skip-signer-check]
+Usage: ./scripts/up.sh [--backend sim|sgx|nitro] [--insecure] [--no-build] [--env-file PATH | --no-env-file] [--signing-key PATH | --signing-key-dir DIR] [--skip-signer-check]
 
 Starts the Service Layer stack via Docker Compose and (re)configures MarbleRun.
 
 Options:
+  --backend MODE
+               Runtime backend:
+               - sim: SGX simulation stack (legacy --insecure behavior)
+               - sgx: SGX hardware stack (default)
+               - nitro: Nitro stack (delegates to scripts/up_nitro.sh)
   --insecure   Run in SGX simulation mode (OE_SIMULATION=1) and skip quote verification.
   --no-build   Start the stack without building images (recommended for SGX hardware/prod).
   --env-file PATH
@@ -50,6 +55,7 @@ NO_ENV_FILE="false"
 SIGNING_KEY=""
 SIGNING_KEY_DIR=""
 SKIP_SIGNER_CHECK="false"
+BACKEND=""
 
 cleanup_files=()
 cleanup() {
@@ -65,6 +71,14 @@ while [[ $# -gt 0 ]]; do
     --insecure)
       INSECURE="true"
       shift
+      ;;
+    --backend)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value for --backend" >&2
+        exit 2
+      fi
+      BACKEND="$2"
+      shift 2
       ;;
     --no-build)
       NO_BUILD="true"
@@ -114,13 +128,52 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ -z "$BACKEND" ]]; then
+  if [[ "$INSECURE" == "true" ]]; then
+    BACKEND="sim"
+  else
+    BACKEND="sgx"
+  fi
+fi
+
+BACKEND="$(echo "$BACKEND" | tr 'A-Z' 'a-z')"
+case "$BACKEND" in
+  sim|sgx|nitro) ;;
+  *)
+    echo "Invalid --backend value: $BACKEND (expected sim|sgx|nitro)" >&2
+    exit 2
+    ;;
+esac
+
+IS_SIM_BACKEND="false"
+if [[ "$BACKEND" == "sim" ]]; then
+  IS_SIM_BACKEND="true"
+fi
+
+if [[ "$BACKEND" == "nitro" ]]; then
+  delegated_args=()
+  if [[ "$NO_BUILD" == "true" ]]; then
+    delegated_args+=(--no-build)
+  fi
+  if [[ -n "$ENV_FILE" ]]; then
+    delegated_args+=(--env-file "$ENV_FILE")
+  fi
+  if [[ "$NO_ENV_FILE" == "true" ]]; then
+    delegated_args+=(--no-env-file)
+  fi
+  if [[ -n "$SIGNING_KEY" || -n "$SIGNING_KEY_DIR" || "$SKIP_SIGNER_CHECK" == "true" || "$INSECURE" == "true" ]]; then
+    echo "Warning: SGX-specific flags are ignored for --backend nitro." >&2
+  fi
+  exec "${PROJECT_ROOT}/scripts/up_nitro.sh" "${delegated_args[@]}"
+fi
+
 # Address used by marbles (containers) to reach the coordinator mesh port.
 # Default uses Docker Compose service DNS (bridge network), not host networking.
 COORDINATOR_MESH_ADDR="${COORDINATOR_MESH_ADDR:-coordinator:2001}"
 COORDINATOR_CLIENT_ADDR="${COORDINATOR_CLIENT_ADDR:-localhost:4433}"
 export COORDINATOR_MESH_ADDR COORDINATOR_CLIENT_ADDR
 
-if [[ "$INSECURE" == "true" ]]; then
+if [[ "$IS_SIM_BACKEND" == "true" ]]; then
   export OE_SIMULATION=1
   COMPOSE_FILE="${PROJECT_ROOT}/docker/docker-compose.simulation.yaml"
   MANIFEST_SRC="${PROJECT_ROOT}/manifests/manifest.json"
@@ -145,7 +198,7 @@ if [[ ! -f "$COMPOSE_FILE" ]]; then
   exit 1
 fi
 
-if [[ "$INSECURE" == "true" ]]; then
+if [[ "$IS_SIM_BACKEND" == "true" ]]; then
   if [[ ! -f "$MANIFEST_SRC" ]]; then
     echo "Manifest file not found: $MANIFEST_SRC" >&2
     exit 1
@@ -187,7 +240,7 @@ if ! "${DOCKER[@]}" version >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ "$INSECURE" != "true" ]] && [[ "$SKIP_SIGNER_CHECK" != "true" ]]; then
+if [[ "$IS_SIM_BACKEND" != "true" ]] && [[ "$SKIP_SIGNER_CHECK" != "true" ]]; then
   if ! command -v jq >/dev/null 2>&1; then
     echo "jq not found in PATH (required for signer ID checks)" >&2
     exit 1
@@ -550,7 +603,7 @@ build_signed_images() {
   done
 }
 
-if [[ "$INSECURE" != "true" ]]; then
+if [[ "$IS_SIM_BACKEND" != "true" ]]; then
   # In SGX hardware mode, images must be signed with stable keys that match the
   # MarbleRun manifest. Docker Compose cannot pass BuildKit secrets, so we
   # (optionally) build signed images here and always start with --no-build.
@@ -603,7 +656,7 @@ wait_for_coordinator_api() {
 maybe_fund_txproxy_signer() {
   local auto_fund="${AUTO_FUND_TXPROXY_SIGNER:-}"
   if [[ -z "$auto_fund" ]]; then
-    if [[ "$INSECURE" == "true" ]]; then
+    if [[ "$IS_SIM_BACKEND" == "true" ]]; then
       auto_fund="1"
     else
       auto_fund="0"

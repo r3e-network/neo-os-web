@@ -3,7 +3,7 @@
 # MarbleRun + EGo + Supabase + Vercel Architecture
 # =============================================================================
 
-.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-sgx docker-smoke-sgx-build
+.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-nitro docker-smoke-sgx docker-smoke-sgx-build
 .PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
 .PHONY: edge-check edge-dev
 
@@ -14,6 +14,7 @@ ENCLAVE_BINARIES := marble
 # Prefer the repository root `.env` when present to keep runtime vars consistent.
 DOCKER_COMPOSE_ENV_FILE ?= $(if $(wildcard .env),--env-file .env,)
 DOCKER_COMPOSE_SIM := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.simulation.yaml
+DOCKER_COMPOSE_NITRO := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.simulation.yaml -f docker/docker-compose.nitro.yaml
 DOCKER_COMPOSE_SGX := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.yaml
 # Default to simulation mode for local development.
 DOCKER_COMPOSE := $(DOCKER_COMPOSE_SIM)
@@ -139,6 +140,9 @@ docker-up: ## Start all services in simulation mode
 docker-smoke: ## Smoke-check simulation stack health end-to-end
 	./scripts/docker_smoke.sh
 
+docker-smoke-nitro: ## Smoke-check Nitro stack health end-to-end
+	./scripts/docker_smoke.sh --nitro
+
 docker-smoke-sgx: ## Smoke-check SGX stack health end-to-end
 	./scripts/docker_smoke.sh --sgx
 
@@ -155,7 +159,10 @@ docker-smoke-sgx-build: ## Smoke-check SGX stack with signed-image build (set SI
 docker-up-sgx: ## Start all services with SGX hardware
 	./scripts/up.sh
 
-docker-up-tee: docker-up-sgx ## Alias for docker-up-sgx
+docker-up-nitro: ## Start all services with Nitro backend
+	./scripts/up_nitro.sh
+
+docker-up-tee: docker-up-nitro ## Alias for docker-up-nitro
 
 docker-down: ## Stop all services
 	$(DOCKER_COMPOSE) down

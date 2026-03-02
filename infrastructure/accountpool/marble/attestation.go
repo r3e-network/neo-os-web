@@ -1,12 +1,9 @@
 package neoaccounts
 
 import (
-	"encoding/base64"
-	"math"
 	"time"
 
-	"github.com/edgelesssys/ego/attestation"
-	"github.com/edgelesssys/ego/enclave"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
 
 func (s *Service) buildMasterKeyAttestation() MasterKeyAttestation {
@@ -19,47 +16,35 @@ func (s *Service) buildMasterKeyAttestation() MasterKeyAttestation {
 		Simulated: !s.Marble().IsEnclave(),
 	}
 
-	// Only produce a quote when running inside an enclave.
+	// Only produce attestation evidence when running inside a TEE backend.
 	if !s.Marble().IsEnclave() {
 		return att
 	}
 
-	// Use master key hash as report data to bind the key to the attestation.
-	report, quote, err := getQuote([]byte(summary.Hash))
+	report, err := s.Marble().Attest([]byte(summary.Hash))
 	if err != nil {
 		return att
 	}
 
-	att.Quote = base64.StdEncoding.EncodeToString(quote)
-	att.MRENCLAVE = base64.StdEncoding.EncodeToString(report.UniqueID)
-	att.MRSIGNER = base64.StdEncoding.EncodeToString(report.SignerID)
-	if len(report.ProductID) >= 2 {
-		att.ProdID = uint16(report.ProductID[1])<<8 | uint16(report.ProductID[0])
+	att.Provider = report.Provider
+	att.EvidenceFormat = report.Format
+	att.Evidence = report.Document
+	att.ModuleID = report.ModuleID
+	if len(report.PCRs) > 0 {
+		att.PCRs = make(map[string]string, len(report.PCRs))
+		for k, v := range report.PCRs {
+			att.PCRs[k] = v
+		}
 	}
-	if report.SecurityVersion <= math.MaxUint16 {
-		att.ISVSVN = uint16(report.SecurityVersion)
+
+	// Backward-compatible SGX fields for existing clients.
+	if report.Provider == string(marble.TEEProviderSGX) {
+		att.Quote = report.Quote
+		att.MRENCLAVE = report.MRENCLAVE
+		att.MRSIGNER = report.MRSIGNER
+		att.ProdID = report.ProdID
+		att.ISVSVN = report.ISVSVN
 	}
+
 	return att
-}
-
-// getQuote returns the SGX report and raw quote with the given user data.
-func getQuote(userData []byte) (*attestation.Report, []byte, error) {
-	if len(userData) > 64 {
-		userData = userData[:64]
-	}
-	if len(userData) < 64 {
-		padded := make([]byte, 64)
-		copy(padded, userData)
-		userData = padded
-	}
-
-	quote, err := enclave.GetRemoteReport(userData)
-	if err != nil {
-		return nil, nil, err
-	}
-	report, err := enclave.VerifyRemoteReport(quote)
-	if err != nil {
-		return nil, nil, err
-	}
-	return &report, quote, nil
 }
