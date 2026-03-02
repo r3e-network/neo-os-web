@@ -21,7 +21,7 @@ data:
   SUPABASE_URL: "https://your-project.supabase.co"
   # REST prefix for PostgREST compatibility (default /rest/v1).
   SUPABASE_REST_PREFIX: "/rest/v1"
-  # Allow http:// Supabase URL in dev/test when running in simulation mode.
+  # Allow http:// Supabase URL in dev/test local Nitro-oriented flows.
   SUPABASE_ALLOW_INSECURE: "false"
   # Neo RPC (Testnet)
   NEO_RPC_URL: "https://testnet1.neo.coz.io:443"

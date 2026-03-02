@@ -15,8 +15,6 @@ import (
 type TEEProvider string
 
 const (
-	// TEEProviderSimulation is an explicit local opt-out mode.
-	TEEProviderSimulation TEEProvider = "sim"
 	TEEProviderNitro TEEProvider = "nitro"
 )
 
@@ -63,8 +61,6 @@ func detectTEEProvider() TEEProvider {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("TEE_BACKEND"))) {
 	case "nitro", "aws-nitro", "aws_nitro":
 		return TEEProviderNitro
-	case "sim", "simulation", "none", "disabled":
-		return TEEProviderSimulation
 	}
 
 	if strings.TrimSpace(os.Getenv("NITRO_ATTESTATION_DOCUMENT_B64")) != "" {
@@ -142,8 +138,6 @@ func (m *Marble) IsTEE() bool {
 	defer m.mu.RUnlock()
 
 	switch m.provider {
-	case TEEProviderSimulation:
-		return false
 	case TEEProviderNitro:
 		if m.report != nil && strings.TrimSpace(m.report.Document) != "" {
 			return true
@@ -172,8 +166,8 @@ func (m *Marble) Attest(userData []byte) (*AttestationReport, error) {
 	base := m.report.clone()
 	m.mu.RUnlock()
 
-	if provider == TEEProviderSimulation || base == nil {
-		return nil, fmt.Errorf("attestation unavailable (backend disabled)")
+	if base == nil {
+		return nil, fmt.Errorf("nitro attestation evidence is not available")
 	}
 
 	if base.Timestamp == "" {

@@ -11,10 +11,10 @@ func TestBackendDefaultsToNitro(t *testing.T) {
 	}
 }
 
-func TestBackendExplicitSimulation(t *testing.T) {
+func TestBackendLegacySimulationAliasFallsBackToNitro(t *testing.T) {
 	t.Setenv("TEE_BACKEND", "simulation")
-	if got := Backend(); got != TEESim {
-		t.Fatalf("Backend() = %q, want %q", got, TEESim)
+	if got := Backend(); got != TEENitro {
+		t.Fatalf("Backend() = %q, want %q", got, TEENitro)
 	}
 }
 

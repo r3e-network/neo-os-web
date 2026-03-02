@@ -145,7 +145,7 @@ type MasterKeyAttestation struct {
 	// Timestamp is when the attestation was generated.
 	Timestamp string `json:"timestamp"`
 
-	// Simulated indicates if running in simulation mode.
+	// Simulated is a legacy compatibility flag and is true when not running in an enclave.
 	Simulated bool `json:"simulated"`
 }
 

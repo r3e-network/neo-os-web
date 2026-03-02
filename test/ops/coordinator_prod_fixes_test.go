@@ -152,7 +152,7 @@ func TestCoordinatorManifestsParseAsYAML(t *testing.T) {
 
 	files := []string{
 		filepath.Join(root, "k8s/marblerun/coordinator.yaml"),
-		filepath.Join(root, "k8s/marblerun/overlays/simulation/coordinator.yaml"),
+		filepath.Join(root, "k8s/marblerun/overlays/nitro/coordinator.yaml"),
 		filepath.Join(root, "k8s/monitoring/prometheus/servicemonitor.yaml"),
 	}
 
@@ -168,7 +168,7 @@ func TestCoordinatorDeploymentUsesRecreateStrategy(t *testing.T) {
 
 	files := []string{
 		filepath.Join(root, "k8s/marblerun/coordinator.yaml"),
-		filepath.Join(root, "k8s/marblerun/overlays/simulation/coordinator.yaml"),
+		filepath.Join(root, "k8s/marblerun/overlays/nitro/coordinator.yaml"),
 	}
 
 	for _, file := range files {
