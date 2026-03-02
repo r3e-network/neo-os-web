@@ -60,7 +60,7 @@ func newServiceSecretsProvider(m *marble.Marble, db *database.Repository, servic
 	if len(rawKey) == 0 {
 		strict := runtime.StrictIdentityMode() || (m != nil && m.IsEnclave())
 		if strict {
-			log.Fatalf("CRITICAL: %s is required for %s secret access in production/SGX mode", secrets.MasterKeyEnv, serviceID)
+			log.Fatalf("CRITICAL: %s is required for %s secret access in strict/TEE mode", secrets.MasterKeyEnv, serviceID)
 		}
 		return nil
 	}
@@ -134,7 +134,7 @@ func newNeoOracle(s *serviceContext) (ServiceRunner, error) {
 	oracleAllowlist := neooracle.URLAllowlist{Prefixes: splitAndTrimCSV(oracleAllowlistRaw)}
 	if len(oracleAllowlist.Prefixes) == 0 {
 		if runtime.StrictIdentityMode() || s.m.IsEnclave() {
-			log.Fatalf("CRITICAL: ORACLE_HTTP_ALLOWLIST is required for NeoOracle in strict identity/SGX mode")
+			log.Fatalf("CRITICAL: ORACLE_HTTP_ALLOWLIST is required for NeoOracle in strict identity/TEE mode")
 		}
 		log.Printf("Warning: ORACLE_HTTP_ALLOWLIST not set; allowing all outbound URLs (development/testing only)")
 	}

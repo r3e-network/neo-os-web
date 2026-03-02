@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgelesssys/ego/attestation"
-
 	neoaccountssupabase "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/supabase"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
 )
@@ -503,7 +501,7 @@ func TestBuildMasterKeyAttestation_EnclaveModeMarksAsNotSimulated(t *testing.T) 
 		t.Fatalf("loadMasterKey: %v", err)
 	}
 
-	m.SetTestReport(&attestation.Report{})
+	m.SetTestReport(&marble.AttestationReport{Provider: "nitro", Format: "aws_nitro_attestation_document", Document: "dummy"})
 
 	att := svc.buildMasterKeyAttestation()
 	if att.Simulated {

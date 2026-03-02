@@ -4,9 +4,10 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: ./scripts/check_enclave_signing_key.sh --key /path/to/private.pem [--expected-signer <hex64>]
+Usage: ./scripts/check_enclave_signing_key.sh [--backend sgx|nitro] [--key /path/to/private.pem] [--expected-signer <hex64>]
 
 Options:
+  --backend <name>          Attestation backend to validate (default: sgx).
   --key <path>               Path to enclave signing private key (PEM).
   --expected-signer <hex64>  Optional expected signer ID (64 hex chars, with or without 0x).
   -h, --help                 Show this help.
@@ -18,14 +19,22 @@ Key requirements (Open Enclave SGX signing):
 
 Environment:
   EGO_VERSION                EGo image tag for Docker fallback (default: 1.8.0).
+  NITRO_ATTESTATION_DOCUMENT_B64
+                             Nitro attestation document (base64).
+  NITRO_MODULE_ID            Optional Nitro module ID for sanity checks.
 USAGE
 }
 
+BACKEND="sgx"
 KEY_PATH=""
 EXPECTED_SIGNER=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --backend)
+      BACKEND="${2:-}"
+      shift 2
+      ;;
     --key)
       KEY_PATH="${2:-}"
       shift 2
@@ -46,8 +55,41 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+BACKEND="$(echo "$BACKEND" | tr 'A-Z' 'a-z')"
+
+if [[ "$BACKEND" == "nitro" ]]; then
+  if [[ -n "$KEY_PATH" ]]; then
+    echo "Warning: --key is ignored when --backend nitro is selected." >&2
+  fi
+  if [[ -n "$EXPECTED_SIGNER" ]]; then
+    echo "Warning: --expected-signer is ignored when --backend nitro is selected." >&2
+  fi
+
+  if [[ -z "${NITRO_ATTESTATION_DOCUMENT_B64:-}" ]]; then
+    echo "Nitro validation failed: NITRO_ATTESTATION_DOCUMENT_B64 is not set." >&2
+    exit 1
+  fi
+
+  if ! (printf '%s' "${NITRO_ATTESTATION_DOCUMENT_B64}" | base64 --decode >/dev/null 2>&1 || \
+        printf '%s' "${NITRO_ATTESTATION_DOCUMENT_B64}" | base64 -D >/dev/null 2>&1); then
+    echo "Nitro validation failed: NITRO_ATTESTATION_DOCUMENT_B64 is not valid base64." >&2
+    exit 1
+  fi
+
+  echo "Nitro attestation configuration is valid."
+  if [[ -n "${NITRO_MODULE_ID:-}" ]]; then
+    echo "ModuleID: ${NITRO_MODULE_ID}"
+  fi
+  exit 0
+fi
+
+if [[ "$BACKEND" != "sgx" ]]; then
+  echo "Unsupported --backend value: $BACKEND (expected sgx or nitro)." >&2
+  exit 1
+fi
+
 if [[ -z "$KEY_PATH" ]]; then
-  echo "Missing required --key argument." >&2
+  echo "Missing required --key argument for SGX backend." >&2
   usage
   exit 1
 fi

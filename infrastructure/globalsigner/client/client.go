@@ -110,16 +110,21 @@ type DeriveResponse struct {
 
 // AttestationResponse is the attestation for a key.
 type AttestationResponse struct {
-	KeyVersion string `json:"key_version"`
-	PubKeyHex  string `json:"pubkey_hex"`
-	PubKeyHash string `json:"pubkey_hash"`
-	Quote      string `json:"quote,omitempty"`
-	MRENCLAVE  string `json:"mrenclave,omitempty"`
-	MRSIGNER   string `json:"mrsigner,omitempty"`
-	ProdID     uint16 `json:"prod_id,omitempty"`
-	ISVSVN     uint16 `json:"isvsvn,omitempty"`
-	Timestamp  string `json:"timestamp"`
-	Simulated  bool   `json:"simulated"`
+	KeyVersion     string            `json:"key_version"`
+	PubKeyHex      string            `json:"pubkey_hex"`
+	PubKeyHash     string            `json:"pubkey_hash"`
+	Provider       string            `json:"provider,omitempty"`
+	EvidenceFormat string            `json:"evidence_format,omitempty"`
+	Evidence       string            `json:"evidence,omitempty"`
+	ModuleID       string            `json:"module_id,omitempty"`
+	PCRs           map[string]string `json:"pcrs,omitempty"`
+	Quote          string            `json:"quote,omitempty"` // Deprecated: use Evidence
+	MRENCLAVE      string            `json:"mrenclave,omitempty"`
+	MRSIGNER       string            `json:"mrsigner,omitempty"`
+	ProdID         uint16            `json:"prod_id,omitempty"`
+	ISVSVN         uint16            `json:"isvsvn,omitempty"`
+	Timestamp      string            `json:"timestamp"`
+	Simulated      bool              `json:"simulated"`
 }
 
 // KeyVersion represents a key version.

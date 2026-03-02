@@ -190,7 +190,7 @@ func (s *Service) initializePool(ctx context.Context) error {
 	accounts, err := s.repo.List(ctx)
 	if err != nil {
 		// In development/testing mode, skip pool initialization if database is unavailable.
-		// In strict identity/SGX mode, fail closed (database is required).
+		// In strict identity/TEE mode, fail closed (database is required).
 		if runtime.StrictIdentityMode() {
 			return err
 		}
