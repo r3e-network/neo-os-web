@@ -92,27 +92,27 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
         </div>
 
-        <CardContent className="p-6 pt-5 relative bg-transparent z-20">
+        <CardContent className="p-6 relative bg-transparent z-20 flex flex-col h-[220px]">
           <div className="absolute -top-10 left-6 z-30 p-1.5 bg-white/80 dark:bg-[#12131C]/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 dark:border-white/10 group-hover:-translate-y-2 transition-transform duration-500">
             <MiniAppLogo appId={app.app_id} category={app.category} entryUrl={app.entry_url} logoUrl={app.logo_url} manifest={app.manifest || null} size="lg" className="rounded-xl" />
           </div>
 
-          <div className="flex justify-end gap-2 mb-4 h-6">
-            <Badge className={cn(categoryColors[app.category], "border border-transparent capitalize px-3 py-1 text-xs font-bold font-mono tracking-tight")} variant="secondary">
+          <div className="flex justify-end gap-2 mb-5 h-6">
+            <Badge className={cn(categoryColors[app.category], "border border-transparent capitalize px-2.5 py-0.5 text-[10px] font-bold tracking-wider")} variant="secondary">
               {app.category}
             </Badge>
             {showSourceBadge && (
-              <Badge className={cn(sourceColors[app.source!], "px-2 tracking-tight text-xs font-semibold backdrop-blur-md")} variant="outline">
-                {app.source === "community" ? "🌐 Community" : "✓ Verified"}
+              <Badge className={cn(sourceColors[app.source!], "px-2.5 py-0.5 tracking-wide text-[10px] font-bold backdrop-blur-md")} variant="outline">
+                {app.source === "community" ? "Community" : "Verified"}
               </Badge>
             )}
           </div>
 
-          <h3 className="min-w-0 flex-1 truncate text-xl font-black text-gray-900 dark:text-white mb-2 group-hover:text-neo transition-colors duration-300" title={app.name}>
+          <h3 className="min-w-0 truncate text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-neo transition-colors duration-300" title={app.name}>
             {app.name}
           </h3>
 
-          <p className="line-clamp-2 text-sm font-medium leading-relaxed text-gray-600 dark:text-gray-400 mb-5 min-h-[40px]" title={app.description}>
+          <p className="line-clamp-2 text-sm font-medium leading-relaxed text-gray-600 dark:text-gray-400 flex-1" title={app.description}>
             {app.description}
           </p>
 

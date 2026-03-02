@@ -106,12 +106,12 @@ export default function EnhancedStatsPage() {
             <h1 className="text-2xl sm:text-4xl font-extrabold text-gray-900 dark:text-white">Platform Analytics</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">Real-time performance metrics for the Neo MiniApp ecosystem</p>
           </div>
-          <Badge className="bg-neo/10 text-neo border-neo/20 h-8 px-4 flex items-center gap-2">
+          <Badge className="bg-neo/10 text-neo border-neo/30 backdrop-blur-md shadow-[0_0_15px_rgba(0,229,153,0.15)] h-9 px-4 flex items-center gap-2 rounded-full">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neo opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-neo"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-neo border border-neo/50 shadow-[0_0_10px_rgba(0,229,153,0.8)]"></span>
             </span>
-            Live Updates
+            <span className="font-bold tracking-wide">Live Updates</span>
           </Badge>
         </div>
 
@@ -150,34 +150,36 @@ export default function EnhancedStatsPage() {
         {/* Charts Section */}
         <div className="grid gap-4 md:gap-6 lg:grid-cols-3 mb-10">
           {/* Main Growth Chart */}
-          <Card className="glass-card lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">User Growth (MAU)</CardTitle>
-              <CardDescription>Monthly active users climbing over the last 6 months</CardDescription>
+          <Card className="glass-card rounded-3xl lg:col-span-2 overflow-hidden bg-white/60 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10">
+            <CardHeader className="border-b border-gray-200/50 dark:border-white/5 pb-4 bg-gray-50/50 dark:bg-white/5">
+              <CardTitle className="text-xl font-black text-gray-900 dark:text-white">User Growth (MAU)</CardTitle>
+              <CardDescription className="text-sm font-medium">Monthly active users climbing over the last 6 months</CardDescription>
             </CardHeader>
-            <CardContent className="h-[350px] pt-10">
+            <CardContent className="h-[350px] pt-8 relative">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent dark:from-white/5 dark:to-transparent pointer-events-none -z-10" />
               <PlatformCharts mauHistory={mauHistory} topApps={topApps} loading={loading} />
             </CardContent>
           </Card>
 
           {/* MiniApp Distribution */}
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Popular MiniApps</CardTitle>
-              <CardDescription>Top apps by active user count</CardDescription>
+          <Card className="glass-card rounded-3xl overflow-hidden bg-white/60 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10">
+            <CardHeader className="border-b border-gray-200/50 dark:border-white/5 pb-4 bg-gray-50/50 dark:bg-white/5">
+              <CardTitle className="text-xl font-black text-gray-900 dark:text-white">Popular MiniApps</CardTitle>
+              <CardDescription className="text-sm font-medium">Top apps by active user count</CardDescription>
             </CardHeader>
-            <CardContent className="h-[350px] pt-10">
+            <CardContent className="h-[350px] pt-8 relative">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent dark:from-white/5 dark:to-transparent pointer-events-none -z-10" />
               <TopAppsChart topApps={topApps} loading={loading} />
             </CardContent>
           </Card>
         </div>
 
         {/* Transaction History */}
-        <Card className="glass-card">
-          <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="glass-card rounded-3xl overflow-hidden bg-white/60 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-gray-200/50 dark:border-white/5 pb-4 bg-gray-50/50 dark:bg-white/5">
             <div>
-              <CardTitle className="text-gray-900 dark:text-white">Recent Network Events</CardTitle>
-              <CardDescription>Live stream of contract calls and state changes</CardDescription>
+              <CardTitle className="text-xl font-black text-gray-900 dark:text-white">Recent Network Events</CardTitle>
+              <CardDescription className="text-sm font-medium mt-1">Live stream of contract calls and state changes</CardDescription>
             </div>
             <Button variant="ghost" size="sm" className="text-neo">
               Full Log
@@ -236,16 +238,16 @@ interface StatSummaryCardProps {
 
 function StatSummaryCard({ title, value, icon: Icon, color, loading }: StatSummaryCardProps) {
   return (
-    <Card className="glass-card">
+    <Card className="glass-card rounded-3xl bg-white/60 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10 hover:shadow-[0_0_30px_rgba(0,229,153,0.1)] transition-all">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-            <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1 tracking-tight">
-              {loading ? <Loader2 className="animate-spin" size={24} /> : value}
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{title}</p>
+            <h3 className="text-3xl font-black text-gray-900 dark:text-white mt-2 tracking-tighter drop-shadow-sm">
+              {loading ? <Loader2 className="animate-spin text-neo" size={24} /> : value}
             </h3>
           </div>
-          <div className={cn("p-3 rounded-xl bg-gray-100 dark:bg-white/5", color)}>
+          <div className={cn("p-3.5 rounded-2xl bg-white dark:bg-[#12131C] border border-gray-100 dark:border-white/5 shadow-sm", color)}>
             <Icon size={24} aria-hidden="true" />
           </div>
         </div>

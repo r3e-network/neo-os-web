@@ -174,10 +174,11 @@ export default function MiniAppsPage() {
         <FilterSidebar sections={filterSections} selected={filters} onChange={handleFilterChange} />
 
         {/* Main Content */}
-        <main className="flex-1 bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 bg-transparent relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-black/5 to-transparent dark:from-white/0 dark:to-transparent pointer-events-none -z-10" />
           {/* Header */}
-          <div className="sticky top-14 z-40 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-6 py-3">
-            <div className="flex items-center justify-between">
+          <div className="sticky top-16 z-40 bg-white/80 dark:bg-[#05050A]/80 backdrop-blur-2xl border-b border-gray-200/50 dark:border-white/10 px-6 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <h1 className="text-lg font-bold text-gray-900 dark:text-white">MiniApps</h1>
                 <span className="text-sm text-gray-500 dark:text-gray-400">{filteredAndSortedApps.length} apps</span>
@@ -192,9 +193,9 @@ export default function MiniAppsPage() {
                     aria-haspopup="listbox"
                     aria-expanded={showSortMenu}
                     aria-label="Sort options"
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-200/80 dark:border-white/10 rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-gray-100 dark:hover:bg-white/10 hover:border-neo/40 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
                   >
-                    <currentSort.icon size={14} />
+                    <currentSort.icon size={16} className="text-neo" />
                     {currentSort.label}
                     <ChevronDown size={14} />
                   </button>
@@ -230,16 +231,16 @@ export default function MiniAppsPage() {
                 </div>
 
                 {/* View Toggle */}
-                <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="flex items-center border border-gray-200/80 dark:border-white/10 rounded-xl overflow-hidden bg-white/50 dark:bg-white/5 backdrop-blur-md p-1">
                   <button
                     type="button"
                     onClick={() => setViewMode("list")}
                     aria-pressed={viewMode === "list"}
                     className={cn(
-                      "p-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
+                      "p-1.5 rounded-lg transition-all cursor-pointer focus-visible:outline-none",
                       viewMode === "list"
-                        ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                        ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5",
                     )}
                     aria-label="List view"
                   >
@@ -250,10 +251,10 @@ export default function MiniAppsPage() {
                     onClick={() => setViewMode("grid")}
                     aria-pressed={viewMode === "grid"}
                     className={cn(
-                      "p-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
+                      "p-1.5 rounded-lg transition-all cursor-pointer focus-visible:outline-none",
                       viewMode === "grid"
-                        ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                        : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                        ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5",
                     )}
                     aria-label="Grid view"
                   >
@@ -280,10 +281,10 @@ export default function MiniAppsPage() {
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }, (_, i) => (
-                  <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4 space-y-3">
-                    <Skeleton className="h-40 w-full rounded-lg" />
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
+                  <div key={i} className="glass-card rounded-3xl p-6 space-y-4">
+                    <Skeleton className="h-40 w-full rounded-2xl bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                    <Skeleton className="h-6 w-3/4 rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                    <Skeleton className="h-4 w-1/2 rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
                   </div>
                 ))}
               </div>
