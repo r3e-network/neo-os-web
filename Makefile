@@ -15,9 +15,8 @@ ENCLAVE_BINARIES := marble
 DOCKER_COMPOSE_ENV_FILE ?= $(if $(wildcard .env),--env-file .env,)
 DOCKER_COMPOSE_SIM := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.simulation.yaml
 DOCKER_COMPOSE_NITRO := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.simulation.yaml -f docker/docker-compose.nitro.yaml
-DOCKER_COMPOSE_SGX := docker compose $(DOCKER_COMPOSE_ENV_FILE) -f docker/docker-compose.yaml
-# Default to simulation mode for local development.
-DOCKER_COMPOSE := $(DOCKER_COMPOSE_SIM)
+# Default to Nitro mode for local development.
+DOCKER_COMPOSE := $(DOCKER_COMPOSE_NITRO)
 
 GOBIN ?= $(shell go env GOPATH)/bin
 GOLANGCI_LINT_VERSION ?= v1.64.8
@@ -44,20 +43,11 @@ build: ## Build all services
 	done
 	@echo "Build complete"
 
-build-ego: ## Build with EGo for SGX
-	@echo "Building with EGo..."
-	@for bin in $(ENCLAVE_BINARIES); do \
-		echo "Building $$bin with EGo..."; \
-		ego-go build -o bin/$$bin ./cmd/$$bin; \
-	done
+build-ego: ## Deprecated (SGX path removed)
+	@echo "build-ego is deprecated: project now targets Nitro-only runtime."
 
-sign-enclaves: ## Sign all enclave binaries
-	@echo "Signing enclaves..."
-	@for bin in $(ENCLAVE_BINARIES); do \
-		if [ -f bin/$$bin ]; then \
-			ego sign bin/$$bin; \
-		fi; \
-	done
+sign-enclaves: ## Deprecated (SGX path removed)
+	@echo "sign-enclaves is deprecated: project now targets Nitro-only runtime."
 
 # =============================================================================
 # Test
@@ -65,15 +55,15 @@ sign-enclaves: ## Sign all enclave binaries
 
 test: ## Run all tests
 	@echo "Running tests..."
-	OE_SIMULATION=1 go test -v ./...
+	TEE_BACKEND=nitro go test -v ./...
 
 test-unit: ## Run unit tests only
 	@echo "Running unit tests..."
-	OE_SIMULATION=1 go test -v -short ./...
+	TEE_BACKEND=nitro go test -v -short ./...
 
 test-coverage: ## Run tests with coverage
 	@echo "Running tests with coverage..."
-	OE_SIMULATION=1 go test -v -coverprofile=coverage.out ./...
+	TEE_BACKEND=nitro go test -v -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report: coverage.html"
 
@@ -134,30 +124,26 @@ test-contracts: contracts-build ## Run neo-express contract tests (builds contra
 docker-build: ## Build all Docker images
 	$(DOCKER_COMPOSE) build
 
-docker-up: ## Start all services in simulation mode
-	./scripts/up.sh --insecure
+docker-up: ## Start all services in Nitro mode
+	./scripts/up_nitro.sh
 
-docker-smoke: ## Smoke-check simulation stack health end-to-end
-	./scripts/docker_smoke.sh
+docker-smoke: ## Smoke-check Nitro stack health end-to-end
+	./scripts/docker_smoke.sh --nitro
 
 docker-smoke-nitro: ## Smoke-check Nitro stack health end-to-end
 	./scripts/docker_smoke.sh --nitro
 
-docker-smoke-sgx: ## Smoke-check SGX stack health end-to-end
-	./scripts/docker_smoke.sh --sgx
+docker-smoke-sgx: ## Deprecated alias (runs Nitro smoke)
+	@echo "docker-smoke-sgx is deprecated; running Nitro smoke instead."
+	./scripts/docker_smoke.sh --nitro
 
-docker-smoke-sgx-build: ## Smoke-check SGX stack with signed-image build (set SIGNING_KEY or SIGNING_KEY_DIR)
-	@if [ -n "$(SIGNING_KEY)" ]; then \
-		./scripts/docker_smoke.sh --sgx --build --signing-key "$(SIGNING_KEY)"; \
-	elif [ -n "$(SIGNING_KEY_DIR)" ]; then \
-		./scripts/docker_smoke.sh --sgx --build --signing-key-dir "$(SIGNING_KEY_DIR)"; \
-	else \
-		echo "Set SIGNING_KEY=/path/to/private.pem or SIGNING_KEY_DIR=/path/to/signing-keys"; \
-		exit 1; \
-	fi
+docker-smoke-sgx-build: ## Deprecated alias (runs Nitro smoke build)
+	@echo "docker-smoke-sgx-build is deprecated; running Nitro smoke build instead."
+	./scripts/docker_smoke.sh --nitro --build
 
-docker-up-sgx: ## Start all services with SGX hardware
-	./scripts/up.sh
+docker-up-sgx: ## Deprecated alias (runs Nitro stack)
+	@echo "docker-up-sgx is deprecated; starting Nitro stack instead."
+	./scripts/up_nitro.sh
 
 docker-up-nitro: ## Start all services with Nitro backend
 	./scripts/up_nitro.sh

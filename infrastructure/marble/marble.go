@@ -1,5 +1,5 @@
 // Package marble provides the core Marble SDK for confidential runtime integration.
-// Each service runs as a Marble inside a configured TEE backend (Nitro/SGX/simulation).
+// Each service runs as a Marble inside a configured TEE backend (Nitro-first).
 package marble
 
 import (
@@ -113,7 +113,7 @@ func (m *Marble) Initialize(ctx context.Context) error {
 	}
 
 	// Configure TLS for mTLS communication only if we have valid certificates
-	// Without certificates from Coordinator, run in HTTP mode (development/simulation)
+	// Without certificates from Coordinator, run in HTTP mode (development/local)
 	if hasCertKey {
 		if m.rootCA == nil {
 			return fmt.Errorf("failed to initialize MarbleRun mTLS: missing root CA pool")
@@ -354,7 +354,7 @@ func (m *Marble) MarbleType() string {
 	return m.marbleType
 }
 
-// IsEnclave returns true if running inside a non-simulation TEE backend.
+// IsEnclave returns true if running inside an active TEE backend.
 // Kept for backward compatibility.
 func (m *Marble) IsEnclave() bool {
 	return m.IsTEE()
@@ -388,6 +388,6 @@ func (m *Marble) SetTestReport(report *AttestationReport) {
 	if provider := strings.TrimSpace(report.Provider); provider != "" {
 		m.provider = TEEProvider(strings.ToLower(provider))
 	} else {
-		m.provider = TEEProviderSGX
+		m.provider = TEEProviderNitro
 	}
 }

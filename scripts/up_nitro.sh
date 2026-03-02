@@ -6,7 +6,7 @@ usage() {
 Usage: ./scripts/up_nitro.sh [--no-build] [--env-file PATH | --no-env-file]
 
 Starts the local stack with Nitro-compatible service images by composing:
-  - docker/docker-compose.simulation.yaml
+  - docker/docker-compose.simulation.yaml (shared service baseline)
   - docker/docker-compose.nitro.yaml
 
 Options:
@@ -75,8 +75,6 @@ elif [[ "$NO_ENV_FILE" != "true" && -f "${PROJECT_ROOT}/.env" ]]; then
 fi
 
 export TEE_BACKEND="${TEE_BACKEND:-nitro}"
-# Keep legacy SGX signal in simulation mode so SGX-only checks do not trigger.
-export OE_SIMULATION="${OE_SIMULATION:-1}"
 
 echo "Starting Nitro stack with TEE_BACKEND=${TEE_BACKEND}"
 echo "Compose files:"
