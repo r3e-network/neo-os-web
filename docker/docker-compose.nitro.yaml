@@ -21,6 +21,7 @@ services:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
       # Local Nitro smoke runs without coordinator key provisioning.
       NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY: ${NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY:-true}
+      GLOBALSIGNER_SERVICE_URL: ${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
 
   neogasbank:
     build:
@@ -57,6 +58,7 @@ services:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
+      GLOBALSIGNER_SERVICE_URL: ${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
 
   globalsigner:
     build:
@@ -73,3 +75,4 @@ services:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
+      GLOBALSIGNER_SERVICE_URL: ${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
