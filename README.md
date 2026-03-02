@@ -239,7 +239,7 @@ env PRICEFEED_WATCH_SYMBOLS='NEO-USD,GAS-USD,USDT-USD,USDC-USD,BTC-USD,ETH-USD,X
 | --------------------------- | -------------------------- |
 | `SUPABASE_URL`              | Supabase project URL       |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key  |
-| `TEE_BACKEND`               | TEE backend (`nitro`, or `sim` only for explicit local opt-out) |
+| `TEE_BACKEND`               | TEE backend (`nitro`) |
 | `SECRETS_MASTER_KEY`        | Encryption key for secrets |
 | `NEO_RPC_URL`               | Neo N3 RPC endpoint        |
 | `NEO_NETWORK_MAGIC`         | Network magic number       |

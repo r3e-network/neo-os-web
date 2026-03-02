@@ -111,7 +111,7 @@ func TestMasterKeyAttestationStruct(t *testing.T) {
 		t.Errorf("KeyVersion = %q, want %q", att.KeyVersion, "v1")
 	}
 	if !att.Simulated {
-		t.Error("Simulated should be true")
+		t.Error("Simulated should be true for non-enclave compatibility cases")
 	}
 }
 

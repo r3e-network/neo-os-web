@@ -20,8 +20,8 @@ Complements `refactor-plan.md`. Focuses on configuration deduplication, cleanup,
 - Define `x-service-defaults` anchor with shared configuration
 - Each service merges via `<<: *service-defaults` and overrides only `SERVICE_TYPE` and port
 
-### 2.2 Simulation docker-compose.simulation.yaml
-- Same anchor pattern adapted for simulation mode
+### 2.2 Local Nitro docker-compose.nitro.yaml
+- Same anchor pattern adapted for local Nitro mode
 - Standardize healthchecks (currently mix of HTTPS wget and TCP bash)
 
 ## Phase 3: Manifest & Config Simplification
@@ -36,7 +36,7 @@ Complements `refactor-plan.md`. Focuses on configuration deduplication, cleanup,
 - Create `manifests/manifest-dev.json` with test keys for local development only
 
 ### 3.3 Consolidate K8s overlays
-- Merge `test` + `simulation` → `dev`
+- Remove simulation-named overlays and keep Nitro-oriented environment naming (`dev`/`staging`/`prod`)
 - Merge `production` + `production-hardened` → `prod` (with hardening as default)
 - Keep `nitro-prod` as `staging`
 - Result: 3 overlays (dev/staging/prod) instead of 6

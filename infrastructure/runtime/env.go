@@ -24,7 +24,6 @@ const (
 type TEEBackend string
 
 const (
-	TEESim TEEBackend = "sim"
 	TEENitro TEEBackend = "nitro"
 )
 
@@ -66,18 +65,13 @@ func IsDevelopmentOrTesting() bool {
 
 // Backend returns the configured TEE backend.
 // Priority:
-// 1) TEE_BACKEND (nitro or sim)
+// 1) TEE_BACKEND (nitro)
 // 2) Nitro evidence env
 // 3) Nitro default
-//
-// Explicit opt-out:
-// - TEE_BACKEND=sim|simulation|none|disabled
 func Backend() TEEBackend {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("TEE_BACKEND"))) {
 	case "nitro", "aws-nitro", "aws_nitro":
 		return TEENitro
-	case "sim", "simulation", "none", "disabled":
-		return TEESim
 	}
 
 	if strings.TrimSpace(os.Getenv("NITRO_ATTESTATION_DOCUMENT_B64")) != "" {

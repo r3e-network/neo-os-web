@@ -249,7 +249,7 @@ setup_ingress() {
 
 # ==================== MarbleRun Installation ====================
 install_marblerun() {
-    step "Installing MarbleRun coordinator (simulation mode)..."
+    step "Installing MarbleRun coordinator (nitro overlay)..."
 
     if kubectl -n marblerun get deployment coordinator &> /dev/null; then
         log "MarbleRun coordinator already installed"
@@ -257,7 +257,7 @@ install_marblerun() {
     fi
 
     log "Applying MarbleRun coordinator manifests..."
-    kubectl apply -k "$PROJECT_ROOT/k8s/marblerun/overlays/simulation/" \
+    kubectl apply -k "$PROJECT_ROOT/k8s/marblerun/overlays/nitro/" \
         || error "Failed to install MarbleRun coordinator"
 
     log "Waiting for MarbleRun coordinator to be ready..."

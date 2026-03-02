@@ -41,7 +41,7 @@ install_k3s() {
   kubectl wait --for=condition=Ready node --all --timeout=180s
 
   echo "Deploying local MarbleRun coordinator overlay..."
-  kubectl apply -k "$PROJECT_ROOT/k8s/marblerun/overlays/simulation/"
+  kubectl apply -k "$PROJECT_ROOT/k8s/marblerun/overlays/nitro/"
 
   echo "k3s install completed (Nitro-oriented local profile)."
 }

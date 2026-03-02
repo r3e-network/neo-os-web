@@ -37,7 +37,7 @@ func TestStrictIdentityMode(t *testing.T) {
 		}
 	})
 
-	t.Run("dev simulation", func(t *testing.T) {
+	t.Run("dev default", func(t *testing.T) {
 		t.Setenv("MARBLE_ENV", "development")
 		if StrictIdentityMode() {
 			t.Fatalf("StrictIdentityMode() = true, want false")
