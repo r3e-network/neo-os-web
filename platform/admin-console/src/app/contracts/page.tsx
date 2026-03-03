@@ -34,7 +34,7 @@ export default function ContractsPage() {
         <Button>Deploy New Contract</Button>
       </div>
 
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>Deployed Contracts</CardTitle>
         </CardHeader>
@@ -64,7 +64,7 @@ export default function ContractsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>Contract Deployment Wizard</CardTitle>
         </CardHeader>

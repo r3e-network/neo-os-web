@@ -103,7 +103,7 @@ export function MiniAppDetailPanel({
   publishRequestDiffContent,
 }: Props) {
   return (
-    <Card>
+    <Card variant="glass">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>{selectedApp.app_id}</CardTitle>

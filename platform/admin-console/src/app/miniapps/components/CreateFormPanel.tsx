@@ -249,7 +249,7 @@ export function CreateFormPanel({
   };
 
   return (
-    <Card>
+    <Card variant="glass">
       <CardHeader><CardTitle>{mode === "edit" ? "Edit MiniApp" : "Create New MiniApp"}</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         {/* Template Marketplace Selector */}

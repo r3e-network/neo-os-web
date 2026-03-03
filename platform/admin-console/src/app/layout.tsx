@@ -15,14 +15,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className="dark">
+      <body className="bg-[#05050A] text-gray-100 antialiased selection:bg-neo/30 selection:text-neo">
         <Providers>
           <div className="flex h-screen overflow-hidden">
             <Sidebar />
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex flex-1 flex-col overflow-hidden relative">
               <Header />
-              <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">{children}</main>
+              <main className="flex-1 overflow-y-auto bg-transparent p-6 sm:p-10 relative z-10">
+                <div className="max-w-[1600px] mx-auto">
+                  {children}
+                </div>
+              </main>
             </div>
           </div>
         </Providers>
