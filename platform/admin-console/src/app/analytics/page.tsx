@@ -42,7 +42,7 @@ export default function AnalyticsPage() {
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card variant="glass">
           <CardContent className="pt-6">
             <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Users</div>
             <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
@@ -51,7 +51,7 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card variant="glass">
           <CardContent className="pt-6">
             <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Total MiniApps</div>
             <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
@@ -60,7 +60,7 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card variant="glass">
           <CardContent className="pt-6">
             <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Transactions</div>
             <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
@@ -69,7 +69,7 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card variant="glass">
           <CardContent className="pt-6">
             <div className="text-sm font-medium text-gray-600 dark:text-gray-400">GAS Used Today</div>
             <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* Usage Chart */}
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>Usage Over Time (Last 30 Days)</CardTitle>
         </CardHeader>
@@ -121,7 +121,7 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* Usage by App */}
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>Usage by MiniApp</CardTitle>
         </CardHeader>

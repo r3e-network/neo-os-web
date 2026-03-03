@@ -21,7 +21,7 @@ export default function ServicesPage() {
         <p className="text-gray-600 dark:text-gray-400">Monitor service health and status</p>
       </div>
 
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>Service Health Status</CardTitle>
         </CardHeader>

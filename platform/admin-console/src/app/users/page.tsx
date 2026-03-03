@@ -28,7 +28,7 @@ export default function UsersPage() {
         <p className="text-gray-600 dark:text-gray-400">Manage platform users</p>
       </div>
 
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>User Management</CardTitle>
         </CardHeader>
