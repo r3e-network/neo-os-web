@@ -414,7 +414,7 @@ export default function TemplateStudioPage() {
         <p className="text-gray-600 dark:text-gray-400">No-code template marketplace for frontend and contract miniapp templates.</p>
       </div>
 
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>Template Filters</CardTitle>
         </CardHeader>
@@ -467,7 +467,7 @@ export default function TemplateStudioPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
+        <Card variant="glass" className="xl:col-span-2">
           <CardHeader>
             <CardTitle>Template Marketplace ({templates.length})</CardTitle>
           </CardHeader>
@@ -503,7 +503,7 @@ export default function TemplateStudioPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card variant="glass">
           <CardHeader>
             <CardTitle>Template Detail</CardTitle>
           </CardHeader>
@@ -537,7 +537,7 @@ export default function TemplateStudioPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>Publish Requests</CardTitle>
         </CardHeader>
@@ -596,7 +596,7 @@ export default function TemplateStudioPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card variant="glass">
         <CardHeader>
           <CardTitle>Upload / Edit Template (JSON or YAML)</CardTitle>
         </CardHeader>

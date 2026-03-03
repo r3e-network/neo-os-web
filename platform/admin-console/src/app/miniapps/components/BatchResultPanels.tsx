@@ -57,7 +57,7 @@ export function BatchResultPanels({ batchImportResult, batchRollbackResult }: Pr
   return (
     <>
       {batchImportResult && (
-        <Card>
+        <Card variant="glass">
           <CardHeader>
             <CardTitle>
               Batch Import Details ({batchImportResult.summary.total} item{batchImportResult.summary.total === 1 ? "" : "s"})
@@ -114,7 +114,7 @@ export function BatchResultPanels({ batchImportResult, batchRollbackResult }: Pr
       )}
 
       {batchRollbackResult && (
-        <Card>
+        <Card variant="glass">
           <CardHeader>
             <CardTitle>
               Batch Rollback Details ({batchRollbackResult.summary.total} target{batchRollbackResult.summary.total === 1 ? "" : "s"})

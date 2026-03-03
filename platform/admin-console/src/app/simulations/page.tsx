@@ -37,7 +37,7 @@ export default function SimulationsPage() {
         <p className="text-gray-600 dark:text-gray-400">Control and monitor platform transaction simulations</p>
       </div>
 
-      <Card>
+      <Card variant="glass">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Simulation Control</CardTitle>
           <div className="flex items-center space-x-2">

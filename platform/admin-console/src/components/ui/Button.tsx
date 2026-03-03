@@ -14,19 +14,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", isLoading, disabled, type = "button", children, ...props }, ref) => {
     const baseStyles =
-      "inline-flex items-center justify-center rounded-md font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+      "inline-flex items-center justify-center rounded-xl font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]";
 
     const variants = {
-      primary: "bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-600",
-      secondary: "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 focus-visible:ring-gray-500/50",
-      danger: "bg-danger-600 text-white hover:bg-danger-700 focus-visible:ring-danger-600",
-      ghost: "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus-visible:ring-gray-500/50",
+      primary: "bg-neo text-gray-900 hover:bg-neo/90 shadow-[0_4px_14px_rgba(0,229,153,0.3)] hover:shadow-[0_6px_20px_rgba(0,229,153,0.4)] focus-visible:ring-neo",
+      secondary: "bg-white/10 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/10 focus-visible:ring-gray-500/50 backdrop-blur-md",
+      danger: "bg-danger-600 text-white hover:bg-danger-700 shadow-[0_4px_14px_rgba(220,38,38,0.3)] focus-visible:ring-danger-600",
+      ghost: "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 focus-visible:ring-gray-500/50",
     };
 
     const sizes = {
-      sm: "h-8 px-3 text-sm",
-      md: "h-10 px-4 text-base",
-      lg: "h-12 px-6 text-lg",
+      sm: "h-9 px-4 text-sm",
+      md: "h-11 px-6 text-sm",
+      lg: "h-14 px-8 text-base",
     };
 
     return (

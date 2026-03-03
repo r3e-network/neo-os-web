@@ -36,7 +36,7 @@ export function MiniAppsTableCard({
   deletePending,
 }: Props) {
   return (
-    <Card>
+    <Card variant="glass">
       <CardHeader>
         <CardTitle>Registered MiniApps ({miniapps?.length ?? 0})</CardTitle>
       </CardHeader>
