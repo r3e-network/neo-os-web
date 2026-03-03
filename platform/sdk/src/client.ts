@@ -15,6 +15,8 @@ import type {
   GasBankDepositCreateResponse,
   GasBankDepositsResponse,
   GasBankTransactionsResponse,
+  GasSponsorCheckResponse,
+  GasSponsorRequestResponse,
   HostSDK,
   InvocationIntent,
   MiniAppSDK,
@@ -34,6 +36,9 @@ import type {
   SecretsUpsertResponse,
   TransactionsListParams,
   TransactionsListResponse,
+  PrivacyMerklePathResponse,
+  PrivacyRelayRequest,
+  PrivacyRelayResponse,
   VoteBNEOResponse,
   WalletBindResponse,
   WalletNonceResponse,
@@ -67,15 +72,15 @@ async function getInjectedWalletAddress(): Promise<string> {
   if (typeof window === "undefined") {
     throw new Error("wallet.getAddress must be called in a browser context");
   }
-  
+
   const g = window as unknown as WindowWithNeoLine;
-  
+
   // Check EVM
   if (g.ethereum && typeof g.ethereum.request === "function") {
     try {
       const accounts = await g.ethereum.request({ method: "eth_accounts" });
       if (accounts && accounts.length > 0) return accounts[0];
-    } catch {}
+    } catch { }
   }
 
   const neoline = g.NEOLineN3;
@@ -343,6 +348,32 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         if (params.limit) qs.set("limit", String(params.limit));
         if (params.after_id) qs.set("after_id", params.after_id);
         return requestJSON<TransactionsListResponse>(cfg, `/transactions-list?${qs.toString()}`, { method: "GET" });
+      },
+    },
+    privacy: {
+      async getMerklePath(commitment: string): Promise<PrivacyMerklePathResponse> {
+        if (!commitment || typeof commitment !== "string" || !commitment.trim()) throw new Error("commitment is required");
+        return requestJSON<PrivacyMerklePathResponse>(cfg, `/privacy-merkle-path?commitment=${encodeURIComponent(commitment)}`, {
+          method: "GET",
+        });
+      },
+      async relay(params: PrivacyRelayRequest): Promise<PrivacyRelayResponse> {
+        return requestJSON<PrivacyRelayResponse>(cfg, "/privacy-relay", {
+          method: "POST",
+          body: JSON.stringify(params),
+        });
+      },
+    },
+    gasSponsor: {
+      async check(): Promise<GasSponsorCheckResponse> {
+        return requestJSON<GasSponsorCheckResponse>(cfg, "/gas-sponsor-check", { method: "GET" });
+      },
+      async request(amount: string): Promise<GasSponsorRequestResponse> {
+        if (!amount || typeof amount !== "string" || !amount.trim()) throw new Error("amount is required");
+        return requestJSON<GasSponsorRequestResponse>(cfg, "/gas-sponsor-request", {
+          method: "POST",
+          body: JSON.stringify({ amount }),
+        });
       },
     },
   };

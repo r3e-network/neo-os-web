@@ -293,6 +293,23 @@ export type ChainTransaction = {
   confirmed_at?: string;
 };
 
+// Gas Sponsor
+export type GasSponsorCheckResponse = {
+  eligible: boolean;
+  gas_balance: string;
+  daily_limit: string;
+  used_today: string;
+  remaining: string;
+  resets_at: string;
+};
+
+export type GasSponsorRequestResponse = {
+  request_id: string;
+  amount: string;
+  status: string;
+  tx_hash: string | null;
+};
+
 export type TransactionsListParams = {
   app_id?: string;
   limit?: number;
@@ -303,6 +320,28 @@ export type TransactionsListResponse = {
   transactions: ChainTransaction[];
   has_more: boolean;
   last_id?: string;
+};
+
+// Privacy
+export type PrivacyMerklePathResponse = {
+  pathElements: string[];
+  pathIndices: number[];
+  root: string;
+};
+
+export type PrivacyRelayRequest = {
+  proof: string;
+  nullifierHash: string;
+  root: string;
+  recipient: string;
+  relayerFee: string;
+  asset: string;
+  amount: string;
+};
+
+export type PrivacyRelayResponse = {
+  status: string;
+  txHash: string;
 };
 
 export interface MiniAppSDK {
@@ -344,6 +383,14 @@ export interface MiniAppSDK {
   };
   transactions: {
     list(params: TransactionsListParams): Promise<TransactionsListResponse>;
+  };
+  privacy: {
+    getMerklePath(commitment: string): Promise<PrivacyMerklePathResponse>;
+    relay(params: PrivacyRelayRequest): Promise<PrivacyRelayResponse>;
+  };
+  gasSponsor: {
+    check(): Promise<GasSponsorCheckResponse>;
+    request(amount: string): Promise<GasSponsorRequestResponse>;
   };
 }
 
@@ -417,6 +464,8 @@ export interface HostSDK {
   stats: MiniAppSDK["stats"];
   events: MiniAppSDK["events"];
   transactions: MiniAppSDK["transactions"];
+  privacy: MiniAppSDK["privacy"];
+  gasSponsor: MiniAppSDK["gasSponsor"];
 }
 
 export type MiniAppSDKConfig = {

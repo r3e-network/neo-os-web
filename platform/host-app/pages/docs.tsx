@@ -21,6 +21,7 @@ import {
   Database,
   Key,
   Cpu,
+  Lock,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -111,8 +112,8 @@ export default function DocsPage() {
                       onClick={() => setActiveSection(section.id)}
                       aria-current={isActive ? "page" : undefined}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all cursor-pointer focus-visible:outline-none ${isActive
-                          ? "border-l-2 border-neo bg-neo/5 shadow-[inset_0_0_20px_rgba(0,229,153,0.05)] text-neo font-bold"
-                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 border-l-2 border-transparent"
+                        ? "border-l-2 border-neo bg-neo/5 shadow-[inset_0_0_20px_rgba(0,229,153,0.05)] text-neo font-bold"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 border-l-2 border-transparent"
                         }`}
                     >
                       <Icon size={18} aria-hidden="true" />
@@ -248,6 +249,7 @@ function SDKReferenceContent() {
           { icon: Database, title: "Storage API", desc: "On-chain and off-chain storage" },
           { icon: Zap, title: "Events API", desc: "Real-time blockchain events" },
           { icon: Shield, title: "TEE API", desc: "Confidential computing" },
+          { icon: Lock, title: "Privacy API", desc: "Zero-knowledge asset transfers" },
         ].map((item) => (
           <div
             key={item.title}
@@ -282,7 +284,8 @@ app.contract  // Smart contract calls
 app.storage   // Data storage
 app.vrf       // Verifiable randomness
 app.oracle    // Price feeds & external data
-app.tee       // Confidential computing`}
+app.tee       // Confidential computing
+app.privacy   // Zero-knowledge Relayer`}
         language="typescript"
       />
 
@@ -399,7 +402,7 @@ function PlatformServicesContent() {
             desc: "Real-time external data feeds",
             color: "from-blue-500 to-cyan-500",
           },
-          { icon: Cpu, title: "Automation", desc: "Scheduled task execution", color: "from-orange-500 to-yellow-500" },
+          { icon: Lock, title: "NeoPrivacy Relayer", desc: "Zero-knowledge gasless transfers", color: "from-gray-500 to-slate-800" },
         ].map((item) => (
           <div
             key={item.title}
@@ -459,6 +462,29 @@ const result = await app.tee.execute({
 // Result is attested by the TEE
 console.log('Winner:', result.output);
 console.log('Attestation:', result.attestation);`}
+        language="typescript"
+      />
+
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Using Privacy Relayer (zNEP17)</h3>
+      <CodeBlock
+        code={`// 1. Get Merkle path to construct zero-knowledge proof
+const path = await app.privacy.getMerklePath('0x...commitment');
+
+// 2. Generate ZK-SNARK proof locally (using snarkjs or similar)
+const proof = await generateZkProof(path, secret, nullifier);
+
+// 3. Relay the transaction gaslessly
+const tx = await app.privacy.relay({
+  proof: proof.toString(),
+  nullifierHash: proof.nullifierHash,
+  root: path.root,
+  recipient: 'NXX...',
+  relayerFee: '10000',
+  asset: 'GAS',
+  amount: '500000000'
+});
+
+console.log('Privacy Tx Relayed:', tx.txHash);`}
         language="typescript"
       />
     </div>
