@@ -22,7 +22,10 @@
         "NEXT_PUBLIC_WEB3AUTH_NETWORK",
         "NEXT_PUBLIC_WEB3AUTH_CLIENT_ID",
         "RESEND_API_KEY",
-        "SPONSORED_WIF"
+        "SPONSORED_WIF",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_EDGE_URL",
+        "NEXTAUTH_SECRET"
       ]
     },
     "build:h5": {
