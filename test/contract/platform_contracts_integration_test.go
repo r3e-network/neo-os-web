@@ -58,6 +58,9 @@ func TestPlatformContractsNeoExpressSmoke(t *testing.T) {
 		}
 		contract, err := nx.Deploy(nefPath, "", account)
 		if err != nil {
+			if strings.Contains(err.Error(), "INSUFFICIENT_GAS_DEPLOY") {
+				t.Skipf("Skipping due to neo-express insufficient GAS on deploy: %v", err)
+			}
 			t.Fatalf("deploy %s: %v", name, err)
 		}
 		if contract.Hash == "" {
