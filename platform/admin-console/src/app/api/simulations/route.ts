@@ -1,17 +1,21 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
+import { env } from "@/lib/env";
 
-const SIMULATION_URL = process.env.NEOSIMULATION_URL || "http://neosimulation:8093";
+const EDGE_URL = env.NEXT_PUBLIC_EDGE_URL || "http://edge-gateway.platform.svc.cluster.local:8787";
 
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
   try {
-    const response = await fetch(`${SIMULATION_URL}/status`, {
-      signal: AbortSignal.timeout(5000),
-      headers: { "Content-Type": "application/json" },
+    const response = await fetch(`${EDGE_URL}/admin-simulations?action=status`, {
+      signal: AbortSignal.timeout(10000),
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+      },
     });
 
     if (!response.ok) {
@@ -37,11 +41,14 @@ export async function POST(req: Request) {
       return jsonError("Invalid action", 400);
     }
 
-    const response = await fetch(`${SIMULATION_URL}/${action}`, {
+    const response = await fetch(`${EDGE_URL}/admin-simulations`, {
       method: "POST",
-      signal: AbortSignal.timeout(10000),
-      headers: { "Content-Type": "application/json" },
-      body: config ? JSON.stringify(config) : undefined,
+      signal: AbortSignal.timeout(15000),
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+      },
+      body: JSON.stringify({ action, config }),
     });
 
     if (!response.ok) {
