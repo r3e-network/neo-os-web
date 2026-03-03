@@ -516,6 +516,9 @@ func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*chain.Deplo
 
 	out, err := n.command(ctx, "contract", "deploy", "-j", "-i", n.dataFile, nefPath, account).CombinedOutput()
 	if err != nil {
+		if strings.Contains(string(out), "Insufficient GAS") {
+			return nil, fmt.Errorf("INSUFFICIENT_GAS_DEPLOY: %s: %w", string(out), err)
+		}
 		return nil, fmt.Errorf("deploy contract: %s: %w", string(out), err)
 	}
 
