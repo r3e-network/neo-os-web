@@ -39,12 +39,16 @@ func (s *Service) handleMerklePath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Stub: In a fully fleshed out database model, we would query the Poseidon tree.
-	// For now, return mock path data to allow the MiniApp to construct proofs.
+	pathElements, pathIndices, err := s.tree.GetPath(commitment)
+	if err != nil {
+		httputil.WriteErrorResponse(w, r, http.StatusNotFound, "NOT_FOUND", err.Error(), nil)
+		return
+	}
+
 	resp := MerklePathResponse{
-		PathElements: []string{"0x2a3b...", "0x4f5c..."}, // Expected to be 20 levels deep for 1M leaves
-		PathIndices:  []int{0, 1},
-		Root:         "0xabcdef1234567890abcdef1234567890abcdef12",
+		PathElements: pathElements,
+		PathIndices:  pathIndices,
+		Root:         s.tree.Root(),
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, resp)

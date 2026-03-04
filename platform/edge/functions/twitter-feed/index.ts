@@ -21,9 +21,9 @@ export async function handler(req: Request): Promise<Response> {
 
   const bearerToken = getEnv("TWITTER_BEARER_TOKEN");
 
-  // If no token, return mock data
+  // If no token, return empty data
   if (!bearerToken) {
-    return json({ tweets: getMockTweets() }, {}, req);
+    return json({ tweets: [] }, {}, req);
   }
 
   try {
@@ -37,7 +37,7 @@ export async function handler(req: Request): Promise<Response> {
     });
 
     if (!res.ok) {
-      return json({ tweets: getMockTweets() }, {}, req);
+      return json({ tweets: [] }, {}, req);
     }
 
     const data = await res.json();
@@ -51,27 +51,8 @@ export async function handler(req: Request): Promise<Response> {
 
     return json({ tweets }, {}, req);
   } catch {
-    return json({ tweets: getMockTweets() }, {}, req);
+    return json({ tweets: [] }, {}, req);
   }
-}
-
-function getMockTweets(): Tweet[] {
-  return [
-    {
-      id: "1",
-      text: "🚀 Neo N3 continues to grow! Over 1M transactions processed this month.",
-      created_at: new Date().toISOString(),
-      author: "Neo Smart Economy",
-      url: "https://twitter.com/Neo_Blockchain",
-    },
-    {
-      id: "2",
-      text: "📢 New MiniApp SDK released! Build decentralized apps faster than ever.",
-      created_at: new Date(Date.now() - 3600000).toISOString(),
-      author: "Neo Smart Economy",
-      url: "https://twitter.com/Neo_Blockchain",
-    },
-  ];
 }
 
 if (import.meta.main) {
