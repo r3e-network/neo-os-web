@@ -49,6 +49,12 @@ spec:
               protocol: TCP
           env:
             # Runtime environment
+            - name: EDGE_CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: EDGE_CORS_ORIGINS
+                  optional: true
             - name: EDGE_ENV
               valueFrom:
                 configMapKeyRef:
