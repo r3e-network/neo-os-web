@@ -60,6 +60,9 @@ const nextConfig = {
   experimental: {
     externalDir: true,
     optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
+    outputFileTracingIncludes: {
+      "/api/**/*": ["./public/miniapp-definitions/**/*"],
+    },
   },
   turbopack: {
     root: path.resolve(__dirname, "../.."),
