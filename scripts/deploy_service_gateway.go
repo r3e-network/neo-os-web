@@ -19,6 +19,7 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/smartcontract/manifest"
 	"github.com/nspcc-dev/neo-go/pkg/smartcontract/nef"
 	"github.com/nspcc-dev/neo-go/pkg/util"
+	"github.com/nspcc-dev/neo-go/pkg/vm/stackitem"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
 )
 
@@ -166,8 +167,8 @@ func waitForDeployment(ctx context.Context, client *rpcclient.Client, txHash uti
 
 			if len(exec.Stack) > 0 {
 				item := exec.Stack[0]
-				if arr, ok := item.Value().([]interface{}); ok && len(arr) > 0 {
-					if hashItem, ok := arr[0].([]byte); ok {
+				if arr, ok := item.Value().([]stackitem.Item); ok && len(arr) > 0 {
+					if hashItem, ok := arr[0].Value().([]byte); ok {
 						return fmt.Sprintf("0x%x", hashItem), nil
 					}
 				}
@@ -178,8 +179,8 @@ func waitForDeployment(ctx context.Context, client *rpcclient.Client, txHash uti
 
 			for _, notif := range exec.Events {
 				if notif.Name == "Deploy" {
-					if arr, ok := notif.Item.Value().([]interface{}); ok && len(arr) > 0 {
-						if hash, ok := arr[0].([]byte); ok {
+					if arr, ok := notif.Item.Value().([]stackitem.Item); ok && len(arr) > 0 {
+						if hash, ok := arr[0].Value().([]byte); ok {
 							return fmt.Sprintf("0x%x", hash), nil
 						}
 					}
