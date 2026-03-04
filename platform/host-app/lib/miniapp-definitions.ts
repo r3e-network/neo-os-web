@@ -275,15 +275,6 @@ function getDefinitionsDir(): string {
   const fromEnv = asString(process.env.MINIAPP_DEFINITIONS_DIR);
   if (fromEnv) return fromEnv;
 
-  const migratedDir = path.join(process.cwd(), "public", "miniapp-definitions", "migrated");
-  try {
-    if (existsSync(migratedDir) && statSync(migratedDir).isDirectory()) {
-      return migratedDir;
-    }
-  } catch {
-    // Fallback below.
-  }
-
   return path.join(process.cwd(), "public", "miniapp-definitions");
 }
 
