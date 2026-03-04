@@ -28,6 +28,7 @@ type Service struct {
 	chainClient    *chain.Client
 	txProxyInvoker txproxytypes.Invoker
 	contractHash   string
+	tree           *MerkleTree
 }
 
 type Config struct {
@@ -66,11 +67,15 @@ func New(cfg Config) (*Service, error) {
 		DB:      cfg.DB,
 	})
 
+	tree := NewMerkleTree()
+	_ = tree.LoadFromDB(context.Background(), cfg.DB)
+
 	s := &Service{
 		BaseService:    base,
 		chainClient:    cfg.ChainClient,
 		txProxyInvoker: cfg.TxProxyInvoker,
 		contractHash:   contractHash,
+		tree:           tree,
 	}
 
 	if contractHash == "" {
