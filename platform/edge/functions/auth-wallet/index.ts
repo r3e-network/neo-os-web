@@ -4,6 +4,8 @@ import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { verifyNeoSignature } from "../_shared/neo.ts";
 import { verifyEvmSignature } from "../_shared/evm.ts";
+import { signJwt } from "../_shared/jwt.ts";
+import { getEnv } from "../_shared/env.ts";
 
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
@@ -58,14 +60,7 @@ export async function handler(req: Request): Promise<Response> {
   // Clear nonce
   await supabase.from("users").update({ nonce: null }).eq("id", user.id);
 
-  // Generate a custom JWT
-  // Note: For full Supabase integration, we can sign a custom JWT with the Supabase JWT secret
-  const encoder = new TextEncoder();
-  
-  // We use Deno's native crypto to sign JWT
-  // In a real production setup you might use jsonwebtoken or similar Deno module
-  // For edge simplicity, we rely on Supabase Edge's generic access tokens or custom ones.
-  // Actually, Supabase has an admin API to create tokens, but let's just create a generic one.
+  // Generate a standard Supabase-compatible JWT
   const payload = {
     role: "authenticated",
     aud: "authenticated",
@@ -74,16 +69,11 @@ export async function handler(req: Request): Promise<Response> {
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
   };
 
-  // We should sign this properly using the JWT secret, but since this is an example / internal auth,
-  // we can use a mock token or generate it via standard Deno crypto.
-  // Since we don't want to add a complex JWT lib here, let's just return the payload
-  // and have the frontend use it or rely on a proper library.
-  
-  // Quick base64url encode for mock token:
-  const token = btoa(JSON.stringify(payload)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const jwtSecret = getEnv("SUPABASE_JWT_SECRET") || getEnv("NEXTAUTH_SECRET") || "fallback-secret-for-development-only-do-not-use-in-prod";
+  const token = await signJwt(payload, jwtSecret);
 
   return json({
-    access_token: `mock_jwt.${token}.sig`,
+    access_token: token,
     user: {
       id: user.id,
       address,
