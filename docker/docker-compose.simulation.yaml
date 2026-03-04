@@ -3,8 +3,6 @@
 # ---------------------------------------------------------------------------
 x-sim-defaults: &sim-defaults
   restart: unless-stopped
-  depends_on:
-    - coordinator
 
 x-build-defaults: &build-defaults
   context: ..
@@ -137,8 +135,6 @@ services:
       - NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY
       - NEOACCOUNTS_DELETE_RETIRING_ACCOUNTS
     depends_on:
-      coordinator:
-        condition: service_started
       globalsigner:
         condition: service_healthy
 
@@ -171,8 +167,6 @@ services:
       - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
       - TOPUP_ENABLED
     depends_on:
-      coordinator:
-        condition: service_started
       neoaccounts:
         condition: service_started
 
@@ -336,8 +330,6 @@ services:
       - TXPROXY_ALLOWLIST
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
     depends_on:
-      coordinator:
-        condition: service_started
       globalsigner:
         condition: service_healthy
 
@@ -440,10 +432,6 @@ services:
       - CONTRACT_MINIAPP_BRIDGEGUARDIAN_HASH=0x2d03f3e4ff10e14ea94081e0c21e79e79c33f9e3
       - CONTRACT_MINIAPP_GUARDIANPOLICY_HASH=0x893a774957244b83a0efed1d42771fe1e424cfec
     depends_on:
-      coordinator:
-        condition: service_started
-      neoaccounts:
-        condition: service_started
       globalsigner:
         condition: service_healthy
 
