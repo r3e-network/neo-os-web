@@ -18,6 +18,7 @@ import (
 	"github.com/nspcc-dev/neo-go/pkg/smartcontract/manifest"
 	"github.com/nspcc-dev/neo-go/pkg/smartcontract/nef"
 	"github.com/nspcc-dev/neo-go/pkg/util"
+	"github.com/nspcc-dev/neo-go/pkg/vm/stackitem"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
 )
 
@@ -28,7 +29,17 @@ const (
 	networkMagic = 894710606
 )
 
-var contractsToDeploy = []string{"Governance", "AppRegistry"}
+var contractsToDeploy = []string{
+	"Governance",
+	"AppRegistry",
+	"AutomationAnchor",
+	"PauseRegistry",
+	"PaymentHubV2",
+	"PriceFeed",
+	"RandomnessLog",
+	"ServiceLayerGateway",
+	"zNEP17",
+}
 
 func main() {
 	wif := os.Getenv("NEO_TESTNET_WIF")
@@ -201,9 +212,9 @@ func waitForDeployment(ctx context.Context, client *rpcclient.Client, txHash uti
 				if len(exec.Stack) > 0 {
 					item := exec.Stack[0]
 					// The deploy returns a struct, try to extract hash
-					if arr, ok := item.Value().([]interface{}); ok && len(arr) > 0 {
+					if arr, ok := item.Value().([]stackitem.Item); ok && len(arr) > 0 {
 						// First element should be the contract hash
-						if hashItem, ok := arr[0].([]byte); ok {
+						if hashItem, ok := arr[0].Value().([]byte); ok {
 							return fmt.Sprintf("0x%x", hashItem), nil
 						}
 					}
@@ -214,9 +225,11 @@ func waitForDeployment(ctx context.Context, client *rpcclient.Client, txHash uti
 				}
 				// Fallback: get from notifications
 				for _, notif := range exec.Events {
-					if notif.Name == "Deploy" && len(notif.Item.Value().([]interface{})) > 0 {
-						if hash, ok := notif.Item.Value().([]interface{})[0].([]byte); ok {
-							return fmt.Sprintf("0x%x", hash), nil
+					if notif.Name == "Deploy" {
+						if arr, ok := notif.Item.Value().([]stackitem.Item); ok && len(arr) > 0 {
+							if hash, ok := arr[0].Value().([]byte); ok {
+								return fmt.Sprintf("0x%x", hash), nil
+							}
 						}
 					}
 				}
