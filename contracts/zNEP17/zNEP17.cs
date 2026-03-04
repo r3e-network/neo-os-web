@@ -142,14 +142,16 @@ namespace Neo.SmartContract.MiniApps
             ExecutionEngine.Assert(IsKnownRoot(root!), "Merkle Root is not in the historical anonymity set.");
 
             // 4. Zero Knowledge Proof Verification
-            ExecutionEngine.Assert(VerifyProof(proof!, nullifierHash!, root!, recipient, relayerFee), "Cryptographic ZK Proof verification failed.");
+            ExecutionEngine.Assert(VerifyProof(proof!, nullifierHash!, root!, recipient, relayerFee), "Cryptographic ZK Proof verification failed. Unauthorized relayer.");
 
             // 5. State Mutation: Mark Nullifier as Spent
             MarkSpent(nullifierHash!);
 
             // 6. Calculate Payouts
             BigInteger payout = amount - relayerFee;
-            UInt160 relayer = Runtime.CallingScriptHash; // The script relaying the transaction (TxProxy)
+            
+            // Relayer is the Admin (TEE GlobalSigner) since they are the ones authorized to submit the transaction
+            UInt160 relayer = (UInt160)Storage.Get(Storage.CurrentContext, new byte[] { Prefix_Admin });
 
             // 7. Payout Recipient
             bool success = (bool)Contract.Call(asset, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, recipient, payout, null);
@@ -214,9 +216,11 @@ namespace Neo.SmartContract.MiniApps
             // When Neo supports `Crypto.VerifyGroth16(proof, publicInputs, verificationKey)`,
             // this stub will be replaced with the native invocation.
             
-            // As a fallback for current N3 mainnet, the verification happens inside the TEE enclave (TxProxy),
-            // and the TEE's signature guarantees the proof was mathematically valid before calling Withdraw.
-            return true;
+            // As a robust cryptographic fallback for N3 mainnet, the actual SNARK verification 
+            // happens inside the AWS Nitro TEE enclave. We cryptographically enforce this by 
+            // requiring the transaction to be signed by the TEE's attested GlobalSigner (Admin).
+            UInt160 admin = (UInt160)Storage.Get(Storage.CurrentContext, new byte[] { Prefix_Admin });
+            return Runtime.CheckWitness(admin);
         }
     }
 }
