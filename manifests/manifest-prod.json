@@ -152,7 +152,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neofeeds",
+          "MARBLE_TYPE": "neofeeds",
           "SERVICE_TYPE": "neofeeds",
           "NEOFEEDS_SIGNING_KEY": "{{ hex .Secrets.NEOFEEDS_SIGNING_KEY.Private }}",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
@@ -170,7 +170,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neoflow",
+          "MARBLE_TYPE": "neoflow",
           "SERVICE_TYPE": "neoflow",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
@@ -187,7 +187,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neocompute",
+          "MARBLE_TYPE": "neocompute",
           "SERVICE_TYPE": "neocompute",
           "COMPUTE_MASTER_KEY": "{{ hex .Secrets.COMPUTE_MASTER_KEY.Private }}",
           "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
@@ -206,7 +206,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neovrf",
+          "MARBLE_TYPE": "neovrf",
           "SERVICE_TYPE": "neovrf",
           "NEOVRF_SIGNING_KEY": "{{ hex .Secrets.NEOVRF_SIGNING_KEY.Private }}",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
@@ -224,7 +224,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neoaccounts",
+          "MARBLE_TYPE": "neoaccounts",
           "SERVICE_TYPE": "neoaccounts",
           "POOL_MASTER_KEY": "{{ hex .Secrets.POOL_MASTER_KEY.Private }}",
           "POOL_ENCRYPTION_KEY": "{{ hex .Secrets.POOL_ENCRYPTION_KEY.Private }}",
@@ -243,7 +243,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neooracle",
+          "MARBLE_TYPE": "neooracle",
           "SERVICE_TYPE": "neooracle",
           "SECRETS_MASTER_KEY": "{{ hex .Secrets.SECRETS_MASTER_KEY.Private }}",
           "ORACLE_HTTP_ALLOWLIST": "https://api.binance.com,https://api.coinbase.com,https://api.coingecko.com",
@@ -262,7 +262,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neorequests",
+          "MARBLE_TYPE": "neorequests",
           "SERVICE_TYPE": "neorequests",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
@@ -279,7 +279,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "globalsigner",
+          "MARBLE_TYPE": "globalsigner",
           "SERVICE_TYPE": "globalsigner",
           "GLOBALSIGNER_MASTER_SEED": "{{ hex .Secrets.GLOBALSIGNER_MASTER_SEED.Private }}",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
@@ -297,7 +297,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "txproxy",
+          "MARBLE_TYPE": "txproxy",
           "SERVICE_TYPE": "txproxy",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",
@@ -314,7 +314,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neogasbank",
+          "MARBLE_TYPE": "neogasbank",
           "SERVICE_TYPE": "neogasbank",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_KEY": "{{ pem .MarbleRun.MarbleCert.Private }}",

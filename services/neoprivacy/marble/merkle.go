@@ -28,14 +28,17 @@ func NewMerkleTree() *MerkleTree {
 		zeros:  make([]*big.Int, MerkleTreeDepth+1),
 	}
 
-	for i := 0; i <= MerkleTreeDepth; i++ {
-		mt.nodes[uint64(i)] = make(map[uint64]*big.Int)
+	for i := uint64(0); i <= MerkleTreeDepth; i++ {
+		mt.nodes[i] = make(map[uint64]*big.Int)
 	}
 
 	// Initialize zero hashes
 	mt.zeros[0] = big.NewInt(0)
-	for i := 1; i <= MerkleTreeDepth; i++ {
-		hash, _ := poseidon.Hash([]*big.Int{mt.zeros[i-1], mt.zeros[i-1]})
+	for i := uint64(1); i <= MerkleTreeDepth; i++ {
+		hash, err := poseidon.Hash([]*big.Int{mt.zeros[i-1], mt.zeros[i-1]})
+		if err != nil {
+			panic(fmt.Sprintf("failed to hash zeros: %v", err))
+		}
 		mt.zeros[i] = hash
 	}
 
@@ -106,7 +109,7 @@ func (mt *MerkleTree) Root() string {
 }
 
 // GetPath returns the sibling elements and path indices for a given commitment
-func (mt *MerkleTree) GetPath(commitment string) ([]string, []int, error) {
+func (mt *MerkleTree) GetPath(commitment string) (pathElements []string, pathIndices []int, err error) {
 	mt.mu.RLock()
 	defer mt.mu.RUnlock()
 
@@ -121,7 +124,7 @@ func (mt *MerkleTree) GetPath(commitment string) ([]string, []int, error) {
 	found := false
 	for i, l := range mt.leaves {
 		if l.Cmp(leaf) == 0 {
-			index = uint64(i)
+			index = uint64(i) // #nosec G115
 			found = true
 			break
 		}
@@ -131,12 +134,12 @@ func (mt *MerkleTree) GetPath(commitment string) ([]string, []int, error) {
 		return nil, nil, fmt.Errorf("commitment not found in tree")
 	}
 
-	pathElements := make([]string, MerkleTreeDepth)
-	pathIndices := make([]int, MerkleTreeDepth)
+	pathElements = make([]string, MerkleTreeDepth)
+	pathIndices = make([]int, MerkleTreeDepth)
 
 	currentIndex := index
 	for level := uint64(0); level < MerkleTreeDepth; level++ {
-		pathIndices[level] = int(currentIndex % 2)
+		pathIndices[level] = int(currentIndex % 2) // #nosec G115
 
 		var sibling *big.Int
 		if currentIndex%2 == 0 {

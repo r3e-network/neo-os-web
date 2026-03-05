@@ -75,6 +75,8 @@ func TestNewDefaults(t *testing.T) {
 }
 
 func TestNewCustomMaxBodyBytes(t *testing.T) {
+	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("TEE_BACKEND", "simulation")
 	m, _ := marble.New(marble.Config{MarbleType: "neooracle"})
 	svc, err := New(Config{
 		Marble:       m,
@@ -156,6 +158,12 @@ func TestHandleQuerySuccess(t *testing.T) {
 // It uses http.DefaultTransport (no SSRF dialer) so tests can reach httptest servers on localhost.
 func newTestOracle(t *testing.T, allowlist URLAllowlist) *Service {
 	t.Helper()
+	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("TEE_BACKEND", "simulation")
+	t.Setenv("STRICT_IDENTITY_MODE", "false")
+	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
+	t.Setenv("MARBLE_CERT", "")
+	
 	m, _ := marble.New(marble.Config{MarbleType: "neooracle"})
 	svc, err := New(Config{
 		Marble:       m,

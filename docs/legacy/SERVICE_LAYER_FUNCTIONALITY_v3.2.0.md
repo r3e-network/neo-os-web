@@ -13,7 +13,7 @@
 
 ## Architecture Overview
 
-The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platform built on **MarbleRun + Nitro runtime** for neocompute computing on the Neo N3 blockchain. It provides oracle services, verifiable randomness, privacy mixing, automated task execution, and price feeds through a secure TEE-based architecture.
+The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platform built on **AWS Nitro + Nitro runtime** for neocompute computing on the Neo N3 blockchain. It provides oracle services, verifiable randomness, privacy mixing, automated task execution, and price feeds through a secure TEE-based architecture.
 
 ### High-Level Architecture
 
@@ -45,15 +45,15 @@ The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platf
                     ┌─────────────────┼─────────────────┐
                     ▼                 ▼                 ▼
 ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
-│   Supabase            │ │   Neo N3 Blockchain   │ │   MarbleRun           │
+│   Supabase            │ │   Neo N3 Blockchain   │ │   AWS Nitro           │
 │   (PostgreSQL + Auth) │ │   (Smart Contracts)   │ │   Coordinator         │
 └───────────────────────┘ └───────────────────────┘ └───────────────────────┘
 ```
 
 ### Core Design Principles
 
-1. **TEE-First Security**: All sensitive operations execute inside MarbleRun TEEs
-2. **Secrets Never Leave TEE**: Private keys and secrets are managed via MarbleRun Coordinator
+1. **TEE-First Security**: All sensitive operations execute inside AWS Nitro TEEs
+2. **Secrets Never Leave TEE**: Private keys and secrets are managed via AWS Nitro Coordinator
 3. **Request-Callback Pattern**: On-chain requests trigger off-chain TEE processing with on-chain callbacks
 4. **Capability-Based Access**: Services declare required capabilities in their manifest
 
@@ -65,8 +65,8 @@ The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platf
 
 | Component     | Technology             | Purpose                                     |
 | ------------- | ---------------------- | ------------------------------------------- |
-| TEE Runtime   | Nitro runtime (Edgeless Systems) | MarbleRun TEE execution                     |
-| Orchestration | MarbleRun              | Multi-TEE coordination, secrets management  |
+| TEE Runtime   | Nitro runtime (Edgeless Systems) | AWS Nitro TEE execution                     |
+| Orchestration | AWS Nitro              | Multi-TEE coordination, secrets management  |
 | Database      | Supabase (PostgreSQL)  | Persistent storage, real-time subscriptions |
 | HTTP Router   | Gorilla Mux            | REST API routing                            |
 | Blockchain    | Neo N3                 | Smart contract interaction                  |
@@ -84,9 +84,9 @@ The Neo Service Layer is a **TEE-Centric (Trusted Execution Environment)** platf
 
 | Component   | Technology            | Purpose                     |
 | ----------- | --------------------- | --------------------------- |
-| Secrets     | MarbleRun Coordinator | TEE secret injection        |
-| TLS         | mTLS (MarbleRun)      | Inter-service communication |
-| Attestation | MarbleRun/Nitro runtime         | Remote attestation          |
+| Secrets     | AWS Nitro Coordinator | TEE secret injection        |
+| TLS         | mTLS (AWS Nitro)      | Inter-service communication |
+| Attestation | AWS Nitro/Nitro runtime         | Remote attestation          |
 
 ---
 
@@ -156,7 +156,7 @@ type DirectRandomResponse struct {
 
 #### Security
 
-- **Private Key**: Injected by MarbleRun Coordinator (`VRF_PRIVATE_KEY`)
+- **Private Key**: Injected by AWS Nitro Coordinator (`VRF_PRIVATE_KEY`)
 - **Algorithm**: ECDSA P-256 with deterministic VRF construction
 - **Upgrade Safety**: Key persists across TEE upgrades (MRENCLAVE changes)
 
@@ -406,18 +406,18 @@ sources:
 #### Features
 
 - Data encryption at rest and in transit
-- Computation inside MarbleRun TEE
+- Computation inside AWS Nitro TEE
 - Result attestation
 
 ---
 
 ## Integration Workflows
 
-### MarbleRun + Nitro runtime Integration
+### AWS Nitro + Nitro runtime Integration
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         MarbleRun Coordinator                               │
+│                         AWS Nitro Coordinator                               │
 │                                                                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
 │  │ Manifest    │  │ Secrets     │  │ TLS Certs   │  │ Attestation │        │
@@ -552,11 +552,11 @@ base (for example `https://api.yourdomain.tld/api/v1`).
 
 | Secret               | Service     | Injection Method      |
 | -------------------- | ----------- | --------------------- |
-| VRF_PRIVATE_KEY      | NeoRand     | MarbleRun Coordinator |
-| NEOVAULT_MASTER_KEY  | NeoVault    | MarbleRun Coordinator |
-| POOL_MASTER_KEY      | NeoAccounts | MarbleRun Coordinator |
-| NEOFEEDS_SIGNING_KEY | NeoFeeds    | MarbleRun Coordinator |
-| JWT_SECRET           | Gateway     | MarbleRun Coordinator |
+| VRF_PRIVATE_KEY      | NeoRand     | AWS Nitro Coordinator |
+| NEOVAULT_MASTER_KEY  | NeoVault    | AWS Nitro Coordinator |
+| POOL_MASTER_KEY      | NeoAccounts | AWS Nitro Coordinator |
+| NEOFEEDS_SIGNING_KEY | NeoFeeds    | AWS Nitro Coordinator |
+| JWT_SECRET           | Gateway     | AWS Nitro Coordinator |
 
 ### Authentication Flow
 
@@ -599,10 +599,10 @@ base (for example `https://api.yourdomain.tld/api/v1`).
 │                         Production Environment                              │
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                    MarbleRun-Enabled Kubernetes Cluster                    │   │
+│  │                    AWS Nitro-Enabled Kubernetes Cluster                    │   │
 │  │                                                                      │   │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │   │
-│  │  │ MarbleRun    │  │ Gateway Pod  │  │ Service Pods │               │   │
+│  │  │ AWS Nitro    │  │ Gateway Pod  │  │ Service Pods │               │   │
 │  │  │ Coordinator  │  │ (Nitro runtime)        │  │ (Nitro runtime)        │               │   │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘               │   │
 │  │                                                                      │   │
@@ -633,7 +633,7 @@ base (for example `https://api.yourdomain.tld/api/v1`).
 | Route                   | Method | Description                  |
 | ----------------------- | ------ | ---------------------------- |
 | `/health`               | GET    | Health check                 |
-| `/attestation`          | GET    | MarbleRun attestation report |
+| `/attestation`          | GET    | AWS Nitro attestation report |
 | `/api/v1/auth/nonce`    | POST   | Get auth nonce               |
 | `/api/v1/auth/register` | POST   | Register user                |
 | `/api/v1/auth/login`    | POST   | Login with Neo wallet        |
@@ -679,7 +679,7 @@ When `OAUTH_COOKIE_MODE=true`, the gateway also sets an HTTP-only cookie (`sl_au
 
 ## References
 
-- [MarbleRun Documentation](https://docs.edgeless.systems/marblerun)
+- [AWS Nitro Documentation](https://docs.edgeless.systems/marblerun)
 - [AWS Nitro Enclaves Documentation](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html)
 - [Neo N3 Documentation](https://docs.neo.org/)
 - [Supabase Documentation](https://supabase.com/docs)

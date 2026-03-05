@@ -1,4 +1,3 @@
-// Package neooracle provides a simple data-fetching neooracle service.
 package neooracle
 
 // QueryInput is the request payload to fetch external data.
@@ -13,7 +12,8 @@ type QueryInput struct {
 
 // QueryResponse returns the fetched data.
 type QueryResponse struct {
-	StatusCode int               `json:"status_code"`
-	Headers    map[string]string `json:"headers"`
-	Body       string            `json:"body"`
+	StatusCode  int               `json:"status_code"`
+	Headers     map[string]string `json:"headers"`
+	Body        string            `json:"body"`
+	Attestation string            `json:"attestation,omitempty"`
 }

@@ -99,6 +99,9 @@ func (s *Service) executeOracle(ctx context.Context, userID string, payload []by
 			"value":       value.Value(),
 		}
 	}
+	if resp.Attestation != "" {
+		result["attestation"] = resp.Attestation
+	}
 
 	resultBytes, err := json.Marshal(result)
 	if err != nil {
@@ -114,6 +117,9 @@ func (s *Service) executeOracle(ctx context.Context, userID string, payload []by
 			trimmed["value"] = value.Value()
 		} else if resp.Body != "" {
 			trimmed["body"] = truncateString(resp.Body, s.maxResult/2)
+		}
+		if resp.Attestation != "" {
+			trimmed["attestation"] = resp.Attestation
 		}
 		resultBytes, err = json.Marshal(trimmed)
 		if err != nil {

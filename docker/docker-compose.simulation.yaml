@@ -13,16 +13,16 @@ services:
   # MarbleRun Coordinator (Base Runtime Stack)
   # =============================================================================
   coordinator:
-    image: ${MARBLERUN_COORDINATOR_IMAGE:-ghcr.io/edgelesssys/marblerun/coordinator:v1.8.0}
+    # image: marblerun-coordinator
     container_name: marblerun-coordinator
     ports:
       - 127.0.0.1:2001:2001
       - 127.0.0.1:4433:4433
     environment:
-      - EDG_COORDINATOR_MESH_ADDR=0.0.0.0:2001
-      - EDG_COORDINATOR_CLIENT_ADDR=0.0.0.0:4433
-      - EDG_COORDINATOR_DNS_NAMES=localhost,coordinator
-      - EDG_COORDINATOR_SEAL_DIR=/coordinator/data
+      - # EDG_COORDINATOR_MESH_ADDR=0.0.0.0:2001
+      - # EDG_COORDINATOR_CLIENT_ADDR=0.0.0.0:4433
+      - # EDG_COORDINATOR_DNS_NAMES=localhost,coordinator
+      - # EDG_COORDINATOR_SEAL_DIR=/coordinator/data
       - POOL_ENCRYPTION_KEY
     volumes:
       - coordinator-data:/coordinator/data
@@ -43,9 +43,9 @@ services:
     ports:
       - 127.0.0.1:${NEOFEEDS_PORT:-8083}:${NEOFEEDS_PORT:-8083}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=neofeeds
-      - EDG_MARBLE_DNS_NAMES=localhost,neofeeds
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=neofeeds
+      - MARBLE_DNS_NAMES=localhost,neofeeds
       - SERVICE_TYPE=neofeeds
       - PORT=${NEOFEEDS_PORT:-8083}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -82,9 +82,9 @@ services:
     ports:
       - 127.0.0.1:${NEOFLOW_PORT:-8084}:${NEOFLOW_PORT:-8084}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=neoflow
-      - EDG_MARBLE_DNS_NAMES=localhost,neoflow
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=neoflow
+      - MARBLE_DNS_NAMES=localhost,neoflow
       - SERVICE_TYPE=neoflow
       - PORT=${NEOFLOW_PORT:-8084}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -116,9 +116,9 @@ services:
     ports:
       - 127.0.0.1:${NEOACCOUNTS_PORT:-8085}:${NEOACCOUNTS_PORT:-8085}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=neoaccounts
-      - EDG_MARBLE_DNS_NAMES=localhost,neoaccounts,accountpool
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=neoaccounts
+      - MARBLE_DNS_NAMES=localhost,neoaccounts,accountpool
       - SERVICE_TYPE=neoaccounts
       - PORT=${NEOACCOUNTS_PORT:-8085}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -152,9 +152,9 @@ services:
     ports:
       - 127.0.0.1:${NEOGASBANK_PORT:-8091}:${NEOGASBANK_PORT:-8091}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=neogasbank
-      - EDG_MARBLE_DNS_NAMES=localhost,neogasbank
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=neogasbank
+      - MARBLE_DNS_NAMES=localhost,neogasbank
       - SERVICE_TYPE=neogasbank
       - PORT=${NEOGASBANK_PORT:-8091}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -184,9 +184,9 @@ services:
     ports:
       - 127.0.0.1:${NEOCOMPUTE_PORT:-8086}:${NEOCOMPUTE_PORT:-8086}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=neocompute
-      - EDG_MARBLE_DNS_NAMES=localhost,neocompute
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=neocompute
+      - MARBLE_DNS_NAMES=localhost,neocompute
       - SERVICE_TYPE=neocompute
       - PORT=${NEOCOMPUTE_PORT:-8086}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -212,9 +212,9 @@ services:
     ports:
       - 127.0.0.1:${NEOVRF_PORT:-8087}:${NEOVRF_PORT:-8087}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=neovrf
-      - EDG_MARBLE_DNS_NAMES=localhost,neovrf,vrf
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=neovrf
+      - MARBLE_DNS_NAMES=localhost,neovrf,vrf
       - SERVICE_TYPE=neovrf
       - PORT=${NEOVRF_PORT:-8087}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -238,9 +238,9 @@ services:
     ports:
       - 127.0.0.1:${NEOORACLE_PORT:-8088}:${NEOORACLE_PORT:-8088}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=neooracle
-      - EDG_MARBLE_DNS_NAMES=localhost,neooracle,oracle
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=neooracle
+      - MARBLE_DNS_NAMES=localhost,neooracle,oracle
       - SERVICE_TYPE=neooracle
       - PORT=${NEOORACLE_PORT:-8088}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -268,9 +268,9 @@ services:
     ports:
       - 127.0.0.1:${NEOREQUESTS_PORT:-8094}:${NEOREQUESTS_PORT:-8094}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=neorequests
-      - EDG_MARBLE_DNS_NAMES=localhost,neorequests
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=neorequests
+      - MARBLE_DNS_NAMES=localhost,neorequests
       - SERVICE_TYPE=neorequests
       - PORT=${NEOREQUESTS_PORT:-8094}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -310,9 +310,9 @@ services:
     ports:
       - 127.0.0.1:${TXPROXY_PORT:-8090}:${TXPROXY_PORT:-8090}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=txproxy
-      - EDG_MARBLE_DNS_NAMES=localhost,txproxy
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=txproxy
+      - MARBLE_DNS_NAMES=localhost,txproxy
       - SERVICE_TYPE=txproxy
       - PORT=${TXPROXY_PORT:-8090}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -347,9 +347,9 @@ services:
     ports:
       - 127.0.0.1:${GLOBALSIGNER_PORT:-8092}:${GLOBALSIGNER_PORT:-8092}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=globalsigner
-      - EDG_MARBLE_DNS_NAMES=localhost,globalsigner
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=globalsigner
+      - MARBLE_DNS_NAMES=localhost,globalsigner
       - SERVICE_TYPE=globalsigner
       - PORT=${GLOBALSIGNER_PORT:-8092}
       - MARBLE_ENV=${MARBLE_ENV:-development}
@@ -381,9 +381,9 @@ services:
     ports:
       - 127.0.0.1:${NEOSIMULATION_PORT:-8093}:${NEOSIMULATION_PORT:-8093}
     environment:
-      - EDG_MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - EDG_MARBLE_TYPE=neosimulation
-      - EDG_MARBLE_DNS_NAMES=localhost,neosimulation
+      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - MARBLE_TYPE=neosimulation
+      - MARBLE_DNS_NAMES=localhost,neosimulation
       - SERVICE_TYPE=neosimulation
       - PORT=${NEOSIMULATION_PORT:-8093}
       - MARBLE_ENV=${MARBLE_ENV:-development}

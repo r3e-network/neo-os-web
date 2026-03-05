@@ -12,6 +12,7 @@ for d in AppRegistry AutomationAnchor Governance MiniAppFactoryV2 PaymentHub Pri
   if [ -f "$d/$d.csproj" ]; then
     echo "Building $d..."
     dotnet build "$d/$d.csproj" -c Release
+    ~/.dotnet/tools/nccs "$d/$d.csproj" --optimize=All --output ./build/
   fi
 done
 

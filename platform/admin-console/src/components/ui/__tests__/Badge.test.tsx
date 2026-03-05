@@ -69,8 +69,8 @@ describe("Badge Component", () => {
     const badge = screen.getByText("Base Styles");
     expect(badge).toHaveClass("inline-flex");
     expect(badge).toHaveClass("items-center");
-    expect(badge).toHaveClass("rounded-md");
+    expect(badge).toHaveClass("rounded-full");
     expect(badge).toHaveClass("text-xs");
-    expect(badge).toHaveClass("font-medium");
+    expect(badge).toHaveClass("font-bold");
   });
 });

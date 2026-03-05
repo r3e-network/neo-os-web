@@ -23,6 +23,9 @@ export function Sidebar() {
     { name: t("navigation.users"), href: "/users", icon: "👥" },
     { name: t("navigation.analytics"), href: "/analytics", icon: "📈" },
     { name: t("navigation.contracts"), href: "/contracts", icon: "📄" },
+    { name: "Price Feeds", href: "/pricefeeds", icon: "📈" },
+    { name: "Oracle Secrets", href: "/oracle-secrets", icon: "🔑" },
+    { name: "Settings", href: "/settings", icon: "⚙️" },
   ];
 
   return (

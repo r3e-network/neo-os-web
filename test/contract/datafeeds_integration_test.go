@@ -15,7 +15,6 @@ import (
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/testutil"
 	neofeeds "github.com/r3e-network/neo-miniapp-platform/services/datafeed/marble"
 )
 
@@ -111,10 +110,17 @@ func TestNeoFeedsPriceFetching(t *testing.T) {
 // TestNeoFeedsHTTPHandler tests the HTTP handlers for neofeeds service.
 func TestNeoFeedsHTTPHandler(t *testing.T) {
 	t.Setenv("TEE_BACKEND", "simulation")
+	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("STRICT_IDENTITY_MODE", "false")
+	t.Setenv("TEE_STRICT_MODE", "false")
+	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
+	t.Setenv("MARBLE_CERT", "")
+	t.Setenv("MARBLE_KEY", "")
+	t.Setenv("MARBLE_ROOT_CA", "")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
-	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"price": "50000.00"})
 	}))
@@ -130,7 +136,10 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: &http.Client{}})
+	svc, err := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: mockServer.Client()})
+	if err != nil {
+		t.Fatalf("neofeeds.New: %v", err)
+	}
 
 	t.Run("health endpoint", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/health", nil)
@@ -183,13 +192,20 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 
 // TestNeoFeedsSignatureVerification tests that signatures can be verified.
 func TestNeoFeedsSignatureVerification(t *testing.T) {
-	t.Setenv("TEE_BACKEND", "simulation")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
+	t.Setenv("TEE_BACKEND", "simulation")
+	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("STRICT_IDENTITY_MODE", "false")
+	t.Setenv("TEE_STRICT_MODE", "false")
+	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
+	t.Setenv("MARBLE_CERT", "")
+	t.Setenv("MARBLE_KEY", "")
+	t.Setenv("MARBLE_ROOT_CA", "")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	signingKey := []byte("test-signing-key-32-bytes-long!!")
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", signingKey)
 
-	mockServer := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"price": "50000.00"})
 	}))
@@ -205,7 +221,10 @@ func TestNeoFeedsSignatureVerification(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: &http.Client{}})
+	svc, err := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: mockServer.Client()})
+	if err != nil {
+		t.Fatalf("neofeeds.New: %v", err)
+	}
 
 	ctx := context.Background()
 	price, err := svc.GetPrice(ctx, "BTC/USD") // legacy input should still work
@@ -253,6 +272,14 @@ func TestNeoFeedsMultiplePrices(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
+	t.Setenv("TEE_BACKEND", "simulation")
+	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("STRICT_IDENTITY_MODE", "false")
+	t.Setenv("TEE_STRICT_MODE", "false")
+	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
+	t.Setenv("MARBLE_CERT", "")
+	t.Setenv("MARBLE_KEY", "")
+	t.Setenv("MARBLE_ROOT_CA", "")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
@@ -365,6 +392,14 @@ func TestChainlinkDirectFetch(t *testing.T) {
 // TestNeoFeedsServiceInfo tests service info methods.
 func TestNeoFeedsServiceInfo(t *testing.T) {
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
+	t.Setenv("TEE_BACKEND", "simulation")
+	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("STRICT_IDENTITY_MODE", "false")
+	t.Setenv("TEE_STRICT_MODE", "false")
+	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
+	t.Setenv("MARBLE_CERT", "")
+	t.Setenv("MARBLE_KEY", "")
+	t.Setenv("MARBLE_ROOT_CA", "")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository()})
 
@@ -381,13 +416,20 @@ func TestNeoFeedsServiceInfo(t *testing.T) {
 
 // BenchmarkPriceFetching benchmarks price fetching performance.
 func BenchmarkPriceFetching(b *testing.B) {
-	b.Setenv("TEE_BACKEND", "simulation")
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"price": "50000.00"}`)
 	}))
 	defer mockServer.Close()
 
+	b.Setenv("TEE_BACKEND", "simulation")
+	b.Setenv("MARBLE_ENV", "testing")
+	b.Setenv("STRICT_IDENTITY_MODE", "false")
+	b.Setenv("TEE_STRICT_MODE", "false")
+	b.Setenv("STRICT_IDENTITY_ON_TEE", "false")
+	b.Setenv("MARBLE_CERT", "")
+	b.Setenv("MARBLE_KEY", "")
+	b.Setenv("MARBLE_ROOT_CA", "")
 	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
@@ -401,7 +443,7 @@ func BenchmarkPriceFetching(b *testing.B) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig})
+	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: mockServer.Client()})
 
 	ctx := context.Background()
 
