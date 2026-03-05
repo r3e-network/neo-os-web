@@ -106,7 +106,7 @@ neo-miniapp-platform/
 │   ├── automation-service/     # Triggers + anchored tasks execution
 │   ├── request-dispatcher/     # On-chain request listener + callbacks
 │   ├── tx-proxy/               # Allowlisted sign+broadcast gatekeeper
-│   ├── indexer/                # Chain syncer + event parser (non-TEE)
+
 │   ├── aggregator/             # Daily rollups + trending (non-TEE)
 │   └── nitrorun/              # Manifests/policies (policy.json, manifest.json, CA)
 │

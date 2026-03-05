@@ -7,7 +7,7 @@ This document maps the current repository structure into the target **Neo N3 Min
 The target structure is:
 
 - `contracts/`: platform contracts (GAS-only payments, bNEO-only governance, feeds, randomness logs, app registry, automation anchor, service gateway)
-- `services/`: attested Nitro-oriented services + non-TEE platform engine (indexer/aggregator)
+- `services/`: attested Nitro-oriented services + platform engine
 - `platform/`: Next.js host + SDK + Supabase Edge + RLS policies
 - `miniapps/`: platform miniapps + developer templates
 - `deploy/`: neo-express config + deployment scripts
@@ -32,7 +32,7 @@ platform naming in docs:
 - `services/requests` (`neorequests`) → `request-dispatcher`
 - `services/gasbank` (`neogasbank`) → `gasbank-service` (optional)
 - `services/simulation` (`neosimulation`) → `simulation-service` (dev-only)
-- `services/indexer` → platform chain syncer (planned, non-TEE)
+
 - `services/aggregator` → stats rollups + trending (planned, non-TEE)
 
 ### Existing Infrastructure (keep)
