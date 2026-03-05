@@ -5,7 +5,8 @@ import { requireAdminAuth } from "@/lib/admin-auth";
 // In production, this would securely store encrypted secrets in Supabase or an external vault.
 let oracleSecrets = [
   { id: "1", name: "binance_api_key", description: "Binance API Key for Market Data", lastUpdated: "2026-03-01T10:00:00Z" },
-  { id: "2", name: "okx_api_key", description: "OKX API Key", lastUpdated: "2026-03-02T12:30:00Z" }
+  { id: "2", name: "okx_api_key", description: "OKX API Key", lastUpdated: "2026-03-02T12:30:00Z" },
+  { id: "3", name: "twelvedata_api_key", description: "Twelve Data API Key", lastUpdated: "2026-03-05T12:00:00Z" }
 ];
 
 export async function GET(request: Request) {

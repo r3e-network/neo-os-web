@@ -66,7 +66,7 @@ POST /random
 |----------|-------------|
 | `NEOVRF_SIGNING_KEY` | 32+ byte secret used to derive the VRF signing key |
 
-In strict production mode, `NEOVRF_SIGNING_KEY` must be injected by NitroRun.
+In strict production mode, `NEOVRF_SIGNING_KEY` must be injected by AWS Nitro.
 
 ## Testing
 

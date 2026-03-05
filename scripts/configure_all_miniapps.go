@@ -97,7 +97,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	paymentHubHash, _ := parseContractHash(contracts["PaymentHub"])
+	paymentHubEnv := os.Getenv("CONTRACT_PAYMENTHUB_HASH")
+	if paymentHubEnv == "" {
+		fmt.Println("CONTRACT_PAYMENTHUB_HASH environment variable not set")
+		os.Exit(1)
+	}
+	paymentHubHash, _ := parseContractHash(paymentHubEnv)
 
 	fmt.Println("\n=== Configuring PaymentHub for All 14 MiniApps ===")
 
@@ -133,25 +138,13 @@ func main() {
 
 func parseContractHash(hashStr string) (util.Uint160, error) {
 	hashStr = strings.TrimPrefix(hashStr, "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+	return util.Uint160DecodeStringBE(hashStr)
 }
 
 func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHash util.Uint160, appID string, owner util.Uint160) error {
 	// ConfigureApp(appId, owner, recipients[], sharesBps[], enabled)
 	recipients := []util.Uint160{owner}
 	sharesBps := []int64{10000} // 100% to owner
-
-	// First, test invoke
-	testResult, err := act.Call(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)
-	if err != nil {
-		return fmt.Errorf("test invoke failed: %w", err)
-	}
-
-	if testResult.State != "HALT" {
-		return fmt.Errorf("test invoke failed: %s (fault: %s)", testResult.State, testResult.FaultException)
-	}
-
-	fmt.Printf("Test invoke succeeded, GAS: %s\n", testResult.GasConsumed)
 
 	// Send actual transaction
 	txHash, vub, err := act.SendCall(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)

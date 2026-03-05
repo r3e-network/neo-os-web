@@ -16,8 +16,8 @@ func TestDefaultConfig(t *testing.T) {
 		t.Errorf("Version = %s, want 1.0", cfg.Version)
 	}
 
-	if len(cfg.Sources) != 7 {
-		t.Errorf("len(Sources) = %d, want 7", len(cfg.Sources))
+	if len(cfg.Sources) != 8 {
+		t.Errorf("len(Sources) = %d, want 8", len(cfg.Sources))
 	}
 
 	if len(cfg.Feeds) != 32 {
