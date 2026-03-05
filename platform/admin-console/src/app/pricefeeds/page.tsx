@@ -93,6 +93,7 @@ export default function PriceFeedsPage() {
                   <option value="chainlink">Chainlink</option>
                   <option value="binance">Binance</option>
                   <option value="okx">OKX</option>
+                  <option value="twelvedata">Twelve Data</option>
                 </select>
               </div>
             </div>

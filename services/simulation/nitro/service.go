@@ -169,12 +169,12 @@ func New(cfg Config) (*Service, error) {
 		workersPerApp = DefaultWorkersPerApp
 	}
 
-	// Initialize account pool client with NitroRun mTLS client for secure mesh communication
-	// NOTE: Don't send ServiceID when using NitroRun mTLS - let the neoaccounts service
-	// use the NitroRun authenticated identity instead. This avoids service_id mismatch errors.
+	// Initialize account pool client with AWS Nitro mTLS client for secure mesh communication
+	// NOTE: Don't send ServiceID when using AWS Nitro mTLS - let the neoaccounts service
+	// use the AWS Nitro authenticated identity instead. This avoids service_id mismatch errors.
 	poolClient, err := neoaccountsclient.New(neoaccountsclient.Config{
 		BaseURL:    accountPoolURL,
-		ServiceID:  "", // Empty to use NitroRun authenticated identity
+		ServiceID:  "", // Empty to use AWS Nitro authenticated identity
 		HTTPClient: nitro.HTTPClient(),
 	})
 	if err != nil {

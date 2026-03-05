@@ -332,6 +332,14 @@ func DefaultConfig() *FeedsConfig {
 					"User-Agent":      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
 				},
 			},
+			{
+				ID:       "twelvedata",
+				Name:     "Twelve Data",
+				URL:      "https://api.twelvedata.com/price?symbol={base}/{quote}&apikey=0ef2f088d3f24ac784ecd279ca57ffc4",
+				JSONPath: "price",
+				Weight:   1,
+				Timeout:  5 * time.Second,
+			},
 		},
 		Feeds: []FeedConfig{
 			// Common feeds (Chainlink optional; HTTP sources always queried).
@@ -372,7 +380,7 @@ func DefaultConfig() *FeedsConfig {
 			{ID: "TSLA-USD", Name: "Tesla", DataType: DataTypePrice, Base: "TSLA", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
 			{ID: "TCEHY-USD", Name: "Tencent", DataType: DataTypePrice, Base: "TCEHY", Quote: "USD", Decimals: 8, Sources: []string{"nasdaq_stocks"}, UpdateInterval: 30 * time.Second, Enabled: true},
 		},
-		DefaultSources: []string{"binance", "okx"},
+		DefaultSources: []string{"binance", "okx", "twelvedata"},
 		UpdateInterval: 1 * time.Second,
 		PublishPolicy: PublishPolicyConfig{
 			ThresholdBps:      10,

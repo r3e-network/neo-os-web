@@ -128,7 +128,7 @@ func main() {
 
 func parseContractHash(hashStr string) (util.Uint160, error) {
 	hashStr = strings.TrimPrefix(hashStr, "0x")
-	return util.Uint160DecodeStringLE(hashStr)
+	return util.Uint160DecodeStringBE(hashStr)
 }
 
 func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHashStr string, updater util.Uint160) error {
@@ -136,19 +136,6 @@ func setUpdater(ctx context.Context, client *rpcclient.Client, act *actor.Actor,
 	if err != nil {
 		return fmt.Errorf("parse contract hash: %w", err)
 	}
-
-	// First, test invoke to check if it will succeed
-	// Pass the UInt160 directly - neo-go will convert it properly
-	testResult, err := act.Call(contractHash, "setUpdater", updater)
-	if err != nil {
-		return fmt.Errorf("test invoke failed: %w", err)
-	}
-
-	if testResult.State != "HALT" {
-		return fmt.Errorf("test invoke failed: %s (fault: %s)", testResult.State, testResult.FaultException)
-	}
-
-	fmt.Printf("Test invoke succeeded, GAS: %s\n", testResult.GasConsumed)
 
 	// Now send the actual transaction
 	txHash, vub, err := act.SendCall(contractHash, "setUpdater", updater)
@@ -171,18 +158,6 @@ func configureApp(ctx context.Context, client *rpcclient.Client, act *actor.Acto
 	// Pass arrays directly
 	recipients := []util.Uint160{owner}
 	sharesBps := []int64{10000} // 100% to owner
-
-	// First, test invoke
-	testResult, err := act.Call(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)
-	if err != nil {
-		return fmt.Errorf("test invoke failed: %w", err)
-	}
-
-	if testResult.State != "HALT" {
-		return fmt.Errorf("test invoke failed: %s (fault: %s)", testResult.State, testResult.FaultException)
-	}
-
-	fmt.Printf("Test invoke succeeded, GAS: %s\n", testResult.GasConsumed)
 
 	// Send actual transaction
 	txHash, vub, err := act.SendCall(contractHash, "configureApp", appID, owner, recipients, sharesBps, true)
