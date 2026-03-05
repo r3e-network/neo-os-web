@@ -33,4 +33,5 @@ type ExecuteResponse struct {
 	EncryptedOutput string `json:"encrypted_output,omitempty"` // AES-GCM encrypted output (base64)
 	OutputHash      string `json:"output_hash,omitempty"`      // SHA256 hash of plaintext output
 	Signature       string `json:"signature,omitempty"`        // HMAC-SHA256 signature of output hash
+	Attestation     string `json:"attestation,omitempty"`      // Native AWS Nitro CBOR Base64 document
 }

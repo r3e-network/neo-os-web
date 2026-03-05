@@ -201,6 +201,7 @@ export type ComputeJob = {
   encrypted_output?: string;
   output_hash?: string;
   signature?: string;
+  attestation?: string;
 };
 
 export type AutomationTriggerRequest = {
