@@ -37,7 +37,7 @@ const (
 // Config holds NeoRequests service configuration.
 type Config struct {
 	Nitro *nitro.Nitro
-	DB     database.RepositoryInterface
+	DB    database.RepositoryInterface
 
 	RequestsRepo  neorequestsupabase.RepositoryInterface
 	EventListener *chain.EventListener
@@ -370,7 +370,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
-		Nitro:  cfg.Nitro,
+		Nitro:   cfg.Nitro,
 		DB:      cfg.DB,
 	})
 

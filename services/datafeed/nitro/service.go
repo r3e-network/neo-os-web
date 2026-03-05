@@ -90,7 +90,7 @@ type Service struct {
 
 // Config holds NeoFeeds service configuration.
 type Config struct {
-	Nitro      *nitro.Nitro
+	Nitro       *nitro.Nitro
 	DB          database.RepositoryInterface
 	ConfigFile  string          // Path to YAML/JSON config file (optional)
 	FeedsConfig *NeoFeedsConfig // Direct config (optional, takes precedence over file)
@@ -129,7 +129,7 @@ func New(cfg Config) (*Service, error) {
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
-		Nitro:  cfg.Nitro,
+		Nitro:   cfg.Nitro,
 		DB:      cfg.DB,
 		// Signing key must be stable in production/enclave mode for verification.
 		RequiredSecrets: requiredSecrets,

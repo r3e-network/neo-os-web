@@ -213,27 +213,27 @@ func TestE2EErrorRecovery(t *testing.T) {
 func TestE2EServiceMetadata(t *testing.T) {
 	services := []struct {
 		name       string
-		nitroType string
+		nitroType  string
 		secretKey  string
 		secretVal  []byte
 		createFunc func(*nitro.Nitro) (interface{ ID() string }, error)
 		expectedID string
 	}{
 		{
-			name:       "NeoAccounts",
+			name:      "NeoAccounts",
 			nitroType: "neoaccounts",
-			secretKey:  "POOL_MASTER_KEY",
-			secretVal:  []byte("metadata-test-pool-key-32bytes!!"),
+			secretKey: "POOL_MASTER_KEY",
+			secretVal: []byte("metadata-test-pool-key-32bytes!!"),
 			createFunc: func(m *nitro.Nitro) (interface{ ID() string }, error) {
 				return neoaccounts.New(neoaccounts.Config{Nitro: m})
 			},
 			expectedID: "neoaccounts",
 		},
 		{
-			name:       "NeoCompute",
+			name:      "NeoCompute",
 			nitroType: "neocompute",
-			secretKey:  "COMPUTE_MASTER_KEY",
-			secretVal:  []byte("metadata-test-compute-key-32-bytes!"),
+			secretKey: "COMPUTE_MASTER_KEY",
+			secretVal: []byte("metadata-test-compute-key-32-bytes!"),
 			createFunc: func(m *nitro.Nitro) (interface{ ID() string }, error) {
 				return neocompute.New(neocompute.Config{Nitro: m})
 			},

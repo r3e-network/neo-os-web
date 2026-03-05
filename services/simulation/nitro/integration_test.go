@@ -25,7 +25,7 @@ func TestContinuousSimulation(t *testing.T) {
 			ID:      ServiceID,
 			Name:    ServiceName,
 			Version: Version,
-			Nitro:  nil,
+			Nitro:   nil,
 			DB:      nil,
 			Logger:  logging.New("test-simulation", "debug", "json"),
 		}),

@@ -75,7 +75,7 @@ func newServiceSecretsProvider(m *nitro.Nitro, db *database.Repository, serviceI
 
 func newGlobalSigner(s *serviceContext) (ServiceRunner, error) {
 	return globalsigner.New(globalsigner.Config{
-		Nitro:     s.m,
+		Nitro:      s.m,
 		DB:         s.db,
 		Repository: s.globalSignerRepo,
 	})
@@ -83,7 +83,7 @@ func newGlobalSigner(s *serviceContext) (ServiceRunner, error) {
 
 func newNeoAccounts(s *serviceContext) (ServiceRunner, error) {
 	svc, err := neoaccounts.New(neoaccounts.Config{
-		Nitro:          s.m,
+		Nitro:           s.m,
 		DB:              s.db,
 		NeoAccountsRepo: s.neoaccountsRepo,
 		ChainClient:     s.chainClient,
@@ -93,7 +93,7 @@ func newNeoAccounts(s *serviceContext) (ServiceRunner, error) {
 
 func newNeoCompute(s *serviceContext) (ServiceRunner, error) {
 	return neocompute.New(neocompute.Config{
-		Nitro:         s.m,
+		Nitro:          s.m,
 		DB:             s.db,
 		SecretProvider: newServiceSecretsProvider(s.m, s.db, neocompute.ServiceID),
 	})
@@ -101,7 +101,7 @@ func newNeoCompute(s *serviceContext) (ServiceRunner, error) {
 
 func newNeoFeeds(s *serviceContext) (ServiceRunner, error) {
 	svc, err := neofeeds.New(neofeeds.Config{
-		Nitro:          s.m,
+		Nitro:           s.m,
 		DB:              s.db,
 		ArbitrumRPC:     s.arbitrumRPC,
 		ChainClient:     s.chainClient,
@@ -115,7 +115,7 @@ func newNeoFeeds(s *serviceContext) (ServiceRunner, error) {
 
 func newNeoFlow(s *serviceContext) (ServiceRunner, error) {
 	svc, err := neoflow.New(neoflow.Config{
-		Nitro:               s.m,
+		Nitro:                s.m,
 		DB:                   s.db,
 		NeoFlowRepo:          s.neoflowRepo,
 		ChainClient:          s.chainClient,
@@ -158,7 +158,7 @@ func newNeoOracle(s *serviceContext) (ServiceRunner, error) {
 	}
 
 	return neooracle.New(neooracle.Config{
-		Nitro:         s.m,
+		Nitro:          s.m,
 		SecretProvider: newServiceSecretsProvider(s.m, s.db, neooracle.ServiceID),
 		Timeout:        oracleTimeout,
 		MaxBodyBytes:   oracleMaxBodyBytes,
@@ -168,7 +168,7 @@ func newNeoOracle(s *serviceContext) (ServiceRunner, error) {
 
 func newNeoRequests(s *serviceContext) (ServiceRunner, error) {
 	return neorequests.New(neorequests.Config{
-		Nitro:             s.m,
+		Nitro:              s.m,
 		DB:                 s.db,
 		RequestsRepo:       s.neorequestsRepo,
 		EventListener:      s.eventListener,
@@ -188,13 +188,13 @@ func newNeoRequests(s *serviceContext) (ServiceRunner, error) {
 func newNeoVRF(s *serviceContext) (ServiceRunner, error) {
 	return neovrf.New(neovrf.Config{
 		Nitro: s.m,
-		DB:     s.db,
+		DB:    s.db,
 	})
 }
 
 func newNeoGasBank(s *serviceContext) (ServiceRunner, error) {
 	return neogasbank.New(neogasbank.Config{
-		Nitro:      s.m,
+		Nitro:       s.m,
 		DB:          s.db,
 		ChainClient: s.chainClient,
 	})
@@ -206,7 +206,7 @@ func newNeoSimulation(s *serviceContext) (ServiceRunner, error) {
 		accountPoolURL = "https://neoaccounts:8085"
 	}
 	return neosimulation.New(neosimulation.Config{
-		Nitro:         s.m,
+		Nitro:          s.m,
 		DB:             s.db,
 		ChainClient:    s.chainClient,
 		AccountPoolURL: accountPoolURL,
@@ -216,7 +216,7 @@ func newNeoSimulation(s *serviceContext) (ServiceRunner, error) {
 
 func newTxProxy(s *serviceContext) (ServiceRunner, error) {
 	return txproxy.New(txproxy.Config{
-		Nitro:      s.m,
+		Nitro:       s.m,
 		DB:          s.db,
 		ChainClient: s.chainClient,
 		Signer:      s.teeSigner,

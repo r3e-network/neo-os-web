@@ -22,7 +22,7 @@ const (
 
 // Config holds simulation service configuration.
 type Config struct {
-	Nitro         interface{} // *nitro.Nitro
+	Nitro          interface{} // *nitro.Nitro
 	DB             interface{} // database.RepositoryInterface
 	ChainClient    interface{} // *chain.Client
 	AccountPoolURL string

@@ -42,7 +42,7 @@ func TestNewBaseWithConfig(t *testing.T) {
 		ID:      "svc-1",
 		Name:    "TestService",
 		Version: "0.1.0",
-		Nitro:  m,
+		Nitro:   m,
 	})
 
 	if bs.ID() != "svc-1" {
@@ -115,7 +115,7 @@ func TestSetStatsFn(t *testing.T) {
 		ID:      "stats-svc",
 		Name:    "StatsService",
 		Version: "1.0.0",
-		Nitro:  newTestNitro(t),
+		Nitro:   newTestNitro(t),
 	})
 
 	called := false

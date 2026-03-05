@@ -21,7 +21,7 @@ type BaseConfig struct {
 	ID      string
 	Name    string
 	Version string
-	Nitro  *nitro.Nitro
+	Nitro   *nitro.Nitro
 	DB      database.RepositoryInterface
 	Logger  *logging.Logger
 	// RequiredSecrets defines secrets that must be present for the service to be healthy.
@@ -86,7 +86,7 @@ func NewBase(cfg *BaseConfig) *BaseService {
 			ID:      cfgValue.ID,
 			Name:    cfgValue.Name,
 			Version: cfgValue.Version,
-			Nitro:  cfgValue.Nitro,
+			Nitro:   cfgValue.Nitro,
 			DB:      cfgValue.DB,
 		}),
 		stopCh:          make(chan struct{}),

@@ -13,7 +13,7 @@ import (
 func TestNewNitro(t *testing.T) {
 	m, err := New(Config{
 		NitroType: "test-nitro",
-		DNSNames:   []string{"localhost"},
+		DNSNames:  []string{"localhost"},
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -26,7 +26,7 @@ func TestNewNitro(t *testing.T) {
 
 func TestNitroType(t *testing.T) {
 	tests := []struct {
-		name       string
+		name      string
 		nitroType string
 	}{
 		{"neofeeds", "neofeeds"},
@@ -164,7 +164,7 @@ func TestNewService(t *testing.T) {
 		ID:      "test-service",
 		Name:    "Test Service",
 		Version: "1.0.0",
-		Nitro:  m,
+		Nitro:   m,
 		DB:      nil,
 	})
 
@@ -185,7 +185,7 @@ func TestServiceStartStop(t *testing.T) {
 		ID:      "test-service",
 		Name:    "Test Service",
 		Version: "1.0.0",
-		Nitro:  m,
+		Nitro:   m,
 	})
 
 	ctx := context.Background()
@@ -217,8 +217,8 @@ func TestServiceStartStop(t *testing.T) {
 func TestServiceStartTwice(t *testing.T) {
 	m, _ := New(Config{NitroType: "test"})
 	svc := NewService(ServiceConfig{
-		ID:     "test-service",
-		Name:   "Test Service",
+		ID:    "test-service",
+		Name:  "Test Service",
 		Nitro: m,
 	})
 
@@ -234,8 +234,8 @@ func TestServiceStartTwice(t *testing.T) {
 func TestServiceStopTwice(t *testing.T) {
 	m, _ := New(Config{NitroType: "test"})
 	svc := NewService(ServiceConfig{
-		ID:     "test-service",
-		Name:   "Test Service",
+		ID:    "test-service",
+		Name:  "Test Service",
 		Nitro: m,
 	})
 
@@ -253,8 +253,8 @@ func TestServiceStopTwice(t *testing.T) {
 func TestServiceRouter(t *testing.T) {
 	m, _ := New(Config{NitroType: "test"})
 	svc := NewService(ServiceConfig{
-		ID:     "test-service",
-		Name:   "Test Service",
+		ID:    "test-service",
+		Name:  "Test Service",
 		Nitro: m,
 	})
 
@@ -267,8 +267,8 @@ func TestServiceRouter(t *testing.T) {
 func TestServiceNitro(t *testing.T) {
 	m, _ := New(Config{NitroType: "test"})
 	svc := NewService(ServiceConfig{
-		ID:     "test-service",
-		Name:   "Test Service",
+		ID:    "test-service",
+		Name:  "Test Service",
 		Nitro: m,
 	})
 
@@ -284,8 +284,8 @@ func TestServiceNitro(t *testing.T) {
 func TestServiceConcurrentAccess(t *testing.T) {
 	m, _ := New(Config{NitroType: "test"})
 	svc := NewService(ServiceConfig{
-		ID:     "test-service",
-		Name:   "Test Service",
+		ID:    "test-service",
+		Name:  "Test Service",
 		Nitro: m,
 	})
 
@@ -346,8 +346,8 @@ func BenchmarkNewService(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = NewService(ServiceConfig{
-			ID:     "benchmark-service",
-			Name:   "Benchmark Service",
+			ID:    "benchmark-service",
+			Name:  "Benchmark Service",
 			Nitro: m,
 		})
 	}
@@ -360,8 +360,8 @@ func BenchmarkServiceStartStop(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		svc := NewService(ServiceConfig{
-			ID:     "benchmark-service",
-			Name:   "Benchmark Service",
+			ID:    "benchmark-service",
+			Name:  "Benchmark Service",
 			Nitro: m,
 		})
 		_ = svc.Start(ctx)
@@ -514,10 +514,10 @@ func TestNitroHTTPClientCaching(t *testing.T) {
 func TestServiceDB(t *testing.T) {
 	m, _ := New(Config{NitroType: "test"})
 	svc := NewService(ServiceConfig{
-		ID:     "test-service",
-		Name:   "Test Service",
+		ID:    "test-service",
+		Name:  "Test Service",
 		Nitro: m,
-		DB:     nil,
+		DB:    nil,
 	})
 
 	if svc.DB() != nil {

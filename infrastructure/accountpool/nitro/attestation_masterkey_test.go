@@ -16,8 +16,8 @@ import (
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 )
 
 func TestLoadMasterKey_SetsDerivedFields(t *testing.T) {

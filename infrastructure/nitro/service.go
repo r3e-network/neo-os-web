@@ -24,7 +24,7 @@ type Service struct {
 	version string
 
 	// Dependencies
-	nitro *Nitro
+	nitro  *Nitro
 	db     database.RepositoryInterface
 	router *mux.Router
 
@@ -37,7 +37,7 @@ type ServiceConfig struct {
 	ID      string
 	Name    string
 	Version string
-	Nitro  *Nitro
+	Nitro   *Nitro
 	DB      database.RepositoryInterface
 }
 
@@ -47,7 +47,7 @@ func NewService(cfg ServiceConfig) *Service {
 		id:      cfg.ID,
 		name:    cfg.Name,
 		version: cfg.Version,
-		nitro:  cfg.Nitro,
+		nitro:   cfg.Nitro,
 		db:      cfg.DB,
 		router:  mux.NewRouter(),
 	}

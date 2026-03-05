@@ -92,7 +92,7 @@ func New(cfg Config) (*Service, error) {
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
-		Nitro:  nitro,
+		Nitro:   nitro,
 		DB:      db,
 	})
 

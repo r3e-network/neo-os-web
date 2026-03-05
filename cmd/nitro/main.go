@@ -23,9 +23,9 @@ import (
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
 	gasbankclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/gasbank/client"
 	sllogging "github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 	slmetrics "github.com/r3e-network/neo-miniapp-platform/infrastructure/metrics"
 	slmiddleware "github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 	txproxyclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/client"
 	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
@@ -53,7 +53,6 @@ var availableServices = []string{
 	"neoflow",
 	"neogasbank",
 	"neooracle",
-	"neoprivacy",
 	"neorequests",
 	"neosimulation",
 	"neovrf",
@@ -481,8 +480,6 @@ func main() {
 		svc, err = newNeoGasBank(sctx)
 	case "neosimulation":
 		svc, err = newNeoSimulation(sctx)
-	case "neoprivacy":
-		svc, err = newNeoPrivacy(sctx)
 	case "txproxy":
 		svc, err = newTxProxy(sctx)
 	default:
