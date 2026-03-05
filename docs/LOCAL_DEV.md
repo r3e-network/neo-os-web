@@ -7,7 +7,7 @@ Complete guide for setting up the local k3s development environment for the Neo 
 The local development stack provides a complete Kubernetes environment running on your machine with:
 
 - **k3s**: Lightweight Kubernetes distribution
-- **MarbleRun Coordinator**: TEE orchestration for local Nitro-oriented workflows
+- **NitroRun Coordinator**: TEE orchestration for local Nitro-oriented workflows
 - **Traefik**: Ingress controller with TLS
 - **cert-manager**: Automatic TLS certificate management
 - **Self-signed certificates**: For `*.localhost` domains
@@ -75,7 +75,7 @@ This will:
 2. Create all required namespaces
 3. Install cert-manager
 4. Set up self-signed TLS certificates
-5. Deploy MarbleRun coordinator (local development mode)
+5. Deploy NitroRun coordinator (local development mode)
 
 ### 2. Verify Installation
 
@@ -95,7 +95,7 @@ Expected output:
 ```
 ✓ k3s: Running
 ✓ cert-manager: Installed
-✓ MarbleRun: Installed
+✓ NitroRun: Installed
 ✓ Traefik: Running
 ```
 
@@ -116,7 +116,7 @@ make docker-up
 
 The local stack creates the following namespaces:
 
-- `marblerun`: MarbleRun coordinator
+- `nitrorun`: NitroRun coordinator
 - `service-layer`: Core services (neoaccounts, neofeeds, etc.)
 - `supabase`: Database and auth services (local dev)
 - `platform`: Edge gateway and admin console (DEVSTACK-3/4)
@@ -134,7 +134,7 @@ The local stack creates the following namespaces:
         ┌─────────────────────┼─────────────────────┐
         │                     │                     │
 ┌───────▼────────┐  ┌─────────▼────────┐  ┌────────▼────────┐
-│   MarbleRun    │  │  Service Layer   │  │    Supabase     │
+│   NitroRun    │  │  Service Layer   │  │    Supabase     │
 │  Coordinator   │  │    Services      │  │   (local)       │
 │                │  │                  │  │                 │
 │ :4433 (client) │  │ neoaccounts:8085 │  │ postgres:5432   │
@@ -150,7 +150,7 @@ The local stack creates the following namespaces:
 
 All services are accessible via `*.localhost` domains:
 
-- **MarbleRun Coordinator**: `https://coordinator.marblerun.localhost:4433`
+- **NitroRun Coordinator**: `https://coordinator.nitrorun.localhost:4433`
 - **Services**: Port-forward individual services as needed
 - **Supabase** (local): `https://supabase.localhost`
 - **Admin Console** (future): `https://admin.localhost`
@@ -170,24 +170,24 @@ make dev-stack-down
 make dev-stack-status
 ```
 
-### Access MarbleRun Coordinator
+### Access NitroRun Coordinator
 
 ```bash
 # Port forward to coordinator
-kubectl -n marblerun port-forward svc/coordinator-client-api 4433:4433
+kubectl -n nitrorun port-forward svc/coordinator-client-api 4433:4433
 
 # In another terminal, set manifest
-marblerun manifest set manifests/manifest.json localhost:4433 --insecure
+nitrorun manifest set manifests/manifest.json localhost:4433 --insecure
 
 # Check status
-marblerun status localhost:4433 --insecure
+nitrorun status localhost:4433 --insecure
 ```
 
 If `manifest set` reports `server is not in expected state`, the coordinator
 already has a manifest and is running. Use:
 
 ```bash
-marblerun manifest update manifests/manifest.json localhost:4433 --insecure
+nitrorun manifest update manifests/manifest.json localhost:4433 --insecure
 ```
 
 ### Local Supabase
@@ -212,7 +212,7 @@ testnet.
 non-secret values from `.env` (contract hashes, RPC URL, allowlists), keeping
 k3s aligned with your local configuration.
 
-For k3s local dev, the service-layer marbles typically use:
+For k3s local dev, the service-layer nitros typically use:
 
 - `SUPABASE_URL=http://postgrest.supabase.svc.cluster.local:3000`
 - `SUPABASE_REST_PREFIX=/` (no `/rest/v1` prefix for direct PostgREST)
@@ -259,9 +259,9 @@ To allow the Edge gateway to call TEE services over **mTLS**, run:
 ./scripts/setup_edge_mtls.sh --env-file .env.local
 ```
 
-This generates a client CA + cert, registers the CA with service-layer marbles
-via `MARBLE_EXTRA_CLIENT_CA`, and configures the Edge gateway with the client
-certificate plus the MarbleRun root CA for server verification.
+This generates a client CA + cert, registers the CA with service-layer nitros
+via `NITRO_EXTRA_CLIENT_CA`, and configures the Edge gateway with the client
+certificate plus the NitroRun root CA for server verification.
 
 ### Access Services
 
@@ -282,8 +282,8 @@ kubectl -n service-layer logs -f --all-containers=true -l app=neoaccounts
 # Specific pod
 kubectl -n service-layer logs -f <pod-name>
 
-# MarbleRun coordinator
-kubectl -n marblerun logs -f deployment/coordinator
+# NitroRun coordinator
+kubectl -n nitrorun logs -f deployment/coordinator
 ```
 
 ### Rebuild and Redeploy
@@ -348,17 +348,17 @@ kubectl -n cert-manager describe certificate wildcard-localhost
 kubectl -n cert-manager logs -f deployment/cert-manager
 ```
 
-### MarbleRun Coordinator Not Ready
+### NitroRun Coordinator Not Ready
 
 ```bash
 # Check coordinator logs
-kubectl -n marblerun logs -f deployment/coordinator
+kubectl -n nitrorun logs -f deployment/coordinator
 
 # Check coordinator status
-kubectl -n marblerun get pods
+kubectl -n nitrorun get pods
 
 # Verify Nitro backend declaration
-kubectl -n marblerun get deployment coordinator -o yaml | grep TEE_BACKEND
+kubectl -n nitrorun get deployment coordinator -o yaml | grep TEE_BACKEND
 # Should show: value: nitro
 ```
 
@@ -394,7 +394,7 @@ Edit the following files to customize your setup:
 
 - `k8s/namespaces.yaml`: Add/modify namespaces
 - `k8s/ingress/wildcard-cert.yaml`: Add more DNS names
-- `k8s/marblerun/overlays/nitro/coordinator.yaml`: Adjust coordinator resources
+- `k8s/nitrorun/overlays/nitro/coordinator.yaml`: Adjust coordinator resources
 - `scripts/k3s-local-setup.sh`: Modify installation steps
 
 ## Development Workflow
@@ -463,7 +463,7 @@ After setting up the local dev stack:
 ## Resources
 
 - [k3s Documentation](https://docs.k3s.io/)
-- [MarbleRun Documentation](https://docs.edgeless.systems/marblerun/)
+- [NitroRun Documentation](https://docs.edgeless.systems/nitrorun/)
 - [cert-manager Documentation](https://cert-manager.io/docs/)
 - [Traefik Documentation](https://doc.traefik.io/traefik/)
 

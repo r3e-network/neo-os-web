@@ -357,7 +357,7 @@ func getGASBalance(ctx context.Context, client *chain.Client, addr string) (int6
 }
 
 func deriveAccountKey(masterKey []byte, accountID string) ([]byte, error) {
-	// Must match the derivation in infrastructure/accountpool/marble/service.go
+	// Must match the derivation in infrastructure/accountpool/nitro/service.go
 	return crypto.DeriveKey(masterKey, []byte(accountID), "pool-account", 32)
 }
 

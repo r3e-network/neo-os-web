@@ -4,7 +4,7 @@ Confidential JavaScript execution service for the Neo Service Layer.
 
 ## Overview
 
-The NeoCompute service executes user-provided JavaScript inside the MarbleRun TEE using the `goja` runtime. It supports injecting user secrets (by reference) into the script environment and returns structured output plus optional cryptographic protection fields (output hash + HMAC signature, and optional encrypted output).
+The NeoCompute service executes user-provided JavaScript inside the NitroRun TEE using the `goja` runtime. It supports injecting user secrets (by reference) into the script environment and returns structured output plus optional cryptographic protection fields (output hash + HMAC signature, and optional encrypted output).
 
 This service is intended to be reached via the gateway (Supabase Edge) rather than directly.
 
@@ -13,7 +13,7 @@ This service is intended to be reached via the gateway (Supabase Edge) rather th
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │    User      │     │ NeoCompute   │     │ TEE          │
-│              │     │ Service      │     │ (MarbleRun)  │
+│              │     │ Service      │     │ (NitroRun)  │
 └──────┬───────┘     └──────┬───────┘     └──────┬───────┘
        │                    │                    │
        │ Submit Data        │                    │

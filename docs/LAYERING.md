@@ -20,7 +20,7 @@ The goal is **one module = one responsibility**, with **no duplicated chain I/O*
 ### `infrastructure/` (shared building blocks)
 
 - `infrastructure/database`: Supabase/PostgREST client + generic repository helpers (**storage**).
-- `infrastructure/marble`: MarbleRun/Nitro runtime integration (**execution engine + enclave runtime glue**).
+- `infrastructure/nitro`: NitroRun/Nitro runtime integration (**execution engine + enclave runtime glue**).
 - `infrastructure/middleware`: HTTP middleware used everywhere (**middleware only lives here**).
 - `infrastructure/runtime`: environment/identity strictness helpers (**runtime**).
 - `infrastructure/chain`: Neo N3 RPC, tx building/submission, event monitoring, contract invocation (**chain module**).
@@ -42,7 +42,7 @@ Only these services are considered “product services” right now:
 
 Each service should follow the same internal pattern:
 
-- `services/<svc>/marble`: enclave runtime + HTTP handlers + worker loops.
+- `services/<svc>/nitro`: enclave runtime + HTTP handlers + worker loops.
 - `services/<svc>/supabase`: service-specific persistence repository (if needed).
 
 The MiniApp platform does **not** use per-service on-chain contracts. Platform
@@ -51,7 +51,7 @@ contracts live under `contracts/` and are written by the enclave-managed signer
 
 ### `cmd/` (binaries)
 
-- `cmd/marble`: **single entrypoint** used to run any enclave service (`MARBLE_TYPE=...`).
+- `cmd/nitro`: **single entrypoint** used to run any enclave service (`NITRO_TYPE=...`).
 
 ### `platform/host-app`
 
@@ -71,9 +71,9 @@ Keep enclave code focused on sensitive operations and verifiable execution:
 
 In code, this is primarily:
 
-- `services/*/marble`
-- `infrastructure/marble`
-- `cmd/marble`
+- `services/*/nitro`
+- `infrastructure/nitro`
+- `cmd/nitro`
 
 ### Outside TEE Runtime (non-enclave)
 

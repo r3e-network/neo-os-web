@@ -1,6 +1,6 @@
 # Neo N3 小应用平台（更新：支付仅 GAS，治理仅 bNEO）
 
-> 约束：支付/结算 **仅 GAS**；治理 **仅 bNEO**；服务层基于 **MarbleRun + Nitro runtime (Nitro TEE)**；网关/数据用 **Supabase**；宿主前端 **Vercel + Next.js + 微前端**；包含高频 **Datafeed（≥0.1% 变动推送）**、VRF、Oracle、机密计算、自动化。
+> 约束：支付/结算 **仅 GAS**；治理 **仅 bNEO**；服务层基于 **NitroRun + Nitro runtime (Nitro TEE)**；网关/数据用 **Supabase**；宿主前端 **Vercel + Next.js + 微前端**；包含高频 **Datafeed（≥0.1% 变动推送）**、VRF、Oracle、机密计算、自动化。
 >
 > 实现备注（本仓库）：已提供独立 `vrf-service`（`neovrf`）用于随机数生成与签名证明；`compute-service`（`neocompute`）专注机密计算。
 
@@ -16,7 +16,7 @@
 
 - 链上：Neo N3；合约 C#（neo-devpack-dotnet）；本地链 neo-express；测试框架 Neo.TestingFramework。
 - 前端链交互：neon-js + NeoLine/O3/OneGate。
-- 服务层 (TEE)：MarbleRun + Nitro runtime（attested TLS）。
+- 服务层 (TEE)：NitroRun + Nitro runtime（attested TLS）。
 - 网关/数据：Supabase（Auth/PG/Storage/Edge Functions，RLS 严隔离）；Edge 仅鉴权/限流/路由。
 - 宿主前端：Next.js（Vercel）+ Module Federation/iframe + 严格 CSP；postMessage 白名单。
 - 自动化：Keeper/Automation 在 TEE 内轮询或事件触发。
@@ -37,7 +37,7 @@ neo-miniapp-platform/
 │  ├─ AutomationAnchor/ # 自动化任务登记/防重放
 │  └─ ServiceLayerGateway/ # 服务请求路由/回调
 │
-├─ services/            # TEE 服务层（MarbleRun + Nitro runtime）
+├─ services/            # TEE 服务层（NitroRun + Nitro runtime）
 │  ├─ oracle-gateway/   # 隐私预言机/Datafeed 拉取+聚合
 │  ├─ datafeed-service/ # 高频价格推送（≥0.1% 变动），含阈值/去抖
 │  ├─ vrf-service/      # 随机数服务（VRF）
@@ -45,7 +45,7 @@ neo-miniapp-platform/
 │  ├─ automation-service/# Keeper/定时/事件触发
 │  ├─ request-dispatcher/# 监听链上请求并回调
 │  ├─ tx-proxy/         # 交易签名/广播，资产&方法白名单
-│  └─ marblerun/        # policy.json / manifest.json / CA
+│  └─ nitrorun/        # policy.json / manifest.json / CA
 │
 ├─ platform/
 │  ├─ host-app/         # 前端宿主（Next.js/Vercel）
@@ -85,7 +85,7 @@ neo-miniapp-platform/
 
 ---
 
-## 3. 服务层（MarbleRun + Nitro runtime）
+## 3. 服务层（NitroRun + Nitro runtime）
 
 - datafeed-service：多源聚合，触发阈值 0.1%，hysteresis 0.08%，最小发布间隔 2~5s，最大发布频率/符号（如每分钟 ≤30）；异常偏差需多源一致/二次确认；写 PriceFeed。
 - oracle-gateway：外部数据抓取/聚合/校验 → 回调链上或存证。
@@ -94,7 +94,7 @@ neo-miniapp-platform/
 - automation-service：事件/时间触发 → 调用目标合约（allowlist）。
 - tx-proxy：签名/广播；资产仅 GAS/bNEO；方法白名单；mTLS；防重放/额度检查。
 - request-dispatcher：监听 ServiceLayerGateway 的 `ServiceRequested` 事件，调用 VRF/Oracle/Compute 并通过 tx-proxy 回调 `FulfillRequest`。
-- marblerun：policy/manifest 管理 MRSIGNER/MRENCLAVE、证书与密钥注入、轮换。
+- nitrorun：policy/manifest 管理 MRSIGNER/MRENCLAVE、证书与密钥注入、轮换。
 
 ## 3.5 平台引擎（Indexer + Analytics + Notifications）
 
@@ -242,7 +242,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 ## 8. 安全与合规
 
 - 四层校验：SDK → Edge → TEE → 合约（资产/方法白名单一致）。
-- TEE 证明：MarbleRun 管理测量；验证端点；合约可存 attestation 哈希。
+- TEE 证明：NitroRun 管理测量；验证端点；合约可存 attestation 哈希。
 - 限额/频率：per app_id / user_id；治理单独额度；大额可二次确认/多签。
 - 防重放/审计：request_id 去重；链上事件 + PG 审计；敏感日志不出 enclave。
 - 合规：对彩票/预测市场类做地理/年龄/KYC（前端拦截 + 后端校验）。
@@ -252,7 +252,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 ## 9. CI/CD（GitHub Actions 建议）
 
 - 合约：C# 构建+单测；测试网部署脚本。
-- Nitro runtime：构建可执行文件；产出测量值；生成 MarbleRun policy/manifest；安全扫描。
+- Nitro runtime：构建可执行文件；产出测量值；生成 NitroRun policy/manifest；安全扫描。
 - 前端/SDK/Edge：构建与 lint；CSP/依赖漏洞扫描。
 - 集成测：neo-express + Nitro runtime 仿真 + Supabase 本地，跑 Oracle/VRF/Datafeed/支付/治理/自动化全链路。
 
@@ -261,7 +261,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 ## 10. MVP 里程碑
 
 1. 测试网部署：PaymentHub(GAS)、Governance(bNEO)、PriceFeed、RandomnessLog、AppRegistry、AutomationAnchor。
-2. 服务：vrf-service + compute-service + datafeed-service(0.1% 阈值) + tx-proxy（Nitro runtime 仿真），MarbleRun dev policy。
+2. 服务：vrf-service + compute-service + datafeed-service(0.1% 阈值) + tx-proxy（Nitro runtime 仿真），NitroRun dev policy。
 3. 平台：Next.js 宿主 + SDK + iframe；Edge 鉴权/限流；Supabase 本地/云。
 4. 内置小程序：`coin-flip`、`dice-game`、`scratch-card`、`lottery`、`prediction-market`、`flashloan`、`price-ticker`。
 5. CI 打通：合约单测、Nitro runtime 构建、前端/Edge 构建与安全检查。
@@ -281,7 +281,7 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 ## 12. 可立即提供的文件（按需索取）
 
 - 合约骨架（C#）：PaymentHub / Governance(bNEO-only) / PriceFeed / RandomnessLog / AppRegistry / AutomationAnchor
-- Nitro runtime/MarbleRun：policy.json / manifest.json 示例；vrf-service & compute-service & datafeed-service & tx-proxy 壳
+- Nitro runtime/NitroRun：policy.json / manifest.json 示例；vrf-service & compute-service & datafeed-service & tx-proxy 壳
 - Supabase：RLS SQL + Edge 路由实现（鉴权/限流/资产预检/mTLS 转发）
 - 前端：Next.js 宿主 + Module Federation 组件 + JS SDK（payGAS/vote/rng/datafeed）
 - Dev：neo-express 配置、一键本地脚本、Supabase docker-compose

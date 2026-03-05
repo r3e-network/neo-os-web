@@ -5,11 +5,11 @@ usage() {
   cat <<'EOF'
 Usage: ./scripts/coordinator_backup.sh [options]
 
-Creates a point-in-time tar.gz backup of the MarbleRun Coordinator PVC and saves it locally.
+Creates a point-in-time tar.gz backup of the NitroRun Coordinator PVC and saves it locally.
 Optionally uploads the backup to S3 (requires AWS CLI credentials).
 
 Options:
-  --namespace NAME        Kubernetes namespace (default: marblerun)
+  --namespace NAME        Kubernetes namespace (default: nitrorun)
   --deployment NAME       Coordinator Deployment name (default: coordinator)
   --pvc NAME              PVC name (default: coordinator-pvc)
   --output-dir PATH       Local output directory (default: ./backups)
@@ -25,7 +25,7 @@ Environment variables (optional):
 
 Examples:
   ./scripts/coordinator_backup.sh --output-dir ./backups
-  ./scripts/coordinator_backup.sh --s3-uri s3://my-bucket/marblerun/
+  ./scripts/coordinator_backup.sh --s3-uri s3://my-bucket/nitrorun/
 EOF
 }
 
@@ -41,7 +41,7 @@ require_cmd() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-NAMESPACE="marblerun"
+NAMESPACE="nitrorun"
 DEPLOYMENT="coordinator"
 PVC="coordinator-pvc"
 OUTPUT_DIR="${PROJECT_ROOT}/backups"

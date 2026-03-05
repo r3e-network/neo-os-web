@@ -6,7 +6,7 @@ constraints:
 
 - **Settlement:** **GAS only** (payments/settlement must reject other assets)
 - **Governance:** **bNEO only** (voting/staking)
-- **Confidential services:** **MarbleRun + Nitro runtime (Nitro TEE)** with attested TLS
+- **Confidential services:** **NitroRun + Nitro runtime (Nitro TEE)** with attested TLS
 - **Gateway/Data:** **Supabase** (Auth + Postgres + RLS + Edge Functions)
 - **Frontend host:** **Vercel + Next.js** + micro‑frontends
 - **Platform engine:** **Indexer + analytics + notifications**
@@ -24,7 +24,7 @@ responsibilities clear:
   blueprint names (`datafeed-service`, `compute-service`, `vrf-service`, ...).
 - **Edge ↔ TEE mTLS:** Supabase Edge functions support optional mTLS via
   `Deno.createHttpClient`. Enclave services can additionally trust a gateway
-  client CA via `MARBLE_EXTRA_CLIENT_CA`.
+  client CA via `NITRO_EXTRA_CLIENT_CA`.
 
 For the expanded Chinese spec, see:
 
@@ -47,7 +47,7 @@ For the expanded Chinese spec, see:
 
 - **Hardware:** AWS Nitro nodes (or simulation for dev)
 - **Enclave runtime:** **Nitro runtime** (Go inside enclaves)
-- **Orchestration:** **MarbleRun** (attestation, secrets distribution, scaling)
+- **Orchestration:** **NitroRun** (attestation, secrets distribution, scaling)
 - **Language:** **Go**
 - **Networking:** REST (or gRPC) over attested TLS
 
@@ -98,7 +98,7 @@ neo-miniapp-platform/
 │   ├── AutomationAnchor/       # Task registry + anti-replay nonce
 │   └── ServiceLayerGateway/    # On-chain service requests + callbacks
 │
-├── services/                   # [Go] Nitro runtime + MarbleRun TEE services
+├── services/                   # [Go] Nitro runtime + NitroRun TEE services
 │   ├── datafeed-service/       # Price aggregation + publish policy
 │   ├── oracle-gateway/         # Allowlisted HTTP fetch + secret injection
 │   ├── vrf-service/            # Verifiable randomness generation
@@ -108,7 +108,7 @@ neo-miniapp-platform/
 │   ├── tx-proxy/               # Allowlisted sign+broadcast gatekeeper
 │   ├── indexer/                # Chain syncer + event parser (non-TEE)
 │   ├── aggregator/             # Daily rollups + trending (non-TEE)
-│   └── marblerun/              # Manifests/policies (policy.json, manifest.json, CA)
+│   └── nitrorun/              # Manifests/policies (policy.json, manifest.json, CA)
 │
 ├── platform/                   # Host platform layer
 │   ├── host-app/               # Next.js host app (Vercel)
@@ -117,7 +117,7 @@ neo-miniapp-platform/
 │   └── rls/                    # RLS SQL (schema lives in migrations/)
 │
 ├── miniapps/                   # Mini-apps + starter kits
-├── docker/                     # Local dev compose (Supabase, MarbleRun, services)
+├── docker/                     # Local dev compose (Supabase, NitroRun, services)
 ├── deploy/                     # neo-express config + deployment scripts
 └── .github/                    # CI workflows (GitHub Actions)
 ```

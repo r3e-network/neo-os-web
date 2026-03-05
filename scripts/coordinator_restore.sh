@@ -5,10 +5,10 @@ usage() {
   cat <<'EOF'
 Usage: ./scripts/coordinator_restore.sh [options] <backup.tar.gz | s3://bucket/key.tar.gz>
 
-Restores a MarbleRun Coordinator PVC backup created by coordinator_backup.sh.
+Restores a NitroRun Coordinator PVC backup created by coordinator_backup.sh.
 
 Options:
-  --namespace NAME        Kubernetes namespace (default: marblerun)
+  --namespace NAME        Kubernetes namespace (default: nitrorun)
   --deployment NAME       Coordinator Deployment name (default: coordinator)
   --pvc NAME              PVC name (default: coordinator-pvc)
   --image IMAGE           Helper image used to mount the PVC (default: alpine:3.20)
@@ -24,7 +24,7 @@ Environment variables (optional):
 
 Examples:
   ./scripts/coordinator_restore.sh ./backups/coordinator-pvc-20250101T000000Z.tar.gz
-  ./scripts/coordinator_restore.sh --s3-uri s3://my-bucket/marblerun/coordinator-pvc-...tar.gz
+  ./scripts/coordinator_restore.sh --s3-uri s3://my-bucket/nitrorun/coordinator-pvc-...tar.gz
 EOF
 }
 
@@ -40,7 +40,7 @@ require_cmd() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-NAMESPACE="marblerun"
+NAMESPACE="nitrorun"
 DEPLOYMENT="coordinator"
 PVC="coordinator-pvc"
 IMAGE="alpine:3.20"

@@ -32,7 +32,7 @@ Complements `refactor-plan.md`. Focuses on configuration deduplication, cleanup,
 - Reduces manifest from ~230 lines of hashes to a single config reference
 
 ### 3.2 Remove hardcoded test keys
-- `manifests/manifest.json:40-41` — replace `POOL_ENCRYPTION_KEY` and `POOL_MASTER_KEY` with MarbleRun secret templating (`{{ hex .Secrets.* }}`)
+- `manifests/manifest.json:40-41` — replace `POOL_ENCRYPTION_KEY` and `POOL_MASTER_KEY` with NitroRun secret templating (`{{ hex .Secrets.* }}`)
 - Create `manifests/manifest-dev.json` with test keys for local development only
 
 ### 3.3 Consolidate K8s overlays
@@ -58,9 +58,9 @@ Complements `refactor-plan.md`. Focuses on configuration deduplication, cleanup,
 - Standardize naming to `.test.ts` everywhere
 
 ### 5.2 Critical test gaps
-- `services/confcompute/marble/` — add service logic tests
-- `services/conforacle/marble/` — add service logic tests
-- `services/requests/marble/dispatcher.go` — add tests for handleServiceRequested branches
+- `services/confcompute/nitro/` — add service logic tests
+- `services/conforacle/nitro/` — add service logic tests
+- `services/requests/nitro/dispatcher.go` — add tests for handleServiceRequested branches
 - `infrastructure/security/` — expand beyond sanitization
 
 ### 5.3 Frontend component tests
@@ -70,7 +70,7 @@ Complements `refactor-plan.md`. Focuses on configuration deduplication, cleanup,
 ## Phase 6: Code Simplification
 
 ### 6.1 Refactor dispatcher complexity
-- `services/requests/marble/dispatcher.go` — extract repeated error-handling pattern into helper
+- `services/requests/nitro/dispatcher.go` — extract repeated error-handling pattern into helper
 - Reduce nesting from 5+ levels to 2-3
 
 ### 6.2 Standardize error handling

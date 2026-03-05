@@ -9,7 +9,7 @@ All local, CI, and Kubernetes workflows should use Nitro-compatible scripts and 
 - Go 1.24+
 - Docker + Docker Compose
 - `kubectl` (for Kubernetes workflows)
-- Optional: `marblerun` CLI
+- Optional: `nitrorun` CLI
 
 Install local tooling:
 
@@ -80,12 +80,12 @@ Rebuild images before smoke test:
 
 ## 5. Run Services Directly
 
-Run a single service through the shared marble entrypoint:
+Run a single service through the shared nitro entrypoint:
 
 ```bash
-TEE_BACKEND=nitro SERVICE_TYPE=neocompute go run ./cmd/marble
-TEE_BACKEND=nitro SERVICE_TYPE=neovrf go run ./cmd/marble
-TEE_BACKEND=nitro SERVICE_TYPE=neooracle go run ./cmd/marble
+TEE_BACKEND=nitro SERVICE_TYPE=neocompute go run ./cmd/nitro
+TEE_BACKEND=nitro SERVICE_TYPE=neovrf go run ./cmd/nitro
+TEE_BACKEND=nitro SERVICE_TYPE=neooracle go run ./cmd/nitro
 ```
 
 ## 6. Tests
@@ -99,7 +99,7 @@ make test
 Run targeted packages:
 
 ```bash
-go test ./infrastructure/runtime ./infrastructure/marble ./cmd/marble
+go test ./infrastructure/runtime ./infrastructure/nitro ./cmd/nitro
 ```
 
 Run lint:
@@ -126,9 +126,9 @@ Deploy:
 
 Strict identity mode is enabled by:
 
-- `MARBLE_ENV=production`, or
+- `NITRO_ENV=production`, or
 - `STRICT_IDENTITY_MODE=true`, or
-- MarbleRun TLS material (`MARBLE_CERT`, `MARBLE_KEY`, `MARBLE_ROOT_CA`), or
+- NitroRun TLS material (`NITRO_CERT`, `NITRO_KEY`, `NITRO_ROOT_CA`), or
 - `STRICT_IDENTITY_ON_TEE=true` while `TEE_BACKEND=nitro`
 
 Nitro attestation input variables:
@@ -155,5 +155,5 @@ If services fail to start locally:
 If strict mode fails in production-style environments:
 
 1. Validate attestation env: `./scripts/check_enclave_signing_key.sh --backend nitro`.
-2. Verify MarbleRun TLS env injection.
+2. Verify NitroRun TLS env injection.
 3. Confirm `TEE_BACKEND=nitro` in pod/service env.

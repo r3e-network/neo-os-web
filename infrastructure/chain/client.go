@@ -39,7 +39,7 @@ type Config struct {
 	RPCURL     string
 	NetworkID  uint32 // MainNet: 860833102, TestNet: 894710606
 	Timeout    time.Duration
-	HTTPClient *http.Client // Optional custom HTTP client (e.g. Marble.ExternalHTTPClient()).
+	HTTPClient *http.Client // Optional custom HTTP client (e.g. Nitro.ExternalHTTPClient()).
 }
 
 // NewClient creates a new Neo N3 client.

@@ -2,7 +2,7 @@
 #
 # Setup mTLS for Edge gateway -> TEE services (local k3s).
 # - Generates an Edge client CA + cert if missing
-# - Extracts MarbleRun root CA from a running service pod
+# - Extracts NitroRun root CA from a running service pod
 # - Creates/updates the edge-client-ca ConfigMap (service-layer)
 # - Creates/updates edge-gateway-secrets with mTLS material (platform)
 #
@@ -67,7 +67,7 @@ CA_CERT="$EDGE_DIR/edge-ca.crt"
 CLIENT_KEY="$EDGE_DIR/edge-client.key"
 CLIENT_CSR="$EDGE_DIR/edge-client.csr"
 CLIENT_CERT="$EDGE_DIR/edge-client.crt"
-MARBLE_CA="$EDGE_DIR/marblerun-root-ca.pem"
+NITRO_CA="$EDGE_DIR/nitrorun-root-ca.pem"
 
 if [[ ! -f "$CA_KEY" || ! -f "$CA_CERT" ]]; then
   echo "[edge-mtls] Generating edge client CA..."
@@ -88,34 +88,34 @@ if [[ ! -f "$CLIENT_KEY" || ! -f "$CLIENT_CERT" ]]; then
   rm -f "$CLIENT_CSR"
 fi
 
-if [[ ! -s "$MARBLE_CA" ]]; then
-  echo "[edge-mtls] Extracting MarbleRun root CA from service-layer..."
-  if command -v marblerun >/dev/null 2>&1; then
+if [[ ! -s "$NITRO_CA" ]]; then
+  echo "[edge-mtls] Extracting NitroRun root CA from service-layer..."
+  if command -v nitrorun >/dev/null 2>&1; then
     echo "[edge-mtls] Fetching root CA from Coordinator..."
-    kubectl -n marblerun port-forward svc/coordinator-client-api 4433:4433 >/tmp/portforward-marblerun.log 2>&1 &
+    kubectl -n nitrorun port-forward svc/coordinator-client-api 4433:4433 >/tmp/portforward-nitrorun.log 2>&1 &
     pf_pid=$!
     trap 'kill "$pf_pid" >/dev/null 2>&1 || true' EXIT
     sleep 2
     if ! kill -0 "$pf_pid" 2>/dev/null; then
-      echo "Port-forward failed to start. Check /tmp/portforward-marblerun.log" >&2
+      echo "Port-forward failed to start. Check /tmp/portforward-nitrorun.log" >&2
       exit 1
     fi
-    marblerun certificate chain localhost:4433 --insecure --output "$MARBLE_CA" >/dev/null 2>&1 || true
+    nitrorun certificate chain localhost:4433 --insecure --output "$NITRO_CA" >/dev/null 2>&1 || true
     kill "$pf_pid" >/dev/null 2>&1 || true
     trap - EXIT
   else
     pod=$(kubectl -n service-layer get pods -l app=neofeeds -o jsonpath='{.items[0].metadata.name}')
     if [[ -z "$pod" ]]; then
-      echo "Unable to locate neofeeds pod to extract MARBLE_ROOT_CA." >&2
+      echo "Unable to locate neofeeds pod to extract NITRO_ROOT_CA." >&2
       exit 1
     fi
-    kubectl -n service-layer exec "$pod" -- sh -c 'printf "%s" "$MARBLE_ROOT_CA"' > "$MARBLE_CA"
+    kubectl -n service-layer exec "$pod" -- sh -c 'printf "%s" "$NITRO_ROOT_CA"' > "$NITRO_CA"
   fi
 fi
 
-if [[ ! -s "$MARBLE_CA" ]]; then
-  echo "[edge-mtls] WARNING: MARBLE_ROOT_CA unavailable; proceeding without server CA." >&2
-  rm -f "$MARBLE_CA"
+if [[ ! -s "$NITRO_CA" ]]; then
+  echo "[edge-mtls] WARNING: NITRO_ROOT_CA unavailable; proceeding without server CA." >&2
+  rm -f "$NITRO_CA"
 fi
 
 echo "[edge-mtls] Updating edge-client-ca ConfigMap..."
@@ -140,8 +140,8 @@ secret_args=(
   --from-file=TEE_MTLS_CERT_PEM="$CLIENT_CERT"
   --from-file=TEE_MTLS_KEY_PEM="$CLIENT_KEY"
 )
-if [[ -s "$MARBLE_CA" ]]; then
-  secret_args+=(--from-file=TEE_MTLS_ROOT_CA_PEM="$MARBLE_CA")
+if [[ -s "$NITRO_CA" ]]; then
+  secret_args+=(--from-file=TEE_MTLS_ROOT_CA_PEM="$NITRO_CA")
 fi
 
 kubectl -n platform create secret generic edge-gateway-secrets \

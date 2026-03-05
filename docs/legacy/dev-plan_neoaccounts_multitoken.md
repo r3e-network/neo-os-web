@@ -245,13 +245,13 @@ type RepositoryInterface interface {
 
 | File | Changes |
 |------|---------|
-| `services/neoaccounts/marble/types.go` | Update `AccountInfo`, `UpdateBalanceInput`, `PoolInfoResponse`, add `TokenBalance`, `TokenStats` |
-| `services/neoaccounts/marble/handlers.go` | Update handlers to use token parameter, modify response serialization |
-| `services/neoaccounts/marble/pool.go` | Refactor `UpdateBalance`, `runAccountRotation`, pool statistics |
-| `services/neoaccounts/marble/service.go` | Update account seeding to initialize empty balances |
-| `services/neoaccounts/marble/api.go` | Add query parameter parsing for `token`, `min_balance` |
-| `services/neoaccounts/marble/service_test.go` | Update all test assertions for new response format |
-| `services/neoaccounts/marble/README.md` | Update API documentation |
+| `services/neoaccounts/nitro/types.go` | Update `AccountInfo`, `UpdateBalanceInput`, `PoolInfoResponse`, add `TokenBalance`, `TokenStats` |
+| `services/neoaccounts/nitro/handlers.go` | Update handlers to use token parameter, modify response serialization |
+| `services/neoaccounts/nitro/pool.go` | Refactor `UpdateBalance`, `runAccountRotation`, pool statistics |
+| `services/neoaccounts/nitro/service.go` | Update account seeding to initialize empty balances |
+| `services/neoaccounts/nitro/api.go` | Add query parameter parsing for `token`, `min_balance` |
+| `services/neoaccounts/nitro/service_test.go` | Update all test assertions for new response format |
+| `services/neoaccounts/nitro/README.md` | Update API documentation |
 
 #### Acceptance Criteria
 
@@ -274,13 +274,13 @@ type RepositoryInterface interface {
 
 | File | Changes |
 |------|---------|
-| `services/neovault/marble/pool.go` | Update HTTP client calls to include token parameter |
-| `services/neovault/marble/mixing.go` | Pass `TokenType` to all balance operations |
-| `services/neovault/marble/handlers.go` | Update pool capacity calculation per token |
-| `services/neovault/marble/types.go` | Update `PoolAccount` to embed `Balances` map |
-| `services/neovault/marble/service.go` | Update account requests to specify token |
-| `services/neovault/marble/service_test.go` | Update test mocks and assertions |
-| `services/neovault/marble/README.md` | Update documentation |
+| `services/neovault/nitro/pool.go` | Update HTTP client calls to include token parameter |
+| `services/neovault/nitro/mixing.go` | Pass `TokenType` to all balance operations |
+| `services/neovault/nitro/handlers.go` | Update pool capacity calculation per token |
+| `services/neovault/nitro/types.go` | Update `PoolAccount` to embed `Balances` map |
+| `services/neovault/nitro/service.go` | Update account requests to specify token |
+| `services/neovault/nitro/service_test.go` | Update test mocks and assertions |
+| `services/neovault/nitro/README.md` | Update documentation |
 
 #### Acceptance Criteria
 
@@ -348,8 +348,8 @@ Task 4: Validation & Docs
 | Package | Target |
 |---------|--------|
 | `services/neoaccounts/supabase` | ≥90% |
-| `services/neoaccounts/marble` | ≥90% |
-| `services/neovault/marble` | ≥90% |
+| `services/neoaccounts/nitro` | ≥90% |
+| `services/neovault/nitro` | ≥90% |
 
 ### Test Scenarios
 

@@ -431,9 +431,9 @@ func TestGetUserIDFromContext(t *testing.T) {
 // =============================================================================
 
 func TestRequireServiceAuth_WithServiceID(t *testing.T) {
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
 	req := httptest.NewRequest("GET", "/api/test", nil)
 	ctx := serviceauth.WithServiceID(req.Context(), "gateway")
 	req = req.WithContext(ctx)

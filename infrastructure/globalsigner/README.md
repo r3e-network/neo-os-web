@@ -2,7 +2,7 @@
 
 TEE-protected master key management + domain-separated signing.
 
-GlobalSigner is an **infrastructure marble**: it keeps master seed material
+GlobalSigner is an **infrastructure nitro**: it keeps master seed material
 inside the enclave and offers a small, authenticated API for other internal
 services to obtain signatures and derived public keys.
 
@@ -64,7 +64,7 @@ Response:
 ## How Services Use It
 
 - Services should not share long-lived signing keys directly.
-- Instead, services can call GlobalSigner over the MarbleRun mesh and request
+- Instead, services can call GlobalSigner over the NitroRun mesh and request
   signatures scoped to a domain (`domain` is included in the signed message).
 
 Code helpers:

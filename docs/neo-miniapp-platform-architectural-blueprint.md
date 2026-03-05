@@ -9,7 +9,7 @@ strictly enforced.
 >
 > - **Settlement:** **GAS Only** (PaymentHub rejects all other assets).
 > - **Governance:** **bNEO Only** (Voting/Staking).
-> - **Confidentiality:** Service layer via **MarbleRun + Nitro runtime (Nitro TEE)**.
+> - **Confidentiality:** Service layer via **NitroRun + Nitro runtime (Nitro TEE)**.
 > - **Gateway:** **Supabase** (Auth, DB, Edge).
 > - **Frontend:** **Vercel** + **Next.js** + **Micro-frontends**.
 > - **High-Freq Data:** **Datafeed** (Push on ≥0.1% deviation).
@@ -36,7 +36,7 @@ strictly enforced.
 
 - **Hardware Requirement:** AWS Nitro-enabled servers (Azure Confidential Computing or bare metal).
 - **Enclave Runtime:** **Nitro runtime** (Go).
-- **Orchestration:** **MarbleRun**.
+- **Orchestration:** **NitroRun**.
 - **Service Language:** **Go**.
 - **Networking:** gRPC or REST (attested TLS).
 
@@ -84,7 +84,7 @@ neo-miniapp-platform/
 │   ├── AutomationAnchor/       # Logic: Task registry
 │   └── ServiceLayerGateway/    # Logic: Service request + callback router
 │
-├── services/                   # [Go] Nitro runtime + MarbleRun TEE Services
+├── services/                   # [Go] Nitro runtime + NitroRun TEE Services
 │   ├── datafeed/               # High-freq polling, threshold logic
 │   ├── conforacle/             # Confidential oracle fetcher
 │   ├── vrf/                    # Verifiable randomness generation
@@ -94,7 +94,7 @@ neo-miniapp-platform/
 │   ├── txproxy/                # The "Key Holder". Signs transactions.
 │   ├── indexer/                # Chain syncer + event parser (non-TEE)
 │   ├── aggregator/             # Daily rollups + trending (non-TEE)
-│   └── marblerun/              # Manifests & policies
+│   └── nitrorun/              # Manifests & policies
 │
 ├── platform/                   # [TS] Host Platform
 │   ├── host-app/               # Next.js App (The "App Store" UI)
@@ -235,7 +235,7 @@ interface MiniAppSDK {
 
 1. Developer builds a miniapp from a starter kit and writes `manifest.json`.
 2. Platform validates/sanitizes and computes `manifest_hash`.
-3. MarbleRun injects secrets and manages attestation for production enclaves.
+3. NitroRun injects secrets and manages attestation for production enclaves.
 
 ## 6. Security Checklist (4-Layer Defense)
 

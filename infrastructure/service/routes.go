@@ -1,4 +1,4 @@
-// Package service provides common service infrastructure for marble services.
+// Package service provides common service infrastructure for nitro services.
 package service
 
 import (
@@ -54,7 +54,7 @@ func HealthHandler(s *BaseService) http.HandlerFunc {
 			Status:    status,
 			Service:   s.Name(),
 			Version:   s.Version(),
-			Enclave:   s.Marble().IsEnclave(),
+			Enclave:   s.Nitro().IsEnclave(),
 			Timestamp: time.Now().Format(time.RFC3339),
 			Details:   details,
 		}
@@ -79,7 +79,7 @@ func ReadinessHandler(s *BaseService) http.HandlerFunc {
 			Status:    status,
 			Service:   s.Name(),
 			Version:   s.Version(),
-			Enclave:   s.Marble().IsEnclave(),
+			Enclave:   s.Nitro().IsEnclave(),
 			Timestamp: time.Now().Format(time.RFC3339),
 			Details:   details,
 		}
@@ -101,7 +101,7 @@ func InfoHandler(s *BaseService) http.HandlerFunc {
 			Status:    "active",
 			Service:   s.Name(),
 			Version:   s.Version(),
-			Enclave:   s.Marble().IsEnclave(),
+			Enclave:   s.Nitro().IsEnclave(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 

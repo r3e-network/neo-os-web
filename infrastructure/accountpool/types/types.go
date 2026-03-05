@@ -1,7 +1,7 @@
 // Package types defines the shared API types for the neoaccounts service.
 //
 // This package is intentionally free of HTTP/DB dependencies so it can be used by:
-// - the account pool server implementation (`infrastructure/accountpool/marble`)
+// - the account pool server implementation (`infrastructure/accountpool/nitro`)
 // - service-to-service clients (`infrastructure/accountpool/client`)
 // - other services consuming the API (e.g. `neocompute`)
 package types

@@ -4,7 +4,7 @@ HTTP oracle proxy service for the Neo Service Layer.
 
 ## Overview
 
-The NeoOracle service provides a secure HTTP proxy for fetching external data from within the MarbleRun TEE. It enforces an outbound URL allowlist and can inject user-owned secrets into outbound requests (for authenticated APIs).
+The NeoOracle service provides a secure HTTP proxy for fetching external data from within the NitroRun TEE. It enforces an outbound URL allowlist and can inject user-owned secrets into outbound requests (for authenticated APIs).
 
 This service is intended to be reached via the gateway (Supabase Edge) rather than directly.
 
@@ -78,7 +78,7 @@ POST /query
 
 ## Security
 
-- All outbound requests originate from within the MarbleRun TEE (attested identity via mTLS)
+- All outbound requests originate from within the NitroRun TEE (attested identity via mTLS)
 - Strict identity mode enforces HTTPS-only outbound URLs
 - URL allowlist support via `ORACLE_HTTP_ALLOWLIST`
 

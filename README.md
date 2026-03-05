@@ -199,7 +199,7 @@ All MiniApp contracts use the shared `MiniAppContract` partial class pattern and
 make docker-up
 
 # Run a service locally
-SERVICE_TYPE=neovrf go run ./cmd/marble
+SERVICE_TYPE=neovrf go run ./cmd/nitro
 
 # Start the host app
 cd platform/host-app && npm run dev

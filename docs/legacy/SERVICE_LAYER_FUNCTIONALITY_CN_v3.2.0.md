@@ -25,7 +25,7 @@ Neo Service Layer 是一个基于可信执行环境 (TEE) 的生产级服务平�
 
 | 组件         | 技术                  | 用途                           |
 | ------------ | --------------------- | ------------------------------ |
-| **机密计算** | MarbleRun + Nitro runtime       | MarbleRun TEE 编排和 Go 运行时 |
+| **机密计算** | NitroRun + Nitro runtime       | NitroRun TEE 编排和 Go 运行时 |
 | **数据库**   | Supabase (PostgreSQL) | 持久化存储 + RLS 安全策略      |
 | **前端托管** | Vercel                | 静态站点部署 + CDN             |
 | **编程语言** | Go 1.24+              | 后端服务实现                   |
@@ -56,7 +56,7 @@ Neo Service Layer 是一个基于可信执行环境 (TEE) 的生产级服务平�
                            │ HTTPS
                            ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        API 网关层 (Gateway Marble)                       │
+│                        API 网关层 (Gateway Nitro)                       │
 │  ┌─────────────────────────────────────────────────────────────────┐    │
 │  │  • JWT 认证验证                                                   │   │
 │  │  • 请求路由分发                                                   │   │
@@ -67,7 +67,7 @@ Neo Service Layer 是一个基于可信执行环境 (TEE) 的生产级服务平�
                            │ mTLS
                            ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        服务层 (Service Marbles)                          │
+│                        服务层 (Service Nitros)                          │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐            │
 │  │   VRF   │ │  NeoVault  │ │NeoFeeds│ │Automate │ │Confiden │            │
 │  └─────────┘ └────┬────┘ └─────────┘ └─────────┘ └─────────┘            │
@@ -83,7 +83,7 @@ Neo Service Layer 是一个基于可信执行环境 (TEE) 的生产级服务平�
                            │ mTLS
                            ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                     MarbleRun Coordinator                               │
+│                     NitroRun Coordinator                               │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
 │  │  Manifest   │  │   Secrets   │  │ Attestation │  │     PKI     │     │
 │  │   Store     │  │    Store    │  │   Engine    │  │   Manager   │     │
@@ -103,18 +103,18 @@ Neo Service Layer 是一个基于可信执行环境 (TEE) 的生产级服务平�
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 MarbleRun + Nitro runtime 集成
+### 2.2 NitroRun + Nitro runtime 集成
 
-#### 2.2.1 Marble 生命周期
+#### 2.2.1 Nitro 生命周期
 
 ```
-1. Marble 在 Nitro runtime TEE 内启动
+1. Nitro 在 Nitro runtime TEE 内启动
          │
          ▼
-2. Marble 生成远程证明报告 (attestation quote)
+2. Nitro 生成远程证明报告 (attestation quote)
          │
          ▼
-3. Marble 连接到 Coordinator
+3. Nitro 连接到 Coordinator
          │
          ▼
 4. Coordinator 验证证明报告是否符合 manifest
@@ -123,16 +123,16 @@ Neo Service Layer 是一个基于可信执行环境 (TEE) 的生产级服务平�
 5. Coordinator 注入密钥和 TLS 证书
          │
          ▼
-6. Marble 开始处理请求
+6. Nitro 开始处理请求
 ```
 
-#### 2.2.2 Marble SDK 核心结构
+#### 2.2.2 Nitro SDK 核心结构
 
 ```go
-// internal/marble/marble.go
-type Marble struct {
+// internal/nitro/nitro.go
+type Nitro struct {
     // 身份标识
-    marbleType string
+    nitroType string
     uuid       string
 
     // TLS 凭证 (由 Coordinator 注入)
@@ -152,7 +152,7 @@ type Marble struct {
 
 ```go
 // 密钥永不离开 TEE - 只能通过回调访问
-err := marble.UseSecret("API_KEY", func(secret []byte) error {
+err := nitro.UseSecret("API_KEY", func(secret []byte) error {
     // 在这里使用密钥
     // 回调返回后自动清零
     return doSomethingWithSecret(secret)
@@ -227,13 +227,13 @@ CREATE POLICY service_all ON secrets
 service_layer/
 ├── cmd/
 │   ├── gateway/main.go      # API 网关入口
-│   └── marble/main.go       # 通用 Marble 入口
+│   └── nitro/main.go       # 通用 Nitro 入口
 ├── internal/
 │   ├── crypto/              # 加密工具库
 │   │   ├── crypto.go        # AES-GCM, ECDSA, VRF, HKDF, HMAC
 │   │   └── crypto_test.go
-│   ├── marble/              # Marble SDK
-│   │   ├── marble.go        # Marble 核心实现
+│   ├── nitro/              # Nitro SDK
+│   │   ├── nitro.go        # Nitro 核心实现
 │   │   └── service.go       # 服务基类
 │   ├── database/            # 数据库层
 │   │   ├── supabase.go      # Supabase 客户端
@@ -251,7 +251,7 @@ service_layer/
 │   ├── neoflow/          # 自动化触发器
 │   └── neocompute/        # 机密计算 (规划中)
 ├── manifests/
-│   └── manifest.json        # MarbleRun manifest
+│   └── manifest.json        # NitroRun manifest
 ├── migrations/
 │   └── 001_initial_schema.sql
 ├── docker/
@@ -264,19 +264,19 @@ service_layer/
 ### 3.2 服务基类
 
 ```go
-// internal/marble/service.go
+// internal/nitro/service.go
 type Service struct {
     id      string
     name    string
     version string
-    marble  *Marble
+    nitro  *Nitro
     db      *database.Repository
     router  *mux.Router
 }
 
 // 每个服务都嵌入基类
 type VRFService struct {
-    *marble.Service
+    *nitro.Service
     privateKey []byte
 }
 ```
@@ -383,7 +383,7 @@ Response:
 NeoVault 服务在 Neo N3 账户模型下提供一种 **隐私增强的资产流转方式**，通过：
 
 - 由 TEE 控制的一组 **HD 派生池地址** 作为中转和混淆节点
-- 链下混币逻辑运行在 TEE（Nitro runtime + MarbleRun）中
+- 链下混币逻辑运行在 TEE（Nitro runtime + NitroRun）中
 - **用户直接给池地址转账**，而不是先通过链上 NeoVault 合约请求
 - 使用 **请求哈希 (request hash) + TEE 签名** 为每次混币建立可审计凭证
 - 在正常路径下尽量提供隐私混淆
@@ -408,9 +408,9 @@ NeoVault 服务在 Neo N3 账户模型下提供一种 **隐私增强的资产流
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     链下 TEE (NeoVault Marble)                      │
+│                     链下 TEE (NeoVault Nitro)                      │
 │                                                                 │
-│  • 持有 HD 种子 (由 MarbleRun 注入的 Master_Secret)                │
+│  • 持有 HD 种子 (由 NitroRun 注入的 Master_Secret)                │
 │  • 派生池地址私钥 (pool_0, pool_1, ..., pool_N)                    │
 │  • 接收用户混币请求 (链下 API/CLI)                                  │
 │  • 生成 requestHash + TEE 签名                                    │
@@ -456,7 +456,7 @@ NeoVault 服务在 Neo N3 账户模型下提供一种 **隐私增强的资产流
 ┌─────────────────────────────────────────────────────────────────┐
 │                   AccountPool Service (内部)                     │
 │                                                                 │
-│  • 持有 HD 种子 (POOL_MASTER_KEY，由 MarbleRun 注入)              │
+│  • 持有 HD 种子 (POOL_MASTER_KEY，由 NitroRun 注入)              │
 │  • 派生池地址私钥，私钥永不离开此服务                                │
 │  • 提供 HTTP API 供其他服务调用：                                  │
 │    - POST /request  - 请求并锁定账户                              │
@@ -500,7 +500,7 @@ POOL_MASTER_KEY (由 Coordinator 注入到 AccountPool)
 
 - 单次混币请求的入池金额上限：**≤ 10,000 币**
 - 整个池子内总余额上限：**≤ 100,000 币**
-- 这两个规则写在 NeoVault Marble 的代码中，并通过 MarbleRun attestation 对外证明
+- 这两个规则写在 NeoVault Nitro 的代码中，并通过 NitroRun attestation 对外证明
 
 #### 4.2.4 用户请求与 requestHash + TEE 签名
 
@@ -522,7 +522,7 @@ POOL_MASTER_KEY (由 Coordinator 注入到 AccountPool)
 }
 ```
 
-NeoVault Marble 在 TEE 内：
+NeoVault Nitro 在 TEE 内：
 
 1. 使用确定性序列化（例如 canonical JSON / protobuf）得到 `requestBytes`
 2. 计算 `requestHash = Hash256(requestBytes)`
@@ -638,7 +638,7 @@ public static void ClaimCompensation(ByteString requestHash)
 
 - **正常路径**：用户只看见链上入池/出池交易，不知道中间路径；NeoVault 通过时间混淆、金额拆分和噪声交易提升分析难度
 - **争议路径**：用户把原请求字段公开到链上，NeoVault 把交易列表哈希绑定到请求上，隐私被牺牲换取可审计性 + 赔付权
-- **信任模型**：用户信任 TEE/MarbleRun 确保 NeoVault Marble 二进制和签名密钥未被篡改
+- **信任模型**：用户信任 TEE/NitroRun 确保 NeoVault Nitro 二进制和签名密钥未被篡改
 
 **混币时长选项**: 30分钟 / 1小时 / 24小时 / 7天
 
@@ -666,7 +666,7 @@ event BondSlashed(serviceId, slashedAmount, remainingBond)
 
 - 单次混币请求入池金额上限：≤ 10,000 币
 - 整体池余额上限：≤ 100,000 币
-- 通过 MarbleRun attestation 对外证明规则未被更改
+- 通过 NitroRun attestation 对外证明规则未被更改
 
 ### 4.3 NeoFeeds 服务 (数据聚合)
 
@@ -836,7 +836,7 @@ GET /neocompute/jobs
                            │ 远程证明
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    可信区域 (MarbleRun TEE)                    │
+│                    可信区域 (NitroRun TEE)                    │
 │  • 应用代码                                                  │
 │  • 密钥材料                                                  │
 │  • 敏感数据处理                                               │
@@ -846,16 +846,16 @@ GET /neocompute/jobs
 ### 5.2 密钥管理
 
 ```
-MarbleRun Coordinator
+NitroRun Coordinator
          │
          │ 证明验证后注入
          ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  Service Marbles (各服务独立密钥)                                         │
+│  Service Nitros (各服务独立密钥)                                         │
 │                                                                         │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │
-│  │   VRF Marble    │  │ AccountPool     │  │ NeoFeeds       │          │
-│  │                 │  │ Marble (内部)    │  │ Marble          │          │
+│  │   VRF Nitro    │  │ AccountPool     │  │ NeoFeeds       │          │
+│  │                 │  │ Nitro (内部)    │  │ Nitro          │          │
 │  │ VRF_PRIVATE_KEY │  │                 │  │                 │          │
 │  │ (直接使用)       │  │ POOL_MASTER_KEY │  │ NEOFEEDS_SIGNING_KEY │      │
 │  └─────────────────┘  │       │         │  │ (签名密钥)       │          │
@@ -870,7 +870,7 @@ MarbleRun Coordinator
 │                                │ HTTP API (签名请求)                     │
 │                                ▼                                        │
 │                       ┌─────────────────┐                               │
-│                       │  NeoVault Marble   │                               │
+│                       │  NeoVault Nitro   │                               │
 │                       │                 │                               │
 │                       │ NEOVAULT_MASTER_KEY│  ← 用于请求哈希签名           │
 │                       │ (不含池账户私钥)  │                               │
@@ -902,17 +902,17 @@ MarbleRun Coordinator
 
 ## 6. 数据流程
 
-### 6.0 核心架构：MarbleRun + Nitro runtime + Supabase + Neo N3 区块链
+### 6.0 核心架构：NitroRun + Nitro runtime + Supabase + Neo N3 区块链
 
 本平台基于四大核心技术构建完整的可信计算数据流：
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│              完整架构：MarbleRun + Nitro runtime + Supabase + Neo N3 Blockchain                 │
+│              完整架构：NitroRun + Nitro runtime + Supabase + Neo N3 Blockchain                 │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │
 │  ┌────────────────────────────────────────────────────────────────────────────┐     │
-│  │                      MarbleRun Coordinator (信任根)                         │     │
+│  │                      NitroRun Coordinator (信任根)                         │     │
 │  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐            │     │
 │  │  │  Manifest  │  │  Secrets   │  │Attestation │  │    PKI     │            │     │
 │  │  │   验证      │  │   管理     │  │    引擎     │  │   证书      │            │     │
@@ -924,8 +924,8 @@ MarbleRun Coordinator
 │  │                          Nitro runtime TEE 层 (可信执行)                           │     │
 │  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐            │     │
 │  │  │  Gateway   │  │    VRF     │  │   NeoVault    │  │ NeoFeeds  │  ...       │     │
-│  │  │  Marble    │  │  Marble    │  │  Marble    │  │  Marble    │            │     │
-│  │  │ (Nitro runtime+MarbleRun)  │  │ (Nitro runtime+MarbleRun)  │  │ (Nitro runtime+MarbleRun)  │  │ (Nitro runtime+MarbleRun)  │            │     │
+│  │  │  Nitro    │  │  Nitro    │  │  Nitro    │  │  Nitro    │            │     │
+│  │  │ (Nitro runtime+NitroRun)  │  │ (Nitro runtime+NitroRun)  │  │ (Nitro runtime+NitroRun)  │  │ (Nitro runtime+NitroRun)  │            │     │
 │  │  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘            │     │
 │  │         │               │               │               │                  │     │
 │  │         └───────────────┴───────┬───────┴───────────────┘                  │     │
@@ -966,8 +966,8 @@ MarbleRun Coordinator
 
 | 组件                      | 技术                | 职责                                             |
 | ------------------------- | ------------------- | ------------------------------------------------ |
-| **MarbleRun Coordinator** | MarbleRun v1.7+     | 管理 manifest、验证远程证明、注入密钥和 TLS 证书 |
-| **Nitro runtime TEE**               | Nitro runtime + MarbleRun/Nitro runtime | 在隔离环境中运行 Go 服务，保护密钥和敏感计算     |
+| **NitroRun Coordinator** | NitroRun v1.7+     | 管理 manifest、验证远程证明、注入密钥和 TLS 证书 |
+| **Nitro runtime TEE**               | Nitro runtime + NitroRun/Nitro runtime | 在隔离环境中运行 Go 服务，保护密钥和敏感计算     |
 | **Supabase**              | PostgreSQL + RLS    | 持久化所有业务数据，通过 RLS 实现行级安全        |
 | **Neo N3 智能合约**       | Neo N3 区块链       | 链上请求管理、费用结算、回调执行、状态验证       |
 
@@ -981,17 +981,17 @@ MarbleRun Coordinator
 | **NeoFeedsService**     | 价格数据存储、数据源管理、新鲜度检查       | 推送模式                 |
 | **NeoFlowService**      | 触发器注册、条件检查、执行记录             | 触发器模式               |
 
-### 6.0.1 Marble 启动与密钥注入流程
+### 6.0.1 Nitro 启动与密钥注入流程
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         Marble 启动流程 (以 VRF 服务为例)                          │
+│                         Nitro 启动流程 (以 VRF 服务为例)                          │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
-│   VRF Marble (Nitro runtime)                        MarbleRun Coordinator                 │
+│   VRF Nitro (Nitro runtime)                        NitroRun Coordinator                 │
 │        │                                           │                            │
 │        │  1. 启动 Nitro runtime TEE                       │                            │
-│        │  2. 生成 MarbleRun Quote (远程证明)               │                            │
+│        │  2. 生成 NitroRun Quote (远程证明)               │                            │
 │        │ ─────────────────────────────────────────►│                            │
 │        │                                           │                            │
 │        │                                   3. 验证 Quote:                        │
@@ -1002,8 +1002,8 @@ MarbleRun Coordinator
 │        │                                           │                            │
 │        │  4. 注入密钥和证书:                         │                            │
 │        │     • VRF_PRIVATE_KEY                     │                            │
-│        │     • MARBLE_CERT (TLS 证书)               │                            │
-│        │     • MARBLE_KEY (TLS 私钥)                │                            │
+│        │     • NITRO_CERT (TLS 证书)               │                            │
+│        │     • NITRO_KEY (TLS 私钥)                │                            │
 │        │     • SUPABASE_URL                        │                            │
 │        │     • SUPABASE_SERVICE_KEY                │                            │
 │        │ ◄─────────────────────────────────────────│                            │
@@ -1270,9 +1270,9 @@ NeoFeeds 服务自动更新链上价格数据，无需用户请求：
 ### 6.5 证明流程
 
 ```
-Marble                          Coordinator
+Nitro                          Coordinator
    │                                 │
-   │   1. 生成 MarbleRun Quote              │
+   │   1. 生成 NitroRun Quote              │
    │ ───────────────────────────────►│
    │                                 │
    │                                 │  2. 验证 Quote
@@ -1296,7 +1296,7 @@ Marble                          Coordinator
 
 **硬件要求**:
 
-- MarbleRun/Nitro runtime 支持的 CPU (生产环境)
+- NitroRun/Nitro runtime 支持的 CPU (生产环境)
 - 最少 8GB RAM
 - 50GB SSD
 
@@ -1309,7 +1309,7 @@ Marble                          Coordinator
 ### 7.2 模拟模式部署
 
 ```bash
-# 使用脚本启动（会先启动 Coordinator，然后应用 manifest，再启动所有 marbles）
+# 使用脚本启动（会先启动 Coordinator，然后应用 manifest，再启动所有 nitros）
 make docker-up
 # 或：./scripts/up.sh --insecure
 
@@ -1320,10 +1320,10 @@ docker compose -f docker/docker-compose.simulation.yaml logs -f gateway
 ### 7.3 生产模式部署
 
 ```bash
-# 确保 MarbleRun 驱动已安装
+# 确保 NitroRun 驱动已安装
 ls /dev/tee
 
-# 使用脚本启动（会先启动 Coordinator，然后应用 manifest，再启动所有 marbles）
+# 使用脚本启动（会先启动 Coordinator，然后应用 manifest，再启动所有 nitros）
 make docker-up-nitro
 # 或：./scripts/up.sh
 ```
@@ -1430,8 +1430,8 @@ Authorization: Bearer <JWT_TOKEN>
 
 ### 9.2 信任假设
 
-- **信任** MarbleRun/Nitro runtime / TEE 硬件 + MarbleRun 协调器能够：
-    - 保证 NeoVault Marble 二进制以及内部密钥不会被恶意方篡改或泄露
+- **信任** NitroRun/Nitro runtime / TEE 硬件 + NitroRun 协调器能够：
+    - 保证 NeoVault Nitro 二进制以及内部密钥不会被恶意方篡改或泄露
 - **不信任**：
     - 外部操作系统、云平台、网络
 - **针对 NeoVault**：
@@ -1451,7 +1451,7 @@ Authorization: Bearer <JWT_TOKEN>
     - 按策略控制时间和金额分布，以提升链上分析成本
 
 3. **额度与合规控制**
-   NeoVault Marble 内部硬编码：
+   NeoVault Nitro 内部硬编码：
     - 单请求入池金额上限（≤ 10,000 币）
     - 整体池余额上限（≤ 100,000 币）
       外界可通过 attestation 验证该逻辑未被更改。
@@ -1475,9 +1475,9 @@ Authorization: Bearer <JWT_TOKEN>
 
 Neo Service Layer 的密钥管理设计确保 **TEE 升级不会影响任何业务密钥**。这是通过以下原则实现的：
 
-1. **所有业务密钥来自 MarbleRun 注入**
+1. **所有业务密钥来自 NitroRun 注入**
     - 密钥通过 manifest 定义，由 Coordinator 在证明通过后注入
-    - 密钥存储在 Coordinator 的 sealed state 中，而非 Marble 本地
+    - 密钥存储在 Coordinator 的 sealed state 中，而非 Nitro 本地
 
 2. **密钥派生不依赖 TEE 身份**
     - HKDF 派生上下文仅使用业务标识符（如 accountID）
@@ -1485,7 +1485,7 @@ Neo Service Layer 的密钥管理设计确保 **TEE 升级不会影响任何业�
 
 3. **无本地 sealing key 依赖**
     - 业务数据不使用 TEE sealing key 加密
-    - 所有持久化数据存储在 Supabase，使用 MarbleRun 注入的密钥加密
+    - 所有持久化数据存储在 Supabase，使用 NitroRun 注入的密钥加密
 
 ### 10.2 密钥架构
 
@@ -1494,7 +1494,7 @@ Neo Service Layer 的密钥管理设计确保 **TEE 升级不会影响任何业�
 │                          密钥层次结构（升级安全）                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│   MarbleRun Coordinator (信任根)                                             │
+│   NitroRun Coordinator (信任根)                                             │
 │   ┌────────────────────────────────────────────────────────────────────┐    │
 │   │  Manifest 定义的密钥 (升级后保持不变)                                  │    │
 │   │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │    │
@@ -1535,7 +1535,7 @@ Neo Service Layer 的密钥管理设计确保 **TEE 升级不会影响任何业�
 // internal/crypto/crypto.go
 func DeriveKey(masterKey []byte, salt []byte, info string, keyLen int) ([]byte, error) {
     // 输入:
-    // - masterKey: 来自 MarbleRun 注入 (升级后不变)
+    // - masterKey: 来自 NitroRun 注入 (升级后不变)
     // - salt: 业务标识符如 accountID (与 TEE 无关)
     // - info: 用途字符串如 "neovault-account" (与 TEE 无关)
     //
@@ -1551,7 +1551,7 @@ func DeriveKey(masterKey []byte, salt []byte, info string, keyLen int) ([]byte, 
 
 | 参数      | 来源                   | 包含 TEE ID? | 升级后变化? |
 | --------- | ---------------------- | ------------ | ----------- |
-| masterKey | MarbleRun 注入         | ❌ 否        | ❌ 不变     |
+| masterKey | NitroRun 注入         | ❌ 否        | ❌ 不变     |
 | salt      | 业务 ID (如 accountID) | ❌ 否        | ❌ 不变     |
 | info      | 用途字符串             | ❌ 否        | ❌ 不变     |
 
@@ -1559,13 +1559,13 @@ func DeriveKey(masterKey []byte, salt []byte, info string, keyLen int) ([]byte, 
 
 | 服务                   | 密钥                 | 来源                  | 派生方式                                   | 升级安全 |
 | ---------------------- | -------------------- | --------------------- | ------------------------------------------ | -------- |
-| **VRF**                | VRF_PRIVATE_KEY      | Marble.Secret()       | 直接使用                                   | ✅       |
-| **AccountPool**        | POOL_MASTER_KEY      | Marble.Secret()       | 直接使用                                   | ✅       |
+| **VRF**                | VRF_PRIVATE_KEY      | Nitro.Secret()       | 直接使用                                   | ✅       |
+| **AccountPool**        | POOL_MASTER_KEY      | Nitro.Secret()       | 直接使用                                   | ✅       |
 | **AccountPool 池账户** | 池账户私钥           | DeriveKey()           | HKDF(masterKey, accountID, "pool-account") | ✅       |
-| **NeoVault**           | NEOVAULT_MASTER_KEY  | Marble.Secret()       | 直接使用 (用于请求签名)                    | ✅       |
-| **NeoFeeds**           | NEOFEEDS_SIGNING_KEY | Marble.Secret()       | 直接使用                                   | ✅       |
-| **NeoFlow**            | TEE_PRIVATE_KEY      | Env / Marble.Secret() | 直接使用 (共享)                            | ✅       |
-| **TLS**                | MARBLE_CERT/KEY      | Coordinator 签发      | 每次启动重新签发                           | ✅       |
+| **NeoVault**           | NEOVAULT_MASTER_KEY  | Nitro.Secret()       | 直接使用 (用于请求签名)                    | ✅       |
+| **NeoFeeds**           | NEOFEEDS_SIGNING_KEY | Nitro.Secret()       | 直接使用                                   | ✅       |
+| **NeoFlow**            | TEE_PRIVATE_KEY      | Env / Nitro.Secret() | 直接使用 (共享)                            | ✅       |
+| **TLS**                | NITRO_CERT/KEY      | Coordinator 签发      | 每次启动重新签发                           | ✅       |
 
 **注意**: NeoVault 服务不再直接持有池账户私钥，而是通过 HTTP API 请求 NeoAccounts (AccountPool) 服务进行签名。
 
@@ -1594,18 +1594,18 @@ func DeriveKey(masterKey []byte, salt []byte, info string, keyLen int) ([]byte, 
 │                                      ▼                                       │
 │  3. 应用 Manifest 更新                                                       │
 │     ┌─────────────────────────────────────────────────────────────────┐     │
-│     │  marblerun manifest update manifests/manifest.json              │     │
+│     │  nitrorun manifest update manifests/manifest.json              │     │
 │     │  • Coordinator 验证更新签名                                       │     │
-│     │  • 新旧 Marble 共存期间服务不中断                                   │     │
+│     │  • 新旧 Nitro 共存期间服务不中断                                   │     │
 │     └─────────────────────────────────────────────────────────────────┘     │
 │                                      │                                      │
 │                                      ▼                                      │
-│  4. 滚动更新 Marbles                                                         │
+│  4. 滚动更新 Nitros                                                         │
 │     ┌─────────────────────────────────────────────────────────────────┐     │
-│     │  • 新 Marble 启动，生成新 MRENCLAVE 的 Quote                      │     │
+│     │  • 新 Nitro 启动，生成新 MRENCLAVE 的 Quote                      │     │
 │     │  • Coordinator 验证 Quote 匹配更新后的 Manifest                   │     │
 │     │  • Coordinator 注入相同的密钥 (VRF_PRIVATE_KEY 等)                │     │
-│     │  • 新 Marble 派生出相同的池账户密钥                                 │     │
+│     │  • 新 Nitro 派生出相同的池账户密钥                                 │     │
 │     │  • 服务继续运行，密钥完全相同                                       │     │
 │     └─────────────────────────────────────────────────────────────────┘     │
 │                                                                             │
@@ -1642,7 +1642,7 @@ func DeriveKey(masterKey []byte, salt []byte, info string, keyLen int) ([]byte, 
 ```
 ✅ internal/crypto      - 38 tests passed
 ✅ internal/database    - 22 tests passed
-✅ internal/marble      - 18 tests passed
+✅ internal/nitro      - 18 tests passed
 ✅ internal/gasbank     - 7 tests passed
 ✅ services/neorand         - 6 tests passed
 ✅ services/neovault       - 3 tests passed
@@ -1662,11 +1662,11 @@ func DeriveKey(masterKey []byte, salt []byte, info string, keyLen int) ([]byte, 
 - **变更记录**:
     - v3.2.0: 添加 AccountPool 内部服务，重构 NeoVault 使用 AccountPool 进行账户管理
     - v3.1.0: 添加服务升级安全性章节 (Section 10)
-    - v3.0.0: 添加完整四层架构文档 (MarbleRun + Nitro runtime + Supabase + Neo N3)
+    - v3.0.0: 添加完整四层架构文档 (NitroRun + Nitro runtime + Supabase + Neo N3)
 
 ### C. 参考链接
 
-- [MarbleRun 文档](https://docs.edgeless.systems/marblerun)
+- [NitroRun 文档](https://docs.edgeless.systems/nitrorun)
 - [AWS Nitro Enclaves 文档](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html)
 - [Supabase 文档](https://supabase.com/docs)
 - [Vercel 文档](https://vercel.com/docs)

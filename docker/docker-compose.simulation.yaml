@@ -10,11 +10,11 @@ x-build-defaults: &build-defaults
 
 services:
   # =============================================================================
-  # MarbleRun Coordinator (Base Runtime Stack)
+  # NitroRun Coordinator (Base Runtime Stack)
   # =============================================================================
   coordinator:
-    # image: marblerun-coordinator
-    container_name: marblerun-coordinator
+    # image: nitrorun-coordinator
+    container_name: nitrorun-coordinator
     ports:
       - 127.0.0.1:2001:2001
       - 127.0.0.1:4433:4433
@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
 
   # =============================================================================
-  # NeoFeeds Service Marble
+  # NeoFeeds Service Nitro
   # =============================================================================
   neofeeds:
     <<: *sim-defaults
@@ -43,12 +43,12 @@ services:
     ports:
       - 127.0.0.1:${NEOFEEDS_PORT:-8083}:${NEOFEEDS_PORT:-8083}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=neofeeds
-      - MARBLE_DNS_NAMES=localhost,neofeeds
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=neofeeds
+      - NITRO_DNS_NAMES=localhost,neofeeds
       - SERVICE_TYPE=neofeeds
       - PORT=${NEOFEEDS_PORT:-8083}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -69,7 +69,7 @@ services:
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
 
   # =============================================================================
-  # NeoFlow Service Marble
+  # NeoFlow Service Nitro
   # =============================================================================
   neoflow:
     <<: *sim-defaults
@@ -82,12 +82,12 @@ services:
     ports:
       - 127.0.0.1:${NEOFLOW_PORT:-8084}:${NEOFLOW_PORT:-8084}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=neoflow
-      - MARBLE_DNS_NAMES=localhost,neoflow
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=neoflow
+      - NITRO_DNS_NAMES=localhost,neoflow
       - SERVICE_TYPE=neoflow
       - PORT=${NEOFLOW_PORT:-8084}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS
       - SUPABASE_URL
@@ -103,7 +103,7 @@ services:
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
 
   # =============================================================================
-  # NeoAccounts Service Marble
+  # NeoAccounts Service Nitro
   # =============================================================================
   neoaccounts:
     <<: *sim-defaults
@@ -116,12 +116,12 @@ services:
     ports:
       - 127.0.0.1:${NEOACCOUNTS_PORT:-8085}:${NEOACCOUNTS_PORT:-8085}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=neoaccounts
-      - MARBLE_DNS_NAMES=localhost,neoaccounts,accountpool
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=neoaccounts
+      - NITRO_DNS_NAMES=localhost,neoaccounts,accountpool
       - SERVICE_TYPE=neoaccounts
       - PORT=${NEOACCOUNTS_PORT:-8085}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -139,7 +139,7 @@ services:
         condition: service_healthy
 
   # =============================================================================
-  # NeoGasBank Service Marble
+  # NeoGasBank Service Nitro
   # =============================================================================
   neogasbank:
     <<: *sim-defaults
@@ -152,12 +152,12 @@ services:
     ports:
       - 127.0.0.1:${NEOGASBANK_PORT:-8091}:${NEOGASBANK_PORT:-8091}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=neogasbank
-      - MARBLE_DNS_NAMES=localhost,neogasbank
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=neogasbank
+      - NITRO_DNS_NAMES=localhost,neogasbank
       - SERVICE_TYPE=neogasbank
       - PORT=${NEOGASBANK_PORT:-8091}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -171,7 +171,7 @@ services:
         condition: service_started
 
   # =============================================================================
-  # NeoCompute Service Marble
+  # NeoCompute Service Nitro
   # =============================================================================
   neocompute:
     <<: *sim-defaults
@@ -184,12 +184,12 @@ services:
     ports:
       - 127.0.0.1:${NEOCOMPUTE_PORT:-8086}:${NEOCOMPUTE_PORT:-8086}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=neocompute
-      - MARBLE_DNS_NAMES=localhost,neocompute
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=neocompute
+      - NITRO_DNS_NAMES=localhost,neocompute
       - SERVICE_TYPE=neocompute
       - PORT=${NEOCOMPUTE_PORT:-8086}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -199,7 +199,7 @@ services:
       - NEOCOMPUTE_RESULT_TTL
 
   # =============================================================================
-  # NeoVRF Service Marble
+  # NeoVRF Service Nitro
   # =============================================================================
   neovrf:
     <<: *sim-defaults
@@ -212,12 +212,12 @@ services:
     ports:
       - 127.0.0.1:${NEOVRF_PORT:-8087}:${NEOVRF_PORT:-8087}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=neovrf
-      - MARBLE_DNS_NAMES=localhost,neovrf,vrf
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=neovrf
+      - NITRO_DNS_NAMES=localhost,neovrf,vrf
       - SERVICE_TYPE=neovrf
       - PORT=${NEOVRF_PORT:-8087}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -225,7 +225,7 @@ services:
       - NEO_NETWORK_MAGIC
 
   # =============================================================================
-  # NeoOracle Service Marble
+  # NeoOracle Service Nitro
   # =============================================================================
   neooracle:
     <<: *sim-defaults
@@ -238,12 +238,12 @@ services:
     ports:
       - 127.0.0.1:${NEOORACLE_PORT:-8088}:${NEOORACLE_PORT:-8088}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=neooracle
-      - MARBLE_DNS_NAMES=localhost,neooracle,oracle
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=neooracle
+      - NITRO_DNS_NAMES=localhost,neooracle,oracle
       - SERVICE_TYPE=neooracle
       - PORT=${NEOORACLE_PORT:-8088}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -255,7 +255,7 @@ services:
       - ORACLE_MAX_SIZE
 
   # =============================================================================
-  # NeoRequests Service Marble
+  # NeoRequests Service Nitro
   # =============================================================================
   neorequests:
     <<: *sim-defaults
@@ -268,12 +268,12 @@ services:
     ports:
       - 127.0.0.1:${NEOREQUESTS_PORT:-8094}:${NEOREQUESTS_PORT:-8094}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=neorequests
-      - MARBLE_DNS_NAMES=localhost,neorequests
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=neorequests
+      - NITRO_DNS_NAMES=localhost,neorequests
       - SERVICE_TYPE=neorequests
       - PORT=${NEOREQUESTS_PORT:-8094}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -297,7 +297,7 @@ services:
       - TXPROXY_TIMEOUT=${TXPROXY_TIMEOUT:-90s}
 
   # =============================================================================
-  # TxProxy Service Marble
+  # TxProxy Service Nitro
   # =============================================================================
   txproxy:
     <<: *sim-defaults
@@ -310,12 +310,12 @@ services:
     ports:
       - 127.0.0.1:${TXPROXY_PORT:-8090}:${TXPROXY_PORT:-8090}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=txproxy
-      - MARBLE_DNS_NAMES=localhost,txproxy
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=txproxy
+      - NITRO_DNS_NAMES=localhost,txproxy
       - SERVICE_TYPE=txproxy
       - PORT=${TXPROXY_PORT:-8090}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -334,7 +334,7 @@ services:
         condition: service_healthy
 
   # =============================================================================
-  # GlobalSigner Service Marble
+  # GlobalSigner Service Nitro
   # =============================================================================
   globalsigner:
     <<: *sim-defaults
@@ -347,12 +347,12 @@ services:
     ports:
       - 127.0.0.1:${GLOBALSIGNER_PORT:-8092}:${GLOBALSIGNER_PORT:-8092}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=globalsigner
-      - MARBLE_DNS_NAMES=localhost,globalsigner
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=globalsigner
+      - NITRO_DNS_NAMES=localhost,globalsigner
       - SERVICE_TYPE=globalsigner
       - PORT=${GLOBALSIGNER_PORT:-8092}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY
@@ -368,7 +368,7 @@ services:
       start_period: 15s
 
   # =============================================================================
-  # NeoSimulation Service Marble
+  # NeoSimulation Service Nitro
   # =============================================================================
   neosimulation:
     <<: *sim-defaults
@@ -381,12 +381,12 @@ services:
     ports:
       - 127.0.0.1:${NEOSIMULATION_PORT:-8093}:${NEOSIMULATION_PORT:-8093}
     environment:
-      - MARBLE_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
-      - MARBLE_TYPE=neosimulation
-      - MARBLE_DNS_NAMES=localhost,neosimulation
+      - NITRO_COORDINATOR_ADDR=${COORDINATOR_MESH_ADDR:-coordinator:2001}
+      - NITRO_TYPE=neosimulation
+      - NITRO_DNS_NAMES=localhost,neosimulation
       - SERVICE_TYPE=neosimulation
       - PORT=${NEOSIMULATION_PORT:-8093}
-      - MARBLE_ENV=${MARBLE_ENV:-development}
+      - NITRO_ENV=${NITRO_ENV:-development}
       - METRICS_ENABLED
       - SUPABASE_URL
       - SUPABASE_SERVICE_KEY

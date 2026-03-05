@@ -1,4 +1,4 @@
-// Package service provides common service infrastructure for marble services.
+// Package service provides common service infrastructure for nitro services.
 package service
 
 import (
@@ -13,9 +13,9 @@ import (
 // Core Service Interfaces
 // =============================================================================
 
-// MarbleService is the interface all marble services must implement.
+// NitroService is the interface all nitro services must implement.
 // This ensures consistent lifecycle management across all services.
-type MarbleService interface {
+type NitroService interface {
 	// Identity
 	ID() string
 	Name() string

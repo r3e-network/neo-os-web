@@ -11,7 +11,7 @@ import (
 // Environment represents the logical deployment environment.
 //
 // This is intentionally lightweight: it is derived from environment variables
-// (primarily MARBLE_ENV) and is safe to use from low-level packages.
+// (primarily NITRO_ENV) and is safe to use from low-level packages.
 type Environment string
 
 const (
@@ -40,10 +40,10 @@ func ParseEnvironment(raw string) (env Environment, ok bool) {
 	}
 }
 
-// Env returns the current environment derived from MARBLE_ENV (preferred) or
+// Env returns the current environment derived from NITRO_ENV (preferred) or
 // ENVIRONMENT (legacy fallback). Unknown values default to Development.
 func Env() Environment {
-	raw := strings.ToLower(strings.TrimSpace(os.Getenv("MARBLE_ENV")))
+	raw := strings.ToLower(strings.TrimSpace(os.Getenv("NITRO_ENV")))
 	if raw == "" {
 		raw = strings.ToLower(strings.TrimSpace(os.Getenv("ENVIRONMENT")))
 	}
