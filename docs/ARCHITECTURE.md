@@ -15,7 +15,7 @@ For end-to-end flow details, see `docs/WORKFLOWS.md` and `docs/DATAFLOWS.md`.
 
 - **Settlement**: GAS only (PaymentHub rejects all other assets).
 - **Governance**: bNEO only (Governance rejects all other assets).
-- **Confidentiality**: MarbleRun + Nitro-oriented enclaves for sensitive services.
+- **Confidentiality**: NitroRun + Nitro-oriented enclaves for sensitive services.
 - **Gateway**: Supabase Edge Functions (Auth + routing + RLS).
 - **Dev stack**: k3s + local Supabase for development.
 
@@ -36,15 +36,15 @@ For end-to-end flow details, see `docs/WORKFLOWS.md` and `docs/DATAFLOWS.md`.
                                     │ mTLS (mesh, optional)
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           MARBLERUN COORDINATOR                              │
+│                           NITRORUN COORDINATOR                              │
 │         Attestation, topology verification, mTLS certs, secret injection     │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    │ mTLS (MarbleRun-issued)
+                                    │ mTLS (NitroRun-issued)
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                             ENCLAVE WORKLOADS                                │
 │                                                                             │
-│  Infrastructure marbles:                                                    │
+│  Infrastructure nitros:                                                    │
 │   - GlobalSigner  (TEE-managed domain-separated signing + rotation)         │
 │   - NeoAccounts   (account pool management + rotation)                      │
 │                                                                             │
@@ -79,7 +79,7 @@ The repo is split into:
 
 - `infrastructure/`: shared building blocks (runtime, middleware, storage, chain I/O, secrets, signing).
 - `services/`: product services only (`datafeed`, `automation`, `confcompute`, `conforacle`, `vrf`, `requests`, `txproxy`, `gasbank`, `simulation`).
-- `cmd/`: binaries (`cmd/marble`, deployment tooling, bundle verification helpers).
+- `cmd/`: binaries (`cmd/nitro`, deployment tooling, bundle verification helpers).
 - `platform/`: Supabase Edge gateway + host app + SDK.
 
 See `docs/LAYERING.md` for the concrete mapping.
@@ -112,7 +112,7 @@ User secrets are stored in Supabase, encrypted with `SECRETS_MASTER_KEY`.
 ### Service Access (Secret Injection)
 
 Enclave services do not implement user-facing secret workflows. They receive a
-`secrets.Provider` implementation (injected by `cmd/marble`) that enforces:
+`secrets.Provider` implementation (injected by `cmd/nitro`) that enforces:
 
 - per-user ownership
 - per-secret allowed services (permissions)
@@ -253,7 +253,7 @@ is recorded in `chain_txs` for auditing and UI consumption.
 
 Each service follows the same internal pattern:
 
-- `services/<svc>/marble`: HTTP handlers + workers (enclave runtime).
+- `services/<svc>/nitro`: HTTP handlers + workers (enclave runtime).
 - `services/<svc>/supabase`: service-specific persistence (only when needed).
 
 Platform contracts live under `contracts/` and are written by the enclave-managed

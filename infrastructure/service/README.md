@@ -1,10 +1,10 @@
 # Common Service Framework
 
-Shared service infrastructure for all Neo Service Layer marble services.
+Shared service infrastructure for all Neo Service Layer nitro services.
 
 ## Overview
 
-The `infrastructure/service` package provides a consistent foundation for all marble services with:
+The `infrastructure/service` package provides a consistent foundation for all nitro services with:
 - Standardized lifecycle management (Start/Stop)
 - Background worker registration and management
 - Hydration hooks for state loading
@@ -23,11 +23,11 @@ The `infrastructure/service` package provides a consistent foundation for all ma
 
 ### BaseService
 
-The foundation for all marble services.
+The foundation for all nitro services.
 
 ```go
 type BaseService struct {
-    *marble.Service
+    *nitro.Service
 
     // Lifecycle management
     stopCh   chan struct{}
@@ -51,19 +51,19 @@ type BaseConfig struct {
     ID      string
     Name    string
     Version string
-    Marble  *marble.Marble
+    Nitro  *nitro.Nitro
     DB      database.RepositoryInterface
 }
 ```
 
 ## Service Interfaces
 
-### MarbleService (Required)
+### NitroService (Required)
 
-All marble services must implement this interface:
+All nitro services must implement this interface:
 
 ```go
-type MarbleService interface {
+type NitroService interface {
     // Identity
     ID() string
     Name() string
@@ -140,7 +140,7 @@ func New(cfg Config) (*Service, error) {
         ID:      "myservice",
         Name:    "My Service",
         Version: "1.0.0",
-        Marble:  cfg.Marble,
+        Nitro:  cfg.Nitro,
         DB:      cfg.DB,
     })
 
@@ -268,7 +268,7 @@ base.RegisterStandardRoutesOnServeMuxWithOptions(mux, commonservice.RouteOptions
 ### Start Sequence
 
 1. Call `Start(ctx)` on BaseService
-2. Underlying marble.Service starts
+2. Underlying nitro.Service starts
 3. Hydrate function called (if registered)
 4. Background workers launched
 
@@ -277,7 +277,7 @@ base.RegisterStandardRoutesOnServeMuxWithOptions(mux, commonservice.RouteOptions
 1. Call `Stop()` on BaseService
 2. Stop channel closed (signals workers)
 3. Workers receive stop signal via `StopChan()`
-4. Underlying marble.Service stops
+4. Underlying nitro.Service stops
 
 ### Safe Stop Handling
 
@@ -297,7 +297,7 @@ func (b *BaseService) Stop() error {
 
 | Package | Purpose |
 |---------|---------|
-| `infrastructure/marble` | MarbleRun/Nitro runtime integration |
+| `infrastructure/nitro` | NitroRun/Nitro runtime integration |
 | `infrastructure/database` | Repository interface |
 | `infrastructure/chain` | Blockchain interaction |
 | `infrastructure/httputil` | HTTP response helpers |
@@ -322,5 +322,5 @@ All Neo Service Layer services extend BaseService:
 
 ## Related Documentation
 
-- [Marble Package](../marble/README.md)
+- [Nitro Package](../nitro/README.md)
 - [Database Package](../database/README.md)

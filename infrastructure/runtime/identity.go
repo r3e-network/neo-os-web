@@ -10,9 +10,9 @@ import (
 // boundaries (e.g. only trust identity headers protected by verified mTLS).
 //
 // Triggers:
-// - MARBLE_ENV=production
+// - NITRO_ENV=production
 // - STRICT_IDENTITY_MODE=true or TEE_STRICT_MODE=true
-// - Marble TLS credentials are injected (MARBLE_CERT/MARBLE_KEY/MARBLE_ROOT_CA)
+// - Nitro TLS credentials are injected (NITRO_CERT/NITRO_KEY/NITRO_ROOT_CA)
 // - STRICT_IDENTITY_ON_TEE=true (nitro-only runtime)
 func StrictIdentityMode() bool {
 	env := Env()
@@ -24,10 +24,10 @@ func StrictIdentityMode() bool {
 		return true
 	}
 
-	hasMarbleTLS := strings.TrimSpace(os.Getenv("MARBLE_CERT")) != "" &&
-		strings.TrimSpace(os.Getenv("MARBLE_KEY")) != "" &&
-		strings.TrimSpace(os.Getenv("MARBLE_ROOT_CA")) != ""
-	if hasMarbleTLS {
+	hasNitroTLS := strings.TrimSpace(os.Getenv("NITRO_CERT")) != "" &&
+		strings.TrimSpace(os.Getenv("NITRO_KEY")) != "" &&
+		strings.TrimSpace(os.Getenv("NITRO_ROOT_CA")) != ""
+	if hasNitroTLS {
 		return true
 	}
 

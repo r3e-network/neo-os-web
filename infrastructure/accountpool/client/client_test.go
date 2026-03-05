@@ -14,7 +14,7 @@ import (
 
 func newTestClient(t *testing.T, baseURL string) *Client {
 	t.Helper()
-	t.Setenv("MARBLE_ENV", "development")
+	t.Setenv("NITRO_ENV", "development")
 	client, err := New(Config{
 		BaseURL:   baseURL,
 		ServiceID: "neocompute",
@@ -26,7 +26,7 @@ func newTestClient(t *testing.T, baseURL string) *Client {
 }
 
 func TestNew(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "development")
+	t.Setenv("NITRO_ENV", "development")
 	client, err := New(Config{
 		BaseURL:   "http://localhost:8090/",
 		ServiceID: "neocompute",
@@ -43,7 +43,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestNew_StrictModeRequiresHTTPS(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "production")
+	t.Setenv("NITRO_ENV", "production")
 	_, err := New(Config{
 		BaseURL:   "http://localhost:8090",
 		ServiceID: "neocompute",
@@ -376,7 +376,7 @@ func TestErrorHandling(t *testing.T) {
 }
 
 func BenchmarkRequestAccounts(b *testing.B) {
-	b.Setenv("MARBLE_ENV", "development")
+	b.Setenv("NITRO_ENV", "development")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(RequestAccountsResponse{
@@ -402,7 +402,7 @@ func BenchmarkRequestAccounts(b *testing.B) {
 }
 
 func TestTimeoutOverrideDoesNotMutateHTTPClient(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "development")
+	t.Setenv("NITRO_ENV", "development")
 	shared := &http.Client{Timeout: 0}
 	client, err := New(Config{
 		BaseURL:      "http://localhost:8090",

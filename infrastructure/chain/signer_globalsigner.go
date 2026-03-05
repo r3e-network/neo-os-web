@@ -17,7 +17,7 @@ import (
 	gsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/client"
 )
 
-// GlobalSignerSigner implements TEESigner using the GlobalSigner infrastructure marble.
+// GlobalSignerSigner implements TEESigner using the GlobalSigner infrastructure nitro.
 // It never holds long-lived private key material locally.
 type GlobalSignerSigner struct {
 	client             *gsclient.Client

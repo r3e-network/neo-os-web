@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
-	neofeeds "github.com/r3e-network/neo-miniapp-platform/services/datafeed/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
+	neofeeds "github.com/r3e-network/neo-miniapp-platform/services/datafeed/nitro"
 )
 
 // TestNeoFeedsPriceFetching tests that neofeeds can fetch prices from Chainlink and Binance.
@@ -24,15 +24,15 @@ func TestNeoFeedsPriceFetching(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	m, err := marble.New(marble.Config{MarbleType: "neofeeds"})
+	m, err := nitro.New(nitro.Config{NitroType: "neofeeds"})
 	if err != nil {
-		t.Fatalf("marble.New: %v", err)
+		t.Fatalf("nitro.New: %v", err)
 	}
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
 	mockDB := database.NewMockRepository()
 	svc, err := neofeeds.New(neofeeds.Config{
-		Marble:      m,
+		Nitro:      m,
 		DB:          mockDB,
 		ArbitrumRPC: "https://arb1.arbitrum.io/rpc",
 	})
@@ -110,14 +110,14 @@ func TestNeoFeedsPriceFetching(t *testing.T) {
 // TestNeoFeedsHTTPHandler tests the HTTP handlers for neofeeds service.
 func TestNeoFeedsHTTPHandler(t *testing.T) {
 	t.Setenv("TEE_BACKEND", "simulation")
-	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("NITRO_ENV", "testing")
 	t.Setenv("STRICT_IDENTITY_MODE", "false")
 	t.Setenv("TEE_STRICT_MODE", "false")
 	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
-	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
+	m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
 	mockServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +136,7 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, err := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: mockServer.Client()})
+	svc, err := neofeeds.New(neofeeds.Config{Nitro: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: mockServer.Client()})
 	if err != nil {
 		t.Fatalf("neofeeds.New: %v", err)
 	}
@@ -194,14 +194,14 @@ func TestNeoFeedsHTTPHandler(t *testing.T) {
 func TestNeoFeedsSignatureVerification(t *testing.T) {
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Setenv("TEE_BACKEND", "simulation")
-	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("NITRO_ENV", "testing")
 	t.Setenv("STRICT_IDENTITY_MODE", "false")
 	t.Setenv("TEE_STRICT_MODE", "false")
 	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
-	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
+	m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
 	signingKey := []byte("test-signing-key-32-bytes-long!!")
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", signingKey)
 
@@ -221,7 +221,7 @@ func TestNeoFeedsSignatureVerification(t *testing.T) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, err := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: mockServer.Client()})
+	svc, err := neofeeds.New(neofeeds.Config{Nitro: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: mockServer.Client()})
 	if err != nil {
 		t.Fatalf("neofeeds.New: %v", err)
 	}
@@ -273,19 +273,19 @@ func TestNeoFeedsMultiplePrices(t *testing.T) {
 	}
 
 	t.Setenv("TEE_BACKEND", "simulation")
-	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("NITRO_ENV", "testing")
 	t.Setenv("STRICT_IDENTITY_MODE", "false")
 	t.Setenv("TEE_STRICT_MODE", "false")
 	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
-	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
+	m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
 	mockDB2 := database.NewMockRepository()
 	svc, err := neofeeds.New(neofeeds.Config{
-		Marble:      m,
+		Nitro:      m,
 		DB:          mockDB2,
 		ArbitrumRPC: "https://arb1.arbitrum.io/rpc",
 	})
@@ -393,15 +393,15 @@ func TestChainlinkDirectFetch(t *testing.T) {
 func TestNeoFeedsServiceInfo(t *testing.T) {
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Setenv("TEE_BACKEND", "simulation")
-	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("NITRO_ENV", "testing")
 	t.Setenv("STRICT_IDENTITY_MODE", "false")
 	t.Setenv("TEE_STRICT_MODE", "false")
 	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
-	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository()})
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
+	m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
+	svc, _ := neofeeds.New(neofeeds.Config{Nitro: m, DB: database.NewMockRepository()})
 
 	if svc.ID() != "neofeeds" {
 		t.Errorf("expected ID 'neofeeds', got '%s'", svc.ID())
@@ -423,14 +423,14 @@ func BenchmarkPriceFetching(b *testing.B) {
 	defer mockServer.Close()
 
 	b.Setenv("TEE_BACKEND", "simulation")
-	b.Setenv("MARBLE_ENV", "testing")
+	b.Setenv("NITRO_ENV", "testing")
 	b.Setenv("STRICT_IDENTITY_MODE", "false")
 	b.Setenv("TEE_STRICT_MODE", "false")
 	b.Setenv("STRICT_IDENTITY_ON_TEE", "false")
-	b.Setenv("MARBLE_CERT", "")
-	b.Setenv("MARBLE_KEY", "")
-	b.Setenv("MARBLE_ROOT_CA", "")
-	m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
+	b.Setenv("NITRO_CERT", "")
+	b.Setenv("NITRO_KEY", "")
+	b.Setenv("NITRO_ROOT_CA", "")
+	m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
 	m.SetTestSecret("NEOFEEDS_SIGNING_KEY", []byte("test-signing-key-32-bytes-long!!"))
 
 	mockConfig := &neofeeds.NeoFeedsConfig{
@@ -443,7 +443,7 @@ func BenchmarkPriceFetching(b *testing.B) {
 		},
 		UpdateInterval: 60 * time.Second,
 	}
-	svc, _ := neofeeds.New(neofeeds.Config{Marble: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: mockServer.Client()})
+	svc, _ := neofeeds.New(neofeeds.Config{Nitro: m, DB: database.NewMockRepository(), FeedsConfig: mockConfig, HTTPClient: mockServer.Client()})
 
 	ctx := context.Background()
 

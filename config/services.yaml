@@ -1,5 +1,5 @@
 # Neo Services Configuration
-# Each service is a separate Marble in MarbleRun, running in its own TEE enclave.
+# Each service is a separate Nitro in NitroRun, running in its own TEE enclave.
 # Enable/disable services here - disabled services will exit gracefully (exit code 0).
 
 services:

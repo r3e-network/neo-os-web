@@ -1,6 +1,6 @@
 # =============================================================================
 # Neo Service Layer - Makefile
-# MarbleRun + AWS Nitro + Supabase + Vercel Architecture
+# NitroRun + AWS Nitro + Supabase + Vercel Architecture
 # =============================================================================
 
 .PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-nitro
@@ -8,7 +8,7 @@
 .PHONY: edge-check edge-dev
 
 # Variables
-CMD_BINARIES := marble create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
+CMD_BINARIES := nitro create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
 # Compose resolves relative .env files from the compose file directory (`docker/`).
 # Prefer the repository root `.env` when present to keep runtime vars consistent.
 DOCKER_COMPOSE_ENV_FILE ?= $(if $(wildcard .env),--env-file .env,)
@@ -22,9 +22,9 @@ GOLANGCI_LINT ?= $(GOBIN)/golangci-lint
 
 COORDINATOR_CLIENT_ADDR ?= localhost:4433
 INSECURE ?= 1
-MARBLERUN_FLAGS :=
+NITRORUN_FLAGS :=
 ifneq ($(filter 1 true yes,$(INSECURE)),)
-  MARBLERUN_FLAGS += --insecure
+  NITRORUN_FLAGS += --insecure
 endif
 
 # =============================================================================
@@ -47,15 +47,15 @@ build: ## Build all services
 
 test: ## Run all tests
 	@echo "Running tests..."
-	MARBLE_ENV=testing TEE_BACKEND=nitro go test -v ./...
+	NITRO_ENV=testing TEE_BACKEND=nitro go test -v ./...
 
 test-unit: ## Run unit tests only
 	@echo "Running unit tests..."
-	MARBLE_ENV=testing TEE_BACKEND=nitro go test -v -short ./...
+	NITRO_ENV=testing TEE_BACKEND=nitro go test -v -short ./...
 
 test-coverage: ## Run tests with coverage
 	@echo "Running tests with coverage..."
-	MARBLE_ENV=testing TEE_BACKEND=nitro go test -v -coverprofile=coverage.out ./...
+	NITRO_ENV=testing TEE_BACKEND=nitro go test -v -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report: coverage.html"
 
@@ -143,21 +143,21 @@ docker-clean: ## Remove all containers and volumes
 	$(DOCKER_COMPOSE) down -v --rmi local
 
 # =============================================================================
-# MarbleRun
+# NitroRun
 # =============================================================================
 
-marblerun-install: ## Install MarbleRun CLI
-	curl -fsSL https://github.com/edgelesssys/marblerun/releases/latest/download/marblerun-linux-amd64 -o /usr/local/bin/marblerun
-	chmod +x /usr/local/bin/marblerun
+nitrorun-install: ## Install NitroRun CLI
+	curl -fsSL https://github.com/edgelesssys/nitrorun/releases/latest/download/nitrorun-linux-amd64 -o /usr/local/bin/nitrorun
+	chmod +x /usr/local/bin/nitrorun
 
-marblerun-manifest: ## Set MarbleRun manifest
-	marblerun manifest set manifests/manifest.json $(COORDINATOR_CLIENT_ADDR) $(MARBLERUN_FLAGS)
+nitrorun-manifest: ## Set NitroRun manifest
+	nitrorun manifest set manifests/manifest.json $(COORDINATOR_CLIENT_ADDR) $(NITRORUN_FLAGS)
 
-marblerun-status: ## Check MarbleRun status
-	marblerun status $(COORDINATOR_CLIENT_ADDR) $(MARBLERUN_FLAGS)
+nitrorun-status: ## Check NitroRun status
+	nitrorun status $(COORDINATOR_CLIENT_ADDR) $(NITRORUN_FLAGS)
 
-marblerun-recover: ## Recover MarbleRun coordinator
-	marblerun recover manifests/recovery-key.json $(COORDINATOR_CLIENT_ADDR) $(MARBLERUN_FLAGS)
+nitrorun-recover: ## Recover NitroRun coordinator
+	nitrorun recover manifests/recovery-key.json $(COORDINATOR_CLIENT_ADDR) $(NITRORUN_FLAGS)
 
 # =============================================================================
 # Database
@@ -312,7 +312,7 @@ docs: ## Generate documentation
 
 version: ## Show version
 	@echo "Neo Service Layer v1.0.0"
-	@echo "MarbleRun + AWS Nitro + Supabase + Vercel"
+	@echo "NitroRun + AWS Nitro + Supabase + Vercel"
 
 install-tools: ## Install development tools
 	@echo "Installing development tools..."

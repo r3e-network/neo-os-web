@@ -10,20 +10,20 @@ import (
 	"testing"
 	"time"
 
-	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/marble"
+	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/nitro"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 )
 
 func createTestNeoAccountsService(t *testing.T) *neoaccounts.Service {
 	t.Helper()
-	m, err := marble.New(marble.Config{MarbleType: "neoaccounts"})
+	m, err := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 	if err != nil {
-		t.Fatalf("marble.New: %v", err)
+		t.Fatalf("nitro.New: %v", err)
 	}
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("integration-test-key-32-bytes!!!"))
 
-	svc, err := neoaccounts.New(neoaccounts.Config{Marble: m})
+	svc, err := neoaccounts.New(neoaccounts.Config{Nitro: m})
 	if err != nil {
 		t.Fatalf("neoaccounts.New: %v", err)
 	}
@@ -210,13 +210,13 @@ func TestNeoAccountsBalanceEndpointValidation(t *testing.T) {
 }
 
 func TestNeoAccountsKeyDerivationConsistency(t *testing.T) {
-	m1, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+	m1, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 	m1.SetTestSecret("POOL_MASTER_KEY", []byte("consistent-master-key-32-bytes!!"))
-	svc1, _ := neoaccounts.New(neoaccounts.Config{Marble: m1})
+	svc1, _ := neoaccounts.New(neoaccounts.Config{Nitro: m1})
 
-	m2, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+	m2, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 	m2.SetTestSecret("POOL_MASTER_KEY", []byte("consistent-master-key-32-bytes!!"))
-	svc2, _ := neoaccounts.New(neoaccounts.Config{Marble: m2})
+	svc2, _ := neoaccounts.New(neoaccounts.Config{Nitro: m2})
 
 	// Services created with same master key should produce identical accounts
 	_ = svc1
@@ -335,9 +335,9 @@ func TestNeoAccountsConcurrentAccess(t *testing.T) {
 }
 
 func BenchmarkNeoAccountsHealthEndpoint(b *testing.B) {
-	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+	m, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("benchmark-master-key-32-bytes!!!"))
-	svc, _ := neoaccounts.New(neoaccounts.Config{Marble: m})
+	svc, _ := neoaccounts.New(neoaccounts.Config{Nitro: m})
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

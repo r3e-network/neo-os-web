@@ -7,7 +7,7 @@ import (
 
 // CopyHTTPClientWithTimeout returns a shallow copy of base with its Timeout set.
 //
-// It is safe to use with shared clients (e.g., Marble HTTP clients) because it
+// It is safe to use with shared clients (e.g., Nitro HTTP clients) because it
 // never mutates the caller-provided instance.
 //
 // If base is nil, it returns a new http.Client.

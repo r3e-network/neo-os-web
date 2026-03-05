@@ -274,9 +274,9 @@ preflight_checks() {
         fi
     fi
 
-    # Check if MarbleRun is installed
-    if ! command -v marblerun &> /dev/null; then
-        log_warn "marblerun CLI not found. Some features may not work."
+    # Check if NitroRun is installed
+    if ! command -v nitrorun &> /dev/null; then
+        log_warn "nitrorun CLI not found. Some features may not work."
     fi
 
     # Check cert-manager ClusterIssuer email configuration
@@ -446,45 +446,45 @@ import_images_k3s() {
 }
 
 # =============================================================================
-# Setup MarbleRun Manifest
+# Setup NitroRun Manifest
 # =============================================================================
-setup_marblerun_manifest() {
-    log_step "Setting up MarbleRun manifest..."
+setup_nitrorun_manifest() {
+    log_step "Setting up NitroRun manifest..."
 
-    # Check if MarbleRun is ready
-    if ! command -v marblerun &> /dev/null; then
-        log_warn "MarbleRun CLI not found, skipping manifest setup"
+    # Check if NitroRun is ready
+    if ! command -v nitrorun &> /dev/null; then
+        log_warn "NitroRun CLI not found, skipping manifest setup"
         return 0
     fi
 
     if [ "$DRY_RUN" == "true" ]; then
-        log_info "[DRY RUN] Would setup MarbleRun manifest"
+        log_info "[DRY RUN] Would setup NitroRun manifest"
         return 0
     fi
 
-    # Check if MarbleRun is installed in cluster
-    if ! kubectl get namespace marblerun &> /dev/null; then
-        log_warn "MarbleRun not installed in cluster, skipping manifest setup"
+    # Check if NitroRun is installed in cluster
+    if ! kubectl get namespace nitrorun &> /dev/null; then
+        log_warn "NitroRun not installed in cluster, skipping manifest setup"
         return 0
     fi
 
     # Port forward to coordinator
-    log_info "Setting up port forwarding to MarbleRun Coordinator..."
+    log_info "Setting up port forwarding to NitroRun Coordinator..."
     local coordinator_svc="coordinator-client-api"
-    if ! kubectl -n marblerun get svc "$coordinator_svc" &>/dev/null; then
-        coordinator_svc="marblerun-coordinator-client-api"
+    if ! kubectl -n nitrorun get svc "$coordinator_svc" &>/dev/null; then
+        coordinator_svc="nitrorun-coordinator-client-api"
     fi
-    if ! kubectl -n marblerun get svc "$coordinator_svc" &>/dev/null; then
-        log_warn "Coordinator client service not found in namespace 'marblerun'. Skipping manifest setup."
+    if ! kubectl -n nitrorun get svc "$coordinator_svc" &>/dev/null; then
+        log_warn "Coordinator client service not found in namespace 'nitrorun'. Skipping manifest setup."
         return 0
     fi
 
-    kubectl -n marblerun port-forward "svc/${coordinator_svc}" 4433:4433 &
+    kubectl -n nitrorun port-forward "svc/${coordinator_svc}" 4433:4433 &
     PF_PID=$!
     sleep 3
 
     # Set the manifest
-    log_info "Setting MarbleRun manifest..."
+    log_info "Setting NitroRun manifest..."
     local flags=()
     local manifest_file="$PROJECT_ROOT/manifests/manifest.json"
     local tmp_manifest=""
@@ -511,7 +511,7 @@ setup_marblerun_manifest() {
     neofeeds_signing_key="$(resolve_runtime_var NEOFEEDS_SIGNING_KEY "$env_file" || true)"
     neovrf_signing_key="$(resolve_runtime_var NEOVRF_SIGNING_KEY "$env_file" || true)"
     if [[ -z "$supabase_url" || -z "$supabase_service_key" ]]; then
-        log_error "SUPABASE_URL and SUPABASE_SERVICE_KEY are required for MarbleRun services."
+        log_error "SUPABASE_URL and SUPABASE_SERVICE_KEY are required for NitroRun services."
         log_error "Export them in the shell or set them in ${env_file} before deployment."
         return 1
     fi
@@ -522,7 +522,7 @@ setup_marblerun_manifest() {
     fi
 
     if ! command -v jq &> /dev/null; then
-        log_error "jq not found; required to inject runtime SUPABASE_* values into the MarbleRun manifest."
+        log_error "jq not found; required to inject runtime SUPABASE_* values into the NitroRun manifest."
         return 1
     fi
 
@@ -541,7 +541,7 @@ setup_marblerun_manifest() {
             --arg neofeeds_signing_key "$neofeeds_signing_key" \
             --arg neovrf_signing_key "$neovrf_signing_key" \
             '
-            .Marbles |= with_entries(
+            .Nitros |= with_entries(
                 .value.Parameters.Env.SUPABASE_URL = $supabase_url
                 | .value.Parameters.Env.SUPABASE_SERVICE_KEY = $supabase_service_key
                 | .value.Parameters.Env |= (
@@ -570,7 +570,7 @@ setup_marblerun_manifest() {
             --arg neofeeds_signing_key "$neofeeds_signing_key" \
             --arg neovrf_signing_key "$neovrf_signing_key" \
             '
-            .Marbles |= with_entries(
+            .Nitros |= with_entries(
                 .value.Parameters.Env.SUPABASE_URL = $supabase_url
                 | .value.Parameters.Env.SUPABASE_SERVICE_KEY = $supabase_service_key
                 | .value.Parameters.Env |= (
@@ -589,14 +589,14 @@ setup_marblerun_manifest() {
     fi
     manifest_file="$tmp_manifest"
 
-    if ! marblerun manifest set "$manifest_file" "localhost:4433" "${flags[@]}"; then
+    if ! nitrorun manifest set "$manifest_file" "localhost:4433" "${flags[@]}"; then
         log_warn "Manifest set failed; attempting manifest update"
-        if marblerun manifest update apply --help >/dev/null 2>&1; then
-            if ! marblerun manifest update apply "$manifest_file" "localhost:4433" "${flags[@]}"; then
+        if nitrorun manifest update apply --help >/dev/null 2>&1; then
+            if ! nitrorun manifest update apply "$manifest_file" "localhost:4433" "${flags[@]}"; then
                 log_warn "Manifest update failed; coordinator may not be ready"
             fi
         else
-            log_warn "marblerun manifest update not available; skipping"
+            log_warn "nitrorun manifest update not available; skipping"
         fi
     fi
     if [[ -n "$tmp_manifest" ]]; then
@@ -606,7 +606,7 @@ setup_marblerun_manifest() {
     # Kill port forward
     kill $PF_PID 2>/dev/null || true
 
-    log_info "MarbleRun manifest configured"
+    log_info "NitroRun manifest configured"
 }
 
 # =============================================================================
@@ -711,8 +711,8 @@ show_status() {
     kubectl get nodes
 
     echo ""
-    echo "=== MarbleRun Status ==="
-    kubectl -n marblerun get pods 2>/dev/null || echo "MarbleRun not installed"
+    echo "=== NitroRun Status ==="
+    kubectl -n nitrorun get pods 2>/dev/null || echo "NitroRun not installed"
 
     echo ""
     echo "=== Service Layer Pods ==="
@@ -785,7 +785,7 @@ main() {
         deploy)
             preflight_checks
             import_images_k3s
-            setup_marblerun_manifest
+            setup_nitrorun_manifest
             deploy_k8s
             show_status
             ;;
@@ -806,7 +806,7 @@ main() {
             build_images
             push_images
             import_images_k3s
-            setup_marblerun_manifest
+            setup_nitrorun_manifest
             deploy_k8s
             show_status
             ;;

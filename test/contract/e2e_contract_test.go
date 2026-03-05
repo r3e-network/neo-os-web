@@ -10,23 +10,23 @@ import (
 	"testing"
 	"time"
 
-	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/marble"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
-	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/marble"
+	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/nitro"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
+	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/nitro"
 )
 
 // TestE2ENeoComputeFlow tests a minimal confidential compute flow.
 func TestE2ENeoComputeFlow(t *testing.T) {
 	t.Setenv("TEE_BACKEND", "simulation")
-	t.Setenv("MARBLE_ENV", "testing")
+	t.Setenv("NITRO_ENV", "testing")
 	t.Setenv("STRICT_IDENTITY_MODE", "false")
 	t.Setenv("TEE_STRICT_MODE", "false")
 	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
-	m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
+	m, _ := nitro.New(nitro.Config{NitroType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("e2e-compute-master-key-32-bytes!!!"))
 
-	svc, err := neocompute.New(neocompute.Config{Marble: m})
+	svc, err := neocompute.New(neocompute.Config{Nitro: m})
 	if err != nil {
 		t.Fatalf("neocompute.New: %v", err)
 	}
@@ -130,13 +130,13 @@ func TestE2EContractDeploymentFlow(t *testing.T) {
 
 // TestE2EConcurrentServiceOperations tests concurrent operations across services.
 func TestE2EConcurrentServiceOperations(t *testing.T) {
-	apMarble, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
-	apMarble.SetTestSecret("POOL_MASTER_KEY", []byte("concurrent-e2e-pool-key-32bytes!"))
-	apSvc, _ := neoaccounts.New(neoaccounts.Config{Marble: apMarble})
+	apNitro, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
+	apNitro.SetTestSecret("POOL_MASTER_KEY", []byte("concurrent-e2e-pool-key-32bytes!"))
+	apSvc, _ := neoaccounts.New(neoaccounts.Config{Nitro: apNitro})
 
-	computeMarble, _ := marble.New(marble.Config{MarbleType: "neocompute"})
-	computeMarble.SetTestSecret("COMPUTE_MASTER_KEY", []byte("concurrent-e2e-compute-key-32bytes"))
-	computeSvc, _ := neocompute.New(neocompute.Config{Marble: computeMarble})
+	computeNitro, _ := nitro.New(nitro.Config{NitroType: "neocompute"})
+	computeNitro.SetTestSecret("COMPUTE_MASTER_KEY", []byte("concurrent-e2e-compute-key-32bytes"))
+	computeSvc, _ := neocompute.New(neocompute.Config{Nitro: computeNitro})
 
 	var wg sync.WaitGroup
 	results := make(chan bool, 100)
@@ -191,9 +191,9 @@ func TestE2EConcurrentServiceOperations(t *testing.T) {
 // TestE2EErrorRecovery tests error recovery scenarios.
 func TestE2EErrorRecovery(t *testing.T) {
 	t.Run("invalid request handling", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 		m.SetTestSecret("POOL_MASTER_KEY", []byte("error-recovery-pool-key-32bytes!"))
-		svc, _ := neoaccounts.New(neoaccounts.Config{Marble: m})
+		svc, _ := neoaccounts.New(neoaccounts.Config{Nitro: m})
 
 		invalidJSON := []byte(`{invalid json}`)
 		req := httptest.NewRequest("POST", "/request", bytes.NewReader(invalidJSON))
@@ -213,29 +213,29 @@ func TestE2EErrorRecovery(t *testing.T) {
 func TestE2EServiceMetadata(t *testing.T) {
 	services := []struct {
 		name       string
-		marbleType string
+		nitroType string
 		secretKey  string
 		secretVal  []byte
-		createFunc func(*marble.Marble) (interface{ ID() string }, error)
+		createFunc func(*nitro.Nitro) (interface{ ID() string }, error)
 		expectedID string
 	}{
 		{
 			name:       "NeoAccounts",
-			marbleType: "neoaccounts",
+			nitroType: "neoaccounts",
 			secretKey:  "POOL_MASTER_KEY",
 			secretVal:  []byte("metadata-test-pool-key-32bytes!!"),
-			createFunc: func(m *marble.Marble) (interface{ ID() string }, error) {
-				return neoaccounts.New(neoaccounts.Config{Marble: m})
+			createFunc: func(m *nitro.Nitro) (interface{ ID() string }, error) {
+				return neoaccounts.New(neoaccounts.Config{Nitro: m})
 			},
 			expectedID: "neoaccounts",
 		},
 		{
 			name:       "NeoCompute",
-			marbleType: "neocompute",
+			nitroType: "neocompute",
 			secretKey:  "COMPUTE_MASTER_KEY",
 			secretVal:  []byte("metadata-test-compute-key-32-bytes!"),
-			createFunc: func(m *marble.Marble) (interface{ ID() string }, error) {
-				return neocompute.New(neocompute.Config{Marble: m})
+			createFunc: func(m *nitro.Nitro) (interface{ ID() string }, error) {
+				return neocompute.New(neocompute.Config{Nitro: m})
 			},
 			expectedID: "neocompute",
 		},
@@ -243,9 +243,9 @@ func TestE2EServiceMetadata(t *testing.T) {
 
 	for _, svc := range services {
 		t.Run(svc.name, func(t *testing.T) {
-			m, err := marble.New(marble.Config{MarbleType: svc.marbleType})
+			m, err := nitro.New(nitro.Config{NitroType: svc.nitroType})
 			if err != nil {
-				t.Fatalf("marble.New: %v", err)
+				t.Fatalf("nitro.New: %v", err)
 			}
 			m.SetTestSecret(svc.secretKey, svc.secretVal)
 

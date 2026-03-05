@@ -12,8 +12,8 @@ usage() {
 Usage: ./scripts/k3s-install.sh <install|status|cleanup>
 
 Commands:
-  install   Install k3s and deploy local MarbleRun coordinator overlay.
-  status    Show k3s and MarbleRun status.
+  install   Install k3s and deploy local NitroRun coordinator overlay.
+  status    Show k3s and NitroRun status.
   cleanup   Uninstall k3s.
 USAGE
 }
@@ -40,8 +40,8 @@ install_k3s() {
   echo "Waiting for node readiness..."
   kubectl wait --for=condition=Ready node --all --timeout=180s
 
-  echo "Deploying local MarbleRun coordinator overlay..."
-  kubectl apply -k "$PROJECT_ROOT/k8s/marblerun/overlays/nitro/"
+  echo "Deploying local NitroRun coordinator overlay..."
+  kubectl apply -k "$PROJECT_ROOT/k8s/nitrorun/overlays/nitro/"
 
   echo "k3s install completed (Nitro-oriented local profile)."
 }
@@ -51,8 +51,8 @@ show_status() {
   echo "== Nodes =="
   kubectl get nodes -o wide
   echo ""
-  echo "== MarbleRun namespace =="
-  kubectl -n marblerun get deploy,pods,svc
+  echo "== NitroRun namespace =="
+  kubectl -n nitrorun get deploy,pods,svc
 }
 
 cleanup_k3s() {

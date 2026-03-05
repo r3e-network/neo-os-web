@@ -84,9 +84,9 @@ func TestNewClient(t *testing.T) {
 			t.Setenv("SUPABASE_URL", "")
 			t.Setenv("SUPABASE_SERVICE_KEY", "")
 			t.Setenv("SUPABASE_ALLOW_INSECURE", "true")
-			t.Setenv("MARBLE_ENV", "development")
+			t.Setenv("NITRO_ENV", "development")
 			if tt.env != "" {
-				t.Setenv("MARBLE_ENV", tt.env)
+				t.Setenv("NITRO_ENV", tt.env)
 			}
 			client, err := NewClient(tt.cfg)
 			if (err != nil) != tt.wantErr {

@@ -24,7 +24,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -43,24 +43,24 @@ spec:
         ports:
         - containerPort: 8083
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "neofeeds"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -81,10 +81,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "neofeeds,neofeeds.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -218,8 +218,8 @@ spec:
               name: service-layer-config
               key: GLOBALSIGNER_SERVICE_URL
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -283,7 +283,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -302,24 +302,24 @@ spec:
         ports:
         - containerPort: 8084
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "neoflow"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -340,10 +340,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "neoflow,neoflow.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -421,8 +421,8 @@ spec:
               name: service-layer-config
               key: GLOBALSIGNER_SERVICE_URL
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -486,7 +486,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -505,24 +505,24 @@ spec:
         ports:
         - containerPort: 8085
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "neoaccounts"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -543,10 +543,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "neoaccounts,accountpool,neoaccounts.service-layer.svc.cluster.local,accountpool.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -598,8 +598,8 @@ spec:
               name: service-layer-config
               key: GLOBALSIGNER_SERVICE_URL
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -663,7 +663,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -682,24 +682,24 @@ spec:
         ports:
         - containerPort: 8086
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "neocompute"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -720,10 +720,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "neocompute,neocompute.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -775,8 +775,8 @@ spec:
               key: SECRETS_MASTER_KEY
               optional: true
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -840,7 +840,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -859,24 +859,24 @@ spec:
         ports:
         - containerPort: 8087
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "neovrf"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -897,10 +897,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "neovrf,vrf,neovrf.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -940,8 +940,8 @@ spec:
               name: service-layer-config
               key: GLOBALSIGNER_SERVICE_URL
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1005,7 +1005,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -1024,24 +1024,24 @@ spec:
         ports:
         - containerPort: 8088
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "neooracle"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -1062,10 +1062,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "neooracle,oracle,neooracle.service-layer.svc.cluster.local,oracle.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -1128,8 +1128,8 @@ spec:
               key: SECRETS_MASTER_KEY
               optional: true
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1193,7 +1193,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -1212,24 +1212,24 @@ spec:
         ports:
         - containerPort: 8094
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "neorequests"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -1250,10 +1250,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "neorequests,neorequests.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -1378,8 +1378,8 @@ spec:
         - name: SERVICE_TYPE
           value: "neorequests"
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1443,7 +1443,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -1462,24 +1462,24 @@ spec:
         ports:
         - containerPort: 8090
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "txproxy"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -1500,10 +1500,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "txproxy,txproxy.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -1579,8 +1579,8 @@ spec:
         - name: SERVICE_TYPE
           value: "txproxy"
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1644,7 +1644,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -1663,24 +1663,24 @@ spec:
         ports:
         - containerPort: 8092
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "globalsigner"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -1701,10 +1701,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "globalsigner,globalsigner.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -1759,8 +1759,8 @@ spec:
               key: GLOBALSIGNER_REQUIRE_QUOTE
               optional: true
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -1824,7 +1824,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -1843,24 +1843,24 @@ spec:
         ports:
         - containerPort: 8091
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "neogasbank"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -1881,10 +1881,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "neogasbank,neogasbank.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -1967,8 +1967,8 @@ spec:
         - name: SERVICE_TYPE
           value: "neogasbank"
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:
@@ -2032,7 +2032,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: marble-data
+      - name: nitro-data
         emptyDir: {}
       - name: tmp
         emptyDir: {}
@@ -2051,24 +2051,24 @@ spec:
         ports:
         - containerPort: 8093
         env:
-        - name: MARBLE_COORDINATOR_ADDR
+        - name: NITRO_COORDINATOR_ADDR
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: COORDINATOR_MESH_ADDR
-        - name: MARBLE_TYPE
+        - name: NITRO_TYPE
           value: "neosimulation"
-        - name: MARBLE_ENV
+        - name: NITRO_ENV
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
-              key: MARBLE_ENV
+              key: NITRO_ENV
         - name: TEE_BACKEND
           valueFrom:
             configMapKeyRef:
               name: service-layer-config
               key: TEE_BACKEND
-        - name: MARBLE_EXTRA_CLIENT_CA
+        - name: NITRO_EXTRA_CLIENT_CA
           valueFrom:
             configMapKeyRef:
               name: edge-client-ca
@@ -2089,10 +2089,10 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: LOG_FORMAT
-        - name: MARBLE_DNS_NAMES
+        - name: NITRO_DNS_NAMES
           value: "neosimulation,neosimulation.service-layer.svc.cluster.local"
-        - name: MARBLE_UUID_FILE
-          value: /marble/uuid
+        - name: NITRO_UUID_FILE
+          value: /nitro/uuid
         - name: SUPABASE_URL
           valueFrom:
             configMapKeyRef:
@@ -2150,8 +2150,8 @@ spec:
         - name: SERVICE_TYPE
           value: "neosimulation"
         volumeMounts:
-        - name: marble-data
-          mountPath: /marble
+        - name: nitro-data
+          mountPath: /nitro
         - name: tmp
           mountPath: /tmp
         resources:

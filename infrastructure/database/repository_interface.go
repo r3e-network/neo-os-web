@@ -97,10 +97,10 @@ type ReplayRepository interface {
 }
 
 // =============================================================================
-// Base Repository Interface (For marble.Service framework)
+// Base Repository Interface (For nitro.Service framework)
 // =============================================================================
 
-// BaseRepository defines the minimal interface required by the marble framework.
+// BaseRepository defines the minimal interface required by the nitro framework.
 // Services should use this interface for framework integration, and define their
 // own service-specific repository interfaces for domain operations.
 type BaseRepository interface {

@@ -9,33 +9,33 @@ import (
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/logging"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 )
 
 const healthCheckTimeout = 5 * time.Second
 
 var defaultDBSecrets = []string{"SUPABASE_URL", "SUPABASE_SERVICE_KEY"}
 
-// BaseConfig contains shared configuration for all marbles.
+// BaseConfig contains shared configuration for all nitros.
 type BaseConfig struct {
 	ID      string
 	Name    string
 	Version string
-	Marble  *marble.Marble
+	Nitro  *nitro.Nitro
 	DB      database.RepositoryInterface
 	Logger  *logging.Logger
 	// RequiredSecrets defines secrets that must be present for the service to be healthy.
 	RequiredSecrets []string
 }
 
-// BaseService wraps marble.Service with hydrate/worker wiring and stop handling.
-// It provides a consistent foundation for all marble services with:
+// BaseService wraps nitro.Service with hydrate/worker wiring and stop handling.
+// It provides a consistent foundation for all nitro services with:
 // - Safe stop channel management (sync.Once prevents double-close panic)
 // - Optional hydration hook for loading state on startup
 // - Background worker management
 // - Statistics provider for /info endpoint
 type BaseService struct {
-	*marble.Service
+	*nitro.Service
 
 	// Lifecycle management
 	stopCh   chan struct{}
@@ -82,11 +82,11 @@ func NewBase(cfg *BaseConfig) *BaseService {
 	}
 
 	return &BaseService{
-		Service: marble.NewService(marble.ServiceConfig{
+		Service: nitro.NewService(nitro.ServiceConfig{
 			ID:      cfgValue.ID,
 			Name:    cfgValue.Name,
 			Version: cfgValue.Version,
-			Marble:  cfgValue.Marble,
+			Nitro:  cfgValue.Nitro,
 			DB:      cfgValue.DB,
 		}),
 		stopCh:          make(chan struct{}),
@@ -234,7 +234,7 @@ func (b *BaseService) StopChan() <-chan struct{} {
 	return b.stopCh
 }
 
-// Start starts the underlying marble.Service, runs hydrate once, then spins workers.
+// Start starts the underlying nitro.Service, runs hydrate once, then spins workers.
 func (b *BaseService) Start(ctx context.Context) error {
 	if err := b.Service.Start(ctx); err != nil {
 		return err
@@ -268,7 +268,7 @@ func (b *BaseService) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop signals workers, waits for them to finish, and stops the underlying marble.Service.
+// Stop signals workers, waits for them to finish, and stops the underlying nitro.Service.
 // This method is idempotent - calling it multiple times is safe due to sync.Once.
 func (b *BaseService) Stop() error {
 	b.stopOnce.Do(func() {
@@ -309,7 +309,7 @@ func (b *BaseService) CheckHealth() {
 				continue
 			}
 
-			if m := b.Marble(); m != nil {
+			if m := b.Nitro(); m != nil {
 				if secret, ok := m.Secret(name); ok && len(secret) > 0 {
 					continue
 				}
@@ -347,7 +347,7 @@ func (b *BaseService) HealthDetails() map[string]any {
 	details := map[string]any{
 		"db_connected":   b.dbHealthy,
 		"secrets_loaded": len(b.requiredSecrets) == 0 || b.secretsLoaded,
-		"enclave_mode":   b.Marble() != nil && b.Marble().IsEnclave(),
+		"enclave_mode":   b.Nitro() != nil && b.Nitro().IsEnclave(),
 	}
 
 	if !b.lastHealthCheck.IsZero() {
@@ -405,6 +405,6 @@ func mergeUniqueStrings(values []string, extras ...string) []string {
 // Interface Compliance
 // =============================================================================
 
-// Ensure BaseService implements MarbleService interface.
-var _ MarbleService = (*BaseService)(nil)
+// Ensure BaseService implements NitroService interface.
+var _ NitroService = (*BaseService)(nil)
 var _ HealthChecker = (*BaseService)(nil)

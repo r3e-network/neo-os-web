@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/marble"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
-	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/marble"
+	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/nitro"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
+	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/nitro"
 )
 
 // ============================================================================
@@ -153,13 +153,13 @@ func TestDeFiPriceConsumerContractFlow(t *testing.T) {
 
 func TestFullServiceLayerContractIntegration(t *testing.T) {
 	// Setup services
-	apMarble, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
-	apMarble.SetTestSecret("POOL_MASTER_KEY", []byte("full-integration-pool-key-32b!!!"))
-	apSvc, _ := neoaccounts.New(neoaccounts.Config{Marble: apMarble})
+	apNitro, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
+	apNitro.SetTestSecret("POOL_MASTER_KEY", []byte("full-integration-pool-key-32b!!!"))
+	apSvc, _ := neoaccounts.New(neoaccounts.Config{Nitro: apNitro})
 
-	computeMarble, _ := marble.New(marble.Config{MarbleType: "neocompute"})
-	computeMarble.SetTestSecret("COMPUTE_MASTER_KEY", []byte("full-integration-compute-key-32bytes"))
-	computeSvc, _ := neocompute.New(neocompute.Config{Marble: computeMarble})
+	computeNitro, _ := nitro.New(nitro.Config{NitroType: "neocompute"})
+	computeNitro.SetTestSecret("COMPUTE_MASTER_KEY", []byte("full-integration-compute-key-32bytes"))
+	computeSvc, _ := neocompute.New(neocompute.Config{Nitro: computeNitro})
 
 	t.Run("simulate gateway request routing", func(t *testing.T) {
 		// Gateway would route requests to appropriate services

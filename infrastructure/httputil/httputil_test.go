@@ -16,7 +16,7 @@ import (
 )
 
 func TestGetUserID_ProductionRequiresContext(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "production")
+	t.Setenv("NITRO_ENV", "production")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set(serviceauth.UserIDHeader, "user-123")
@@ -36,7 +36,7 @@ func TestGetUserID_ProductionRequiresContext(t *testing.T) {
 }
 
 func TestGetUserID_ProductionUsesServiceAuthContext(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "production")
+	t.Setenv("NITRO_ENV", "production")
 
 	ctx := serviceauth.WithUserID(context.Background(), "user-123")
 	req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
@@ -50,7 +50,7 @@ func TestGetUserID_ProductionUsesServiceAuthContext(t *testing.T) {
 }
 
 func TestGetUserID_ProductionUsesAuthContext(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "production")
+	t.Setenv("NITRO_ENV", "production")
 
 	ctx := logging.WithUserID(context.Background(), "user-456")
 	req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
@@ -61,10 +61,10 @@ func TestGetUserID_ProductionUsesAuthContext(t *testing.T) {
 }
 
 func TestGetUserID_NonProductionAllowsHeaderFallback(t *testing.T) {
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
-	t.Setenv("MARBLE_ENV", "development")
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
+	t.Setenv("NITRO_ENV", "development")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set(serviceauth.UserIDHeader, "user-789")
@@ -75,7 +75,7 @@ func TestGetUserID_NonProductionAllowsHeaderFallback(t *testing.T) {
 }
 
 func TestGetUserID_StrictModeRequiresVerifiedMTLS(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "development")
+	t.Setenv("NITRO_ENV", "development")
 	t.Setenv("TEE_STRICT_MODE", "true")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -94,10 +94,10 @@ func TestGetUserID_StrictModeRequiresVerifiedMTLS(t *testing.T) {
 }
 
 func TestGetServiceID_HeaderFallbackNonProduction(t *testing.T) {
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
-	t.Setenv("MARBLE_ENV", "development")
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
+	t.Setenv("NITRO_ENV", "development")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set(serviceauth.ServiceIDHeader, "gateway")
@@ -108,7 +108,7 @@ func TestGetServiceID_HeaderFallbackNonProduction(t *testing.T) {
 }
 
 func TestGetServiceID_StrictModeRequiresVerifiedMTLS(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "development")
+	t.Setenv("NITRO_ENV", "development")
 	t.Setenv("TEE_STRICT_MODE", "true")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -127,7 +127,7 @@ func TestGetServiceID_StrictModeRequiresVerifiedMTLS(t *testing.T) {
 }
 
 func TestGetServiceID_ProductionRequiresVerifiedMTLSForHeader(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "production")
+	t.Setenv("NITRO_ENV", "production")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set(serviceauth.ServiceIDHeader, "gateway")
@@ -158,7 +158,7 @@ func TestGetServiceID_ProductionRequiresVerifiedMTLSForHeader(t *testing.T) {
 }
 
 func TestGetServiceID_ProductionUsesServiceAuthContext(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "production")
+	t.Setenv("NITRO_ENV", "production")
 
 	ctx := serviceauth.WithServiceID(context.Background(), "gateway")
 	req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
@@ -345,9 +345,9 @@ func TestPathAndQueryHelpers(t *testing.T) {
 }
 
 func TestRequireAdminRole(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "development")
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
+	t.Setenv("NITRO_ENV", "development")
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("X-User-Role", "admin")
@@ -375,7 +375,7 @@ func TestRequireAdminRole(t *testing.T) {
 }
 
 func TestGetUserRole_StrictModeRequiresVerifiedMTLS(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "development")
+	t.Setenv("NITRO_ENV", "development")
 	t.Setenv("TEE_STRICT_MODE", "true")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)

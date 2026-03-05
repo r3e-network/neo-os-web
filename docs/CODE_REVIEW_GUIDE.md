@@ -21,7 +21,7 @@ This document provides structured instructions for Codex to perform a comprehens
 
 The Service Layer is a TEE-based (Trusted Execution Environment) platform for Neo N3 blockchain that provides:
 
-- **Confidential Computing**: Services run inside MarbleRun enclaves
+- **Confidential Computing**: Services run inside NitroRun enclaves
 - **MiniApp Platform**: Gaming, DeFi, Social, and Governance applications
 - **Account Pool**: Managed wallet infrastructure for automated transactions
 - **Price Feeds**: Real-time price data from multiple sources
@@ -33,7 +33,7 @@ The Service Layer is a TEE-based (Trusted Execution Environment) platform for Ne
 - **Backend**: Go 1.21+
 - **Smart Contracts**: C# (Neo N3)
 - **Frontend**: TypeScript, React
-- **TEE**: MarbleRun with Nitro-oriented runtime integration
+- **TEE**: NitroRun with Nitro-oriented runtime integration
 - **Database**: Supabase (PostgreSQL)
 - **Blockchain**: Neo N3
 
@@ -78,7 +78,7 @@ Location: `services/`
 **Key Files to Review**:
 
 ```
-services/simulation/marble/
+services/simulation/nitro/
 ├── service.go           # Main service entry point
 ├── service_test.go      # Service tests
 ├── config.go            # Configuration handling
@@ -111,7 +111,7 @@ services/simulation/marble/
 **Codex Prompt**:
 
 ```
-Review services/simulation/marble/*.go for:
+Review services/simulation/nitro/*.go for:
 1. Error handling completeness - are all errors properly logged or returned?
 2. Goroutine safety - are shared resources properly protected with mutexes?
 3. Contract invocation patterns - do all simulators follow consistent patterns?
@@ -126,7 +126,7 @@ Review services/simulation/marble/*.go for:
 **Key Files**:
 
 ```
-services/automation/marble/
+services/automation/nitro/
 ├── service.go
 ├── anchored_tasks.go    # On-chain anchored automation
 └── scheduler.go         # Task scheduling logic
@@ -436,13 +436,13 @@ docker/
 3. Network isolation
 4. Resource limits
 
-#### 5.2 MarbleRun Manifests (`manifests/`)
+#### 5.2 NitroRun Manifests (`manifests/`)
 
 **Key Files**:
 
 ```
 manifests/
-└── manifest.json        # MarbleRun enclave configuration
+└── manifest.json        # NitroRun enclave configuration
 ```
 
 **Review Focus**:
@@ -572,7 +572,7 @@ For a complete project review, execute in this order:
 
 ```bash
 # Review simulation service
-codex "Review services/simulation/marble/*.go following docs/CODE_REVIEW_GUIDE.md"
+codex "Review services/simulation/nitro/*.go following docs/CODE_REVIEW_GUIDE.md"
 
 # Review specific contract
 codex "Review contracts/MiniAppLottery/MiniAppLottery.cs following docs/CODE_REVIEW_GUIDE.md"

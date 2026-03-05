@@ -48,17 +48,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release with MarbleRun + Nitro runtime + Supabase + Vercel architecture
+- Initial release with NitroRun + Nitro runtime + Supabase + Vercel architecture
 - 9 core services: Gateway, NeoRand (VRF), NeoVault, NeoOracle, NeoFlow, NeoAccounts (AccountPool), NeoCompute, NeoStore (Secrets), NeoFeeds
 - Neo N3 smart contracts for service integration
-- TEE protection with MarbleRun/Nitro runtime
-- Remote attestation via MarbleRun
+- TEE protection with NitroRun/Nitro runtime
+- Remote attestation via NitroRun
 - Multi-tenant database with Row Level Security
 - Deterministic Shared Seed Privacy NeoVault (v4.1)
 
 ### Security
 
-- All services run inside Nitro runtime MarbleRun TEE
+- All services run inside Nitro runtime NitroRun TEE
 - Secrets never leave the TEE
 - TLS termination inside TEE
 - ECDSA secp256r1 (Neo N3 compatible)

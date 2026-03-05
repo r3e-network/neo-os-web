@@ -9,7 +9,7 @@ intended architecture is a **thin gateway**:
   - **payments/settlement = GAS only**
   - **governance = bNEO only**
 - Forward sensitive requests to the **TEE services** over **mTLS** (attested TLS
-  inside MarbleRun; **required in production**).
+  inside NitroRun; **required in production**).
 
 ## Functions
 
@@ -151,7 +151,7 @@ Set your host/SDK base URL to:
 - `http://localhost:8787/functions/v1`
   - or `http://localhost:8787/api/rpc` (blueprint form)
 
-When running the simulation stack (`make docker-up`), the marbles expose their
+When running the simulation stack (`make docker-up`), the nitros expose their
 ports on `127.0.0.1` (e.g. `neofeeds` on `8083`). For the local dev server,
 set:
 
@@ -191,6 +191,6 @@ production** and rejects non-HTTPS service URLs. Provide these env vars:
 
 - `TEE_MTLS_CERT_PEM`: client certificate chain (PEM)
 - `TEE_MTLS_KEY_PEM`: client private key (PEM)
-- `TEE_MTLS_ROOT_CA_PEM`: trusted server root (PEM; MarbleRun root CA)
+- `TEE_MTLS_ROOT_CA_PEM`: trusted server root (PEM; NitroRun root CA)
 
-Alternatively `MARBLERUN_ROOT_CA_PEM` can be used as the root CA name.
+Alternatively `NITRORUN_ROOT_CA_PEM` can be used as the root CA name.

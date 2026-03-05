@@ -12,7 +12,7 @@ patches:
       name: service-layer-config
     patch: |-
       - op: replace
-        path: /data/MARBLE_ENV
+        path: /data/NITRO_ENV
         value: "production"
       - op: add
         path: /data/TEE_STRICT_MODE
@@ -42,7 +42,7 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value:
-          name: MARBLE_CERT
+          name: NITRO_CERT
           valueFrom:
             secretKeyRef:
               name: nitro-tee-identity
@@ -50,7 +50,7 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value:
-          name: MARBLE_KEY
+          name: NITRO_KEY
           valueFrom:
             secretKeyRef:
               name: nitro-tee-identity
@@ -58,7 +58,7 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/env/-
         value:
-          name: MARBLE_ROOT_CA
+          name: NITRO_ROOT_CA
           valueFrom:
             secretKeyRef:
               name: nitro-tee-identity

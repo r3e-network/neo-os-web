@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The Neo Service Layer has been reviewed for production readiness. All core services are functional, tests pass, and the architecture follows security best practices with TEE (Trusted Execution Environment) integration via MarbleRun + Nitro runtime.
+The Neo Service Layer has been reviewed for production readiness. All core services are functional, tests pass, and the architecture follows security best practices with TEE (Trusted Execution Environment) integration via NitroRun + Nitro runtime.
 
 ### Overall Assessment: ✅ PRODUCTION READY
 
@@ -45,7 +45,7 @@ The Neo Service Layer has been reviewed for production readiness. All core servi
 | services/neocompute | 65.3% | ✅ Good |
 | services/neofeeds | 61.5% | ✅ Good |
 | services/neooracle | 58.6% | ✅ Good |
-| internal/marble | 43.8% | ⚠️ Acceptable |
+| internal/nitro | 43.8% | ⚠️ Acceptable |
 | internal/gasbank | 40.9% | ⚠️ Acceptable |
 | services/neostore | 31.4% | ⚠️ Acceptable |
 | services/neorand | 28.6% | ⚠️ Acceptable |
@@ -64,8 +64,8 @@ The Neo Service Layer has been reviewed for production readiness. All core servi
 
 ### 3.1 Security Architecture ✅
 
-- **TEE Integration**: All services run inside Nitro runtime MarbleRun TEEs
-- **Secret Management**: Secrets injected via MarbleRun Coordinator
+- **TEE Integration**: All services run inside Nitro runtime NitroRun TEEs
+- **Secret Management**: Secrets injected via NitroRun Coordinator
 - **mTLS**: Inter-service communication secured with mutual TLS
 - **Key Protection**: Private keys never leave TEE memory
 - **Attestation**: Remote attestation supported for verification
@@ -103,7 +103,7 @@ The Neo Service Layer has been reviewed for production readiness. All core servi
 | JWT_SECRET | Gateway | ✅ Yes | JWT signing secret |
 | PORT | All | No | Service port (default: 8080) |
 
-### 4.2 MarbleRun Secrets
+### 4.2 NitroRun Secrets
 
 | Secret | Service | Description |
 |--------|---------|-------------|
@@ -123,7 +123,7 @@ Operational note: secrets that must remain stable across restarts/replicas (JWT 
 
 - [ ] Configure Supabase database with required tables
 - [ ] Deploy Neo N3 smart contracts
-- [ ] Configure MarbleRun manifest with secrets
+- [ ] Configure NitroRun manifest with secrets
 - [ ] Set up TLS certificates
 - [ ] Configure monitoring and alerting
 
@@ -134,7 +134,7 @@ Operational note: secrets that must remain stable across restarts/replicas (JWT 
 | CPU | 4 cores | 8 cores |
 | RAM | 8 GB | 16 GB |
 | Storage | 50 GB SSD | 100 GB SSD |
-| MarbleRun | Required | Required |
+| NitroRun | Required | Required |
 | Network | 100 Mbps | 1 Gbps |
 
 ### 5.3 Post-Deployment

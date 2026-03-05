@@ -11,8 +11,8 @@ Service Layer as described in `docs/ARCHITECTURE.md`.
 - Delegated payments / gas bank (stored in Supabase)
 - Service proxy routes (mTLS inside the mesh)
 
-**Enclave workloads (MarbleRun + Nitro-oriented runtime)**:
-- Infrastructure marbles: `infrastructure/accountpool`, `infrastructure/globalsigner`
+**Enclave workloads (NitroRun + Nitro-oriented runtime)**:
+- Infrastructure nitros: `infrastructure/accountpool`, `infrastructure/globalsigner`
 - Product services: `services/datafeed`, `services/automation`, `services/confcompute`, `services/conforacle`, `services/txproxy`
 
 ## Required External Dependencies
@@ -38,7 +38,7 @@ Service Layer as described in `docs/ARCHITECTURE.md`.
 
 ### Enclave Workloads
 
-Injected via MarbleRun secrets (values depend on which services you run):
+Injected via NitroRun secrets (values depend on which services you run):
 
 - `POOL_MASTER_KEY` (+ `POOL_MASTER_KEY_HASH` in enclave mode) for AccountPool
 - `GLOBALSIGNER_MASTER_SEED` for GlobalSigner
@@ -95,7 +95,7 @@ Current testnet values (from `.env`, validated on **February 26, 2026**):
 
 ## Identity / Trust Boundary
 
-- **Production should run in strict identity mode** (MarbleRun TLS injected).
+- **Production should run in strict identity mode** (NitroRun TLS injected).
 - Public clients must not be able to spoof identity headers.
 - Gateway is the trust boundary: it authenticates users and forwards derived
   identity into the mesh over mTLS.

@@ -15,7 +15,7 @@ import (
 	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
 )
 
-// Client is an HTTP client for interacting with TxProxy over the MarbleRun mesh.
+// Client is an HTTP client for interacting with TxProxy over the NitroRun mesh.
 type Client struct {
 	baseURL      string
 	httpClient   *http.Client
@@ -27,12 +27,12 @@ type Client struct {
 type Config struct {
 	BaseURL string
 	// ServiceID identifies the caller. In strict identity mode this is redundant
-	// (caller identity is enforced by MarbleRun mTLS), but it is still useful for
+	// (caller identity is enforced by NitroRun mTLS), but it is still useful for
 	// local development and debugging.
 	ServiceID string
 	Timeout   time.Duration
 	// HTTPClient optionally overrides the client used to execute requests.
-	// For MarbleRun mesh calls, prefer using `marble.Marble.HTTPClient()` so
+	// For NitroRun mesh calls, prefer using `nitro.Nitro.HTTPClient()` so
 	// requests are sent over verified mTLS.
 	HTTPClient *http.Client
 	// MaxBodyBytes caps responses to prevent memory exhaustion.

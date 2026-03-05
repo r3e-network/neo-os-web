@@ -10,21 +10,21 @@ import (
 	"testing"
 	"time"
 
-	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/marble"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
-	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/marble"
+	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/nitro"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
+	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/nitro"
 )
 
 // TestServiceContractIntegration tests the integration between services and contracts.
 func TestServiceContractIntegration(t *testing.T) {
 	t.Run("neocompute can protect results", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neocompute"})
+		m, err := nitro.New(nitro.Config{NitroType: "neocompute"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 		m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-compute-master-key-32-bytes!!"))
 
-		svc, err := neocompute.New(neocompute.Config{Marble: m})
+		svc, err := neocompute.New(neocompute.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("neocompute.New: %v", err)
 		}
@@ -53,13 +53,13 @@ function main() {
 	})
 
 	t.Run("neoaccounts can derive contract-compatible keys", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neoaccounts"})
+		m, err := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 		m.SetTestSecret("POOL_MASTER_KEY", []byte("test-pool-master-key-32-bytes!!!"))
 
-		svc, err := neoaccounts.New(neoaccounts.Config{Marble: m})
+		svc, err := neoaccounts.New(neoaccounts.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("neoaccounts.New: %v", err)
 		}
@@ -73,10 +73,10 @@ function main() {
 // TestNeoAccountsSigningForContracts tests that NeoAccounts can sign transactions
 // that would be sent to Neo N3 contracts.
 func TestNeoAccountsSigningForContracts(t *testing.T) {
-	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+	m, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("signing-test-pool-key-32-bytes!!"))
 
-	svc, err := neoaccounts.New(neoaccounts.Config{Marble: m})
+	svc, err := neoaccounts.New(neoaccounts.Config{Nitro: m})
 	if err != nil {
 		t.Fatalf("neoaccounts.New: %v", err)
 	}
@@ -238,10 +238,10 @@ func TestContractCallbackSimulation(t *testing.T) {
 
 // TestConcurrentContractOperations tests concurrent operations that might interact with contracts.
 func TestConcurrentContractOperations(t *testing.T) {
-	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+	m, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("concurrent-test-key-32-bytes!!!!"))
 
-	svc, _ := neoaccounts.New(neoaccounts.Config{Marble: m})
+	svc, _ := neoaccounts.New(neoaccounts.Config{Nitro: m})
 
 	done := make(chan bool, 50)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

@@ -53,11 +53,11 @@ kubectl apply -k k8s/overlays/prod
 Core config:
 
 - `TEE_BACKEND=nitro`
-- `MARBLE_ENV` (`development`, `testing`, or `production`)
+- `NITRO_ENV` (`development`, `testing`, or `production`)
 - `COORDINATOR_MESH_ADDR`
 - `COORDINATOR_CLIENT_ADDR`
 
-Secrets and service config come from Kubernetes secrets/configmaps and MarbleRun manifest parameters.
+Secrets and service config come from Kubernetes secrets/configmaps and NitroRun manifest parameters.
 
 ## 5. Nitro Attestation Inputs
 
@@ -86,7 +86,7 @@ Run these checks before pushing images/manifests:
 ```bash
 bash -n scripts/deploy_k8s.sh
 bash -n scripts/docker_smoke.sh
-go test ./infrastructure/runtime ./infrastructure/marble ./cmd/marble
+go test ./infrastructure/runtime ./infrastructure/nitro ./cmd/nitro
 ./scripts/docker_smoke.sh
 ```
 

@@ -10,14 +10,14 @@ services:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
 
   neoflow:
     build:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
 
   neoaccounts:
     build:
@@ -27,7 +27,7 @@ services:
         condition: service_healthy
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
       # Local Nitro smoke runs without coordinator key provisioning.
       NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY: ${NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY:-true}
       GLOBALSIGNER_SERVICE_URL: ${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
@@ -40,35 +40,35 @@ services:
         condition: service_started
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
 
   neocompute:
     build:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
 
   neovrf:
     build:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
 
   neooracle:
     build:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
 
   neorequests:
     build:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
 
   txproxy:
     build:
@@ -78,7 +78,7 @@ services:
         condition: service_healthy
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
       GLOBALSIGNER_SERVICE_URL: ${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}
 
   globalsigner:
@@ -86,8 +86,8 @@ services:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
-      # Local Nitro smoke still runs behind Marble TLS env, which enables strict
+      NITRO_ENV: testing
+      # Local Nitro smoke still runs behind Nitro TLS env, which enables strict
       # identity checks. Provide explicit defaults so globalsigner can start.
       GLOBALSIGNER_DOMAIN_ALLOWLIST: ${GLOBALSIGNER_DOMAIN_ALLOWLIST:-globalsigner:*,neoaccounts:*,neocompute:*,neofeeds:*,neoflow:*,neogasbank:*,neooracle:*,neoprivacy:*,neorequests:*,neosimulation:*,neovrf:*,txproxy:*}
       GLOBALSIGNER_SIGN_RAW_ALLOWLIST: ${GLOBALSIGNER_SIGN_RAW_ALLOWLIST:-globalsigner,neoaccounts,neocompute,neofeeds,neoflow,neogasbank,neooracle,neoprivacy,neorequests,neosimulation,neovrf,txproxy}
@@ -97,5 +97,5 @@ services:
       dockerfile: docker/Dockerfile.service.nitro
     environment:
       TEE_BACKEND: ${TEE_BACKEND:-nitro}
-      MARBLE_ENV: testing
+      NITRO_ENV: testing
       GLOBALSIGNER_SERVICE_URL: ${GLOBALSIGNER_SERVICE_URL:-http://globalsigner:8092}

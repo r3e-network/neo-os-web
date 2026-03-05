@@ -55,17 +55,17 @@ func TestNewMetricsInstance(t *testing.T) {
 func TestEnabled(t *testing.T) {
 	// Save and restore environment
 	savedMetrics := os.Getenv("METRICS_ENABLED")
-	savedMarble := os.Getenv("MARBLE_ENV")
+	savedNitro := os.Getenv("NITRO_ENV")
 	defer func() {
 		if savedMetrics != "" {
 			t.Setenv("METRICS_ENABLED", savedMetrics)
 		} else {
 			t.Setenv("METRICS_ENABLED", "")
 		}
-		if savedMarble != "" {
-			t.Setenv("MARBLE_ENV", savedMarble)
+		if savedNitro != "" {
+			t.Setenv("NITRO_ENV", savedNitro)
 		} else {
-			t.Setenv("MARBLE_ENV", "")
+			t.Setenv("NITRO_ENV", "")
 		}
 	}()
 
@@ -113,7 +113,7 @@ func TestEnabled(t *testing.T) {
 
 	t.Run("default in development", func(t *testing.T) {
 		t.Setenv("METRICS_ENABLED", "")
-		t.Setenv("MARBLE_ENV", "development")
+		t.Setenv("NITRO_ENV", "development")
 		if !Enabled() {
 			t.Error("Enabled() should return true by default in development")
 		}
@@ -121,7 +121,7 @@ func TestEnabled(t *testing.T) {
 
 	t.Run("default in production", func(t *testing.T) {
 		t.Setenv("METRICS_ENABLED", "")
-		t.Setenv("MARBLE_ENV", "production")
+		t.Setenv("NITRO_ENV", "production")
 		if Enabled() {
 			t.Error("Enabled() should return false by default in production")
 		}

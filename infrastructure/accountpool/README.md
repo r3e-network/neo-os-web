@@ -14,7 +14,7 @@ accounts over time.
 - Track per-token balances (GAS/NEO today; extensible).
 - Rotate/retire accounts while keeping Supabase records persistent by default.
 
-## API Endpoints (Marble)
+## API Endpoints (Nitro)
 
 Standard:
 
@@ -53,16 +53,16 @@ Balances are stored in `pool_account_balances` keyed by:
 
 ## Code Layout
 
-- `infrastructure/accountpool/marble`: enclave runtime + HTTP API
+- `infrastructure/accountpool/nitro`: enclave runtime + HTTP API
 - `infrastructure/accountpool/supabase`: Supabase/PostgREST persistence
 - `infrastructure/accountpool/types`: canonical request/response DTOs
 - `infrastructure/accountpool/client`: client SDK used by other services/tools
 
 ## Security Notes
 
-- In strict identity mode (strict production/MarbleRun TLS), the `service_id` is
+- In strict identity mode (strict production/NitroRun TLS), the `service_id` is
   derived from verified mTLS peer identity and the API rejects spoofed headers.
-- Master key material is injected via MarbleRun and never leaves the enclave.
+- Master key material is injected via NitroRun and never leaves the enclave.
   Use a stable `POOL_MASTER_KEY` or `COORD_MASTER_SEED` to ensure persisted
   accounts remain derivable across restarts.
 

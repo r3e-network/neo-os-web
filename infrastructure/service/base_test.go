@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 )
 
-// newTestMarble creates a Marble suitable for unit tests.
-func newTestMarble(t *testing.T) *marble.Marble {
+// newTestNitro creates a Nitro suitable for unit tests.
+func newTestNitro(t *testing.T) *nitro.Nitro {
 	t.Helper()
-	m, err := marble.New(marble.Config{MarbleType: "test"})
+	m, err := nitro.New(nitro.Config{NitroType: "test"})
 	if err != nil {
-		t.Fatalf("marble.New: %v", err)
+		t.Fatalf("nitro.New: %v", err)
 	}
 	return m
 }
@@ -25,7 +25,7 @@ func TestNewBaseNilConfig(t *testing.T) {
 		t.Fatal("NewBase(nil) returned nil")
 	}
 	if bs.Service == nil {
-		t.Fatal("embedded marble.Service is nil")
+		t.Fatal("embedded nitro.Service is nil")
 	}
 	if bs.StopChan() == nil {
 		t.Fatal("stopCh is nil")
@@ -37,12 +37,12 @@ func TestNewBaseNilConfig(t *testing.T) {
 }
 
 func TestNewBaseWithConfig(t *testing.T) {
-	m := newTestMarble(t)
+	m := newTestNitro(t)
 	bs := NewBase(&BaseConfig{
 		ID:      "svc-1",
 		Name:    "TestService",
 		Version: "0.1.0",
-		Marble:  m,
+		Nitro:  m,
 	})
 
 	if bs.ID() != "svc-1" {
@@ -54,8 +54,8 @@ func TestNewBaseWithConfig(t *testing.T) {
 	if bs.Version() != "0.1.0" {
 		t.Errorf("Version = %q, want %q", bs.Version(), "0.1.0")
 	}
-	if bs.Marble() != m {
-		t.Error("Marble() does not match provided marble")
+	if bs.Nitro() != m {
+		t.Error("Nitro() does not match provided nitro")
 	}
 }
 
@@ -115,7 +115,7 @@ func TestSetStatsFn(t *testing.T) {
 		ID:      "stats-svc",
 		Name:    "StatsService",
 		Version: "1.0.0",
-		Marble:  newTestMarble(t),
+		Nitro:  newTestNitro(t),
 	})
 
 	called := false

@@ -115,7 +115,7 @@ The NeoFlow service uses a service-specific Supabase repository for database ope
 
 ```
 services/automation/
-├── marble/              # Enclave runtime + HTTP handlers + workers
+├── nitro/              # Enclave runtime + HTTP handlers + workers
 ├── supabase/            # Automation persistence (triggers + executions)
 └── README.md
 ```

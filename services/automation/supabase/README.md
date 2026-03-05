@@ -94,5 +94,5 @@ pending, err := repo.GetPendingTriggers(ctx)
 
 ## Related Documentation
 
-- [Marble Service](../marble/README.md)
+- [Nitro Service](../nitro/README.md)
 - [Service Overview](../README.md)
