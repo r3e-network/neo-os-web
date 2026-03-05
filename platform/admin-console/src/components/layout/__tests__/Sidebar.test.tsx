@@ -77,8 +77,8 @@ describe("Sidebar Component", () => {
 
   it("should display version info", () => {
     render(<Sidebar />);
-    expect(screen.getByText("Neo MiniApp Platform")).toBeInTheDocument();
-    expect(screen.getByText("v0.1.0")).toBeInTheDocument();
+    expect(screen.getByText("Neo Platform")).toBeInTheDocument();
+    expect(screen.getByText("v0.1.0-alpha")).toBeInTheDocument();
   });
 
   it("should mark active link with aria-current", () => {

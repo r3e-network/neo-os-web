@@ -26,9 +26,10 @@ type oraclePayload struct {
 }
 
 type oracleResponse struct {
-	StatusCode int               `json:"status_code"`
-	Headers    map[string]string `json:"headers,omitempty"`
-	Body       string            `json:"body,omitempty"`
+	StatusCode  int               `json:"status_code"`
+	Headers     map[string]string `json:"headers,omitempty"`
+	Body        string            `json:"body,omitempty"`
+	Attestation string            `json:"attestation,omitempty"`
 }
 
 type computePayload struct {

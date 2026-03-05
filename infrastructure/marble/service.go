@@ -1,4 +1,4 @@
-// Package marble provides the service framework for MarbleRun Marbles.
+// Package marble provides the service framework for AWS Nitro Marbles.
 package marble
 
 import (

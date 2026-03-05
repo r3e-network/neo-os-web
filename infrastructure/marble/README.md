@@ -1,11 +1,11 @@
 # Marble SDK Wrapper
 
-This package is a thin SDK that wraps MarbleRun primitives for services:
-- Loads Coordinator-injected TLS certs/CA and builds an mTLS HTTP client for cross-marble traffic.
+This package is a thin SDK that wraps  primitives for services:
+- Loads KMS/Platform-injected TLS certs/CA and builds an mTLS HTTP client for cross-marble traffic.
 - Exposes injected secrets via `Marble.Secret/UseSecret`.
 - Surfaces TEE identity (report, UUID, marble type) to services.
 
-We keep this layer even though MarbleRun is used because it provides:
+We keep this layer even though  is used because it provides:
 1. A stable Go API inside services (tests can mock it).
 2. A single place to translate environment injection (`MARBLE_CERT`, `MARBLE_KEY`, `MARBLE_ROOT_CA`, `MARBLE_SECRETS`, `MARBLE_UUID`) into usable clients/configs.
 3. Enforcement of the official cross-marble communication path (mTLS via `Marble.HTTPClient`), rather than ad-hoc HTTP clients.
@@ -46,7 +46,7 @@ base.RegisterStandardRoutes()
 
 ## Secret Management
 
-Secrets are injected by MarbleRun Coordinator and accessed via the Marble instance:
+Secrets are injected by  KMS/Platform and accessed via the Marble instance:
 
 ```go
 // Get secret (returns false if not found)
@@ -72,7 +72,7 @@ defer crypto.ZeroBytes(secret) // Always zero secrets after use
 
 ## mTLS Communication
 
-For secure inter-service communication within the MarbleRun mesh:
+For secure inter-service communication within the  mesh:
 
 ```go
 // Get mTLS HTTP client
@@ -85,7 +85,7 @@ resp, err := httpClient.Get("https://neoaccounts:8085/info")
 ### External Gateways (Supabase Edge)
 
 By default, enclave services only accept client certificates signed by the
-MarbleRun root CA (`MARBLE_ROOT_CA`). To support external gateways that must
+ root CA (`MARBLE_ROOT_CA`). To support external gateways that must
 connect via mTLS (e.g. Supabase Edge Functions), you can append additional PEM
 roots to the server-side client CA pool by setting:
 
@@ -122,7 +122,7 @@ db := svc.DB()
 
 ## Testing
 
-For testing without actual MarbleRun:
+For testing without actual :
 
 ```go
 m, _ := marble.New(marble.Config{MarbleType: "test"})

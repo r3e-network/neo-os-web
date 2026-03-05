@@ -8,7 +8,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "globalsigner",
+          "MARBLE_TYPE": "globalsigner",
           "GLOBALSIGNER_DOMAIN_ALLOWLIST": "neocompute:*,txproxy:*,neosimulation:*,neogasbank:*,neooracle:*,neorequests:*,neovrf:*,neofeeds:*,neoflow:*,neoaccounts:*,globalsigner:*",
           "GLOBALSIGNER_MASTER_SEED": "{{ hex .Secrets.GLOBALSIGNER_MASTER_SEED.Private }}",
           "GLOBALSIGNER_REQUIRE_QUOTE": "false",
@@ -31,7 +31,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neoaccounts",
+          "MARBLE_TYPE": "neoaccounts",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
@@ -54,7 +54,7 @@
         ],
         "Env": {
           "COMPUTE_MASTER_KEY": "{{ hex .Secrets.COMPUTE_MASTER_KEY.Private }}",
-          "EDG_MARBLE_TYPE": "neocompute",
+          "MARBLE_TYPE": "neocompute",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
@@ -73,7 +73,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neofeeds",
+          "MARBLE_TYPE": "neofeeds",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
@@ -92,7 +92,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neoflow",
+          "MARBLE_TYPE": "neoflow",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
@@ -110,7 +110,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neogasbank",
+          "MARBLE_TYPE": "neogasbank",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
@@ -128,7 +128,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neooracle",
+          "MARBLE_TYPE": "neooracle",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
@@ -148,7 +148,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neorequests",
+          "MARBLE_TYPE": "neorequests",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
@@ -166,7 +166,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neosimulation",
+          "MARBLE_TYPE": "neosimulation",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
@@ -184,7 +184,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "neovrf",
+          "MARBLE_TYPE": "neovrf",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
@@ -203,7 +203,7 @@
           "./service"
         ],
         "Env": {
-          "EDG_MARBLE_TYPE": "txproxy",
+          "MARBLE_TYPE": "txproxy",
           "GLOBALSIGNER_SERVICE_URL": "https://globalsigner:8092",
           "MARBLE_CERT": "{{ pem .MarbleRun.MarbleCert.Cert }}",
           "MARBLE_EXTRA_CLIENT_CA": "",
