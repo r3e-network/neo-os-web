@@ -222,6 +222,12 @@ func (s *Service) protectOutput(response *ExecuteResponse) error {
 		response.Signature = hex.EncodeToString(signature)
 	}
 
+	if s.Nitro() != nil {
+		if report, err := s.Nitro().Attest(outputHash); err == nil && report != nil {
+			response.Attestation = report.Document
+		}
+	}
+
 	return nil
 }
 
