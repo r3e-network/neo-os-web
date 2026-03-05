@@ -41,6 +41,7 @@ export default function ServicesPage() {
                   <TableHead>Version</TableHead>
                   <TableHead>Last Check</TableHead>
                   <TableHead>Error</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -64,6 +65,14 @@ export default function ServicesPage() {
                     <TableCell>{service.version || "N/A"}</TableCell>
                     <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(service.lastCheck)}</TableCell>
                     <TableCell className="text-sm text-danger-600 dark:text-danger-400">{service.error || "-"}</TableCell>
+                    <TableCell>
+                      <button 
+                        onClick={() => window.location.href = `/services/${service.name}`}
+                        className="text-neo hover:underline text-sm font-medium"
+                      >
+                        Configure
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
