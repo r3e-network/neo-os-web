@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-turtle-match",
+  "name": "Turtle Match",
+  "name_zh": "乌龟匹配",
+  "version": "1.0.0",
+  "description": "Turtle Match - Neo MiniApp Game",
+  "description_zh": "乌龟匹配 - Neo N3 去中心化应用",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "tags": [],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0xac10b90f40c015da61c71e30533309760b75fec7",
+    "neo-n3-testnet": ""
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/turtle-match/index.html",
+    "icon": "/miniapps/turtle-match/logo.jpg",
+    "banner": "/miniapps/turtle-match/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://turtle-match"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

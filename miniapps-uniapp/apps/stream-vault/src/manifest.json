@@ -1,0 +1,14 @@
+{
+  "name": "Stream Vault",
+  "appid": "miniapp-stream-vault",
+  "description": "Stream Vault - Neo MiniApp",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Stream Vault",
+    "router": {
+      "mode": "hash"
+    }
+  }
+}

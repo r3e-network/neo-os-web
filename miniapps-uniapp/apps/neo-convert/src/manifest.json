@@ -1,0 +1,14 @@
+{
+  "name": "Neo Convert",
+  "appid": "__UNI__NEO_CONVERT",
+  "description": "Neo MiniApp",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Neo Convert",
+    "router": {
+      "mode": "hash"
+    }
+  }
+}

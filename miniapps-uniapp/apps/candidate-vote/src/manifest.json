@@ -1,0 +1,14 @@
+{
+  "name": "Candidate Vote",
+  "appid": "miniapp-candidate-vote",
+  "description": "Shape the future of the Neo network. Participate in governance by voting for council candidates and validators. Features real-time status tracking, validator performance metrics, and secure voting.",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "Candidate Vote",
+    "router": {
+      "mode": "hash"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "miniapp-forever-album",
+  "version": "1.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "uni",
+    "build:h5": "uni build -p h5",
+    "build": "uni build -p h5"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "catalog:",
+    "@dcloudio/uni-components": "catalog:",
+    "@dcloudio/uni-h5": "catalog:",
+    "@neo/uniapp-sdk": "workspace:*",
+    "@neo/types": "workspace:*",
+    "vue": "catalog:",
+    "vue-i18n": "^9.1.9"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-cli-shared": "catalog:",
+    "@dcloudio/vite-plugin-uni": "catalog:",
+    "sass": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

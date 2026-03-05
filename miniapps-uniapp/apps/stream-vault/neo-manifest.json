@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-stream-vault",
+  "name": "Stream Vault",
+  "name_zh": "流媒体金库",
+  "version": "1.0.0",
+  "description": "Stream GAS on a fixed schedule for payrolls and subscriptions.",
+  "description_zh": "流媒体金库 - Neo N3 去中心化应用",
+  "category": "finance",
+  "category_name": "Finance",
+  "category_name_zh": "金融",
+  "tags": [
+    "streaming",
+    "payroll",
+    "subscription"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "",
+    "neo-n3-testnet": ""
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/stream-vault/index.html",
+    "icon": "/miniapps/stream-vault/logo.jpg",
+    "banner": "/miniapps/stream-vault/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://stream-vault"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-guardianpolicy",
+  "name": "Guardian Policy",
+  "name_zh": "守护者策略",
+  "version": "1.0.0",
+  "description": "Guardian Policy - Neo MiniApp",
+  "description_zh": "守护者策略 - Neo N3 去中心化应用",
+  "category": "governance",
+  "category_name": "Governance",
+  "category_name_zh": "治理",
+  "tags": [],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x451422cfb5a16e26a12f3222aa04fb669d978229",
+    "neo-n3-testnet": "0x893a774957244b83a0efed1d42771fe1e424cfec"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/guardian-policy/index.html",
+    "icon": "/miniapps/guardian-policy/logo.jpg",
+    "banner": "/miniapps/guardian-policy/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://guardian-policy"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

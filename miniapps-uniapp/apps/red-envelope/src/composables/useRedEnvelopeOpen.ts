@@ -1,0 +1,299 @@
+import { ref } from "vue";
+import { useEvents } from "@neo/uniapp-sdk";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { messages } from "@/locale/messages";
+import { fromFixed8, formatHash } from "@shared/utils/format";
+import { parseStackItem } from "@shared/utils/neo";
+import { pollForEvent } from "@shared/utils/errorHandling";
+import { extractTxid } from "@shared/utils/transaction";
+
+const APP_ID = "miniapp-redenvelope";
+
+export type EnvelopeType = "spreading" | "lucky" | "claim";
+
+export type EnvelopeItem = {
+  id: string;
+  type: EnvelopeType;
+  creator: string;
+  from: string;
+  totalAmount: number;
+  packetCount: number;
+  openedCount: number;
+  remainingAmount: number;
+  remainingPackets: number;
+  minNeoRequired: number;
+  minHoldSeconds: number;
+  active: boolean;
+  expired: boolean;
+  depleted: boolean;
+  canOpen: boolean;
+  currentHolder: string;
+  message?: string;
+  expiryTime?: number;
+  parentEnvelopeId?: string;
+};
+
+export type ClaimItem = {
+  id: string;
+  poolId: string;
+  holder: string;
+  amount: number;
+  opened: boolean;
+  message: string;
+};
+
+type ContractArg = {
+  type: string;
+  value: string | number | boolean;
+};
+
+/** Handles red envelope opening, claim listing, and eligibility checks. */
+export function useRedEnvelopeOpen() {
+  const { t } = createUseI18n(messages)();
+  const { address, ensureWallet, ensureContractAddress, contractAddress, read, invokeDirectly } =
+    useContractInteraction({ appId: APP_ID, t });
+  const { list: listEvents } = useEvents();
+
+  const envelopes = ref<EnvelopeItem[]>([]);
+  const claims = ref<ClaimItem[]>([]);
+  const pools = ref<EnvelopeItem[]>([]);
+  const loadingEnvelopes = ref(false);
+  const loadingClaims = ref(false);
+  const loadingPools = ref(false);
+
+  const parseEnvelopeData = (data: unknown): Record<string, unknown> | null => {
+    if (!data || typeof data !== "object") return null;
+    return data as Record<string, unknown>;
+  };
+
+  const mapEnvelopeType = (rawType: unknown): EnvelopeType => {
+    const type = Number(rawType ?? 0);
+    if (type === 1) return "lucky";
+    if (type === 2) return "claim";
+    return "spreading";
+  };
+
+  const loadEnvelopeDetails = async (
+    contract: string,
+    envelopeId: string,
+    eventData?: Record<string, unknown>
+  ): Promise<EnvelopeItem | null> => {
+    try {
+      const parsed = parseEnvelopeData(
+        await read("getEnvelopeStateForFrontend", [{ type: "Integer", value: envelopeId }], contract)
+      );
+      if (!parsed) return null;
+
+      const packetCount = Number(parsed.packetCount ?? eventData?.packetCount ?? 0);
+      const openedCount = Number(parsed.openedCount ?? parsed.claimedCount ?? 0);
+      const remainingPackets = Math.max(0, packetCount - openedCount);
+      const active = Boolean(parsed.active);
+      const expiryTime = Number(parsed.expiryTime ?? 0);
+      const now = Date.now() / 1000;
+      const expired = expiryTime > 0 && now > expiryTime;
+      const remainingAmountRaw = Number(parsed.remainingAmount ?? 0);
+      const depleted = openedCount >= packetCount || remainingAmountRaw <= 0;
+      const totalAmount = fromFixed8(Number(parsed.totalAmount ?? eventData?.totalAmount ?? 0));
+      const creator = String(parsed.creator ?? eventData?.creator ?? "");
+      const envelopeType = mapEnvelopeType(parsed.envelopeType ?? eventData?.envelopeType ?? 0);
+
+      const canOpen =
+        envelopeType === "spreading"
+          ? active && !expired && !depleted
+          : envelopeType === "claim"
+            ? active && !expired && openedCount === 0 && remainingAmountRaw > 0
+            : false;
+
+      return {
+        id: envelopeId,
+        type: envelopeType,
+        creator,
+        from: formatHash(creator),
+        totalAmount,
+        packetCount,
+        openedCount,
+        remainingAmount: fromFixed8(remainingAmountRaw),
+        remainingPackets,
+        minNeoRequired: Number(parsed.minNeoRequired ?? 0),
+        minHoldSeconds: Number(parsed.minHoldSeconds ?? 0),
+        active,
+        expired,
+        depleted,
+        canOpen,
+        currentHolder: String(parsed.currentHolder ?? ""),
+        message: String(parsed.message ?? ""),
+        expiryTime,
+        parentEnvelopeId: String(parsed.parentEnvelopeId ?? ""),
+      };
+    } catch (e: unknown) {
+      /* non-critical: envelope details fetch */
+      return null;
+    }
+  };
+
+  const loadEnvelopes = async () => {
+    if (!contractAddress.value) {
+      contractAddress.value = await ensureContractAddress();
+    }
+    if (!contractAddress.value) return;
+
+    loadingEnvelopes.value = true;
+    loadingClaims.value = true;
+    loadingPools.value = true;
+
+    try {
+      const res = await listEvents({
+        app_id: APP_ID,
+        event_name: "EnvelopeCreated",
+        limit: 120,
+      });
+
+      const seen = new Set<string>();
+      const list = await Promise.all(
+        res.events.map(async (evt: unknown) => {
+          const evtRecord = evt as unknown as Record<string, unknown>;
+          const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
+          const envelopeId = String(values[0] ?? "");
+          if (!envelopeId || seen.has(envelopeId)) return null;
+          seen.add(envelopeId);
+
+          return loadEnvelopeDetails(contractAddress.value!, envelopeId, {
+            creator: String(values[1] ?? ""),
+            totalAmount: Number(values[2] ?? 0),
+            packetCount: Number(values[3] ?? 0),
+            envelopeType: Number(values[4] ?? 0),
+          });
+        })
+      );
+
+      const allItems = (list.filter(Boolean) as EnvelopeItem[]).sort((a, b) => Number(b.id) - Number(a.id));
+
+      envelopes.value = allItems.filter((item) => item.type !== "claim");
+      pools.value = envelopes.value.filter(
+        (item) => item.type === "lucky" && item.active && !item.expired && !item.depleted
+      );
+
+      const myAddress = String(address.value || "");
+      claims.value = allItems
+        .filter((item) => item.type === "claim")
+        .filter((item) => !!myAddress && item.currentHolder === myAddress)
+        .map((item) => ({
+          id: item.id,
+          poolId: String(item.parentEnvelopeId || ""),
+          holder: item.currentHolder,
+          amount: item.totalAmount,
+          opened: item.openedCount > 0 || !item.active || item.remainingAmount <= 0,
+          message: String(item.message || ""),
+        }));
+    } catch (e: unknown) {
+      /* non-critical: envelope list load */
+    } finally {
+      loadingEnvelopes.value = false;
+      loadingClaims.value = false;
+      loadingPools.value = false;
+    }
+  };
+
+  const parseClaimData = (data: unknown): ClaimItem | null => {
+    if (!data || typeof data !== "object") return null;
+    const d = data as Record<string, unknown>;
+    return {
+      id: String(d.id ?? ""),
+      poolId: String(d.poolId ?? ""),
+      holder: String(d.holder ?? ""),
+      amount: fromFixed8(Number(d.amount ?? 0)),
+      opened: Boolean(d.opened),
+      message: String(d.message ?? ""),
+    };
+  };
+
+  const loadClaimState = async (claimId: string): Promise<ClaimItem | null> => {
+    try {
+      return parseClaimData(await read("getClaimState", [{ type: "Integer", value: claimId }]));
+    } catch (e: unknown) {
+      /* non-critical: claim state fetch */
+      return null;
+    }
+  };
+
+  const loadPoolState = async (poolId: string): Promise<EnvelopeItem | null> => {
+    try {
+      const contract = await ensureContractAddress();
+      return loadEnvelopeDetails(contract, poolId);
+    } catch (e: unknown) {
+      /* non-critical: pool state fetch */
+      return null;
+    }
+  };
+
+  const invokeEnvelopeAction = async (
+    operation: string,
+    buildArgs: (userAddress: string) => ContractArg[]
+  ): Promise<{ txid: string }> => {
+    const userAddress = address.value;
+    if (!userAddress) throw new Error(t("connectWallet"));
+
+    const result = await invokeDirectly(operation, buildArgs(userAddress));
+    return { txid: result.txid };
+  };
+
+  const claimFromPool = async (poolId: string): Promise<{ txid: string }> => {
+    return invokeEnvelopeAction("claimFromPool", (userAddress) => [
+      { type: "Integer", value: poolId },
+      { type: "Hash160", value: userAddress },
+    ]);
+  };
+
+  const openClaim = async (claimId: string): Promise<{ txid: string }> => {
+    return invokeEnvelopeAction("openClaim", (userAddress) => [
+      { type: "Integer", value: claimId },
+      { type: "Hash160", value: userAddress },
+    ]);
+  };
+
+  const transferClaim = async (claimId: string, to: string): Promise<{ txid: string }> => {
+    return invokeEnvelopeAction("transferClaim", (userAddress) => [
+      { type: "Integer", value: claimId },
+      { type: "Hash160", value: userAddress },
+      { type: "Hash160", value: to },
+    ]);
+  };
+
+  const reclaimPool = async (poolId: string): Promise<{ txid: string }> => {
+    return invokeEnvelopeAction("reclaimPool", (userAddress) => [
+      { type: "Integer", value: poolId },
+      { type: "Hash160", value: userAddress },
+    ]);
+  };
+
+  return {
+    envelopes,
+    loadingEnvelopes,
+    contractAddress,
+    ensureContractAddress,
+    loadEnvelopeDetails,
+    loadEnvelopes,
+    parseEnvelopeData,
+    address,
+    ensureWallet,
+    invokeDirectly,
+    read,
+    listEvents,
+    APP_ID,
+    t,
+    fromFixed8,
+    parseStackItem,
+    pollForEvent,
+    claims,
+    pools,
+    loadingClaims,
+    loadingPools,
+    claimFromPool,
+    openClaim,
+    transferClaim,
+    reclaimPool,
+    loadPoolState,
+    loadClaimState,
+  };
+}

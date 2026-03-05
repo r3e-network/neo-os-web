@@ -1,0 +1,27 @@
+{
+  "name": "miniapp-neo-sign-anything",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "uni",
+    "build:h5": "uni build -p h5",
+    "build": "uni build -p h5"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "catalog:",
+    "@dcloudio/uni-components": "catalog:",
+    "@dcloudio/uni-h5": "catalog:",
+    "@neo/uniapp-sdk": "workspace:*",
+    "@neo/types": "workspace:*",
+    "vue": "catalog:",
+    "lucide-vue-next": "^0.363.0"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-cli-shared": "catalog:",
+    "@dcloudio/vite-plugin-uni": "catalog:",
+    "sass": "catalog:",
+    "terser": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

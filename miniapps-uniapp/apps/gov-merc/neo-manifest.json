@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-gov-merc",
+  "name": "Gov Merc",
+  "name_zh": "Gov Merc",
+  "version": "1.0.0",
+  "description": "Marketplace for governance voting power delegation",
+  "description_zh": "Gov Merc - Neo N3 去中心化应用",
+  "category": "governance",
+  "category_name": "Governance",
+  "category_name_zh": "治理",
+  "tags": [
+    "governance",
+    "delegation",
+    "marketplace"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0",
+    "neo-n3-testnet": "0x05d4ed2e60141043d6d20f5cde274704bd42c0dc"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/gov-merc/index.html",
+    "icon": "/miniapps/gov-merc/logo.jpg",
+    "banner": "/miniapps/gov-merc/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://gov-merc"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

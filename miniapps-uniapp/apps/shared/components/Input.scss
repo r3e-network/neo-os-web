@@ -1,0 +1,28 @@
+.neo-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.neo-input-label {
+  font-size: 0.9em;
+  color: #888;
+}
+
+.neo-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 1em;
+
+  &:focus {
+    border-color: #00d9ff;
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "miniapp-charity-vault",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "uni",
+    "build:h5": "uni build -p h5",
+    "build": "uni build -p h5"
+  },
+  "dependencies": {
+    "vue": "catalog:",
+    "@dcloudio/uni-app": "catalog:",
+    "@dcloudio/uni-h5": "catalog:",
+    "@dcloudio/uni-components": "catalog:",
+    "@neo/uniapp-sdk": "workspace:*",
+    "@neo/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-cli-shared": "catalog:",
+    "@dcloudio/vite-plugin-uni": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "sass": "catalog:"
+  }
+}

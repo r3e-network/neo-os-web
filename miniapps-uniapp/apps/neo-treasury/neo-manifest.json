@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neo-treasury",
+  "name": "Neo Treasury",
+  "name_zh": "Neo 财库",
+  "version": "1.0.0",
+  "description": "Track Neo Foundation and Ecosystem Fund balances",
+  "description_zh": "Neo 财库 - Neo N3 去中心化应用",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": [],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/neo-treasury/index.html",
+    "icon": "/miniapps/neo-treasury/logo.jpg",
+    "banner": "/miniapps/neo-treasury/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neo-treasury"
+  },
+  "stateSource": {
+    "type": "api",
+    "endpoints": []
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-hall-of-fame",
+  "name": "Hall of Fame",
+  "name_zh": "名人堂",
+  "version": "1.0.0",
+  "description": "Neo Hall of Fame - Neo MiniApp",
+  "description_zh": "名人堂 - Neo N3 去中心化应用",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x3c00cbea1c4e502bafae4c6ce7a56237a7d71ded",
+    "neo-n3-testnet": "0x5a9869819c7f93e5fb2c7c3b3b9d6a5e4c8d7f6a"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/hall-of-fame/index.html",
+    "icon": "/miniapps/hall-of-fame/logo.jpg",
+    "banner": "/miniapps/hall-of-fame/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://hall-of-fame"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

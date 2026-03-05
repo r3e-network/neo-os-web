@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neo-sign-anything",
+  "name": "Neo Sign Anything",
+  "name_zh": "Neo 签名工具",
+  "version": "1.0.0",
+  "description": "Sign any message with your Neo address securely.",
+  "description_zh": "Neo 签名工具 - Neo N3 去中心化应用",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": [
+    "utility",
+    "signature",
+    "security"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/neo-sign-anything/index.html",
+    "icon": "/miniapps/neo-sign-anything/logo.jpg",
+    "banner": "/miniapps/neo-sign-anything/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neo-sign-anything"
+  },
+  "stateSource": {
+    "type": "api",
+    "endpoints": []
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-28T21:07:41Z"
+}

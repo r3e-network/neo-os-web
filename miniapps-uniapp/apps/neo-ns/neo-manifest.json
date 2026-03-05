@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neo-ns",
+  "name": "Neo Name Service",
+  "name_zh": "Neo 域名服务",
+  "version": "1.0.0",
+  "description": "Register and manage human-readable .neo domain names for your wallet",
+  "description_zh": "Neo 域名服务 - Neo N3 去中心化应用",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": [
+    "domains",
+    "naming",
+    "identity",
+    "nns"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+    "neo-n3-testnet": ""
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/neo-ns/index.html",
+    "icon": "/miniapps/neo-ns/logo.jpg",
+    "banner": "/miniapps/neo-ns/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neo-ns"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

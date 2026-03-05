@@ -1,0 +1,28 @@
+:global(.theme-wallet-health) {
+  --health-bg-start: #101b2f;
+  --health-bg-end: #1c2740;
+  --health-card-bg: rgba(16, 26, 44, 0.84);
+  --health-card-border: rgba(59, 130, 246, 0.28);
+  --health-accent: #3b82f6;
+  --health-accent-strong: #60a5fa;
+  --health-text: #e2e8f0;
+  --health-muted: rgba(226, 232, 240, 0.6);
+  --health-success: #22c55e;
+  --health-warning: #fbbf24;
+  --health-danger: #f87171;
+}
+
+:global(.theme-light .theme-wallet-health),
+:global([data-theme="light"] .theme-wallet-health) {
+  --health-bg-start: #f5f7ff;
+  --health-bg-end: #e6eefc;
+  --health-card-bg: rgba(255, 255, 255, 0.92);
+  --health-card-border: rgba(30, 64, 175, 0.18);
+  --health-accent: #1d4ed8;
+  --health-accent-strong: #2563eb;
+  --health-text: #0f172a;
+  --health-muted: rgba(15, 23, 42, 0.6);
+  --health-success: #16a34a;
+  --health-warning: #d97706;
+  --health-danger: #dc2626;
+}

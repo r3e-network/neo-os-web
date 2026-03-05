@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-masqueradedao",
+  "name": "Masquerade DAO",
+  "name_zh": "化妆舞会 DAO",
+  "version": "1.0.0",
+  "description": "Masquerade DAO - Neo MiniApp",
+  "description_zh": "化妆舞会 DAO - Neo N3 去中心化应用",
+  "category": "governance",
+  "category_name": "Governance",
+  "category_name_zh": "治理",
+  "tags": [],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0xc5e3e2e481af11dc823ae4ebcd8f791b9ba9b6f9",
+    "neo-n3-testnet": "0x36873ae952147150e065ad2ba8d23731ffd00d5a"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/masquerade-dao/index.html",
+    "icon": "/miniapps/masquerade-dao/logo.jpg",
+    "banner": "/miniapps/masquerade-dao/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://masquerade-dao"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

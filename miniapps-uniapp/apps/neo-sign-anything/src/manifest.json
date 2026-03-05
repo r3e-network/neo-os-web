@@ -1,0 +1,14 @@
+{
+    "name": "Neo Sign Anything",
+    "appid": "miniapp-neo-sign-anything",
+    "description": "Neo Sign Anything - Neo MiniApp",
+    "versionName": "1.0.0",
+    "versionCode": "100",
+    "transformPx": false,
+    "h5": {
+        "title": "Neo Sign Anything",
+        "router": {
+            "mode": "hash"
+        }
+    }
+}

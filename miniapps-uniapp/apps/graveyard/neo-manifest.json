@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-graveyard",
+  "name": "Graveyard",
+  "name_zh": "墓地",
+  "version": "1.0.0",
+  "description": "On-chain encrypted memory burial with paid forgetting",
+  "description_zh": "墓地 - Neo N3 去中心化应用",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": [
+    "memories",
+    "privacy",
+    "history"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1",
+    "neo-n3-testnet": "0xe88938b2c2032483cf5edcdab7e4bde981e5fb24"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/graveyard/index.html",
+    "icon": "/miniapps/graveyard/logo.jpg",
+    "banner": "/miniapps/graveyard/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://graveyard"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

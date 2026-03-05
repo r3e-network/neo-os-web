@@ -1,0 +1,180 @@
+<template>
+  <MiniAppPage
+    name="neo-convert"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    @tab-change="activeTab = $event"
+  >
+    <!-- LEFT panel: Account Generator -->
+    <template #content>
+      <view class="hero">
+        <ScrollReveal animation="fade-down" :duration="800">
+          <text class="hero-icon">🛠️</text>
+          <text class="hero-title">{{ t("heroTitle") }}</text>
+          <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
+        </ScrollReveal>
+      </view>
+
+      <ScrollReveal animation="fade-up" :delay="200" key="gen">
+        <AccountGenerator />
+      </ScrollReveal>
+    </template>
+
+    <template #tab-convert>
+      <view class="hero">
+        <ScrollReveal animation="fade-down" :duration="800">
+          <text class="hero-icon">🛠️</text>
+          <text class="hero-title">{{ t("heroTitle") }}</text>
+          <text class="hero-subtitle">{{ t("heroSubtitle") }}</text>
+        </ScrollReveal>
+      </view>
+
+      <ScrollReveal animation="fade-up" :delay="200" key="conv">
+        <ConverterTool />
+      </ScrollReveal>
+    </template>
+
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('quickTools')">
+        <view class="op-tools">
+          <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'generate'">
+            {{ t("tabGenerate") }}
+          </NeoButton>
+          <NeoButton size="sm" variant="secondary" class="op-btn" @click="activeTab = 'convert'">
+            {{ t("tabConvert") }}
+          </NeoButton>
+        </view>
+        <view class="op-hint">
+          <text class="op-hint-text">{{ t("heroSubtitle") }}</text>
+        </view>
+      </NeoCard>
+    </template>
+  </MiniAppPage>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import { useResponsive } from "@shared/composables/useResponsive";
+import { MiniAppPage, ScrollReveal } from "@shared/components";
+import AccountGenerator from "./components/AccountGenerator.vue";
+import { messages } from "@/locale/messages";
+import { createMiniApp } from "@shared/utils/createMiniApp";
+
+const { isMobile } = useResponsive();
+const activeTab = ref("generate");
+
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
+  name: "neo-convert",
+  messages,
+  template: {
+    tabs: [
+      { key: "generate", labelKey: "tabGenerate", icon: "👛", default: true },
+      { key: "convert", labelKey: "tabConvert", icon: "🔄" },
+    ],
+    docTitleKey: "docTitle",
+    docFeatureCount: 4,
+    docStepPrefix: "docStep",
+    docFeaturePrefix: "docFeature",
+  },
+  sidebarItems: [
+    { labelKey: "sidebarActiveTab", value: () => activeTab.value },
+    { labelKey: "sidebarMode", value: () => (isMobile.value ? t("sidebarMobile") : t("sidebarDesktop")) },
+  ],
+});
+
+const appState = computed(() => ({
+  activeTab: activeTab.value,
+}));
+</script>
+
+<style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@import "./neo-convert-theme.scss";
+
+:global(page) {
+  background: var(--bg-primary);
+}
+
+.op-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.op-btn {
+  width: 100%;
+}
+
+.op-hint {
+  padding: 8px;
+  background: var(--bg-card-subtle, rgba(255, 255, 255, 0.04));
+  border-radius: 8px;
+  text-align: center;
+}
+
+.op-hint-text {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  line-height: 1.4;
+}
+
+.hero {
+  text-align: center;
+  margin: 30px 0 40px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 24px;
+
+  .hero-icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .hero-title {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: var(--convert-hero-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+
+  .hero-subtitle {
+    display: block;
+    font-size: 15px;
+    color: var(--text-secondary);
+    max-width: 80%;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero {
+    margin: 20px 0 30px;
+    padding-bottom: 16px;
+  }
+  .hero-icon {
+    font-size: 32px;
+  }
+  .hero-title {
+    font-size: 22px;
+  }
+  .hero-subtitle {
+    font-size: 13px;
+    max-width: 100%;
+  }
+}
+</style>

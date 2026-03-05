@@ -1,0 +1,16 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Council Governance"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Council Governance",
+    "navigationBarBackgroundColor": "#0d1117",
+    "backgroundColor": "#0d1117"
+  }
+}

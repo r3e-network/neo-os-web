@@ -1,0 +1,18 @@
+{
+  "app_id": "on-chain-tarot",
+  "name": "On-Chain Tarot",
+  "version": "2.0.0",
+  "description": "Hybrid on-chain/off-chain tarot reading with verified computation",
+  "tee_scripts": {
+    "calculate-cards": {
+      "file": "calculate-cards.js",
+      "entry_point": "calculateCards",
+      "description": "Calculate tarot cards from deterministic seed"
+    },
+    "generate-interpretation": {
+      "file": "generate-interpretation.js",
+      "entry_point": "generateInterpretation",
+      "description": "Generate reading interpretation from cards"
+    }
+  }
+}

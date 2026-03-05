@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-trustanchor",
+  "name": "Trust Anchor",
+  "name_zh": "信任锚点",
+  "version": "1.0.0",
+  "description": "Non-profit voting delegation for Neo N3 governance. Delegate your voting power to candidates with proven reputation and active contribution. Zero fees, 100% of GAS rewards to stakers.",
+  "description_zh": "信任锚点 - Neo N3 去中心化应用",
+  "category": "governance",
+  "category_name": "Governance",
+  "category_name_zh": "治理",
+  "tags": [
+    "staking",
+    "voting",
+    "delegation",
+    "governance",
+    "reputation"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x8b7f3e4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f",
+    "neo-n3-testnet": "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/trustanchor/index.html",
+    "icon": "/miniapps/trustanchor/logo.jpg",
+    "banner": "/miniapps/trustanchor/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://trustanchor"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

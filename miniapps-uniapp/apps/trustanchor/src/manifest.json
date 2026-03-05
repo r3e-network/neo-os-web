@@ -1,0 +1,14 @@
+{
+  "name": "TrustAnchor",
+  "appid": "__UNI__TRUSTANCHOR",
+  "description": "Non-profit decentralized voting delegation system",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "title": "TrustAnchor",
+    "router": {
+      "mode": "hash"
+    }
+  }
+}

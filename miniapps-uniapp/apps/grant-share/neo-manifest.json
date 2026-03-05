@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-grant-share",
+  "name": "Grant Share",
+  "name_zh": "资助分享",
+  "version": "1.0.0",
+  "description": "Create and fund community grants, share resources with transparent on-chain tracking",
+  "description_zh": "资助分享 - Neo N3 去中心化应用",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [
+    "grants",
+    "funding",
+    "community",
+    "sharing"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/grant-share/index.html",
+    "icon": "/miniapps/grant-share/logo.jpg",
+    "banner": "/miniapps/grant-share/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://grant-share"
+  },
+  "stateSource": {
+    "type": "api",
+    "endpoints": []
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}

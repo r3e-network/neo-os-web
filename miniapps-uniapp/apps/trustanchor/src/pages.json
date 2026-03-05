@@ -1,0 +1,28 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "TrustAnchor",
+        "enablePullDownRefresh": false
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "light",
+    "navigationBarTitleText": "TrustAnchor",
+    "navigationBarBackgroundColor": "#1b1b2f",
+    "backgroundColor": "#1b1b2f",
+    "backgroundTextStyle": "dark",
+    "app-plus": {
+      "background": "#efeff5"
+    }
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^App(.*)": "@shared/components/App$1.vue",
+      "^Neo(.*)": "@shared/components/Neo$1.vue"
+    }
+  }
+}

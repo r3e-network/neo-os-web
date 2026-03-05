@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-heritage-trust",
+  "name": "Heritage Trust",
+  "name_zh": "遗产信托",
+  "version": "2.0.0",
+  "description": "Lock NEO/GAS, earn bNEO rewards, and release NEO + GAS, NEO + rewards, or rewards-only monthly.",
+  "description_zh": "遗产信托 - Neo N3 去中心化应用",
+  "category": "finance",
+  "category_name": "Finance",
+  "category_name_zh": "金融",
+  "tags": [],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0xd260b66f646a49c15f572aa827e5eb36f7756563",
+    "neo-n3-testnet": "0xd59eea851cd8e5dd57efe80646ff53fa274600f8"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/heritage-trust/index.html",
+    "icon": "/miniapps/heritage-trust/logo.jpg",
+    "banner": "/miniapps/heritage-trust/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://heritage-trust"
+  },
+  "stateSource": {
+    "type": "smart-contract",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neo.coz.io/mainnet"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-01-26T12:00:00Z"
+}
