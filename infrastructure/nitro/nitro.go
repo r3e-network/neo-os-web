@@ -26,7 +26,7 @@ type Nitro struct {
 
 	// Identity
 	nitroType string
-	uuid       string
+	uuid      string
 
 	// TLS credentials from KMS/Platform
 	cert               tls.Certificate
@@ -50,14 +50,14 @@ type Nitro struct {
 // Config holds Nitro configuration.
 type Config struct {
 	NitroType string
-	DNSNames   []string
+	DNSNames  []string
 }
 
 // New creates a new Nitro instance.
 func New(cfg Config) (*Nitro, error) {
 	m := &Nitro{
 		nitroType: cfg.NitroType,
-		secrets:    make(map[string][]byte),
+		secrets:   make(map[string][]byte),
 	}
 
 	m.provider = detectTEEProvider()

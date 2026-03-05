@@ -25,7 +25,7 @@ func TestInvokeEnforcesAllowlistAndReplay(t *testing.T) {
 	}
 
 	svc, err := New(Config{
-		Nitro:    m,
+		Nitro:     m,
 		Allowlist: allowlist,
 	})
 	if err != nil {
@@ -93,7 +93,7 @@ func newTestService(t *testing.T, allowlistJSON string) *Service {
 	}
 
 	svc, err := New(Config{
-		Nitro:    m,
+		Nitro:     m,
 		Allowlist: allowlist,
 	})
 	if err != nil {
@@ -213,7 +213,7 @@ func TestNewMergesPlatformAllowlistHashes(t *testing.T) {
 	}
 
 	svc, err := New(Config{
-		Nitro:    m,
+		Nitro:     m,
 		Allowlist: allowlist,
 	})
 	if err != nil {
@@ -256,7 +256,7 @@ func TestNewEmptyAllowlistStillAllowsPriceFeedUpdate(t *testing.T) {
 	}
 
 	svc, err := New(Config{
-		Nitro:       m,
+		Nitro:        m,
 		AllowlistRaw: "",
 	})
 	if err != nil {

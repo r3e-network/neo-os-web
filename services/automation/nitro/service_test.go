@@ -146,7 +146,7 @@ func TestNew(t *testing.T) {
 
 	svc, err := New(Config{
 		Nitro: m,
-		DB:     nil,
+		DB:    nil,
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
@@ -947,7 +947,7 @@ func TestServiceConfigFields(t *testing.T) {
 	m, _ := nitro.New(nitro.Config{NitroType: "neoflow"})
 
 	cfg := Config{
-		Nitro:               m,
+		Nitro:                m,
 		DB:                   nil,
 		ChainClient:          nil,
 		PriceFeedHash:        "0x1234567890abcdef",

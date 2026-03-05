@@ -166,7 +166,7 @@ func TestServiceFrameworkSmoke(t *testing.T) {
 			ID:      "smoke-test",
 			Name:    "Smoke Test Service",
 			Version: "1.0.0",
-			Nitro:  m,
+			Nitro:   m,
 			DB:      nil,
 		})
 
@@ -198,7 +198,7 @@ func TestServiceFrameworkSmoke(t *testing.T) {
 			ID:      "smoke-test",
 			Name:    "Smoke Test Service",
 			Version: "1.0.0",
-			Nitro:  m,
+			Nitro:   m,
 			DB:      nil,
 		})
 

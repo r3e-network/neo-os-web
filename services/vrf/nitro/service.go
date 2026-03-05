@@ -35,7 +35,7 @@ type Service struct {
 
 // Config holds VRF service configuration.
 type Config struct {
-	Nitro       *nitro.Nitro
+	Nitro        *nitro.Nitro
 	DB           database.RepositoryInterface
 	ReplayWindow time.Duration
 }
@@ -57,7 +57,7 @@ func New(cfg Config) (*Service, error) {
 		ID:              ServiceID,
 		Name:            ServiceName,
 		Version:         Version,
-		Nitro:          cfg.Nitro,
+		Nitro:           cfg.Nitro,
 		DB:              cfg.DB,
 		RequiredSecrets: requiredSecrets,
 	})

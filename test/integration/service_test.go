@@ -93,7 +93,7 @@ func TestServiceFramework(t *testing.T) {
 		ID:      "test-service",
 		Name:    "Test Service",
 		Version: "1.0.0",
-		Nitro:  m,
+		Nitro:   m,
 		DB:      nil,
 	})
 

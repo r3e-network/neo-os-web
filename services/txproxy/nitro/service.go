@@ -13,8 +13,8 @@ import (
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/middleware"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/replay"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
@@ -45,7 +45,7 @@ type Service struct {
 
 type Config struct {
 	Nitro *nitro.Nitro
-	DB     database.RepositoryInterface
+	DB    database.RepositoryInterface
 
 	ChainClient *chain.Client
 	Signer      chain.TEESigner
@@ -128,7 +128,7 @@ func New(cfg Config) (*Service, error) {
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
-		Nitro:  cfg.Nitro,
+		Nitro:   cfg.Nitro,
 		DB:      cfg.DB,
 	})
 

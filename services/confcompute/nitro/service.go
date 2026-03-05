@@ -118,7 +118,7 @@ type Service struct {
 // Config holds service configuration.
 type Config struct {
 	Nitro *nitro.Nitro
-	DB     database.RepositoryInterface
+	DB    database.RepositoryInterface
 	// SecretProvider optionally injects user secrets into the JS runtime.
 	SecretProvider secrets.Provider
 	// Optional overrides, primarily used for testing.
@@ -143,7 +143,7 @@ func New(cfg Config) (*Service, error) {
 		ID:              ServiceID,
 		Name:            ServiceName,
 		Version:         Version,
-		Nitro:          cfg.Nitro,
+		Nitro:           cfg.Nitro,
 		DB:              cfg.DB,
 		RequiredSecrets: requiredSecrets,
 	})

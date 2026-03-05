@@ -30,7 +30,7 @@ type Service struct {
 
 // Config configures the oracle.
 type Config struct {
-	Nitro         *nitro.Nitro
+	Nitro          *nitro.Nitro
 	SecretProvider secrets.Provider
 	MaxBodyBytes   int64        // optional response cap; default 2MB
 	URLAllowlist   URLAllowlist // optional allowlist for outbound fetch
@@ -46,7 +46,7 @@ func New(cfg Config) (*Service, error) {
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
-		Nitro:  cfg.Nitro,
+		Nitro:   cfg.Nitro,
 	})
 
 	strict := runtime.StrictIdentityMode() || (cfg.Nitro != nil && cfg.Nitro.IsEnclave())

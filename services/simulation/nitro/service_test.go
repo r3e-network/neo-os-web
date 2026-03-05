@@ -23,7 +23,7 @@ func mockBaseService() *commonservice.BaseService {
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
-		Nitro:  nil,
+		Nitro:   nil,
 		DB:      nil,
 		Logger:  logging.New("test", "debug", "json"),
 	})

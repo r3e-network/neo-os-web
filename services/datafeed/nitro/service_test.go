@@ -26,7 +26,7 @@ func TestNew(t *testing.T) {
 
 	svc, err := New(Config{
 		Nitro: m,
-		DB:     nil,
+		DB:    nil,
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
