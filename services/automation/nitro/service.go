@@ -75,7 +75,7 @@ type Scheduler struct {
 
 // Config holds NeoFlow service configuration.
 type Config struct {
-	Nitro      *nitro.Nitro
+	Nitro       *nitro.Nitro
 	DB          database.RepositoryInterface
 	NeoFlowRepo neoflowsupabase.RepositoryInterface
 
@@ -106,7 +106,7 @@ func New(cfg Config) (*Service, error) { //nolint:gocritic // cfg is read once a
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
-		Nitro:  cfg.Nitro,
+		Nitro:   cfg.Nitro,
 		DB:      cfg.DB,
 	})
 

@@ -79,7 +79,7 @@ func TestNewCustomMaxBodyBytes(t *testing.T) {
 	t.Setenv("TEE_BACKEND", "simulation")
 	m, _ := nitro.New(nitro.Config{NitroType: "neooracle"})
 	svc, err := New(Config{
-		Nitro:       m,
+		Nitro:        m,
 		URLAllowlist: URLAllowlist{Prefixes: []string{"https://example.com"}},
 		MaxBodyBytes: 512,
 		Transport:    http.DefaultTransport,
@@ -163,10 +163,10 @@ func newTestOracle(t *testing.T, allowlist URLAllowlist) *Service {
 	t.Setenv("STRICT_IDENTITY_MODE", "false")
 	t.Setenv("STRICT_IDENTITY_ON_TEE", "false")
 	t.Setenv("NITRO_CERT", "")
-	
+
 	m, _ := nitro.New(nitro.Config{NitroType: "neooracle"})
 	svc, err := New(Config{
-		Nitro:       m,
+		Nitro:        m,
 		URLAllowlist: allowlist,
 		Transport:    http.DefaultTransport,
 	})

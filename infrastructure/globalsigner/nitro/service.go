@@ -67,7 +67,7 @@ type keyEntry struct {
 
 // Config holds GlobalSigner service configuration.
 type Config struct {
-	Nitro         *nitro.Nitro
+	Nitro          *nitro.Nitro
 	DB             database.RepositoryInterface
 	Repository     supabase.Repository
 	RotationConfig *RotationConfig
@@ -104,7 +104,7 @@ func New(cfg Config) (*Service, error) {
 		ID:      ServiceID,
 		Name:    ServiceName,
 		Version: Version,
-		Nitro:  cfg.Nitro,
+		Nitro:   cfg.Nitro,
 		DB:      cfg.DB,
 		RequiredSecrets: []string{
 			"GLOBALSIGNER_MASTER_SEED",

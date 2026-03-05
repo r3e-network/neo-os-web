@@ -78,7 +78,7 @@ func TestCleanupWorkerRemovesExpiredJobs(t *testing.T) {
 	m, _ := nitro.New(nitro.Config{NitroType: "neocompute"})
 	m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("test-master-key-32-bytes-long!!!"))
 	svc, _ := New(Config{
-		Nitro:          m,
+		Nitro:           m,
 		ResultTTL:       5 * time.Millisecond,
 		CleanupInterval: 5 * time.Millisecond,
 	})

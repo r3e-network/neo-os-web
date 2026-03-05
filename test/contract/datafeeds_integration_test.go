@@ -32,7 +32,7 @@ func TestNeoFeedsPriceFetching(t *testing.T) {
 
 	mockDB := database.NewMockRepository()
 	svc, err := neofeeds.New(neofeeds.Config{
-		Nitro:      m,
+		Nitro:       m,
 		DB:          mockDB,
 		ArbitrumRPC: "https://arb1.arbitrum.io/rpc",
 	})
@@ -285,7 +285,7 @@ func TestNeoFeedsMultiplePrices(t *testing.T) {
 
 	mockDB2 := database.NewMockRepository()
 	svc, err := neofeeds.New(neofeeds.Config{
-		Nitro:      m,
+		Nitro:       m,
 		DB:          mockDB2,
 		ArbitrumRPC: "https://arb1.arbitrum.io/rpc",
 	})
