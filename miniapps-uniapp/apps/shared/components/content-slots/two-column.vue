@@ -34,7 +34,7 @@ defineEmits<{
   flex-direction: column;
   width: 100%;
   padding: 16px;
-  gap: 16px;
+  gap: 24px;
   box-sizing: border-box;
   transition: padding 0.2s ease, gap 0.2s ease;
 }
@@ -42,7 +42,7 @@ defineEmits<{
 .two-column-info {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
   width: 100%;
   min-width: 0;
 }
@@ -50,21 +50,33 @@ defineEmits<{
 .two-column-operation {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   width: 100%;
-  background: var(--bg-card, rgba(255, 255, 255, 0.02));
-  border-radius: 16px;
-  padding: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  border-radius: 24px;
+  padding: 24px;
   box-sizing: border-box;
-  transition: padding 0.2s ease, background 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 900px) {
   .two-column-slot {
     flex-direction: row;
     align-items: flex-start;
-    padding: 24px;
-    gap: 24px;
+    padding: 32px;
+    gap: 32px;
 
     &.single-column {
       flex-direction: column;
@@ -74,24 +86,22 @@ defineEmits<{
   .two-column-info {
     flex: 1;
     min-width: 0;
-    gap: 20px;
+    gap: 32px;
 
     .single-column & {
       max-width: 900px;
+      margin: 0 auto;
     }
   }
 
   .two-column-operation {
-    flex: 0 0 340px;
+    flex: 0 0 400px;
     position: sticky;
     top: 24px;
-    width: 340px;
-    max-width: 340px;
-    gap: 20px;
-    padding: 20px;
-    border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
-    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+    width: 400px;
+    max-width: 400px;
+    border-radius: 24px;
+    padding: 32px;
   }
 }
 

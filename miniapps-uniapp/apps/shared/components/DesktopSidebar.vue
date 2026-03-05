@@ -70,14 +70,14 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
   width: 280px;
   min-width: 280px;
   height: 100%;
-  border-right: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   position: relative;
   z-index: 10;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  background: rgba(30, 41, 59, 0.95);
+  background: rgba(5, 5, 10, 0.8); // Darker glass bg
 
   &::after {
     content: "";
@@ -88,35 +88,36 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
     height: 100%;
     background: linear-gradient(
       180deg,
-      rgba(139, 92, 246, 0.3) 0%,
-      rgba(59, 130, 246, 0.2) 50%,
-      rgba(236, 72, 153, 0.3) 100%
+      rgba(0, 229, 153, 0.3) 0%,
+      rgba(0, 163, 255, 0.2) 50%,
+      rgba(112, 0, 255, 0.3) 100%
     );
   }
 }
 
 .sidebar-header {
   padding: var(--spacing-8, 32px) var(--spacing-6, 24px) var(--spacing-6, 24px);
-  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
 
   .brand-name {
     display: block;
-    font-size: 22px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    font-size: 24px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #00e599, #00a3ff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin-bottom: var(--spacing-1, 4px);
+    letter-spacing: -0.5px;
   }
 
   .brand-tagline {
     display: block;
     font-size: var(--font-size-xs, 12px);
-    color: var(--text-tertiary, rgba(248, 250, 252, 0.5));
-    font-weight: 500;
-    letter-spacing: 0.5px;
+    color: rgba(248, 250, 252, 0.5);
+    font-weight: 600;
+    letter-spacing: 1px;
     text-transform: uppercase;
   }
 }
@@ -154,7 +155,7 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
   align-items: center;
   padding: 12px 16px;
   border-radius: var(--radius-lg, 12px);
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
+  color: rgba(248, 250, 252, 0.7);
   cursor: pointer;
   position: relative;
   transition: all var(--transition-normal, 0.2s ease);
@@ -163,23 +164,23 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
   outline: none;
 
   &:focus-visible {
-    border-color: var(--accent-primary, #3b82f6);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    border-color: #00e599;
+    box-shadow: 0 0 0 2px rgba(0, 229, 153, 0.2);
   }
 
   &:hover {
-    background: var(--bg-hover, rgba(255, 255, 255, 0.06));
-    color: var(--text-primary, #f8fafc);
+    background: rgba(255, 255, 255, 0.05);
+    color: #f8fafc;
   }
 
   &.active {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.1));
-    color: #a78bfa;
-    border-color: rgba(139, 92, 246, 0.2);
+    background: linear-gradient(135deg, rgba(0, 229, 153, 0.15), rgba(0, 163, 255, 0.1));
+    color: #00e599;
+    border-color: rgba(0, 229, 153, 0.2);
 
     .nav-icon-wrapper {
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.15));
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+      background: linear-gradient(135deg, rgba(0, 229, 153, 0.2), rgba(0, 163, 255, 0.15));
+      box-shadow: 0 0 20px rgba(0, 229, 153, 0.2);
     }
 
     .nav-indicator {
@@ -200,7 +201,7 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md, 10px);
-  background: var(--bg-tertiary, rgba(255, 255, 255, 0.05));
+  background: rgba(255, 255, 255, 0.05);
   transition: all var(--transition-normal, 0.2s ease);
 }
 
@@ -214,19 +215,19 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
 .nav-indicator {
   width: 8px;
   height: 8px;
-  background: #8b5cf6;
+  background: #00e599;
   border-radius: 50%;
   opacity: 0;
   transform: translateX(-10px);
   transition: all var(--transition-normal, 0.2s ease);
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
 }
 
 .sidebar-panel {
   margin: 0 var(--spacing-3, 12px);
   padding: var(--spacing-3, 12px);
   border-radius: var(--radius-lg, 12px);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -257,20 +258,20 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
     font-weight: 700;
     letter-spacing: 0.4px;
     text-transform: uppercase;
-    color: var(--text-tertiary, rgba(248, 250, 252, 0.6));
+    color: rgba(248, 250, 252, 0.6);
   }
 
   :deep(.sidebar-value) {
     display: block;
     font-size: var(--font-size-xl, 18px);
     font-weight: 700;
-    color: var(--text-primary, #f8fafc);
+    color: #f8fafc;
   }
 }
 
 .sidebar-footer {
   padding: var(--spacing-4, 16px) var(--spacing-6, 24px) var(--spacing-8, 32px);
-  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
 }
 
@@ -279,9 +280,9 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background: var(--bg-tertiary, rgba(255, 255, 255, 0.03));
+  background: rgba(255, 255, 255, 0.03);
   border-radius: var(--radius-md, 10px);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .status-dot {
@@ -290,8 +291,8 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
   border-radius: 50%;
 
   &.online {
-    background: #10b981;
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    background: #00e599;
+    box-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
 
     @media (prefers-reduced-motion: reduce) {
       animation: none;
@@ -313,8 +314,8 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
 
 .status-text {
   font-size: var(--font-size-xs, 12px);
-  font-weight: 500;
-  color: var(--text-secondary, rgba(248, 250, 252, 0.7));
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.7);
 }
 
 // === Responsive: mobile horizontal nav ===
@@ -327,7 +328,7 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
     align-items: center;
     padding: var(--spacing-3, 12px) var(--spacing-4, 16px);
     border-right: none;
-    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     flex-shrink: 0;
 
     &::after {
@@ -384,7 +385,7 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
     }
 
     &.active {
-      background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+      background: rgba(255, 255, 255, 0.08);
       border: none;
     }
   }
@@ -412,9 +413,9 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
   &::after {
     background: linear-gradient(
       180deg,
-      rgba(139, 92, 246, 0.15) 0%,
-      rgba(59, 130, 246, 0.1) 50%,
-      rgba(236, 72, 153, 0.15) 100%
+      rgba(0, 229, 153, 0.15) 0%,
+      rgba(0, 163, 255, 0.1) 50%,
+      rgba(112, 0, 255, 0.15) 100%
     );
   }
 }
@@ -422,9 +423,9 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
 :global(.theme-light) .nav-item,
 [data-theme="light"] .nav-item {
   &.active {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.08));
-    border-color: rgba(139, 92, 246, 0.15);
-    color: #7c3aed;
+    background: linear-gradient(135deg, rgba(0, 229, 153, 0.1), rgba(0, 163, 255, 0.08));
+    border-color: rgba(0, 229, 153, 0.15);
+    color: #00a3ff;
   }
 }
 
@@ -436,7 +437,7 @@ const hasSidebarSlot = computed(() => Boolean(slots["desktop-sidebar"]));
 
 :global(.theme-light) .status-dot.online,
 [data-theme="light"] .status-dot.online {
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 10px rgba(0, 229, 153, 0.4);
 }
 
 // Reduced motion

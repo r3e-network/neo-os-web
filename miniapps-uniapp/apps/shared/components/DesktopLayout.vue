@@ -138,9 +138,9 @@ validateTabs();
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
-      radial-gradient(circle at 40% 60%, rgba(236, 72, 153, 0.04) 0%, transparent 40%);
+      radial-gradient(circle at 20% 20%, rgba(0, 229, 153, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(112, 0, 255, 0.06) 0%, transparent 50%),
+      radial-gradient(circle at 40% 60%, rgba(0, 163, 255, 0.04) 0%, transparent 40%);
     pointer-events: none;
     z-index: 0;
   }
