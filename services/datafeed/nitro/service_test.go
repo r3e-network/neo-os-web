@@ -60,12 +60,12 @@ func TestInitDefaultSources(t *testing.T) {
 	svc, _ := New(Config{Nitro: m})
 
 	// Default config should include 7 sources.
-	if len(svc.sources) != 7 {
-		t.Errorf("len(sources) = %d, want 7", len(svc.sources))
+	if len(svc.sources) != 8 {
+		t.Errorf("len(sources) = %d, want 8", len(svc.sources))
 	}
 
 	// Check source names
-	expectedSources := []string{"binance", "coinbase", "okx", "yahoo", "stooq", "nasdaq_stocks", "nasdaq_etf"}
+	expectedSources := []string{"binance", "coinbase", "okx", "yahoo", "stooq", "nasdaq_stocks", "nasdaq_etf", "twelvedata"}
 	for _, name := range expectedSources {
 		if _, ok := svc.sources[name]; !ok {
 			t.Errorf("Source %s not found", name)

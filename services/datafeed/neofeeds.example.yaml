@@ -36,6 +36,7 @@ publish_policy:
 default_sources:
   - binance
   - okx
+  - twelvedata
 
 # Data sources configuration (multi-source median)
 sources:
@@ -100,6 +101,13 @@ sources:
       User-Agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     weight: 1
     timeout: 8s
+
+  - id: twelvedata
+    name: Twelve Data
+    url: "https://api.twelvedata.com/price?symbol={base}/{quote}&apikey=REDACTED_TWELVEDATA_API_KEY"
+    json_path: price
+    weight: 1
+    timeout: 5s
 
 # Price feeds configuration (example set)
 #

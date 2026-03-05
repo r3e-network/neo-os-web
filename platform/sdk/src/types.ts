@@ -181,18 +181,6 @@ export type OracleQueryResponse = {
   body: string;
 };
 
-export type VRFRequest = {
-  request_id?: string;
-};
-
-export type VRFResponse = {
-  request_id: string;
-  randomness: string;
-  signature: string;
-  attestation_hash: string;
-  timestamp: number;
-};
-
 export type ComputeExecuteRequest = {
   script: string;
   entry_point?: string;
@@ -430,9 +418,6 @@ export interface HostSDK {
     execute(params: ComputeExecuteRequest): Promise<ComputeJob>;
     listJobs(): Promise<ComputeJob[]>;
     getJob(id: string): Promise<ComputeJob>;
-  };
-  vrf: {
-    requestRandomness(params: VRFRequest): Promise<VRFResponse>;
   };
   automation: {
     listTriggers(): Promise<AutomationTrigger[]>;

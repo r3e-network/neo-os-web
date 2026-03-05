@@ -1,6 +1,6 @@
 # NeoCompute Nitro Service
 
-TEE-secured confidential computing service running inside NitroRun enclave.
+TEE-secured confidential computing service running inside AWS Nitro enclave.
 
 ## Overview
 
@@ -14,7 +14,7 @@ The NeoCompute Nitro service implements secure JavaScript execution:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    NitroRun Enclave (TEE)                      │
+│                    AWS Nitro Enclave (TEE)                      │
 │                                                                 │
 │    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐        │
 │    │   Handler   │    │  goja JS    │    │  Secrets    │        │
@@ -211,7 +211,7 @@ POST /execute
 | Package | Purpose |
 |---------|---------|
 | `infrastructure/crypto` | AES-GCM, HMAC, hashing |
-| `infrastructure/nitro` | NitroRun TEE utilities |
+| `infrastructure/nitro` | AWS Nitro TEE utilities |
 | `infrastructure/secrets` | Secrets provider interface + policy enforcement |
 | `infrastructure/database` | Framework DB access (optional) |
 | `infrastructure/service` | Base service framework |

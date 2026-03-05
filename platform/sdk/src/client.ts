@@ -24,8 +24,6 @@ import type {
   MiniAppUsageResponse,
   ComputeExecuteRequest,
   ComputeJob,
-  VRFRequest,
-  VRFResponse,
   OracleQueryRequest,
   OracleQueryResponse,
   PayGASResponse,
@@ -429,14 +427,6 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
     oracle: {
       async query(params: OracleQueryRequest): Promise<OracleQueryResponse> {
         return requestHostJSON<OracleQueryResponse>(cfg, "/oracle-query", {
-          method: "POST",
-          body: JSON.stringify(params),
-        });
-      },
-    },
-    vrf: {
-      async requestRandomness(params: VRFRequest): Promise<VRFResponse> {
-        return requestHostJSON<VRFResponse>(cfg, "/vrf-request", {
           method: "POST",
           body: JSON.stringify(params),
         });

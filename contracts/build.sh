@@ -6,9 +6,7 @@ mkdir -p build
 
 echo "=== Building Platform Contracts ==="
 
-# We compile the directories that actually have .csproj files.
-# For MiniAppBase and templates, let's list them dynamically or explicitly.
-for d in AppRegistry AutomationAnchor Governance MiniAppFactoryV2 PaymentHub PriceFeed RandomnessLog ServiceLayerGateway MiniAppTemplates MiniAppCoinFlip MiniAppDiceGame MiniAppLottery MiniAppPredictionMarket zNEP17; do
+for d in AppRegistry AutomationAnchor Governance PaymentHub PriceFeed RandomnessLog ServiceLayerGateway MiniAppCoinFlip MiniAppDiceGame MiniAppLottery MiniAppPredictionMarket OracleService; do
   if [ -f "$d/$d.csproj" ]; then
     echo "Building $d..."
     dotnet build "$d/$d.csproj" -c Release

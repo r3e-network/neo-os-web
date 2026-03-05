@@ -1,6 +1,6 @@
 # NeoOracle Nitro Service
 
-TEE-secured HTTP oracle proxy running inside NitroRun enclave.
+TEE-secured HTTP oracle proxy running inside AWS Nitro enclave.
 
 ## Overview
 
@@ -14,7 +14,7 @@ The NeoOracle Nitro service implements secure external data fetching:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    NitroRun Enclave (TEE)                      │
+│                    AWS Nitro Enclave (TEE)                      │
 │                                                                 │
 │  ┌─────────────┐    ┌─────────────┐      ┌─────────────┐        │
 │  │   Handler   │    │ URL Allow-  │      │  Secrets    │        │
@@ -213,7 +213,7 @@ POST /query
 
 | Package | Purpose |
 |---------|---------|
-| `infrastructure/nitro` | NitroRun TEE utilities |
+| `infrastructure/nitro` | AWS Nitro TEE utilities |
 | `infrastructure/httputil` | HTTP response helpers |
 | `infrastructure/service` | Base service framework |
 

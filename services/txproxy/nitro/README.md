@@ -76,7 +76,7 @@ Example (allow platform contracts):
 
 ### Loading Priority
 
-1. `TXPROXY_ALLOWLIST` secret (NitroRun injected)
+1. `TXPROXY_ALLOWLIST` secret (AWS Nitro injected)
 2. `TXPROXY_ALLOWLIST` environment variable
 3. Empty allowlist (blocks all)
 
@@ -137,5 +137,5 @@ Note: the allowlist must still permit GAS `transfer` when using the `payments` i
 ### Key Management
 
 - **GlobalSigner (Preferred)**: Signing keys held in dedicated TEE service
-- **Local Key (Fallback)**: Key injected via NitroRun manifest
+- **Local Key (Fallback)**: Key injected via AWS Nitro manifest
 - Keys never leave the enclave boundary

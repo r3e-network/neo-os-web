@@ -160,7 +160,7 @@ GASContractHash          = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 
 ## Security
 
-- **mTLS Authentication**: Service-to-service endpoints require NitroRun mTLS certificates
+- **mTLS Authentication**: Service-to-service endpoints require AWS Nitro mTLS certificates
 - **User Authentication**: User endpoints require valid JWT from Supabase Auth
 - **Atomic Operations**: Balance updates use mutex locks to prevent race conditions
 - **Strict Mode**: In production/enclave mode, chain client is required
@@ -178,7 +178,7 @@ GasBank has a split architecture where user-facing read operations go through Ed
                     ▼                               ▼
 ┌─────────────────────────────┐     ┌─────────────────────────────────┐
 │     Edge Functions          │     │      TEE Service (neogasbank)   │
-│  (Supabase Edge Runtime)    │     │      (NitroRun TEE Enclave)    │
+│  (Supabase Edge Runtime)    │     │      (AWS Nitro TEE Enclave)    │
 ├─────────────────────────────┤     ├─────────────────────────────────┤
 │ /gasbank-account   (GET)    │     │ /deduct   (POST, mTLS)          │
 │ /gasbank-deposits  (GET)    │     │ /reserve  (POST, mTLS)          │
@@ -196,7 +196,7 @@ GasBank has a split architecture where user-facing read operations go through Ed
 | Aspect      | Edge Functions                   | TEE Service                        |
 | ----------- | -------------------------------- | ---------------------------------- |
 | **Purpose** | User queries, deposit initiation | Balance mutations, service fees    |
-| **Auth**    | JWT (Supabase Auth)              | mTLS (NitroRun certificates)      |
+| **Auth**    | JWT (Supabase Auth)              | mTLS (AWS Nitro certificates)      |
 | **Latency** | Low (edge-deployed)              | Higher (enclave overhead)          |
 | **Trust**   | User-facing, read-mostly         | Service-to-service, write-critical |
 

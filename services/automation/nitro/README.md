@@ -1,6 +1,6 @@
 # NeoFlow Nitro Service
 
-TEE-secured task automation service running inside NitroRun enclave.
+TEE-secured task automation service running inside AWS Nitro enclave.
 
 ## Overview
 
@@ -13,7 +13,7 @@ The NeoFlow Nitro service implements trigger-based task automation:
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│                    NitroRun Enclave (TEE)                    │
+│                    AWS Nitro Enclave (TEE)                    │
 │                                                               │
 │  ┌─────────────┐    ┌─────────────┐     ┌─────────────┐       │
 │  │  Scheduler  │    │  Condition  │     │  Executor   │       │
@@ -130,7 +130,7 @@ type Config struct {
 | Package | Purpose |
 |---------|---------|
 | `infrastructure/chain` | Neo N3 blockchain interaction + platform contract reads (`PriceFeed`, `AutomationAnchor`) |
-| `infrastructure/nitro` | NitroRun TEE utilities |
+| `infrastructure/nitro` | AWS Nitro TEE utilities |
 | `infrastructure/service` | Base service |
 | `services/automation/supabase` | Repository |
 
