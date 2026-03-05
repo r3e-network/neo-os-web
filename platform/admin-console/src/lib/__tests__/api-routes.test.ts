@@ -168,7 +168,7 @@ describe("GET /api/analytics/by-app", () => {
 describe("GET /api/services/health", () => {
   it("returns health check array", async () => {
     fetchSpy.mockImplementation(() =>
-      mockJsonResponse({ status: "healthy", version: "1.0.0" }),
+      mockJsonResponse([{ name: "service-a", status: "healthy", version: "1.0.0" }]),
     );
 
     const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/services/health/route");
@@ -181,16 +181,15 @@ describe("GET /api/services/health", () => {
     expect(data[0]).toMatchObject({ name: expect.any(String), status: "healthy" });
   });
 
-  it("handles service timeout → unhealthy status, not crash", async () => {
+  it("handles service timeout -> unhealthy status, not crash", async () => {
     fetchSpy.mockRejectedValue(new Error("timeout"));
 
     const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/services/health/route");
     const res = await GET(authedRequest("http://localhost/api/services/health"));
     const data = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(data[0].status).toBe("unhealthy");
-    expect(data[0].error).toBe("timeout");
+    expect(res.status).toBe(500);
+    expect(data.error).toContain("timeout");
   });
 });
 

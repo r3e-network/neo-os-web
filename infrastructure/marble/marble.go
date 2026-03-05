@@ -28,7 +28,7 @@ type Marble struct {
 	marbleType string
 	uuid       string
 
-	// TLS credentials from Coordinator
+	// TLS credentials from KMS/Platform
 	cert               tls.Certificate
 	rootCA             *x509.CertPool
 	tlsConfig          *tls.Config
@@ -36,7 +36,7 @@ type Marble struct {
 	httpClient         *http.Client
 	externalHTTPClient *http.Client
 
-	// Secrets injected by Coordinator
+	// Secrets injected by KMS/Platform
 	secrets map[string][]byte
 
 	// TEE attestation report and provider
@@ -66,8 +66,8 @@ func New(cfg Config) (*Marble, error) {
 	return m, nil
 }
 
-// Initialize performs Marble initialization with the Coordinator.
-// This is called automatically by MarbleRun before the application starts.
+// Initialize performs Marble initialization with the KMS/Platform.
+// This is called automatically by before the application starts.
 func (m *Marble) Initialize(ctx context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -76,12 +76,12 @@ func (m *Marble) Initialize(ctx context.Context) error {
 		return nil
 	}
 
-	// In MarbleRun, the Coordinator injects:
+	// In AWS Nitro, the KMS/Platform injects:
 	// 1. TLS certificate and private key via environment variables
 	// 2. Root CA certificate for verifying other Marbles
 	// 3. Secrets defined in the manifest
 
-	// Load TLS certificate from environment (injected by Coordinator)
+	// Load TLS certificate from environment (injected by KMS/Platform)
 	certPEM := strings.TrimSpace(os.Getenv("MARBLE_CERT"))
 	keyPEM := strings.TrimSpace(os.Getenv("MARBLE_KEY"))
 	rootPEM := strings.TrimSpace(os.Getenv("MARBLE_ROOT_CA"))
@@ -89,7 +89,7 @@ func (m *Marble) Initialize(ctx context.Context) error {
 	hasCertKey := certPEM != "" && keyPEM != ""
 	hasRootCA := rootPEM != ""
 
-	// MarbleRun mTLS requires a private root CA for the mesh. If the Coordinator
+	// mTLS requires a private root CA for the mesh. If the KMS/Platform
 	// injected a leaf certificate/key but no root CA, fail fast instead of falling
 	// back to system roots (which would silently weaken trust boundaries).
 	if hasCertKey && !hasRootCA {
@@ -113,10 +113,10 @@ func (m *Marble) Initialize(ctx context.Context) error {
 	}
 
 	// Configure TLS for mTLS communication only if we have valid certificates
-	// Without certificates from Coordinator, run in HTTP mode (development/local)
+	// Without certificates from KMS/Platform, run in HTTP mode (development/local)
 	if hasCertKey {
 		if m.rootCA == nil {
-			return fmt.Errorf("failed to initialize MarbleRun mTLS: missing root CA pool")
+			return fmt.Errorf("failed to initialize mTLS: missing root CA pool")
 		}
 
 		// Optionally allow additional client CAs for inbound mTLS.
@@ -125,7 +125,7 @@ func (m *Marble) Initialize(ctx context.Context) error {
 		clientCAs := m.rootCA
 		if extra := strings.TrimSpace(os.Getenv("MARBLE_EXTRA_CLIENT_CA")); extra != "" {
 			combined := x509.NewCertPool()
-			// Start with the MarbleRun root CA, then append the extra CA(s).
+			// Start with the root CA, then append the extra CA(s).
 			if !combined.AppendCertsFromPEM([]byte(rootPEM)) {
 				return fmt.Errorf("parse root CA certificate")
 			}
@@ -144,7 +144,7 @@ func (m *Marble) Initialize(ctx context.Context) error {
 		}
 	}
 
-	// Load secrets from environment (injected by Coordinator)
+	// Load secrets from environment (injected by KMS/Platform)
 	secretsJSON := os.Getenv("MARBLE_SECRETS")
 	if secretsJSON != "" {
 		if err := json.Unmarshal([]byte(secretsJSON), &m.secrets); err != nil {
@@ -152,7 +152,7 @@ func (m *Marble) Initialize(ctx context.Context) error {
 		}
 	}
 
-	// Get UUID assigned by Coordinator
+	// Get UUID assigned by KMS/Platform
 	m.uuid = os.Getenv("MARBLE_UUID")
 
 	m.initialized = true
@@ -195,7 +195,7 @@ func (m *Marble) HTTPClient() *http.Client {
 	tlsCfg := m.tlsConfig.Clone()
 
 	// Clone the default transport to preserve sane defaults (proxy env support,
-	// dial timeouts, HTTP/2, connection pooling) while injecting the MarbleRun
+	// dial timeouts, HTTP/2, connection pooling) while injecting the AWS Nitro
 	// mTLS credentials.
 	var transport http.RoundTripper
 	if base, ok := http.DefaultTransport.(*http.Transport); ok {
@@ -219,7 +219,7 @@ func (m *Marble) HTTPClient() *http.Client {
 // ExternalHTTPClient returns an HTTP client suitable for outbound calls to
 // non-Marblerun endpoints (Supabase, Neo RPC, third-party APIs).
 //
-// It never installs the MarbleRun root CA or client certificate, ensuring the
+// It never installs the root CA or client certificate, ensuring the
 // connection uses the system trust store and does not attempt mTLS.
 func (m *Marble) ExternalHTTPClient() *http.Client {
 	if m == nil {
@@ -298,7 +298,7 @@ func (m *Marble) Secret(name string) ([]byte, bool) {
 		return secret, true
 	}
 
-	// Fallback: allow secrets injected as direct env vars (common in MarbleRun manifests).
+	// Fallback: allow secrets injected as direct env vars (common in manifests).
 	envValue, ok := os.LookupEnv(name)
 	if !ok || strings.TrimSpace(envValue) == "" {
 		return nil, false

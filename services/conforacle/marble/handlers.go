@@ -142,9 +142,17 @@ func (s *Service) handleQuery(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var attestation string
+	if s.Marble() != nil {
+		if report, err := s.Marble().Attest([]byte(input.URL)); err == nil && report != nil {
+			attestation = report.Document
+		}
+	}
+
 	httputil.WriteJSON(w, http.StatusOK, QueryResponse{
-		StatusCode: resp.StatusCode,
-		Headers:    outHeaders,
-		Body:       string(respBody),
+		StatusCode:  resp.StatusCode,
+		Headers:     outHeaders,
+		Body:        string(respBody),
+		Attestation: attestation,
 	})
 }

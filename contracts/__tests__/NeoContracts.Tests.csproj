@@ -1,11 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <Optimize>true</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,7 +33,7 @@
   <!-- - neo-devpack-dotnet test utilities -->
   <!-- - Custom test engine implementation -->
   <ItemGroup>
-    <PackageReference Include="Neo.SmartContract.Framework" Version="3.7.4" />
+    <PackageReference Include="Neo.SmartContract.Framework" Version="3.9.1" />
   </ItemGroup>
 
 </Project>

@@ -68,7 +68,9 @@ func New(cfg Config) (*Service, error) {
 	})
 
 	tree := NewMerkleTree()
-	_ = tree.LoadFromDB(context.Background(), cfg.DB)
+	if err := tree.LoadFromDB(context.Background(), cfg.DB); err != nil {
+		base.Logger().WithError(err).Error(context.Background(), "Failed to load Merkle tree from DB", nil)
+	}
 
 	s := &Service{
 		BaseService:    base,

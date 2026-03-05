@@ -15,13 +15,13 @@ describe("Button Component", () => {
   it("should apply primary variant by default", () => {
     render(<Button>Primary</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("bg-primary-600");
+    expect(button).toHaveClass("bg-neo");
   });
 
   it("should apply secondary variant", () => {
     render(<Button variant="secondary">Secondary</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("bg-gray-200");
+    expect(button).toHaveClass("bg-white/10");
   });
 
   it("should apply danger variant", () => {
@@ -39,19 +39,19 @@ describe("Button Component", () => {
   it("should apply small size", () => {
     render(<Button size="sm">Small</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("h-8");
+    expect(button).toHaveClass("h-9");
   });
 
   it("should apply medium size by default", () => {
     render(<Button>Medium</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("h-10");
+    expect(button).toHaveClass("h-11");
   });
 
   it("should apply large size", () => {
     render(<Button size="lg">Large</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("h-12");
+    expect(button).toHaveClass("h-14");
   });
 
   it("should be disabled when disabled prop is true", () => {

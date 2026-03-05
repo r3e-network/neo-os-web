@@ -1,4 +1,4 @@
-// Package marble provides the core Marble SDK for MarbleRun integration.
+// Package marble provides the core Marble SDK for AWS Nitro integration.
 package marble
 
 import (

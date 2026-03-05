@@ -15,7 +15,7 @@
   ],
   "env": [
     { "name": "SERVICE_TYPE", "fromHost": true },
-    { "name": "EDG_MARBLE_TYPE", "fromHost": true },
+    { "name": "MARBLE_TYPE", "fromHost": true },
     { "name": "MARBLE_CERT", "fromHost": true },
     { "name": "MARBLE_KEY", "fromHost": true },
     { "name": "MARBLE_ROOT_CA", "fromHost": true },
