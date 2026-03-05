@@ -156,7 +156,7 @@ public static event Action<string, BigInteger> OnMetric;
 // Platform_Metric(app_id, metric_name, value)
 ```
 
-Ensure `manifest.contract_hash` is set so the indexer can map contract events back to the
+Ensure `manifest.contract_hash` is set so the platform can map contract events back to the
 correct MiniApp. The platform can enforce this requirement even when `app_id` is provided,
 especially when news/stats are enabled.
 If you do not want platform news/stats ingestion, set `news_integration=false` and omit

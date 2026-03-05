@@ -92,7 +92,7 @@ neo-miniapp-platform/
 │   ├── requests/               # On-chain request listener + callbacks
 │   ├── automation/             # Scheduler + anchoring
 │   ├── txproxy/                # The "Key Holder". Signs transactions.
-│   ├── indexer/                # Chain syncer + event parser (non-TEE)
+
 │   ├── aggregator/             # Daily rollups + trending (non-TEE)
 │   └── nitrorun/              # Manifests & policies
 │
