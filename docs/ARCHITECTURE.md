@@ -272,3 +272,82 @@ Keep outside-TEE code focused on:
 - user workflows and web-facing APIs
 - data modeling and storage (Supabase)
 - deployment glue and observability
+
+## System Architecture Diagrams
+
+### High-Level Component Flow
+
+```mermaid
+graph TD
+    subgraph "Client Layer (Web/Mobile)"
+        MA[MiniApp / UI]
+        SDK[Platform SDK]
+        MA <--> SDK
+    end
+
+    subgraph "Platform Layer (Edge)"
+        GW[Edge Gateway / Supabase]
+        Auth[Authentication & RLS]
+        Cache[MiniApp Cache]
+        GW <--> Auth
+        GW <--> Cache
+        SDK <-->|REST / WS| GW
+    end
+
+    subgraph "Service Layer (AWS Nitro TEEs)"
+        direction TB
+        Proxy[TxProxy Service]
+        Req[Request Dispatcher]
+        
+        VRF[NeoVRF]
+        Oracle[NeoOracle]
+        Compute[NeoCompute]
+        Feeds[NeoFeeds]
+        Flow[NeoFlow Automation]
+        
+        GW <--> Req
+        Req --> VRF
+        Req --> Oracle
+        Req --> Compute
+        Feeds --> Proxy
+        Flow --> Proxy
+        VRF --> Proxy
+        Oracle --> Proxy
+        Compute --> Proxy
+        
+        KMS[AWS KMS] -.->|Injects Secrets & Certs| VRF
+        KMS -.-> Oracle
+        KMS -.-> Compute
+    end
+
+    subgraph "Infrastructure Layer (Neo N3)"
+        N3[Neo Blockchain RPC]
+        Contracts[Platform Smart Contracts]
+        Proxy -->|Signed TXs| N3
+        N3 <--> Contracts
+        Req <-->|Listen for Events| N3
+    end
+```
+
+### Smart Contract TEE Callback Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Contract as MiniApp Contract
+    participant Indexer as Request Dispatcher
+    participant TEE as TEE Service (Compute/Oracle/VRF)
+    participant Proxy as TxProxy (KeyHolder)
+
+    User->>Contract: Invoke Request() method
+    Contract->>Contract: Store pending state, Emit Event
+    Indexer->>Contract: Listen for Event
+    Indexer->>TEE: Route Request Payload
+    TEE->>TEE: Execute securely (Fetch data, eval JS, etc)
+    TEE->>TEE: Generate Attestation & Sign result
+    TEE->>Proxy: Forward Fulfilled Payload
+    Proxy->>Proxy: Verify Policy & Allowlist
+    Proxy->>Contract: Invoke Callback() method
+    Contract->>Contract: Verify TxProxy Signature & Update State
+```
+
