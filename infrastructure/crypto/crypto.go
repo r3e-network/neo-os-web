@@ -26,7 +26,7 @@ import (
 //
 // UPGRADE SAFETY: This function is designed to produce identical keys across
 // enclave upgrades (MRENCLAVE changes). Key derivation depends ONLY on:
-//   - masterKey: Injected by MarbleRun Coordinator (manifest-defined, stable)
+//   - masterKey: Injected by NitroRun Coordinator (manifest-defined, stable)
 //   - salt: Business identifier like accountID (application-defined, stable)
 //   - info: Service context string (code constant, stable)
 //

@@ -84,7 +84,7 @@ else
 fi
 
 echo ""
-echo "Skipping MarbleRun coordinator check in Nitro mode."
+echo "Skipping NitroRun coordinator check in Nitro mode."
 
 SERVICES=(
   "globalsigner:8092"

@@ -4,7 +4,7 @@ This document is the **responsibility map** for the repository. The goal is:
 
 - one module = one responsibility
 - no duplicated chain I/O / middleware implementations across services
-- explicit TEE boundary (what runs inside MarbleRun/Nitro runtime vs outside)
+- explicit TEE boundary (what runs inside NitroRun/Nitro runtime vs outside)
 - strict enforcement of constraints: **payments = GAS only**, **governance = bNEO only**
 
 For the end-to-end architecture, see `docs/ARCHITECTURE.md`. For the platform
@@ -143,7 +143,7 @@ Reusable building blocks used by multiple services:
 - `infrastructure/errors`: consistent error typing for services
 - `infrastructure/database`: Supabase/PostgREST client + repositories
 - `infrastructure/secrets`: secret encryption + permissions policy + audit hooks
-- `infrastructure/marble`: MarbleRun/Nitro runtime glue (attested TLS, secret injection)
+- `infrastructure/nitro`: NitroRun/Nitro runtime glue (attested TLS, secret injection)
 - `infrastructure/chain`: Neo N3 RPC, tx building/broadcast, typed stack parsing, event monitoring
 - `infrastructure/txproxy`: shared txproxy client + request/response DTOs (delegating chain writes)
 - `infrastructure/globalsigner`: enclave-held signing root + domain-separated signing + rotation
@@ -157,8 +157,8 @@ Rules:
 
 ### `cmd/` (Composition Root)
 
-Entry points and deployment tooling. `cmd/marble` is the primary composition
-root: it wires infrastructure + services together based on `MARBLE_TYPE`.
+Entry points and deployment tooling. `cmd/nitro` is the primary composition
+root: it wires infrastructure + services together based on `NITRO_TYPE`.
 
 `cmd/` is allowed to import both `infrastructure/` and `services/`.
 

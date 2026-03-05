@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Neo Service Layer provides a comprehensive set of TEE-protected services for the Neo N3 blockchain. All services are protected by MarbleRun/Nitro runtime TEE and coordinated through MarbleRun.
+The Neo Service Layer provides a comprehensive set of TEE-protected services for the Neo N3 blockchain. All services are protected by NitroRun/Nitro runtime TEE and coordinated through NitroRun.
 
 ## Base URL
 
@@ -125,7 +125,7 @@ GET    /api/v1/secrets/{name}/audit
 
 ### 2. NeoOracle Service
 
-Provides external data fetching inside a MarbleRun enclave.
+Provides external data fetching inside a NitroRun enclave.
 
 #### Query External Data
 
@@ -499,8 +499,8 @@ Configure with:
 
 ## Attestation
 
-MarbleRun establishes enclave identity and service-to-service trust boundaries
-via a signed manifest and mTLS between marbles.
+NitroRun establishes enclave identity and service-to-service trust boundaries
+via a signed manifest and mTLS between nitros.
 
 To validate that the gateway is running inside an enclave (or in simulation),
 use:
@@ -512,8 +512,8 @@ GET /attestation
 For Nitro hardware deployments, ensure:
 
 1. Enclave images are signed with stable keys and `SignerID`s match `manifests/manifest.json`.
-2. Services communicate over MarbleRun-provisioned mTLS (verified chains).
-3. Coordinator state is healthy (`marblerun status`).
+2. Services communicate over NitroRun-provisioned mTLS (verified chains).
+3. Coordinator state is healthy (`nitrorun status`).
 
 ---
 
@@ -552,7 +552,7 @@ console.log(await resp.json());
 
 NeoFlow supports executing **webhook actions** as part of triggers.
 
-**Security note:** In production/Nitro (strict identity mode), webhook targets must be `https://` URLs. Internal service-to-service webhooks should use mesh DNS names and will be dispatched over HTTPS+mTLS when MarbleRun credentials are available. External webhooks are blocked from targeting private/loopback/link-local networks by default; override with `NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS=true` only if required.
+**Security note:** In production/Nitro (strict identity mode), webhook targets must be `https://` URLs. Internal service-to-service webhooks should use mesh DNS names and will be dispatched over HTTPS+mTLS when NitroRun credentials are available. External webhooks are blocked from targeting private/loopback/link-local networks by default; override with `NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS=true` only if required.
 
 Webhook URLs are configured inside a NeoFlow trigger’s `action` payload.
 

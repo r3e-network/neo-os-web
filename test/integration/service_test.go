@@ -8,19 +8,19 @@ import (
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/crypto"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 )
 
-func TestMarbleInitialization(t *testing.T) {
-	m, err := marble.New(marble.Config{
-		MarbleType: "test",
+func TestNitroInitialization(t *testing.T) {
+	m, err := nitro.New(nitro.Config{
+		NitroType: "test",
 	})
 	if err != nil {
-		t.Fatalf("Failed to create marble: %v", err)
+		t.Fatalf("Failed to create nitro: %v", err)
 	}
 
-	if m.MarbleType() != "test" {
-		t.Errorf("Expected marble type 'test', got '%s'", m.MarbleType())
+	if m.NitroType() != "test" {
+		t.Errorf("Expected nitro type 'test', got '%s'", m.NitroType())
 	}
 }
 
@@ -87,13 +87,13 @@ func TestCryptoSigning(t *testing.T) {
 }
 
 func TestServiceFramework(t *testing.T) {
-	m, _ := marble.New(marble.Config{MarbleType: "test"})
+	m, _ := nitro.New(nitro.Config{NitroType: "test"})
 
-	svc := marble.NewService(marble.ServiceConfig{
+	svc := nitro.NewService(nitro.ServiceConfig{
 		ID:      "test-service",
 		Name:    "Test Service",
 		Version: "1.0.0",
-		Marble:  m,
+		Nitro:  m,
 		DB:      nil,
 	})
 

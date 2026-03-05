@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # k3s Local Development Stack Setup Script (DEVSTACK-1)
-# Purpose: Complete local k3s setup with MarbleRun, cert-manager, and ingress
+# Purpose: Complete local k3s setup with NitroRun, cert-manager, and ingress
 # Idempotent: Can be run multiple times safely
 #
 
@@ -184,7 +184,7 @@ setup_kubeconfig() {
 create_namespaces() {
     step "Creating namespaces..."
 
-    if kubectl get namespace marblerun &> /dev/null; then
+    if kubectl get namespace nitrorun &> /dev/null; then
         log "Namespaces already exist"
         return 0
     fi
@@ -247,26 +247,26 @@ setup_ingress() {
     log "✓ Ingress configuration applied"
 }
 
-# ==================== MarbleRun Installation ====================
-install_marblerun() {
-    step "Installing MarbleRun coordinator (nitro overlay)..."
+# ==================== NitroRun Installation ====================
+install_nitrorun() {
+    step "Installing NitroRun coordinator (nitro overlay)..."
 
-    if kubectl -n marblerun get deployment coordinator &> /dev/null; then
-        log "MarbleRun coordinator already installed"
+    if kubectl -n nitrorun get deployment coordinator &> /dev/null; then
+        log "NitroRun coordinator already installed"
         return 0
     fi
 
-    log "Applying MarbleRun coordinator manifests..."
-    kubectl apply -k "$PROJECT_ROOT/k8s/marblerun/overlays/nitro/" \
-        || error "Failed to install MarbleRun coordinator"
+    log "Applying NitroRun coordinator manifests..."
+    kubectl apply -k "$PROJECT_ROOT/k8s/nitrorun/overlays/nitro/" \
+        || error "Failed to install NitroRun coordinator"
 
-    log "Waiting for MarbleRun coordinator to be ready..."
-    kubectl -n marblerun wait --for=condition=available \
+    log "Waiting for NitroRun coordinator to be ready..."
+    kubectl -n nitrorun wait --for=condition=available \
         --timeout=180s deployment coordinator \
-        || warn "MarbleRun coordinator may not be fully ready yet"
+        || warn "NitroRun coordinator may not be fully ready yet"
 
-    save_state "marblerun_installed"
-    log "✓ MarbleRun coordinator installed successfully"
+    save_state "nitrorun_installed"
+    log "✓ NitroRun coordinator installed successfully"
 }
 
 # ==================== Verification ====================
@@ -294,8 +294,8 @@ verify_installation() {
     kubectl -n cert-manager get certificates
 
     echo ""
-    log "========== MarbleRun Status =========="
-    kubectl -n marblerun get pods
+    log "========== NitroRun Status =========="
+    kubectl -n nitrorun get pods
 
     echo ""
     log "========== Traefik Ingress Controller =========="
@@ -330,10 +330,10 @@ check_status() {
         echo "❌ cert-manager: Not installed"
     fi
 
-    if kubectl get namespace marblerun &> /dev/null; then
-        echo "✓ MarbleRun: Installed"
+    if kubectl get namespace nitrorun &> /dev/null; then
+        echo "✓ NitroRun: Installed"
     else
-        echo "❌ MarbleRun: Not installed"
+        echo "❌ NitroRun: Not installed"
     fi
 
     if kubectl -n kube-system get pods -l app.kubernetes.io/name=traefik &> /dev/null; then
@@ -412,7 +412,7 @@ main() {
             create_namespaces
             install_cert_manager
             setup_ingress
-            install_marblerun
+            install_nitrorun
 
             verify_installation
 
@@ -426,7 +426,7 @@ main() {
             log "  2. Check status: make dev-stack-status"
             log "  3. View documentation: docs/LOCAL_DEV.md"
             log ""
-            log "Coordinator: kubectl -n marblerun port-forward svc/coordinator-client-api 4433:4433"
+            log "Coordinator: kubectl -n nitrorun port-forward svc/coordinator-client-api 4433:4433"
             log ""
             ;;
         status|--check)

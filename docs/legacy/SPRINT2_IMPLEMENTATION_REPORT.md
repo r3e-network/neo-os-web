@@ -145,11 +145,11 @@ Configure golangci-lint and ensure code consistency across the codebase.
 ## Task 3: US-4.4 生产代码标准验证 (5 points) ✅
 
 ### Objective
-Verify that the codebase contains no MarbleRun simulation code and document environment switching.
+Verify that the codebase contains no NitroRun simulation code and document environment switching.
 
 ### Verification Results
 
-#### MarbleRun Simulation Code Check ✅
+#### NitroRun Simulation Code Check ✅
 
 **Search Performed**:
 ```bash
@@ -159,24 +159,24 @@ Result: No simulation build tags found
 
 # Check for simulation environment variables
 grep -r "TEE_BACKEND=nitro|SGX_MODE.*SIM|sgx_sim" --include="*.go"
-Result: No MarbleRun simulation code found in Go files
+Result: No NitroRun simulation code found in Go files
 ```
 
-**Conclusion**: The codebase is clean of MarbleRun simulation code. All references to simulation mode are in documentation only, which is appropriate.
+**Conclusion**: The codebase is clean of NitroRun simulation code. All references to simulation mode are in documentation only, which is appropriate.
 
 #### Environment Switching Documentation
 
 **Current Approach** (as per architecture):
-- Production: `marblerun coordinator run` (full MarbleRun)
-- Development: `marblerun coordinator run --insecure` (no MarbleRun required)
-- Environment variable: `MARBLE_ENV=development|testing|production`
+- Production: `nitrorun coordinator run` (full NitroRun)
+- Development: `nitrorun coordinator run --insecure` (no NitroRun required)
+- Environment variable: `NITRO_ENV=development|testing|production`
 
 **Documentation Locations**:
 1. `docs/ARCHITECTURE.md` - Environment strategy section
 2. `docs/PRODUCTION_READINESS.md` - Deployment guidelines
 3. `internal/config/config.go` - Environment configuration code
 
-**Verification**: ✅ Environment switching is properly documented and implemented through MarbleRun flags, not through code-level simulation.
+**Verification**: ✅ Environment switching is properly documented and implemented through NitroRun flags, not through code-level simulation.
 
 ---
 
@@ -232,7 +232,7 @@ Implement US-2.1 in a dedicated session with focus on:
 1. ✅ **Missing Unit Tests**: All critical internal packages now have comprehensive tests
 2. ✅ **No Linter Configuration**: golangci-lint configured with 21 linters
 3. ✅ **Unclear Environment Strategy**: Verified and documented
-4. ✅ **MarbleRun Simulation Concerns**: Verified clean codebase
+4. ✅ **NitroRun Simulation Concerns**: Verified clean codebase
 
 ---
 

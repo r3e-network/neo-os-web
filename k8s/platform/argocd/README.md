@@ -108,7 +108,7 @@ patches:
       name: service-layer-config
     patch: |-
       - op: replace
-        path: /data/MARBLE_ENV
+        path: /data/NITRO_ENV
         value: "testing"
 ```
 

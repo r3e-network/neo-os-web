@@ -15,8 +15,8 @@ We are excited to announce the first stable release of the Neo Service Layer - a
 
 ### Core Infrastructure
 
-- **MarbleRun Integration**: Full integration with MarbleRun for TEE orchestration and remote attestation
-- **MarbleRun/Nitro runtime Support**: All services run in MarbleRun TEE for hardware-level security
+- **NitroRun Integration**: Full integration with NitroRun for TEE orchestration and remote attestation
+- **NitroRun/Nitro runtime Support**: All services run in NitroRun TEE for hardware-level security
 - **Gateway**: Thin gateway pattern (today implemented as Supabase Edge Functions) for auth, rate limiting, and routing
 - **Kubernetes Deployment**: Complete K8s manifests for production deployment with auto-scaling support
 
@@ -60,9 +60,9 @@ We are excited to announce the first stable release of the Neo Service Layer - a
 
 ### Security Features
 
-- **Remote Attestation**: All services provide MarbleRun attestation quotes
-- **Manifest Verification**: MarbleRun manifest ensures topology integrity
-- **Secrets Management**: Secure injection of secrets via MarbleRun
+- **Remote Attestation**: All services provide NitroRun attestation quotes
+- **Manifest Verification**: NitroRun manifest ensures topology integrity
+- **Secrets Management**: Secure injection of secrets via NitroRun
 - **mTLS Communication**: Auto-provisioned certificates for inter-service communication
 - **Master Key Attestation**: Cryptographic proof of key generation within TEE
 
@@ -88,7 +88,7 @@ This is the first stable release, so there are no breaking changes from previous
 
 - API endpoints are now versioned (e.g., `/v1/oracle/price`)
 - Authentication is required for all non-health-check endpoints
-- MarbleRun manifest must be set before services can start
+- NitroRun manifest must be set before services can start
 
 ## Installation
 
@@ -100,20 +100,20 @@ cd neo-miniapp-platform
 cp .env.example .env
 # Edit .env with your configuration
 make docker-up
-make marblerun-manifest
+make nitrorun-manifest
 ```
 
 ### Kubernetes (Production)
 
 ```bash
-# Install MarbleRun
-marblerun install --domain service-layer.neo.org
+# Install NitroRun
+nitrorun install --domain service-layer.neo.org
 
 # Deploy services
 kubectl apply -f k8s/ --namespace=service-layer
 
 # Set manifest
-marblerun manifest set manifests/manifest.json
+nitrorun manifest set manifests/manifest.json
 ```
 
 See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for detailed instructions.
@@ -123,7 +123,7 @@ See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for detailed instructions.
 ### Required Environment Variables
 
 ```bash
-# MarbleRun coordinator (used by marbles)
+# NitroRun coordinator (used by nitros)
 COORDINATOR_MESH_ADDR=coordinator:2001
 COORDINATOR_CLIENT_ADDR=localhost:4433
 
@@ -187,7 +187,7 @@ curl -X POST https://api.service-layer.neo.org/v1/oracle/price \
 
 ### Known Limitations
 
-- MarbleRun TEE memory limited to 256MB (hardware constraint)
+- NitroRun TEE memory limited to 256MB (hardware constraint)
 - Maximum 1000 concurrent connections per service instance
 - Rate limiting enforced at 100 requests/minute per API key
 
@@ -203,7 +203,7 @@ All services expose Prometheus metrics at `/metrics`:
 
 - Request count and latency
 - Error rates
-- MarbleRun attestation status
+- NitroRun attestation status
 - Resource utilization
 
 ### Logging
@@ -232,8 +232,8 @@ This is the first stable release. Future upgrades will follow semantic versionin
 ## Known Issues
 
 1. **Frontend Dashboard**: Some charts may not render correctly in Safari (workaround: use Chrome/Firefox)
-2. **Kubernetes**: Requires K8s 1.24+ for proper MarbleRun device plugin support
-3. **MarbleRun**: Coordinator restart requires manifest re-verification
+2. **Kubernetes**: Requires K8s 1.24+ for proper NitroRun device plugin support
+3. **NitroRun**: Coordinator restart requires manifest re-verification
 
 See [GitHub Issues](https://github.com/r3e-network/neo-miniapp-platform/issues) for complete list.
 
@@ -298,8 +298,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - **Neo Foundation**: For supporting the development of this project
-- **Edgeless Systems**: For MarbleRun and Nitro runtime frameworks
-- **Intel**: For MarbleRun/Nitro runtime technology and developer support
+- **Edgeless Systems**: For NitroRun and Nitro runtime frameworks
+- **Intel**: For NitroRun/Nitro runtime technology and developer support
 - **Supabase**: For database infrastructure
 - **Neo Community**: For feedback and testing
 

@@ -431,10 +431,10 @@ sources:
 │   Nitro runtime TEE         │ │   Nitro runtime TEE         │ │   Nitro runtime TEE         │
 │   (NeoRand Service)       │ │   (NeoVault Service)     │ │   (Gateway)           │
 │                       │ │                       │ │                       │
-│ MARBLE_CERT           │ │ MARBLE_CERT           │ │ MARBLE_CERT           │
-│ MARBLE_KEY            │ │ MARBLE_KEY            │ │ MARBLE_KEY            │
-│ MARBLE_ROOT_CA        │ │ MARBLE_ROOT_CA        │ │ MARBLE_ROOT_CA        │
-│ MARBLE_SECRETS        │ │ MARBLE_SECRETS        │ │ MARBLE_SECRETS        │
+│ NITRO_CERT           │ │ NITRO_CERT           │ │ NITRO_CERT           │
+│ NITRO_KEY            │ │ NITRO_KEY            │ │ NITRO_KEY            │
+│ NITRO_ROOT_CA        │ │ NITRO_ROOT_CA        │ │ NITRO_ROOT_CA        │
+│ NITRO_SECRETS        │ │ NITRO_SECRETS        │ │ NITRO_SECRETS        │
 │ VRF_PRIVATE_KEY       │ │ NEOVAULT_MASTER_KEY   │ │ JWT_SECRET            │
 └───────────────────────┘ └───────────────────────┘ └───────────────────────┘
 ```
@@ -454,11 +454,11 @@ The Docker images generate and sign an `enclave.json` during build (see `docker/
     "securityVersion": 1,
     "mounts": [{ "target": "/tmp", "type": "memfs" }],
     "env": [
-        { "name": "EDG_MARBLE_TYPE", "fromHost": true },
-        { "name": "MARBLE_CERT", "fromHost": true },
-        { "name": "MARBLE_KEY", "fromHost": true },
-        { "name": "MARBLE_ROOT_CA", "fromHost": true },
-        { "name": "MARBLE_SECRETS", "fromHost": true },
+        { "name": "EDG_NITRO_TYPE", "fromHost": true },
+        { "name": "NITRO_CERT", "fromHost": true },
+        { "name": "NITRO_KEY", "fromHost": true },
+        { "name": "NITRO_ROOT_CA", "fromHost": true },
+        { "name": "NITRO_SECRETS", "fromHost": true },
         { "name": "SUPABASE_URL", "fromHost": true },
         { "name": "SUPABASE_SERVICE_KEY", "fromHost": true }
     ]
@@ -679,7 +679,7 @@ When `OAUTH_COOKIE_MODE=true`, the gateway also sets an HTTP-only cookie (`sl_au
 
 ## References
 
-- [AWS Nitro Documentation](https://docs.edgeless.systems/marblerun)
+- [AWS Nitro Documentation](https://docs.edgeless.systems/nitrorun)
 - [AWS Nitro Enclaves Documentation](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html)
 - [Neo N3 Documentation](https://docs.neo.org/)
 - [Supabase Documentation](https://supabase.com/docs)

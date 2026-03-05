@@ -13,15 +13,15 @@ import (
 	"testing"
 	"time"
 
-	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/marble"
+	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/nitro"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
-	neoflow "github.com/r3e-network/neo-miniapp-platform/services/automation/marble"
-	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/marble"
-	neooracle "github.com/r3e-network/neo-miniapp-platform/services/conforacle/marble"
-	neofeeds "github.com/r3e-network/neo-miniapp-platform/services/datafeed/marble"
-	neogasbank "github.com/r3e-network/neo-miniapp-platform/services/gasbank/marble"
-	txproxy "github.com/r3e-network/neo-miniapp-platform/services/txproxy/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
+	neoflow "github.com/r3e-network/neo-miniapp-platform/services/automation/nitro"
+	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/nitro"
+	neooracle "github.com/r3e-network/neo-miniapp-platform/services/conforacle/nitro"
+	neofeeds "github.com/r3e-network/neo-miniapp-platform/services/datafeed/nitro"
+	neogasbank "github.com/r3e-network/neo-miniapp-platform/services/gasbank/nitro"
+	txproxy "github.com/r3e-network/neo-miniapp-platform/services/txproxy/nitro"
 )
 
 // =============================================================================
@@ -45,47 +45,47 @@ func setupTestServices(t *testing.T) *testServices {
 	mockDB := database.NewMockRepository()
 
 	// Create all services
-	accountsMarble, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
-	accountsMarble.SetTestSecret("POOL_MASTER_KEY", []byte("e2e-test-pool-master-key-32b!!!!"))
-	accounts, err := neoaccounts.New(neoaccounts.Config{Marble: accountsMarble})
+	accountsNitro, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
+	accountsNitro.SetTestSecret("POOL_MASTER_KEY", []byte("e2e-test-pool-master-key-32b!!!!"))
+	accounts, err := neoaccounts.New(neoaccounts.Config{Nitro: accountsNitro})
 	if err != nil {
 		t.Fatalf("failed to create accounts service: %v", err)
 	}
 
-	computeMarble, _ := marble.New(marble.Config{MarbleType: "neocompute"})
-	computeMarble.SetTestSecret("COMPUTE_MASTER_KEY", []byte("e2e-test-compute-master-key-32b!!"))
-	compute, err := neocompute.New(neocompute.Config{Marble: computeMarble})
+	computeNitro, _ := nitro.New(nitro.Config{NitroType: "neocompute"})
+	computeNitro.SetTestSecret("COMPUTE_MASTER_KEY", []byte("e2e-test-compute-master-key-32b!!"))
+	compute, err := neocompute.New(neocompute.Config{Nitro: computeNitro})
 	if err != nil {
 		t.Fatalf("failed to create compute service: %v", err)
 	}
 
-	oracleMarble, _ := marble.New(marble.Config{MarbleType: "neooracle"})
-	oracle, err := neooracle.New(neooracle.Config{Marble: oracleMarble})
+	oracleNitro, _ := nitro.New(nitro.Config{NitroType: "neooracle"})
+	oracle, err := neooracle.New(neooracle.Config{Nitro: oracleNitro})
 	if err != nil {
 		t.Fatalf("failed to create oracle service: %v", err)
 	}
 
-	feedsMarble, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-	feeds, err := neofeeds.New(neofeeds.Config{Marble: feedsMarble})
+	feedsNitro, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
+	feeds, err := neofeeds.New(neofeeds.Config{Nitro: feedsNitro})
 	if err != nil {
 		t.Fatalf("failed to create feeds service: %v", err)
 	}
 
-	gasbankMarble, _ := marble.New(marble.Config{MarbleType: "neogasbank"})
-	gasbank, err := neogasbank.New(neogasbank.Config{Marble: gasbankMarble, DB: mockDB})
+	gasbankNitro, _ := nitro.New(nitro.Config{NitroType: "neogasbank"})
+	gasbank, err := neogasbank.New(neogasbank.Config{Nitro: gasbankNitro, DB: mockDB})
 	if err != nil {
 		t.Fatalf("failed to create gasbank service: %v", err)
 	}
 
-	flowMarble, _ := marble.New(marble.Config{MarbleType: "neoflow"})
-	flow, err := neoflow.New(neoflow.Config{Marble: flowMarble, DB: mockDB})
+	flowNitro, _ := nitro.New(nitro.Config{NitroType: "neoflow"})
+	flow, err := neoflow.New(neoflow.Config{Nitro: flowNitro, DB: mockDB})
 	if err != nil {
 		t.Fatalf("failed to create flow service: %v", err)
 	}
 
-	txproxyMarble, _ := marble.New(marble.Config{MarbleType: "txproxy"})
+	txproxyNitro, _ := nitro.New(nitro.Config{NitroType: "txproxy"})
 	allowlist, _ := txproxy.ParseAllowlist(`{"contracts":{}}`)
-	txp, err := txproxy.New(txproxy.Config{Marble: txproxyMarble, Allowlist: allowlist})
+	txp, err := txproxy.New(txproxy.Config{Nitro: txproxyNitro, Allowlist: allowlist})
 	if err != nil {
 		t.Fatalf("failed to create txproxy service: %v", err)
 	}

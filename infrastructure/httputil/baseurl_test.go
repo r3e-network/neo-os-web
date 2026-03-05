@@ -23,7 +23,7 @@ func TestNormalizeBaseURL_RejectsUserInfo(t *testing.T) {
 }
 
 func TestNormalizeBaseURL_StrictModeRequiresHTTPS(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "production")
+	t.Setenv("NITRO_ENV", "production")
 
 	_, _, err := NormalizeBaseURL("http://example.com", BaseURLOptions{RequireHTTPSInStrictMode: true})
 	if err == nil {

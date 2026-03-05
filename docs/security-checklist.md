@@ -17,7 +17,7 @@ This checklist is the minimum baseline for a Neo N3 MiniApp Platform with TEE-ba
 
 ## TEE / Attestation
 
-- MarbleRun-managed mTLS for service-to-service traffic.
+- NitroRun-managed mTLS for service-to-service traffic.
 - Enforce strict identity mode in production: no plaintext HTTP inside the mesh.
 - Persist attestation hashes on-chain for audit (`PriceFeed`, `RandomnessLog`).
 

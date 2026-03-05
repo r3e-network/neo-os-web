@@ -3,10 +3,10 @@ package database
 import "testing"
 
 func TestNewClient_AllowsHTTPInNonStrictMode(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "development")
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
+	t.Setenv("NITRO_ENV", "development")
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
 
 	_, err := NewClient(Config{
 		URL:        "http://localhost:54321",
@@ -18,10 +18,10 @@ func TestNewClient_AllowsHTTPInNonStrictMode(t *testing.T) {
 }
 
 func TestNewClient_StrictModeRejectsNonHTTPS(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "production")
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
+	t.Setenv("NITRO_ENV", "production")
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
 
 	_, err := NewClient(Config{
 		URL:        "http://example.com",
@@ -33,10 +33,10 @@ func TestNewClient_StrictModeRejectsNonHTTPS(t *testing.T) {
 }
 
 func TestNewClient_StrictModeRejectsUserInfo(t *testing.T) {
-	t.Setenv("MARBLE_ENV", "production")
-	t.Setenv("MARBLE_CERT", "")
-	t.Setenv("MARBLE_KEY", "")
-	t.Setenv("MARBLE_ROOT_CA", "")
+	t.Setenv("NITRO_ENV", "production")
+	t.Setenv("NITRO_CERT", "")
+	t.Setenv("NITRO_KEY", "")
+	t.Setenv("NITRO_ROOT_CA", "")
 
 	_, err := NewClient(Config{
 		URL:        "https://user:pass@example.com",

@@ -23,7 +23,7 @@ Sprint 5 focused on production readiness: Kubernetes deployment neoflow, develop
 - ✅ Automated Docker image building
 - ✅ Registry push support (`--registry`, `--push`)
 - ✅ K8s manifest application with Kustomize overlays
-- ✅ MarbleRun coordinator initialization
+- ✅ NitroRun coordinator initialization
 - ✅ Pod readiness health checks
 - ✅ Rolling update support (`--rolling-update`)
 - ✅ Pre-flight checks (kubectl, docker, k3s)
@@ -49,7 +49,7 @@ Sprint 5 focused on production readiness: Kubernetes deployment neoflow, develop
 **Key Improvements**:
 - Environment-specific image tagging
 - Automatic k3s image import for local dev
-- Graceful fallback for missing MarbleRun
+- Graceful fallback for missing NitroRun
 - Detailed status reporting
 - Timeout configuration
 
@@ -93,12 +93,12 @@ make clean-all          # Deep clean (including Docker)
 ```
 
 **install_dev_env.sh Features**:
-- MarbleRun/Nitro runtime SDK installation
+- NitroRun/Nitro runtime SDK installation
 - Nitro runtime runtime setup
-- MarbleRun CLI installation
+- NitroRun CLI installation
 - k3s (Kubernetes) deployment
 - Helm installation
-- Automatic MarbleRun deployment
+- Automatic NitroRun deployment
 - Command-line flags for customization
 
 **DEVELOPMENT.md Documentation**:

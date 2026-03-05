@@ -10,27 +10,27 @@ import (
 	"testing"
 	"time"
 
-	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/marble"
+	neoaccounts "github.com/r3e-network/neo-miniapp-platform/infrastructure/accountpool/nitro"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/marble"
-	neoflow "github.com/r3e-network/neo-miniapp-platform/services/automation/marble"
-	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/marble"
-	neooracle "github.com/r3e-network/neo-miniapp-platform/services/conforacle/marble"
-	neofeeds "github.com/r3e-network/neo-miniapp-platform/services/datafeed/marble"
-	neogasbank "github.com/r3e-network/neo-miniapp-platform/services/gasbank/marble"
-	txproxy "github.com/r3e-network/neo-miniapp-platform/services/txproxy/marble"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
+	neoflow "github.com/r3e-network/neo-miniapp-platform/services/automation/nitro"
+	neocompute "github.com/r3e-network/neo-miniapp-platform/services/confcompute/nitro"
+	neooracle "github.com/r3e-network/neo-miniapp-platform/services/conforacle/nitro"
+	neofeeds "github.com/r3e-network/neo-miniapp-platform/services/datafeed/nitro"
+	neogasbank "github.com/r3e-network/neo-miniapp-platform/services/gasbank/nitro"
+	txproxy "github.com/r3e-network/neo-miniapp-platform/services/txproxy/nitro"
 )
 
 // TestNeoAccountsSmoke performs basic smoke tests on the NeoAccounts service.
 func TestNeoAccountsSmoke(t *testing.T) {
 	t.Run("service creates successfully", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neoaccounts"})
+		m, err := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 		m.SetTestSecret("POOL_MASTER_KEY", []byte("smoke-test-pool-key-32-bytes!!!!"))
 
-		svc, err := neoaccounts.New(neoaccounts.Config{Marble: m})
+		svc, err := neoaccounts.New(neoaccounts.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("neoaccounts.New: %v", err)
 		}
@@ -40,9 +40,9 @@ func TestNeoAccountsSmoke(t *testing.T) {
 	})
 
 	t.Run("health endpoint responds", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 		m.SetTestSecret("POOL_MASTER_KEY", []byte("smoke-test-pool-key-32-bytes!!!!"))
-		svc, _ := neoaccounts.New(neoaccounts.Config{Marble: m})
+		svc, _ := neoaccounts.New(neoaccounts.Config{Nitro: m})
 
 		req := httptest.NewRequest("GET", "/health", nil)
 		w := httptest.NewRecorder()
@@ -58,9 +58,9 @@ func TestNeoAccountsSmoke(t *testing.T) {
 	})
 
 	t.Run("service metadata correct", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 		m.SetTestSecret("POOL_MASTER_KEY", []byte("smoke-test-pool-key-32-bytes!!!!"))
-		svc, _ := neoaccounts.New(neoaccounts.Config{Marble: m})
+		svc, _ := neoaccounts.New(neoaccounts.Config{Nitro: m})
 
 		if svc.ID() != "neoaccounts" {
 			t.Errorf("expected ID 'neoaccounts', got '%s'", svc.ID())
@@ -74,13 +74,13 @@ func TestNeoAccountsSmoke(t *testing.T) {
 // TestNeoComputeSmoke performs basic smoke tests on the NeoCompute service.
 func TestNeoComputeSmoke(t *testing.T) {
 	t.Run("service creates successfully", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neocompute"})
+		m, err := nitro.New(nitro.Config{NitroType: "neocompute"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 		m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("smoke-test-compute-master-key-32b!!"))
 
-		svc, err := neocompute.New(neocompute.Config{Marble: m})
+		svc, err := neocompute.New(neocompute.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("neocompute.New: %v", err)
 		}
@@ -90,9 +90,9 @@ func TestNeoComputeSmoke(t *testing.T) {
 	})
 
 	t.Run("health endpoint responds", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neocompute"})
 		m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("smoke-test-compute-master-key-32b!!"))
-		svc, _ := neocompute.New(neocompute.Config{Marble: m})
+		svc, _ := neocompute.New(neocompute.Config{Nitro: m})
 
 		req := httptest.NewRequest("GET", "/health", nil)
 		w := httptest.NewRecorder()
@@ -104,9 +104,9 @@ func TestNeoComputeSmoke(t *testing.T) {
 	})
 
 	t.Run("service metadata correct", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neocompute"})
 		m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("smoke-test-compute-master-key-32b!!"))
-		svc, _ := neocompute.New(neocompute.Config{Marble: m})
+		svc, _ := neocompute.New(neocompute.Config{Nitro: m})
 
 		if svc.ID() != "neocompute" {
 			t.Errorf("expected ID 'neocompute', got '%s'", svc.ID())
@@ -117,27 +117,27 @@ func TestNeoComputeSmoke(t *testing.T) {
 	})
 }
 
-// TestMarbleSmoke performs basic smoke tests on the Marble framework.
-func TestMarbleSmoke(t *testing.T) {
-	t.Run("marble creates successfully", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "test"})
+// TestNitroSmoke performs basic smoke tests on the Nitro framework.
+func TestNitroSmoke(t *testing.T) {
+	t.Run("nitro creates successfully", func(t *testing.T) {
+		m, err := nitro.New(nitro.Config{NitroType: "test"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 		if m == nil {
-			t.Fatal("marble should not be nil")
+			t.Fatal("nitro should not be nil")
 		}
 	})
 
-	t.Run("marble type correct", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "test-type"})
-		if m.MarbleType() != "test-type" {
-			t.Errorf("expected type 'test-type', got '%s'", m.MarbleType())
+	t.Run("nitro type correct", func(t *testing.T) {
+		m, _ := nitro.New(nitro.Config{NitroType: "test-type"})
+		if m.NitroType() != "test-type" {
+			t.Errorf("expected type 'test-type', got '%s'", m.NitroType())
 		}
 	})
 
 	t.Run("secrets can be set and retrieved", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "test"})
+		m, _ := nitro.New(nitro.Config{NitroType: "test"})
 		m.SetTestSecret("TEST_KEY", []byte("test-value"))
 
 		val, ok := m.Secret("TEST_KEY")
@@ -150,7 +150,7 @@ func TestMarbleSmoke(t *testing.T) {
 	})
 
 	t.Run("missing secret returns false", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "test"})
+		m, _ := nitro.New(nitro.Config{NitroType: "test"})
 		_, ok := m.Secret("NONEXISTENT")
 		if ok {
 			t.Error("missing secret should return false")
@@ -161,12 +161,12 @@ func TestMarbleSmoke(t *testing.T) {
 // TestServiceFrameworkSmoke tests the service framework.
 func TestServiceFrameworkSmoke(t *testing.T) {
 	t.Run("service lifecycle", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "test"})
-		svc := marble.NewService(marble.ServiceConfig{
+		m, _ := nitro.New(nitro.Config{NitroType: "test"})
+		svc := nitro.NewService(nitro.ServiceConfig{
 			ID:      "smoke-test",
 			Name:    "Smoke Test Service",
 			Version: "1.0.0",
-			Marble:  m,
+			Nitro:  m,
 			DB:      nil,
 		})
 
@@ -193,12 +193,12 @@ func TestServiceFrameworkSmoke(t *testing.T) {
 	})
 
 	t.Run("router available", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "test"})
-		svc := marble.NewService(marble.ServiceConfig{
+		m, _ := nitro.New(nitro.Config{NitroType: "test"})
+		svc := nitro.NewService(nitro.ServiceConfig{
 			ID:      "smoke-test",
 			Name:    "Smoke Test Service",
 			Version: "1.0.0",
-			Marble:  m,
+			Nitro:  m,
 			DB:      nil,
 		})
 
@@ -211,9 +211,9 @@ func TestServiceFrameworkSmoke(t *testing.T) {
 
 // TestConcurrencySmoke tests basic concurrent access.
 func TestConcurrencySmoke(t *testing.T) {
-	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+	m, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("smoke-test-pool-key-32-bytes!!!!"))
-	svc, _ := neoaccounts.New(neoaccounts.Config{Marble: m})
+	svc, _ := neoaccounts.New(neoaccounts.Config{Nitro: m})
 
 	done := make(chan bool, 20)
 
@@ -246,9 +246,9 @@ func TestConcurrencySmoke(t *testing.T) {
 
 // TestEndpointResponsivenessSmoke tests that endpoints respond within expected time.
 func TestEndpointResponsivenessSmoke(t *testing.T) {
-	m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+	m, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 	m.SetTestSecret("POOL_MASTER_KEY", []byte("smoke-test-pool-key-32-bytes!!!!"))
-	svc, _ := neoaccounts.New(neoaccounts.Config{Marble: m})
+	svc, _ := neoaccounts.New(neoaccounts.Config{Nitro: m})
 
 	maxDuration := 100 * time.Millisecond
 
@@ -273,12 +273,12 @@ func TestEndpointResponsivenessSmoke(t *testing.T) {
 func TestNeoOracleSmoke(t *testing.T) {
 	t.Setenv("ORACLE_HTTP_ALLOWLIST", "*")
 	t.Run("service creates successfully", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neooracle"})
+		m, err := nitro.New(nitro.Config{NitroType: "neooracle"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 
-		svc, err := neooracle.New(neooracle.Config{Marble: m})
+		svc, err := neooracle.New(neooracle.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("neooracle.New: %v", err)
 		}
@@ -288,8 +288,8 @@ func TestNeoOracleSmoke(t *testing.T) {
 	})
 
 	t.Run("health endpoint responds", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neooracle"})
-		svc, _ := neooracle.New(neooracle.Config{Marble: m})
+		m, _ := nitro.New(nitro.Config{NitroType: "neooracle"})
+		svc, _ := neooracle.New(neooracle.Config{Nitro: m})
 
 		req := httptest.NewRequest("GET", "/health", nil)
 		w := httptest.NewRecorder()
@@ -301,8 +301,8 @@ func TestNeoOracleSmoke(t *testing.T) {
 	})
 
 	t.Run("service metadata correct", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neooracle"})
-		svc, _ := neooracle.New(neooracle.Config{Marble: m})
+		m, _ := nitro.New(nitro.Config{NitroType: "neooracle"})
+		svc, _ := neooracle.New(neooracle.Config{Nitro: m})
 
 		if svc.ID() != "neooracle" {
 			t.Errorf("expected ID 'neooracle', got '%s'", svc.ID())
@@ -317,12 +317,12 @@ func TestNeoOracleSmoke(t *testing.T) {
 func TestNeoFeedsSmoke(t *testing.T) {
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Run("service creates successfully", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neofeeds"})
+		m, err := nitro.New(nitro.Config{NitroType: "neofeeds"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 
-		svc, err := neofeeds.New(neofeeds.Config{Marble: m})
+		svc, err := neofeeds.New(neofeeds.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("neofeeds.New: %v", err)
 		}
@@ -332,8 +332,8 @@ func TestNeoFeedsSmoke(t *testing.T) {
 	})
 
 	t.Run("health endpoint responds", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-		svc, _ := neofeeds.New(neofeeds.Config{Marble: m})
+		m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
+		svc, _ := neofeeds.New(neofeeds.Config{Nitro: m})
 
 		req := httptest.NewRequest("GET", "/health", nil)
 		w := httptest.NewRecorder()
@@ -345,8 +345,8 @@ func TestNeoFeedsSmoke(t *testing.T) {
 	})
 
 	t.Run("service metadata correct", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-		svc, _ := neofeeds.New(neofeeds.Config{Marble: m})
+		m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
+		svc, _ := neofeeds.New(neofeeds.Config{Nitro: m})
 
 		if svc.ID() != "neofeeds" {
 			t.Errorf("expected ID 'neofeeds', got '%s'", svc.ID())
@@ -361,13 +361,13 @@ func TestNeoFeedsSmoke(t *testing.T) {
 func TestNeoGasBankSmoke(t *testing.T) {
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Run("service creates successfully", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neogasbank"})
+		m, err := nitro.New(nitro.Config{NitroType: "neogasbank"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 		mockDB := database.NewMockRepository()
 
-		svc, err := neogasbank.New(neogasbank.Config{Marble: m, DB: mockDB})
+		svc, err := neogasbank.New(neogasbank.Config{Nitro: m, DB: mockDB})
 		if err != nil {
 			t.Fatalf("neogasbank.New: %v", err)
 		}
@@ -377,9 +377,9 @@ func TestNeoGasBankSmoke(t *testing.T) {
 	})
 
 	t.Run("health endpoint responds", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neogasbank"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neogasbank"})
 		mockDB := database.NewMockRepository()
-		svc, _ := neogasbank.New(neogasbank.Config{Marble: m, DB: mockDB})
+		svc, _ := neogasbank.New(neogasbank.Config{Nitro: m, DB: mockDB})
 
 		req := httptest.NewRequest("GET", "/health", nil)
 		w := httptest.NewRecorder()
@@ -391,9 +391,9 @@ func TestNeoGasBankSmoke(t *testing.T) {
 	})
 
 	t.Run("service metadata correct", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neogasbank"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neogasbank"})
 		mockDB := database.NewMockRepository()
-		svc, _ := neogasbank.New(neogasbank.Config{Marble: m, DB: mockDB})
+		svc, _ := neogasbank.New(neogasbank.Config{Nitro: m, DB: mockDB})
 
 		if svc.ID() != "neogasbank" {
 			t.Errorf("expected ID 'neogasbank', got '%s'", svc.ID())
@@ -408,13 +408,13 @@ func TestNeoGasBankSmoke(t *testing.T) {
 func TestTxProxySmoke(t *testing.T) {
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Run("service creates successfully", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "txproxy"})
+		m, err := nitro.New(nitro.Config{NitroType: "txproxy"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 
 		allowlist, _ := txproxy.ParseAllowlist(`{"contracts":{}}`)
-		svc, err := txproxy.New(txproxy.Config{Marble: m, Allowlist: allowlist})
+		svc, err := txproxy.New(txproxy.Config{Nitro: m, Allowlist: allowlist})
 		if err != nil {
 			t.Fatalf("txproxy.New: %v", err)
 		}
@@ -424,9 +424,9 @@ func TestTxProxySmoke(t *testing.T) {
 	})
 
 	t.Run("health endpoint responds", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "txproxy"})
+		m, _ := nitro.New(nitro.Config{NitroType: "txproxy"})
 		allowlist, _ := txproxy.ParseAllowlist(`{"contracts":{}}`)
-		svc, _ := txproxy.New(txproxy.Config{Marble: m, Allowlist: allowlist})
+		svc, _ := txproxy.New(txproxy.Config{Nitro: m, Allowlist: allowlist})
 
 		ctx := context.Background()
 		_ = svc.Start(ctx)
@@ -442,9 +442,9 @@ func TestTxProxySmoke(t *testing.T) {
 	})
 
 	t.Run("service metadata correct", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "txproxy"})
+		m, _ := nitro.New(nitro.Config{NitroType: "txproxy"})
 		allowlist, _ := txproxy.ParseAllowlist(`{"contracts":{}}`)
-		svc, _ := txproxy.New(txproxy.Config{Marble: m, Allowlist: allowlist})
+		svc, _ := txproxy.New(txproxy.Config{Nitro: m, Allowlist: allowlist})
 
 		if svc.ID() != "txproxy" {
 			t.Errorf("expected ID 'txproxy', got '%s'", svc.ID())
@@ -458,13 +458,13 @@ func TestTxProxySmoke(t *testing.T) {
 // TestNeoFlowSmoke performs basic smoke tests on the NeoFlow/Automation service.
 func TestNeoFlowSmoke(t *testing.T) {
 	t.Run("service creates successfully", func(t *testing.T) {
-		m, err := marble.New(marble.Config{MarbleType: "neoflow"})
+		m, err := nitro.New(nitro.Config{NitroType: "neoflow"})
 		if err != nil {
-			t.Fatalf("marble.New: %v", err)
+			t.Fatalf("nitro.New: %v", err)
 		}
 		mockDB := database.NewMockRepository()
 
-		svc, err := neoflow.New(neoflow.Config{Marble: m, DB: mockDB})
+		svc, err := neoflow.New(neoflow.Config{Nitro: m, DB: mockDB})
 		if err != nil {
 			t.Fatalf("neoflow.New: %v", err)
 		}
@@ -474,9 +474,9 @@ func TestNeoFlowSmoke(t *testing.T) {
 	})
 
 	t.Run("health endpoint responds", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neoflow"})
 		mockDB := database.NewMockRepository()
-		svc, _ := neoflow.New(neoflow.Config{Marble: m, DB: mockDB})
+		svc, _ := neoflow.New(neoflow.Config{Nitro: m, DB: mockDB})
 
 		req := httptest.NewRequest("GET", "/health", nil)
 		w := httptest.NewRecorder()
@@ -488,9 +488,9 @@ func TestNeoFlowSmoke(t *testing.T) {
 	})
 
 	t.Run("service metadata correct", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neoflow"})
 		mockDB := database.NewMockRepository()
-		svc, _ := neoflow.New(neoflow.Config{Marble: m, DB: mockDB})
+		svc, _ := neoflow.New(neoflow.Config{Nitro: m, DB: mockDB})
 
 		if svc.ID() != "neoflow" {
 			t.Errorf("expected ID 'neoflow', got '%s'", svc.ID())
@@ -509,9 +509,9 @@ func TestNeoFlowSmoke(t *testing.T) {
 func TestAllServicesHealthSmoke(t *testing.T) {
 	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
 	t.Run("NeoAccounts", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neoaccounts"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neoaccounts"})
 		m.SetTestSecret("POOL_MASTER_KEY", []byte("smoke-test-pool-key-32-bytes!!!!"))
-		svc, err := neoaccounts.New(neoaccounts.Config{Marble: m})
+		svc, err := neoaccounts.New(neoaccounts.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("failed to create: %v", err)
 		}
@@ -524,9 +524,9 @@ func TestAllServicesHealthSmoke(t *testing.T) {
 	})
 
 	t.Run("NeoCompute", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neocompute"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neocompute"})
 		m.SetTestSecret("COMPUTE_MASTER_KEY", []byte("smoke-test-compute-master-key-32b!!"))
-		svc, err := neocompute.New(neocompute.Config{Marble: m})
+		svc, err := neocompute.New(neocompute.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("failed to create: %v", err)
 		}
@@ -539,8 +539,8 @@ func TestAllServicesHealthSmoke(t *testing.T) {
 	})
 
 	t.Run("NeoOracle", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neooracle"})
-		svc, err := neooracle.New(neooracle.Config{Marble: m})
+		m, _ := nitro.New(nitro.Config{NitroType: "neooracle"})
+		svc, err := neooracle.New(neooracle.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("failed to create: %v", err)
 		}
@@ -553,8 +553,8 @@ func TestAllServicesHealthSmoke(t *testing.T) {
 	})
 
 	t.Run("NeoFeeds", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neofeeds"})
-		svc, err := neofeeds.New(neofeeds.Config{Marble: m})
+		m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
+		svc, err := neofeeds.New(neofeeds.Config{Nitro: m})
 		if err != nil {
 			t.Fatalf("failed to create: %v", err)
 		}
@@ -567,9 +567,9 @@ func TestAllServicesHealthSmoke(t *testing.T) {
 	})
 
 	t.Run("NeoGasBank", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neogasbank"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neogasbank"})
 		mockDB := database.NewMockRepository()
-		svc, err := neogasbank.New(neogasbank.Config{Marble: m, DB: mockDB})
+		svc, err := neogasbank.New(neogasbank.Config{Nitro: m, DB: mockDB})
 		if err != nil {
 			t.Fatalf("failed to create: %v", err)
 		}
@@ -582,9 +582,9 @@ func TestAllServicesHealthSmoke(t *testing.T) {
 	})
 
 	t.Run("NeoFlow", func(t *testing.T) {
-		m, _ := marble.New(marble.Config{MarbleType: "neoflow"})
+		m, _ := nitro.New(nitro.Config{NitroType: "neoflow"})
 		mockDB := database.NewMockRepository()
-		svc, err := neoflow.New(neoflow.Config{Marble: m, DB: mockDB})
+		svc, err := neoflow.New(neoflow.Config{Nitro: m, DB: mockDB})
 		if err != nil {
 			t.Fatalf("failed to create: %v", err)
 		}

@@ -283,7 +283,7 @@ func GetUserID(r *http.Request) string {
 	}
 
 	// In strict identity mode, only trust headers when the request is authenticated
-	// over verified mTLS (i.e., the caller is another service Marble).
+	// over verified mTLS (i.e., the caller is another service Nitro).
 	if runtime.StrictIdentityMode() && !hasVerifiedMTLS(r) {
 		return ""
 	}

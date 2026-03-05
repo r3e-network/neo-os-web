@@ -1,9 +1,9 @@
 #!/bin/bash
 #
 # Bootstrap full local k3s dev stack:
-# - k3s + MarbleRun + cert-manager
+# - k3s + NitroRun + cert-manager
 # - Supabase (local) in k3s
-# - service-layer marbles
+# - service-layer nitros
 # - Edge gateway + mTLS
 #
 # Usage:
@@ -77,7 +77,7 @@ echo "Env file: $ENV_FILE"
 echo "Edge env file: $EDGE_ENV_FILE"
 
 echo ""
-echo "[1/6] Installing k3s + MarbleRun + cert-manager..."
+echo "[1/6] Installing k3s + NitroRun + cert-manager..."
 ./scripts/k3s-local-setup.sh install
 
 echo ""
@@ -90,7 +90,7 @@ echo "[3/6] Applying secrets + config..."
 ./scripts/apply_k8s_config_from_env.sh --env-file "$ENV_FILE"
 
 echo ""
-echo "[4/6] Deploying service-layer marbles..."
+echo "[4/6] Deploying service-layer nitros..."
 ./scripts/deploy_k8s.sh --env dev
 
 echo ""

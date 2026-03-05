@@ -157,9 +157,9 @@ func (s *Service) handleCreateRequest(w http.ResponseWriter, r *http.Request) {
 
 ## Trust Model
 
-- In strict environments (production, Nitro runtime, or when MarbleRun injects TLS credentials), `GetUserID`, `GetUserRole`, and `GetServiceID` only trust identity that is protected by verified mTLS.
-- User identity (`X-User-ID`) is set by the gateway after authentication and forwarded to internal services over the MarbleRun mesh.
-- Service identity is derived from the MarbleRun-issued mTLS certificate to prevent header spoofing.
+- In strict environments (production, Nitro runtime, or when NitroRun injects TLS credentials), `GetUserID`, `GetUserRole`, and `GetServiceID` only trust identity that is protected by verified mTLS.
+- User identity (`X-User-ID`) is set by the gateway after authentication and forwarded to internal services over the NitroRun mesh.
+- Service identity is derived from the NitroRun-issued mTLS certificate to prevent header spoofing.
 
 ## Testing
 

@@ -4,14 +4,14 @@ import "testing"
 
 func TestStrictIdentityMode(t *testing.T) {
 	t.Run("production env", func(t *testing.T) {
-		t.Setenv("MARBLE_ENV", "production")
+		t.Setenv("NITRO_ENV", "production")
 		if !StrictIdentityMode() {
 			t.Fatalf("StrictIdentityMode() = false, want true")
 		}
 	})
 
 	t.Run("explicit strict mode", func(t *testing.T) {
-		t.Setenv("MARBLE_ENV", "development")
+		t.Setenv("NITRO_ENV", "development")
 		t.Setenv("TEE_STRICT_MODE", "true")
 		if !StrictIdentityMode() {
 			t.Fatalf("StrictIdentityMode() = false, want true")
@@ -19,7 +19,7 @@ func TestStrictIdentityMode(t *testing.T) {
 	})
 
 	t.Run("tee backend strict opt-in", func(t *testing.T) {
-		t.Setenv("MARBLE_ENV", "development")
+		t.Setenv("NITRO_ENV", "development")
 		t.Setenv("TEE_BACKEND", "nitro")
 		t.Setenv("STRICT_IDENTITY_ON_TEE", "true")
 		if !StrictIdentityMode() {
@@ -27,18 +27,18 @@ func TestStrictIdentityMode(t *testing.T) {
 		}
 	})
 
-	t.Run("marblerun tls injected", func(t *testing.T) {
-		t.Setenv("MARBLE_ENV", "development")
-		t.Setenv("MARBLE_CERT", "cert")
-		t.Setenv("MARBLE_KEY", "key")
-		t.Setenv("MARBLE_ROOT_CA", "ca")
+	t.Run("nitrorun tls injected", func(t *testing.T) {
+		t.Setenv("NITRO_ENV", "development")
+		t.Setenv("NITRO_CERT", "cert")
+		t.Setenv("NITRO_KEY", "key")
+		t.Setenv("NITRO_ROOT_CA", "ca")
 		if !StrictIdentityMode() {
 			t.Fatalf("StrictIdentityMode() = false, want true")
 		}
 	})
 
 	t.Run("dev default", func(t *testing.T) {
-		t.Setenv("MARBLE_ENV", "development")
+		t.Setenv("NITRO_ENV", "development")
 		if StrictIdentityMode() {
 			t.Fatalf("StrictIdentityMode() = true, want false")
 		}

@@ -13,4 +13,4 @@ hashes are configured.
 
 Code layout:
 
-- `txproxy/marble`: enclave service implementation (HTTP API)
+- `txproxy/nitro`: enclave service implementation (HTTP API)

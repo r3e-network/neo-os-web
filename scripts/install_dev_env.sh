@@ -45,19 +45,19 @@ install_nitro_tools() {
     fi
 }
 
-install_marblerun() {
-    log_info "Installing MarbleRun CLI..."
+install_nitrorun() {
+    log_info "Installing NitroRun CLI..."
 
-    curl -fsSL https://github.com/edgelesssys/marblerun/releases/latest/download/marblerun-linux-amd64 \
-        -o /tmp/marblerun
+    curl -fsSL https://github.com/edgelesssys/nitrorun/releases/latest/download/nitrorun-linux-amd64 \
+        -o /tmp/nitrorun
 
-    chmod +x /tmp/marblerun
-    sudo mv /tmp/marblerun /usr/local/bin/marblerun
+    chmod +x /tmp/nitrorun
+    sudo mv /tmp/nitrorun /usr/local/bin/nitrorun
 
-    if command -v marblerun &> /dev/null; then
-        log_info "MarbleRun CLI installed: $(marblerun version 2>/dev/null || echo 'installed')"
+    if command -v nitrorun &> /dev/null; then
+        log_info "NitroRun CLI installed: $(nitrorun version 2>/dev/null || echo 'installed')"
     else
-        log_error "MarbleRun CLI installation failed"
+        log_error "NitroRun CLI installation failed"
         return 1
     fi
 }
@@ -96,14 +96,14 @@ install_helm() {
     fi
 }
 
-deploy_marblerun() {
-    log_info "Deploying MarbleRun to Kubernetes..."
-    marblerun install --simulation
+deploy_nitrorun() {
+    log_info "Deploying NitroRun to Kubernetes..."
+    nitrorun install --simulation
 
-    log_info "Waiting for MarbleRun components..."
-    marblerun check --timeout 120s || {
-        log_warn "MarbleRun check timed out, checking pod status..."
-        kubectl get pods -n marblerun
+    log_info "Waiting for NitroRun components..."
+    nitrorun check --timeout 120s || {
+        log_warn "NitroRun check timed out, checking pod status..."
+        kubectl get pods -n nitrorun
     }
 }
 
@@ -112,9 +112,9 @@ usage() {
     echo ""
     echo "Options:"
     echo "  --skip-k8s          Skip Kubernetes (k3s) installation"
-    echo "  --skip-marblerun    Skip MarbleRun CLI installation"
-    echo "  --deploy-marblerun  Deploy MarbleRun to Kubernetes after install"
-    echo "  --all               Install everything and deploy MarbleRun"
+    echo "  --skip-nitrorun    Skip NitroRun CLI installation"
+    echo "  --deploy-nitrorun  Deploy NitroRun to Kubernetes after install"
+    echo "  --all               Install everything and deploy NitroRun"
     echo "  -h, --help          Show this help message"
 }
 
@@ -128,15 +128,15 @@ main() {
     check_sudo
 
     SKIP_K8S=false
-    SKIP_MARBLERUN=false
-    DEPLOY_MARBLERUN=false
+    SKIP_NITRORUN=false
+    DEPLOY_NITRORUN=false
 
     while [[ $# -gt 0 ]]; do
         case $1 in
             --skip-k8s) SKIP_K8S=true; shift ;;
-            --skip-marblerun) SKIP_MARBLERUN=true; shift ;;
-            --deploy-marblerun) DEPLOY_MARBLERUN=true; shift ;;
-            --all) DEPLOY_MARBLERUN=true; shift ;;
+            --skip-nitrorun) SKIP_NITRORUN=true; shift ;;
+            --deploy-nitrorun) DEPLOY_NITRORUN=true; shift ;;
+            --all) DEPLOY_NITRORUN=true; shift ;;
             -h|--help)
                 usage
                 exit 0
@@ -152,10 +152,10 @@ main() {
     install_prerequisites
     install_nitro_tools
 
-    if [ "$SKIP_MARBLERUN" = false ]; then
-        install_marblerun
+    if [ "$SKIP_NITRORUN" = false ]; then
+        install_nitrorun
     else
-        log_info "Skipping MarbleRun CLI installation."
+        log_info "Skipping NitroRun CLI installation."
     fi
 
     if [ "$SKIP_K8S" = false ]; then
@@ -165,8 +165,8 @@ main() {
         log_info "Skipping Kubernetes installation."
     fi
 
-    if [ "$DEPLOY_MARBLERUN" = true ] && [ "$SKIP_K8S" = false ] && [ "$SKIP_MARBLERUN" = false ]; then
-        deploy_marblerun
+    if [ "$DEPLOY_NITRORUN" = true ] && [ "$SKIP_K8S" = false ] && [ "$SKIP_NITRORUN" = false ]; then
+        deploy_nitrorun
     fi
 
     echo ""
@@ -177,8 +177,8 @@ main() {
 
     log_info "Installed components:"
     echo "  - AWS Nitro Enclaves tooling"
-    if [ "$SKIP_MARBLERUN" = false ]; then
-        echo "  - MarbleRun CLI"
+    if [ "$SKIP_NITRORUN" = false ]; then
+        echo "  - NitroRun CLI"
     fi
     if [ "$SKIP_K8S" = false ]; then
         echo "  - k3s (lightweight Kubernetes)"
@@ -194,8 +194,8 @@ main() {
         echo "  2. kubectl get nodes  # Verify Kubernetes"
     fi
     echo "  3. nitro-cli --help   # Verify Nitro CLI"
-    if [ "$SKIP_MARBLERUN" = false ]; then
-        echo "  4. marblerun --help   # Verify MarbleRun CLI"
+    if [ "$SKIP_NITRORUN" = false ]; then
+        echo "  4. nitrorun --help   # Verify NitroRun CLI"
     fi
 }
 

@@ -51,7 +51,7 @@ of `cmd/master-bundle`.
 ## Verifier checklist (off-chain)
 1) Fetch `masterPubKeyHash` and `attestationHash` from the gateway contract/event.
 2) Fetch the attestation bundle (by hash/CID/URL).
-3) Verify MarbleRun quote + chain with expected policy (signer, ProdID fixed, ISVSVN >= minimum; optionally pin manifest hash).
+3) Verify NitroRun quote + chain with expected policy (signer, ProdID fixed, ISVSVN >= minimum; optionally pin manifest hash).
 4) Check quote report data == `hash(master_pubkey)` from bundle.
 5) Check `hash(bundle)` == `attestationHash` on-chain.
 6) If also anchoring pubkey: ensure `hash(masterPubKey)` == on-chain `masterPubKeyHash`.

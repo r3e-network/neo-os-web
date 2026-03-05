@@ -1,5 +1,5 @@
 // Package types provides shared types for the GlobalSigner service.
-// This package exists to break import cycles between marble and supabase packages.
+// This package exists to break import cycles between nitro and supabase packages.
 package types
 
 import (

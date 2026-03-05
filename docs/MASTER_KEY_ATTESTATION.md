@@ -5,7 +5,7 @@ This repository uses a **TEE-managed signer** for all platform “service-layer 
 
 ## Components
 
-- **MarbleRun**: attestation + secret distribution + mTLS identities inside the enclave mesh.
+- **NitroRun**: attestation + secret distribution + mTLS identities inside the enclave mesh.
 - **Nitro runtime integration**: enclave runtime path for services.
 - **GlobalSigner** (`infrastructure/globalsigner`): holds the active signing key (inside the enclave) and exposes:
   - `/attestation` (public key + metadata)
@@ -25,7 +25,7 @@ enclave-managed signer (GlobalSigner/TxProxy) in production.
 
 ## Attestation & Audit
 
-The platform relies on **attested TLS** (MarbleRun-issued) for service identity and integrity.
+The platform relies on **attested TLS** (NitroRun-issued) for service identity and integrity.
 For a public audit trail, platform contracts store an `attestation_hash` field in writes:
 
 - `PriceFeed.update(..., attestationHash, ...)`
