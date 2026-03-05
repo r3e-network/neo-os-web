@@ -81,6 +81,9 @@ export function MiniAppsTableCard({
                     <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatDate(app.created_at)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => window.location.href = `/miniapps/${app.app_id}`}>
+                          Configure
+                        </Button>
                         <Button size="sm" variant="ghost" onClick={() => onEdit(app)}>
                           Edit
                         </Button>
