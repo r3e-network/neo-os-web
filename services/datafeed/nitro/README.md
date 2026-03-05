@@ -1,7 +1,7 @@
 # NeoFeeds Nitro Service
 
 TEE-secured price aggregation + on-chain anchoring service running inside the
-NitroRun/Nitro-oriented enclave mesh.
+AWS Nitro/Nitro-oriented enclave mesh.
 
 ## Responsibilities
 

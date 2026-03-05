@@ -38,7 +38,7 @@ var contractsToDeploy = []string{
 	"PriceFeed",
 	"RandomnessLog",
 	"ServiceLayerGateway",
-	"zNEP17",
+	"OracleService",
 }
 
 func main() {
