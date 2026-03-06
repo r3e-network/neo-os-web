@@ -62,10 +62,13 @@ func (r *Repository) GetMiniApp(ctx context.Context, appID string) (*MiniApp, er
 		return nil, fmt.Errorf("app_id cannot be empty")
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("app_id", appID).
 		Limit(1).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build miniapp query: %w", err)
+	}
 
 	rows, err := database.GenericListWithQuery[MiniApp](r.base, ctx, miniappsTable, query)
 	if err != nil {
@@ -83,10 +86,13 @@ func (r *Repository) GetMiniAppByContractHash(ctx context.Context, contractHash 
 		return nil, fmt.Errorf("contract_hash cannot be empty")
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("contract_hash", contractHash).
 		Limit(1).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build miniapp contract hash query: %w", err)
+	}
 
 	rows, err := database.GenericListWithQuery[MiniApp](r.base, ctx, miniappsTable, query)
 	if err != nil {
@@ -299,12 +305,15 @@ func (r *Repository) HasProcessedEvent(ctx context.Context, chainID, txHash stri
 	if chainID == "" || txHash == "" {
 		return false, fmt.Errorf("chain_id and tx_hash required")
 	}
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("chain_id", chainID).
 		Eq("tx_hash", txHash).
 		Eq("log_index", strconv.Itoa(logIndex)).
 		Limit(1).
 		Build()
+	if err != nil {
+		return false, fmt.Errorf("build processed event query: %w", err)
+	}
 
 	rows, err := database.GenericListWithQuery[ProcessedEvent](r.base, ctx, processedEventsTable, query)
 	if err != nil {
@@ -325,11 +334,7 @@ func (r *Repository) CreateProcessedEvent(ctx context.Context, event *ProcessedE
 }
 
 func isDuplicateError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "duplicate") || strings.Contains(msg, "unique") || strings.Contains(msg, "409")
+	return database.IsUniqueViolationError(err)
 }
 
 // MarkProcessedEvent attempts to insert a processed event and returns true if inserted.
@@ -366,11 +371,15 @@ func (r *Repository) LatestProcessedBlock(ctx context.Context, chainID string) (
 		return
 	}
 
-	query := database.NewQuery().
+	query, buildErr := database.NewQuery().
 		Eq("chain_id", chainID).
 		OrderDesc("block_height").
 		Limit(1).
 		Build()
+	if buildErr != nil {
+		err = fmt.Errorf("build latest processed block query: %w", buildErr)
+		return
+	}
 
 	rows, err := database.GenericListWithQuery[ProcessedEvent](r.base, ctx, processedEventsTable, query)
 	if err != nil {

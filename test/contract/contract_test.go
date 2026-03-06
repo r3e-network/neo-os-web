@@ -64,6 +64,10 @@ func TestContractCompilation(t *testing.T) {
 			name:       "AutomationAnchor",
 			sourceFile: filepath.Join("..", "..", "contracts", "AutomationAnchor", "AutomationAnchor.cs"),
 		},
+		{
+			name:       "MiniAppFactoryV2",
+			sourceFile: filepath.Join("..", "..", "contracts", "MiniAppFactoryV2", "MiniAppFactoryV2.cs"),
+		},
 	}
 
 	for _, spec := range specs {
@@ -72,9 +76,10 @@ func TestContractCompilation(t *testing.T) {
 				t.Fatalf("source file not found: %s", spec.sourceFile)
 			}
 
-			contractBase := filepath.Join("..", "..", "contracts", "build")
-			nefFile := filepath.Join(contractBase, spec.name+".nef")
-			manifestFile := filepath.Join(contractBase, spec.name+".manifest.json")
+			nefFile, manifestFile, err := FindContractArtifacts(spec.name)
+			if err != nil {
+				t.Fatalf("contract artifacts missing after contract build: %v", err)
+			}
 
 			if _, err := os.Stat(nefFile); os.IsNotExist(err) {
 				t.Fatalf("NEF file missing after contract build: %s", nefFile)

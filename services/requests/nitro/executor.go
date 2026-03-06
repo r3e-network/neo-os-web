@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -31,7 +32,7 @@ func (s *Service) executeRNG(ctx context.Context, userID, appID, requestID strin
 
 	respBytes, err := s.postJSON(ctx, joinURL(s.vrfURL, "/random"), userID, rngPayload{RequestID: vrfRequestID})
 	if err != nil {
-		return serviceResult{}, err
+		return serviceResult{}, wrapUpstreamServiceError("neovrf", err)
 	}
 
 	var resp rngResponse
@@ -71,7 +72,7 @@ func (s *Service) executeOracle(ctx context.Context, userID string, payload []by
 
 	respBytes, err := s.postJSON(ctx, joinURL(s.oracleURL, "/query"), userID, req)
 	if err != nil {
-		return serviceResult{}, err
+		return serviceResult{}, wrapUpstreamServiceError("neooracle", err)
 	}
 
 	var resp oracleResponse
@@ -168,7 +169,7 @@ func (s *Service) executeCompute(ctx context.Context, userID, appID string, payl
 
 	respBytes, err := s.postJSON(ctx, joinURL(s.computeURL, "/execute"), userID, req)
 	if err != nil {
-		return serviceResult{}, err
+		return serviceResult{}, wrapUpstreamServiceError("neocompute", err)
 	}
 
 	var resp computeResponse
@@ -228,4 +229,49 @@ func (s *Service) executeCompute(ctx context.Context, userID, appID string, payl
 	}
 
 	return serviceResult{ResultBytes: resultBytes, AuditJSON: neorequestsupabase.MarshalParams(result)}, nil
+}
+
+func wrapUpstreamServiceError(serviceName string, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if isUpstreamTimeoutError(err) {
+		return fmt.Errorf("%s service unavailable: %w", serviceName, err)
+	}
+
+	statusCode, ok := upstreamStatusCode(err)
+	if !ok {
+		return err
+	}
+
+	switch {
+	case statusCode == http.StatusNotFound:
+		return fmt.Errorf("%s endpoint not found: %w", serviceName, err)
+	case statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError:
+		return fmt.Errorf("%s request rejected: %w", serviceName, err)
+	case statusCode >= http.StatusInternalServerError:
+		return fmt.Errorf("%s service unavailable: %w", serviceName, err)
+	default:
+		return err
+	}
+}
+
+func isUpstreamTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var timeoutErr interface{ Timeout() bool }
+	return errors.As(err, &timeoutErr) && timeoutErr.Timeout()
+}
+
+func upstreamStatusCode(err error) (int, bool) {
+	var httpErr *UpstreamHTTPError
+	if !errors.As(err, &httpErr) {
+		return 0, false
+	}
+	return httpErr.StatusCode, true
 }

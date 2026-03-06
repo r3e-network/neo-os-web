@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -124,10 +125,10 @@ func New(cfg Config) (*Service, error) {
 	// Get interval configuration
 	minIntervalMS := cfg.MinIntervalMS
 	if minIntervalMS == 0 {
-		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MIN_MS"); envVal != "" {
-			if _, err := fmt.Sscanf(envVal, "%d", &minIntervalMS); err != nil {
-				base.Logger().Warn(context.Background(), "invalid SIMULATION_TX_INTERVAL_MIN_MS: "+err.Error(), nil)
-			}
+		if parsed, err := loadPositiveEnvInt("SIMULATION_TX_INTERVAL_MIN_MS"); err != nil {
+			base.Logger().Warn(context.Background(), "invalid SIMULATION_TX_INTERVAL_MIN_MS: "+err.Error(), nil)
+		} else if parsed > 0 {
+			minIntervalMS = parsed
 		}
 	}
 	if minIntervalMS == 0 {
@@ -136,10 +137,10 @@ func New(cfg Config) (*Service, error) {
 
 	maxIntervalMS := cfg.MaxIntervalMS
 	if maxIntervalMS == 0 {
-		if envVal := os.Getenv("SIMULATION_TX_INTERVAL_MAX_MS"); envVal != "" {
-			if _, err := fmt.Sscanf(envVal, "%d", &maxIntervalMS); err != nil {
-				base.Logger().Warn(context.Background(), "invalid SIMULATION_TX_INTERVAL_MAX_MS: "+err.Error(), nil)
-			}
+		if parsed, err := loadPositiveEnvInt("SIMULATION_TX_INTERVAL_MAX_MS"); err != nil {
+			base.Logger().Warn(context.Background(), "invalid SIMULATION_TX_INTERVAL_MAX_MS: "+err.Error(), nil)
+		} else if parsed > 0 {
+			maxIntervalMS = parsed
 		}
 	}
 	if maxIntervalMS == 0 {
@@ -159,10 +160,10 @@ func New(cfg Config) (*Service, error) {
 	// Get workers per app configuration
 	workersPerApp := cfg.WorkersPerApp
 	if workersPerApp == 0 {
-		if envVal := os.Getenv("SIMULATION_WORKERS_PER_APP"); envVal != "" {
-			if _, err := fmt.Sscanf(envVal, "%d", &workersPerApp); err != nil {
-				base.Logger().Warn(context.Background(), "invalid SIMULATION_WORKERS_PER_APP: "+err.Error(), nil)
-			}
+		if parsed, err := loadPositiveEnvInt("SIMULATION_WORKERS_PER_APP"); err != nil {
+			base.Logger().Warn(context.Background(), "invalid SIMULATION_WORKERS_PER_APP: "+err.Error(), nil)
+		} else if parsed > 0 {
+			workersPerApp = parsed
 		}
 	}
 	if workersPerApp <= 0 {
@@ -238,8 +239,8 @@ func New(cfg Config) (*Service, error) {
 	base.RegisterStandardRoutes()
 	s.registerRoutes()
 
-	// Auto-start if configured
-	if cfg.AutoStart || strings.ToLower(os.Getenv("SIMULATION_ENABLED")) == "true" {
+	// Auto-start if configured.
+	if shouldAutoStartSimulation(cfg.AutoStart) {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -522,6 +523,25 @@ func normalizeMiniAppID(appID string) string {
 		return trimmed
 	}
 	return "miniapp-" + trimmed
+}
+
+func shouldAutoStartSimulation(configAutoStart bool) bool {
+	return configAutoStart || runtime.ParseEnvBoolKey("SIMULATION_ENABLED")
+}
+
+func loadPositiveEnvInt(key string) (int, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return 0, nil
+	}
+	parsed, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, err
+	}
+	if parsed <= 0 {
+		return 0, fmt.Errorf("value must be positive")
+	}
+	return parsed, nil
 }
 
 func shortHash(hash string) string {

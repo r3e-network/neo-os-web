@@ -8,7 +8,16 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	slhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	txproxyclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/client"
 )
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
 
 func TestSanitizeTEEScriptPath(t *testing.T) {
 	t.Parallel()
@@ -140,6 +149,143 @@ func TestLoadTeeScriptRejectsOversizedScript(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "script exceeds max size") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadTeeScriptManifestServerErrorIsNotNotFound(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/apps/app-1/manifest.json", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	svc := &Service{
+		httpClient: server.Client(),
+		scriptsURL: server.URL,
+	}
+
+	_, _, err := svc.loadTeeScript(context.Background(), "app-1", "job")
+	if err == nil {
+		t.Fatal("expected manifest fetch error")
+	}
+	if !strings.Contains(err.Error(), "manifest request failed: status 500") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if strings.Contains(strings.ToLower(err.Error()), "manifest not found") {
+		t.Fatalf("server error should not be labeled not found: %v", err)
+	}
+}
+
+func TestFetchTeeAssetReturnsTypedHTTPError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = io.WriteString(w, "upstream unavailable")
+	}))
+	defer server.Close()
+
+	svc := &Service{
+		httpClient: server.Client(),
+	}
+
+	_, err := svc.fetchTeeAsset(context.Background(), server.URL+"/apps/app-1/manifest.json", "manifest")
+	if err == nil {
+		t.Fatal("expected manifest fetch error")
+	}
+
+	var httpErr *teeAssetHTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *teeAssetHTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusBadGateway {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusBadGateway)
+	}
+	if !strings.Contains(httpErr.Body, "upstream unavailable") {
+		t.Fatalf("body = %q, want to contain upstream error", httpErr.Body)
+	}
+	if !isTEEAssetStatusError(err, http.StatusBadGateway) {
+		t.Fatal("isTEEAssetStatusError() should detect 502 status")
+	}
+	if isTEEAssetStatusError(err, http.StatusNotFound) {
+		t.Fatal("isTEEAssetStatusError() should not match wrong status")
+	}
+	var sharedErr *slhttputil.HTTPStatusError
+	if !errors.As(err, &sharedErr) {
+		t.Fatalf("expected shared *httputil.HTTPStatusError, got %T", err)
+	}
+	if !slhttputil.IsHTTPStatusError(err, http.StatusBadGateway) {
+		t.Fatal("shared IsHTTPStatusError() should detect 502 status")
+	}
+}
+
+func TestFetchTeeAssetNonOKNilBodyReturnsTypedError(t *testing.T) {
+	t.Parallel()
+
+	svc := &Service{
+		httpClient: &http.Client{
+			Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusBadGateway,
+					Status:     "502 Bad Gateway",
+				}, nil
+			}),
+		},
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("fetchTeeAsset should not panic on nil response body: %v", r)
+		}
+	}()
+
+	_, err := svc.fetchTeeAsset(context.Background(), "https://example.test/apps/app-1/manifest.json", "manifest")
+	if err == nil {
+		t.Fatal("expected manifest fetch error")
+	}
+
+	var httpErr *teeAssetHTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *teeAssetHTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusBadGateway {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusBadGateway)
+	}
+	if strings.TrimSpace(httpErr.Body) != "" {
+		t.Fatalf("body = %q, want empty", httpErr.Body)
+	}
+}
+
+func TestFetchTeeAssetOKNilBodyDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	svc := &Service{
+		httpClient: &http.Client{
+			Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+				}, nil
+			}),
+		},
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("fetchTeeAsset should not panic on nil success response body: %v", r)
+		}
+	}()
+
+	body, err := svc.fetchTeeAsset(context.Background(), "https://example.test/apps/app-1/manifest.json", "manifest")
+	if err != nil {
+		t.Fatalf("expected nil error, got: %v", err)
+	}
+	if len(body) != 0 {
+		t.Fatalf("body length = %d, want 0", len(body))
 	}
 }
 
@@ -395,6 +541,15 @@ func TestIsTxProxyRequestIDConflict(t *testing.T) {
 
 	if !isTxProxyRequestIDConflict(errors.New(`request failed: 409 Conflict - {"code":"CONFLICT","message":"request_id already used"}`)) {
 		t.Fatal("expected conflict error to be detected")
+	}
+	if !isTxProxyRequestIDConflict(&txproxyclient.HTTPError{
+		HTTPStatusError: &slhttputil.HTTPStatusError{
+			StatusCode: http.StatusConflict,
+			Status:     "409 Conflict",
+			Body:       `{"code":"CONFLICT","message":"request_id already used"}`,
+		},
+	}) {
+		t.Fatal("expected typed conflict error to be detected")
 	}
 	if isTxProxyRequestIDConflict(errors.New(`request failed: 500 Internal Server Error`)) {
 		t.Fatal("did not expect non-conflict error to match")

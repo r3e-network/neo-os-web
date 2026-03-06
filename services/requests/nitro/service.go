@@ -13,6 +13,7 @@ import (
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 	commonservice "github.com/r3e-network/neo-miniapp-platform/infrastructure/service"
@@ -142,17 +143,14 @@ func resolveContractHash(cfgValue string, m *nitro.Nitro, envKeys ...string) str
 // the nitro client or a default. It disables redirects when no explicit
 // client was provided to prevent SSRF via redirect chains.
 func resolveHTTPClient(cfg *Config) *http.Client {
-	if cfg.HTTPClient != nil {
-		return cfg.HTTPClient
+	if cfg != nil && cfg.HTTPClient != nil {
+		return httputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.HTTPClient, 30*time.Second, false)
 	}
-	c := cfg.Nitro.HTTPClient()
-	if c == nil {
-		c = &http.Client{Timeout: 30 * time.Second}
+
+	if cfg != nil && cfg.Nitro != nil {
+		return httputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.Nitro.HTTPClient(), 30*time.Second, false)
 	}
-	c.CheckRedirect = func(*http.Request, []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-	return c
+	return httputil.CopyHTTPClientWithTimeoutNoRedirect(nil, 30*time.Second, false)
 }
 
 // resolvedConfig holds all values resolved from Config + env vars + secrets.

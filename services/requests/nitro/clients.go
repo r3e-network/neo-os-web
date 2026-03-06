@@ -13,6 +13,38 @@ import (
 
 const defaultHTTPBodyLimit = 1 << 20 // 1 MiB
 
+// UpstreamHTTPError captures non-200 responses returned by upstream services.
+type UpstreamHTTPError struct {
+	*httputil.HTTPStatusError
+}
+
+func (e *UpstreamHTTPError) Error() string {
+	if e == nil {
+		return "request failed"
+	}
+	if e.HTTPStatusError == nil {
+		return "request failed"
+	}
+	if strings.TrimSpace(e.HTTPStatusError.Body) == "" {
+		return fmt.Sprintf("request failed: %s", strings.TrimSpace(e.HTTPStatusError.Status))
+	}
+	return fmt.Sprintf("request failed: %s - %s", strings.TrimSpace(e.HTTPStatusError.Status), strings.TrimSpace(e.HTTPStatusError.Body))
+}
+
+// Unwrap exposes the shared HTTP status error for generic classification.
+func (e *UpstreamHTTPError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.HTTPStatusError
+}
+
+// IsUpstreamStatusError reports whether err wraps an upstream HTTP error with
+// the specified status code.
+func IsUpstreamStatusError(err error, statusCode int) bool {
+	return httputil.IsHTTPStatusError(err, statusCode)
+}
+
 func (s *Service) postJSON(ctx context.Context, url, userID string, body any) ([]byte, error) {
 	if s == nil || s.httpClient == nil {
 		return nil, fmt.Errorf("http client not configured")
@@ -42,18 +74,12 @@ func (s *Service) postJSON(ctx context.Context, url, userID string, body any) ([
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
+		statusErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, req, 32<<10)
+		httpErr := &UpstreamHTTPError{HTTPStatusError: statusErr}
 		if readErr != nil {
-			return nil, fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+			return nil, httputil.WrapReadBodyError(httpErr, readErr)
 		}
-		msg := strings.TrimSpace(string(body))
-		if truncated {
-			msg += "...(truncated)"
-		}
-		if msg == "" {
-			msg = resp.Status
-		}
-		return nil, fmt.Errorf("request failed: %s", msg)
+		return nil, httpErr
 	}
 
 	respBody, err := httputil.ReadAllStrict(resp.Body, defaultHTTPBodyLimit)

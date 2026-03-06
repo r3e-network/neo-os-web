@@ -57,6 +57,69 @@ func TestNew(t *testing.T) {
 	})
 }
 
+func TestShouldAutoStartSimulation(t *testing.T) {
+	t.Run("config flag has priority", func(t *testing.T) {
+		t.Setenv("SIMULATION_ENABLED", "")
+		if !shouldAutoStartSimulation(true) {
+			t.Fatal("shouldAutoStartSimulation(true) = false, want true")
+		}
+	})
+
+	t.Run("disabled when no config and env empty", func(t *testing.T) {
+		t.Setenv("SIMULATION_ENABLED", "")
+		if shouldAutoStartSimulation(false) {
+			t.Fatal("shouldAutoStartSimulation(false) = true, want false")
+		}
+	})
+
+	for _, raw := range []string{"true", "TRUE", "1", "yes", "on", " true "} {
+		t.Run("env truthy "+raw, func(t *testing.T) {
+			t.Setenv("SIMULATION_ENABLED", raw)
+			if !shouldAutoStartSimulation(false) {
+				t.Fatalf("shouldAutoStartSimulation(false) with %q = false, want true", raw)
+			}
+		})
+	}
+}
+
+func TestLoadPositiveEnvInt(t *testing.T) {
+	t.Run("unset", func(t *testing.T) {
+		t.Setenv("SIMULATION_WORKERS_PER_APP", "")
+		got, err := loadPositiveEnvInt("SIMULATION_WORKERS_PER_APP")
+		if err != nil {
+			t.Fatalf("loadPositiveEnvInt() error = %v, want nil", err)
+		}
+		if got != 0 {
+			t.Fatalf("loadPositiveEnvInt() = %d, want 0", got)
+		}
+	})
+
+	t.Run("valid", func(t *testing.T) {
+		t.Setenv("SIMULATION_WORKERS_PER_APP", "3")
+		got, err := loadPositiveEnvInt("SIMULATION_WORKERS_PER_APP")
+		if err != nil {
+			t.Fatalf("loadPositiveEnvInt() error = %v, want nil", err)
+		}
+		if got != 3 {
+			t.Fatalf("loadPositiveEnvInt() = %d, want 3", got)
+		}
+	})
+
+	t.Run("invalid number", func(t *testing.T) {
+		t.Setenv("SIMULATION_WORKERS_PER_APP", "abc")
+		if _, err := loadPositiveEnvInt("SIMULATION_WORKERS_PER_APP"); err == nil {
+			t.Fatal("loadPositiveEnvInt() error = nil, want non-nil")
+		}
+	})
+
+	t.Run("non-positive", func(t *testing.T) {
+		t.Setenv("SIMULATION_WORKERS_PER_APP", "0")
+		if _, err := loadPositiveEnvInt("SIMULATION_WORKERS_PER_APP"); err == nil {
+			t.Fatal("loadPositiveEnvInt() error = nil, want non-nil")
+		}
+	})
+}
+
 // TestRandomInterval tests random interval generation.
 func TestRandomInterval(t *testing.T) {
 	s := &Service{

@@ -61,15 +61,12 @@ func NewChainlinkClient(rpcURL string) (*ChainlinkClient, error) {
 		return nil, fmt.Errorf("invalid arbitrum rpc url: %w", err)
 	}
 
-	transport := httputil.DefaultTransportWithMinTLS12()
+	client := httputil.CopyHTTPClientWithTimeoutNoRedirect(nil, 15*time.Second, false)
 
 	return &ChainlinkClient{
 		rpcURL: normalizedURL,
-		client: &http.Client{
-			Timeout:   15 * time.Second,
-			Transport: transport,
-		},
-		feeds: ChainlinkFeeds,
+		client: client,
+		feeds:  ChainlinkFeeds,
 	}, nil
 }
 
@@ -146,15 +143,11 @@ func (c *ChainlinkClient) GetPrice(ctx context.Context, feedID string) (priceFlo
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
+		httpErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, httpReq, 32<<10)
 		if readErr != nil {
-			return 0, 0, fmt.Errorf("read response: %w", readErr)
+			return 0, 0, httputil.WrapReadBodyError(httpErr, readErr)
 		}
-		msg := strings.TrimSpace(string(respBody))
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return 0, 0, fmt.Errorf("rpc http error %d: %s", resp.StatusCode, msg)
+		return 0, 0, httpErr
 	}
 
 	body, err := httputil.ReadAllStrict(resp.Body, 1<<20)

@@ -4,18 +4,35 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"math/big"
 	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
+}
+
+type failingReadCloser struct {
+	err error
+}
+
+func (r failingReadCloser) Read(_ []byte) (int, error) {
+	return 0, r.err
+}
+
+func (r failingReadCloser) Close() error {
+	return nil
 }
 
 func newResponse(payload []byte) *http.Response {
@@ -94,6 +111,92 @@ func TestClientCall(t *testing.T) {
 	json.Unmarshal(result, &count)
 	if count != 12345 {
 		t.Errorf("Expected block count 12345, got %d", count)
+	}
+}
+
+func TestClientCallReturnsTypedHTTPError(t *testing.T) {
+	client, err := NewClient(Config{RPCURL: "http://example"})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	client.httpClient.Transport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusBadGateway,
+			Status:     "502 Bad Gateway",
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader("upstream unavailable")),
+		}, nil
+	})
+
+	_, err = client.Call(context.Background(), "getblockcount", nil)
+	if err == nil {
+		t.Fatal("Call() expected error")
+	}
+
+	var httpErr *RPCHTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *RPCHTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusBadGateway {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusBadGateway)
+	}
+	if httpErr.Method != http.MethodPost {
+		t.Fatalf("method = %q, want %q", httpErr.Method, http.MethodPost)
+	}
+	if httpErr.URL != "http://example" {
+		t.Fatalf("url = %q, want %q", httpErr.URL, "http://example")
+	}
+	if !strings.Contains(httpErr.Body, "upstream unavailable") {
+		t.Fatalf("body = %q, want to contain upstream unavailable", httpErr.Body)
+	}
+	if !IsRPCHTTPStatusError(err, http.StatusBadGateway) {
+		t.Fatal("IsRPCHTTPStatusError() should match 502")
+	}
+	if IsRPCHTTPStatusError(err, http.StatusNotFound) {
+		t.Fatal("IsRPCHTTPStatusError() should not match wrong status")
+	}
+	var sharedErr *httputil.HTTPStatusError
+	if !errors.As(err, &sharedErr) {
+		t.Fatalf("expected shared *httputil.HTTPStatusError, got %T", err)
+	}
+	if !httputil.IsHTTPStatusError(err, http.StatusBadGateway) {
+		t.Fatal("shared IsHTTPStatusError() should match 502")
+	}
+}
+
+func TestClientCallReadBodyFailureStillReturnsTypedHTTPError(t *testing.T) {
+	client, err := NewClient(Config{RPCURL: "http://example"})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	client.httpClient.Transport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusBadGateway,
+			Status:     "502 Bad Gateway",
+			Header:     make(http.Header),
+			Body:       failingReadCloser{err: errors.New("boom")},
+		}, nil
+	})
+
+	_, err = client.Call(context.Background(), "getblockcount", nil)
+	if err == nil {
+		t.Fatal("Call() expected error")
+	}
+
+	var httpErr *RPCHTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *RPCHTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusBadGateway {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusBadGateway)
+	}
+	if !httputil.IsHTTPStatusError(err, http.StatusBadGateway) {
+		t.Fatal("shared IsHTTPStatusError() should match 502")
+	}
+	if !strings.Contains(err.Error(), "failed to read body") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -473,6 +576,50 @@ func TestClientCallRPCError(t *testing.T) {
 	_, err := client.Call(context.Background(), "getrawtransaction", []interface{}{"invalid"})
 	if err == nil {
 		t.Error("expected error for RPC error response")
+	}
+}
+
+func TestNewClientWithCustomHTTPClientRedirectDoesNotFollow(t *testing.T) {
+	var redirectedHits int32
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&redirectedHits, 1)
+		resp := RPCResponse{JSONRPC: "2.0", ID: 1, Result: json.RawMessage(`12345`)}
+		payload, _ := json.Marshal(resp)
+		_, _ = w.Write(payload)
+	}))
+	defer target.Close()
+
+	redirector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer redirector.Close()
+
+	baseClient := &http.Client{}
+	client, err := NewClient(Config{
+		RPCURL:     redirector.URL,
+		HTTPClient: baseClient,
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+	if baseClient.CheckRedirect != nil {
+		t.Fatal("NewClient() should not mutate caller-provided HTTP client")
+	}
+
+	_, err = client.Call(context.Background(), "getblockcount", nil)
+	if err == nil {
+		t.Fatal("Call() should return error for redirect status")
+	}
+
+	var httpErr *RPCHTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *RPCHTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusFound {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusFound)
+	}
+	if hits := atomic.LoadInt32(&redirectedHits); hits != 0 {
+		t.Fatalf("redirect target should not be called, got %d hit(s)", hits)
 	}
 }
 

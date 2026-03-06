@@ -76,20 +76,15 @@ func New(cfg Config) (*Service, error) {
 		BaseService:    base,
 		secretProvider: cfg.SecretProvider,
 		httpClient: func() *http.Client {
-			client := &http.Client{Timeout: timeout}
+			client := httputil.CopyHTTPClientWithTimeoutNoRedirect(nil, timeout, false)
 			if cfg.Nitro != nil {
-				client = httputil.CopyHTTPClientWithTimeout(cfg.Nitro.ExternalHTTPClient(), timeout, true)
+				client = httputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.Nitro.ExternalHTTPClient(), timeout, true)
 			}
 			// Layer SSRF-safe transport: resolve DNS up front and reject private IPs.
 			if cfg.Transport != nil {
 				client.Transport = cfg.Transport
 			} else {
 				client.Transport = httputil.NewSafeTransport()
-			}
-			// Disable automatic redirects so the URL allowlist cannot be
-			// bypassed via a redirect chain to a non-allowlisted host.
-			client.CheckRedirect = func(*http.Request, []*http.Request) error {
-				return http.ErrUseLastResponse
 			}
 			return client
 		}(),

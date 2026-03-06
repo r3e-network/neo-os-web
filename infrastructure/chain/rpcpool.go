@@ -3,6 +3,7 @@ package chain
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -97,16 +98,7 @@ func NewRPCPool(cfg *RPCPoolConfig) (*RPCPool, error) {
 		}
 	}
 
-	client := cfg.HTTPClient
-	if client == nil {
-		transport := httputil.DefaultTransportWithMinTLS12()
-		client = &http.Client{
-			Timeout:   cfg.HealthCheckTimeout,
-			Transport: transport,
-		}
-	} else {
-		client = httputil.CopyHTTPClientWithTimeout(client, cfg.HealthCheckTimeout, false)
-	}
+	client := httputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.HTTPClient, cfg.HealthCheckTimeout, false)
 
 	return &RPCPool{
 		endpoints: endpoints,
@@ -323,11 +315,40 @@ func (p *RPCPool) checkEndpoint(ctx context.Context, ep *RPCEndpoint) {
 		return
 	}
 
+	body, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 64<<10)
+	if readErr != nil || truncated {
+		p.MarkUnhealthy(ep.URL)
+		return
+	}
+
+	if !isValidRPCHealthResponse(body) {
+		p.MarkUnhealthy(ep.URL)
+		return
+	}
+
 	p.MarkHealthy(ep.URL, latency)
 
 	p.mu.Lock()
 	ep.LastCheck = time.Now()
 	p.mu.Unlock()
+}
+
+func isValidRPCHealthResponse(body []byte) bool {
+	var payload struct {
+		JSONRPC string          `json:"jsonrpc"`
+		Result  json.RawMessage `json:"result"`
+		Error   json.RawMessage `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return false
+	}
+
+	if len(payload.Error) > 0 && strings.TrimSpace(string(payload.Error)) != "null" {
+		return false
+	}
+
+	return len(payload.Result) > 0 && strings.TrimSpace(string(payload.Result)) != "null"
 }
 
 // =============================================================================

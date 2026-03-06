@@ -8,8 +8,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
@@ -23,6 +26,11 @@ const (
 type Client struct {
 	url    string
 	client *http.Client
+}
+
+type contractParameter struct {
+	Type  string      `json:"type"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 // NewClient creates a new Fairy client.
@@ -69,15 +77,14 @@ func (c *Client) call(method string, params ...interface{}) (*chain.RPCResponse,
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
+		statusErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, httpReq, 32<<10)
+		httpErr := &chain.RPCHTTPError{
+			HTTPStatusError: statusErr,
+		}
 		if readErr != nil {
-			return nil, fmt.Errorf("read response: %w", readErr)
+			return nil, httputil.WrapReadBodyError(httpErr, readErr)
 		}
-		msg := string(respBody)
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return nil, fmt.Errorf("rpc http error %d: %s", resp.StatusCode, msg)
+		return nil, httpErr
 	}
 
 	respBody, err := httputil.ReadAllStrict(resp.Body, 8<<20)
@@ -95,6 +102,88 @@ func (c *Client) call(method string, params ...interface{}) (*chain.RPCResponse,
 	}
 
 	return &rpcResp, nil
+}
+
+func normalizeHash160(value string) (string, bool) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", false
+	}
+	if strings.HasPrefix(trimmed, "0x") || strings.HasPrefix(trimmed, "0X") {
+		trimmed = trimmed[2:]
+	}
+	if len(trimmed) != 40 {
+		return "", false
+	}
+	for _, ch := range trimmed {
+		if (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F') {
+			continue
+		}
+		return "", false
+	}
+	return strings.ToLower(trimmed), true
+}
+
+func encodeContractArgument(arg interface{}) interface{} {
+	switch value := arg.(type) {
+	case nil:
+		return contractParameter{Type: "Any"}
+	case contractParameter:
+		return value
+	case map[string]interface{}:
+		if _, ok := value["type"]; ok {
+			return value
+		}
+		return value
+	case bool:
+		return contractParameter{Type: "Boolean", Value: value}
+	case string:
+		if hash160, ok := normalizeHash160(value); ok {
+			return contractParameter{Type: "Hash160", Value: hash160}
+		}
+		return contractParameter{Type: "String", Value: value}
+	case []byte:
+		return contractParameter{Type: "ByteArray", Value: base64.StdEncoding.EncodeToString(value)}
+	case int:
+		return contractParameter{Type: "Integer", Value: strconv.FormatInt(int64(value), 10)}
+	case int8:
+		return contractParameter{Type: "Integer", Value: strconv.FormatInt(int64(value), 10)}
+	case int16:
+		return contractParameter{Type: "Integer", Value: strconv.FormatInt(int64(value), 10)}
+	case int32:
+		return contractParameter{Type: "Integer", Value: strconv.FormatInt(int64(value), 10)}
+	case int64:
+		return contractParameter{Type: "Integer", Value: strconv.FormatInt(value, 10)}
+	case uint:
+		return contractParameter{Type: "Integer", Value: strconv.FormatUint(uint64(value), 10)}
+	case uint8:
+		return contractParameter{Type: "Integer", Value: strconv.FormatUint(uint64(value), 10)}
+	case uint16:
+		return contractParameter{Type: "Integer", Value: strconv.FormatUint(uint64(value), 10)}
+	case uint32:
+		return contractParameter{Type: "Integer", Value: strconv.FormatUint(uint64(value), 10)}
+	case uint64:
+		return contractParameter{Type: "Integer", Value: strconv.FormatUint(value, 10)}
+	case []interface{}:
+		encoded := make([]interface{}, len(value))
+		for i := range value {
+			encoded[i] = encodeContractArgument(value[i])
+		}
+		return contractParameter{Type: "Array", Value: encoded}
+	default:
+		return value
+	}
+}
+
+func encodeContractArguments(args []interface{}) []interface{} {
+	if args == nil {
+		return []interface{}{}
+	}
+	encoded := make([]interface{}, len(args))
+	for i := range args {
+		encoded[i] = encodeContractArgument(args[i])
+	}
+	return encoded
 }
 
 // HelloFairy tests connectivity to Fairy.
@@ -124,48 +213,56 @@ func (c *Client) NewSession() (string, error) {
 	return sessionID, nil
 }
 
-// SetupSessionWithGas creates a session and funds the wallet with GAS.
-// Reads NEO_TESTNET_WIF from environment.
+func resolveSessionWIF() (string, error) {
+	if wif := strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF")); wif != "" {
+		return wif, nil
+	}
+
+	privateKey, err := keys.NewPrivateKey()
+	if err != nil {
+		return "", fmt.Errorf("generate fairy session key: %w", err)
+	}
+	return privateKey.WIF(), nil
+}
+
+// SetupSessionWithGas creates a session, assigns a wallet, and funds it with GAS.
+// If `NEO_TESTNET_WIF` is set it is reused, otherwise an ephemeral key is generated.
 func (c *Client) SetupSessionWithGas(gasAmount int64) (sessionID, accountHash string, err error) {
 	sessionID = fmt.Sprintf("test-%d", time.Now().UnixNano())
 
-	// Create session
+	// Create session.
 	_, err = c.call("newsnapshotsfromcurrentsystem", sessionID)
 	if err != nil {
 		return "", "", fmt.Errorf("create session: %w", err)
 	}
 
-	// Get WIF from environment
-	wif := os.Getenv("NEO_TESTNET_WIF")
-	if wif == "" {
-		return "", "", fmt.Errorf("NEO_TESTNET_WIF environment variable not set")
+	wif, err := resolveSessionWIF()
+	if err != nil {
+		return "", "", err
 	}
 
-	// Set session wallet with testnet account WIF
+	// Set session wallet.
 	resp, err := c.call("setsessionfairywalletwithwif", sessionID, wif)
 	if err != nil {
 		return "", "", fmt.Errorf("set wallet: %w", err)
 	}
 
-	// Parse response to get account address
 	var walletInfo map[string]interface{}
 	if unmarshalErr := json.Unmarshal(resp.Result, &walletInfo); unmarshalErr != nil {
 		return "", "", fmt.Errorf("parse wallet info: %w", unmarshalErr)
 	}
 
-	// Get the account script hash from response
-	for _, v := range walletInfo {
-		if addr, ok := v.(string); ok {
-			accountHash = addr
+	for _, value := range walletInfo {
+		address, ok := value.(string)
+		if ok && strings.TrimSpace(address) != "" {
+			accountHash = address
 			break
 		}
 	}
-
 	if accountHash == "" {
 		return "", "", fmt.Errorf("could not get account hash from wallet")
 	}
 
-	// Set GAS balance for the account
 	_, err = c.call("setgasbalance", sessionID, accountHash, fmt.Sprintf("%d", gasAmount))
 	if err != nil {
 		return "", "", fmt.Errorf("set gas balance: %w", err)
@@ -232,15 +329,12 @@ func (c *Client) VirtualDeploy(sessionID, nefPath, manifestPath string) (*Virtua
 
 // InvokeFunctionWithSession invokes a contract method in a session.
 func (c *Client) InvokeFunctionWithSession(sessionID string, writeSnapshot bool, contractHash, method string, args []interface{}) (*chain.InvokeResult, error) {
-	if args == nil {
-		args = []interface{}{}
-	}
 	params := []interface{}{
 		sessionID,
 		writeSnapshot,
 		contractHash,
 		method,
-		args,
+		encodeContractArguments(args),
 	}
 
 	resp, err := c.call("invokefunctionwithsession", params...) // lowercase required

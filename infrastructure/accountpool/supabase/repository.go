@@ -108,12 +108,15 @@ func (r *Repository) ListAvailable(ctx context.Context, limit int) ([]Account, e
 		limit = 10
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		IsFalse("is_retiring").
 		IsNull("locked_by").
 		OrderAsc("last_used_at").
 		Limit(limit).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build available accounts query: %w", err)
+	}
 
 	return database.GenericListWithQuery[Account](r.base, ctx, tableName, query)
 }
@@ -128,10 +131,13 @@ func (r *Repository) ListByLocker(ctx context.Context, lockerID string) ([]Accou
 
 // ListLocked returns all accounts that are currently locked (locked_by is not null/empty).
 func (r *Repository) ListLocked(ctx context.Context) ([]Account, error) {
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		IsNotNull("locked_by").
 		Neq("locked_by", "").
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build locked accounts query: %w", err)
+	}
 
 	return database.GenericListWithQuery[Account](r.base, ctx, tableName, query)
 }
@@ -148,11 +154,14 @@ func (r *Repository) TryLockAccount(ctx context.Context, accountID, serviceID st
 		"locked_at": lockedAt,
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("id", accountID).
 		IsNull("locked_by").
 		IsFalse("is_retiring").
 		Build()
+	if err != nil {
+		return false, fmt.Errorf("build lock account query: %w", err)
+	}
 
 	data, err := r.base.Request(ctx, http.MethodPatch, tableName, update, query)
 	if err != nil {
@@ -272,11 +281,14 @@ func (r *Repository) ListLowBalanceAccounts(ctx context.Context, tokenType strin
 	}
 
 	// Query balances table directly for low-balance rows
-	balQuery := database.NewQuery().
+	balQuery, err := database.NewQuery().
 		Eq("token_type", tokenType).
 		Lt("amount", fmt.Sprintf("%d", maxBalance)).
 		Limit(limit).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build low balance query: %w", err)
+	}
 
 	balances, err := database.GenericListWithQuery[AccountBalance](r.base, ctx, balancesTableName, balQuery)
 	if err != nil {
@@ -294,10 +306,13 @@ func (r *Repository) ListLowBalanceAccounts(ctx context.Context, tokenType strin
 	}
 
 	// Fetch only those accounts, excluding retiring ones
-	accQuery := database.NewQuery().
+	accQuery, err := database.NewQuery().
 		In("id", accountIDs).
 		IsFalse("is_retiring").
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build low balance accounts query: %w", err)
+	}
 
 	accounts, err := database.GenericListWithQuery[Account](r.base, ctx, tableName, accQuery)
 	if err != nil {
@@ -316,13 +331,16 @@ func (r *Repository) ListRotationCandidatesWithBalances(ctx context.Context, min
 
 	cutoff := time.Now().Add(-minAge).Format(time.RFC3339)
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		IsFalse("is_retiring").
 		IsNull("locked_by").
 		Lte("created_at", cutoff).
 		OrderAsc("created_at").
 		Limit(limit).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build rotation candidates query: %w", err)
+	}
 
 	accounts, err := database.GenericListWithQuery[Account](r.base, ctx, tableName, query)
 	if err != nil {
@@ -410,10 +428,13 @@ func (r *Repository) GetBalance(ctx context.Context, accountID, tokenType string
 		return nil, fmt.Errorf("account_id and token_type are required")
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("account_id", accountID).
 		Eq("token_type", tokenType).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build balance query: %w", err)
+	}
 
 	balances, err := database.GenericListWithQuery[AccountBalance](r.base, ctx, balancesTableName, query)
 	if err != nil {
@@ -443,9 +464,12 @@ func (r *Repository) GetBalancesForAccounts(ctx context.Context, accountIDs []st
 		return []AccountBalance{}, nil
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		In("account_id", accountIDs).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build balances for accounts query: %w", err)
+	}
 
 	return database.GenericListWithQuery[AccountBalance](r.base, ctx, balancesTableName, query)
 }
@@ -456,9 +480,12 @@ func (r *Repository) DeleteBalances(ctx context.Context, accountID string) error
 		return fmt.Errorf("account_id is required")
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("account_id", accountID).
 		Build()
+	if err != nil {
+		return fmt.Errorf("build delete balances query: %w", err)
+	}
 	return database.GenericDeleteWithQuery(r.base, ctx, balancesTableName, query)
 }
 
@@ -480,9 +507,12 @@ func (r *Repository) AggregateTokenStats(ctx context.Context, tokenType string) 
 	}
 
 	// Query balances table directly filtered by token_type
-	balQuery := database.NewQuery().
+	balQuery, err := database.NewQuery().
 		Eq("token_type", tokenType).
 		Build()
+	if err != nil {
+		return stats, fmt.Errorf("build token stats balance query: %w", err)
+	}
 
 	balances, err := database.GenericListWithQuery[AccountBalance](r.base, ctx, balancesTableName, balQuery)
 	if err != nil {
@@ -506,9 +536,12 @@ func (r *Repository) AggregateTokenStats(ctx context.Context, tokenType string) 
 	}
 
 	// Fetch only accounts that have balances
-	accQuery := database.NewQuery().
+	accQuery, err := database.NewQuery().
 		In("id", accountIDs).
 		Build()
+	if err != nil {
+		return stats, fmt.Errorf("build token stats accounts query: %w", err)
+	}
 
 	accounts, err := database.GenericListWithQuery[Account](r.base, ctx, tableName, accQuery)
 	if err != nil {

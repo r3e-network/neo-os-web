@@ -5,10 +5,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1192,6 +1194,81 @@ func TestDispatchActionWebhookError(t *testing.T) {
 	}
 }
 
+func TestDispatchActionWebhookErrorReturnsTypedStatus(t *testing.T) {
+	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte("upstream unavailable"))
+	}))
+	defer server.Close()
+
+	m, _ := nitro.New(nitro.Config{NitroType: "neoflow"})
+	svc, _ := New(Config{Nitro: m})
+
+	action := json.RawMessage(fmt.Sprintf(`{"type":"webhook","url":"%s"}`, server.URL))
+	err := svc.dispatchAction(context.Background(), action)
+	if err == nil {
+		t.Fatal("dispatchAction() should return error for 502 status")
+	}
+
+	var httpErr *webhookHTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *webhookHTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusBadGateway {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusBadGateway)
+	}
+	if !strings.Contains(httpErr.Body, "upstream unavailable") {
+		t.Fatalf("body = %q, want to contain upstream unavailable", httpErr.Body)
+	}
+	if !isWebhookStatusError(err, http.StatusBadGateway) {
+		t.Fatal("isWebhookStatusError() should match 502")
+	}
+	if isWebhookStatusError(err, http.StatusInternalServerError) {
+		t.Fatal("isWebhookStatusError() should not match wrong status")
+	}
+	var sharedErr *httputil.HTTPStatusError
+	if !errors.As(err, &sharedErr) {
+		t.Fatalf("expected shared *httputil.HTTPStatusError, got %T", err)
+	}
+	if !httputil.IsHTTPStatusError(err, http.StatusBadGateway) {
+		t.Fatal("shared IsHTTPStatusError() should match 502")
+	}
+}
+
+func TestDispatchActionWebhookRedirectDoesNotFollow(t *testing.T) {
+	var redirectedHits int32
+	target := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&redirectedHits, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer target.Close()
+
+	redirector := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer redirector.Close()
+
+	m, _ := nitro.New(nitro.Config{NitroType: "neoflow"})
+	svc, _ := New(Config{Nitro: m})
+
+	action := json.RawMessage(fmt.Sprintf(`{"type":"webhook","url":"%s"}`, redirector.URL))
+	err := svc.dispatchAction(context.Background(), action)
+	if err == nil {
+		t.Fatal("dispatchAction() should return error for redirect status")
+	}
+
+	var httpErr *webhookHTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *webhookHTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusFound {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusFound)
+	}
+	if hits := atomic.LoadInt32(&redirectedHits); hits != 0 {
+		t.Fatalf("redirect target should not be called, got %d hit(s)", hits)
+	}
+}
+
 func TestAllowPrivateWebhookTargets(t *testing.T) {
 	t.Setenv("NEOFLOW_WEBHOOK_ALLOW_PRIVATE_NETWORKS", "")
 	if allowPrivateWebhookTargets() {
@@ -1259,6 +1336,78 @@ func TestExecuteTriggerWithMock(t *testing.T) {
 	}
 	if execs[0].Success {
 		t.Error("execution should fail for unknown action type")
+	}
+}
+
+func TestExecuteTriggerWebhook4xxClassifiesAsRequestRejected(t *testing.T) {
+	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte("invalid webhook payload"))
+	}))
+	defer server.Close()
+
+	m, _ := nitro.New(nitro.Config{NitroType: "neoflow"})
+	mockRepo := newMockNeoFlowRepo()
+
+	trigger := &neoflowsupabase.Trigger{
+		ID:          "trigger-4xx",
+		UserID:      "user-123",
+		Name:        "Webhook Trigger 4xx",
+		TriggerType: "cron",
+		Schedule:    "0 * * * *",
+		Enabled:     true,
+		Action:      json.RawMessage(fmt.Sprintf(`{"type":"webhook","url":"%s"}`, server.URL)),
+	}
+	mockRepo.triggers[trigger.ID] = trigger
+
+	svc, _ := New(Config{Nitro: m, NeoFlowRepo: mockRepo})
+	svc.executeTrigger(context.Background(), trigger)
+
+	execs := mockRepo.executions[trigger.ID]
+	if len(execs) != 1 {
+		t.Fatalf("expected 1 execution, got %d", len(execs))
+	}
+	if execs[0].Success {
+		t.Fatal("execution should fail for webhook 4xx")
+	}
+	if !strings.Contains(execs[0].Error, "request rejected") {
+		t.Fatalf("error = %q, want to contain request rejected", execs[0].Error)
+	}
+}
+
+func TestExecuteTriggerWebhook5xxClassifiesAsServiceUnavailable(t *testing.T) {
+	server := newHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte("upstream unavailable"))
+	}))
+	defer server.Close()
+
+	m, _ := nitro.New(nitro.Config{NitroType: "neoflow"})
+	mockRepo := newMockNeoFlowRepo()
+
+	trigger := &neoflowsupabase.Trigger{
+		ID:          "trigger-5xx",
+		UserID:      "user-123",
+		Name:        "Webhook Trigger 5xx",
+		TriggerType: "cron",
+		Schedule:    "0 * * * *",
+		Enabled:     true,
+		Action:      json.RawMessage(fmt.Sprintf(`{"type":"webhook","url":"%s"}`, server.URL)),
+	}
+	mockRepo.triggers[trigger.ID] = trigger
+
+	svc, _ := New(Config{Nitro: m, NeoFlowRepo: mockRepo})
+	svc.executeTrigger(context.Background(), trigger)
+
+	execs := mockRepo.executions[trigger.ID]
+	if len(execs) != 1 {
+		t.Fatalf("expected 1 execution, got %d", len(execs))
+	}
+	if execs[0].Success {
+		t.Fatal("execution should fail for webhook 5xx")
+	}
+	if !strings.Contains(execs[0].Error, "service unavailable") {
+		t.Fatalf("error = %q, want to contain service unavailable", execs[0].Error)
 	}
 }
 

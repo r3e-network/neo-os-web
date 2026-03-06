@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -88,6 +89,10 @@ func (r *Repository) GetOrCreateGasBankAccount(ctx context.Context, userID strin
 	// Use upsert with on_conflict=user_id to handle race conditions
 	data, err := r.client.request(ctx, http.MethodPost, "gasbank_accounts", newAccount, "on_conflict=user_id")
 	if err != nil {
+		if !isConflictCreateError(err) {
+			return nil, fmt.Errorf("%w: create gasbank account: %v", ErrDatabaseError, err)
+		}
+
 		// If creation failed due to conflict, try to get the existing account
 		account, getErr := r.GetGasBankAccount(ctx, userID)
 		if getErr == nil {
@@ -106,6 +111,21 @@ func (r *Repository) GetOrCreateGasBankAccount(ctx context.Context, userID strin
 
 	// Fallback: try to get the account again
 	return r.GetGasBankAccount(ctx, userID)
+}
+
+func isConflictCreateError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if IsUniqueViolationError(err) {
+		return true
+	}
+
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return apiErr.StatusCode == http.StatusConflict
 }
 
 // UpdateGasBankBalance updates a gas bank account balance.
