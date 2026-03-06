@@ -52,6 +52,7 @@ namespace NeoMiniAppPlatform.Contracts
             public bool Claimed;
         }
 
+#pragma warning disable CS8618
         [DisplayName("MarketDeployed")]
         public static event Action<UInt160, string> OnMarketDeployed;
 
@@ -63,6 +64,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("WinningsClaimed")]
         public static event Action<UInt160, BigInteger> OnWinningsClaimed;
+#pragma warning restore CS8618
 
         public static void _deploy(object data, bool update)
         {
@@ -71,10 +73,12 @@ namespace NeoMiniAppPlatform.Contracts
             // Initialize base template config
             InitializeTemplate(data);
 
-            object[] initArgs = data as object[];
-            if (initArgs != null && initArgs.Length > 1)
+            if (data == null) return;
+
+            object[] initArgs = (object[])data;
+            if (initArgs.Length > 1 && initArgs[1] != null)
             {
-                ByteString marketParamsRaw = initArgs[1] as ByteString;
+                ByteString marketParamsRaw = (ByteString)initArgs[1];
                 if (marketParamsRaw != null && marketParamsRaw.Length > 0)
                 {
                     MarketParams paramsObj = (MarketParams)StdLib.Deserialize(marketParamsRaw);
@@ -109,14 +113,14 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static MarketState GetMarketState()
         {
-            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_MARKET_STATE);
-            if (raw == null || raw.Length == 0) return new MarketState();
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_MARKET_STATE) ?? (ByteString)"";
+            if (raw.Length == 0) return new MarketState();
             return (MarketState)StdLib.Deserialize(raw);
         }
 
         public static void PlaceBet(string option, BigInteger amount)
         {
-            UInt160 caller = ((Transaction)Runtime.ScriptContainer).Sender;
+            UInt160 caller = Runtime.Transaction.Sender;
             ExecutionEngine.Assert(Runtime.CheckWitness(caller), "Unauthorized");
 
             MarketParams config = GetMarketParams();
@@ -138,7 +142,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(validOption, "Invalid option");
 
             // Transfer GAS (Assuming GAS for simplicity, or we can use generic token transfer)
-            bool success = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All, new object[] { caller, Runtime.ExecutingScriptHash, amount, null });
+            bool success = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All, new object[] { caller, Runtime.ExecutingScriptHash, amount, null! });
             ExecutionEngine.Assert(success, "Transfer failed");
 
             // Deduct fee
@@ -194,16 +198,16 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void ClaimWinnings()
         {
-            UInt160 caller = ((Transaction)Runtime.ScriptContainer).Sender;
+            UInt160 caller = Runtime.Transaction.Sender;
             ExecutionEngine.Assert(Runtime.CheckWitness(caller), "Unauthorized");
 
             MarketState state = GetMarketState();
             ExecutionEngine.Assert(state.IsResolved, "Market not resolved");
 
-            ByteString betRaw = GetPlayerData(caller, PREFIX_BETS);
-            ExecutionEngine.Assert(betRaw != null && betRaw.Length > 0, "No bet found");
+            ByteString betRaw = GetPlayerData(caller, PREFIX_BETS) ?? (ByteString)"";
+            ExecutionEngine.Assert(betRaw.Length > 0, "No bet found");
 
-            BetRecord record = (BetRecord)StdLib.Deserialize(betRaw);
+            BetRecord record = (BetRecord)StdLib.Deserialize(betRaw!);
             ExecutionEngine.Assert(!record.Claimed, "Already claimed");
             ExecutionEngine.Assert(record.Option == state.WinningOption, "Did not win");
 
@@ -215,7 +219,7 @@ namespace NeoMiniAppPlatform.Contracts
             record.Claimed = true;
             SetPlayerData(caller, PREFIX_BETS, StdLib.Serialize(record));
 
-            bool success = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All, new object[] { Runtime.ExecutingScriptHash, caller, reward, null });
+            bool success = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All, new object[] { Runtime.ExecutingScriptHash, caller, reward, null! });
             ExecutionEngine.Assert(success, "Transfer failed");
 
             OnWinningsClaimed(caller, reward);

@@ -3,6 +3,7 @@ using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
+using GameBetLimitsConfig = NeoMiniAppPlatform.Contracts.MiniAppGameComputeBase.GameBetLimitsConfig;
 
 namespace NeoMiniAppPlatform.Contracts
 {

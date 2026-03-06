@@ -91,8 +91,16 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ExecutionEngine.Assert(requestId != null && requestId.Length > 0, "requestId required");
             ExecutionEngine.Assert(url != null && url.Length > 0, "url required");
+            ExecutionEngine.Assert(requestId.Length <= 128, "requestId too long");
+            ExecutionEngine.Assert(url.Length <= 2048, "url too long");
+            ExecutionEngine.Assert((method ?? "").Length <= 16, "method too long");
+            ExecutionEngine.Assert((headers ?? "").Length <= 2048, "headers too long");
+            ExecutionEngine.Assert((body ?? "").Length <= 8192, "body too long");
+            ExecutionEngine.Assert((jsonPath ?? "").Length <= 256, "jsonPath too long");
 
             Transaction tx = Runtime.Transaction;
+            StorageMap map = RequestMap();
+            ExecutionEngine.Assert(map.Get(requestId) == null, "request already exists");
             
             // Store pending request
             OracleRequest req = new OracleRequest
@@ -105,7 +113,7 @@ namespace NeoMiniAppPlatform.Contracts
                 AttestationHash = (ByteString)""
             };
             
-            RequestMap().Put(requestId, StdLib.Serialize(req));
+            map.Put(requestId, StdLib.Serialize(req));
             
             // Emit event for off-chain TEE to pick up
             OnOracleRequested(tx.Sender, requestId, url, method, headers, body, jsonPath);

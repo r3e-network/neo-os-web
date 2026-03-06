@@ -46,17 +46,14 @@ resolve_tool() {
 NEOXP="$(resolve_tool "neoxp" "dotnet tool install -g Neo.Express")"
 NCCS="$(resolve_tool "nccs" "dotnet tool install -g Neo.Compiler.CSharp")"
 
-# Create directories
 mkdir -p "$WALLETS_DIR" "$CONFIG_DIR"
 
-# Initialize Neo Express if not exists
 NEOEXPRESS_CONFIG="$CONFIG_DIR/default.neo-express"
 if [ ! -f "$NEOEXPRESS_CONFIG" ]; then
     echo "Initializing Neo Express configuration..."
     "$NEOXP" create -o "$NEOEXPRESS_CONFIG" -f
 fi
 
-# Create wallets if not exist
 create_wallet() {
     local name=$1
 
@@ -76,18 +73,71 @@ create_wallet() {
     exit 1
 }
 
+get_balance() {
+    local wallet="$1"
+    local asset="$2"
+
+    "$NEOXP" show balances -i "$NEOEXPRESS_CONFIG" "$wallet" 2>/dev/null | awk -v asset="$asset" '
+        $1 == asset { in_asset = 1; next }
+        in_asset && $1 == "balance:" { print $2; exit }
+    '
+}
+
+balance_at_least() {
+    local current="$1"
+    local minimum="$2"
+    awk -v current="$current" -v minimum="$minimum" 'BEGIN { exit !((current + 0) >= (minimum + 0)) }'
+}
+
+ensure_balance() {
+    local wallet="$1"
+    local asset="$2"
+    local minimum="$3"
+    local quantity="$4"
+
+    local current="$(get_balance "$wallet" "$asset")"
+    if [ -n "$current" ] && balance_at_least "$current" "$minimum"; then
+        echo "$wallet already has ${current} ${asset}"
+        return 0
+    fi
+
+    echo "Funding $wallet with $quantity $asset from genesis..."
+    local out=""
+    if ! out=$("$NEOXP" transfer "$quantity" "$asset" genesis "$wallet" -i "$NEOEXPRESS_CONFIG" 2>&1); then
+        echo "Failed to fund $wallet with $quantity $asset from genesis:" >&2
+        echo "$out" >&2
+        return 1
+    fi
+
+    current="$(get_balance "$wallet" "$asset")"
+    if [ -n "$current" ] && balance_at_least "$current" "$minimum"; then
+        echo "$wallet funded successfully (${current} ${asset})"
+        return 0
+    fi
+
+    echo "Funding transaction for $wallet completed, but ${asset} balance is still below ${minimum}." >&2
+    return 1
+}
+
 create_wallet "owner"
 create_wallet "tee"
 create_wallet "user"
 
-# Fund wallets from genesis
 echo "Funding wallets from genesis..."
-"$NEOXP" transfer 1000 GAS genesis owner -i "$NEOEXPRESS_CONFIG" 2>/dev/null || true
-"$NEOXP" transfer 100 NEO genesis owner -i "$NEOEXPRESS_CONFIG" 2>/dev/null || true
-"$NEOXP" transfer 500 GAS genesis tee -i "$NEOEXPRESS_CONFIG" 2>/dev/null || true
-"$NEOXP" transfer 100 GAS genesis user -i "$NEOEXPRESS_CONFIG" 2>/dev/null || true
+funding_failed=0
+ensure_balance "owner" "GAS" 1000 1000 || funding_failed=1
+ensure_balance "owner" "NEO" 100 100 || funding_failed=1
+ensure_balance "tee" "GAS" 500 500 || funding_failed=1
+ensure_balance "user" "GAS" 100 100 || funding_failed=1
 
-# Build contracts
+if [ "$funding_failed" -ne 0 ]; then
+    echo >&2
+    echo "Neo Express wallet funding did not complete successfully." >&2
+    echo "This environment's neoxp build appears unable to spend fresh genesis funds reliably." >&2
+    echo "Contract deployment tests that depend on Neo Express will keep failing until funding is fixed." >&2
+    exit 1
+fi
+
 echo ""
 echo "Building contracts..."
 cd "$PROJECT_ROOT/contracts"

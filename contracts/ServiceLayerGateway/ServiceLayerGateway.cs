@@ -30,7 +30,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "On-chain service request router + callback dispatcher")]
-    [ContractPermission("*", "*")]
+    [ContractPermission("*", "onServiceCallback")]
     public class ServiceLayerGateway : SmartContract
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
@@ -44,6 +44,12 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_APP_REQUESTS = new byte[] { 0x12 };
         private static readonly byte[] PREFIX_APP_FULFILLED = new byte[] { 0x13 };
         private static readonly byte[] PREFIX_APP_USERS = new byte[] { 0x14 };
+
+        private const int MAX_APP_ID_LENGTH = 64;
+        private const int MAX_SERVICE_TYPE_LENGTH = 64;
+        private const int MAX_CALLBACK_METHOD_LENGTH = 64;
+        private const int MAX_PAYLOAD_LENGTH = 4096;
+        private const string CALLBACK_METHOD = "onServiceCallback";
 
         public struct ServiceRequest
         {
@@ -281,6 +287,16 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(serviceType != null && serviceType.Length > 0, "service type required");
             ExecutionEngine.Assert(callbackContract != null && callbackContract.IsValid, "callback contract required");
             ExecutionEngine.Assert(callbackMethod != null && callbackMethod.Length > 0, "callback method required");
+            ExecutionEngine.Assert(appId.Length <= MAX_APP_ID_LENGTH, "app id too long");
+            ExecutionEngine.Assert(serviceType.Length <= MAX_SERVICE_TYPE_LENGTH, "service type too long");
+            ExecutionEngine.Assert(callbackMethod.Length <= MAX_CALLBACK_METHOD_LENGTH, "callback method too long");
+            ExecutionEngine.Assert(callbackMethod == CALLBACK_METHOD, "unsupported callback method");
+            ExecutionEngine.Assert(payload == null || payload.Length <= MAX_PAYLOAD_LENGTH, "payload too large");
+            ExecutionEngine.Assert(IsAllowedCallback(callbackContract), "callback contract not allowed");
+
+            UInt160 requester = Runtime.Transaction.Sender;
+            ExecutionEngine.Assert(requester != null && requester.IsValid, "requester required");
+            ExecutionEngine.Assert(Runtime.CheckWitness(requester), "unauthorized requester");
 
             BigInteger requestId = NextRequestId();
             ServiceRequest req = new ServiceRequest
@@ -290,8 +306,8 @@ namespace NeoMiniAppPlatform.Contracts
                 ServiceType = serviceType,
                 Payload = payload ?? (ByteString)"",
                 CallbackContract = callbackContract,
-                CallbackMethod = callbackMethod,
-                Requester = Runtime.Transaction.Sender,
+                CallbackMethod = CALLBACK_METHOD,
+                Requester = requester,
                 Status = ServiceRequestStatus.Pending,
                 CreatedAt = Runtime.Time,
                 FulfilledAt = 0,
@@ -331,10 +347,24 @@ namespace NeoMiniAppPlatform.Contracts
             IncrementTotalFulfilled();
             IncrementAppFulfilled(req.AppId);
 
-            OnServiceFulfilled(requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
+            try
+            {
+                Contract.Call(req.CallbackContract, CALLBACK_METHOD, CallFlags.All,
+                    requestId, req.AppId, req.ServiceType, req.Success, req.Result, req.Error);
+            }
+            catch
+            {
+                // Do not leave request pending if callback execution reverts.
+                req.Status = ServiceRequestStatus.Failed;
+                req.Success = false;
+                if (req.Error == null || req.Error.Length == 0)
+                {
+                    req.Error = "callback execution failed";
+                }
+                RequestMap().Put(requestId.ToByteArray(), StdLib.Serialize(req));
+            }
 
-            Contract.Call(req.CallbackContract, req.CallbackMethod, CallFlags.All,
-                requestId, req.AppId, req.ServiceType, success, req.Result, req.Error);
+            OnServiceFulfilled(requestId, req.AppId, req.ServiceType, req.Success, req.Result, req.Error);
         }
 
         public static void Update(ByteString nefFile, string manifest)

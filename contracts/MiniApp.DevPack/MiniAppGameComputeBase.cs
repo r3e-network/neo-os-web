@@ -1,3 +1,4 @@
+#pragma warning disable CS8618
 using System.ComponentModel;
 using System.Numerics;
 using Neo;
@@ -87,7 +88,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static GameBetLimitsConfig GetGameBetLimits()
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_GAME_BET_LIMITS_CONFIG);
+            ByteString? data = GetStorageValue(PREFIX_GAME_BET_LIMITS_CONFIG);
             if (data == null)
             {
                 return new GameBetLimitsConfig
@@ -105,7 +106,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetGamePlayerDailyBet(UInt160 player)
         {
             byte[] key = Helper.Concat(PREFIX_GAME_PLAYER_DAILY_BET, (ByteString)player);
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = GetStorageValue(key);
             if (data == null) return 0;
 
             object[] stored = (object[])StdLib.Deserialize(data);
@@ -120,7 +121,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetGamePlayerLastBetTime(UInt160 player)
         {
             byte[] key = Helper.Concat(PREFIX_GAME_PLAYER_LAST_BET, (ByteString)player);
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = GetStorageValue(key);
             return data == null ? 0 : (BigInteger)data;
         }
 
@@ -128,7 +129,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetGamePlayerBetCount(UInt160 player)
         {
             byte[] key = Helper.Concat(PREFIX_GAME_PLAYER_BET_COUNT, (ByteString)player);
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = GetStorageValue(key);
             return data == null ? 0 : (BigInteger)data;
         }
 
@@ -225,8 +226,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         protected static ByteString GetGameRequestData(BigInteger requestId)
         {
-            return Storage.Get(Storage.CurrentContext,
+            ByteString? data = GetStorageValue(
                 Helper.Concat(PREFIX_GAME_REQUEST_TO_DATA, (ByteString)requestId.ToByteArray()));
+            return data!;
         }
 
         protected static void DeleteGameRequestData(BigInteger requestId)
@@ -280,13 +282,13 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateScriptHash(scriptName, scriptHash);
 
             // Get and delete operation data
-            ByteString data = GetGameRequestData(operationId);
-            ExecutionEngine.Assert(data != null, "operation not found");
+            ByteString? data = GetGameRequestData(operationId);
+            ByteString settledData = RequireByteString(data, "operation not found");
 
             DeleteGameRequestData(operationId);
             DeleteOperationSeed(operationId);
 
-            return data;
+            return settledData;
         }
 
         #endregion
