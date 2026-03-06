@@ -146,9 +146,13 @@ docker-clean: ## Remove all containers and volumes
 # NitroRun
 # =============================================================================
 
-nitrorun-install: ## Install NitroRun CLI
-	curl -fsSL https://github.com/edgelesssys/nitrorun/releases/latest/download/nitrorun-linux-amd64 -o /usr/local/bin/nitrorun
-	chmod +x /usr/local/bin/nitrorun
+nitrorun-install: ## Install NitroRun-compatible CLI (x86_64 only)
+	@arch="$$(uname -m)"; \
+	case "$$arch" in \
+	  x86_64|amd64) asset_url="https://github.com/edgelesssys/marblerun/releases/latest/download/marblerun-x86_64.AppImage" ;; \
+	  *) echo "Automatic NitroRun-compatible install is only supported on x86_64 hosts (detected: $$arch)."; exit 1 ;; \
+	esac; \
+	curl -fsSL "$$asset_url" -o /tmp/nitrorun && sudo install -m 0755 /tmp/nitrorun /usr/local/bin/nitrorun && rm -f /tmp/nitrorun
 
 nitrorun-manifest: ## Set NitroRun manifest
 	nitrorun manifest set manifests/manifest.json $(COORDINATOR_CLIENT_ADDR) $(NITRORUN_FLAGS)

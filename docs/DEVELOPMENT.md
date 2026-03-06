@@ -9,7 +9,7 @@ All local, CI, and Kubernetes workflows should use Nitro-compatible scripts and 
 - Go 1.24+
 - Docker + Docker Compose
 - `kubectl` (for Kubernetes workflows)
-- Optional: `nitrorun` CLI
+- No extra coordinator CLI is required for the local k3s dev stack; it uses a Kubernetes-native HTTP mesh.
 
 Install local tooling:
 

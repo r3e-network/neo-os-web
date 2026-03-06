@@ -274,9 +274,9 @@ preflight_checks() {
         fi
     fi
 
-    # Check if NitroRun is installed
-    if ! command -v nitrorun &> /dev/null; then
-        log_warn "nitrorun CLI not found. Some features may not work."
+    # NitroRun is optional in local dev. Keep warnings for non-dev deployments only.
+    if ! command -v nitrorun &> /dev/null && [ "$ENVIRONMENT" != "dev" ]; then
+        log_warn "nitrorun CLI not found. Production-style coordinator features may not work."
     fi
 
     # Check cert-manager ClusterIssuer email configuration
@@ -449,11 +449,11 @@ import_images_k3s() {
 # Setup NitroRun Manifest
 # =============================================================================
 setup_nitrorun_manifest() {
-    log_step "Setting up NitroRun manifest..."
+    log_step "Setting up coordinator manifest (optional)..."
 
     # Check if NitroRun is ready
     if ! command -v nitrorun &> /dev/null; then
-        log_warn "NitroRun CLI not found, skipping manifest setup"
+        log_info "Coordinator CLI not found, skipping optional manifest setup"
         return 0
     fi
 
@@ -464,18 +464,18 @@ setup_nitrorun_manifest() {
 
     # Check if NitroRun is installed in cluster
     if ! kubectl get namespace nitrorun &> /dev/null; then
-        log_warn "NitroRun not installed in cluster, skipping manifest setup"
+        log_info "Coordinator not installed in cluster, skipping optional manifest setup"
         return 0
     fi
 
     # Port forward to coordinator
-    log_info "Setting up port forwarding to NitroRun Coordinator..."
+    log_info "Setting up port forwarding to coordinator..."
     local coordinator_svc="coordinator-client-api"
     if ! kubectl -n nitrorun get svc "$coordinator_svc" &>/dev/null; then
         coordinator_svc="nitrorun-coordinator-client-api"
     fi
     if ! kubectl -n nitrorun get svc "$coordinator_svc" &>/dev/null; then
-        log_warn "Coordinator client service not found in namespace 'nitrorun'. Skipping manifest setup."
+        log_info "Coordinator client service not found; skipping optional manifest setup."
         return 0
     fi
 
@@ -627,13 +627,37 @@ deploy_k8s() {
     if [ "$DRY_RUN" == "true" ]; then
         log_info "[DRY RUN] Would apply: $overlay_path"
         log_info "[DRY RUN] Would set images to: ${IMAGE_PREFIX}<service>:${ENVIRONMENT}"
+        if [ "$ENVIRONMENT" == "dev" ]; then
+            log_info "[DRY RUN] Would recreate existing service-layer deployments to avoid immutable selector drift"
+        fi
         return 0
+    fi
+
+    if [ "$ENVIRONMENT" == "dev" ]; then
+        local existing_deployments
+        existing_deployments="$(kubectl -n service-layer get deployment -o name 2>/dev/null || true)"
+        if [[ -n "$existing_deployments" ]]; then
+            log_info "Recreating existing service-layer deployments for local dev..."
+            kubectl -n service-layer delete deployment --all --ignore-not-found=true || {
+                log_error "Failed to delete existing service-layer deployments"
+                exit 1
+            }
+
+            local wait_deadline=$((SECONDS + WAIT_TIMEOUT))
+            while kubectl -n service-layer get deployment -o name 2>/dev/null | grep -q .; do
+                if (( SECONDS >= wait_deadline )); then
+                    log_error "Timed out waiting for existing service-layer deployments to be deleted"
+                    exit 1
+                fi
+                sleep 2
+            done
+        fi
     fi
 
     # Apply Kubernetes manifests with image overrides to match the environment tag.
     local sed_expr=(
         -e "s#(^[[:space:]]*image:[[:space:]]*)service-layer/#\\1${IMAGE_PREFIX}#"
-        -e "s#(^[[:space:]]*image:[[:space:]].*):latest#\\1:${ENVIRONMENT}#"
+        -e "s#(^[[:space:]]*image:[[:space:]].*):[^[:space:]]+#\\1:${ENVIRONMENT}#"
     )
 
     # When deploying local images (no registry prefix), avoid forced remote pulls.
