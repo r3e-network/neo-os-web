@@ -1,20 +1,25 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { env } from "@/lib/env";
+import { getEnv } from "@/lib/env";
 
-const EDGE_URL = env.NEXT_PUBLIC_EDGE_URL || "http://edge-gateway.platform.svc.cluster.local:8787";
+function simulationEnv() {
+  return getEnv({ strict: true, required: ["SUPABASE_SERVICE_ROLE_KEY"] });
+}
 
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
   try {
-    const response = await fetch(`${EDGE_URL}/admin-simulations?action=status`, {
+    const env = simulationEnv();
+    const edgeURL = env.NEXT_PUBLIC_EDGE_URL || "http://edge-gateway.platform.svc.cluster.local:8787";
+
+    const response = await fetch(`${edgeURL}/admin-simulations?action=status`, {
       signal: AbortSignal.timeout(10000),
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+        "Authorization": `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
       },
     });
 
@@ -34,6 +39,8 @@ export async function POST(req: Request) {
   if (authError) return authError;
 
   try {
+    const env = simulationEnv();
+    const edgeURL = env.NEXT_PUBLIC_EDGE_URL || "http://edge-gateway.platform.svc.cluster.local:8787";
     const body = await req.json();
     const { action, config } = body;
 
@@ -41,12 +48,12 @@ export async function POST(req: Request) {
       return jsonError("Invalid action", 400);
     }
 
-    const response = await fetch(`${EDGE_URL}/admin-simulations`, {
+    const response = await fetch(`${edgeURL}/admin-simulations`, {
       method: "POST",
       signal: AbortSignal.timeout(15000),
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+        "Authorization": `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
       },
       body: JSON.stringify({ action, config }),
     });

@@ -133,6 +133,20 @@ describe("GET /api/analytics", () => {
     const res = await GET(authedRequest("http://localhost/api/analytics"));
     expect(res.status).toBe(500);
   });
+
+  it("fails fast when Supabase env is missing", async () => {
+    vi.unstubAllEnvs();
+    vi.stubEnv("ADMIN_CONSOLE_API_KEY", API_KEY);
+    vi.resetModules();
+
+    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/route");
+    const res = await GET(authedRequest("http://localhost/api/analytics"));
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.error).toContain("environment");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });
 
 // ==========================================================================
@@ -158,6 +172,20 @@ describe("GET /api/analytics/by-app", () => {
     const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/by-app/route");
     const res = await GET(authedRequest("http://localhost/api/analytics/by-app"));
     expect(res.status).toBe(500);
+  });
+
+  it("fails fast when Supabase env is missing", async () => {
+    vi.unstubAllEnvs();
+    vi.stubEnv("ADMIN_CONSOLE_API_KEY", API_KEY);
+    vi.resetModules();
+
+    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/by-app/route");
+    const res = await GET(authedRequest("http://localhost/api/analytics/by-app"));
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.error).toContain("environment");
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 

@@ -9,9 +9,13 @@ import { mockFetchResponse } from "./test-utils";
 describe("API Client Extended", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://supabase.test");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role");
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -95,7 +99,6 @@ describe("API Client Extended", () => {
     it("should handle network error", async () => {
       vi.spyOn(global, "fetch").mockImplementation(() => Promise.reject(new Error("Network error")));
 
-      // The fetchJSON function re-throws errors that already have a message property
       await expect(edgeClient.get("/health")).rejects.toThrow("Network error");
     });
 
