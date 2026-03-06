@@ -81,7 +81,7 @@
 \vspace{2cm}
 \begin{abstract}
 \noindent
-The Neo N3 MiniApp Platform represents a paradigm shift in decentralized application development, offering a comprehensive infrastructure that bridges the gap between traditional Web2 user experiences and the security guarantees of blockchain technology. This whitepaper presents the technical architecture, security model, and operational framework of a platform designed to enable developers to build, deploy, and operate lightweight decentralized applications---termed MiniApps---within a secure, sandboxed environment. By leveraging Trusted Execution Environments (TEE) through AWS Nitro technology and the MarbleRun orchestration framework, the platform ensures that sensitive operations such as key management, transaction signing, and randomness generation occur within hardware-protected enclaves. The platform enforces strict asset separation, mandating GAS tokens for all payment operations and bNEO (wrapped NEO) tokens for governance activities, thereby ensuring regulatory compliance and stakeholder alignment. With seven foundational smart contracts, six TEE-based services, and twenty-three production-ready built-in applications spanning gaming, decentralized finance, social interaction, and governance domains, the Neo N3 MiniApp Platform establishes a new standard for secure and accessible blockchain application development.
+The Neo N3 MiniApp Platform represents a paradigm shift in decentralized application development, offering a comprehensive infrastructure that bridges the gap between traditional Web2 user experiences and the security guarantees of blockchain technology. This whitepaper presents the technical architecture, security model, and operational framework of a platform designed to enable developers to build, deploy, and operate lightweight decentralized applications---termed MiniApps---within a secure, sandboxed environment. By leveraging Trusted Execution Environments (TEE) through AWS Nitro technology and the AWS Nitro orchestration framework, the platform ensures that sensitive operations such as key management, transaction signing, and randomness generation occur within hardware-protected enclaves. The platform enforces strict asset separation, mandating GAS tokens for all payment operations and bNEO (wrapped NEO) tokens for governance activities, thereby ensuring regulatory compliance and stakeholder alignment. With seven foundational smart contracts, six TEE-based services, and twenty-three production-ready built-in applications spanning gaming, decentralized finance, social interaction, and governance domains, the Neo N3 MiniApp Platform establishes a new standard for secure and accessible blockchain application development.
 \end{abstract}
 \vfill
 {\small Neo R3E Network\par}
@@ -135,7 +135,7 @@ The Neo N3 MiniApp Platform employs a multi-layered architecture meticulously de
 ]
     \node[layer] (frontend) at (0,6) {\textbf{Frontend Layer} (Next.js Host Application)};
     \node[layer] (gateway) at (0,4.5) {\textbf{Gateway Layer} (Supabase Edge Functions)};
-    \node[layer] (tee) at (0,3) {\textbf{TEE Service Layer} (MarbleRun + AWS Nitro)};
+    \node[layer] (tee) at (0,3) {\textbf{TEE Service Layer} (NitroRun + AWS Nitro)};
     \node[layer] (blockchain) at (0,1.5) {\textbf{Blockchain Layer} (Neo N3 Smart Contracts)};
     \node[layer] (data) at (0,0) {\textbf{Data Layer} (PostgreSQL + Event Store)};
 
@@ -165,11 +165,11 @@ Communication between the Gateway Layer and TEE services occurs over mutual TLS 
 
 \subsection{TEE Service Layer}
 
-The Trusted Execution Environment Service Layer represents the security foundation of the Neo N3 MiniApp Platform, providing hardware-protected execution for all sensitive operations. This layer leverages Intel Software Guard Extensions (Nitro) technology through the Nitro runtime framework, with MarbleRun providing orchestration, attestation, and secure secret distribution across enclave instances.
+The Trusted Execution Environment Service Layer represents the security foundation of the Neo N3 MiniApp Platform, providing hardware-protected execution for all sensitive operations. This layer leverages Intel Software Guard Extensions (Nitro) technology through the Nitro runtime framework, with AWS Nitro providing orchestration, attestation, and secure secret distribution across enclave instances.
 
 Within this layer, six specialized services handle distinct categories of sensitive operations. The NeoFeeds service aggregates price data from multiple external sources, computing median values within the enclave to prevent manipulation. The NeoVRF service generates cryptographically secure random numbers using enclave-protected signing keys, with optional on-chain anchoring for verifiable randomness. The NeoOracle service fetches external data from allowlisted endpoints, injecting secrets securely using AES-GCM encryption. The NeoCompute service executes restricted JavaScript code within the enclave, enabling confidential computation with encrypted outputs. The NeoFlow service manages task scheduling and automation triggers, anchoring execution proofs on-chain. The TxProxy service handles transaction construction and signing, enforcing policy constraints before submitting transactions to the Neo N3 network.
 
-Key material within the TEE Service Layer is bound to specific enclave measurements through Nitro sealing, ensuring that keys cannot be extracted even by privileged system software. MarbleRun's manifest-based configuration defines the expected measurements for each service, enabling remote attestation that verifies enclave integrity before secrets are provisioned.
+Key material within the TEE Service Layer is bound to specific enclave measurements through Nitro sealing, ensuring that keys cannot be extracted even by privileged system software. AWS Nitro's manifest-based configuration defines the expected measurements for each service, enabling remote attestation that verifies enclave integrity before secrets are provisioned.
 
 \subsection{Blockchain Layer}
 
@@ -256,7 +256,7 @@ This multi-layer enforcement ensures that asset separation cannot be circumvente
 
 AWS Nitro technology provides the hardware foundation for the platform's security model, enabling code execution within isolated enclaves that are protected from observation or manipulation by any software running outside the enclave, including the operating system and hypervisor. This protection extends to physical attacks, as enclave memory is encrypted by the CPU using keys that are not accessible to any external entity.
 
-The platform leverages Nitro through the Nitro runtime framework, which enables Go applications to execute within Nitro enclaves with minimal modification. MarbleRun provides orchestration and attestation services, managing the lifecycle of enclave instances and ensuring that secrets are only provisioned to enclaves with expected measurements. The MarbleRun manifest defines the expected code measurements, signing keys, and configuration parameters for each service, enabling remote verification of enclave integrity.
+The platform leverages Nitro through the Nitro runtime framework, which enables Go applications to execute within Nitro enclaves with minimal modification. AWS Nitro provides the enclave isolation and attestation primitives, while the platform defines the expected measurements, signing keys, and configuration parameters for each service so enclave integrity can be verified before sensitive material is provisioned.
 
 Key management within TEE services follows a hierarchical derivation model. A master key, generated within the enclave during initial provisioning, is sealed to the enclave measurement using Nitro sealing. Service-specific keys are derived from this master key using domain separation, ensuring that compromise of one service's keys does not affect others. Transaction signing keys are further derived per-account, enabling fine-grained access control and key rotation without affecting other accounts.
 
@@ -719,7 +719,7 @@ Scale & Cross-chain interoperability, mobile SDK, enterprise deployment options 
 
 \subsection{Foundation Layer}
 
-The foundation layer provides the core platform infrastructure required for MiniApp operation. Seven platform smart contracts provide on-chain enforcement of platform rules, including payment settlement, governance voting, and application registry management. The TEE service layer, built on MarbleRun and AWS Nitro, establishes the security foundation for sensitive operations including key management and transaction signing. The account pool architecture supports over ten thousand pre-generated accounts, enabling high-throughput transaction processing without bottlenecks.
+The foundation layer provides the core platform infrastructure required for MiniApp operation. Seven platform smart contracts provide on-chain enforcement of platform rules, including payment settlement, governance voting, and application registry management. The TEE service layer, built on the Nitro runtime and AWS Nitro enclaves, establishes the security foundation for sensitive operations including key management and transaction signing. The account pool architecture supports over ten thousand pre-generated accounts, enabling high-throughput transaction processing without bottlenecks.
 
 \subsection{Applications Layer}
 
@@ -743,7 +743,7 @@ The Neo N3 MiniApp Platform represents a significant advancement in the accessib
 
 \subsection{Technical Achievements}
 
-The platform's defense-in-depth security architecture ensures that sensitive operations are protected at every layer, from client-side validation through on-chain enforcement. The use of AWS Nitro technology through the MarbleRun framework provides hardware-level guarantees that cannot be circumvented by software attacks, while the multi-layer validation approach ensures resilience against novel attack vectors.
+The platform's defense-in-depth security architecture ensures that sensitive operations are protected at every layer, from client-side validation through on-chain enforcement. The use of AWS Nitro enclaves provides hardware-level guarantees that cannot be circumvented by software attacks, while the multi-layer validation approach ensures resilience against novel attack vectors.
 
 The strict separation between GAS utility tokens and bNEO governance tokens establishes clear boundaries that simplify regulatory compliance while aligning stakeholder incentives. This separation is enforced comprehensively across all platform layers, providing strong guarantees to users and regulators regarding the assets processed by the platform.
 
@@ -777,4 +777,3 @@ As the blockchain industry matures, platforms that successfully balance security
 \end{center}
 
 \end{document}
-

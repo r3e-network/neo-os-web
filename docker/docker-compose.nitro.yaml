@@ -89,8 +89,8 @@ services:
       NITRO_ENV: testing
       # Local Nitro smoke still runs behind Nitro TLS env, which enables strict
       # identity checks. Provide explicit defaults so globalsigner can start.
-      GLOBALSIGNER_DOMAIN_ALLOWLIST: ${GLOBALSIGNER_DOMAIN_ALLOWLIST:-globalsigner:*,neoaccounts:*,neocompute:*,neofeeds:*,neoflow:*,neogasbank:*,neooracle:*,neoprivacy:*,neorequests:*,neosimulation:*,neovrf:*,txproxy:*}
-      GLOBALSIGNER_SIGN_RAW_ALLOWLIST: ${GLOBALSIGNER_SIGN_RAW_ALLOWLIST:-globalsigner,neoaccounts,neocompute,neofeeds,neoflow,neogasbank,neooracle,neoprivacy,neorequests,neosimulation,neovrf,txproxy}
+      GLOBALSIGNER_DOMAIN_ALLOWLIST: ${GLOBALSIGNER_DOMAIN_ALLOWLIST:-globalsigner:*,neoaccounts:*,neocompute:*,neofeeds:*,neoflow:*,neogasbank:*,neooracle:*,neorequests:*,neosimulation:*,neovrf:*,txproxy:*}
+      GLOBALSIGNER_SIGN_RAW_ALLOWLIST: ${GLOBALSIGNER_SIGN_RAW_ALLOWLIST:-globalsigner,neoaccounts,neocompute,neofeeds,neoflow,neogasbank,neooracle,neorequests,neosimulation,neovrf,txproxy}
 
   neosimulation:
     build:
