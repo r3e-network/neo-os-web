@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { SERVICE_ROLE_KEY, SUPABASE_URL } from "@/lib/constants";
+import { getSupabaseServiceEnv } from "@/lib/env";
+
+function getConfiguredSupabase() {
+  try {
+    return getSupabaseServiceEnv({ strict: true });
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    return jsonError("Supabase service role not configured");
+  const supabase = getConfiguredSupabase();
+  if (!supabase) {
+    return jsonError("Admin Supabase environment is not configured");
   }
 
   const url = new URL(req.url);
@@ -25,10 +34,10 @@ export async function GET(req: Request) {
   });
 
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/miniapp_usage?${params.toString()}`, {
+    const response = await fetch(`${supabase.url}/rest/v1/miniapp_usage?${params.toString()}`, {
       headers: {
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: supabase.serviceRoleKey,
+        Authorization: `Bearer ${supabase.serviceRoleKey}`,
       },
       signal: AbortSignal.timeout(15000),
     });
