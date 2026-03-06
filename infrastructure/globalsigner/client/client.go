@@ -43,6 +43,38 @@ const (
 	defaultMaxBodySize = 1 << 20 // 1MiB
 )
 
+// HTTPError captures non-200 responses from GlobalSigner.
+type HTTPError struct {
+	*slhttputil.HTTPStatusError
+}
+
+func (e *HTTPError) Error() string {
+	if e == nil {
+		return "request failed"
+	}
+	if e.HTTPStatusError == nil {
+		return "request failed"
+	}
+	if strings.TrimSpace(e.HTTPStatusError.Body) == "" {
+		return fmt.Sprintf("request failed: %s", strings.TrimSpace(e.HTTPStatusError.Status))
+	}
+	return fmt.Sprintf("request failed: %s - %s", strings.TrimSpace(e.HTTPStatusError.Status), strings.TrimSpace(e.HTTPStatusError.Body))
+}
+
+// Unwrap exposes the shared HTTP status error for generic classification.
+func (e *HTTPError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.HTTPStatusError
+}
+
+// IsHTTPStatusError reports whether err wraps a GlobalSigner HTTPError with the
+// specified status code.
+func IsHTTPStatusError(err error, statusCode int) bool {
+	return slhttputil.IsHTTPStatusError(err, statusCode)
+}
+
 // New creates a new GlobalSigner client.
 func New(cfg Config) (*Client, error) {
 	timeout := cfg.Timeout
@@ -56,7 +88,7 @@ func New(cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("globalsigner: %w", err)
 	}
 
-	client := slhttputil.CopyHTTPClientWithTimeout(cfg.HTTPClient, timeout, forceTimeout)
+	client := slhttputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.HTTPClient, timeout, forceTimeout)
 
 	maxBodyBytes := cfg.MaxBodyBytes
 	if maxBodyBytes <= 0 {
@@ -199,18 +231,14 @@ func (c *Client) doExec(httpReq *http.Request, result any) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
+		statusErr, readErr := slhttputil.BuildHTTPStatusErrorFromRequest(resp, httpReq, 32<<10)
+		httpErr := &HTTPError{
+			HTTPStatusError: statusErr,
+		}
 		if readErr != nil {
-			return fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+			return slhttputil.WrapReadBodyError(httpErr, readErr)
 		}
-		msg := strings.TrimSpace(string(body))
-		if truncated {
-			msg += "...(truncated)"
-		}
-		if msg != "" {
-			return fmt.Errorf("request failed: %s - %s", resp.Status, msg)
-		}
-		return fmt.Errorf("request failed: %s", resp.Status)
+		return httpErr
 	}
 
 	respBody, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes)
@@ -298,7 +326,14 @@ func (c *Client) Health(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unhealthy: %s", resp.Status)
+		statusErr, readErr := slhttputil.BuildHTTPStatusErrorFromRequest(resp, httpReq, 32<<10)
+		httpErr := &HTTPError{
+			HTTPStatusError: statusErr,
+		}
+		if readErr != nil {
+			return slhttputil.WrapReadBodyError(httpErr, readErr)
+		}
+		return httpErr
 	}
 
 	return nil

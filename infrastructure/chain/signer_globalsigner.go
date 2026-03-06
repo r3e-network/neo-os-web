@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/elliptic"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/nspcc-dev/neo-go/pkg/config/netmode"
@@ -35,7 +37,7 @@ func NewGlobalSignerSigner(ctx context.Context, client *gsclient.Client) (*Globa
 
 	att, err := client.GetAttestation(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get attestation: %w", err)
+		return nil, wrapGlobalSignerError("get attestation", err)
 	}
 
 	pubKeyBytes, err := decodeHexMaybe0x(att.PubKeyHex)
@@ -109,7 +111,7 @@ func (s *GlobalSignerSigner) SignTx(net netmode.Magic, tx *transaction.Transacti
 		Data: hex.EncodeToString(signedData),
 	})
 	if err != nil {
-		return fmt.Errorf("globalsigner sign tx: %w", err)
+		return wrapGlobalSignerError("globalsigner sign tx", err)
 	}
 
 	signature, err := decodeHexMaybe0x(resp.Signature)
@@ -140,7 +142,7 @@ func (s *GlobalSignerSigner) Sign(ctx context.Context, data []byte) ([]byte, err
 		Data: hex.EncodeToString(data),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("globalsigner sign: %w", err)
+		return nil, wrapGlobalSignerError("globalsigner sign", err)
 	}
 
 	sig, err := decodeHexMaybe0x(resp.Signature)
@@ -155,4 +157,34 @@ func decodeHexMaybe0x(value string) ([]byte, error) {
 	trimmed = strings.TrimPrefix(trimmed, "0x")
 	trimmed = strings.TrimPrefix(trimmed, "0X")
 	return hex.DecodeString(trimmed)
+}
+
+func wrapGlobalSignerError(operation string, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	statusCode, ok := globalSignerStatusCode(err)
+	if !ok {
+		return fmt.Errorf("%s: %w", operation, err)
+	}
+
+	switch {
+	case statusCode == http.StatusNotFound:
+		return fmt.Errorf("%s endpoint not found: %w", operation, err)
+	case statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError:
+		return fmt.Errorf("%s request rejected: %w", operation, err)
+	case statusCode >= http.StatusInternalServerError:
+		return fmt.Errorf("%s service unavailable: %w", operation, err)
+	default:
+		return fmt.Errorf("%s: %w", operation, err)
+	}
+}
+
+func globalSignerStatusCode(err error) (int, bool) {
+	var httpErr *gsclient.HTTPError
+	if !errors.As(err, &httpErr) {
+		return 0, false
+	}
+	return httpErr.StatusCode, true
 }

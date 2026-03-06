@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,9 +16,41 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/runtime"
 	neoflowsupabase "github.com/r3e-network/neo-miniapp-platform/services/automation/supabase"
 )
+
+const maxWebhookErrorBodyBytes = 4 << 10
+
+type webhookHTTPError struct {
+	*httputil.HTTPStatusError
+}
+
+func (e *webhookHTTPError) Error() string {
+	if e == nil {
+		return "webhook request failed"
+	}
+	if e.HTTPStatusError == nil {
+		return "webhook request failed"
+	}
+	if strings.TrimSpace(e.Body) == "" {
+		return fmt.Sprintf("webhook status %d", e.StatusCode)
+	}
+	return fmt.Sprintf("webhook status %d: %s", e.StatusCode, strings.TrimSpace(e.Body))
+}
+
+// Unwrap exposes the shared HTTP status error for generic classification.
+func (e *webhookHTTPError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.HTTPStatusError
+}
+
+func isWebhookStatusError(err error, statusCode int) bool {
+	return httputil.IsHTTPStatusError(err, statusCode)
+}
 
 func (s *Service) checkAndExecuteTriggers(ctx context.Context) {
 	if s.repo == nil {
@@ -70,6 +103,9 @@ func (s *Service) executeTrigger(ctx context.Context, trigger *neoflowsupabase.T
 
 	// Execute the action (best-effort)
 	err := s.dispatchAction(ctx, trigger.Action)
+	if err != nil {
+		err = wrapWebhookActionError(err)
+	}
 
 	// Update last execution and calculate next
 	trigger.LastExecution = time.Now()
@@ -107,6 +143,40 @@ func (s *Service) executeTrigger(ctx context.Context, trigger *neoflowsupabase.T
 			s.Logger().WithContext(ctx).WithError(execErr).WithField("trigger_id", trigger.ID).Warn("failed to persist execution log")
 		}
 	}
+}
+
+func wrapWebhookActionError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var httpErr *webhookHTTPError
+	if !errors.As(err, &httpErr) {
+		return err
+	}
+
+	switch {
+	case httpErr.StatusCode == http.StatusNotFound:
+		return fmt.Errorf("webhook endpoint not found: %w", err)
+	case httpErr.StatusCode >= http.StatusBadRequest && httpErr.StatusCode < http.StatusInternalServerError:
+		return fmt.Errorf("webhook request rejected: %w", err)
+	case httpErr.StatusCode >= http.StatusInternalServerError:
+		return fmt.Errorf("webhook service unavailable: %w", err)
+	default:
+		return err
+	}
+}
+
+func (s *Service) resolveWebhookHTTPClient(useMeshClient bool) *http.Client {
+	const webhookTimeout = 30 * time.Second
+
+	if m := s.Nitro(); m != nil {
+		if useMeshClient {
+			return httputil.CopyHTTPClientWithTimeoutNoRedirect(m.HTTPClient(), webhookTimeout, false)
+		}
+		return httputil.CopyHTTPClientWithTimeoutNoRedirect(m.ExternalHTTPClient(), webhookTimeout, false)
+	}
+	return httputil.CopyHTTPClientWithTimeoutNoRedirect(nil, webhookTimeout, false)
 }
 
 func (s *Service) dispatchAction(ctx context.Context, actionRaw json.RawMessage) error {
@@ -181,22 +251,26 @@ func (s *Service) dispatchAction(ctx context.Context, actionRaw json.RawMessage)
 
 		// Use Nitro mTLS client only for internal mesh targets. External webhooks
 		// must use the system trust store (Nitro root CA is not a public CA).
-		httpClient := &http.Client{Timeout: 30 * time.Second}
-		if m := s.Nitro(); m != nil {
-			if useMeshClient {
-				httpClient = m.HTTPClient()
-			} else {
-				httpClient = m.ExternalHTTPClient()
-			}
-		}
+		httpClient := s.resolveWebhookHTTPClient(useMeshClient)
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
 			return err
 		}
 		defer resp.Body.Close()
-		if resp.StatusCode >= 400 {
-			return fmt.Errorf("webhook status %d", resp.StatusCode)
+		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+			statusErr, buildErr := httputil.BuildHTTPStatusErrorFromRequest(resp, req, maxWebhookErrorBodyBytes)
+			if buildErr != nil && statusErr == nil {
+				return buildErr
+			}
+
+			httpErr := &webhookHTTPError{
+				HTTPStatusError: statusErr,
+			}
+			if buildErr != nil {
+				return httputil.WrapReadBodyError(httpErr, buildErr)
+			}
+			return httpErr
 		}
 	default:
 		return fmt.Errorf("unsupported action type: %q", action.Type)

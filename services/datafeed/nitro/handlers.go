@@ -2,9 +2,9 @@
 package neofeeds
 
 import (
+	"errors"
 	"net/http"
 	"sort"
-	"strings"
 
 	"github.com/gorilla/mux"
 
@@ -53,14 +53,12 @@ func (s *Service) handleGetPrice(w http.ResponseWriter, r *http.Request) {
 
 	price, err := s.GetPrice(r.Context(), pair)
 	if err != nil {
-		// Distinguish error types for appropriate HTTP status codes
-		errMsg := err.Error()
 		switch {
-		case strings.Contains(errMsg, "pair required"):
+		case errors.Is(err, ErrPairRequired):
 			httputil.BadRequest(w, "pair required")
-		case strings.Contains(errMsg, "not found"), strings.Contains(errMsg, "unsupported"), strings.Contains(errMsg, "unknown feed"):
+		case errors.Is(err, ErrPriceFeedNotFound):
 			httputil.NotFound(w, "price feed not found")
-		case strings.Contains(errMsg, "no sources"), strings.Contains(errMsg, "no prices"):
+		case errors.Is(err, ErrPriceDataUnavailable):
 			httputil.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "price data unavailable"})
 		default:
 			s.Logger().Error(r.Context(), "failed to get price", err, nil)

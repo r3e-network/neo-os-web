@@ -3,10 +3,15 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 func TestNew(t *testing.T) {
@@ -29,6 +34,46 @@ func TestNewEmptyBaseURL(t *testing.T) {
 	}
 }
 
+func TestDeductFeeRedirectDoesNotFollow(t *testing.T) {
+	var redirectedHits int32
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&redirectedHits, 1)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(DeductFeeResponse{Success: true, TransactionID: "tx123", BalanceAfter: 900})
+	}))
+	defer target.Close()
+
+	redirector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer redirector.Close()
+
+	baseClient := &http.Client{}
+	c, err := New(Config{BaseURL: redirector.URL, HTTPClient: baseClient})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	if baseClient.CheckRedirect != nil {
+		t.Fatal("New() should not mutate caller-provided HTTP client")
+	}
+
+	_, err = c.DeductFee(context.Background(), &DeductFeeRequest{UserID: "user1", Amount: 100, ServiceID: "neofeeds"})
+	if err == nil {
+		t.Fatal("DeductFee() should return error for redirect status")
+	}
+
+	var httpErr *HTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *HTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusFound {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusFound)
+	}
+	if hits := atomic.LoadInt32(&redirectedHits); hits != 0 {
+		t.Fatalf("redirect target should not be called, got %d hit(s)", hits)
+	}
+}
+
 func TestNewCustomHTTPClient(t *testing.T) {
 	customClient := &http.Client{Timeout: 30 * time.Second}
 	c, err := New(Config{
@@ -38,8 +83,17 @@ func TestNewCustomHTTPClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	if c.httpClient != customClient {
-		t.Error("httpClient should be the custom client")
+	if c.httpClient == customClient {
+		t.Fatal("httpClient should be copied, not reuse caller pointer")
+	}
+	if customClient.CheckRedirect != nil {
+		t.Fatal("custom client should not be mutated")
+	}
+	if c.httpClient.Timeout != 30*time.Second {
+		t.Fatalf("Timeout = %v, want %v", c.httpClient.Timeout, 30*time.Second)
+	}
+	if c.httpClient.CheckRedirect == nil {
+		t.Fatal("copied client should disable redirects")
 	}
 }
 
@@ -119,6 +173,56 @@ func TestDeductFeeHTTPError(t *testing.T) {
 	})
 	if err == nil {
 		t.Error("DeductFee() expected error for HTTP 403")
+	}
+}
+
+func TestDeductFeeReturnsTypedHTTPError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "insufficient balance"})
+	}))
+	defer server.Close()
+
+	c, _ := New(Config{BaseURL: server.URL})
+	_, err := c.DeductFee(context.Background(), &DeductFeeRequest{
+		UserID:    "user1",
+		Amount:    100,
+		ServiceID: "neofeeds",
+	})
+	if err == nil {
+		t.Fatal("DeductFee() expected error for HTTP 403")
+	}
+
+	var httpErr *HTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *HTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusForbidden {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusForbidden)
+	}
+	if httpErr.Method != http.MethodPost {
+		t.Fatalf("method = %q, want %q", httpErr.Method, http.MethodPost)
+	}
+	if httpErr.URL != server.URL+"/deduct" {
+		t.Fatalf("url = %q, want %q", httpErr.URL, server.URL+"/deduct")
+	}
+	if !strings.Contains(httpErr.Body, "insufficient balance") {
+		t.Fatalf("body = %q, want to contain insufficient balance", httpErr.Body)
+	}
+	if !IsHTTPStatusError(err, http.StatusForbidden) {
+		t.Fatal("IsHTTPStatusError() should match 403")
+	}
+	if IsHTTPStatusError(err, http.StatusInternalServerError) {
+		t.Fatal("IsHTTPStatusError() should not match wrong status")
+	}
+
+	var sharedErr *httputil.HTTPStatusError
+	if !errors.As(err, &sharedErr) {
+		t.Fatalf("expected shared *httputil.HTTPStatusError, got %T", err)
+	}
+	if !httputil.IsHTTPStatusError(err, http.StatusForbidden) {
+		t.Fatal("shared IsHTTPStatusError() should match 403")
 	}
 }
 
@@ -207,6 +311,40 @@ func TestGetAccountHTTPError(t *testing.T) {
 	_, err := c.GetAccount(context.Background(), "user1")
 	if err == nil {
 		t.Error("GetAccount() expected error for HTTP 404")
+	}
+}
+
+func TestGetAccountReturnsTypedHTTPError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("account not found"))
+	}))
+	defer server.Close()
+
+	c, _ := New(Config{BaseURL: server.URL})
+	_, err := c.GetAccount(context.Background(), "user1")
+	if err == nil {
+		t.Fatal("GetAccount() expected error for HTTP 404")
+	}
+
+	var httpErr *HTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *HTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusNotFound {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusNotFound)
+	}
+	if httpErr.Method != http.MethodGet {
+		t.Fatalf("method = %q, want %q", httpErr.Method, http.MethodGet)
+	}
+	if httpErr.URL != server.URL+"/account" {
+		t.Fatalf("url = %q, want %q", httpErr.URL, server.URL+"/account")
+	}
+	if !strings.Contains(httpErr.Body, "account not found") {
+		t.Fatalf("body = %q, want to contain account not found", httpErr.Body)
+	}
+	if !IsHTTPStatusError(err, http.StatusNotFound) {
+		t.Fatal("IsHTTPStatusError() should match 404")
 	}
 }
 

@@ -33,7 +33,7 @@ func NewClient(rpcURL, network string) (*Client, error) {
 	}
 
 	return &Client{
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: httputil.CopyHTTPClientWithTimeoutNoRedirect(nil, 30*time.Second, false),
 		rpcURL:     rpcURL,
 		feeds:      GetFeedsForNetwork(network),
 		network:    network,

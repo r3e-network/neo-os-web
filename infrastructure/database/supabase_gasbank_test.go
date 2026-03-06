@@ -177,6 +177,38 @@ func TestGetOrCreateGasBankAccountCreateErrorWithFallback(t *testing.T) {
 	}
 }
 
+func TestGetOrCreateGasBankAccountCreateServerErrorNoFallback(t *testing.T) {
+	callCount := 0
+	repo, cleanup := setupTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		w.Header().Set("Content-Type", "application/json")
+		if callCount == 1 {
+			// First GET: not found
+			json.NewEncoder(w).Encode([]GasBankAccount{})
+			return
+		}
+		if callCount == 2 {
+			// POST: server error (non-conflict)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		// Should not fallback GET on non-conflict create failures.
+		json.NewEncoder(w).Encode([]GasBankAccount{{ID: "unexpected-fallback", UserID: "user-123"}})
+	})
+	defer cleanup()
+
+	account, err := repo.GetOrCreateGasBankAccount(context.Background(), "user-123")
+	if err == nil {
+		t.Fatal("GetOrCreateGasBankAccount() should return error on non-conflict create failure")
+	}
+	if account != nil {
+		t.Fatalf("account = %+v, want nil", account)
+	}
+	if callCount != 2 {
+		t.Fatalf("request count = %d, want 2 (GET then POST only)", callCount)
+	}
+}
+
 func TestUpdateGasBankBalanceInvalidUserID(t *testing.T) {
 	repo, cleanup := setupTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

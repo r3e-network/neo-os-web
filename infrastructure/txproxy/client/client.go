@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -44,6 +46,114 @@ const (
 	defaultMaxBodySize = 1 << 20 // 1MiB
 )
 
+// HTTPError captures non-200 responses from TxProxy.
+type HTTPError struct {
+	*slhttputil.HTTPStatusError
+}
+
+type txProxyErrorEnvelope struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+var txProxyConflictCodePattern = regexp.MustCompile(`(?i)"code"\s*:\s*"conflict"`)
+
+func (e *HTTPError) Error() string {
+	if e == nil {
+		return "request failed"
+	}
+	if e.HTTPStatusError == nil {
+		return "request failed"
+	}
+	if strings.TrimSpace(e.HTTPStatusError.Body) == "" {
+		return fmt.Sprintf("request failed: %s", strings.TrimSpace(e.HTTPStatusError.Status))
+	}
+	return fmt.Sprintf("request failed: %s - %s", strings.TrimSpace(e.HTTPStatusError.Status), strings.TrimSpace(e.HTTPStatusError.Body))
+}
+
+// Unwrap exposes the shared HTTP status error for generic classification.
+func (e *HTTPError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.HTTPStatusError
+}
+
+// IsRequestIDConflictError reports whether err indicates a request_id conflict
+// returned by TxProxy.
+func IsRequestIDConflictError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var httpErr *HTTPError
+	if errors.As(err, &httpErr) {
+		if httpErr.StatusCode != http.StatusConflict {
+			return false
+		}
+		if isTxProxyConflictPayload(httpErr.Body) {
+			return true
+		}
+		body := strings.ToLower(strings.TrimSpace(httpErr.Body))
+		if strings.Contains(body, "request_id already used") || hasTxProxyConflictCodeMarker(httpErr.Body) {
+			return true
+		}
+		msg := strings.ToLower(strings.TrimSpace(httpErr.Error()))
+		return strings.Contains(msg, "request_id already used") || hasTxProxyConflictCodeMarker(httpErr.Error())
+	}
+
+	// Backward compatibility for callers that still return plain text errors.
+	msg := strings.ToLower(strings.TrimSpace(err.Error()))
+	if !strings.Contains(msg, "request failed:") {
+		return false
+	}
+	if !strings.Contains(msg, "409 conflict") {
+		return false
+	}
+	if isTxProxyConflictPayload(err.Error()) {
+		return true
+	}
+	return strings.Contains(msg, "request_id already used") || hasTxProxyConflictCodeMarker(err.Error())
+}
+
+func isTxProxyConflictPayload(raw string) bool {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return false
+	}
+
+	if env, ok := parseTxProxyErrorEnvelope(trimmed); ok {
+		return strings.EqualFold(strings.TrimSpace(env.Code), "CONFLICT")
+	}
+
+	// If raw contains a wrapped JSON object, parse that segment.
+	start := strings.Index(trimmed, "{")
+	end := strings.LastIndex(trimmed, "}")
+	if start < 0 || end <= start {
+		return false
+	}
+	env, ok := parseTxProxyErrorEnvelope(trimmed[start : end+1])
+	return ok && strings.EqualFold(strings.TrimSpace(env.Code), "CONFLICT")
+}
+
+func parseTxProxyErrorEnvelope(raw string) (txProxyErrorEnvelope, bool) {
+	var env txProxyErrorEnvelope
+	if strings.TrimSpace(raw) == "" {
+		return env, false
+	}
+	if err := json.Unmarshal([]byte(raw), &env); err != nil {
+		return env, false
+	}
+	return env, true
+}
+
+func hasTxProxyConflictCodeMarker(raw string) bool {
+	if strings.TrimSpace(raw) == "" {
+		return false
+	}
+	return txProxyConflictCodePattern.MatchString(raw)
+}
+
 // New creates a new TxProxy client.
 func New(cfg Config) (*Client, error) {
 	timeout := cfg.Timeout
@@ -57,7 +167,7 @@ func New(cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("txproxy: %w", err)
 	}
 
-	httpClient := slhttputil.CopyHTTPClientWithTimeout(cfg.HTTPClient, timeout, forceTimeout)
+	httpClient := slhttputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.HTTPClient, timeout, forceTimeout)
 
 	maxBodyBytes := cfg.MaxBodyBytes
 	if maxBodyBytes <= 0 {
@@ -86,7 +196,8 @@ func (c *Client) doPost(ctx context.Context, path string, reqBody, result any) e
 		return fmt.Errorf("marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(body))
+	requestURL := c.baseURL + path
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
@@ -103,18 +214,14 @@ func (c *Client) doPost(ctx context.Context, path string, reqBody, result any) e
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, truncated, readErr := slhttputil.ReadAllWithLimit(resp.Body, 32<<10)
+		statusErr, readErr := slhttputil.BuildHTTPStatusErrorFromRequest(resp, httpReq, 32<<10)
+		httpErr := &HTTPError{
+			HTTPStatusError: statusErr,
+		}
 		if readErr != nil {
-			return fmt.Errorf("request failed: %s (failed to read body: %v)", resp.Status, readErr)
+			return slhttputil.WrapReadBodyError(httpErr, readErr)
 		}
-		msg := strings.TrimSpace(string(body))
-		if truncated {
-			msg += "...(truncated)"
-		}
-		if msg != "" {
-			return fmt.Errorf("request failed: %s - %s", resp.Status, msg)
-		}
-		return fmt.Errorf("request failed: %s", resp.Status)
+		return httpErr
 	}
 
 	respBody, err := slhttputil.ReadAllStrict(resp.Body, c.maxBodyBytes)

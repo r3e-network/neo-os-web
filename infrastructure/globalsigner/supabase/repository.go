@@ -271,13 +271,16 @@ func (r *repository) GetAttestation(ctx context.Context, keyVersion string) (*ty
 		return nil, fmt.Errorf("key_version is required")
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("service_name", types.ServiceID).
 		Eq("key_id", keyVersion).
 		In("artifact_type", []string{artifactTypeTEEEvidence, artifactTypeLegacyQuote}).
 		OrderDesc("created_at").
 		Limit(1).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build attestation query: %w", err)
+	}
 
 	data, err := r.base.Request(ctx, http.MethodGet, attestationArtifactsTable, nil, query)
 	if err != nil {

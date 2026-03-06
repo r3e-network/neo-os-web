@@ -51,7 +51,7 @@ func (s *Service) handleDeductFee(w http.ResponseWriter, r *http.Request) {
 			httputil.WriteJSON(w, http.StatusBadRequest, resp)
 			return
 		}
-		if resp.Error == "fee deduction failed" {
+		if resp.Error == errFeeDeductionFailed {
 			httputil.WriteErrorResponse(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error", nil)
 			return
 		}
@@ -194,7 +194,7 @@ func (s *Service) handleGetDeposits(w http.ResponseWriter, r *http.Request, user
 
 func isClientValidationError(msg string) bool {
 	switch msg {
-	case "user_id is required", "amount must be positive", "service_id is required":
+	case errUserIDRequired, errAmountMustBePositive, errServiceIDRequired:
 		return true
 	default:
 		return false

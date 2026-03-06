@@ -104,15 +104,14 @@ func (d *Deployer) call(method string, params ...interface{}) (*chain.RPCRespons
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
+		statusErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, httpReq, 32<<10)
+		httpErr := &chain.RPCHTTPError{
+			HTTPStatusError: statusErr,
+		}
 		if readErr != nil {
-			return nil, fmt.Errorf("read response: %w", readErr)
+			return nil, httputil.WrapReadBodyError(httpErr, readErr)
 		}
-		msg := string(respBody)
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return nil, fmt.Errorf("rpc http error %d: %s", resp.StatusCode, msg)
+		return nil, httpErr
 	}
 
 	respBody, err := httputil.ReadAllStrict(resp.Body, 8<<20)

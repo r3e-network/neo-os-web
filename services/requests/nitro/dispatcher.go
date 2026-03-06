@@ -15,14 +15,61 @@ import (
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	txproxyclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/client"
 	txproxytypes "github.com/r3e-network/neo-miniapp-platform/infrastructure/txproxy/types"
 	neorequestsupabase "github.com/r3e-network/neo-miniapp-platform/services/requests/supabase"
 )
 
 const (
-	maxTEEManifestBytes = 1 << 20
-	maxTEEScriptBytes   = 1 << 20
+	maxTEEManifestBytes   = 1 << 20
+	maxTEEScriptBytes     = 1 << 20
+	maxTEEAssetErrorBytes = 32 << 10
 )
+
+type teeAssetHTTPError struct {
+	AssetType string
+	AssetURL  string
+	*httputil.HTTPStatusError
+}
+
+func (e *teeAssetHTTPError) Error() string {
+	if e == nil {
+		return "asset request failed"
+	}
+	if e.HTTPStatusError == nil {
+		return "asset request failed"
+	}
+
+	assetType := strings.TrimSpace(e.AssetType)
+	if assetType == "" {
+		assetType = "asset"
+	}
+
+	if e.StatusCode == http.StatusNotFound {
+		if assetURL := strings.TrimSpace(e.AssetURL); assetURL != "" {
+			return fmt.Sprintf("%s not found: %s", assetType, assetURL)
+		}
+		return fmt.Sprintf("%s not found", assetType)
+	}
+
+	if msg := strings.TrimSpace(e.Body); msg != "" {
+		return fmt.Sprintf("%s request failed: status %d - %s", assetType, e.StatusCode, msg)
+	}
+	return fmt.Sprintf("%s request failed: status %d", assetType, e.StatusCode)
+}
+
+// Unwrap exposes the shared HTTP status error for generic classification.
+func (e *teeAssetHTTPError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.HTTPStatusError
+}
+
+func isTEEAssetStatusError(err error, statusCode int) bool {
+	return httputil.IsHTTPStatusError(err, statusCode)
+}
 
 func (s *Service) handleServiceRequested(ctx context.Context, event *chain.ContractEvent) error {
 	if event == nil {
@@ -466,14 +513,7 @@ func buildTxProxyRequestID(serviceID, gatewayHash, appID, requestID string) stri
 }
 
 func isTxProxyRequestIDConflict(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(strings.TrimSpace(err.Error()))
-	if !strings.Contains(msg, "409 conflict") {
-		return false
-	}
-	return strings.Contains(msg, "request_id already used") || strings.Contains(msg, "\"code\":\"conflict\"")
+	return txproxyclient.IsRequestIDConflictError(err)
 }
 
 func (s *Service) updateChainTx(ctx context.Context, chainTx *neorequestsupabase.ChainTx) error {
@@ -926,7 +966,7 @@ func (s *Service) loadTeeScript(ctx context.Context, appID, scriptName string) (
 	// Fetch manifest
 	baseURL := strings.TrimSuffix(s.scriptsURL, "/")
 	manifestURL := teeAssetURL(baseURL, appID, "manifest.json")
-	manifestBody, err := s.fetchTeeAsset(ctx, manifestURL, maxTEEManifestBytes, "manifest")
+	manifestBody, err := s.fetchTeeAsset(ctx, manifestURL, "manifest")
 	if err != nil {
 		return "", "", err
 	}
@@ -951,7 +991,7 @@ func (s *Service) loadTeeScript(ctx context.Context, appID, scriptName string) (
 
 	// Fetch script content
 	scriptURL := teeAssetURL(baseURL, appID, cleanFile)
-	scriptBytes, err := s.fetchTeeAsset(ctx, scriptURL, maxTEEScriptBytes, "script")
+	scriptBytes, err := s.fetchTeeAsset(ctx, scriptURL, "script")
 	if err != nil {
 		return "", "", err
 	}
@@ -968,9 +1008,14 @@ func teeAssetURL(baseURL, appID, relPath string) string {
 	return fmt.Sprintf("%s/apps/%s/%s", baseURL, url.PathEscape(appID), strings.TrimPrefix(relPath, "/"))
 }
 
-func (s *Service) fetchTeeAsset(ctx context.Context, assetURL string, maxSize int64, assetType string) ([]byte, error) {
+func (s *Service) fetchTeeAsset(ctx context.Context, assetURL, assetType string) ([]byte, error) {
 	if s == nil || s.httpClient == nil {
 		return nil, fmt.Errorf("http client not configured")
+	}
+
+	maxSize := int64(maxTEEScriptBytes)
+	if strings.EqualFold(strings.TrimSpace(assetType), "manifest") {
+		maxSize = int64(maxTEEManifestBytes)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, http.NoBody)
@@ -985,7 +1030,20 @@ func (s *Service) fetchTeeAsset(ctx context.Context, assetURL string, maxSize in
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s not found: %s", assetType, assetURL)
+		statusErr, buildErr := httputil.BuildHTTPStatusErrorFromRequest(resp, req, maxTEEAssetErrorBytes)
+		if buildErr != nil && statusErr == nil {
+			return nil, buildErr
+		}
+
+		httpErr := &teeAssetHTTPError{
+			AssetType:       assetType,
+			AssetURL:        assetURL,
+			HTTPStatusError: statusErr,
+		}
+		if buildErr != nil {
+			return nil, httputil.WrapReadBodyError(httpErr, buildErr)
+		}
+		return nil, httpErr
 	}
 
 	limitedReader := io.LimitReader(resp.Body, maxSize+1)

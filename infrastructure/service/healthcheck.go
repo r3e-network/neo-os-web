@@ -5,9 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 )
 
 // =============================================================================
@@ -152,7 +156,7 @@ func (d *DeepHealthChecker) LastResult() *DeepHealthResponse {
 
 // HTTPHealthCheck creates a health check for an HTTP endpoint.
 func HTTPHealthCheck(name, url string, timeout time.Duration) HealthCheckFunc {
-	client := &http.Client{Timeout: timeout}
+	client := httputil.CopyHTTPClientWithTimeoutNoRedirect(nil, timeout, false)
 	return func(ctx context.Context) *ComponentHealth {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 		if err != nil {
@@ -173,19 +177,24 @@ func HTTPHealthCheck(name, url string, timeout time.Duration) HealthCheckFunc {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode >= 500 {
-			return &ComponentHealth{
-				Name:    name,
-				Status:  "unhealthy",
-				Message: fmt.Sprintf("status %d", resp.StatusCode),
+		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+			statusMessage := fmt.Sprintf("status %s", strings.TrimSpace(resp.Status))
+			body, truncated, readErr := readHealthCheckBody(resp.Body, 4<<10)
+			if readErr == nil && strings.TrimSpace(body) != "" {
+				statusMessage = fmt.Sprintf("%s - %s", statusMessage, strings.TrimSpace(body))
+				if truncated {
+					statusMessage += "...(truncated)"
+				}
 			}
-		}
 
-		if resp.StatusCode >= 400 {
+			status := "degraded"
+			if resp.StatusCode >= 500 {
+				status = "unhealthy"
+			}
 			return &ComponentHealth{
 				Name:    name,
-				Status:  "degraded",
-				Message: fmt.Sprintf("status %d", resp.StatusCode),
+				Status:  status,
+				Message: statusMessage,
 			}
 		}
 
@@ -194,6 +203,14 @@ func HTTPHealthCheck(name, url string, timeout time.Duration) HealthCheckFunc {
 			Status: "healthy",
 		}
 	}
+}
+
+func readHealthCheckBody(body io.Reader, maxBytes int64) (bodyText string, truncated bool, err error) {
+	payload, truncated, err := httputil.ReadAllWithLimit(body, maxBytes)
+	if err != nil {
+		return "", false, err
+	}
+	return string(payload), truncated, nil
 }
 
 // DatabaseHealthCheck creates a health check for a database connection.
