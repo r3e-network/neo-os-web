@@ -1,13 +1,13 @@
-"use client";
-
 import Head from "next/head";
+import dynamic from "next/dynamic";
 import { Layout } from "@/components/layout";
-import { Leaderboard } from "@/components/features/gamification";
-import { useWalletStore } from "@/lib/wallet/store";
+
+const LeaderboardPageClient = dynamic(
+  () => import("@/components/pages/LeaderboardPageClient").then((module) => ({ default: module.LeaderboardPageClient })),
+  { ssr: false },
+);
 
 export default function LeaderboardPage() {
-  const { address } = useWalletStore();
-
   return (
     <Layout>
       <Head>
@@ -15,7 +15,7 @@ export default function LeaderboardPage() {
       </Head>
       <div className="mx-auto max-w-4xl px-4 py-12">
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-8">Community Leaderboard</h1>
-        <Leaderboard currentWallet={address} />
+        <LeaderboardPageClient />
       </div>
     </Layout>
   );

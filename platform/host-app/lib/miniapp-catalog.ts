@@ -6,6 +6,7 @@ import { canonicalizeMiniAppId } from "./miniapp-id";
 import { logger } from "./logger";
 import { warnOnce } from "./log-once";
 import { isMissingSupabaseSchemaObject, parsePostgrestErrorResponse } from "./supabase-errors";
+import { getSupabaseEnv } from "./supabase-env";
 
 type MiniAppStatus = "active" | "pending" | "disabled";
 
@@ -41,34 +42,9 @@ type MiniAppStatsRow = {
   last_activity_at?: string | null;
 };
 
-function getSupabaseURL(): string {
-  return String(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
-}
-
-function getSupabaseAuth(): Record<string, string> | null {
-  const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
-  if (serviceRoleKey) {
-    return {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-    };
-  }
-
-  const anonKey = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
-  if (anonKey) {
-    return {
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
-    };
-  }
-
-  return null;
-}
-
 async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMiniAppCatalogOptions = {}): Promise<MiniAppInfo[]> {
   if (process.env.NODE_ENV === "test") return [];
-  const supabaseURL = getSupabaseURL();
-  const authHeaders = getSupabaseAuth();
+  const { url: supabaseURL, authHeaders } = getSupabaseEnv();
   if (!supabaseURL || !authHeaders) return [];
 
   const includeManifest = Boolean(options.includeManifest);
@@ -171,8 +147,7 @@ export async function loadMiniAppStatsMap(): Promise<Record<string, {
   lastActivityAt: string | null;
 }>> {
   if (process.env.NODE_ENV === "test") return {};
-  const supabaseURL = getSupabaseURL();
-  const authHeaders = getSupabaseAuth();
+  const { url: supabaseURL, authHeaders } = getSupabaseEnv();
   if (!supabaseURL || !authHeaders) return {};
 
   const params = new URLSearchParams({
