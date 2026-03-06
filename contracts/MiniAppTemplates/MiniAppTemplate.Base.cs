@@ -41,13 +41,14 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static UInt160 Admin()
         {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+            ByteString? data = Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+            return data == null ? UInt160.Zero : (UInt160)data;
         }
 
         private static void ValidateAdmin()
         {
             UInt160 admin = Admin();
-            ExecutionEngine.Assert(admin != null && admin.IsValid, "admin not set");
+            ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
@@ -107,8 +108,8 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static TemplateConfig GetConfig()
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_CONFIG);
-            if (data == null) return new TemplateConfig();
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_CONFIG) ?? (ByteString)"";
+            if (data.Length == 0) return new TemplateConfig();
             return (TemplateConfig)StdLib.Deserialize(data);
         }
 
@@ -160,20 +161,28 @@ namespace NeoMiniAppPlatform.Contracts
         #region Template Initialization
         protected static void InitializeTemplate(object data)
         {
-            if (data == null) return;
-            
-            object[] initData = data as object[];
-            if (initData == null || initData.Length == 0) return;
+            UInt160 sender = Runtime.Transaction.Sender;
+            UInt160 admin = Admin();
+            if (admin == UInt160.Zero)
+            {
+                ExecutionEngine.Assert(sender.IsValid, "invalid deployer");
+                Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, sender);
+                admin = sender;
+            }
 
-            ExecutionEngine.Assert(Runtime.Transaction.Sender == Admin(), "unauthorized");
-            
-            ByteString configData = initData[0] as ByteString;
+            if (data == null) return;
+            object[] initData = (object[])data;
+            if (initData.Length == 0 || initData[0] == null) return;
+
+            ExecutionEngine.Assert(sender == admin, "unauthorized");
+
+            ByteString configData = (ByteString)initData[0];
             if (configData != null && configData.Length > 0)
             {
                 TemplateConfig config = (TemplateConfig)StdLib.Deserialize(configData);
                 config.CreatedAt = Runtime.Time;
-                config.CreatedBy = Runtime.Transaction.Sender;
-                
+                config.CreatedBy = sender;
+
                 Storage.Put(Storage.CurrentContext, PREFIX_CONFIG, StdLib.Serialize(config));
             }
         }
@@ -191,8 +200,8 @@ namespace NeoMiniAppPlatform.Contracts
         #region Generic Operation Helpers
         protected static BigInteger GetNextId(byte[] prefix)
         {
-            ByteString current = Storage.Get(Storage.CurrentContext, PREFIX_COUNTER);
-            BigInteger next = current != null ? (BigInteger)current + 1 : 1;
+            ByteString current = Storage.Get(Storage.CurrentContext, PREFIX_COUNTER) ?? (ByteString)"";
+            BigInteger next = current.Length > 0 ? (BigInteger)current + 1 : 1;
             Storage.Put(Storage.CurrentContext, PREFIX_COUNTER, next);
             return next;
         }
@@ -220,7 +229,7 @@ namespace NeoMiniAppPlatform.Contracts
         protected static ByteString GetPlayerData(UInt160 player, byte[] prefix)
         {
             StorageMap map = new StorageMap(Storage.CurrentContext, prefix);
-            return map.Get((ByteString)player);
+            return map.Get((ByteString)player) ?? (ByteString)"";
         }
 
         protected static void SetPlayerData(UInt160 player, byte[] prefix, ByteString data)

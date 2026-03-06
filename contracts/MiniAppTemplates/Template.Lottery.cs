@@ -45,6 +45,7 @@ namespace NeoMiniAppPlatform.Contracts
             public BigInteger TotalPrizePool;
         }
 
+#pragma warning disable CS8618
         [DisplayName("LotteryDeployed")]
         public static event Action<UInt160> OnLotteryDeployed;
 
@@ -56,6 +57,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("PrizeClaimed")]
         public static event Action<UInt160, BigInteger> OnPrizeClaimed;
+#pragma warning restore CS8618
 
         public static void _deploy(object data, bool update)
         {
@@ -63,10 +65,12 @@ namespace NeoMiniAppPlatform.Contracts
 
             InitializeTemplate(data);
 
-            object[] initArgs = data as object[];
-            if (initArgs != null && initArgs.Length > 1)
+            if (data == null) return;
+
+            object[] initArgs = (object[])data;
+            if (initArgs.Length > 1 && initArgs[1] != null)
             {
-                ByteString paramsRaw = initArgs[1] as ByteString;
+                ByteString paramsRaw = (ByteString)initArgs[1];
                 if (paramsRaw != null && paramsRaw.Length > 0)
                 {
                     LotteryParams config = (LotteryParams)StdLib.Deserialize(paramsRaw);
@@ -95,8 +99,8 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static LotteryState GetLotteryState()
         {
-            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_LOTTERY_STATE);
-            if (raw == null || raw.Length == 0) return new LotteryState();
+            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_LOTTERY_STATE) ?? (ByteString)"";
+            if (raw.Length == 0) return new LotteryState();
             return (LotteryState)StdLib.Deserialize(raw);
         }
 
@@ -110,7 +114,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void BuyTicket(BigInteger amount)
         {
-            UInt160 caller = ((Transaction)Runtime.ScriptContainer).Sender;
+            UInt160 caller = Runtime.Transaction.Sender;
             ExecutionEngine.Assert(Runtime.CheckWitness(caller), "Unauthorized");
             ExecutionEngine.Assert(amount > 0, "Amount must be positive");
 
@@ -131,7 +135,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (config.TicketPrice > 0)
             {
                 BigInteger totalCost = config.TicketPrice * amount;
-                bool success = (bool)Contract.Call(config.TokenAddress, "transfer", CallFlags.All, new object[] { caller, Runtime.ExecutingScriptHash, totalCost, null });
+                bool success = (bool)Contract.Call(config.TokenAddress, "transfer", CallFlags.All, new object[] { caller, Runtime.ExecutingScriptHash, totalCost, null! });
                 ExecutionEngine.Assert(success, "Payment failed");
                 state.TotalPrizePool += totalCost;
             }
@@ -180,10 +184,12 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 BigInteger seedHash = (BigInteger)CryptoLib.Sha256((ByteString)(randomSeed + i));
                 BigInteger winningTicketId = (seedHash % state.TotalTicketsSold) + 1;
-                UInt160 winner = (UInt160)ticketMap.Get((ByteString)winningTicketId);
+                ByteString winnerRaw = ticketMap.Get((ByteString)winningTicketId) ?? (ByteString)"";
+                ExecutionEngine.Assert(winnerRaw.Length > 0, "Winning ticket not found");
+                UInt160 winner = (UInt160)winnerRaw;
                 
                 // Record winner and their prize
-                ByteString currentPrizeRaw = winnerMap.Get((ByteString)winner);
+                ByteString currentPrizeRaw = winnerMap.Get((ByteString)winner) ?? (ByteString)"";
                 BigInteger currentPrize = currentPrizeRaw != null && currentPrizeRaw.Length > 0 ? (BigInteger)currentPrizeRaw : 0;
                 winnerMap.Put((ByteString)winner, (ByteString)(currentPrize + prizePerWinner));
             }
@@ -196,17 +202,17 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void ClaimPrize()
         {
-            UInt160 caller = ((Transaction)Runtime.ScriptContainer).Sender;
+            UInt160 caller = Runtime.Transaction.Sender;
             ExecutionEngine.Assert(Runtime.CheckWitness(caller), "Unauthorized");
 
             LotteryState state = GetLotteryState();
             ExecutionEngine.Assert(state.IsDrawn, "Lottery not drawn yet");
 
             StorageMap winnerMap = new StorageMap(Storage.CurrentContext, PREFIX_WINNERS);
-            ByteString prizeRaw = winnerMap.Get((ByteString)caller);
-            ExecutionEngine.Assert(prizeRaw != null && prizeRaw.Length > 0, "No prize to claim");
+            ByteString prizeRaw = winnerMap.Get((ByteString)caller) ?? (ByteString)"";
+            ExecutionEngine.Assert(prizeRaw.Length > 0, "No prize to claim");
 
-            BigInteger prize = (BigInteger)prizeRaw;
+            BigInteger prize = (BigInteger)prizeRaw!;
             ExecutionEngine.Assert(prize > 0, "Prize is zero");
 
             LotteryParams config = GetLotteryParams();
@@ -214,7 +220,7 @@ namespace NeoMiniAppPlatform.Contracts
             // Mark as claimed (delete from map or set to 0)
             winnerMap.Delete((ByteString)caller);
 
-            bool success = (bool)Contract.Call(config.TokenAddress, "transfer", CallFlags.All, new object[] { Runtime.ExecutingScriptHash, caller, prize, null });
+            bool success = (bool)Contract.Call(config.TokenAddress, "transfer", CallFlags.All, new object[] { Runtime.ExecutingScriptHash, caller, prize, null! });
             ExecutionEngine.Assert(success, "Prize transfer failed");
 
             OnPrizeClaimed(caller, prize);

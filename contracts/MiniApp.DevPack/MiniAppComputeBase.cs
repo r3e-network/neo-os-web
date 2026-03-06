@@ -1,3 +1,5 @@
+#pragma warning disable CS8618
+#pragma warning disable CS0067
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
@@ -80,12 +82,17 @@ namespace NeoMiniAppPlatform.Contracts
         public static void RegisterScript(string scriptName, ByteString scriptHash)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(
-                scriptName != null && scriptName.Length > 0 && scriptName.Length <= 64,
-                "invalid script name");
-            ExecutionEngine.Assert(
-                scriptHash != null && scriptHash.Length == 32,
-                "script hash must be 32 bytes");
+            if (scriptName == null || scriptName.Length == 0 || scriptName.Length > 64)
+            {
+                ExecutionEngine.Assert(false, "invalid script name");
+                return;
+            }
+
+            if (scriptHash == null || scriptHash.Length != 32)
+            {
+                ExecutionEngine.Assert(false, "script hash must be 32 bytes");
+                return;
+            }
 
             // Get current version
             BigInteger version = GetScriptVersion(scriptName) + 1;
@@ -115,8 +122,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void DisableScript(string scriptName)
         {
             ValidateAdmin();
-            ByteString hash = GetScriptHash(scriptName);
-            ExecutionEngine.Assert(hash != null, "script not registered");
+            ByteString hash = RequireByteString(GetScriptHash(scriptName), "script not registered");
 
             StorageMap enabledMap = new StorageMap(Storage.CurrentContext, PREFIX_SCRIPT_ENABLED);
             enabledMap.Put(scriptName, 0);
@@ -130,8 +136,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void EnableScript(string scriptName)
         {
             ValidateAdmin();
-            ByteString hash = GetScriptHash(scriptName);
-            ExecutionEngine.Assert(hash != null, "script not registered");
+            RequireByteString(GetScriptHash(scriptName), "script not registered");
 
             StorageMap enabledMap = new StorageMap(Storage.CurrentContext, PREFIX_SCRIPT_ENABLED);
             enabledMap.Put(scriptName, 1);
@@ -148,7 +153,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static ByteString GetScriptHash(string scriptName)
         {
             StorageMap nameMap = new StorageMap(Storage.CurrentContext, PREFIX_SCRIPT_NAME);
-            return nameMap.Get(scriptName);
+            ByteString? data = nameMap.Get(scriptName);
+            return data!;
         }
 
         /// <summary>
@@ -158,7 +164,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static string GetScriptName(ByteString scriptHash)
         {
             StorageMap hashMap = new StorageMap(Storage.CurrentContext, PREFIX_SCRIPT_HASH);
-            return hashMap.Get(scriptHash);
+            ByteString? data = hashMap.Get(scriptHash);
+            return data == null ? null! : (string)data;
         }
 
         /// <summary>
@@ -167,7 +174,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static bool IsScriptValid(ByteString scriptHash)
         {
-            string name = GetScriptName(scriptHash);
+            string? name = GetScriptName(scriptHash);
             if (name == null) return false;
             return IsScriptEnabled(name);
         }
@@ -179,7 +186,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static bool IsScriptEnabled(string scriptName)
         {
             StorageMap enabledMap = new StorageMap(Storage.CurrentContext, PREFIX_SCRIPT_ENABLED);
-            return (BigInteger)enabledMap.Get(scriptName) == 1;
+            ByteString? data = enabledMap.Get(scriptName);
+            return data != null && (BigInteger)data == 1;
         }
 
         /// <summary>
@@ -189,7 +197,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetScriptVersion(string scriptName)
         {
             StorageMap versionMap = new StorageMap(Storage.CurrentContext, PREFIX_SCRIPT_VERSION);
-            ByteString data = versionMap.Get(scriptName);
+            ByteString? data = versionMap.Get(scriptName);
             return data == null ? 0 : (BigInteger)data;
         }
 
@@ -200,7 +208,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static Map<string, object> GetScriptInfo(string scriptName)
         {
             Map<string, object> info = new Map<string, object>();
-            ByteString hash = GetScriptHash(scriptName);
+            ByteString? hash = GetScriptHash(scriptName);
 
             if (hash == null)
             {
@@ -252,7 +260,8 @@ namespace NeoMiniAppPlatform.Contracts
         protected static ByteString GetOperationSeed(BigInteger operationId)
         {
             StorageMap seedMap = new StorageMap(Storage.CurrentContext, PREFIX_OPERATION_SEED);
-            return seedMap.Get(operationId.ToByteArray());
+            ByteString? data = seedMap.Get(operationId.ToByteArray());
+            return data!;
         }
 
         /// <summary>
@@ -269,8 +278,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         protected static void ValidateScriptHash(string scriptName, ByteString providedHash)
         {
-            ByteString registeredHash = GetScriptHash(scriptName);
-            ExecutionEngine.Assert(registeredHash != null, "script not registered");
+            ByteString registeredHash = RequireByteString(GetScriptHash(scriptName), "script not registered");
             ExecutionEngine.Assert(IsScriptEnabled(scriptName), "script disabled");
             ExecutionEngine.Assert(registeredHash == providedHash, "script hash mismatch");
         }
@@ -292,14 +300,14 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString resultHash)
         {
             // Verify seed exists
-            ByteString seed = GetOperationSeed(operationId);
+            ByteString? seed = GetOperationSeed(operationId);
             if (seed == null) return false;
 
             // Verify script is valid
             if (!IsScriptValid(scriptHash)) return false;
 
             // Verify script name matches hash
-            ByteString registeredHash = GetScriptHash(scriptName);
+            ByteString? registeredHash = GetScriptHash(scriptName);
             if (registeredHash != scriptHash) return false;
 
             return true;

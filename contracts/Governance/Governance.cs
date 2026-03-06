@@ -17,6 +17,7 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void ProposalCreatedHandler(string proposalId, string description, ulong startTime, ulong endTime);
     public delegate void ProposalFinalizedHandler(string proposalId, BigInteger yesVotes, BigInteger noVotes, bool passed);
     public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
+    public delegate void VoteStakeReclaimedHandler(UInt160 voter, string proposalId, BigInteger amount, BigInteger newAvailableStake);
 
     [DisplayName("Governance")]
     [ManifestExtra("Author", "R3E Network")]
@@ -31,6 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_PROPOSAL = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_VOTE = new byte[] { 0x04 };
         private static readonly byte[] PREFIX_QUORUM = new byte[] { 0x05 };
+        private static readonly byte[] PREFIX_VOTE_LOCK = new byte[] { 0x06 };
 
         // Maximum votes per proposal (10 billion NEO - total supply cap)
         private static readonly BigInteger MAX_VOTES_PER_PROPOSAL = 10_000_000_000_00000000;
@@ -64,6 +66,9 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("AdminChanged")]
         public static event AdminChangedHandler OnAdminChanged;
 
+        [DisplayName("VoteStakeReclaimed")]
+        public static event VoteStakeReclaimedHandler OnVoteStakeReclaimed;
+
         public static void _deploy(object data, bool update)
         {
             if (update) return;
@@ -87,11 +92,17 @@ namespace NeoMiniAppPlatform.Contracts
         private static StorageMap StakeMap() => new StorageMap(Storage.CurrentContext, PREFIX_STAKE);
         private static StorageMap ProposalMap() => new StorageMap(Storage.CurrentContext, PREFIX_PROPOSAL);
         private static StorageMap VoteMap() => new StorageMap(Storage.CurrentContext, PREFIX_VOTE);
+        private static StorageMap VoteLockMap() => new StorageMap(Storage.CurrentContext, PREFIX_VOTE_LOCK);
 
         private static ByteString ProposalKey(string proposalId)
         {
             ExecutionEngine.Assert(proposalId != null && proposalId.Length > 0, "proposal id required");
             return (ByteString)proposalId;
+        }
+
+        private static byte[] VoteRecordKey(string proposalId, UInt160 voter)
+        {
+            return Helper.Concat((byte[])ProposalKey(proposalId), (byte[])voter);
         }
 
         public static BigInteger GetStake(UInt160 account)
@@ -217,11 +228,17 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger stake = GetStake(voter);
             ExecutionEngine.Assert(stake >= amount, "insufficient stake");
 
-            // One vote record per voter+proposal (simple model).
-            byte[] voteKey = Helper.Concat((byte[])ProposalKey(proposalId), (byte[])voter);
+            // One vote record per voter+proposal.
+            byte[] voteKey = VoteRecordKey(proposalId, voter);
             ByteString prev = VoteMap().Get(voteKey);
             ExecutionEngine.Assert(prev == null, "already voted");
+
+            // Lock voted stake immediately so the same stake cannot be reused.
+            BigInteger remaining = stake - amount;
+            StakeMap().Put(voter, remaining);
+
             VoteMap().Put(voteKey, amount.ToByteArray());
+            VoteLockMap().Put(voteKey, amount.ToByteArray());
 
             if (support) p.Yes += amount;
             else p.No += amount;
@@ -232,6 +249,33 @@ namespace NeoMiniAppPlatform.Contracts
 
             ProposalMap().Put(ProposalKey(proposalId), StdLib.Serialize(p));
             OnVoted(voter, proposalId, support, amount);
+        }
+
+        public static void ReclaimVoteStake(string proposalId)
+        {
+            ExecutionEngine.Assert(proposalId != null && proposalId.Length > 0, "proposal id required");
+
+            Transaction tx = Runtime.Transaction;
+            UInt160 voter = tx.Sender;
+            ExecutionEngine.Assert(Runtime.CheckWitness(voter), "unauthorized");
+
+            Proposal p = GetProposal(proposalId);
+            ExecutionEngine.Assert(p.ProposalId != null && p.ProposalId.Length > 0, "proposal not found");
+            ExecutionEngine.Assert(p.Finalized || Runtime.Time > p.EndTime, "proposal still active");
+
+            byte[] voteKey = VoteRecordKey(proposalId, voter);
+            ByteString lockRaw = VoteLockMap().Get(voteKey);
+            ExecutionEngine.Assert(lockRaw != null, "no locked stake");
+
+            BigInteger lockedAmount = (BigInteger)lockRaw;
+            ExecutionEngine.Assert(lockedAmount > 0, "invalid locked stake");
+
+            BigInteger available = GetStake(voter);
+            BigInteger updated = available + lockedAmount;
+            StakeMap().Put(voter, updated);
+            VoteLockMap().Delete(voteKey);
+
+            OnVoteStakeReclaimed(voter, proposalId, lockedAmount, updated);
         }
 
         public static void Finalize(string proposalId)

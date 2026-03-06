@@ -1,3 +1,4 @@
+#pragma warning disable CS8618
 using System.ComponentModel;
 using System.Numerics;
 using Neo;
@@ -31,7 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
     /// - MiniAppNeoGacha
     /// - Any betting/gambling MiniApp
     /// </summary>
-    public abstract class MiniAppGameBase : MiniAppBase
+    public abstract class MiniAppGameBase : MiniAppContract
     {
         #region Gaming Storage Prefixes (0x10-0x17)
 
@@ -80,7 +81,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BetLimitsConfig GetBetLimits()
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_BET_LIMITS_CONFIG);
+            ByteString? data = GetStorageValue(PREFIX_BET_LIMITS_CONFIG);
             if (data == null)
             {
                 return new BetLimitsConfig
@@ -98,7 +99,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetPlayerDailyBet(UInt160 player)
         {
             byte[] key = Helper.Concat(PREFIX_PLAYER_DAILY_BET, (ByteString)player);
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = GetStorageValue(key);
             if (data == null) return 0;
 
             object[] stored = (object[])StdLib.Deserialize(data);
@@ -113,7 +114,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetPlayerLastBetTime(UInt160 player)
         {
             byte[] key = Helper.Concat(PREFIX_PLAYER_LAST_BET, (ByteString)player);
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = GetStorageValue(key);
             return data == null ? 0 : (BigInteger)data;
         }
 
@@ -121,7 +122,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetPlayerBetCount(UInt160 player)
         {
             byte[] key = Helper.Concat(PREFIX_PLAYER_BET_COUNT, (ByteString)player);
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = GetStorageValue(key);
             return data == null ? 0 : (BigInteger)data;
         }
 
@@ -213,7 +214,7 @@ namespace NeoMiniAppPlatform.Contracts
         protected static BigInteger RequestRng(string appId, ByteString payload)
         {
             UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+            ExecutionEngine.Assert(gateway != UInt160.Zero && gateway.IsValid, "gateway not set");
 
             return (BigInteger)Contract.Call(
                 gateway,
@@ -240,8 +241,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         protected static ByteString GetRequestData(BigInteger requestId)
         {
-            return Storage.Get(Storage.CurrentContext,
+            ByteString? data = GetStorageValue(
                 Helper.Concat(PREFIX_REQUEST_TO_DATA, (ByteString)requestId.ToByteArray()));
+            return data!;
         }
 
         protected static void DeleteRequestData(BigInteger requestId)

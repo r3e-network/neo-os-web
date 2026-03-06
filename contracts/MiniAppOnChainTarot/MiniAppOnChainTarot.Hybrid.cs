@@ -246,13 +246,13 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static Map<string, object> GetReaderProfileRaw(UInt160 reader)
         {
-            ReaderProfile profile = GetReaderProfile(reader);
+            ReaderProfile profile = GetReader(reader);
             Map<string, object> data = new Map<string, object>();
 
-            data["totalReadings"] = profile.TotalReadings;
+            data["totalReadings"] = profile.TotalInterpretations;
             data["totalRatings"] = profile.TotalRatings;
             data["ratingSum"] = profile.RatingSum;
-            data["joinTime"] = profile.JoinTime;
+            data["joinTime"] = profile.RegisteredTime;
 
             return data;
         }

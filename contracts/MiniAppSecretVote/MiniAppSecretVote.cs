@@ -285,13 +285,22 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Returns the AutomationAnchor contract address.
         /// </summary>
-        
+        public static UInt160 AutomationAnchor()
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR);
+            return data == null ? UInt160.Zero : (UInt160)data;
+        }
 
         /// <summary>
         /// Sets the AutomationAnchor contract address.
         /// SECURITY: Only admin can set the automation anchor.
         /// </summary>
-        
+        public static void SetAutomationAnchor(UInt160 anchor)
+        {
+            ValidateAdmin();
+            ValidateAddress(anchor);
+            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR, anchor);
+        }
 
         /// <summary>
         /// Periodic execution callback invoked by AutomationAnchor.

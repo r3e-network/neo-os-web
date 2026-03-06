@@ -343,6 +343,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void SetAppRegistry(UInt160 appRegistry)
         {
             ValidateAdmin();
+            ExecutionEngine.Assert(appRegistry != null && appRegistry.IsValid, "invalid app registry");
             UInt160 oldRegistry = AppRegistry();
             Storage.Put(Storage.CurrentContext, PREFIX_APP_REGISTRY, appRegistry);
             OnAppRegistryChanged(oldRegistry, appRegistry);
@@ -351,6 +352,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
+            ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
         }
         #endregion
