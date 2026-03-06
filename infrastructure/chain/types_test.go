@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -61,6 +62,16 @@ func TestIsNotFoundError(t *testing.T) {
 			name:     "case insensitive",
 			err:      &RPCError{Code: -1, Message: "UNKNOWN TRANSACTION"},
 			expected: true,
+		},
+		{
+			name:     "wrapped rpc error",
+			err:      fmt.Errorf("wrapped: %w", &RPCError{Code: -105, Message: "unknown script container"}),
+			expected: true,
+		},
+		{
+			name:     "substring match should not count as not found",
+			err:      &RPCError{Code: -1, Message: "failed to decode unknown transaction format"},
+			expected: false,
 		},
 	}
 

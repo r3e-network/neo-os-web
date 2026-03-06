@@ -2,6 +2,7 @@
 package fairy
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,15 +21,22 @@ func skipIfNoFairy(t *testing.T) {
 	}
 }
 
-func getContractPaths(t *testing.T) (nefPath, manifestPath string) {
+func builtContractPaths(contractName string) (nefPath, manifestPath string, err error) {
+	testDir, wdErr := os.Getwd()
+	if wdErr != nil {
+		return "", "", fmt.Errorf("getwd: %w", wdErr)
+	}
+	root := filepath.Join(testDir, "..", "..")
+	return filepath.Join(root, "contracts", "build", contractName+".nef"), filepath.Join(root, "contracts", "build", contractName+".manifest.json"), nil
+}
+
+func getBuiltContractPaths(t *testing.T, contractName string) (nefPath, manifestPath string) {
 	t.Helper()
 
-	// Find contracts relative to test file
-	testDir, _ := os.Getwd()
-	root := filepath.Join(testDir, "..", "..")
-
-	nefPath = filepath.Join(root, "contracts", "build", "PriceFeed.nef")
-	manifestPath = filepath.Join(root, "contracts", "build", "PriceFeed.manifest.json")
+	nefPath, manifestPath, err := builtContractPaths(contractName)
+	if err != nil {
+		t.Fatalf("builtContractPaths(%s): %v", contractName, err)
+	}
 
 	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
 		t.Skipf("Contract not found: %s", nefPath)
@@ -38,6 +46,11 @@ func getContractPaths(t *testing.T) (nefPath, manifestPath string) {
 	}
 
 	return nefPath, manifestPath
+}
+
+func getContractPaths(t *testing.T) (nefPath, manifestPath string) {
+	t.Helper()
+	return getBuiltContractPaths(t, "PriceFeed")
 }
 
 // TestFairyConnectivity tests basic connectivity to Fairy.
@@ -59,14 +72,12 @@ func TestFairySessionManagement(t *testing.T) {
 
 	client := NewClient(fairyRPCURL)
 
-	// Create session
 	sessionID, err := client.NewSession()
 	if err != nil {
 		t.Fatalf("NewSession: %v", err)
 	}
 	t.Logf("Created session: %s", sessionID)
 
-	// Delete session
 	if err := client.DeleteSession(sessionID); err != nil {
 		t.Errorf("DeleteSession: %v", err)
 	}
@@ -79,7 +90,6 @@ func TestFairyVirtualDeploy(t *testing.T) {
 	nefPath, manifestPath := getContractPaths(t)
 	client := NewClient(fairyRPCURL)
 
-	// Setup session with GAS for deployment (1000 GAS)
 	sessionID, accountHash, err := client.SetupSessionWithGas(1000_00000000)
 	if err != nil {
 		t.Skipf("SetupSessionWithGas: %v", err)
@@ -87,7 +97,6 @@ func TestFairyVirtualDeploy(t *testing.T) {
 	defer client.DeleteSession(sessionID)
 	t.Logf("Session: %s, Account: %s", sessionID, accountHash)
 
-	// Deploy contract
 	result, err := client.VirtualDeploy(sessionID, nefPath, manifestPath)
 	if err != nil {
 		t.Fatalf("VirtualDeploy: %v", err)
@@ -110,14 +119,12 @@ func TestPriceFeedContractWithFairy(t *testing.T) {
 	nefPath, manifestPath := getContractPaths(t)
 	client := NewClient(fairyRPCURL)
 
-	// Setup session with GAS for deployment
 	sessionID, _, err := client.SetupSessionWithGas(1000_00000000)
 	if err != nil {
 		t.Skipf("SetupSessionWithGas: %v", err)
 	}
 	defer client.DeleteSession(sessionID)
 
-	// Deploy PriceFeed contract
 	deployResult, err := client.VirtualDeploy(sessionID, nefPath, manifestPath)
 	if err != nil {
 		t.Fatalf("VirtualDeploy: %v", err)
@@ -145,14 +152,12 @@ func TestPriceFeedReadOnlyFlow(t *testing.T) {
 	nefPath, manifestPath := getContractPaths(t)
 	client := NewClient(fairyRPCURL)
 
-	// Setup session with GAS
 	sessionID, _, err := client.SetupSessionWithGas(1000_00000000)
 	if err != nil {
 		t.Skipf("SetupSessionWithGas: %v", err)
 	}
 	defer client.DeleteSession(sessionID)
 
-	// Deploy contract
 	deployResult, err := client.VirtualDeploy(sessionID, nefPath, manifestPath)
 	if err != nil {
 		t.Fatalf("VirtualDeploy: %v", err)
@@ -160,13 +165,11 @@ func TestPriceFeedReadOnlyFlow(t *testing.T) {
 	contractHash := deployResult.ContractHash
 	t.Logf("Contract deployed: %s", contractHash)
 
-	// Set virtual time (to avoid timestamp issues)
 	now := uint64(time.Now().UnixMilli())
 	if setTimeErr := client.SetTime(sessionID, now); setTimeErr != nil {
 		t.Logf("SetTime: %v (might not be supported)", setTimeErr)
 	}
 
-	// Get admin address (should be the deployer)
 	adminResult, err := client.InvokeFunctionWithSession(
 		sessionID,
 		false,
@@ -179,7 +182,6 @@ func TestPriceFeedReadOnlyFlow(t *testing.T) {
 	}
 	t.Logf("Admin result: %+v", adminResult)
 
-	// Updater is optional until configured.
 	updaterResult, err := client.InvokeFunctionWithSession(sessionID, false, contractHash, "updater", nil)
 	if err != nil {
 		t.Fatalf("updater(): %v", err)
@@ -194,13 +196,15 @@ func BenchmarkFairyDeploy(b *testing.B) {
 		b.Skip("Neo Fairy not available")
 	}
 
-	testDir, _ := os.Getwd()
-	root := filepath.Join(testDir, "..", "..")
-	nefPath := filepath.Join(root, "contracts", "build", "PriceFeed.nef")
-	manifestPath := filepath.Join(root, "contracts", "build", "PriceFeed.manifest.json")
-
+	nefPath, manifestPath, err := builtContractPaths("PriceFeed")
+	if err != nil {
+		b.Fatalf("builtContractPaths(PriceFeed): %v", err)
+	}
 	if _, err := os.Stat(nefPath); os.IsNotExist(err) {
 		b.Skip("Contract not found")
+	}
+	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+		b.Skip("Manifest not found")
 	}
 
 	b.ResetTimer()

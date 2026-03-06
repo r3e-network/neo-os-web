@@ -32,6 +32,37 @@ import (
 // the oldest entries are evicted to keep memory bounded.
 const maxPriceCacheEntries = 1000
 
+type priceSourceHTTPError struct {
+	SourceID  string
+	SourceURL string
+	*httputil.HTTPStatusError
+}
+
+func (e *priceSourceHTTPError) Error() string {
+	if e == nil {
+		return "price source request failed"
+	}
+	if e.HTTPStatusError == nil {
+		return "price source request failed"
+	}
+	if msg := strings.TrimSpace(e.Body); msg != "" {
+		return fmt.Sprintf("price source returned HTTP %d: %s", e.StatusCode, msg)
+	}
+	return fmt.Sprintf("price source returned HTTP %d", e.StatusCode)
+}
+
+// Unwrap exposes the shared HTTP status error for generic classification.
+func (e *priceSourceHTTPError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.HTTPStatusError
+}
+
+func isPriceSourceStatusError(err error, statusCode int) bool {
+	return httputil.IsHTTPStatusError(err, statusCode)
+}
+
 // priceCacheEntry holds a cached PriceResponse and the time it was fetched.
 type priceCacheEntry struct {
 	response  *PriceResponse
@@ -46,7 +77,7 @@ type priceCacheEntry struct {
 func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, error) {
 	normalizedPair := normalizePair(pair)
 	if normalizedPair == "" {
-		return nil, fmt.Errorf("pair required")
+		return nil, ErrPairRequired
 	}
 
 	// Check price cache before hitting upstream sources.
@@ -98,6 +129,9 @@ func (s *Service) GetPrice(ctx context.Context, pair string) (*PriceResponse, er
 func (s *Service) fetchAndCachePrice(ctx context.Context, normalizedPair, originalPair string) (*PriceResponse, error) {
 	// Try to find feed config for this pair (supports legacy BTC/USD inputs).
 	feed := s.findFeedByPair(normalizedPair)
+	if feed == nil && len(s.GetEnabledFeeds()) > 0 {
+		return nil, fmt.Errorf("%w: %s", ErrPriceFeedNotFound, normalizedPair)
+	}
 
 	feedID := normalizedPair
 	responsePair := normalizedPair
@@ -183,7 +217,7 @@ func (s *Service) fetchAndCachePrice(ctx context.Context, normalizedPair, origin
 	wg.Wait()
 
 	if len(prices) == 0 {
-		return nil, fmt.Errorf("no prices available for %s", normalizedPair)
+		return nil, fmt.Errorf("%w for %s", ErrPriceDataUnavailable, normalizedPair)
 	}
 
 	medianPrice := s.calculateMedian(prices)
@@ -269,12 +303,7 @@ func (s *Service) evictOldestCacheEntryLocked() {
 }
 
 func isDuplicatePriceFeedError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "duplicate") && strings.Contains(msg, "23505")
+	return database.IsUniqueViolationError(err)
 }
 
 // findFeedByPair finds a feed config by pair or feed ID.
@@ -355,15 +384,7 @@ func (s *Service) fetchPriceFromSource(ctx context.Context, pair string, feed *F
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
-		if readErr != nil {
-			return 0, readErr
-		}
-		msg := strings.TrimSpace(string(respBody))
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return 0, fmt.Errorf("price source returned HTTP %d: %s", resp.StatusCode, msg)
+		return 0, toPriceSourceHTTPError(resp, src.ID, url)
 	}
 
 	body, err := httputil.ReadAllStrict(resp.Body, 1<<20)
@@ -463,15 +484,11 @@ func (s *Service) refreshYahooQuoteMap(ctx context.Context, src *SourceConfig) (
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
-		if readErr != nil {
-			return nil, readErr
+		sourceID := ""
+		if src != nil {
+			sourceID = src.ID
 		}
-		msg := strings.TrimSpace(string(respBody))
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return nil, fmt.Errorf("price source returned HTTP %d: %s", resp.StatusCode, msg)
+		return nil, toPriceSourceHTTPError(resp, sourceID, url)
 	}
 
 	body, err := httputil.ReadAllStrict(resp.Body, 1<<20)
@@ -614,15 +631,7 @@ func (s *Service) fetchPrice(ctx context.Context, pair string, source PriceSourc
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
-		if readErr != nil {
-			return 0, readErr
-		}
-		msg := strings.TrimSpace(string(respBody))
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return 0, fmt.Errorf("price source returned HTTP %d: %s", resp.StatusCode, msg)
+		return 0, toPriceSourceHTTPError(resp, source.Name, url)
 	}
 
 	body, err := httputil.ReadAllStrict(resp.Body, 1<<20)
@@ -679,6 +688,25 @@ func formatSourceURL(tmpl, pair string) string {
 		return strings.ReplaceAll(tmpl, "%sPAIR%s", safe)
 	}
 	return strings.ReplaceAll(tmpl, "{pair}", safe)
+}
+
+func toPriceSourceHTTPError(resp *http.Response, sourceID, sourceURL string) error {
+	trimmedSourceID := strings.TrimSpace(sourceID)
+	trimmedSourceURL := strings.TrimSpace(sourceURL)
+	statusErr, buildErr := httputil.BuildHTTPStatusError(resp, http.MethodGet, trimmedSourceURL, 32<<10)
+	if buildErr != nil && statusErr == nil {
+		return buildErr
+	}
+
+	httpErr := &priceSourceHTTPError{
+		SourceID:        trimmedSourceID,
+		SourceURL:       trimmedSourceURL,
+		HTTPStatusError: statusErr,
+	}
+	if buildErr != nil {
+		return httputil.WrapReadBodyError(httpErr, buildErr)
+	}
+	return httpErr
 }
 
 // formatSourceURLNew formats URL template with feed-specific placeholders.

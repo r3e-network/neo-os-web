@@ -2,10 +2,13 @@ package chain
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -252,6 +255,47 @@ func TestRPCPoolExecuteWithFailoverAllFail(t *testing.T) {
 	}
 }
 
+func TestNewRPCPoolRedirectDoesNotFollow(t *testing.T) {
+	var redirectedHits int32
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&redirectedHits, 1)
+		payload, _ := json.Marshal(map[string]any{
+			"jsonrpc": "2.0",
+			"id":      1,
+			"result":  12345,
+		})
+		_, _ = w.Write(payload)
+	}))
+	defer target.Close()
+
+	redirector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer redirector.Close()
+
+	baseClient := &http.Client{}
+	pool, err := NewRPCPool(&RPCPoolConfig{
+		Endpoints:           []string{redirector.URL},
+		HealthCheckTimeout:  time.Second,
+		MaxConsecutiveFails: 1,
+		HTTPClient:          baseClient,
+	})
+	if err != nil {
+		t.Fatalf("NewRPCPool() error = %v", err)
+	}
+	if baseClient.CheckRedirect != nil {
+		t.Fatal("NewRPCPool() should not mutate caller-provided HTTP client")
+	}
+
+	pool.checkEndpoint(context.Background(), pool.endpoints[0])
+	if pool.HealthyCount() != 0 {
+		t.Fatalf("HealthyCount() = %d, want 0 for redirect response", pool.HealthyCount())
+	}
+	if hits := atomic.LoadInt32(&redirectedHits); hits != 0 {
+		t.Fatalf("redirect target should not be called, got %d hit(s)", hits)
+	}
+}
+
 func TestRPCPoolHealthCheck(t *testing.T) {
 	client := &http.Client{
 		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -285,6 +329,66 @@ func TestRPCPoolHealthCheck(t *testing.T) {
 
 	if pool.HealthyCount() != 1 {
 		t.Errorf("HealthyCount() = %d, want 1", pool.HealthyCount())
+	}
+}
+
+func TestRPCPoolHealthCheckUnhealthyOnInvalidJSONRPCPayload(t *testing.T) {
+	client := &http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     http.StatusText(http.StatusOK),
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       io.NopCloser(strings.NewReader(`not-json`)),
+				Request:    req,
+			}, nil
+		}),
+	}
+
+	pool, err := NewRPCPool(&RPCPoolConfig{
+		Endpoints:           []string{"http://example.com"},
+		HealthCheckTimeout:  1 * time.Second,
+		MaxConsecutiveFails: 1,
+		HTTPClient:          client,
+	})
+	if err != nil {
+		t.Fatalf("NewRPCPool() error = %v", err)
+	}
+
+	pool.checkEndpoint(context.Background(), pool.endpoints[0])
+	if pool.HealthyCount() != 0 {
+		t.Fatalf("HealthyCount() = %d, want 0 for invalid JSON-RPC payload", pool.HealthyCount())
+	}
+}
+
+func TestRPCPoolHealthCheckUnhealthyOnJSONRPCErrorObject(t *testing.T) {
+	client := &http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     http.StatusText(http.StatusOK),
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body: io.NopCloser(strings.NewReader(
+					`{"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"method not found"}}`,
+				)),
+				Request: req,
+			}, nil
+		}),
+	}
+
+	pool, err := NewRPCPool(&RPCPoolConfig{
+		Endpoints:           []string{"http://example.com"},
+		HealthCheckTimeout:  1 * time.Second,
+		MaxConsecutiveFails: 1,
+		HTTPClient:          client,
+	})
+	if err != nil {
+		t.Fatalf("NewRPCPool() error = %v", err)
+	}
+
+	pool.checkEndpoint(context.Background(), pool.endpoints[0])
+	if pool.HealthyCount() != 0 {
+		t.Fatalf("HealthyCount() = %d, want 0 for JSON-RPC error payload", pool.HealthyCount())
 	}
 }
 

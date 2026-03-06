@@ -59,11 +59,14 @@ func (r *Repository) GetTrigger(ctx context.Context, id, userID string) (*Trigge
 		return nil, fmt.Errorf("id and user_id cannot be empty")
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("id", id).
 		Eq("user_id", userID).
 		Limit(1).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build trigger query: %w", err)
+	}
 
 	rows, err := database.GenericListWithQuery[Trigger](r.base, ctx, triggersTable, query)
 	if err != nil {
@@ -99,12 +102,15 @@ func (r *Repository) UpdateTrigger(ctx context.Context, trigger *Trigger) error 
 		return fmt.Errorf("id and user_id cannot be empty")
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("id", trigger.ID).
 		Eq("user_id", trigger.UserID).
 		Build()
+	if err != nil {
+		return fmt.Errorf("build trigger update query: %w", err)
+	}
 
-	_, err := r.base.Request(ctx, http.MethodPatch, triggersTable, trigger, query)
+	_, err = r.base.Request(ctx, http.MethodPatch, triggersTable, trigger, query)
 	if err != nil {
 		return fmt.Errorf("update neoflow trigger: %w", err)
 	}
@@ -117,12 +123,15 @@ func (r *Repository) DeleteTrigger(ctx context.Context, id, userID string) error
 		return fmt.Errorf("id and user_id cannot be empty")
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("id", id).
 		Eq("user_id", userID).
 		Build()
+	if err != nil {
+		return fmt.Errorf("build trigger delete query: %w", err)
+	}
 
-	_, err := r.base.Request(ctx, http.MethodDelete, triggersTable, nil, query)
+	_, err = r.base.Request(ctx, http.MethodDelete, triggersTable, nil, query)
 	if err != nil {
 		return fmt.Errorf("delete neoflow trigger: %w", err)
 	}
@@ -140,12 +149,15 @@ func (r *Repository) SetTriggerEnabled(ctx context.Context, id, userID string, e
 		update["next_execution"] = time.Now()
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("id", id).
 		Eq("user_id", userID).
 		Build()
+	if err != nil {
+		return fmt.Errorf("build trigger enable query: %w", err)
+	}
 
-	_, err := r.base.Request(ctx, http.MethodPatch, triggersTable, update, query)
+	_, err = r.base.Request(ctx, http.MethodPatch, triggersTable, update, query)
 	if err != nil {
 		return fmt.Errorf("set neoflow trigger enabled: %w", err)
 	}
@@ -156,10 +168,13 @@ func (r *Repository) SetTriggerEnabled(ctx context.Context, id, userID string, e
 func (r *Repository) GetPendingTriggers(ctx context.Context) ([]Trigger, error) {
 	now := time.Now().Format(time.RFC3339)
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		IsTrue("enabled").
 		Lte("next_execution", now).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build pending triggers query: %w", err)
+	}
 
 	return database.GenericListWithQuery[Trigger](r.base, ctx, triggersTable, query)
 }
@@ -192,11 +207,14 @@ func (r *Repository) GetExecutions(ctx context.Context, triggerID string, limit 
 		limit = 50
 	}
 
-	query := database.NewQuery().
+	query, err := database.NewQuery().
 		Eq("trigger_id", triggerID).
 		OrderDesc("executed_at").
 		Limit(limit).
 		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build executions query: %w", err)
+	}
 
 	return database.GenericListWithQuery[Execution](r.base, ctx, executionsTable, query)
 }

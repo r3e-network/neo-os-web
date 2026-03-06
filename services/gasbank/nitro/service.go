@@ -41,6 +41,13 @@ const (
 	GASContractHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
 )
 
+const (
+	errUserIDRequired       = "user_id is required"
+	errAmountMustBePositive = "amount must be positive"
+	errServiceIDRequired    = "service_id is required"
+	errFeeDeductionFailed   = "fee deduction failed"
+)
+
 var errDepositMismatch = errors.New("deposit transaction does not match request")
 
 // Service implements the NeoGasBank service.
@@ -156,7 +163,7 @@ func (s *Service) statistics() map[string]any {
 // GetAccount retrieves or creates a gas bank account for a user.
 func (s *Service) GetAccount(ctx context.Context, userID string) (*GetAccountResponse, error) {
 	if userID == "" {
-		return nil, fmt.Errorf("user_id is required")
+		return nil, errors.New(errUserIDRequired)
 	}
 
 	account, err := s.db.GetOrCreateGasBankAccount(ctx, userID)
@@ -179,19 +186,19 @@ func (s *Service) GetAccount(ctx context.Context, userID string) (*GetAccountRes
 // This is called by other TEE services (neofeeds, neoflow, etc.) via mTLS.
 func (s *Service) DeductFee(ctx context.Context, req *DeductFeeRequest) (*DeductFeeResponse, error) {
 	if req.UserID == "" {
-		return &DeductFeeResponse{Success: false, Error: "user_id is required"}, nil
+		return &DeductFeeResponse{Success: false, Error: errUserIDRequired}, nil
 	}
 	if req.Amount <= 0 {
-		return &DeductFeeResponse{Success: false, Error: "amount must be positive"}, nil
+		return &DeductFeeResponse{Success: false, Error: errAmountMustBePositive}, nil
 	}
 	if req.ServiceID == "" {
-		return &DeductFeeResponse{Success: false, Error: "service_id is required"}, nil
+		return &DeductFeeResponse{Success: false, Error: errServiceIDRequired}, nil
 	}
 
 	result, err := s.db.DeductFeeAtomic(ctx, req.UserID, req.Amount, req.ServiceID, req.ReferenceID)
 	if err != nil {
 		s.Logger().WithContext(ctx).WithError(err).WithField("user_id", req.UserID).Error("atomic deduct failed")
-		return &DeductFeeResponse{Success: false, Error: "fee deduction failed"}, nil
+		return &DeductFeeResponse{Success: false, Error: errFeeDeductionFailed}, nil
 	}
 
 	if !result.Success {
@@ -212,10 +219,10 @@ func (s *Service) DeductFee(ctx context.Context, req *DeductFeeRequest) (*Deduct
 // ReserveFunds reserves funds for a pending operation.
 func (s *Service) ReserveFunds(ctx context.Context, req *ReserveFundsRequest) (*ReserveFundsResponse, error) {
 	if req.UserID == "" {
-		return &ReserveFundsResponse{Success: false, Error: "user_id is required"}, nil
+		return &ReserveFundsResponse{Success: false, Error: errUserIDRequired}, nil
 	}
 	if req.Amount <= 0 {
-		return &ReserveFundsResponse{Success: false, Error: "amount must be positive"}, nil
+		return &ReserveFundsResponse{Success: false, Error: errAmountMustBePositive}, nil
 	}
 
 	result, err := s.db.ReserveFundsAtomic(ctx, req.UserID, req.Amount)
@@ -238,10 +245,10 @@ func (s *Service) ReserveFunds(ctx context.Context, req *ReserveFundsRequest) (*
 // ReleaseFunds releases or commits reserved funds.
 func (s *Service) ReleaseFunds(ctx context.Context, req *ReleaseFundsRequest) (*ReleaseFundsResponse, error) {
 	if req.UserID == "" {
-		return &ReleaseFundsResponse{Success: false, Error: "user_id is required"}, nil
+		return &ReleaseFundsResponse{Success: false, Error: errUserIDRequired}, nil
 	}
 	if req.Amount <= 0 {
-		return &ReleaseFundsResponse{Success: false, Error: "amount must be positive"}, nil
+		return &ReleaseFundsResponse{Success: false, Error: errAmountMustBePositive}, nil
 	}
 
 	result, err := s.db.ReleaseFundsAtomic(ctx, req.UserID, req.Amount, req.Commit)

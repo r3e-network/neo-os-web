@@ -14,6 +14,16 @@ import (
 // QueryBuilder Tests
 // =============================================================================
 
+func mustBuildQuery(t *testing.T, q *QueryBuilder) string {
+	t.Helper()
+
+	result, err := q.Build()
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+	return result
+}
+
 func TestNewQuery(t *testing.T) {
 	q := NewQuery()
 	if q == nil {
@@ -28,11 +38,14 @@ func TestNewQuery(t *testing.T) {
 	if q.limit != 0 {
 		t.Error("NewQuery() should have zero limit")
 	}
+	if q.err != nil {
+		t.Fatalf("NewQuery() error = %v, want nil", q.err)
+	}
 }
 
 func TestQueryBuilderEq(t *testing.T) {
 	q := NewQuery().Eq("name", "test")
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "name=eq.test" {
 		t.Errorf("Build() = %q, want %q", result, "name=eq.test")
 	}
@@ -40,8 +53,7 @@ func TestQueryBuilderEq(t *testing.T) {
 
 func TestQueryBuilderEqWithSpecialChars(t *testing.T) {
 	q := NewQuery().Eq("name", "test value&special")
-	result := q.Build()
-	// URL encoded
+	result := mustBuildQuery(t, q)
 	if !strings.Contains(result, "name=eq.") {
 		t.Errorf("Build() = %q, should contain encoded value", result)
 	}
@@ -49,7 +61,7 @@ func TestQueryBuilderEqWithSpecialChars(t *testing.T) {
 
 func TestQueryBuilderIsNull(t *testing.T) {
 	q := NewQuery().IsNull("deleted_at")
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "deleted_at=is.null" {
 		t.Errorf("Build() = %q, want %q", result, "deleted_at=is.null")
 	}
@@ -57,7 +69,7 @@ func TestQueryBuilderIsNull(t *testing.T) {
 
 func TestQueryBuilderIsFalse(t *testing.T) {
 	q := NewQuery().IsFalse("is_active")
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "is_active=eq.false" {
 		t.Errorf("Build() = %q, want %q", result, "is_active=eq.false")
 	}
@@ -65,7 +77,7 @@ func TestQueryBuilderIsFalse(t *testing.T) {
 
 func TestQueryBuilderIsTrue(t *testing.T) {
 	q := NewQuery().IsTrue("is_active")
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "is_active=eq.true" {
 		t.Errorf("Build() = %q, want %q", result, "is_active=eq.true")
 	}
@@ -73,7 +85,7 @@ func TestQueryBuilderIsTrue(t *testing.T) {
 
 func TestQueryBuilderLte(t *testing.T) {
 	q := NewQuery().Lte("created_at", "2024-01-01")
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "created_at=lte.2024-01-01" {
 		t.Errorf("Build() = %q, want %q", result, "created_at=lte.2024-01-01")
 	}
@@ -81,7 +93,7 @@ func TestQueryBuilderLte(t *testing.T) {
 
 func TestQueryBuilderGte(t *testing.T) {
 	q := NewQuery().Gte("created_at", "2024-01-01")
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "created_at=gte.2024-01-01" {
 		t.Errorf("Build() = %q, want %q", result, "created_at=gte.2024-01-01")
 	}
@@ -89,7 +101,7 @@ func TestQueryBuilderGte(t *testing.T) {
 
 func TestQueryBuilderOrderAsc(t *testing.T) {
 	q := NewQuery().OrderAsc("name")
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "order=name.asc" {
 		t.Errorf("Build() = %q, want %q", result, "order=name.asc")
 	}
@@ -97,7 +109,7 @@ func TestQueryBuilderOrderAsc(t *testing.T) {
 
 func TestQueryBuilderOrderDesc(t *testing.T) {
 	q := NewQuery().OrderDesc("created_at")
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "order=created_at.desc" {
 		t.Errorf("Build() = %q, want %q", result, "order=created_at.desc")
 	}
@@ -105,7 +117,7 @@ func TestQueryBuilderOrderDesc(t *testing.T) {
 
 func TestQueryBuilderLimit(t *testing.T) {
 	q := NewQuery().Limit(10)
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "limit=10" {
 		t.Errorf("Build() = %q, want %q", result, "limit=10")
 	}
@@ -118,9 +130,8 @@ func TestQueryBuilderChaining(t *testing.T) {
 		OrderDesc("created_at").
 		Limit(50)
 
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 
-	// Check all parts are present
 	if !strings.Contains(result, "user_id=eq.123") {
 		t.Error("Build() should contain user_id filter")
 	}
@@ -137,7 +148,7 @@ func TestQueryBuilderChaining(t *testing.T) {
 
 func TestQueryBuilderEmptyBuild(t *testing.T) {
 	q := NewQuery()
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "" {
 		t.Errorf("Build() = %q, want empty string", result)
 	}
@@ -145,7 +156,7 @@ func TestQueryBuilderEmptyBuild(t *testing.T) {
 
 func TestQueryBuilderOnlyOrder(t *testing.T) {
 	q := NewQuery().OrderAsc("name")
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "order=name.asc" {
 		t.Errorf("Build() = %q, want %q", result, "order=name.asc")
 	}
@@ -153,7 +164,7 @@ func TestQueryBuilderOnlyOrder(t *testing.T) {
 
 func TestQueryBuilderOnlyLimit(t *testing.T) {
 	q := NewQuery().Limit(100)
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 	if result != "limit=100" {
 		t.Errorf("Build() = %q, want %q", result, "limit=100")
 	}
@@ -165,12 +176,26 @@ func TestQueryBuilderMultipleFilters(t *testing.T) {
 		Gte("amount", "100").
 		Lte("amount", "1000")
 
-	result := q.Build()
+	result := mustBuildQuery(t, q)
 
-	// Should have & separators
 	parts := strings.Split(result, "&")
 	if len(parts) != 3 {
 		t.Errorf("Build() should have 3 parts, got %d: %q", len(parts), result)
+	}
+}
+
+func TestQueryBuilderInvalidFieldReturnsError(t *testing.T) {
+	q := NewQuery().Eq("name;drop", "test").OrderAsc("created_at")
+
+	result, err := q.Build()
+	if err == nil {
+		t.Fatal("Build() should return error for invalid field")
+	}
+	if result != "" {
+		t.Fatalf("Build() result = %q, want empty string on error", result)
+	}
+	if !strings.Contains(err.Error(), "invalid field name") {
+		t.Fatalf("Build() error = %q, want invalid field name", err.Error())
 	}
 }
 

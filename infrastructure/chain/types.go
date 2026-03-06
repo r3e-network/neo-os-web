@@ -3,6 +3,7 @@ package chain
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -39,17 +40,31 @@ func (e *RPCError) Error() string {
 }
 
 func isNotFoundError(err error) bool {
-	if rpcErr, ok := err.(*RPCError); ok {
-		msg := strings.ToLower(rpcErr.Message)
-		// -100: Unknown transaction
-		// -105: Unknown script container (transaction not yet confirmed)
-		if strings.Contains(msg, "unknown transaction") ||
-			strings.Contains(msg, "unknown script container") ||
-			rpcErr.Code == -100 || rpcErr.Code == -105 {
-			return true
-		}
+	var rpcErr *RPCError
+	if !errors.As(err, &rpcErr) {
+		return false
 	}
-	return false
+
+	// -100: Unknown transaction
+	// -105: Unknown script container (transaction not yet confirmed)
+	if rpcErr.Code == -100 || rpcErr.Code == -105 {
+		return true
+	}
+
+	return isKnownRPCNotFoundMessage(rpcErr.Message)
+}
+
+func isKnownRPCNotFoundMessage(msg string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(msg))
+	normalized = strings.TrimSuffix(normalized, ".")
+	normalized = strings.TrimSpace(normalized)
+
+	switch normalized {
+	case "unknown transaction", "unknown script container":
+		return true
+	default:
+		return false
+	}
 }
 
 // =============================================================================

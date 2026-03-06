@@ -19,6 +19,10 @@ import (
 
 // Verifies a master-key attestation bundle hash matches the expected on-chain attestation hash.
 // Bundle fields expected: pubkey, hash (sha256(pubkey)), plus optional provider evidence fields.
+var newVerifyBundleHTTPClient = func() *http.Client {
+	return httputil.CopyHTTPClientWithTimeoutNoRedirect(nil, 30*time.Second, false)
+}
+
 func main() {
 	bundleURI := flag.String("bundle", "", "Bundle URI (file:///path or https://...) containing pubkey/hash/quote")
 	expected := flag.String("expected-hash", "", "Expected SHA-256(bundle) hex (on-chain attestation hash)")
@@ -76,22 +80,18 @@ func fetch(uri string) ([]byte, error) {
 		return nil, err
 	}
 
-	httpClient := &http.Client{Timeout: 30 * time.Second}
+	httpClient := newVerifyBundleHTTPClient()
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		b, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
+		httpErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, req, 32<<10)
 		if readErr != nil {
-			return nil, fmt.Errorf("http %d (failed to read body: %v)", resp.StatusCode, readErr)
+			return nil, httputil.WrapReadBodyError(httpErr, readErr)
 		}
-		msg := string(b)
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return nil, fmt.Errorf("http %d: %s", resp.StatusCode, msg)
+		return nil, httpErr
 	}
 	body, err := httputil.ReadAllStrict(resp.Body, 64<<20)
 	if err != nil {
