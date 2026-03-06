@@ -1,0 +1,8 @@
+-- Add content display columns to miniapps table
+ALTER TABLE miniapps ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE miniapps ADD COLUMN IF NOT EXISTS banner_url TEXT;
+ALTER TABLE miniapps ADD COLUMN IF NOT EXISTS docs_url TEXT;
+ALTER TABLE miniapps ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE miniapps ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE miniapps ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE miniapps ADD COLUMN IF NOT EXISTS icon TEXT;
