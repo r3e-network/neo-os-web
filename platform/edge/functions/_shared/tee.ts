@@ -16,7 +16,7 @@ function getMTLSClient(): Deno.HttpClient | undefined {
 
   const cert = getEnv("TEE_MTLS_CERT_PEM") ?? getEnv("EDGE_MTLS_CERT_PEM");
   const key = getEnv("TEE_MTLS_KEY_PEM") ?? getEnv("EDGE_MTLS_KEY_PEM");
-  const ca = getEnv("TEE_MTLS_ROOT_CA_PEM") ?? getEnv("MARBLERUN_ROOT_CA_PEM");
+  const ca = getEnv("TEE_MTLS_ROOT_CA_PEM") ?? getEnv("NITRO_ROOT_CA_PEM");
 
   if (!cert || !key) {
     mtlsClient = null;
@@ -64,6 +64,9 @@ export async function requestJSON(
   }
 
   const headers = new Headers(init.headers);
+  if (!headers.get("X-Service-ID")) {
+    headers.set("X-Service-ID", getEnv("EDGE_SERVICE_ID") ?? "gateway");
+  }
   let body: string | undefined = undefined;
 
   if (init.body !== undefined) {
