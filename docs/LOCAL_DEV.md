@@ -7,7 +7,7 @@ Complete guide for setting up the local k3s development environment for the Neo 
 The local development stack provides a complete Kubernetes environment running on your machine with:
 
 - **k3s**: Lightweight Kubernetes distribution
-- **NitroRun Coordinator**: TEE orchestration for local Nitro-oriented workflows
+- **Kubernetes-native local mesh**: service-to-service HTTP for local Nitro-oriented workflows on any CPU architecture
 - **Traefik**: Ingress controller with TLS
 - **cert-manager**: Automatic TLS certificate management
 - **Self-signed certificates**: For `*.localhost` domains
@@ -21,7 +21,7 @@ The local development stack provides a complete Kubernetes environment running o
 - **CPU**: 4+ cores (8+ recommended)
 - **Memory**: 8GB+ RAM (16GB+ recommended)
 - **Disk**: 20GB+ free space
-- **Architecture**: x86_64 (ARM64 experimental)
+- **Architecture**: x86_64 or ARM64
 
 ### Required Tools
 
@@ -35,9 +35,8 @@ curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
 
 # Install Go 1.21+ (for building services)
-wget https://go.dev/dl/go1.21.5.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz
-echo 'export PATH=$PATH:/usr/local/bin/go/bin' >> ~/.bashrc
+# Download the archive that matches your CPU architecture from https://go.dev/dl/
+
 ```
 
 ## Quick Start
@@ -75,7 +74,7 @@ This will:
 2. Create all required namespaces
 3. Install cert-manager
 4. Set up self-signed TLS certificates
-5. Deploy NitroRun coordinator (local development mode)
+5. Enable Kubernetes-native local mesh mode (no external coordinator)
 
 ### 2. Verify Installation
 
@@ -95,7 +94,7 @@ Expected output:
 ```
 ✓ k3s: Running
 ✓ cert-manager: Installed
-✓ NitroRun: Installed
+✓ Local mesh mode: Kubernetes-native (no NitroRun coordinator)
 ✓ Traefik: Running
 ```
 
@@ -116,7 +115,7 @@ make docker-up
 
 The local stack creates the following namespaces:
 
-- `nitrorun`: NitroRun coordinator
+- `cert-manager`: TLS for ingress and optional local certificates
 - `service-layer`: Core services (neoaccounts, neofeeds, etc.)
 - `supabase`: Database and auth services (local dev)
 - `platform`: Edge gateway and admin console (DEVSTACK-3/4)
@@ -134,11 +133,11 @@ The local stack creates the following namespaces:
         ┌─────────────────────┼─────────────────────┐
         │                     │                     │
 ┌───────▼────────┐  ┌─────────▼────────┐  ┌────────▼────────┐
-│   NitroRun    │  │  Service Layer   │  │    Supabase     │
-│  Coordinator   │  │    Services      │  │   (local)       │
-│                │  │                  │  │                 │
-│ :4433 (client) │  │ neoaccounts:8085 │  │ postgres:5432   │
-│ :2001 (mesh)   │  │ neofeeds:8083    │  │ postgrest:3000  │
+│ Kubernetes     │  │  Service Layer   │  │    Supabase     │
+│ local network   │  │    Services      │  │   (local)       │
+│ (Cluster DNS)   │  │                  │  │                 │
+│ service-layer   │  │ neoaccounts:8085 │  │ postgres:5432   │
+│ platform        │  │ neofeeds:8083    │  │ postgrest:3000  │
 └────────────────┘  │ neoflow:8084     │  └─────────────────┘
                     │ neogasbank:8091  │
                     │ neosimulation:8093 │
@@ -150,7 +149,7 @@ The local stack creates the following namespaces:
 
 All services are accessible via `*.localhost` domains:
 
-- **NitroRun Coordinator**: `https://coordinator.nitrorun.localhost:4433`
+- **Service Layer APIs**: access via `kubectl port-forward` or in-cluster DNS
 - **Services**: Port-forward individual services as needed
 - **Supabase** (local): `https://supabase.localhost`
 - **Admin Console** (future): `https://admin.localhost`
@@ -170,25 +169,18 @@ make dev-stack-down
 make dev-stack-status
 ```
 
-### Access NitroRun Coordinator
+### Access Service Layer APIs
 
 ```bash
-# Port forward to coordinator
-kubectl -n nitrorun port-forward svc/coordinator-client-api 4433:4433
+# Port forward a service for debugging
+kubectl -n service-layer port-forward svc/neofeeds 8083:8083
 
-# In another terminal, set manifest
-nitrorun manifest set manifests/manifest.json localhost:4433 --insecure
-
-# Check status
-nitrorun status localhost:4433 --insecure
+# Health check
+curl http://localhost:8083/health
 ```
 
-If `manifest set` reports `server is not in expected state`, the coordinator
-already has a manifest and is running. Use:
-
-```bash
-nitrorun manifest update manifests/manifest.json localhost:4433 --insecure
-```
+The local k3s flow uses a Kubernetes-native HTTP mesh by default.
+Production-style mTLS is optional and can be layered on later if needed.
 
 ### Local Supabase
 
@@ -251,17 +243,14 @@ For browser access, map the node IP to `edge.localhost` in `/etc/hosts`:
 <node-ip> edge.localhost
 ```
 
-### Edge mTLS (TEE Services)
+### Edge ↔ Service Layer Connectivity
 
-To allow the Edge gateway to call TEE services over **mTLS**, run:
+The default local k3s flow uses **plain HTTP** inside the cluster so it works on
+aarch64 hosts without NitroRun. The Edge gateway talks to service-layer pods via
+`http://*.service-layer.svc.cluster.local` in development mode.
 
-```bash
-./scripts/setup_edge_mtls.sh --env-file .env.local
-```
-
-This generates a client CA + cert, registers the CA with service-layer nitros
-via `NITRO_EXTRA_CLIENT_CA`, and configures the Edge gateway with the client
-certificate plus the NitroRun root CA for server verification.
+If you later add your own internal PKI, you can still use `./scripts/setup_edge_mtls.sh`
+as a separate hardening step.
 
 ### Access Services
 
@@ -282,8 +271,6 @@ kubectl -n service-layer logs -f --all-containers=true -l app=neoaccounts
 # Specific pod
 kubectl -n service-layer logs -f <pod-name>
 
-# NitroRun coordinator
-kubectl -n nitrorun logs -f deployment/coordinator
 ```
 
 ### Rebuild and Redeploy
@@ -348,18 +335,17 @@ kubectl -n cert-manager describe certificate wildcard-localhost
 kubectl -n cert-manager logs -f deployment/cert-manager
 ```
 
-### NitroRun Coordinator Not Ready
+### Local Mesh Not Reaching Services
 
 ```bash
-# Check coordinator logs
-kubectl -n nitrorun logs -f deployment/coordinator
+# Check service pods
+kubectl -n service-layer get pods
 
-# Check coordinator status
-kubectl -n nitrorun get pods
+# Inspect a representative service
+kubectl -n service-layer logs -f deployment/neofeeds
 
-# Verify Nitro backend declaration
-kubectl -n nitrorun get deployment coordinator -o yaml | grep TEE_BACKEND
-# Should show: value: nitro
+# Inspect the edge gateway
+kubectl -n platform logs -f deployment/edge-gateway
 ```
 
 ### Clean Slate Reset
@@ -392,10 +378,10 @@ export INSTALL_TIMEOUT=300
 
 Edit the following files to customize your setup:
 
-- `k8s/namespaces.yaml`: Add/modify namespaces
+- `k8s/base/namespace.yaml`, `k8s/supabase/base/namespace.yaml`, `k8s/platform/*/namespace.yaml`: Add/modify namespaces
 - `k8s/ingress/wildcard-cert.yaml`: Add more DNS names
-- `k8s/nitrorun/overlays/nitro/coordinator.yaml`: Adjust coordinator resources
-- `scripts/k3s-local-setup.sh`: Modify installation steps
+- `scripts/k3s-local-setup.sh`: Adjust NitroRun installation and bootstrap steps
+- `scripts/bootstrap_k3s_dev.sh`: Modify full-stack bootstrap sequencing
 
 ## Development Workflow
 
@@ -452,7 +438,7 @@ For faster iteration, consider using:
 After setting up the local dev stack:
 
 1. **DEVSTACK-2**: Set up self-hosted Supabase
-    - See `.claude/specs/local-dev-stack/dev-plan.md`
+    - Continue with `./scripts/bootstrap_k3s_dev.sh --env-file .env --edge-env-file .env.local`
 
 2. **DEVSTACK-3**: Deploy Edge gateway
     - Configure service mesh and routing
@@ -463,7 +449,6 @@ After setting up the local dev stack:
 ## Resources
 
 - [k3s Documentation](https://docs.k3s.io/)
-- [NitroRun Documentation](https://docs.edgeless.systems/nitrorun/)
 - [cert-manager Documentation](https://cert-manager.io/docs/)
 - [Traefik Documentation](https://doc.traefik.io/traefik/)
 
@@ -474,4 +459,4 @@ For issues or questions:
 1. Check the troubleshooting section above
 2. Review logs: `kubectl logs -n <namespace> <pod-name>`
 3. Check cluster events: `kubectl get events -A --sort-by='.lastTimestamp'`
-4. Consult the development plan: `.claude/specs/local-dev-stack/dev-plan.md`
+4. Continue with `scripts/bootstrap_k3s_dev.sh` and `docs/WORKFLOWS.md` for end-to-end setup and validation
