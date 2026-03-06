@@ -65,6 +65,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -324,6 +325,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -527,6 +529,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -704,6 +707,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -881,6 +885,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -1046,6 +1051,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -1234,6 +1240,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -1484,6 +1491,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -1685,6 +1693,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -1865,6 +1874,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -2073,6 +2083,7 @@ spec:
             configMapKeyRef:
               name: edge-client-ca
               key: ca.pem
+              optional: true
         - name: METRICS_ENABLED
           valueFrom:
             configMapKeyRef:

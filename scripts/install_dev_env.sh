@@ -20,6 +20,13 @@ check_sudo() {
     fi
 }
 
+require_apt() {
+    if ! command -v apt-get >/dev/null 2>&1; then
+        log_error "scripts/install_dev_env.sh currently supports apt-based hosts only (for example Ubuntu 24.04). Install the required tools manually on this host."
+        return 1
+    fi
+}
+
 install_prerequisites() {
     log_info "Installing prerequisites..."
     sudo apt-get update
@@ -45,21 +52,63 @@ install_nitro_tools() {
     fi
 }
 
-install_nitrorun() {
-    log_info "Installing NitroRun CLI..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-    curl -fsSL https://github.com/edgelesssys/nitrorun/releases/latest/download/nitrorun-linux-amd64 \
-        -o /tmp/nitrorun
+install_nitrorun() {
+    log_info "Installing NitroRun-compatible CLI..."
+
+    if command -v nitrorun >/dev/null 2>&1; then
+        log_info "NitroRun CLI already installed: $(nitrorun version 2>/dev/null || echo 'installed')"
+        return 0
+    fi
+
+    local arch
+    arch="$(uname -m)"
+
+    local asset_url
+    case "$arch" in
+        x86_64|amd64)
+            asset_url="https://github.com/edgelesssys/marblerun/releases/latest/download/marblerun-x86_64.AppImage"
+            ;;
+        *)
+            log_error "Automatic NitroRun-compatible install is only supported on x86_64 hosts (detected: $arch)."
+            log_warn "Install a compatible coordinator CLI manually and expose it as 'nitrorun' in PATH."
+            return 1
+            ;;
+    esac
+
+    curl -fsSL "$asset_url" -o /tmp/nitrorun
 
     chmod +x /tmp/nitrorun
     sudo mv /tmp/nitrorun /usr/local/bin/nitrorun
 
-    if command -v nitrorun &> /dev/null; then
+    if command -v nitrorun >/dev/null 2>&1; then
         log_info "NitroRun CLI installed: $(nitrorun version 2>/dev/null || echo 'installed')"
     else
         log_error "NitroRun CLI installation failed"
         return 1
     fi
+}
+
+deploy_nitrorun() {
+    log_info "Deploying NitroRun coordinator to Kubernetes..."
+
+    if kubectl -n nitrorun get deployment coordinator >/dev/null 2>&1; then
+        log_info "NitroRun coordinator already installed."
+        return 0
+    fi
+
+    nitrorun install --simulation || {
+        log_error "Failed to install NitroRun coordinator"
+        return 1
+    }
+
+    log_info "Waiting for NitroRun coordinator components..."
+    nitrorun check --timeout 180s || {
+        log_warn "NitroRun coordinator may not be fully ready yet; showing current status."
+        kubectl -n nitrorun get deploy,pods,svc || true
+    }
 }
 
 install_k3s() {
@@ -96,16 +145,6 @@ install_helm() {
     fi
 }
 
-deploy_nitrorun() {
-    log_info "Deploying NitroRun to Kubernetes..."
-    nitrorun install --simulation
-
-    log_info "Waiting for NitroRun components..."
-    nitrorun check --timeout 120s || {
-        log_warn "NitroRun check timed out, checking pod status..."
-        kubectl get pods -n nitrorun
-    }
-}
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -126,6 +165,7 @@ main() {
     echo ""
 
     check_sudo
+    require_apt
 
     SKIP_K8S=false
     SKIP_NITRORUN=false

@@ -4,7 +4,7 @@
 # - k3s + NitroRun + cert-manager
 # - Supabase (local) in k3s
 # - service-layer nitros
-# - Edge gateway + mTLS
+# - Edge gateway
 #
 # Usage:
 #   ./scripts/bootstrap_k3s_dev.sh [--env-file .env] [--edge-env-file .env.local]
@@ -77,32 +77,28 @@ echo "Env file: $ENV_FILE"
 echo "Edge env file: $EDGE_ENV_FILE"
 
 echo ""
-echo "[1/6] Installing k3s + NitroRun + cert-manager..."
+echo "[1/5] Installing k3s + local service mesh + cert-manager..."
 ./scripts/k3s-local-setup.sh install
 
 echo ""
-echo "[2/6] Deploying local Supabase into k3s..."
+echo "[2/5] Deploying local Supabase into k3s..."
 ./scripts/supabase-k3s.sh deploy
 
 echo ""
-echo "[3/6] Applying secrets + config..."
+echo "[3/5] Applying secrets + config..."
 ./scripts/apply_k8s_secrets_from_env.sh --env-file "$EDGE_ENV_FILE"
 ./scripts/apply_k8s_config_from_env.sh --env-file "$ENV_FILE"
 
 echo ""
-echo "[4/6] Deploying service-layer nitros..."
+echo "[4/5] Deploying service-layer nitros..."
 ./scripts/deploy_k8s.sh --env dev
 
 echo ""
-echo "[5/6] Building + deploying Edge gateway..."
+echo "[5/5] Building + deploying Edge gateway..."
 docker build -f platform/edge/k8s.dockerfile -t service-layer/edge-gateway:latest platform/edge
 docker save service-layer/edge-gateway:latest | "${SUDO[@]}" k3s ctr images import -
 ./scripts/apply_edge_secrets_from_env.sh --env-file "$EDGE_ENV_FILE"
 kubectl apply -k k8s/platform/edge
-
-echo ""
-echo "[6/6] Setting up Edge ↔ TEE mTLS..."
-./scripts/setup_edge_mtls.sh --env-file "$EDGE_ENV_FILE"
 
 echo ""
 echo "✅ Bootstrap complete."

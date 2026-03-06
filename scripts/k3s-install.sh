@@ -12,8 +12,8 @@ usage() {
 Usage: ./scripts/k3s-install.sh <install|status|cleanup>
 
 Commands:
-  install   Install k3s and deploy local NitroRun coordinator overlay.
-  status    Show k3s and NitroRun status.
+  install   Install k3s for local Kubernetes-native service mesh mode.
+  status    Show k3s and local service status.
   cleanup   Uninstall k3s.
 USAGE
 }
@@ -40,8 +40,7 @@ install_k3s() {
   echo "Waiting for node readiness..."
   kubectl wait --for=condition=Ready node --all --timeout=180s
 
-  echo "Deploying local NitroRun coordinator overlay..."
-  kubectl apply -k "$PROJECT_ROOT/k8s/nitrorun/overlays/nitro/"
+  echo "Using Kubernetes-native local service mesh mode (no NitroRun coordinator)."
 
   echo "k3s install completed (Nitro-oriented local profile)."
 }
@@ -51,8 +50,8 @@ show_status() {
   echo "== Nodes =="
   kubectl get nodes -o wide
   echo ""
-  echo "== NitroRun namespace =="
-  kubectl -n nitrorun get deploy,pods,svc
+  echo "== Service Layer namespaces =="
+  kubectl get ns service-layer supabase platform cert-manager 2>/dev/null || true
 }
 
 cleanup_k3s() {
