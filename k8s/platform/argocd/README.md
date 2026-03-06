@@ -116,10 +116,9 @@ patches:
 
 ```yaml
 resources:
-  - ../nitro-prod
+  - ../nitro
   - pdb.yaml
   - networkpolicy.yaml
-  - networkpolicy-egress.yaml
 ```
 
 ## 自动同步策略
