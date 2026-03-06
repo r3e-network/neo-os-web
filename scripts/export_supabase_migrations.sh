@@ -6,6 +6,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SRC_DIR="$PROJECT_ROOT/migrations"
 DEST_DIR="$PROJECT_ROOT/supabase/migrations"
+K8S_DEST_DIR="$PROJECT_ROOT/k8s/supabase/overlays/local/migrations"
 BASE_VERSION="${SUPABASE_MIGRATIONS_BASE_VERSION:-20000101000000}"
 
 if [[ ! -d "$SRC_DIR" ]]; then
@@ -13,11 +14,12 @@ if [[ ! -d "$SRC_DIR" ]]; then
   exit 1
 fi
 
-mkdir -p "$DEST_DIR"
+mkdir -p "$DEST_DIR" "$K8S_DEST_DIR"
 
 echo "Exporting migrations:"
 echo "  from: $SRC_DIR"
 echo "    to: $DEST_DIR"
+echo "    to: $K8S_DEST_DIR"
 
 if [[ ! "$BASE_VERSION" =~ ^[0-9]{14}$ ]]; then
   echo "ERROR: SUPABASE_MIGRATIONS_BASE_VERSION must be 14 digits (got: $BASE_VERSION)" >&2
@@ -35,6 +37,7 @@ fi
 
 # Keep tracked layout in dest, but remove previously-exported SQL files.
 find "$DEST_DIR" -maxdepth 1 -type f -name "*.sql" -delete
+find "$K8S_DEST_DIR" -maxdepth 1 -type f -name "*.sql" -delete
 
 copied=0
 shopt -s nullglob
@@ -54,8 +57,10 @@ for src in "$SRC_DIR"/[0-9][0-9][0-9]_*.sql; do
   version="$(printf "%014d" "$version")"
 
   dest="$DEST_DIR/${version}_${rest}"
+  k8s_dest="$K8S_DEST_DIR/${version}_${rest}"
   cp -f "$src" "$dest"
-  chmod 0644 "$dest" || true
+  cp -f "$src" "$k8s_dest"
+  chmod 0644 "$dest" "$k8s_dest" || true
   copied=$((copied + 1))
 done
 

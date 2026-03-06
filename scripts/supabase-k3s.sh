@@ -203,12 +203,21 @@ create_postgres_roles() {
 
     # Create anon and service_role roles
     log_info "Creating database roles..."
-    if ! kubectl exec -n supabase "$postgres_pod" -- psql -U postgres -d postgres <<'EOSQL'
+    if ! kubectl exec -i -n supabase "$postgres_pod" -- psql -U postgres -d postgres <<'EOSQL'
 -- Create anon role
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN
         CREATE ROLE anon NOLOGIN;
+    END IF;
+END
+$$;
+
+-- Create authenticated role
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated NOLOGIN;
     END IF;
 END
 $$;
@@ -223,15 +232,15 @@ END
 $$;
 
 -- Grant permissions
-GRANT USAGE ON SCHEMA public TO anon, service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, service_role;
-GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, service_role;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
 
 -- Set default privileges
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
 EOSQL
     then
         log_warn "Failed to create roles (they may already exist)"
