@@ -45,9 +45,8 @@ Stable service IDs (runtime) used throughout the repo:
 
 ## Legacy
 
-The previous "Gateway binary + legacy REST API" documentation has been moved to:
-
-- `docs/legacy/API_DOCUMENTATION_LEGACY_GATEWAY.md`
+The previous "Gateway binary + legacy REST API" documentation was removed during the Nitro-only migration.
+Refer to Git history if you need the pre-migration reference material.
 
 ## NeoFlow Automation API
 

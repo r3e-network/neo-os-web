@@ -298,7 +298,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - **Neo Foundation**: For supporting the development of this project
-- **Edgeless Systems**: For NitroRun and Nitro runtime frameworks
+- **AWS**: For AWS Nitro Enclave integration
 - **Intel**: For NitroRun/Nitro runtime technology and developer support
 - **Supabase**: For database infrastructure
 - **Neo Community**: For feedback and testing

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Neo Service Layer - Initial Database Schema
--- MarbleRun + Nitro + Supabase Architecture
+-- AWS Nitro + Supabase Architecture
 -- =============================================================================
 
 -- Enable required extensions
