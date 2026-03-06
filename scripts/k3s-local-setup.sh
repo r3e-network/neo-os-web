@@ -184,13 +184,14 @@ setup_kubeconfig() {
 create_namespaces() {
     step "Creating namespaces..."
 
-    if kubectl get namespace nitrorun &> /dev/null; then
-        log "Namespaces already exist"
-        return 0
-    fi
-
-    kubectl apply -f "$PROJECT_ROOT/k8s/namespaces.yaml" \
+    kubectl apply \
+        -f "$PROJECT_ROOT/k8s/base/namespace.yaml" \
+        -f "$PROJECT_ROOT/k8s/supabase/base/namespace.yaml" \
+        -f "$PROJECT_ROOT/k8s/platform/admin/namespace.yaml" \
+        -f "$PROJECT_ROOT/k8s/platform/argocd/namespace.yaml" \
+        -f "$PROJECT_ROOT/k8s/platform/cert-manager/namespace.yaml" \
         || error "Failed to create namespaces"
+
 
     save_state "namespaces_created"
     log "✓ Namespaces created"
@@ -247,26 +248,12 @@ setup_ingress() {
     log "✓ Ingress configuration applied"
 }
 
-# ==================== NitroRun Installation ====================
-install_nitrorun() {
-    step "Installing NitroRun coordinator (nitro overlay)..."
-
-    if kubectl -n nitrorun get deployment coordinator &> /dev/null; then
-        log "NitroRun coordinator already installed"
-        return 0
-    fi
-
-    log "Applying NitroRun coordinator manifests..."
-    kubectl apply -k "$PROJECT_ROOT/k8s/nitrorun/overlays/nitro/" \
-        || error "Failed to install NitroRun coordinator"
-
-    log "Waiting for NitroRun coordinator to be ready..."
-    kubectl -n nitrorun wait --for=condition=available \
-        --timeout=180s deployment coordinator \
-        || warn "NitroRun coordinator may not be fully ready yet"
-
-    save_state "nitrorun_installed"
-    log "✓ NitroRun coordinator installed successfully"
+# ==================== Local TEE Mesh Setup ====================
+configure_local_mesh() {
+    step "Configuring local service mesh mode..."
+    log "Using Kubernetes-native local mode (no NitroRun coordinator)."
+    save_state "local_mesh_mode"
+    log "✓ Local service mesh mode configured"
 }
 
 # ==================== Verification ====================
@@ -294,8 +281,8 @@ verify_installation() {
     kubectl -n cert-manager get certificates
 
     echo ""
-    log "========== NitroRun Status =========="
-    kubectl -n nitrorun get pods
+    log "========== Local Mesh Mode =========="
+    echo "Kubernetes-native HTTP mesh (no coordinator deployment)"
 
     echo ""
     log "========== Traefik Ingress Controller =========="
@@ -330,11 +317,7 @@ check_status() {
         echo "❌ cert-manager: Not installed"
     fi
 
-    if kubectl get namespace nitrorun &> /dev/null; then
-        echo "✓ NitroRun: Installed"
-    else
-        echo "❌ NitroRun: Not installed"
-    fi
+    echo "✓ Local mesh mode: Kubernetes-native (no NitroRun coordinator)"
 
     if kubectl -n kube-system get pods -l app.kubernetes.io/name=traefik &> /dev/null; then
         echo "✓ Traefik: Running"
@@ -412,7 +395,7 @@ main() {
             create_namespaces
             install_cert_manager
             setup_ingress
-            install_nitrorun
+            configure_local_mesh
 
             verify_installation
 
@@ -426,7 +409,6 @@ main() {
             log "  2. Check status: make dev-stack-status"
             log "  3. View documentation: docs/LOCAL_DEV.md"
             log ""
-            log "Coordinator: kubectl -n nitrorun port-forward svc/coordinator-client-api 4433:4433"
             log ""
             ;;
         status|--check)

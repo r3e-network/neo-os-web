@@ -49,6 +49,33 @@ patches:
         path: /data/SUPABASE_ALLOW_INSECURE
         value: "true"
       - op: replace
+        path: /data/GLOBALSIGNER_SERVICE_URL
+        value: "http://globalsigner:8092"
+      - op: replace
+        path: /data/TXPROXY_URL
+        value: "http://txproxy:8090"
+      - op: replace
+        path: /data/GASBANK_URL
+        value: "http://neogasbank:8091"
+      - op: replace
+        path: /data/NEOACCOUNTS_SERVICE_URL
+        value: "http://neoaccounts:8085"
+      - op: replace
+        path: /data/NEOCOMPUTE_URL
+        value: "http://neocompute:8086"
+      - op: replace
+        path: /data/NEOVRF_URL
+        value: "http://neovrf:8087"
+      - op: replace
+        path: /data/NEOORACLE_URL
+        value: "http://neooracle:8088"
+      - op: replace
+        path: /data/NEOFEEDS_URL
+        value: "http://neofeeds:8083"
+      - op: replace
+        path: /data/NEOFLOW_URL
+        value: "http://neoflow:8084"
+      - op: replace
         path: /data/CONTRACT_PAYMENTHUB_HASH
         value: "0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193"
       - op: replace
