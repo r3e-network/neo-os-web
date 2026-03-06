@@ -94,13 +94,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Events
         [DisplayName("TemplateUpserted")]
-        public static event Action<string, string, ByteString, ByteString, bool> OnTemplateUpserted;
+        public static event Action<string, string, ByteString, ByteString, bool> OnTemplateUpserted = delegate { };
 
         [DisplayName("TemplateDeployed")]
-        public static event Action<string, string, UInt160, UInt160> OnTemplateDeployed;
+        public static event Action<string, string, UInt160, UInt160> OnTemplateDeployed = delegate { };
 
         [DisplayName("AppRegistryChanged")]
-        public static event Action<UInt160, UInt160> OnAppRegistryChanged;
+        public static event Action<UInt160, UInt160> OnAppRegistryChanged = delegate { };
         #endregion
 
         #region Lifecycle
@@ -148,9 +148,15 @@ namespace NeoMiniAppPlatform.Contracts
             return Helper.Concat((ByteString)templateId, (ByteString)contractHash);
         }
 
+        private static UInt160 ReadAddress(byte[] key)
+        {
+            ByteString? value = Storage.Get(Storage.CurrentContext, key);
+            return value == null ? UInt160.Zero : (UInt160)value;
+        }
+
         private static string[] ReadStringList(StorageMap map, ByteString key)
         {
-            ByteString raw = map.Get(key);
+            ByteString? raw = map.Get(key);
             if (raw == null || raw.Length == 0)
             {
                 return new string[0];
@@ -255,7 +261,7 @@ namespace NeoMiniAppPlatform.Contracts
                 return new string[0];
             }
 
-            ByteString indexRaw = map.Get(IndexKey(indexValue));
+            ByteString? indexRaw = map.Get(IndexKey(indexValue));
             if (indexRaw != null && indexRaw.Length > 0)
             {
                 return (string[])StdLib.Deserialize(indexRaw);
@@ -266,7 +272,7 @@ namespace NeoMiniAppPlatform.Contracts
                 return new string[0];
             }
 
-            ByteString legacy = map.Get((ByteString)indexValue);
+            ByteString? legacy = map.Get((ByteString)indexValue);
             if (legacy == null || legacy.Length == 0)
             {
                 return new string[0];
@@ -319,7 +325,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void UpdateDeploymentAppId(string templateId, UInt160 contractHash, string appId)
         {
-            ByteString raw = DeploymentByHashMap().Get((ByteString)contractHash);
+            ByteString? raw = DeploymentByHashMap().Get((ByteString)contractHash);
             if (raw == null) return;
 
             DeploymentRecord record = (DeploymentRecord)StdLib.Deserialize(raw);
@@ -329,38 +335,38 @@ namespace NeoMiniAppPlatform.Contracts
         #endregion
 
         #region Admin Methods
-        public static UInt160 Admin() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+        public static UInt160 Admin() => ReadAddress(PREFIX_ADMIN);
 
-        public static UInt160 AppRegistry() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_APP_REGISTRY);
+        public static UInt160 AppRegistry() => ReadAddress(PREFIX_APP_REGISTRY);
 
         private static void ValidateAdmin()
         {
             UInt160 admin = Admin();
-            ExecutionEngine.Assert(admin != null && admin.IsValid, "admin not set");
+            ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
         public static void SetAppRegistry(UInt160 appRegistry)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(appRegistry != null && appRegistry.IsValid, "invalid app registry");
+            ExecutionEngine.Assert(appRegistry != UInt160.Zero && appRegistry.IsValid, "invalid app registry");
             UInt160 oldRegistry = AppRegistry();
-            Storage.Put(Storage.CurrentContext, PREFIX_APP_REGISTRY, appRegistry);
+            Storage.Put(Storage.CurrentContext, PREFIX_APP_REGISTRY, (ByteString)appRegistry);
             OnAppRegistryChanged(oldRegistry, appRegistry);
         }
 
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            ExecutionEngine.Assert(newAdmin != UInt160.Zero && newAdmin.IsValid, "invalid admin");
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, (ByteString)newAdmin);
         }
         #endregion
 
         #region Template Management
         public static TemplateInfo GetTemplate(string templateId)
         {
-            ByteString raw = TemplateMap().Get((ByteString)templateId);
+            ByteString? raw = TemplateMap().Get((ByteString)templateId);
             if (raw == null) return new TemplateInfo();
             return (TemplateInfo)StdLib.Deserialize(raw);
         }
@@ -384,53 +390,60 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(nefFile != null && nefFile.Length > 0, "nef required");
             ExecutionEngine.Assert(manifest != null && manifest.Length > 0, "manifest required");
 
-            TemplateInfo existing = GetTemplate(templateId);
+            string normalizedTemplateId = templateId ?? "";
+            string normalizedTemplateType = templateType ?? "";
+            ByteString normalizedNefFile = nefFile ?? (ByteString)"";
+            string normalizedManifest = manifest ?? "";
+            ByteString normalizedConfigSchema = configSchema ?? (ByteString)"";
+            ByteString normalizedUiSchema = uiSchema ?? (ByteString)"";
+            string normalizedCategory = category != null && category.Length > 0 ? category : "utility";
+
+            TemplateInfo existing = GetTemplate(normalizedTemplateId);
             bool isUpdate = existing.TemplateId != null && existing.TemplateId.Length > 0;
 
             UInt160 operatorAddress = Runtime.Transaction.Sender;
-            ByteString nefHash = CryptoLib.Sha256(nefFile);
-            ByteString manifestHash = CryptoLib.Sha256((ByteString)manifest);
-            string normalizedCategory = category != null && category.Length > 0 ? category : "utility";
+            ByteString nefHash = CryptoLib.Sha256(normalizedNefFile);
+            ByteString manifestHash = CryptoLib.Sha256((ByteString)normalizedManifest);
 
             TemplateInfo info = new TemplateInfo
             {
-                TemplateId = templateId,
-                TemplateType = templateType,
+                TemplateId = normalizedTemplateId,
+                TemplateType = normalizedTemplateType,
                 Category = normalizedCategory,
-                NefFile = nefFile,
-                Manifest = manifest,
+                NefFile = normalizedNefFile,
+                Manifest = normalizedManifest,
                 NefHash = nefHash,
                 ManifestHash = manifestHash,
                 Description = description ?? "",
                 Version = version ?? "1.0.0",
-                ConfigSchema = configSchema ?? (ByteString)"",
-                UiSchema = uiSchema ?? (ByteString)"",
+                ConfigSchema = normalizedConfigSchema,
+                UiSchema = normalizedUiSchema,
                 Active = active,
                 UpdatedAt = Runtime.Time,
                 UpdatedBy = operatorAddress,
                 DeployCount = existing.DeployCount
             };
 
-            TemplateMap().Put((ByteString)templateId, StdLib.Serialize(info));
-            AddTemplateIdToAllList(templateId);
+            TemplateMap().Put((ByteString)normalizedTemplateId, StdLib.Serialize(info));
+            AddTemplateIdToAllList(normalizedTemplateId);
 
             if (isUpdate)
             {
-                if (existing.TemplateType != null && existing.TemplateType.Length > 0 && existing.TemplateType != templateType)
+                if (existing.TemplateType != null && existing.TemplateType.Length > 0 && existing.TemplateType != normalizedTemplateType)
                 {
-                    RemoveFromIndex(TemplateTypeIndexMap(), existing.TemplateType, templateId, true);
+                    RemoveFromIndex(TemplateTypeIndexMap(), existing.TemplateType, normalizedTemplateId, true);
                 }
 
                 if (existing.Category != null && existing.Category.Length > 0 && existing.Category != normalizedCategory)
                 {
-                    RemoveFromIndex(CategoryIndexMap(), existing.Category, templateId, false);
+                    RemoveFromIndex(CategoryIndexMap(), existing.Category, normalizedTemplateId, false);
                 }
             }
 
-            AddToIndex(TemplateTypeIndexMap(), templateType, templateId, true);
-            AddToIndex(CategoryIndexMap(), normalizedCategory, templateId, false);
+            AddToIndex(TemplateTypeIndexMap(), normalizedTemplateType, normalizedTemplateId, true);
+            AddToIndex(CategoryIndexMap(), normalizedCategory, normalizedTemplateId, false);
 
-            OnTemplateUpserted(templateId, templateType, nefHash, manifestHash, active);
+            OnTemplateUpserted(normalizedTemplateId, normalizedTemplateType, nefHash, manifestHash, active);
         }
 
         public static void SetTemplateStatus(string templateId, bool active)
@@ -553,7 +566,7 @@ namespace NeoMiniAppPlatform.Contracts
             UInt160 contractHash = DeployFromTemplate(templateId, initParams);
 
             UInt160 appRegistry = AppRegistry();
-            if (appRegistry != null && appRegistry.IsValid)
+            if (appRegistry != UInt160.Zero && appRegistry.IsValid)
             {
                 ServiceContract.Call(
                     appRegistry,
@@ -580,7 +593,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static DeploymentRecord GetDeployment(UInt160 contractHash)
         {
-            ByteString raw = DeploymentByHashMap().Get((ByteString)contractHash);
+            ByteString? raw = DeploymentByHashMap().Get((ByteString)contractHash);
             if (raw == null) return new DeploymentRecord();
             return (DeploymentRecord)StdLib.Deserialize(raw);
         }
@@ -619,7 +632,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void Update(ByteString nefFile, string manifest)
         {
             ValidateAdmin();
-            ContractManagement.Update(nefFile, manifest, null);
+            ContractManagement.Update(nefFile, manifest, new object[0]);
         }
         #endregion
     }

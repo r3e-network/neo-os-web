@@ -55,11 +55,22 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Standard Getters
 
-        public static UInt160 Admin() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
-        public static UInt160 Gateway() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_GATEWAY);
-        public static UInt160 PaymentHub() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_PAYMENTHUB);
-        public static UInt160 PauseRegistry() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_PAUSE_REGISTRY);
-        public static bool IsPaused() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_PAUSED) == 1;
+        private static UInt160 ReadAddress(byte[] key)
+        {
+            ByteString? value = Storage.Get(Storage.CurrentContext, key);
+            return value == null ? UInt160.Zero : (UInt160)value;
+        }
+
+        public static UInt160 Admin() => ReadAddress(PREFIX_ADMIN);
+        public static UInt160 Gateway() => ReadAddress(PREFIX_GATEWAY);
+        public static UInt160 PaymentHub() => ReadAddress(PREFIX_PAYMENTHUB);
+        public static UInt160 PauseRegistry() => ReadAddress(PREFIX_PAUSE_REGISTRY);
+
+        public static bool IsPaused()
+        {
+            ByteString? value = Storage.Get(Storage.CurrentContext, PREFIX_PAUSED);
+            return value != null && (BigInteger)value == 1;
+        }
 
         #endregion
 
@@ -68,14 +79,14 @@ namespace NeoMiniAppPlatform.Contracts
         private static void ValidateAdmin()
         {
             UInt160 admin = Admin();
-            ExecutionEngine.Assert(admin != null && admin.IsValid, "admin not set");
+            ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
         private static void ValidateGateway()
         {
             UInt160 gw = Gateway();
-            ExecutionEngine.Assert(gw != null && gw.IsValid, "gateway not set");
+            ExecutionEngine.Assert(gw != UInt160.Zero && gw.IsValid, "gateway not set");
             ExecutionEngine.Assert(Runtime.CallingScriptHash == gw, "only gateway");
         }
 
@@ -85,7 +96,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(!IsPaused(), "paused");
             // Check global pause from PauseRegistry
             UInt160 registry = PauseRegistry();
-            if (registry != null && registry.IsValid)
+            if (registry != UInt160.Zero && registry.IsValid)
             {
                 bool globalPaused = (bool)Contract.Call(registry, "isPaused", CallFlags.ReadOnly, new object[] { APP_ID });
                 ExecutionEngine.Assert(!globalPaused, "globally paused");
@@ -106,7 +117,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void Update(ByteString nef, string manifest)
         {
             ValidateAdmin();
-            ContractManagement.Update(nef, manifest, null);
+            ContractManagement.Update(nef, manifest, new object[0]);
         }
 
         #endregion
@@ -116,29 +127,29 @@ namespace NeoMiniAppPlatform.Contracts
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid");
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            ExecutionEngine.Assert(newAdmin != UInt160.Zero && newAdmin.IsValid, "invalid");
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, (ByteString)newAdmin);
         }
 
         public static void SetGateway(UInt160 gw)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(gw != null && gw.IsValid, "invalid");
-            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, gw);
+            ExecutionEngine.Assert(gw != UInt160.Zero && gw.IsValid, "invalid");
+            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, (ByteString)gw);
         }
 
         public static void SetPaymentHub(UInt160 hub)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(hub != null && hub.IsValid, "invalid");
-            Storage.Put(Storage.CurrentContext, PREFIX_PAYMENTHUB, hub);
+            ExecutionEngine.Assert(hub != UInt160.Zero && hub.IsValid, "invalid");
+            Storage.Put(Storage.CurrentContext, PREFIX_PAYMENTHUB, (ByteString)hub);
         }
 
         public static void SetPauseRegistry(UInt160 registry)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(registry != null && registry.IsValid, "invalid");
-            Storage.Put(Storage.CurrentContext, PREFIX_PAUSE_REGISTRY, registry);
+            ExecutionEngine.Assert(registry != UInt160.Zero && registry.IsValid, "invalid");
+            Storage.Put(Storage.CurrentContext, PREFIX_PAUSE_REGISTRY, (ByteString)registry);
         }
 
         public static void SetPaused(bool paused)
