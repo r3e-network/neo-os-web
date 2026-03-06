@@ -5,25 +5,26 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { env } from "@/lib/env";
-
-const EDGE_URL = env.NEXT_PUBLIC_EDGE_URL || "http://edge-gateway.platform.svc.cluster.local:8787";
+import { getEnv } from "@/lib/env";
 
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
   try {
-    const response = await fetch(`${EDGE_URL}/admin-services-health`, {
+    const env = getEnv({ strict: true, required: ["SUPABASE_SERVICE_ROLE_KEY"] });
+    const edgeURL = env.NEXT_PUBLIC_EDGE_URL || "http://edge-gateway.platform.svc.cluster.local:8787";
+
+    const response = await fetch(`${edgeURL}/admin-services-health`, {
       signal: AbortSignal.timeout(10000),
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+        "Authorization": `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
       },
     });
 
     if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      throw new Error(`HTTP ${response.status}`);
     }
 
     const healthChecks = await response.json();

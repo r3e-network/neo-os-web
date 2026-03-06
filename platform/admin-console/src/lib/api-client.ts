@@ -3,11 +3,20 @@
 // =============================================================================
 
 import type { APIError } from "@/types";
-import { env } from "@/lib/env";
+import { getEnv } from "@/lib/env";
 import { HEALTH_CHECK_TIMEOUT_MS } from "@/lib/constants";
 
-const API_BASE_URL = env.NEXT_PUBLIC_EDGE_URL || "https://edge.localhost";
-const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
+function getAPIBaseURL() {
+  return getEnv({ required: [] }).NEXT_PUBLIC_EDGE_URL || "https://edge.localhost";
+}
+
+function getSupabaseURL(required: boolean) {
+  const env = getEnv({
+    strict: required,
+    required: required ? ["NEXT_PUBLIC_SUPABASE_URL"] : [],
+  });
+  return env.NEXT_PUBLIC_SUPABASE_URL || "";
+}
 
 /**
  * Base fetch wrapper with error handling
@@ -57,8 +66,9 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
  */
 export const supabaseClient = {
   async query<T>(table: string, params?: Record<string, string>): Promise<T> {
+    const env = getEnv();
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : "";
-    return fetchJSON<T>(`${SUPABASE_URL}/rest/v1/${table}${queryString}`, {
+    return fetchJSON<T>(`${getSupabaseURL(false)}/rest/v1/${table}${queryString}`, {
       headers: {
         apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       },
@@ -66,8 +76,9 @@ export const supabaseClient = {
   },
 
   async queryWithServiceRole<T>(table: string, params?: Record<string, string>): Promise<T> {
+    const env = getEnv({ strict: true, required: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] });
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : "";
-    return fetchJSON<T>(`${SUPABASE_URL}/rest/v1/${table}${queryString}`, {
+    return fetchJSON<T>(`${getSupabaseURL(true)}/rest/v1/${table}${queryString}`, {
       headers: {
         apikey: env.SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
@@ -81,11 +92,11 @@ export const supabaseClient = {
  */
 export const edgeClient = {
   async get<T>(path: string): Promise<T> {
-    return fetchJSON<T>(`${API_BASE_URL}${path}`);
+    return fetchJSON<T>(`${getAPIBaseURL()}${path}`);
   },
 
   async post<T>(path: string, body: unknown): Promise<T> {
-    return fetchJSON<T>(`${API_BASE_URL}${path}`, {
+    return fetchJSON<T>(`${getAPIBaseURL()}${path}`, {
       method: "POST",
       body: JSON.stringify(body),
     });
