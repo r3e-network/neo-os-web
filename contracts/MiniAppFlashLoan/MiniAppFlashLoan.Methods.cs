@@ -253,6 +253,33 @@ namespace NeoMiniAppPlatform.Contracts
             CancelAutomationTask();
         }
 
+        private static BigInteger RegisterAutomationTask(
+            string triggerType, string schedule, BigInteger gasLimit)
+        {
+            UInt160 anchor = AutomationAnchor();
+            ExecutionEngine.Assert(anchor != UInt160.Zero, "anchor not set");
+
+            BigInteger taskId = (BigInteger)Contract.Call(
+                anchor, "registerPeriodicTask", CallFlags.All,
+                Runtime.ExecutingScriptHash, "onPeriodicExecution",
+                triggerType, schedule, gasLimit);
+
+            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_TASK, taskId);
+            return taskId;
+        }
+
+        private static void CancelAutomationTask()
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
+            ExecutionEngine.Assert(data != null, "no task registered");
+
+            BigInteger taskId = (BigInteger)data;
+            UInt160 anchor = AutomationAnchor();
+            Contract.Call(anchor, "cancelPeriodicTask", CallFlags.All, taskId);
+
+            Storage.Delete(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
+        }
+
         /// <summary>
         /// Internal method to process automated loan liquidation.
         /// </summary>

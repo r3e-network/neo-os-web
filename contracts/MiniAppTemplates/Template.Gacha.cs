@@ -41,10 +41,10 @@ namespace NeoMiniAppPlatform.Contracts
         public static bool Draw()
         {
             UInt160 caller = Runtime.CallingScriptHash;
-            byte[] paramsBytes = (byte[])Storage.Get(Storage.CurrentContext, PREFIX_GACHA_PARAMS);
-            if (paramsBytes == null) throw new Exception("Gacha not initialized");
+            ByteString paramsBytes = Storage.Get(Storage.CurrentContext, PREFIX_GACHA_PARAMS) ?? (ByteString)"";
+            if (paramsBytes.Length == 0) throw new Exception("Gacha not initialized");
             
-            GachaParams p = (GachaParams)StdLib.Deserialize((ByteString)paramsBytes);
+            GachaParams p = (GachaParams)StdLib.Deserialize(paramsBytes);
             
             // Generate Randomness (0-99)
             uint randomVal = (uint)(Runtime.GetRandom() % 100);
@@ -53,7 +53,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (wonJackpot)
             {
                 // Transfer jackpot (GAS)
-                object[] args = new object[] { Runtime.ExecutingScriptHash, caller, p.JackpotAmount, null };
+                object[] args = new object[] { Runtime.ExecutingScriptHash, caller, p.JackpotAmount, null! };
                 Contract.Call(GAS.Hash, "transfer", CallFlags.All, args);
             }
 

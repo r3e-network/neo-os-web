@@ -409,6 +409,7 @@ namespace NeoMiniAppPlatform.Contracts
             // Get schedule data
             ScheduleData schedule = GetSchedule(taskId);
             ExecutionEngine.Assert(!schedule.Paused, "task is paused");
+            ExecutionEngine.Assert(Runtime.Time >= schedule.NextExecution, "task not due");
 
             // Check balance and calculate fee
             BigInteger balance = BalanceOf(taskId);

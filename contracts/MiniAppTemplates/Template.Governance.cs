@@ -46,6 +46,7 @@ namespace NeoMiniAppPlatform.Contracts
             public Map<string, BigInteger> Options; // e.g. "Yes" -> 1000, "No" -> 500
         }
 
+#pragma warning disable CS8618
         [DisplayName("ProposalCreated")]
         public static event Action<BigInteger, string, UInt160> OnProposalCreated;
 
@@ -54,6 +55,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("ProposalExecuted")]
         public static event Action<BigInteger, string> OnProposalExecuted;
+#pragma warning restore CS8618
 
         public static void _deploy(object data, bool update)
         {
@@ -61,10 +63,12 @@ namespace NeoMiniAppPlatform.Contracts
 
             InitializeTemplate(data);
 
-            object[] initArgs = data as object[];
-            if (initArgs != null && initArgs.Length > 1)
+            if (data == null) return;
+
+            object[] initArgs = (object[])data;
+            if (initArgs.Length > 1 && initArgs[1] != null)
             {
-                ByteString paramsRaw = initArgs[1] as ByteString;
+                ByteString paramsRaw = (ByteString)initArgs[1];
                 if (paramsRaw != null && paramsRaw.Length > 0)
                 {
                     GovParams config = (GovParams)StdLib.Deserialize(paramsRaw);
@@ -85,14 +89,14 @@ namespace NeoMiniAppPlatform.Contracts
         public static Proposal GetProposal(BigInteger id)
         {
             StorageMap map = new StorageMap(Storage.CurrentContext, PREFIX_PROPOSALS);
-            ByteString raw = map.Get((ByteString)id);
-            if (raw == null || raw.Length == 0) return new Proposal();
+            ByteString raw = map.Get((ByteString)id) ?? (ByteString)"";
+            if (raw.Length == 0) return new Proposal();
             return (Proposal)StdLib.Deserialize(raw);
         }
 
         public static BigInteger CreateProposal(string title, string description, string[] options)
         {
-            UInt160 caller = ((Transaction)Runtime.ScriptContainer).Sender;
+            UInt160 caller = Runtime.Transaction.Sender;
             ExecutionEngine.Assert(Runtime.CheckWitness(caller), "Unauthorized");
 
             GovParams config = GetGovParams();
@@ -124,7 +128,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void Vote(BigInteger proposalId, string option, BigInteger amount)
         {
-            UInt160 caller = ((Transaction)Runtime.ScriptContainer).Sender;
+            UInt160 caller = Runtime.Transaction.Sender;
             ExecutionEngine.Assert(Runtime.CheckWitness(caller), "Unauthorized");
             ExecutionEngine.Assert(amount > 0, "Vote amount must be positive");
 
@@ -138,7 +142,7 @@ namespace NeoMiniAppPlatform.Contracts
             // Check if already voted
             byte[] voteKey = Helper.Concat((byte[])(ByteString)proposalId, (byte[])caller);
             StorageMap voteMap = new StorageMap(Storage.CurrentContext, PREFIX_VOTES);
-            ByteString existingVote = voteMap.Get(voteKey);
+            ByteString existingVote = voteMap.Get(voteKey) ?? (ByteString)"";
             
             if (!config.AllowMultipleVotes)
             {
@@ -147,12 +151,12 @@ namespace NeoMiniAppPlatform.Contracts
 
             // Simple integration: we assume user has tokens in their wallet and we just verify balance.
             // A more robust implementation might transfer tokens to escrow or take a snapshot.
-            if (config.VotingToken != null && config.VotingToken != UInt160.Zero)
+            if (config.VotingToken != UInt160.Zero)
             {
                 BigInteger balance = (BigInteger)Contract.Call(config.VotingToken, "balanceOf", CallFlags.ReadOnly, new object[] { caller });
                 ExecutionEngine.Assert(balance >= amount, "Insufficient voting power");
                 // Transfer tokens to lock them (simplified)
-                bool success = (bool)Contract.Call(config.VotingToken, "transfer", CallFlags.All, new object[] { caller, Runtime.ExecutingScriptHash, amount, null });
+                bool success = (bool)Contract.Call(config.VotingToken, "transfer", CallFlags.All, new object[] { caller, Runtime.ExecutingScriptHash, amount, null! });
                 ExecutionEngine.Assert(success, "Token transfer failed");
             }
 

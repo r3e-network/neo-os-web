@@ -1,3 +1,4 @@
+#pragma warning disable CS8618
 using System.ComponentModel;
 using System.Numerics;
 using Neo;
@@ -60,11 +61,6 @@ namespace NeoMiniAppPlatform.Contracts
         // Automation anchor (optional, for contracts needing periodic execution)
         protected static readonly byte[] PREFIX_AUTOMATION_ANCHOR = new byte[] { 0x0A };
         protected static readonly byte[] PREFIX_AUTOMATION_TASK = new byte[] { 0x0B };
-        // Badge system (optional, for contracts with achievement tracking)
-        protected static readonly byte[] PREFIX_USER_BADGES = new byte[] { 0x0C };
-        protected static readonly byte[] PREFIX_USER_BADGE_COUNT = new byte[] { 0x0D };
-        // Total users tracking (optional)
-        protected static readonly byte[] PREFIX_TOTAL_USERS = new byte[] { 0x0E };
 
         #endregion
 
@@ -94,10 +90,52 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("Paused")]
         public static event PausedHandler OnPaused;
 
-        public delegate void BadgeEarnedHandler(UInt160 user, BigInteger badgeType, string badgeName);
+        #endregion
 
-        [DisplayName("BadgeEarned")]
-        public static event BadgeEarnedHandler OnBadgeEarned;
+        #region Storage Helpers
+
+        protected static ByteString? GetStorageValue(byte[] key) =>
+            Storage.Get(Storage.CurrentContext, key);
+
+        protected static UInt160 GetStoredHashOrZero(byte[] key)
+        {
+            ByteString? data = GetStorageValue(key);
+            return data == null ? UInt160.Zero : (UInt160)data;
+        }
+
+        protected static BigInteger GetStoredIntegerOrZero(byte[] key)
+        {
+            ByteString? data = GetStorageValue(key);
+            return data == null ? 0 : (BigInteger)data;
+        }
+
+        protected static BigInteger GetStoredIntegerOrDefault(byte[] key, BigInteger defaultValue)
+        {
+            ByteString? data = GetStorageValue(key);
+            return data == null ? defaultValue : (BigInteger)data;
+        }
+
+        protected static ByteString RequireByteString(ByteString? value, string errorMessage)
+        {
+            if (value != null)
+            {
+                return value;
+            }
+
+            ExecutionEngine.Assert(false, errorMessage);
+            return (ByteString)"";
+        }
+
+        protected static object[] RequireObjectArray(object? value, string errorMessage)
+        {
+            if (value is object[] array)
+            {
+                return array;
+            }
+
+            ExecutionEngine.Assert(false, errorMessage);
+            return new object[0];
+        }
 
         #endregion
 
@@ -105,101 +143,43 @@ namespace NeoMiniAppPlatform.Contracts
 
         [Safe]
         public static UInt160 Admin() =>
-            (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+            GetStoredHashOrZero(PREFIX_ADMIN);
 
         [Safe]
         public static UInt160 Gateway() =>
-            (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_GATEWAY);
+            GetStoredHashOrZero(PREFIX_GATEWAY);
 
         [Safe]
         public static UInt160 PaymentHub() =>
-            (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_PAYMENTHUB);
+            GetStoredHashOrZero(PREFIX_PAYMENTHUB);
 
         [Safe]
         public static UInt160 PauseRegistry() =>
-            (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_PAUSE_REGISTRY);
+            GetStoredHashOrZero(PREFIX_PAUSE_REGISTRY);
 
         [Safe]
         public static bool IsPaused() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_PAUSED) == 1;
+            GetStoredIntegerOrZero(PREFIX_PAUSED) == 1;
 
         [Safe]
         public static UInt160 PendingAdmin() =>
-            (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_PENDING_ADMIN);
+            GetStoredHashOrZero(PREFIX_PENDING_ADMIN);
 
         [Safe]
         public static BigInteger AdminChangeTime() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_TIME);
+            GetStoredIntegerOrZero(PREFIX_ADMIN_CHANGE_TIME);
 
         [Safe]
-        public static BigInteger TimeLockDelay()
-        {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_TIMELOCK_DELAY);
-            return data == null ? DEFAULT_TIMELOCK_DELAY_SECONDS : (BigInteger)data;
-        }
+        public static BigInteger TimeLockDelay() =>
+            GetStoredIntegerOrDefault(PREFIX_TIMELOCK_DELAY, DEFAULT_TIMELOCK_DELAY_SECONDS);
 
         [Safe]
         public static UInt160 AutomationAnchor() =>
-            (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR);
+            GetStoredHashOrZero(PREFIX_AUTOMATION_ANCHOR);
 
         [Safe]
-        public static BigInteger GetAutomationTaskId()
-        {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
-            return data != null ? (BigInteger)data : 0;
-        }
-
-        #endregion
-
-        #region Badge System (Optional)
-
-        [Safe]
-        public static bool HasBadge(UInt160 user, BigInteger badgeType)
-        {
-            byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_USER_BADGES, user),
-                (ByteString)badgeType.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
-        }
-
-        [Safe]
-        public static BigInteger GetUserBadgeCount(UInt160 user)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_BADGE_COUNT, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
-        }
-
-        [Safe]
-        public static BigInteger TotalUsers()
-        {
-            return (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_USERS);
-        }
-
-        protected static void AwardBadge(UInt160 user, BigInteger badgeType, string badgeName)
-        {
-            if (HasBadge(user, badgeType)) return;
-
-            byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_USER_BADGES, user),
-                (ByteString)badgeType.ToByteArray());
-            Storage.Put(Storage.CurrentContext, key, 1);
-
-            IncrementUserBadgeCount(user);
-            OnBadgeEarned(user, badgeType, badgeName);
-        }
-
-        protected static void IncrementUserBadgeCount(UInt160 user)
-        {
-            byte[] key = Helper.Concat(PREFIX_USER_BADGE_COUNT, user);
-            BigInteger current = (BigInteger)Storage.Get(Storage.CurrentContext, key);
-            Storage.Put(Storage.CurrentContext, key, current + 1);
-        }
-
-        protected static void IncrementTotalUsers()
-        {
-            BigInteger current = TotalUsers();
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_USERS, current + 1);
-        }
+        public static BigInteger GetAutomationTaskId() =>
+            GetStoredIntegerOrZero(PREFIX_AUTOMATION_TASK);
 
         #endregion
 
@@ -208,20 +188,20 @@ namespace NeoMiniAppPlatform.Contracts
         protected static void ValidateAdmin()
         {
             UInt160 admin = Admin();
-            ExecutionEngine.Assert(admin != null && admin.IsValid, "admin not set");
+            ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
         protected static void ValidateGateway()
         {
             UInt160 gw = Gateway();
-            ExecutionEngine.Assert(gw != null && gw.IsValid, "gateway not set");
+            ExecutionEngine.Assert(gw != UInt160.Zero && gw.IsValid, "gateway not set");
             ExecutionEngine.Assert(Runtime.CallingScriptHash == gw, "only gateway");
         }
 
         protected static void ValidateAddress(UInt160 addr)
         {
-            ExecutionEngine.Assert(addr != null && addr.IsValid, "invalid address");
+            ExecutionEngine.Assert(addr != UInt160.Zero && addr.IsValid, "invalid address");
         }
 
         protected static void ValidateNotPaused()
@@ -233,7 +213,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateNotPaused();
             UInt160 registry = PauseRegistry();
-            if (registry != null && registry.IsValid)
+            if (registry != UInt160.Zero && registry.IsValid)
             {
                 bool globalPaused = (bool)Contract.Call(
                     registry, "isPaused", CallFlags.ReadOnly,
@@ -269,7 +249,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void ExecuteAdminChange()
         {
             UInt160 pending = PendingAdmin();
-            ExecutionEngine.Assert(pending != null && pending.IsValid, "no pending admin");
+            ExecutionEngine.Assert(pending != UInt160.Zero && pending.IsValid, "no pending admin");
 
             BigInteger changeTime = AdminChangeTime();
             ExecutionEngine.Assert(Runtime.Time >= changeTime, "timelock active");
@@ -289,7 +269,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             UInt160 pending = PendingAdmin();
-            ExecutionEngine.Assert(pending != null && pending.IsValid, "no pending admin");
+            ExecutionEngine.Assert(pending != UInt160.Zero && pending.IsValid, "no pending admin");
 
             Storage.Delete(Storage.CurrentContext, PREFIX_PENDING_ADMIN);
             Storage.Delete(Storage.CurrentContext, PREFIX_ADMIN_CHANGE_TIME);
@@ -347,48 +327,6 @@ namespace NeoMiniAppPlatform.Contracts
 
         #endregion
 
-        #region Periodic Automation
-
-        /// <summary>
-        /// Periodic execution callback invoked by AutomationAnchor.
-        /// SECURITY: Only AutomationAnchor can invoke this method.
-        /// </summary>
-        public static void OnPeriodicExecution(BigInteger taskId, ByteString payload)
-        {
-            UInt160 anchor = AutomationAnchor();
-            if (anchor == UInt160.Zero || Runtime.CallingScriptHash != anchor) return;
-
-            // No-op by default in Base. Derived classes should hide/override if needed.
-        }
-
-        public static BigInteger RegisterAutomation(string triggerType, string schedule)
-        {
-            ValidateAdmin();
-            UInt160 anchor = AutomationAnchor();
-            ExecutionEngine.Assert(anchor != UInt160.Zero, "automation anchor not set");
-
-            // Call AutomationAnchor.RegisterPeriodicTask
-            BigInteger taskId = (BigInteger)Contract.Call(anchor, "registerPeriodicTask", CallFlags.All,
-                Runtime.ExecutingScriptHash, "onPeriodicExecution", triggerType, schedule, 1000000);
-
-            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_TASK, taskId);
-            return taskId;
-        }
-
-        public static void CancelAutomation()
-        {
-            ValidateAdmin();
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
-            ExecutionEngine.Assert(data != null, "no automation registered");
-
-            BigInteger taskId = (BigInteger)data;
-            UInt160 anchor = AutomationAnchor();
-            Contract.Call(anchor, "cancelPeriodicTask", CallFlags.All, taskId);
-
-            Storage.Delete(Storage.CurrentContext, PREFIX_AUTOMATION_TASK);
-        }
-
-        #endregion
         #region Contract Lifecycle
 
         public static void Update(ByteString nef, string manifest, object data)
@@ -419,7 +357,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(receiptId > 0, "receiptId required");
 
             UInt160 hub = PaymentHub();
-            ExecutionEngine.Assert(hub != null && hub.IsValid, "payment hub not set");
+            ExecutionEngine.Assert(hub != UInt160.Zero && hub.IsValid, "payment hub not set");
 
             StorageMap used = new StorageMap(Storage.CurrentContext, PREFIX_RECEIPT_USED);
             ByteString receiptKey = (ByteString)receiptId.ToByteArray();
@@ -428,7 +366,7 @@ namespace NeoMiniAppPlatform.Contracts
             object receiptObj = Contract.Call(hub, "getReceipt", CallFlags.ReadOnly, receiptId);
             ExecutionEngine.Assert(receiptObj != null, "receipt not found");
 
-            object[] receipt = (object[])receiptObj;
+            object[] receipt = RequireObjectArray(receiptObj, "invalid receipt");
             ExecutionEngine.Assert(receipt.Length >= 6, "invalid receipt");
 
             string receiptAppId = (string)receipt[1];

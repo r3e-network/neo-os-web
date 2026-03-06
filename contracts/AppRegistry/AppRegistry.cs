@@ -284,6 +284,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(info.AppId != null && info.AppId.Length > 0, "app not found");
             ExecutionEngine.Assert(Runtime.CheckWitness(info.Developer) || Runtime.CheckWitness(Admin()), "unauthorized");
             ExecutionEngine.Assert(allowlistHash != null, "allowlist hash required");
+            ExecutionEngine.Assert(allowlistHash.Length == 0 || allowlistHash.Length == 32, "invalid allowlist hash");
 
             info.AllowlistHash = allowlistHash;
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
@@ -327,6 +328,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(info.AppId != null && info.AppId.Length > 0, "app not found");
             ExecutionEngine.Assert(Runtime.CheckWitness(info.Developer), "unauthorized");
             ExecutionEngine.Assert(scriptName != null && scriptName.Length > 0, "script name required");
+            ExecutionEngine.Assert(scriptName.Length <= 64, "script name too long");
             ExecutionEngine.Assert(scriptHash != null && scriptHash.Length == 32, "invalid script hash");
 
             TeeScriptMap().Put(TeeScriptKey(appId, scriptName), scriptHash);
