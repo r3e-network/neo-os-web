@@ -4,8 +4,10 @@ kind: Kustomization
 namespace: service-layer
 
 resources:
-  - ../prod
+  - ../../base
 
+# Nitro overlay keeps base manifests mostly intact and sets non-production
+# runtime defaults.
 patches:
   - target:
       kind: ConfigMap
@@ -19,4 +21,4 @@ labels:
   - includeSelectors: true
     includeTemplates: true
     pairs:
-      environment: staging-nitro
+      environment: nitro
