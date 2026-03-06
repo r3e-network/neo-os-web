@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: this repository’s **current** architecture uses a Supabase Edge gateway and a
 > small set of enclave services (see `README.md` and `docs/ARCHITECTURE.md`). Older
-> docs/releases are preserved under `docs/legacy/` and `RELEASE_NOTES_v1.0.0.md`.
+> release notes remain in `RELEASE_NOTES_v1.0.0.md`, and removed pre-migration docs can
+> be recovered from Git history.
 
 ## [Unreleased]
 
