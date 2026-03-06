@@ -5,6 +5,7 @@ package contract
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -19,8 +20,9 @@ import (
 )
 
 const (
-	neoxpPath      = "neoxp"
-	defaultTimeout = 30 * time.Second
+	neoxpPath               = "neoxp"
+	defaultTimeout          = 30 * time.Second
+	freshChainFundingBlocks = 150
 )
 
 type NeoExpress struct {
@@ -210,10 +212,14 @@ func (n *NeoExpress) ensureCreated(ctx context.Context) error {
 		return fmt.Errorf("create neo-express instance: %s: %w", string(out), err)
 	}
 
-	// Initialize node storage (RocksDB) for the freshly created instance.
 	out, err = n.command(ctx, "reset", "-i", n.dataFile, "-f").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("reset neo-express instance: %s: %w", string(out), err)
+	}
+
+	out, err = n.command(ctx, "fastfwd", "-i", n.dataFile, fmt.Sprintf("%d", freshChainFundingBlocks)).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("fastfwd neo-express instance: %s: %w", string(out), err)
 	}
 	return nil
 }
@@ -268,6 +274,13 @@ func (n *NeoExpress) RPCURL() string {
 	return n.rpcURL
 }
 
+func normalizeNeoExpressAccount(name string) string {
+	if strings.EqualFold(strings.TrimSpace(name), "genesis") {
+		return "node1"
+	}
+	return name
+}
+
 func (n *NeoExpress) CreateWallet(name string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -305,7 +318,7 @@ func (n *NeoExpress) GetWalletAddress(name string) (string, error) {
 		return "", fmt.Errorf("parse wallet list json: %w", err)
 	}
 
-	entry, ok := parsed[name]
+	entry, ok := parsed[normalizeNeoExpressAccount(name)]
 	if !ok {
 		return "", fmt.Errorf("wallet %s not found", name)
 	}
@@ -370,7 +383,7 @@ func (n *NeoExpress) GetWalletScriptHash(name string) (string, error) {
 		return "", fmt.Errorf("parse wallet list json: %w", err)
 	}
 
-	entry, ok := parsed[name]
+	entry, ok := parsed[normalizeNeoExpressAccount(name)]
 	if !ok {
 		return "", fmt.Errorf("wallet %s not found", name)
 	}
@@ -435,7 +448,7 @@ func (n *NeoExpress) GetWalletPublicKey(name string) (string, error) {
 		return "", fmt.Errorf("parse wallet list json: %w", err)
 	}
 
-	entry, ok := parsed[name]
+	entry, ok := parsed[normalizeNeoExpressAccount(name)]
 	if !ok {
 		return "", fmt.Errorf("wallet %s not found", name)
 	}
@@ -514,7 +527,7 @@ func (n *NeoExpress) Deploy(nefPath, manifestPath, account string) (*chain.Deplo
 
 	_ = manifestPath // deploy uses only the NEF file
 
-	out, err := n.command(ctx, "contract", "deploy", "-j", "-i", n.dataFile, nefPath, account).CombinedOutput()
+	out, err := n.command(ctx, "contract", "deploy", "-j", "-i", n.dataFile, nefPath, normalizeNeoExpressAccount(account)).CombinedOutput()
 	if err != nil {
 		if strings.Contains(string(out), "Insufficient GAS") {
 			return nil, fmt.Errorf("INSUFFICIENT_GAS_DEPLOY: %s: %w", string(out), err)
@@ -600,7 +613,7 @@ func (n *NeoExpress) InvokeWithAccount(contract, method, account string, args ..
 
 	// Use Global witness scope so nested contract calls (e.g., GAS/NEO NEP-17 transfers)
 	// can validate witnesses during execution in neo-express.
-	cmdArgs := []string{"contract", "invoke", "-j", "-w", chain.ScopeGlobal, "-i", n.dataFile, invPath, account}
+	cmdArgs := []string{"contract", "invoke", "-j", "-w", chain.ScopeGlobal, "-i", n.dataFile, invPath, normalizeNeoExpressAccount(account)}
 	out, err := n.command(ctx, cmdArgs...).CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("invoke contract: %s: %w", string(out), err)
@@ -622,7 +635,7 @@ func (n *NeoExpress) InvokeWithAccountResults(contract, method, account string, 
 		return nil, err
 	}
 
-	cmdArgs := []string{"contract", "invoke", "-r", "-j", "-w", chain.ScopeGlobal, "-i", n.dataFile, invPath, account}
+	cmdArgs := []string{"contract", "invoke", "-r", "-j", "-w", chain.ScopeGlobal, "-i", n.dataFile, invPath, normalizeNeoExpressAccount(account)}
 	out, err := n.command(ctx, cmdArgs...).CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("invoke contract (results): %s: %w", string(out), err)
@@ -714,22 +727,30 @@ func FindContractArtifacts(contractName string) (nefPath, manifestPath string, e
 		return "", "", fmt.Errorf("contract name is required")
 	}
 
-	basePath := filepath.Join("..", "..", "contracts", "build")
+	contractsRoot := filepath.Join("..", "..", "contracts")
+	buildDir := filepath.Join(contractsRoot, "build")
 
-	candidates := []string{contractName}
-	if strings.EqualFold(contractName, "PaymentHub") {
-		candidates = append(candidates, "PaymentHubV2")
+	contractBuildMu.Lock()
+	defer contractBuildMu.Unlock()
+
+	needsBuild, err := contractArtifactsNeedBuild(contractsRoot, contractName)
+	if err != nil {
+		return "", "", err
+	}
+	if needsBuild {
+		if !hasDotnet() {
+			return "", "", errDotnetMissing
+		}
+		if !hasNCCS() {
+			return "", "", errNCCSMissing
+		}
+		if err := compileContractProject(contractsRoot, contractName); err != nil {
+			return "", "", err
+		}
 	}
 
-	for _, name := range candidates {
-		nefPath = filepath.Join(basePath, name+".nef")
-		manifestPath = filepath.Join(basePath, name+".manifest.json")
-		if _, err := os.Stat(nefPath); os.IsNotExist(err) {
-			continue
-		}
-		if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
-			continue
-		}
+	nefPath, manifestPath, ok := findContractArtifactsInDir(buildDir, contractName)
+	if ok {
 		return nefPath, manifestPath, nil
 	}
 
@@ -759,36 +780,17 @@ func SkipIfNoNeoExpress(t *testing.T) {
 
 func SkipIfNoCompiledContracts(t *testing.T) {
 	t.Helper()
-	contractDir := filepath.Join("..", "..", "contracts", "build")
-	legacyPath := filepath.Join(contractDir, "PaymentHub.nef")
-	v2Path := filepath.Join(contractDir, "PaymentHubV2.nef")
-	if _, err := os.Stat(legacyPath); err == nil {
-		return
-	}
-	if _, err := os.Stat(v2Path); err == nil {
-		return
-	}
 
-	// Attempt to build contracts on-demand so the contract workflow is runnable
-	// from a clean checkout (when dotnet + nccs are installed). If tooling is not
-	// available, skip with a clear message.
-	if !hasDotnet() {
-		t.Skip("dotnet not installed; install .NET SDK/runtime and re-run (required for neo-express contract tests)")
-	}
-	if !hasNCCS() {
-		t.Skip("nccs (Neo.Compiler.CSharp) not installed; run 'dotnet tool install -g Neo.Compiler.CSharp' and re-run")
-	}
-
-	if err := runContractBuildScript(t); err != nil {
-		if looksLikeMissingDotnetRuntime(err.Error()) {
+	if _, _, err := FindContractArtifacts("PaymentHub"); err != nil {
+		switch {
+		case errors.Is(err, errDotnetMissing):
+			t.Skip("dotnet not installed; install .NET SDK/runtime and re-run (required for neo-express contract tests)")
+		case errors.Is(err, errNCCSMissing):
+			t.Skip("nccs (Neo.Compiler.CSharp) not installed; run 'dotnet tool install -g Neo.Compiler.CSharp' and re-run")
+		case looksLikeMissingDotnetRuntime(err.Error()):
 			t.Skipf("contracts build requires an additional .NET runtime: %v", err)
-		}
-		t.Fatalf("contracts build failed: %v", err)
-	}
-
-	if _, err := os.Stat(legacyPath); os.IsNotExist(err) {
-		if _, err := os.Stat(v2Path); os.IsNotExist(err) {
-			t.Fatalf("contracts build completed but PaymentHub artifacts are still missing")
+		default:
+			t.Fatalf("contracts build failed: %v", err)
 		}
 	}
 }
@@ -852,21 +854,4 @@ func dotnetToolEnv() []string {
 		"DOTNET_ROOT=" + dotnetRoot,
 		"PATH=" + path,
 	}
-}
-
-func runContractBuildScript(t *testing.T) error {
-	t.Helper()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	scriptPath := filepath.Join("..", "..", "contracts", "build.sh")
-	cmd := exec.CommandContext(ctx, "bash", scriptPath)
-	cmd.Env = append(os.Environ(), dotnetToolEnv()...)
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)
-	}
-	return nil
 }

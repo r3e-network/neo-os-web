@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	internalhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
@@ -151,6 +152,42 @@ func TestHandleQuerySuccess(t *testing.T) {
 	}
 	if resp.Body != `{"result":true}` {
 		t.Errorf("Body = %q, want %q", resp.Body, `{"result":true}`)
+	}
+}
+
+func TestHandleQueryRedirectDoesNotFollow(t *testing.T) {
+	var redirectedHits int32
+	target := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&redirectedHits, 1)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"result":true}`))
+	}))
+	defer target.Close()
+
+	redirector := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer redirector.Close()
+
+	svc := newTestOracle(t, URLAllowlist{Prefixes: []string{redirector.URL}})
+	body := `{"url":"` + redirector.URL + `"}`
+	req := httptest.NewRequest("POST", "/query", strings.NewReader(body))
+	req.Header.Set("X-User-ID", "user1")
+	rr := httptest.NewRecorder()
+	svc.handleQuery(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+
+	var resp QueryResponse
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.StatusCode != http.StatusFound {
+		t.Fatalf("StatusCode = %d, want %d", resp.StatusCode, http.StatusFound)
+	}
+	if hits := atomic.LoadInt32(&redirectedHits); hits != 0 {
+		t.Fatalf("redirect target should not be called, got %d hit(s)", hits)
 	}
 }
 

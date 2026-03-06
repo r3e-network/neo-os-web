@@ -1,9 +1,18 @@
 package neofeeds
 
 import (
+	"context"
 	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/nitro"
 	"github.com/tidwall/gjson"
 )
 
@@ -26,12 +35,12 @@ func TestIsDuplicatePriceFeedError(t *testing.T) {
 		{
 			name: "duplicate without postgres code",
 			err:  errors.New("duplicate key value violates unique constraint"),
-			want: false,
+			want: true,
 		},
 		{
-			name: "postgres code without duplicate marker",
+			name: "postgres unique code without duplicate marker",
 			err:  errors.New(`database error: {"code":"23505","message":"constraint violation"}`),
-			want: false,
+			want: true,
 		},
 		{
 			name: "other error",
@@ -100,5 +109,174 @@ func TestParsePriceResult(t *testing.T) {
 				t.Fatalf("parsePriceResult() = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestGetPriceReturnsTypedErrors(t *testing.T) {
+	t.Run("pair required", func(t *testing.T) {
+		svc := newTestDatafeedService(t)
+
+		_, err := svc.GetPrice(context.Background(), "")
+		if !errors.Is(err, ErrPairRequired) {
+			t.Fatalf("GetPrice() error = %v, want errors.Is(err, ErrPairRequired)", err)
+		}
+	})
+
+	t.Run("price data unavailable", func(t *testing.T) {
+		m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
+		cfg := &NeoFeedsConfig{
+			Version: "1.0",
+			Sources: []SourceConfig{
+				{ID: "dummy", Name: "Dummy", URL: "http://localhost:1", JSONPath: "price", Weight: 1},
+			},
+			Feeds: []FeedConfig{
+				{ID: "BTC-USD", Pair: "BTCUSDT", Sources: []string{"dummy"}, Enabled: true},
+			},
+			UpdateInterval: 60 * time.Second,
+		}
+		svc, err := New(Config{Nitro: m, FeedsConfig: cfg})
+		if err != nil {
+			t.Fatalf("New() err = %v", err)
+		}
+
+		_, err = svc.GetPrice(context.Background(), "BTC-USD")
+		if !errors.Is(err, ErrPriceDataUnavailable) {
+			t.Fatalf("GetPrice() error = %v, want errors.Is(err, ErrPriceDataUnavailable)", err)
+		}
+	})
+
+	t.Run("feed not found", func(t *testing.T) {
+		m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
+		cfg := &NeoFeedsConfig{
+			Version: "1.0",
+			Sources: []SourceConfig{
+				{ID: "dummy", Name: "Dummy", URL: "http://localhost:1", JSONPath: "price", Weight: 1},
+			},
+			Feeds: []FeedConfig{
+				{ID: "BTC-USD", Pair: "BTCUSDT", Sources: []string{"dummy"}, Enabled: true},
+			},
+			UpdateInterval: 60 * time.Second,
+		}
+		svc, err := New(Config{Nitro: m, FeedsConfig: cfg})
+		if err != nil {
+			t.Fatalf("New() err = %v", err)
+		}
+
+		_, err = svc.GetPrice(context.Background(), "ETH-USD")
+		if !errors.Is(err, ErrPriceFeedNotFound) {
+			t.Fatalf("GetPrice() error = %v, want errors.Is(err, ErrPriceFeedNotFound)", err)
+		}
+	})
+}
+
+func TestFetchPriceFromSourceRedirectDoesNotFollow(t *testing.T) {
+	var redirectedHits int32
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&redirectedHits, 1)
+		_, _ = io.WriteString(w, `{"price": 123.45}`)
+	}))
+	defer target.Close()
+
+	redirector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer redirector.Close()
+
+	m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
+	baseClient := &http.Client{}
+	svc, err := New(Config{Nitro: m, HTTPClient: baseClient})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	if baseClient.CheckRedirect != nil {
+		t.Fatal("New() should not mutate caller-provided HTTP client")
+	}
+
+	src := &SourceConfig{
+		ID:       "primary",
+		URL:      redirector.URL + "/prices?pair={pair}",
+		JSONPath: "price",
+		Timeout:  time.Second,
+	}
+
+	_, err = svc.fetchPriceFromSource(context.Background(), "BTCUSD", nil, src)
+	if err == nil {
+		t.Fatal("fetchPriceFromSource() should return error for redirect status")
+	}
+
+	var httpErr *priceSourceHTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *priceSourceHTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusFound {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusFound)
+	}
+	if hits := atomic.LoadInt32(&redirectedHits); hits != 0 {
+		t.Fatalf("redirect target should not be called, got %d hit(s)", hits)
+	}
+}
+
+func TestFetchPriceFromSourceReturnsTypedHTTPError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = io.WriteString(w, "upstream unavailable")
+	}))
+	defer server.Close()
+
+	svc := &Service{httpClient: server.Client()}
+	src := &SourceConfig{
+		ID:       "primary",
+		URL:      server.URL + "/prices?pair={pair}",
+		JSONPath: "price",
+	}
+
+	_, err := svc.fetchPriceFromSource(context.Background(), "BTCUSD", nil, src)
+	if err == nil {
+		t.Fatal("fetchPriceFromSource() expected error")
+	}
+
+	var httpErr *priceSourceHTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *priceSourceHTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusBadGateway {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusBadGateway)
+	}
+	if !errors.Is(err, httpErr) {
+		t.Fatal("error should wrap typed http error")
+	}
+	if httpErr.SourceID != "primary" {
+		t.Fatalf("source id = %q, want %q", httpErr.SourceID, "primary")
+	}
+	if !isPriceSourceStatusError(err, http.StatusBadGateway) {
+		t.Fatal("isPriceSourceStatusError() should match 502")
+	}
+	if isPriceSourceStatusError(err, http.StatusNotFound) {
+		t.Fatal("isPriceSourceStatusError() should not match wrong status")
+	}
+	var sharedErr *httputil.HTTPStatusError
+	if !errors.As(err, &sharedErr) {
+		t.Fatalf("expected shared *httputil.HTTPStatusError, got %T", err)
+	}
+	if !httputil.IsHTTPStatusError(err, http.StatusBadGateway) {
+		t.Fatal("shared IsHTTPStatusError() should match 502")
+	}
+}
+
+func TestToPriceSourceHTTPErrorNilResponse(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("toPriceSourceHTTPError should not panic on nil response: %v", r)
+		}
+	}()
+
+	err := toPriceSourceHTTPError(nil, "primary", "https://example.test/prices")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "response is nil") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

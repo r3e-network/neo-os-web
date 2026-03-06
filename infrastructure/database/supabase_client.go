@@ -22,13 +22,12 @@ import (
 // Unlike field names, table names must not contain dots.
 var validTableName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
-// validateTable panics if table contains characters that could inject PostgREST operators.
-// Panic is appropriate because invalid table names are always programmer errors.
-func validateTable(table string) string {
+// validateTable rejects table names that could inject PostgREST operators.
+func validateTable(table string) (string, error) {
 	if !validTableName.MatchString(table) {
-		panic(fmt.Sprintf("invalid table name: %q", table))
+		return "", fmt.Errorf("invalid table name: %q", table)
 	}
-	return table
+	return table, nil
 }
 
 // Client wraps the Supabase REST API client.
@@ -137,16 +136,13 @@ func NewClient(cfg Config) (*Client, error) {
 		baseURL = normalizedURL
 	}
 
-	transport := httputil.DefaultTransportWithMinTLS12()
+	httpClient := httputil.CopyHTTPClientWithTimeoutNoRedirect(nil, 30*time.Second, false)
 
 	return &Client{
 		url:        baseURL,
 		serviceKey: key,
 		restPrefix: restPrefix,
-		httpClient: &http.Client{
-			Timeout:   30 * time.Second,
-			Transport: transport,
-		},
+		httpClient: httpClient,
 	}, nil
 }
 
@@ -183,16 +179,21 @@ func (c *Client) doRequest(ctx context.Context, method, reqURL, prefer string, b
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		respBody, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, maxSupabaseErrorBodyBytes)
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		statusErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, req, maxSupabaseErrorBodyBytes)
+		if readErr != nil && statusErr == nil {
+			return nil, readErr
+		}
+
+		msg := ""
+		if statusErr != nil {
+			msg = strings.TrimSpace(statusErr.Body)
+		}
+		apiErr := NewAPIError(resp.StatusCode, msg)
 		if readErr != nil {
-			return nil, fmt.Errorf("read error response: %w", readErr)
+			return nil, httputil.WrapReadBodyError(apiErr, readErr)
 		}
-		msg := strings.TrimSpace(string(respBody))
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return nil, fmt.Errorf("supabase API error %d: %s", resp.StatusCode, msg)
+		return nil, apiErr
 	}
 
 	respBody, err := httputil.ReadAllStrict(resp.Body, maxSupabaseResponseBytes)
@@ -224,7 +225,11 @@ func (c *Client) buildTableURL(table, query string) string {
 
 // request makes an HTTP request to the Supabase REST API.
 func (c *Client) request(ctx context.Context, method, table string, body interface{}, query string) ([]byte, error) {
-	return c.doRequest(ctx, method, c.buildTableURL(validateTable(table), query), "return=representation", body)
+	validatedTable, err := validateTable(table)
+	if err != nil {
+		return nil, err
+	}
+	return c.doRequest(ctx, method, c.buildTableURL(validatedTable, query), "return=representation", body)
 }
 
 // buildRPCURL constructs the full URL for an RPC endpoint with optional query string.
@@ -236,11 +241,11 @@ func (c *Client) buildRPCURL(functionName, query string) string {
 func (c *Client) requestRPC(ctx context.Context, method, rpcPath string, body interface{}, query string) ([]byte, error) {
 	trimmed := strings.TrimPrefix(strings.TrimSpace(rpcPath), "/")
 	if !strings.HasPrefix(trimmed, "rpc/") {
-		panic(fmt.Sprintf("invalid rpc path: %q", rpcPath))
+		return nil, fmt.Errorf("invalid rpc path: %q", rpcPath)
 	}
 	functionName := strings.TrimPrefix(trimmed, "rpc/")
 	if !validTableName.MatchString(functionName) {
-		panic(fmt.Sprintf("invalid rpc function name: %q", functionName))
+		return nil, fmt.Errorf("invalid rpc function name: %q", functionName)
 	}
 	return c.doRequest(ctx, method, c.buildRPCURL(functionName, query), "", body)
 }
@@ -249,9 +254,17 @@ func (c *Client) requestRPC(ctx context.Context, method, rpcPath string, body in
 // for atomic upsert operations. The onConflict parameter specifies the
 // conflict target columns (e.g., "account_id,token_type").
 func (c *Client) requestUpsert(ctx context.Context, table string, body interface{}, onConflict, query string) ([]byte, error) {
-	params := "on_conflict=" + url.QueryEscape(onConflict)
+	validatedTable, err := validateTable(table)
+	if err != nil {
+		return nil, err
+	}
+	validatedOnConflict, err := validateFieldList(onConflict)
+	if err != nil {
+		return nil, err
+	}
+	params := "on_conflict=" + url.QueryEscape(validatedOnConflict)
 	if query != "" {
 		params += "&" + query
 	}
-	return c.doRequest(ctx, http.MethodPost, c.buildTableURL(validateTable(table), params), "resolution=merge-duplicates,return=representation", body)
+	return c.doRequest(ctx, http.MethodPost, c.buildTableURL(validatedTable, params), "resolution=merge-duplicates,return=representation", body)
 }

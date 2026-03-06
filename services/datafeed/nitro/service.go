@@ -173,11 +173,11 @@ func New(cfg Config) (*Service, error) {
 
 	var httpClient *http.Client
 	if cfg.HTTPClient != nil {
-		httpClient = cfg.HTTPClient
+		httpClient = httputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.HTTPClient, 0, false)
 	} else {
 		// Use the Nitro-provided external client (system roots, no mTLS). Apply
 		// per-source timeouts via request contexts to avoid creating clients per call.
-		httpClient = httputil.CopyHTTPClientWithTimeout(cfg.Nitro.ExternalHTTPClient(), 0, true)
+		httpClient = httputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.Nitro.ExternalHTTPClient(), 0, true)
 		httpClient.Transport = httputil.NewSafeTransport()
 	}
 	// Use config-specified interval, then service config, then default

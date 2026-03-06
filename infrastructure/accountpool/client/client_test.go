@@ -3,11 +3,15 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	slhttputil "github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/serviceauth"
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/testutil"
 )
@@ -375,6 +379,72 @@ func TestErrorHandling(t *testing.T) {
 	}
 }
 
+func TestErrorIncludesStatusAndBody(t *testing.T) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte("upstream unavailable"))
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL)
+
+	_, err := client.GetPoolInfo(context.Background())
+	if err == nil {
+		t.Fatal("GetPoolInfo() should return error on 502")
+	}
+	if !strings.Contains(err.Error(), "502 Bad Gateway") {
+		t.Fatalf("error should include status, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "upstream unavailable") {
+		t.Fatalf("error should include response body, got: %v", err)
+	}
+}
+
+func TestErrorReturnsTypedHTTPError(t *testing.T) {
+	server := testutil.NewHTTPTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte("upstream unavailable"))
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL)
+	_, err := client.GetPoolInfo(context.Background())
+	if err == nil {
+		t.Fatal("GetPoolInfo() should return error on 502")
+	}
+
+	var httpErr *HTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *HTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusBadGateway {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusBadGateway)
+	}
+	if httpErr.Method != http.MethodGet {
+		t.Fatalf("method = %q, want %q", httpErr.Method, http.MethodGet)
+	}
+	if httpErr.URL != server.URL+"/pool-info" {
+		t.Fatalf("url = %q, want %q", httpErr.URL, server.URL+"/pool-info")
+	}
+	if !strings.Contains(httpErr.Body, "upstream unavailable") {
+		t.Fatalf("body = %q, want to contain %q", httpErr.Body, "upstream unavailable")
+	}
+	if !IsHTTPStatusError(err, http.StatusBadGateway) {
+		t.Fatal("IsHTTPStatusError() should match 502 error")
+	}
+	if IsHTTPStatusError(err, http.StatusInternalServerError) {
+		t.Fatal("IsHTTPStatusError() should not match wrong status")
+	}
+
+	var sharedErr *slhttputil.HTTPStatusError
+	if !errors.As(err, &sharedErr) {
+		t.Fatalf("expected shared *httputil.HTTPStatusError, got %T", err)
+	}
+	if !slhttputil.IsHTTPStatusError(err, http.StatusBadGateway) {
+		t.Fatal("shared IsHTTPStatusError() should match 502")
+	}
+}
+
 func BenchmarkRequestAccounts(b *testing.B) {
 	b.Setenv("NITRO_ENV", "development")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -398,6 +468,55 @@ func BenchmarkRequestAccounts(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = client.RequestAccounts(ctx, 1, "bench")
+	}
+}
+
+func TestRequestAccountsRedirectDoesNotFollow(t *testing.T) {
+	t.Setenv("NITRO_ENV", "development")
+	var redirectedHits int32
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&redirectedHits, 1)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(RequestAccountsResponse{
+			Accounts: []AccountInfo{{ID: "acc-1", Address: "NAddr1"}},
+			LockID:   "lock-target",
+		})
+	}))
+	defer target.Close()
+
+	redirector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer redirector.Close()
+
+	baseClient := &http.Client{}
+	client, err := New(Config{
+		BaseURL:      redirector.URL,
+		ServiceID:    "neocompute",
+		HTTPClient:   baseClient,
+		MaxBodyBytes: 1 << 20,
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	if baseClient.CheckRedirect != nil {
+		t.Fatal("New() should not mutate caller-provided HTTP client")
+	}
+
+	_, err = client.RequestAccounts(context.Background(), 1, "test")
+	if err == nil {
+		t.Fatal("RequestAccounts() should return error for redirect status")
+	}
+
+	var httpErr *HTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected *HTTPError, got %T", err)
+	}
+	if httpErr.StatusCode != http.StatusFound {
+		t.Fatalf("status code = %d, want %d", httpErr.StatusCode, http.StatusFound)
+	}
+	if hits := atomic.LoadInt32(&redirectedHits); hits != 0 {
+		t.Fatalf("redirect target should not be called, got %d hit(s)", hits)
 	}
 }
 

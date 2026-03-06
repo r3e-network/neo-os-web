@@ -2,9 +2,14 @@ package neorequests
 
 import (
 	"context"
+	"regexp"
 	"strings"
 	"time"
+
+	"github.com/r3e-network/neo-miniapp-platform/infrastructure/database"
 )
+
+var onConflictConstraintMissingPattern = regexp.MustCompile(`(?i)no unique or exclusion constraint.*on conflict specification`)
 
 func (s *Service) rollupMiniAppStats(ctx context.Context) error {
 	if s == nil || s.repo == nil {
@@ -32,18 +37,13 @@ func isNonFatalStatsRollupError(err error) bool {
 	if err == nil {
 		return false
 	}
-	msg := strings.ToLower(err.Error())
-	if !strings.Contains(msg, "rollup miniapp stats") {
-		return false
-	}
-	if strings.Contains(msg, "\"code\":\"42703\"") {
-		return true // undefined column (schema drift)
-	}
-	if strings.Contains(msg, "\"code\":\"42p10\"") {
-		return true // missing ON CONFLICT unique/exclusion constraint
-	}
-	if strings.Contains(msg, "on conflict specification") {
+
+	// Schema drift errors from Supabase/Postgres.
+	if database.IsAPIErrorCode(err, "42703") || database.IsAPIErrorCode(err, "42P10") {
 		return true
 	}
-	return false
+
+	msg := strings.ToLower(err.Error())
+	// Legacy fallback when callers return plain-text (non-typed) errors.
+	return onConflictConstraintMissingPattern.MatchString(msg)
 }

@@ -18,6 +18,10 @@ import (
 )
 
 // masterBundle pulls /master-key, wraps it, and prints SHA-256(bundle) for on-chain anchoring.
+var newMasterKeyHTTPClient = func() *http.Client {
+	return httputil.CopyHTTPClientWithTimeoutNoRedirect(nil, 30*time.Second, false)
+}
+
 type masterKeyResponse struct {
 	Hash           string            `json:"hash"`
 	PubKey         string            `json:"pubkey"`
@@ -86,22 +90,18 @@ func fetchMasterKey(baseURL string) (masterKeyResponse, error) {
 		return masterKeyResponse{}, err
 	}
 
-	httpClient := &http.Client{Timeout: 30 * time.Second}
+	httpClient := newMasterKeyHTTPClient()
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return masterKeyResponse{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		b, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
+		httpErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, req, 32<<10)
 		if readErr != nil {
-			return masterKeyResponse{}, fmt.Errorf("http %d (failed to read body: %v)", resp.StatusCode, readErr)
+			return masterKeyResponse{}, httputil.WrapReadBodyError(httpErr, readErr)
 		}
-		msg := string(b)
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return masterKeyResponse{}, fmt.Errorf("http %d: %s", resp.StatusCode, msg)
+		return masterKeyResponse{}, httpErr
 	}
 	var body masterKeyResponse
 	data, err := httputil.ReadAllStrict(resp.Body, 1<<20)

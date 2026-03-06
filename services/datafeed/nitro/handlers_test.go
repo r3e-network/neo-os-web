@@ -84,9 +84,9 @@ func TestHandleGetPriceNotFound(t *testing.T) {
 	rr := httptest.NewRecorder()
 	svc.handleGetPrice(rr, req)
 
-	// Unknown pair with failing sources → "no prices available" → 503
-	if rr.Code != http.StatusServiceUnavailable {
-		t.Errorf("status = %d, want %d", rr.Code, http.StatusServiceUnavailable)
+	// Unknown pair in configured feeds should map to a typed not-found error.
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", rr.Code, http.StatusNotFound)
 	}
 }
 

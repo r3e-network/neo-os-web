@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/r3e-network/neo-miniapp-platform/infrastructure/httputil"
@@ -16,6 +17,15 @@ import (
 const (
 	defaultTimeout = 10 * time.Second
 )
+
+// HTTPError captures non-200 responses from NeoGasBank.
+type HTTPError = httputil.HTTPStatusError
+
+// IsHTTPStatusError reports whether err wraps a NeoGasBank HTTPError with the
+// specified status code.
+func IsHTTPStatusError(err error, statusCode int) bool {
+	return httputil.IsHTTPStatusError(err, statusCode)
+}
 
 // Client is a client for the NeoGasBank service.
 type Client struct {
@@ -35,10 +45,7 @@ func New(cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("gasbank client: base URL is required")
 	}
 
-	httpClient := cfg.HTTPClient
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: defaultTimeout}
-	}
+	httpClient := httputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.HTTPClient, defaultTimeout, false)
 
 	return &Client{
 		baseURL:    cfg.BaseURL,
@@ -86,21 +93,18 @@ func (c *Client) DeductFee(ctx context.Context, req *DeductFeeRequest) (*DeductF
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		httpErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, httpReq, 64<<10)
+		if readErr != nil {
+			return nil, httputil.WrapReadBodyError(httpErr, readErr)
+		}
+		httpErr.Body = extractErrorBody([]byte(httpErr.Body))
+		return nil, httpErr
+	}
+
 	respBody, err := httputil.ReadAllStrict(resp.Body, 64<<10)
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
-	}
-
-	// Check HTTP status code before parsing response
-	if resp.StatusCode != http.StatusOK {
-		// Try to parse error response
-		var errResp struct {
-			Error string `json:"error"`
-		}
-		if json.Unmarshal(respBody, &errResp) == nil && errResp.Error != "" {
-			return nil, fmt.Errorf("deduct fee failed (HTTP %d): %s", resp.StatusCode, errResp.Error)
-		}
-		return nil, fmt.Errorf("deduct fee failed with status %d", resp.StatusCode)
 	}
 
 	var result DeductFeeResponse
@@ -137,7 +141,12 @@ func (c *Client) GetAccount(ctx context.Context, userID string) (*GetAccountResp
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		httpErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, httpReq, 64<<10)
+		if readErr != nil {
+			return nil, httputil.WrapReadBodyError(httpErr, readErr)
+		}
+		httpErr.Body = extractErrorBody([]byte(httpErr.Body))
+		return nil, httpErr
 	}
 
 	respBody, err := httputil.ReadAllStrict(resp.Body, 64<<10)
@@ -161,4 +170,26 @@ func (c *Client) CheckBalance(ctx context.Context, userID string, requiredAmount
 	}
 
 	return account.Available >= requiredAmount, account.Available, nil
+}
+
+func extractErrorBody(raw []byte) string {
+	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" {
+		return ""
+	}
+
+	var payload struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(raw, &payload); err == nil {
+		if msg := strings.TrimSpace(payload.Error); msg != "" {
+			return msg
+		}
+		if msg := strings.TrimSpace(payload.Message); msg != "" {
+			return msg
+		}
+	}
+
+	return trimmed
 }

@@ -3,6 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -106,5 +111,101 @@ func TestDatabaseHealthCheck(t *testing.T) {
 	result = check(context.Background())
 	if result.Status != "unhealthy" {
 		t.Errorf("unhealthy ping: Status = %q", result.Status)
+	}
+}
+
+func TestHTTPHealthCheckClassifiesStatusAndIncludesDetails(t *testing.T) {
+	t.Run("healthy 200", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		check := HTTPHealthCheck("upstream", server.URL, time.Second)
+		result := check(context.Background())
+		if result.Status != "healthy" {
+			t.Fatalf("status = %q, want healthy", result.Status)
+		}
+	})
+
+	t.Run("degraded 3xx does not follow redirects", func(t *testing.T) {
+		var redirectedHits int32
+		target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(&redirectedHits, 1)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer target.Close()
+
+		redirector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, target.URL, http.StatusFound)
+		}))
+		defer redirector.Close()
+
+		check := HTTPHealthCheck("upstream", redirector.URL, time.Second)
+		result := check(context.Background())
+		if result.Status != "degraded" {
+			t.Fatalf("status = %q, want degraded", result.Status)
+		}
+		if !strings.Contains(result.Message, "302 Found") {
+			t.Fatalf("message = %q, want redirect status text", result.Message)
+		}
+		if hits := atomic.LoadInt32(&redirectedHits); hits != 0 {
+			t.Fatalf("redirect target should not be called, got %d hit(s)", hits)
+		}
+	})
+
+	t.Run("degraded 4xx includes status text and body", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = io.WriteString(w, "route missing")
+		}))
+		defer server.Close()
+
+		check := HTTPHealthCheck("upstream", server.URL, time.Second)
+		result := check(context.Background())
+		if result.Status != "degraded" {
+			t.Fatalf("status = %q, want degraded", result.Status)
+		}
+		if !strings.Contains(result.Message, "404 Not Found") {
+			t.Fatalf("message = %q, want status text", result.Message)
+		}
+		if !strings.Contains(result.Message, "route missing") {
+			t.Fatalf("message = %q, want response body", result.Message)
+		}
+	})
+
+	t.Run("unhealthy 5xx includes status text and body", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = io.WriteString(w, "backend unavailable")
+		}))
+		defer server.Close()
+
+		check := HTTPHealthCheck("upstream", server.URL, time.Second)
+		result := check(context.Background())
+		if result.Status != "unhealthy" {
+			t.Fatalf("status = %q, want unhealthy", result.Status)
+		}
+		if !strings.Contains(result.Message, "503 Service Unavailable") {
+			t.Fatalf("message = %q, want status text", result.Message)
+		}
+		if !strings.Contains(result.Message, "backend unavailable") {
+			t.Fatalf("message = %q, want response body", result.Message)
+		}
+	})
+}
+
+func TestReadHealthCheckBodyNilReader(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("readHealthCheckBody should not panic for nil body: %v", r)
+		}
+	}()
+
+	_, _, err := readHealthCheckBody(nil, 4<<10)
+	if err == nil {
+		t.Fatal("expected error for nil body")
 	}
 }

@@ -42,6 +42,38 @@ type Config struct {
 	HTTPClient *http.Client // Optional custom HTTP client (e.g. Nitro.ExternalHTTPClient()).
 }
 
+// RPCHTTPError captures non-2xx HTTP responses from the RPC endpoint.
+type RPCHTTPError struct {
+	*httputil.HTTPStatusError
+}
+
+func (e *RPCHTTPError) Error() string {
+	if e == nil {
+		return "rpc http error"
+	}
+	if e.HTTPStatusError == nil {
+		return "rpc http error"
+	}
+	if msg := strings.TrimSpace(e.Body); msg != "" {
+		return fmt.Sprintf("rpc http error %d: %s", e.StatusCode, msg)
+	}
+	return fmt.Sprintf("rpc http error %d", e.StatusCode)
+}
+
+// Unwrap exposes the shared HTTP status error for generic classification.
+func (e *RPCHTTPError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.HTTPStatusError
+}
+
+// IsRPCHTTPStatusError reports whether err wraps an RPCHTTPError with the
+// specified HTTP status.
+func IsRPCHTTPStatusError(err error, statusCode int) bool {
+	return httputil.IsHTTPStatusError(err, statusCode)
+}
+
 // NewClient creates a new Neo N3 client.
 func NewClient(cfg Config) (*Client, error) {
 	if cfg.RPCURL == "" {
@@ -59,17 +91,7 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 	forceTimeout := cfg.Timeout != 0
 
-	httpClient := cfg.HTTPClient
-	if httpClient == nil {
-		transport := httputil.DefaultTransportWithMinTLS12()
-
-		httpClient = &http.Client{
-			Timeout:   timeout,
-			Transport: transport,
-		}
-	} else {
-		httpClient = httputil.CopyHTTPClientWithTimeout(httpClient, timeout, forceTimeout)
-	}
+	httpClient := httputil.CopyHTTPClientWithTimeoutNoRedirect(cfg.HTTPClient, timeout, forceTimeout)
 
 	return &Client{
 		rpcURL:     normalizedURL,
@@ -137,15 +159,12 @@ func (c *Client) Call(ctx context.Context, method string, params []interface{}) 
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		respBody, truncated, readErr := httputil.ReadAllWithLimit(resp.Body, 32<<10)
+		statusErr, readErr := httputil.BuildHTTPStatusErrorFromRequest(resp, httpReq, 32<<10)
+		httpErr := &RPCHTTPError{HTTPStatusError: statusErr}
 		if readErr != nil {
-			return nil, fmt.Errorf("read error response: %w", readErr)
+			return nil, httputil.WrapReadBodyError(httpErr, readErr)
 		}
-		msg := strings.TrimSpace(string(respBody))
-		if truncated {
-			msg += "...(truncated)"
-		}
-		return nil, fmt.Errorf("rpc http error %d: %s", resp.StatusCode, msg)
+		return nil, httpErr
 	}
 
 	respBody, err := httputil.ReadAllStrict(resp.Body, 8<<20)
