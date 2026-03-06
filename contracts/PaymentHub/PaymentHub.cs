@@ -63,28 +63,28 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [DisplayName("PaymentReceived")]
-        public static event PaymentReceivedHandler OnPaymentReceived;
+        public static event PaymentReceivedHandler OnPaymentReceived = delegate { };
 
         [DisplayName("AppConfigured")]
-        public static event AppConfiguredHandler OnAppConfigured;
+        public static event AppConfiguredHandler OnAppConfigured = delegate { };
 
         [DisplayName("Withdrawn")]
-        public static event WithdrawnHandler OnWithdrawn;
+        public static event WithdrawnHandler OnWithdrawn = delegate { };
 
         [DisplayName("ShareDistributed")]
-        public static event ShareDistributedHandler OnShareDistributed;
+        public static event ShareDistributedHandler OnShareDistributed = delegate { };
 
         [DisplayName("BalanceUpdated")]
-        public static event BalanceUpdatedHandler OnBalanceUpdated;
+        public static event BalanceUpdatedHandler OnBalanceUpdated = delegate { };
 
         [DisplayName("AdminChanged")]
-        public static event AdminChangedHandler OnAdminChanged;
+        public static event AdminChangedHandler OnAdminChanged = delegate { };
 
         [DisplayName("AppEnabled")]
-        public static event AppEnabledHandler OnAppEnabled;
+        public static event AppEnabledHandler OnAppEnabled = delegate { };
 
         [DisplayName("SplitConfigured")]
-        public static event SplitConfiguredHandler OnSplitConfigured;
+        public static event SplitConfiguredHandler OnSplitConfigured = delegate { };
 
         public static void _deploy(object data, bool update)
         {
@@ -95,15 +95,21 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_RECEIPT_COUNTER, 0);
         }
 
+        private static UInt160 ReadAddress(byte[] key)
+        {
+            ByteString? value = Storage.Get(Storage.CurrentContext, key);
+            return value == null ? UInt160.Zero : (UInt160)value;
+        }
+
         public static UInt160 Admin()
         {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+            return ReadAddress(PREFIX_ADMIN);
         }
 
         private static void ValidateAdmin()
         {
             UInt160 admin = Admin();
-            ExecutionEngine.Assert(admin != null, "admin not set");
+            ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
@@ -114,18 +120,18 @@ namespace NeoMiniAppPlatform.Contracts
         private static ByteString AppKey(string appId)
         {
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
-            return (ByteString)appId;
+            return (ByteString)(appId ?? "");
         }
 
         public static AppConfig GetApp(string appId)
         {
-            ByteString raw = AppMap().Get(AppKey(appId));
+            ByteString? raw = AppMap().Get(AppKey(appId));
             if (raw == null)
             {
                 // Avoid returning `default` struct which may be represented as an empty VMArray.
                 return new AppConfig
                 {
-                    Owner = null,
+                    Owner = UInt160.Zero,
                     Recipients = new UInt160[0],
                     SharesBps = new BigInteger[0],
                     Enabled = false
@@ -136,7 +142,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static BigInteger GetAppBalance(string appId)
         {
-            ByteString raw = BalanceMap().Get(AppKey(appId));
+            ByteString? raw = BalanceMap().Get(AppKey(appId));
             if (raw == null) return 0;
             return (BigInteger)raw;
         }
@@ -149,7 +155,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static BigInteger NextReceiptId()
         {
             // Use PREFIX_RECEIPT_COUNTER directly to avoid collision with receipt data
-            ByteString raw = Storage.Get(Storage.CurrentContext, PREFIX_RECEIPT_COUNTER);
+            ByteString? raw = Storage.Get(Storage.CurrentContext, PREFIX_RECEIPT_COUNTER);
             BigInteger current = raw == null ? 0 : (BigInteger)raw;
             BigInteger next = current + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_RECEIPT_COUNTER, next);
@@ -158,7 +164,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static Receipt GetReceipt(BigInteger receiptId)
         {
-            ByteString raw = ReceiptMap().Get(receiptId.ToByteArray());
+            ByteString? raw = ReceiptMap().Get(receiptId.ToByteArray());
             if (raw == null)
             {
                 // Avoid returning `default` struct which may be represented as an empty VMArray.
@@ -166,7 +172,7 @@ namespace NeoMiniAppPlatform.Contracts
                 {
                     Id = 0,
                     AppId = "",
-                    Payer = null,
+                    Payer = UInt160.Zero,
                     Amount = 0,
                     Timestamp = 0,
                     Memo = ""
@@ -182,16 +188,16 @@ namespace NeoMiniAppPlatform.Contracts
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
+            ExecutionEngine.Assert(newAdmin != UInt160.Zero && newAdmin.IsValid, "invalid admin");
             UInt160 oldAdmin = Admin();
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, (ByteString)newAdmin);
             OnAdminChanged(oldAdmin, newAdmin);
         }
 
         public static void Update(ByteString nefFile, string manifest)
         {
             ValidateAdmin();
-            ContractManagement.Update(nefFile, manifest, null);
+            ContractManagement.Update(nefFile, manifest, new object[0]);
         }
 
         public static void ConfigureApp(string appId, UInt160 owner, UInt160[] recipients, BigInteger[] sharesBps, bool enabled)
@@ -201,45 +207,57 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(owner != null && owner.IsValid, "owner required");
             ValidateSplit(recipients, sharesBps);
 
+            string normalizedAppId = appId ?? "";
+            UInt160 normalizedOwner = owner == null ? UInt160.Zero : owner;
+            UInt160[] normalizedRecipients = recipients ?? new UInt160[0];
+            BigInteger[] normalizedSharesBps = sharesBps ?? new BigInteger[0];
+
             AppConfig cfg = new AppConfig
             {
-                Owner = owner,
-                Recipients = recipients,
-                SharesBps = sharesBps,
+                Owner = normalizedOwner,
+                Recipients = normalizedRecipients,
+                SharesBps = normalizedSharesBps,
                 Enabled = enabled
             };
 
-            AppMap().Put(AppKey(appId), StdLib.Serialize(cfg));
-            OnAppConfigured(appId, owner, enabled);
-            OnSplitConfigured(appId, recipients.Length, 10000);
+            AppMap().Put(AppKey(normalizedAppId), StdLib.Serialize(cfg));
+            OnAppConfigured(normalizedAppId, normalizedOwner, enabled);
+            OnAppEnabled(normalizedAppId, enabled);
+            OnSplitConfigured(normalizedAppId, normalizedRecipients.Length, 10000);
         }
 
         public static void ConfigureSplit(string appId, UInt160[] recipients, BigInteger[] sharesBps)
         {
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
-            AppConfig cfg = GetApp(appId);
-            ExecutionEngine.Assert(cfg.Owner != null && cfg.Owner.IsValid, "app not found");
+            string normalizedAppId = appId ?? "";
+            AppConfig cfg = GetApp(normalizedAppId);
+            ExecutionEngine.Assert(cfg.Owner != UInt160.Zero && cfg.Owner.IsValid, "app not found");
             ExecutionEngine.Assert(Runtime.CheckWitness(cfg.Owner) || Runtime.CheckWitness(Admin()), "unauthorized");
 
             ValidateSplit(recipients, sharesBps);
-            cfg.Recipients = recipients;
-            cfg.SharesBps = sharesBps;
-            AppMap().Put(AppKey(appId), StdLib.Serialize(cfg));
-            OnSplitConfigured(appId, recipients.Length, 10000);
+            UInt160[] normalizedRecipients = recipients ?? new UInt160[0];
+            BigInteger[] normalizedSharesBps = sharesBps ?? new BigInteger[0];
+            cfg.Recipients = normalizedRecipients;
+            cfg.SharesBps = normalizedSharesBps;
+            AppMap().Put(AppKey(normalizedAppId), StdLib.Serialize(cfg));
+            OnSplitConfigured(normalizedAppId, normalizedRecipients.Length, 10000);
         }
 
         private static void ValidateSplit(UInt160[] recipients, BigInteger[] sharesBps)
         {
             ExecutionEngine.Assert(recipients != null && sharesBps != null, "split required");
-            ExecutionEngine.Assert(recipients.Length == sharesBps.Length, "split length mismatch");
-            ExecutionEngine.Assert(recipients.Length > 0 && recipients.Length <= 16, "invalid recipients");
+
+            UInt160[] safeRecipients = recipients ?? new UInt160[0];
+            BigInteger[] safeSharesBps = sharesBps ?? new BigInteger[0];
+            ExecutionEngine.Assert(safeRecipients.Length == safeSharesBps.Length, "split length mismatch");
+            ExecutionEngine.Assert(safeRecipients.Length > 0 && safeRecipients.Length <= 16, "invalid recipients");
 
             BigInteger total = 0;
-            for (int i = 0; i < recipients.Length; i++)
+            for (int i = 0; i < safeRecipients.Length; i++)
             {
-                ExecutionEngine.Assert(recipients[i] != null && recipients[i].IsValid, "invalid recipient");
-                ExecutionEngine.Assert(sharesBps[i] >= 0, "invalid share");
-                total += sharesBps[i];
+                ExecutionEngine.Assert(safeRecipients[i] != null && safeRecipients[i].IsValid, "invalid recipient");
+                ExecutionEngine.Assert(safeSharesBps[i] >= 0, "invalid share");
+                total += safeSharesBps[i];
             }
             ExecutionEngine.Assert(total == 10000, "shares must sum to 10000 bps");
         }
@@ -259,11 +277,12 @@ namespace NeoMiniAppPlatform.Contracts
         // Helper method to validate payment parameters before direct GAS.Transfer
         public static bool ValidatePayment(string appId, BigInteger amount)
         {
-            if (appId == null || appId.Length == 0) return false;
+            string normalizedAppId = appId ?? "";
+            if (normalizedAppId.Length == 0) return false;
             if (amount <= 0) return false;
 
-            AppConfig cfg = GetApp(appId);
-            if (cfg.Owner == null || !cfg.Owner.IsValid) return false;
+            AppConfig cfg = GetApp(normalizedAppId);
+            if (cfg.Owner == UInt160.Zero || !cfg.Owner.IsValid) return false;
             if (!cfg.Enabled) return false;
 
             return true;
@@ -288,7 +307,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             // Try to get appId from temporary storage first (set by Pay method)
             // If not found, try to get it from the data parameter (direct GAS.Transfer)
-            ByteString appIdBytes = Storage.Get(Storage.CurrentContext, (ByteString)"pending_payment");
+            ByteString? appIdBytes = Storage.Get(Storage.CurrentContext, (ByteString)"pending_payment");
             string appId;
 
             if (appIdBytes != null)
@@ -312,16 +331,17 @@ namespace NeoMiniAppPlatform.Contracts
             }
 
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
+            string normalizedAppId = appId ?? "";
 
-            AppConfig cfg = GetApp(appId);
-            ExecutionEngine.Assert(cfg.Owner != null && cfg.Owner.IsValid, "app not found");
+            AppConfig cfg = GetApp(normalizedAppId);
+            ExecutionEngine.Assert(cfg.Owner != UInt160.Zero && cfg.Owner.IsValid, "app not found");
             ExecutionEngine.Assert(cfg.Enabled, "app disabled");
 
             // Update app balance.
-            BigInteger bal = GetAppBalance(appId);
+            BigInteger bal = GetAppBalance(normalizedAppId);
             BigInteger newBal = bal + amount;
-            SetAppBalance(appId, newBal);
-            OnBalanceUpdated(appId, bal, newBal);
+            SetAppBalance(normalizedAppId, newBal);
+            OnBalanceUpdated(normalizedAppId, bal, newBal);
 
             // Store receipt.
             // Note: memo is not passed through GAS.Transfer to keep the data simple
@@ -330,7 +350,7 @@ namespace NeoMiniAppPlatform.Contracts
             Receipt receipt = new Receipt
             {
                 Id = receiptId,
-                AppId = appId,
+                AppId = normalizedAppId,
                 Payer = from,
                 Amount = amount,
                 Timestamp = Runtime.Time,
@@ -338,7 +358,7 @@ namespace NeoMiniAppPlatform.Contracts
             };
             ReceiptMap().Put(receiptId.ToByteArray(), StdLib.Serialize(receipt));
 
-            OnPaymentReceived(receiptId, appId, from, amount, receipt.Memo);
+            OnPaymentReceived(receiptId, normalizedAppId, from, amount, receipt.Memo);
         }
 
         // ============================================================================
@@ -348,12 +368,13 @@ namespace NeoMiniAppPlatform.Contracts
         public static void Withdraw(string appId)
         {
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
-            AppConfig cfg = GetApp(appId);
-            ExecutionEngine.Assert(cfg.Owner != null && cfg.Owner.IsValid, "app not found");
+            string normalizedAppId = appId ?? "";
+            AppConfig cfg = GetApp(normalizedAppId);
+            ExecutionEngine.Assert(cfg.Owner != UInt160.Zero && cfg.Owner.IsValid, "app not found");
 
             ExecutionEngine.Assert(Runtime.CheckWitness(cfg.Owner) || Runtime.CheckWitness(Admin()), "unauthorized");
 
-            BigInteger bal = GetAppBalance(appId);
+            BigInteger bal = GetAppBalance(normalizedAppId);
             if (bal <= 0) return;
 
             BigInteger remaining = bal;
@@ -372,7 +393,7 @@ namespace NeoMiniAppPlatform.Contracts
 
                 bool ok = GAS.Transfer(Runtime.ExecutingScriptHash, cfg.Recipients[i], part, null);
                 ExecutionEngine.Assert(ok, "withdraw transfer failed");
-                OnShareDistributed(appId, cfg.Recipients[i], part, share);
+                OnShareDistributed(normalizedAppId, cfg.Recipients[i], part, share);
                 remaining -= part;
                 distributedCount++;
             }
@@ -382,12 +403,12 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 bool ok = GAS.Transfer(Runtime.ExecutingScriptHash, cfg.Owner, remaining, null);
                 ExecutionEngine.Assert(ok, "remainder transfer failed");
-                OnShareDistributed(appId, cfg.Owner, remaining, 0);
+                OnShareDistributed(normalizedAppId, cfg.Owner, remaining, 0);
             }
 
-            SetAppBalance(appId, 0);
-            OnBalanceUpdated(appId, bal, 0);
-            OnWithdrawn(appId, bal, distributedCount);
+            SetAppBalance(normalizedAppId, 0);
+            OnBalanceUpdated(normalizedAppId, bal, 0);
+            OnWithdrawn(normalizedAppId, bal, distributedCount);
         }
     }
 }
