@@ -1,27 +1,17 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseEnv } from "./supabase-env";
 
 const BUILD_FALLBACK_URL = "https://localhost.supabase.co";
 const BUILD_FALLBACK_KEY = "build-time-placeholder";
-
-function getSupabaseUrl(): string {
-  return String(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
-}
-
-function getAnonKey(): string {
-  return String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
-}
-
-function getServiceRoleKey(): string {
-  return String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
-}
 
 let cachedAnonClient: SupabaseClient | null = null;
 let cachedServiceClient: SupabaseClient | null = null;
 
 function buildClient(key: string): SupabaseClient {
-  const url = getSupabaseUrl() || BUILD_FALLBACK_URL;
+  const { url } = getSupabaseEnv();
+  const resolvedURL = url || BUILD_FALLBACK_URL;
   const token = key || BUILD_FALLBACK_KEY;
-  return createClient(url, token, {
+  return createClient(resolvedURL, token, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -31,12 +21,13 @@ function buildClient(key: string): SupabaseClient {
 }
 
 export function isServerSupabaseConfigured(): boolean {
-  const url = getSupabaseUrl();
-  return Boolean(url && (getServiceRoleKey() || getAnonKey()));
+  const { url, anonKey, serviceRoleKey } = getSupabaseEnv();
+  return Boolean(url && (serviceRoleKey || anonKey));
 }
 
 export function hasServiceRoleSupabase(): boolean {
-  return Boolean(getSupabaseUrl() && getServiceRoleKey());
+  const { url, serviceRoleKey } = getSupabaseEnv();
+  return Boolean(url && serviceRoleKey);
 }
 
 export function getServerSupabaseClient(options: { requireServiceRole?: boolean } = {}): SupabaseClient | null {
@@ -45,7 +36,7 @@ export function getServerSupabaseClient(options: { requireServiceRole?: boolean 
   }
 
   const requireServiceRole = Boolean(options.requireServiceRole);
-  const serviceRoleKey = getServiceRoleKey();
+  const { anonKey, serviceRoleKey } = getSupabaseEnv();
 
   if (requireServiceRole) {
     if (!serviceRoleKey) return null;
@@ -53,8 +44,6 @@ export function getServerSupabaseClient(options: { requireServiceRole?: boolean 
     return cachedServiceClient;
   }
 
-  // Prefer anon key (respects RLS) when service role is not required.
-  const anonKey = getAnonKey();
   if (anonKey) {
     if (!cachedAnonClient) cachedAnonClient = buildClient(anonKey);
     return cachedAnonClient;
@@ -67,4 +56,3 @@ export function getServerSupabaseClient(options: { requireServiceRole?: boolean 
 
   return null;
 }
-
