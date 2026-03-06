@@ -54,25 +54,25 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [DisplayName("AppRegistered")]
-        public static event AppRegisteredHandler OnAppRegistered;
+        public static event AppRegisteredHandler OnAppRegistered = delegate { };
 
         [DisplayName("AppUpdated")]
-        public static event AppUpdatedHandler OnAppUpdated;
+        public static event AppUpdatedHandler OnAppUpdated = delegate { };
 
         [DisplayName("StatusChanged")]
-        public static event StatusChangedHandler OnStatusChanged;
+        public static event StatusChangedHandler OnStatusChanged = delegate { };
 
         [DisplayName("AllowlistUpdated")]
-        public static event AllowlistUpdatedHandler OnAllowlistUpdated;
+        public static event AllowlistUpdatedHandler OnAllowlistUpdated = delegate { };
 
         [DisplayName("AdminChanged")]
-        public static event AdminChangedHandler OnAdminChanged;
+        public static event AdminChangedHandler OnAdminChanged = delegate { };
 
         [DisplayName("ContractHashUpdated")]
-        public static event ContractHashUpdatedHandler OnContractHashUpdated;
+        public static event ContractHashUpdatedHandler OnContractHashUpdated = delegate { };
 
         [DisplayName("TeeScriptRegistered")]
-        public static event TeeScriptRegisteredHandler OnTeeScriptRegistered;
+        public static event TeeScriptRegisteredHandler OnTeeScriptRegistered = delegate { };
 
         public static void _deploy(object data, bool update)
         {
@@ -81,15 +81,21 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, tx.Sender);
         }
 
+        private static UInt160 ReadAddress(byte[] key)
+        {
+            ByteString? value = Storage.Get(Storage.CurrentContext, key);
+            return value == null ? UInt160.Zero : (UInt160)value;
+        }
+
         public static UInt160 Admin()
         {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+            return ReadAddress(PREFIX_ADMIN);
         }
 
         private static void ValidateAdmin()
         {
             UInt160 admin = Admin();
-            ExecutionEngine.Assert(admin != null, "admin not set");
+            ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
@@ -98,7 +104,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static ByteString AppKey(string appId)
         {
             ExecutionEngine.Assert(appId != null && appId.Length > 0, "app id required");
-            return (ByteString)appId;
+            return (ByteString)(appId ?? "");
         }
 
         private static ByteString NormalizeContractHash(ByteString contractHash)
@@ -110,14 +116,14 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static AppInfo GetApp(string appId)
         {
-            ByteString raw = AppMap().Get(AppKey(appId));
+            ByteString? raw = AppMap().Get(AppKey(appId));
             if (raw == null)
             {
                 // Avoid returning `default` struct which may be represented as an empty VMArray.
                 return new AppInfo
                 {
                     AppId = "",
-                    Developer = null,
+                    Developer = UInt160.Zero,
                     DeveloperPubKey = (ByteString)"",
                     EntryUrl = "",
                     ManifestHash = (ByteString)"",
@@ -150,46 +156,58 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(manifestHash != null && manifestHash.Length > 0, "manifest hash required");
             ExecutionEngine.Assert(entryUrl != null && entryUrl.Length > 0, "entry url required");
             ExecutionEngine.Assert(developerPubKey != null && developerPubKey.Length > 0, "developer pubkey required");
-            ExecutionEngine.Assert(appId.Length <= 64, "appId too long");
-            ExecutionEngine.Assert(entryUrl.Length <= 512, "entryUrl too long");
 
-            ECPoint pubKey = (ECPoint)(byte[])developerPubKey;
-            ExecutionEngine.Assert(pubKey.IsValid, "invalid developer pubkey");
-            ExecutionEngine.Assert(Runtime.CheckWitness(pubKey), "unauthorized");
+            string normalizedAppId = appId ?? "";
+            ByteString normalizedManifestHash = manifestHash ?? (ByteString)"";
+            string normalizedEntryUrl = entryUrl ?? "";
+            ByteString normalizedDeveloperPubKey = developerPubKey ?? (ByteString)"";
+            ByteString normalizedContractHash = NormalizeContractHash(contractHash ?? (ByteString)"");
+            string normalizedName = name ?? "";
+            string normalizedDescription = description ?? "";
+            string normalizedIcon = icon ?? "";
+            string normalizedBanner = banner ?? "";
+            string normalizedCategory = category ?? "";
 
-            ByteString key = AppKey(appId);
-            ByteString existing = AppMap().Get(key);
+            ExecutionEngine.Assert(normalizedAppId.Length <= 64, "appId too long");
+            ExecutionEngine.Assert(normalizedEntryUrl.Length <= 512, "entryUrl too long");
+
+            ECPoint pubKey = (ECPoint)(byte[])normalizedDeveloperPubKey;
+            ExecutionEngine.Assert(pubKey != null && pubKey.IsValid, "invalid developer pubkey");
+            ExecutionEngine.Assert(Runtime.CheckWitness(pubKey!), "unauthorized");
+
+            ByteString key = AppKey(normalizedAppId);
+            ByteString? existing = AppMap().Get(key);
             ExecutionEngine.Assert(existing == null, "already registered");
 
             Transaction tx = Runtime.Transaction;
 
             AppInfo info = new AppInfo
             {
-                AppId = appId,
+                AppId = normalizedAppId,
                 Developer = tx.Sender,
-                DeveloperPubKey = developerPubKey,
-                EntryUrl = entryUrl,
-                ManifestHash = manifestHash,
+                DeveloperPubKey = normalizedDeveloperPubKey,
+                EntryUrl = normalizedEntryUrl,
+                ManifestHash = normalizedManifestHash,
                 Status = AppStatus.Pending,
                 AllowlistHash = (ByteString)"",
-                Name = name ?? "",
-                Description = description ?? "",
-                Icon = icon ?? "",
-                Banner = banner ?? "",
-                Category = category ?? "",
-                ContractHash = NormalizeContractHash(contractHash)
+                Name = normalizedName,
+                Description = normalizedDescription,
+                Icon = normalizedIcon,
+                Banner = normalizedBanner,
+                Category = normalizedCategory,
+                ContractHash = normalizedContractHash
             };
 
-            ExecutionEngine.Assert((name ?? "").Length <= 128, "name too long");
-            ExecutionEngine.Assert((description ?? "").Length <= 1024, "description too long");
-            ExecutionEngine.Assert((icon ?? "").Length <= 256, "icon too long");
-            ExecutionEngine.Assert((banner ?? "").Length <= 256, "banner too long");
-            ExecutionEngine.Assert((category ?? "").Length <= 64, "category too long");
+            ExecutionEngine.Assert(normalizedName.Length <= 128, "name too long");
+            ExecutionEngine.Assert(normalizedDescription.Length <= 1024, "description too long");
+            ExecutionEngine.Assert(normalizedIcon.Length <= 256, "icon too long");
+            ExecutionEngine.Assert(normalizedBanner.Length <= 256, "banner too long");
+            ExecutionEngine.Assert(normalizedCategory.Length <= 64, "category too long");
             AppMap().Put(key, StdLib.Serialize(info));
-            OnAppRegistered(appId, info.Developer, name ?? "", category ?? "");
-            if (contractHash != null && contractHash.Length > 0)
+            OnAppRegistered(normalizedAppId, info.Developer, normalizedName, normalizedCategory);
+            if (normalizedContractHash.Length > 0)
             {
-                OnContractHashUpdated(appId, info.ContractHash);
+                OnContractHashUpdated(normalizedAppId, info.ContractHash);
             }
         }
 
@@ -222,12 +240,15 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(manifestHash != null && manifestHash.Length > 0, "manifest hash required");
             ExecutionEngine.Assert(entryUrl != null && entryUrl.Length > 0, "entry url required");
 
+            ByteString normalizedManifestHash = manifestHash ?? (ByteString)"";
+            string normalizedEntryUrl = entryUrl ?? "";
+
             AppStatus oldStatus = info.Status;
-            info.ManifestHash = manifestHash;
-            info.EntryUrl = entryUrl;
+            info.ManifestHash = normalizedManifestHash;
+            info.EntryUrl = normalizedEntryUrl;
             info.Status = AppStatus.Pending; // require re-approval
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
-            OnAppUpdated(appId, manifestHash, entryUrl);
+            OnAppUpdated(appId, normalizedManifestHash, normalizedEntryUrl);
             if (oldStatus != AppStatus.Pending)
             {
                 OnStatusChanged(appId, oldStatus, AppStatus.Pending);
@@ -252,23 +273,27 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(manifestHash != null && manifestHash.Length > 0, "manifest hash required");
             ExecutionEngine.Assert(entryUrl != null && entryUrl.Length > 0, "entry url required");
 
+            ByteString normalizedManifestHash = manifestHash ?? (ByteString)"";
+            string normalizedEntryUrl = entryUrl ?? "";
+            ByteString normalizedContractHash = contractHash ?? (ByteString)"";
+
             AppStatus oldStatus = info.Status;
             ByteString oldContractHash = info.ContractHash;
-            info.ManifestHash = manifestHash;
-            info.EntryUrl = entryUrl;
+            info.ManifestHash = normalizedManifestHash;
+            info.EntryUrl = normalizedEntryUrl;
             info.Name = name ?? "";
             info.Description = description ?? "";
             info.Icon = icon ?? "";
             info.Banner = banner ?? "";
             info.Category = category ?? "";
-            if (contractHash != null && contractHash.Length > 0)
+            if (normalizedContractHash.Length > 0)
             {
-                info.ContractHash = NormalizeContractHash(contractHash);
+                info.ContractHash = NormalizeContractHash(normalizedContractHash);
             }
             info.Status = AppStatus.Pending; // require re-approval
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
-            OnAppUpdated(appId, manifestHash, entryUrl);
-            if (contractHash != null && contractHash.Length > 0 && contractHash != oldContractHash)
+            OnAppUpdated(appId, normalizedManifestHash, normalizedEntryUrl);
+            if (normalizedContractHash.Length > 0 && normalizedContractHash != oldContractHash)
             {
                 OnContractHashUpdated(appId, info.ContractHash);
             }
@@ -284,11 +309,13 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(info.AppId != null && info.AppId.Length > 0, "app not found");
             ExecutionEngine.Assert(Runtime.CheckWitness(info.Developer) || Runtime.CheckWitness(Admin()), "unauthorized");
             ExecutionEngine.Assert(allowlistHash != null, "allowlist hash required");
-            ExecutionEngine.Assert(allowlistHash.Length == 0 || allowlistHash.Length == 32, "invalid allowlist hash");
 
-            info.AllowlistHash = allowlistHash;
+            ByteString normalizedAllowlistHash = allowlistHash ?? (ByteString)"";
+            ExecutionEngine.Assert(normalizedAllowlistHash.Length == 0 || normalizedAllowlistHash.Length == 32, "invalid allowlist hash");
+
+            info.AllowlistHash = normalizedAllowlistHash;
             AppMap().Put(AppKey(appId), StdLib.Serialize(info));
-            OnAllowlistUpdated(appId, allowlistHash);
+            OnAllowlistUpdated(appId, normalizedAllowlistHash);
         }
 
         public static void SetStatus(string appId, AppStatus status)
@@ -305,9 +332,9 @@ namespace NeoMiniAppPlatform.Contracts
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
+            ExecutionEngine.Assert(newAdmin != UInt160.Zero && newAdmin.IsValid, "invalid admin");
             UInt160 oldAdmin = Admin();
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, (ByteString)newAdmin);
             OnAdminChanged(oldAdmin, newAdmin);
         }
 
@@ -328,11 +355,14 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(info.AppId != null && info.AppId.Length > 0, "app not found");
             ExecutionEngine.Assert(Runtime.CheckWitness(info.Developer), "unauthorized");
             ExecutionEngine.Assert(scriptName != null && scriptName.Length > 0, "script name required");
-            ExecutionEngine.Assert(scriptName.Length <= 64, "script name too long");
             ExecutionEngine.Assert(scriptHash != null && scriptHash.Length == 32, "invalid script hash");
 
-            TeeScriptMap().Put(TeeScriptKey(appId, scriptName), scriptHash);
-            OnTeeScriptRegistered(appId, scriptName, scriptHash);
+            string normalizedScriptName = scriptName ?? "";
+            ByteString normalizedScriptHash = scriptHash ?? (ByteString)"";
+            ExecutionEngine.Assert(normalizedScriptName.Length <= 64, "script name too long");
+
+            TeeScriptMap().Put(TeeScriptKey(appId, normalizedScriptName), normalizedScriptHash);
+            OnTeeScriptRegistered(appId, normalizedScriptName, normalizedScriptHash);
         }
 
         /// <summary>
@@ -341,13 +371,14 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static ByteString GetTeeScriptHash(string appId, string scriptName)
         {
-            return TeeScriptMap().Get(TeeScriptKey(appId, scriptName));
+            ByteString? value = TeeScriptMap().Get(TeeScriptKey(appId, scriptName));
+            return value == null ? (ByteString)"" : value;
         }
 
         public static void Update(ByteString nefFile, string manifest)
         {
             ValidateAdmin();
-            ContractManagement.Update(nefFile, manifest, null);
+            ContractManagement.Update(nefFile, manifest, new object[0]);
         }
     }
 }
