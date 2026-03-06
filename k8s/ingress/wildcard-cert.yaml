@@ -1,0 +1,19 @@
+# =============================================================================
+# Wildcard localhost certificate for local development
+# Used by Traefik ingresses served on *.localhost
+# =============================================================================
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-localhost
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/part-of: service-layer
+spec:
+  secretName: wildcard-localhost-tls
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - localhost
+    - "*.localhost"
