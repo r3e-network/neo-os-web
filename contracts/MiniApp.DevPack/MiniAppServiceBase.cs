@@ -1,3 +1,4 @@
+#pragma warning disable CS8618
 using System.ComponentModel;
 using System.Numerics;
 using Neo;
@@ -28,7 +29,7 @@ namespace NeoMiniAppPlatform.Contracts
     /// - MiniAppRedEnvelope
     /// - Any MiniApp needing external service callbacks
     /// </summary>
-    public abstract class MiniAppServiceBase : MiniAppBase
+    public abstract class MiniAppServiceBase : MiniAppContract
     {
         #region Service Storage Prefixes (0x18-0x1B)
 
@@ -98,7 +99,7 @@ namespace NeoMiniAppPlatform.Contracts
             string appId, string serviceType, ByteString payload)
         {
             UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+            ExecutionEngine.Assert(gateway != UInt160.Zero && gateway.IsValid, "gateway not set");
 
             BigInteger requestId = (BigInteger)Contract.Call(
                 gateway,
@@ -148,8 +149,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         protected static ByteString GetRequestData(BigInteger requestId)
         {
-            return Storage.Get(Storage.CurrentContext,
+            ByteString? data = GetStorageValue(
                 Helper.Concat(PREFIX_SERVICE_REQUEST_DATA, (ByteString)requestId.ToByteArray()));
+            return data!;
         }
 
         protected static void DeleteRequestData(BigInteger requestId)
@@ -169,9 +171,8 @@ namespace NeoMiniAppPlatform.Contracts
         protected static ByteString ValidateCallback(BigInteger requestId)
         {
             ValidateGateway();
-            ByteString data = GetRequestData(requestId);
-            ExecutionEngine.Assert(data != null, "unknown request");
-            return data;
+            ByteString? data = GetRequestData(requestId);
+            return RequireByteString(data, "unknown request");
         }
 
         /// <summary>

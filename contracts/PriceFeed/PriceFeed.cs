@@ -26,6 +26,8 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_UPDATER = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_PRICE = new byte[] { 0x03 };
+        private const int MAX_SYMBOL_LENGTH = 32;
+        private const int ATTESTATION_HASH_LENGTH = 32;
 
         public struct PriceRecord
         {
@@ -85,6 +87,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static PriceRecord GetLatest(string symbol)
         {
             ExecutionEngine.Assert(symbol != null && symbol.Length > 0, "symbol required");
+            ExecutionEngine.Assert(symbol.Length <= MAX_SYMBOL_LENGTH, "symbol too long");
             ByteString raw = PriceMap().Get(symbol);
             if (raw == null)
             {
@@ -107,10 +110,11 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUpdater();
 
             ExecutionEngine.Assert(symbol != null && symbol.Length > 0, "symbol required");
+            ExecutionEngine.Assert(symbol.Length <= MAX_SYMBOL_LENGTH, "symbol too long");
             ExecutionEngine.Assert(roundId > 0, "roundId required");
             ExecutionEngine.Assert(price > 0, "price required");
             ExecutionEngine.Assert(timestamp > 0, "timestamp required");
-            ExecutionEngine.Assert(attestationHash != null && attestationHash.Length > 0, "attestation hash required");
+            ExecutionEngine.Assert(attestationHash != null && attestationHash.Length == ATTESTATION_HASH_LENGTH, "invalid attestation hash");
 
             PriceRecord current = GetLatest(symbol);
             if (current.RoundId > 0)
@@ -155,7 +159,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(timestamps.Length == count, "timestamps length mismatch");
             ExecutionEngine.Assert(attestationHashes.Length == count, "attestationHashes length mismatch");
             ExecutionEngine.Assert(sourceSetIds.Length == count, "sourceSetIds length mismatch");
-            ExecutionEngine.Assert(batchAttestationHash != null && batchAttestationHash.Length > 0, "batch attestation required");
+            ExecutionEngine.Assert(batchAttestationHash != null && batchAttestationHash.Length == ATTESTATION_HASH_LENGTH, "invalid batch attestation");
 
             ulong batchTimestamp = 0;
             StorageMap priceMap = PriceMap();
@@ -170,10 +174,11 @@ namespace NeoMiniAppPlatform.Contracts
                 BigInteger sourceSetId = sourceSetIds[i];
 
                 ExecutionEngine.Assert(symbol != null && symbol.Length > 0, "symbol required");
+                ExecutionEngine.Assert(symbol.Length <= MAX_SYMBOL_LENGTH, "symbol too long");
                 ExecutionEngine.Assert(roundId > 0, "roundId required");
                 ExecutionEngine.Assert(price > 0, "price required");
                 ExecutionEngine.Assert(timestamp > 0, "timestamp required");
-                ExecutionEngine.Assert(attestationHash != null && attestationHash.Length > 0, "attestation hash required");
+                ExecutionEngine.Assert(attestationHash != null && attestationHash.Length == ATTESTATION_HASH_LENGTH, "invalid attestation hash");
 
                 // Check monotonic roundId
                 ByteString raw = priceMap.Get(symbol);

@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <Optimize>true</Optimize>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Neo.SmartContract.Framework" Version="3.9.1" />
+<ItemGroup>
+    <Compile Remove="MiniAppCandidateVote.Badge.cs" />
+    <Compile Remove="MiniAppCandidateVote.Hybrid.cs" />
+    <Compile Remove="MiniAppCandidateVote.Internal.cs" />
+    <Compile Remove="MiniAppCandidateVote.Methods.cs" />
+    <Compile Remove="MiniAppCandidateVote.Query.cs" />
   </ItemGroup>
 </Project>

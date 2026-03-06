@@ -1,3 +1,4 @@
+#pragma warning disable CS8618
 using System.ComponentModel;
 using System.Numerics;
 using Neo;
@@ -26,7 +27,7 @@ namespace NeoMiniAppPlatform.Contracts
     /// - MiniAppTimeCapsule
     /// - Any MiniApp with time-locked content
     /// </summary>
-    public abstract class MiniAppTimeLockBase : MiniAppBase
+    public abstract class MiniAppTimeLockBase : MiniAppContract
     {
         #region TimeLock Storage Prefixes (0x1C-0x1F)
 
@@ -53,7 +54,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         protected static BigInteger NextItemId()
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_ITEM_COUNTER);
+            ByteString? data = GetStorageValue(PREFIX_ITEM_COUNTER);
             BigInteger current = data == null ? 0 : (BigInteger)data;
             BigInteger next = current + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_ITEM_COUNTER, next);
@@ -63,7 +64,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger TotalItems()
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_ITEM_COUNTER);
+            ByteString? data = GetStorageValue(PREFIX_ITEM_COUNTER);
             return data == null ? 0 : (BigInteger)data;
         }
 
@@ -76,7 +77,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             byte[] key = Helper.Concat(PREFIX_ITEM_UNLOCK_TIME,
                 (ByteString)itemId.ToByteArray());
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = GetStorageValue(key);
             return data == null ? 0 : (BigInteger)data;
         }
 
@@ -85,7 +86,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             byte[] key = Helper.Concat(PREFIX_ITEM_REVEALED,
                 (ByteString)itemId.ToByteArray());
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = GetStorageValue(key);
             return data != null && (BigInteger)data == 1;
         }
 

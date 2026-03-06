@@ -42,17 +42,17 @@ namespace NeoMiniAppPlatform.Contracts
         public static bool Claim()
         {
             UInt160 caller = Runtime.CallingScriptHash;
-            byte[] paramsBytes = (byte[])Storage.Get(Storage.CurrentContext, PREFIX_AIRDROP_PARAMS);
-            if (paramsBytes == null) throw new Exception("Airdrop not initialized");
+            ByteString paramsBytes = Storage.Get(Storage.CurrentContext, PREFIX_AIRDROP_PARAMS) ?? (ByteString)"";
+            if (paramsBytes.Length == 0) throw new Exception("Airdrop not initialized");
             
-            AirdropParams p = (AirdropParams)StdLib.Deserialize((ByteString)paramsBytes);
+            AirdropParams p = (AirdropParams)StdLib.Deserialize(paramsBytes);
             if (Runtime.Time >= p.EndTimestamp) throw new Exception("Airdrop has ended");
 
             byte[] callerKey = PREFIX_CLAIMED.Concat(caller);
             if (Storage.Get(Storage.CurrentContext, callerKey) != null) throw new Exception("Already claimed");
 
             // Transfer token
-            object[] args = new object[] { Runtime.ExecutingScriptHash, caller, p.AmountPerClaim, null };
+            object[] args = new object[] { Runtime.ExecutingScriptHash, caller, p.AmountPerClaim, null! };
             bool success = (bool)Contract.Call(p.TokenAddress, "transfer", CallFlags.All, args);
             if (!success) throw new Exception("Token transfer failed");
 

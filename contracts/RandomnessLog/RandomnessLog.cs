@@ -23,6 +23,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_UPDATER = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_RECORD = new byte[] { 0x03 };
+        private const int MAX_REQUEST_ID_LENGTH = 128;
+        private const int MAX_RANDOMNESS_LENGTH = 128;
+        private const int ATTESTATION_HASH_LENGTH = 32;
 
         public struct RandomRecord
         {
@@ -78,6 +81,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static ByteString RequestKey(string requestId)
         {
             ExecutionEngine.Assert(requestId != null && requestId.Length > 0, "requestId required");
+            ExecutionEngine.Assert(requestId.Length <= MAX_REQUEST_ID_LENGTH, "requestId too long");
             return (ByteString)requestId;
         }
 
@@ -103,8 +107,9 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUpdater();
 
             ExecutionEngine.Assert(requestId != null && requestId.Length > 0, "requestId required");
-            ExecutionEngine.Assert(randomness != null && randomness.Length > 0, "randomness required");
-            ExecutionEngine.Assert(attestationHash != null && attestationHash.Length > 0, "attestationHash required");
+            ExecutionEngine.Assert(requestId.Length <= MAX_REQUEST_ID_LENGTH, "requestId too long");
+            ExecutionEngine.Assert(randomness != null && randomness.Length > 0 && randomness.Length <= MAX_RANDOMNESS_LENGTH, "invalid randomness");
+            ExecutionEngine.Assert(attestationHash != null && attestationHash.Length == ATTESTATION_HASH_LENGTH, "invalid attestationHash");
             ExecutionEngine.Assert(timestamp > 0, "timestamp required");
 
             ByteString key = RequestKey(requestId);
