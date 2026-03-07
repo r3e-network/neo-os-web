@@ -79,3 +79,9 @@ configMapGenerator:
       - migrations/20000101000056_auth0_identities.sql
       - migrations/20000101000056_template_marketplace_source_type_miniapp.sql
       - migrations/20000101000057_runtime_schema_sync.sql
+      - migrations/20000101000101_transactions.sql
+      - migrations/20000101000102_opcode_traces.sql
+      - migrations/20000101000103_contract_calls.sql
+      - migrations/20000101000104_syscalls.sql
+      - migrations/20000101000105_address_txs.sql
+      - migrations/20000101000106_sync_state.sql
