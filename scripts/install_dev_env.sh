@@ -56,7 +56,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 install_nitrorun() {
-    log_info "Installing NitroRun-compatible CLI..."
+    log_info "Installing optional NitroRun-compatible CLI..."
 
     if command -v nitrorun >/dev/null 2>&1; then
         log_info "NitroRun CLI already installed: $(nitrorun version 2>/dev/null || echo 'installed')"
@@ -72,9 +72,9 @@ install_nitrorun() {
             asset_url="https://github.com/edgelesssys/marblerun/releases/latest/download/marblerun-x86_64.AppImage"
             ;;
         *)
-            log_error "Automatic NitroRun-compatible install is only supported on x86_64 hosts (detected: $arch)."
-            log_warn "Install a compatible coordinator CLI manually and expose it as 'nitrorun' in PATH."
-            return 1
+            log_warn "NitroRun-compatible CLI is unavailable on $arch."
+            log_info "Continuing with the Kubernetes-native local mesh instead."
+            return 0
             ;;
     esac
 
@@ -93,6 +93,12 @@ install_nitrorun() {
 
 deploy_nitrorun() {
     log_info "Deploying NitroRun coordinator to Kubernetes..."
+
+    if ! command -v nitrorun >/dev/null 2>&1; then
+        log_warn "NitroRun CLI is not installed on this host; skipping coordinator deployment."
+        log_info "Use the Kubernetes-native local mesh for local ARM64 and other non-x86 hosts."
+        return 0
+    fi
 
     if kubectl -n nitrorun get deployment coordinator >/dev/null 2>&1; then
         log_info "NitroRun coordinator already installed."
@@ -151,9 +157,9 @@ usage() {
     echo ""
     echo "Options:"
     echo "  --skip-k8s          Skip Kubernetes (k3s) installation"
-    echo "  --skip-nitrorun    Skip NitroRun CLI installation"
-    echo "  --deploy-nitrorun  Deploy NitroRun to Kubernetes after install"
-    echo "  --all               Install everything and deploy NitroRun"
+    echo "  --skip-nitrorun     Skip optional NitroRun CLI installation"
+    echo "  --deploy-nitrorun   Deploy NitroRun to Kubernetes after install (x86_64 only)"
+    echo "  --all               Install everything; deploy NitroRun when supported"
     echo "  -h, --help          Show this help message"
 }
 
@@ -217,8 +223,10 @@ main() {
 
     log_info "Installed components:"
     echo "  - AWS Nitro Enclaves tooling"
-    if [ "$SKIP_NITRORUN" = false ]; then
+    if [ "$SKIP_NITRORUN" = false ] && command -v nitrorun >/dev/null 2>&1; then
         echo "  - NitroRun CLI"
+    elif [ "$SKIP_NITRORUN" = false ]; then
+        echo "  - Kubernetes-native local mesh fallback (no NitroRun CLI on this CPU architecture)"
     fi
     if [ "$SKIP_K8S" = false ]; then
         echo "  - k3s (lightweight Kubernetes)"
@@ -234,8 +242,10 @@ main() {
         echo "  2. kubectl get nodes  # Verify Kubernetes"
     fi
     echo "  3. nitro-cli --help   # Verify Nitro CLI"
-    if [ "$SKIP_NITRORUN" = false ]; then
+    if [ "$SKIP_NITRORUN" = false ] && command -v nitrorun >/dev/null 2>&1; then
         echo "  4. nitrorun --help   # Verify NitroRun CLI"
+    elif [ "$SKIP_NITRORUN" = false ]; then
+        echo "  4. ./scripts/k3s-install.sh status   # Verify local mesh mode"
     fi
 }
 
