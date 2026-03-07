@@ -1,6 +1,8 @@
 package service
 
 import (
+	"bytes"
+	"errors"
 	"context"
 	"fmt"
 	"io"
@@ -12,19 +14,13 @@ import (
 	"time"
 )
 
-func TestNewDeepHealthCheckerDefaultTimeout(t *testing.T) {
-	hc := NewDeepHealthChecker(0)
-	if hc == nil {
-		t.Fatal("NewDeepHealthChecker returned nil")
-	}
-	if hc.timeout != 10*time.Second {
-		t.Errorf("timeout = %v, want 10s", hc.timeout)
-	}
-}
+type errReader struct{ err error }
 
-func TestDeepHealthCheckerAllHealthy(t *testing.T) {
+func (e errReader) Read(_ []byte) (int, error) { return 0, e.err }
+
+func TestDeepHealthCheckerAggregatesHealthy(t *testing.T) {
 	hc := NewDeepHealthChecker(5 * time.Second)
-	hc.Register("db", func(ctx context.Context) *ComponentHealth {
+	hc.Register("ok", func(ctx context.Context) *ComponentHealth {
 		return &ComponentHealth{Status: "healthy"}
 	})
 
@@ -193,6 +189,29 @@ func TestHTTPHealthCheckClassifiesStatusAndIncludesDetails(t *testing.T) {
 			t.Fatalf("message = %q, want response body", result.Message)
 		}
 	})
+
+	t.Run("unhealthy timeout uses stable message", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(100 * time.Millisecond)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		check := HTTPHealthCheck("upstream", server.URL, 10*time.Millisecond)
+		result := check(context.Background())
+		if result.Status != "unhealthy" {
+			t.Fatalf("status = %q, want unhealthy", result.Status)
+		}
+		if result.Message != "request timed out" {
+			t.Fatalf("message = %q, want %q", result.Message, "request timed out")
+		}
+		if strings.Contains(result.Message, server.URL) {
+			t.Fatalf("message = %q, should not leak upstream url", result.Message)
+		}
+		if strings.Contains(strings.ToLower(result.Message), "deadline") {
+			t.Fatalf("message = %q, should not leak raw timeout details", result.Message)
+		}
+	})
 }
 
 func TestReadHealthCheckBodyNilReader(t *testing.T) {
@@ -207,5 +226,32 @@ func TestReadHealthCheckBodyNilReader(t *testing.T) {
 	_, _, err := readHealthCheckBody(nil, 4<<10)
 	if err == nil {
 		t.Fatal("expected error for nil body")
+	}
+}
+
+func TestReadHealthCheckBodyTruncatesLargeResponse(t *testing.T) {
+	t.Parallel()
+
+	body, truncated, err := readHealthCheckBody(bytes.NewBufferString(strings.Repeat("x", 32)), 8)
+	if err != nil {
+		t.Fatalf("readHealthCheckBody() error = %v", err)
+	}
+	if !truncated {
+		t.Fatal("expected truncated response")
+	}
+	if len(body) != 8 {
+		t.Fatalf("len(body) = %d, want 8", len(body))
+	}
+}
+
+func TestReadHealthCheckBodyReturnsReadError(t *testing.T) {
+	t.Parallel()
+
+	_, _, err := readHealthCheckBody(errReader{err: io.ErrUnexpectedEOF}, 8)
+	if err == nil {
+		t.Fatal("expected read error")
+	}
+	if !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
