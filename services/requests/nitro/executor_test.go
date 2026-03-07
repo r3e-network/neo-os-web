@@ -3,7 +3,9 @@ package neorequests
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -79,6 +81,20 @@ func TestWrapUpstreamServiceError(t *testing.T) {
 		}
 		if !errors.Is(got, context.DeadlineExceeded) {
 			t.Fatalf("wrapped error should preserve context deadline, got %v", got)
+		}
+	})
+
+	t.Run("transport error treated as unavailable", func(t *testing.T) {
+		base := &url.Error{Op: http.MethodPost, URL: "https://example.test/query", Err: io.EOF}
+		got := wrapUpstreamServiceError("neooracle", base)
+		if got == nil {
+			t.Fatal("wrapUpstreamServiceError() returned nil error")
+		}
+		if !strings.Contains(got.Error(), "neooracle service unavailable") {
+			t.Fatalf("error = %q, want to contain %q", got.Error(), "neooracle service unavailable")
+		}
+		if !errors.Is(got, base) {
+			t.Fatalf("wrapped error should preserve transport error, got %v", got)
 		}
 	})
 
