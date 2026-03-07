@@ -389,7 +389,7 @@ func (s *Service) fetchPriceFromSource(ctx context.Context, pair string, feed *F
 
 	body, err := httputil.ReadAllStrict(resp.Body, 1<<20)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("price source %s response read failed for %s: %w", strings.TrimSpace(src.ID), url, err)
 	}
 
 	jsonPath := formatJSONPath(src.JSONPath, feed, src)
@@ -497,7 +497,11 @@ func (s *Service) refreshYahooQuoteMap(ctx context.Context, src *SourceConfig) (
 
 	body, err := httputil.ReadAllStrict(resp.Body, 1<<20)
 	if err != nil {
-		return nil, err
+		sourceID := ""
+		if src != nil {
+			sourceID = src.ID
+		}
+		return nil, fmt.Errorf("price source %s response read failed for %s: %w", strings.TrimSpace(sourceID), url, err)
 	}
 
 	items := gjson.GetBytes(body, "quoteResponse.result").Array()
