@@ -1,6 +1,6 @@
 # =============================================================================
 # Neo Service Layer - Makefile
-# NitroRun + AWS Nitro + Supabase + Vercel Architecture
+# Nitro-oriented + AWS Nitro + Supabase + Vercel Architecture
 # =============================================================================
 
 .PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-nitro
@@ -146,13 +146,17 @@ docker-clean: ## Remove all containers and volumes
 # NitroRun
 # =============================================================================
 
-nitrorun-install: ## Install NitroRun-compatible CLI (x86_64 only)
+nitrorun-install: ## Install optional NitroRun-compatible CLI (arm64 uses local mesh)
 	@arch="$$(uname -m)"; \
-	case "$$arch" in \
-	  x86_64|amd64) asset_url="https://github.com/edgelesssys/marblerun/releases/latest/download/marblerun-x86_64.AppImage" ;; \
-	  *) echo "Automatic NitroRun-compatible install is only supported on x86_64 hosts (detected: $$arch)."; exit 1 ;; \
-	esac; \
-	curl -fsSL "$$asset_url" -o /tmp/nitrorun && sudo install -m 0755 /tmp/nitrorun /usr/local/bin/nitrorun && rm -f /tmp/nitrorun
+	if command -v nitrorun >/dev/null 2>&1; then \
+	  echo "nitrorun already installed"; \
+	elif [ "$$arch" = "x86_64" ] || [ "$$arch" = "amd64" ]; then \
+	  asset_url="https://github.com/edgelesssys/marblerun/releases/latest/download/marblerun-x86_64.AppImage"; \
+	  curl -fsSL "$$asset_url" -o /tmp/nitrorun && sudo install -m 0755 /tmp/nitrorun /usr/local/bin/nitrorun && rm -f /tmp/nitrorun; \
+	else \
+	  echo "NitroRun-compatible CLI is unavailable on $$arch."; \
+	  echo "Use the Kubernetes-native local mesh instead (for example: make dev-stack-up)."; \
+	fi
 
 nitrorun-manifest: ## Set NitroRun manifest
 	nitrorun manifest set manifests/manifest.json $(COORDINATOR_CLIENT_ADDR) $(NITRORUN_FLAGS)

@@ -27,7 +27,13 @@ The local development stack provides a complete Kubernetes environment running o
 
 ```bash
 # Install kubectl
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+KUBECTL_ARCH="$(uname -m)"
+case "$KUBECTL_ARCH" in
+  x86_64|amd64) KUBECTL_ARCH=amd64 ;;
+  aarch64|arm64) KUBECTL_ARCH=arm64 ;;
+  *) echo "Unsupported CPU architecture: $KUBECTL_ARCH" >&2; exit 1 ;;
+esac
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${KUBECTL_ARCH}/kubectl"
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
 # Install Docker (for building images)
