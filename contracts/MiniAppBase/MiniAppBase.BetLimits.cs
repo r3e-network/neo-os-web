@@ -61,7 +61,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BetLimitsConfig GetBetLimits()
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, PREFIX_BET_LIMITS_CONFIG);
+            ByteString? data = Storage.Get(Storage.CurrentContext, PREFIX_BET_LIMITS_CONFIG);
             if (data == null)
             {
                 return new BetLimitsConfig
@@ -114,7 +114,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetPlayerDailyBet(UInt160 player)
         {
             byte[] key = GetDailyBetKey(player);
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = Storage.Get(Storage.CurrentContext, key);
             if (data == null) return 0;
 
             object[] stored = (object[])StdLib.Deserialize(data);
@@ -133,7 +133,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetPlayerLastBetTime(UInt160 player)
         {
             byte[] key = Helper.Concat(PREFIX_PLAYER_LAST_BET, (ByteString)player);
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = Storage.Get(Storage.CurrentContext, key);
             return data == null ? 0 : (BigInteger)data;
         }
 
@@ -144,7 +144,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetPlayerBetCount(UInt160 player)
         {
             byte[] key = Helper.Concat(PREFIX_PLAYER_BET_COUNT, (ByteString)player);
-            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            ByteString? data = Storage.Get(Storage.CurrentContext, key);
             return data == null ? 0 : (BigInteger)data;
         }
 
