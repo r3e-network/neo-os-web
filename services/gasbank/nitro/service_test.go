@@ -58,6 +58,66 @@ func TestServiceConstants(t *testing.T) {
 	}
 }
 
+func TestDeductFeeNilRequest(t *testing.T) {
+	m, _ := nitro.New(nitro.Config{NitroType: ServiceID})
+	mockDB := database.NewMockRepository()
+	svc, _ := New(Config{Nitro: m, DB: mockDB})
+
+	resp, err := svc.DeductFee(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("DeductFee(nil) error = %v", err)
+	}
+	if resp == nil {
+		t.Fatal("DeductFee(nil) returned nil response")
+	}
+	if resp.Success {
+		t.Fatal("DeductFee(nil) expected failure")
+	}
+	if resp.Error != errRequestNil {
+		t.Fatalf("DeductFee(nil) error = %q, want %q", resp.Error, errRequestNil)
+	}
+}
+
+func TestReserveFundsNilRequest(t *testing.T) {
+	m, _ := nitro.New(nitro.Config{NitroType: ServiceID})
+	mockDB := database.NewMockRepository()
+	svc, _ := New(Config{Nitro: m, DB: mockDB})
+
+	resp, err := svc.ReserveFunds(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("ReserveFunds(nil) error = %v", err)
+	}
+	if resp == nil {
+		t.Fatal("ReserveFunds(nil) returned nil response")
+	}
+	if resp.Success {
+		t.Fatal("ReserveFunds(nil) expected failure")
+	}
+	if resp.Error != errRequestNil {
+		t.Fatalf("ReserveFunds(nil) error = %q, want %q", resp.Error, errRequestNil)
+	}
+}
+
+func TestReleaseFundsNilRequest(t *testing.T) {
+	m, _ := nitro.New(nitro.Config{NitroType: ServiceID})
+	mockDB := database.NewMockRepository()
+	svc, _ := New(Config{Nitro: m, DB: mockDB})
+
+	resp, err := svc.ReleaseFunds(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("ReleaseFunds(nil) error = %v", err)
+	}
+	if resp == nil {
+		t.Fatal("ReleaseFunds(nil) returned nil response")
+	}
+	if resp.Success {
+		t.Fatal("ReleaseFunds(nil) expected failure")
+	}
+	if resp.Error != errRequestNil {
+		t.Fatalf("ReleaseFunds(nil) error = %q, want %q", resp.Error, errRequestNil)
+	}
+}
+
 func TestDeductFeeValidation(t *testing.T) {
 	m, _ := nitro.New(nitro.Config{NitroType: ServiceID})
 	mockDB := database.NewMockRepository()

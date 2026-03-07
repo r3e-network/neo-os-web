@@ -42,6 +42,7 @@ const (
 )
 
 const (
+	errRequestNil           = "request cannot be nil"
 	errUserIDRequired       = "user_id is required"
 	errAmountMustBePositive = "amount must be positive"
 	errServiceIDRequired    = "service_id is required"
@@ -185,6 +186,9 @@ func (s *Service) GetAccount(ctx context.Context, userID string) (*GetAccountRes
 // DeductFee deducts a service fee from a user's gas bank balance.
 // This is called by other TEE services (neofeeds, neoflow, etc.) via mTLS.
 func (s *Service) DeductFee(ctx context.Context, req *DeductFeeRequest) (*DeductFeeResponse, error) {
+	if req == nil {
+		return &DeductFeeResponse{Success: false, Error: errRequestNil}, nil
+	}
 	if req.UserID == "" {
 		return &DeductFeeResponse{Success: false, Error: errUserIDRequired}, nil
 	}
@@ -218,6 +222,9 @@ func (s *Service) DeductFee(ctx context.Context, req *DeductFeeRequest) (*Deduct
 
 // ReserveFunds reserves funds for a pending operation.
 func (s *Service) ReserveFunds(ctx context.Context, req *ReserveFundsRequest) (*ReserveFundsResponse, error) {
+	if req == nil {
+		return &ReserveFundsResponse{Success: false, Error: errRequestNil}, nil
+	}
 	if req.UserID == "" {
 		return &ReserveFundsResponse{Success: false, Error: errUserIDRequired}, nil
 	}
@@ -244,6 +251,9 @@ func (s *Service) ReserveFunds(ctx context.Context, req *ReserveFundsRequest) (*
 
 // ReleaseFunds releases or commits reserved funds.
 func (s *Service) ReleaseFunds(ctx context.Context, req *ReleaseFundsRequest) (*ReleaseFundsResponse, error) {
+	if req == nil {
+		return &ReleaseFundsResponse{Success: false, Error: errRequestNil}, nil
+	}
 	if req.UserID == "" {
 		return &ReleaseFundsResponse{Success: false, Error: errUserIDRequired}, nil
 	}
