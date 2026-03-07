@@ -3,8 +3,12 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
-const NEO_RPC_TESTNET = process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443";
-const NEO_RPC_MAINNET = process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443";
+function getNeoRPCURL(network: "testnet" | "mainnet"): string {
+  if (network === "mainnet") {
+    return process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443";
+  }
+  return process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443";
+}
 
 interface ChainHealth {
   network: "testnet" | "mainnet";
@@ -25,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (network !== "testnet" && network !== "mainnet") {
     return apiError.badRequest(res, "network must be testnet or mainnet");
   }
-  const rpcUrl = network === "mainnet" ? NEO_RPC_MAINNET : NEO_RPC_TESTNET;
+  const rpcUrl = getNeoRPCURL(network as "testnet" | "mainnet");
 
   try {
     const health = await checkChainHealth(rpcUrl, network as "testnet" | "mainnet");
@@ -40,7 +44,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 async function checkChainHealth(rpcUrl: string, network: "testnet" | "mainnet"): Promise<ChainHealth> {
   const rpcTimeout = 10000;
 
-  // Get block count
   const blockRes = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -58,7 +61,6 @@ async function checkChainHealth(rpcUrl: string, network: "testnet" | "mainnet"):
   const blockData = await blockRes.json();
   const blockHeight = blockData.result || 0;
 
-  // Get latest block header for timestamp
   const headerRes = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -76,7 +78,6 @@ async function checkChainHealth(rpcUrl: string, network: "testnet" | "mainnet"):
   const headerData = await headerRes.json();
   const lastBlockTime = headerData.result?.time || 0;
 
-  // Calculate status
   const now = Math.floor(Date.now() / 1000);
   const timeSinceBlock = now - lastBlockTime;
 
