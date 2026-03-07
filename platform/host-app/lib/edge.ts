@@ -1,8 +1,6 @@
 import type { NextApiRequest } from "next";
 
 const DEFAULT_FETCH_TIMEOUT_MS = 5000; // 5 seconds for SSR
-const EDGE_RPC_ALLOWLIST = String(process.env.EDGE_RPC_ALLOWLIST || "").trim();
-
 function parseAllowlist(raw: string): { allowAll: boolean; entries: Set<string> } {
   if (!raw) return { allowAll: false, entries: new Set() };
   const tokens = raw
@@ -82,7 +80,8 @@ export function forwardEdgeRpcHeaders(req: NextApiRequest): Headers {
 }
 
 export function isEdgeRpcAllowed(fn: string): boolean {
-  const { allowAll, entries } = parseAllowlist(EDGE_RPC_ALLOWLIST);
+  const edgeRPCAllowlist = String(process.env.EDGE_RPC_ALLOWLIST || "").trim();
+  const { allowAll, entries } = parseAllowlist(edgeRPCAllowlist);
   if (allowAll) return true;
   if (entries.size === 0) {
     return process.env.NODE_ENV !== "production";
