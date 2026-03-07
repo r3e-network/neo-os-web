@@ -38,10 +38,10 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [DisplayName("OracleRequested")]
-        public static event OracleRequestedHandler OnOracleRequested;
+        public static event OracleRequestedHandler OnOracleRequested = delegate { };
 
         [DisplayName("OracleFulfilled")]
-        public static event OracleFulfilledHandler OnOracleFulfilled;
+        public static event OracleFulfilledHandler OnOracleFulfilled = delegate { };
 
         public static void _deploy(object data, bool update)
         {
@@ -50,34 +50,40 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, tx.Sender);
         }
 
+        private static UInt160 ReadAddress(byte[] key)
+        {
+            ByteString? value = Storage.Get(Storage.CurrentContext, key);
+            return value == null ? UInt160.Zero : (UInt160)value;
+        }
+
         public static UInt160 Admin()
         {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+            return ReadAddress(PREFIX_ADMIN);
         }
 
         private static void ValidateAdmin()
         {
             UInt160 admin = Admin();
-            ExecutionEngine.Assert(admin != null, "admin not set");
+            ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
         public static void SetGateway(UInt160 gateway)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "invalid gateway");
-            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, gateway);
+            ExecutionEngine.Assert(gateway != UInt160.Zero && gateway.IsValid, "invalid gateway");
+            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, (ByteString)gateway);
         }
 
         public static UInt160 Gateway()
         {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_GATEWAY);
+            return ReadAddress(PREFIX_GATEWAY);
         }
 
         private static void ValidateGateway()
         {
             UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+            ExecutionEngine.Assert(gateway != UInt160.Zero && gateway.IsValid, "gateway not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(gateway), "unauthorized");
         }
 
@@ -91,37 +97,43 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ExecutionEngine.Assert(requestId != null && requestId.Length > 0, "requestId required");
             ExecutionEngine.Assert(url != null && url.Length > 0, "url required");
-            ExecutionEngine.Assert(requestId.Length <= 128, "requestId too long");
-            ExecutionEngine.Assert(url.Length <= 2048, "url too long");
-            ExecutionEngine.Assert((method ?? "").Length <= 16, "method too long");
-            ExecutionEngine.Assert((headers ?? "").Length <= 2048, "headers too long");
-            ExecutionEngine.Assert((body ?? "").Length <= 8192, "body too long");
-            ExecutionEngine.Assert((jsonPath ?? "").Length <= 256, "jsonPath too long");
+
+            string normalizedRequestId = requestId ?? "";
+            string normalizedUrl = url ?? "";
+            string normalizedMethod = method ?? "";
+            string normalizedHeaders = headers ?? "";
+            string normalizedBody = body ?? "";
+            string normalizedJsonPath = jsonPath ?? "";
+
+            ExecutionEngine.Assert(normalizedRequestId.Length <= 128, "requestId too long");
+            ExecutionEngine.Assert(normalizedUrl.Length <= 2048, "url too long");
+            ExecutionEngine.Assert(normalizedMethod.Length <= 16, "method too long");
+            ExecutionEngine.Assert(normalizedHeaders.Length <= 2048, "headers too long");
+            ExecutionEngine.Assert(normalizedBody.Length <= 8192, "body too long");
+            ExecutionEngine.Assert(normalizedJsonPath.Length <= 256, "jsonPath too long");
 
             Transaction tx = Runtime.Transaction;
             StorageMap map = RequestMap();
-            ExecutionEngine.Assert(map.Get(requestId) == null, "request already exists");
-            
-            // Store pending request
+            ExecutionEngine.Assert(map.Get(normalizedRequestId) == null, "request already exists");
+
             OracleRequest req = new OracleRequest
             {
                 User = tx.Sender,
-                Url = url,
+                Url = normalizedUrl,
                 Timestamp = Runtime.Time,
                 IsFulfilled = false,
                 Value = "",
                 AttestationHash = (ByteString)""
             };
-            
-            map.Put(requestId, StdLib.Serialize(req));
-            
-            // Emit event for off-chain TEE to pick up
-            OnOracleRequested(tx.Sender, requestId, url, method, headers, body, jsonPath);
+
+            map.Put(normalizedRequestId, StdLib.Serialize(req));
+            OnOracleRequested(tx.Sender, normalizedRequestId, normalizedUrl, normalizedMethod, normalizedHeaders, normalizedBody, normalizedJsonPath);
         }
 
         public static OracleRequest GetRequest(string requestId)
         {
-            ByteString raw = RequestMap().Get(requestId);
+            string normalizedRequestId = requestId ?? "";
+            ByteString? raw = RequestMap().Get(normalizedRequestId);
             if (raw == null)
             {
                 return new OracleRequest
@@ -147,33 +159,36 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(requestId != null && requestId.Length > 0, "requestId required");
             ExecutionEngine.Assert(attestationHash != null && attestationHash.Length > 0, "attestation hash required");
 
+            string normalizedRequestId = requestId ?? "";
+            string normalizedValue = value ?? "";
+            ByteString normalizedAttestationHash = attestationHash ?? (ByteString)"";
+
             StorageMap map = RequestMap();
-            ByteString raw = map.Get(requestId);
+            ByteString? raw = map.Get(normalizedRequestId);
             ExecutionEngine.Assert(raw != null, "request not found");
 
-            OracleRequest req = (OracleRequest)StdLib.Deserialize(raw);
+            OracleRequest req = (OracleRequest)StdLib.Deserialize(raw!);
             ExecutionEngine.Assert(!req.IsFulfilled, "request already fulfilled");
 
             req.IsFulfilled = true;
-            req.Value = value;
-            req.AttestationHash = attestationHash;
+            req.Value = normalizedValue;
+            req.AttestationHash = normalizedAttestationHash;
 
-            map.Put(requestId, StdLib.Serialize(req));
-            
-            OnOracleFulfilled(requestId, statusCode, value, attestationHash, Runtime.Time);
+            map.Put(normalizedRequestId, StdLib.Serialize(req));
+            OnOracleFulfilled(normalizedRequestId, statusCode, normalizedValue, normalizedAttestationHash, Runtime.Time);
         }
 
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            ExecutionEngine.Assert(newAdmin != UInt160.Zero && newAdmin.IsValid, "invalid admin");
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, (ByteString)newAdmin);
         }
 
         public static void UpdateContract(ByteString nefFile, string manifest)
         {
             ValidateAdmin();
-            ContractManagement.Update(nefFile, manifest, null);
+            ContractManagement.Update(nefFile, manifest, new object[0]);
         }
     }
 }
