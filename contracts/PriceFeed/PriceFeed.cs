@@ -39,10 +39,10 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [DisplayName("PriceUpdated")]
-        public static event PriceUpdatedHandler OnPriceUpdated;
+        public static event PriceUpdatedHandler OnPriceUpdated = delegate { };
 
         [DisplayName("BatchPriceUpdated")]
-        public static event BatchPriceUpdatedHandler OnBatchPriceUpdated;
+        public static event BatchPriceUpdatedHandler OnBatchPriceUpdated = delegate { };
 
         public static void _deploy(object data, bool update)
         {
@@ -51,34 +51,40 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, tx.Sender);
         }
 
+        private static UInt160 ReadAddress(byte[] key)
+        {
+            ByteString? value = Storage.Get(Storage.CurrentContext, key);
+            return value == null ? UInt160.Zero : (UInt160)value;
+        }
+
         public static UInt160 Admin()
         {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN);
+            return ReadAddress(PREFIX_ADMIN);
         }
 
         private static void ValidateAdmin()
         {
             UInt160 admin = Admin();
-            ExecutionEngine.Assert(admin != null, "admin not set");
+            ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
         public static void SetUpdater(UInt160 updater)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(updater != null && updater.IsValid, "invalid updater");
-            Storage.Put(Storage.CurrentContext, PREFIX_UPDATER, updater);
+            ExecutionEngine.Assert(updater != UInt160.Zero && updater.IsValid, "invalid updater");
+            Storage.Put(Storage.CurrentContext, PREFIX_UPDATER, (ByteString)updater);
         }
 
         public static UInt160 Updater()
         {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_UPDATER);
+            return ReadAddress(PREFIX_UPDATER);
         }
 
         private static void ValidateUpdater()
         {
             UInt160 updater = Updater();
-            ExecutionEngine.Assert(updater != null && updater.IsValid, "updater not set");
+            ExecutionEngine.Assert(updater != UInt160.Zero && updater.IsValid, "updater not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(updater), "unauthorized");
         }
 
@@ -87,12 +93,12 @@ namespace NeoMiniAppPlatform.Contracts
         public static PriceRecord GetLatest(string symbol)
         {
             ExecutionEngine.Assert(symbol != null && symbol.Length > 0, "symbol required");
-            ExecutionEngine.Assert(symbol.Length <= MAX_SYMBOL_LENGTH, "symbol too long");
-            ByteString raw = PriceMap().Get(symbol);
+            string normalizedSymbol = symbol ?? "";
+            ExecutionEngine.Assert(normalizedSymbol.Length <= MAX_SYMBOL_LENGTH, "symbol too long");
+
+            ByteString? raw = PriceMap().Get(normalizedSymbol);
             if (raw == null)
             {
-                // Avoid returning `default` struct which may be represented as an empty VMArray,
-                // causing field access to throw (index out of range) in Neo VM.
                 return new PriceRecord
                 {
                     RoundId = 0,
@@ -102,6 +108,7 @@ namespace NeoMiniAppPlatform.Contracts
                     SourceSetId = 0
                 };
             }
+
             return (PriceRecord)StdLib.Deserialize(raw);
         }
 
@@ -110,13 +117,16 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUpdater();
 
             ExecutionEngine.Assert(symbol != null && symbol.Length > 0, "symbol required");
-            ExecutionEngine.Assert(symbol.Length <= MAX_SYMBOL_LENGTH, "symbol too long");
+            ExecutionEngine.Assert(timestamp > 0, "timestamp required");
             ExecutionEngine.Assert(roundId > 0, "roundId required");
             ExecutionEngine.Assert(price > 0, "price required");
-            ExecutionEngine.Assert(timestamp > 0, "timestamp required");
             ExecutionEngine.Assert(attestationHash != null && attestationHash.Length == ATTESTATION_HASH_LENGTH, "invalid attestation hash");
 
-            PriceRecord current = GetLatest(symbol);
+            string normalizedSymbol = symbol ?? "";
+            ByteString normalizedAttestationHash = attestationHash ?? (ByteString)"";
+            ExecutionEngine.Assert(normalizedSymbol.Length <= MAX_SYMBOL_LENGTH, "symbol too long");
+
+            PriceRecord current = GetLatest(normalizedSymbol);
             if (current.RoundId > 0)
             {
                 ExecutionEngine.Assert(roundId > current.RoundId, "roundId must be monotonic");
@@ -127,12 +137,12 @@ namespace NeoMiniAppPlatform.Contracts
                 RoundId = roundId,
                 Price = price,
                 Timestamp = timestamp,
-                AttestationHash = attestationHash,
+                AttestationHash = normalizedAttestationHash,
                 SourceSetId = sourceSetId
             };
 
-            PriceMap().Put(symbol, StdLib.Serialize(next));
-            OnPriceUpdated(symbol, roundId, price, timestamp, attestationHash, sourceSetId);
+            PriceMap().Put(normalizedSymbol, StdLib.Serialize(next));
+            OnPriceUpdated(normalizedSymbol, roundId, price, timestamp, normalizedAttestationHash, sourceSetId);
         }
 
         /// <summary>
@@ -151,37 +161,51 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateUpdater();
 
-            int count = symbols.Length;
+            ExecutionEngine.Assert(symbols != null, "symbols required");
+            ExecutionEngine.Assert(roundIds != null, "roundIds required");
+            ExecutionEngine.Assert(prices != null, "prices required");
+            ExecutionEngine.Assert(timestamps != null, "timestamps required");
+            ExecutionEngine.Assert(attestationHashes != null, "attestationHashes required");
+            ExecutionEngine.Assert(sourceSetIds != null, "sourceSetIds required");
+            ExecutionEngine.Assert(batchAttestationHash != null && batchAttestationHash.Length == ATTESTATION_HASH_LENGTH, "invalid batch attestation");
+
+            string[] safeSymbols = symbols ?? new string[0];
+            BigInteger[] safeRoundIds = roundIds ?? new BigInteger[0];
+            BigInteger[] safePrices = prices ?? new BigInteger[0];
+            ulong[] safeTimestamps = timestamps ?? new ulong[0];
+            ByteString[] safeAttestationHashes = attestationHashes ?? new ByteString[0];
+            BigInteger[] safeSourceSetIds = sourceSetIds ?? new BigInteger[0];
+            ByteString normalizedBatchAttestationHash = batchAttestationHash ?? (ByteString)"";
+
+            int count = safeSymbols.Length;
             ExecutionEngine.Assert(count > 0, "empty batch");
             ExecutionEngine.Assert(count <= 100, "batch too large");
-            ExecutionEngine.Assert(roundIds.Length == count, "roundIds length mismatch");
-            ExecutionEngine.Assert(prices.Length == count, "prices length mismatch");
-            ExecutionEngine.Assert(timestamps.Length == count, "timestamps length mismatch");
-            ExecutionEngine.Assert(attestationHashes.Length == count, "attestationHashes length mismatch");
-            ExecutionEngine.Assert(sourceSetIds.Length == count, "sourceSetIds length mismatch");
-            ExecutionEngine.Assert(batchAttestationHash != null && batchAttestationHash.Length == ATTESTATION_HASH_LENGTH, "invalid batch attestation");
+            ExecutionEngine.Assert(safeRoundIds.Length == count, "roundIds length mismatch");
+            ExecutionEngine.Assert(safePrices.Length == count, "prices length mismatch");
+            ExecutionEngine.Assert(safeTimestamps.Length == count, "timestamps length mismatch");
+            ExecutionEngine.Assert(safeAttestationHashes.Length == count, "attestationHashes length mismatch");
+            ExecutionEngine.Assert(safeSourceSetIds.Length == count, "sourceSetIds length mismatch");
 
             ulong batchTimestamp = 0;
             StorageMap priceMap = PriceMap();
 
             for (int i = 0; i < count; i++)
             {
-                string symbol = symbols[i];
-                BigInteger roundId = roundIds[i];
-                BigInteger price = prices[i];
-                ulong timestamp = timestamps[i];
-                ByteString attestationHash = attestationHashes[i];
-                BigInteger sourceSetId = sourceSetIds[i];
+                string symbol = safeSymbols[i] ?? "";
+                BigInteger roundId = safeRoundIds[i];
+                BigInteger currentPrice = safePrices[i];
+                ulong timestamp = safeTimestamps[i];
+                ByteString attestationHash = safeAttestationHashes[i] ?? (ByteString)"";
+                BigInteger sourceSetId = safeSourceSetIds[i];
 
-                ExecutionEngine.Assert(symbol != null && symbol.Length > 0, "symbol required");
+                ExecutionEngine.Assert(symbol.Length > 0, "symbol required");
                 ExecutionEngine.Assert(symbol.Length <= MAX_SYMBOL_LENGTH, "symbol too long");
                 ExecutionEngine.Assert(roundId > 0, "roundId required");
-                ExecutionEngine.Assert(price > 0, "price required");
+                ExecutionEngine.Assert(currentPrice > 0, "price required");
                 ExecutionEngine.Assert(timestamp > 0, "timestamp required");
-                ExecutionEngine.Assert(attestationHash != null && attestationHash.Length == ATTESTATION_HASH_LENGTH, "invalid attestation hash");
+                ExecutionEngine.Assert(attestationHash.Length == ATTESTATION_HASH_LENGTH, "invalid attestation hash");
 
-                // Check monotonic roundId
-                ByteString raw = priceMap.Get(symbol);
+                ByteString? raw = priceMap.Get(symbol);
                 if (raw != null)
                 {
                     PriceRecord current = (PriceRecord)StdLib.Deserialize(raw);
@@ -191,42 +215,38 @@ namespace NeoMiniAppPlatform.Contracts
                     }
                 }
 
-                // Store the new price record
                 PriceRecord next = new PriceRecord
                 {
                     RoundId = roundId,
-                    Price = price,
+                    Price = currentPrice,
                     Timestamp = timestamp,
                     AttestationHash = attestationHash,
                     SourceSetId = sourceSetId
                 };
                 priceMap.Put(symbol, StdLib.Serialize(next));
 
-                // Emit individual event
-                OnPriceUpdated(symbol, roundId, price, timestamp, attestationHash, sourceSetId);
+                OnPriceUpdated(symbol, roundId, currentPrice, timestamp, attestationHash, sourceSetId);
 
-                // Track latest timestamp for batch event
                 if (timestamp > batchTimestamp)
                 {
                     batchTimestamp = timestamp;
                 }
             }
 
-            // Emit batch summary event
-            OnBatchPriceUpdated(count, batchTimestamp, batchAttestationHash);
+            OnBatchPriceUpdated(count, batchTimestamp, normalizedBatchAttestationHash);
         }
 
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(newAdmin != null && newAdmin.IsValid, "invalid admin");
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
+            ExecutionEngine.Assert(newAdmin != UInt160.Zero && newAdmin.IsValid, "invalid admin");
+            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, (ByteString)newAdmin);
         }
 
         public static void UpdateContract(ByteString nefFile, string manifest)
         {
             ValidateAdmin();
-            ContractManagement.Update(nefFile, manifest, null);
+            ContractManagement.Update(nefFile, manifest, new object[0]);
         }
     }
 }
