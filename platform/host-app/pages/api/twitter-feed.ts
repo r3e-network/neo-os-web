@@ -1,14 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { relaxedLimit } from "@/lib/rate-limit";
-
-const API_BASE = process.env.EDGE_API_BASE;
+import { getEdgeFunctionsBaseUrl } from "@/lib/edge";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (relaxedLimit(req, res)) return;
   if (req.method !== "GET") return res.status(405).end();
-  if (!API_BASE) return res.status(200).json({ tweets: [] });
+
+  const apiBase = getEdgeFunctionsBaseUrl();
+  if (!apiBase) return res.status(200).json({ tweets: [] });
+
   try {
-    const response = await fetch(`${API_BASE}/twitter-feed`, { signal: AbortSignal.timeout(10000) });
+    const response = await fetch(`${apiBase}/twitter-feed`, { signal: AbortSignal.timeout(10000) });
     if (!response.ok) throw new Error(`Upstream error: ${response.status}`);
     const data = await response.json();
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
