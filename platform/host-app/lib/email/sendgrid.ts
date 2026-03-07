@@ -2,19 +2,18 @@ import sgMail from "@sendgrid/mail";
 import { Resend } from "resend";
 import { logger } from "@/lib/logger";
 
-const sendgridKey = process.env.SENDGRID_API_KEY || "";
-const resendKey = process.env.RESEND_API_KEY || "";
-const fromEmail = process.env.EMAIL_FROM || process.env.SENDGRID_FROM_EMAIL || "noreply@r3e.network";
-
-let resendClient: Resend | null = null;
-
-if (resendKey) {
-  resendClient = new Resend(resendKey);
-} else if (sendgridKey) {
-  sgMail.setApiKey(sendgridKey);
+function getEmailConfig() {
+  return {
+    sendgridKey: process.env.SENDGRID_API_KEY || "",
+    resendKey: process.env.RESEND_API_KEY || "",
+    fromEmail: process.env.EMAIL_FROM || process.env.SENDGRID_FROM_EMAIL || "noreply@r3e.network",
+  };
 }
 
-export const isEmailConfigured = Boolean(resendKey || sendgridKey);
+export function isEmailConfigured(): boolean {
+  const { resendKey, sendgridKey } = getEmailConfig();
+  return Boolean(resendKey || sendgridKey);
+}
 
 export interface EmailOptions {
   to: string;
@@ -25,13 +24,16 @@ export interface EmailOptions {
 
 /** Send email via Resend (preferred) or SendGrid */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  if (!isEmailConfigured) {
+  const { resendKey, sendgridKey, fromEmail } = getEmailConfig();
+
+  if (!resendKey && !sendgridKey) {
     logger.warn("No email provider configured, skipping email");
     return false;
   }
 
   try {
-    if (resendClient) {
+    if (resendKey) {
+      const resendClient = new Resend(resendKey);
       const { error } = await resendClient.emails.send({
         from: fromEmail,
         to: options.to,
@@ -43,16 +45,17 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
         throw new Error(error.message);
       }
       return true;
-    } else {
-      await sgMail.send({
-        to: options.to,
-        from: fromEmail,
-        subject: options.subject,
-        text: options.text,
-        html: options.html,
-      });
-      return true;
     }
+
+    sgMail.setApiKey(sendgridKey);
+    await sgMail.send({
+      to: options.to,
+      from: fromEmail,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+    });
+    return true;
   } catch (error) {
     logger.error("Email sending error:", error instanceof Error ? error.message : "unknown error");
     return false;
