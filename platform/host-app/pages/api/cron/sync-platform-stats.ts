@@ -12,7 +12,9 @@ import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
-const PLATFORM_ADDRESS = process.env.NEO_TESTNET_ADDRESS || "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
+function getPlatformAddress(): string {
+  return process.env.NEO_TESTNET_ADDRESS || "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
+}
 
 interface SyncResult {
   timestamp: string;
@@ -30,7 +32,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.methodNotAllowed(res);
   }
 
-  // Verify cron secret (timing-safe to prevent oracle attacks)
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
     return apiError.unauthorized(res, "Unauthorized");
@@ -55,7 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function syncPlatformStats(): Promise<SyncResult> {
-  // Count from each table
   const [simTxRes, serviceRes, eventsRes] = await Promise.all([
     supabase.from("simulation_txs").select("*", { count: "exact", head: true }),
     supabase.from("service_requests").select("*", { count: "exact", head: true }),
@@ -70,7 +70,6 @@ async function syncPlatformStats(): Promise<SyncResult> {
 
   const supabase_total = tables.simulation_txs + tables.service_requests + tables.contract_events;
 
-  // Count unique users
   const uniqueUsers = new Set<string>();
 
   const { data: simUsers } = await supabase
@@ -93,11 +92,10 @@ async function syncPlatformStats(): Promise<SyncResult> {
     reqUsers.forEach((u) => u.requester && uniqueUsers.add(u.requester));
   }
 
-  // Store sync result
   const { error: upsertErr } = await supabase.from("platform_stats_sync").upsert(
     {
       id: 1,
-      address: PLATFORM_ADDRESS,
+      address: getPlatformAddress(),
       supabase_total,
       unique_users: uniqueUsers.size,
       last_synced: new Date().toISOString(),
