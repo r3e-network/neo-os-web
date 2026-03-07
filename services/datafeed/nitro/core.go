@@ -395,12 +395,12 @@ func (s *Service) fetchPriceFromSource(ctx context.Context, pair string, feed *F
 	jsonPath := formatJSONPath(src.JSONPath, feed, src)
 	result := gjson.GetBytes(body, jsonPath)
 	if !result.Exists() {
-		return 0, fmt.Errorf("price not found in response")
+		return 0, fmt.Errorf("price source %s payload error for %s: price not found in response", strings.TrimSpace(src.ID), url)
 	}
 
 	price, err := parsePriceResult(result)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("price source %s payload error for %s: %w", strings.TrimSpace(src.ID), url, err)
 	}
 	return price, nil
 }
@@ -506,7 +506,11 @@ func (s *Service) refreshYahooQuoteMap(ctx context.Context, src *SourceConfig) (
 
 	items := gjson.GetBytes(body, "quoteResponse.result").Array()
 	if len(items) == 0 {
-		return nil, fmt.Errorf("price not found in response")
+		sourceID := ""
+		if src != nil {
+			sourceID = src.ID
+		}
+		return nil, fmt.Errorf("price source %s payload error for %s: price not found in response", strings.TrimSpace(sourceID), url)
 	}
 
 	prices := make(map[string]float64, len(items))
@@ -519,7 +523,11 @@ func (s *Service) refreshYahooQuoteMap(ctx context.Context, src *SourceConfig) (
 		prices[symbol] = price
 	}
 	if len(prices) == 0 {
-		return nil, fmt.Errorf("price not found in response")
+		sourceID := ""
+		if src != nil {
+			sourceID = src.ID
+		}
+		return nil, fmt.Errorf("price source %s payload error for %s: price not found in response", strings.TrimSpace(sourceID), url)
 	}
 
 	return prices, nil
