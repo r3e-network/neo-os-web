@@ -154,3 +154,32 @@ func TestChainlinkGetPriceReadBodyFailureStillWrapsHTTPStatusError(t *testing.T)
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestChainlinkGetPriceRejectsTruncatedLatestRoundData(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		resultHex := fmt.Sprintf("0x%064x%064x", 1, 12345000000)
+		_, _ = io.WriteString(w, fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"result":"%s"}`, resultHex))
+	}))
+	defer server.Close()
+
+	client := &ChainlinkClient{
+		rpcURL: server.URL,
+		client: server.Client(),
+		feeds: map[string]*ChainlinkFeedConfig{
+			"BTC-USD": {
+				FeedID:   "BTC-USD",
+				Address:  "0x1234",
+				Decimals: 8,
+			},
+		},
+	}
+
+	_, _, err := client.GetPrice(context.Background(), "BTC-USD")
+	if err == nil {
+		t.Fatal("GetPrice() expected error for truncated latestRoundData result")
+	}
+	if !strings.Contains(err.Error(), "invalid response length") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
