@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	gsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/client"
 )
@@ -14,6 +16,25 @@ import (
 // =============================================================================
 // Base GlobalSigner Adapter
 // =============================================================================
+
+type globalSignerAdapterError struct {
+	message string
+	cause   error
+}
+
+func (e *globalSignerAdapterError) Error() string {
+	if e == nil || strings.TrimSpace(e.message) == "" {
+		return "globalsigner error"
+	}
+	return e.message
+}
+
+func (e *globalSignerAdapterError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.cause
+}
 
 // BaseSignerAdapter provides common GlobalSigner client operations.
 type BaseSignerAdapter struct {
@@ -66,6 +87,13 @@ func wrapGlobalSignerAdapterError(operation string, err error) error {
 		return nil
 	}
 
+	if isGlobalSignerAdapterTimeoutError(err) {
+		return &globalSignerAdapterError{message: fmt.Sprintf("%s service unavailable", operation), cause: err}
+	}
+	if isGlobalSignerAdapterTransportError(err) {
+		return &globalSignerAdapterError{message: fmt.Sprintf("%s service unavailable", operation), cause: err}
+	}
+
 	statusCode, ok := globalSignerAdapterStatusCode(err)
 	if !ok {
 		return fmt.Errorf("%s: %w", operation, err)
@@ -81,6 +109,25 @@ func wrapGlobalSignerAdapterError(operation string, err error) error {
 	default:
 		return fmt.Errorf("%s: %w", operation, err)
 	}
+}
+
+func isGlobalSignerAdapterTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var timeoutErr interface{ Timeout() bool }
+	return errors.As(err, &timeoutErr) && timeoutErr.Timeout()
+}
+
+func isGlobalSignerAdapterTransportError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var urlErr *url.Error
+	return errors.As(err, &urlErr)
 }
 
 func globalSignerAdapterStatusCode(err error) (int, bool) {

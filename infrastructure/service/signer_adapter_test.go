@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	gsclient "github.com/r3e-network/neo-miniapp-platform/infrastructure/globalsigner/client"
 )
@@ -40,6 +42,35 @@ func TestBaseSignerAdapterSignWraps4xxAsRequestRejected(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "request rejected") {
 		t.Fatalf("error should include request classification, got: %v", err)
+	}
+}
+
+func TestBaseSignerAdapterSignWrapsTimeoutAsServiceUnavailable(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(100 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, `{"signature":"00","key_version":"v1","pubkey_hex":"02abc"}`)
+	}))
+	defer srv.Close()
+
+	client, err := gsclient.New(gsclient.Config{BaseURL: srv.URL, Timeout: 10 * time.Millisecond})
+	if err != nil {
+		t.Fatalf("globalsigner.New() error = %v", err)
+	}
+	adapter := &BaseSignerAdapter{GSClient: client}
+
+	_, _, err = adapter.Sign(context.Background(), "domain", []byte{0x01})
+	if err == nil {
+		t.Fatal("Sign() expected timeout error")
+	}
+	if !strings.Contains(err.Error(), "service unavailable") {
+		t.Fatalf("error should include service-unavailable classification, got: %v", err)
+	}
+	if strings.Contains(err.Error(), srv.URL) {
+		t.Fatalf("error should not leak upstream url, got: %v", err)
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("wrapped error should preserve timeout cause, got: %v", err)
 	}
 }
 
