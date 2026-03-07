@@ -1,9 +1,9 @@
 #!/bin/bash
 #
 # Bootstrap full local k3s dev stack:
-# - k3s + NitroRun + cert-manager
+# - k3s + local service mesh + cert-manager
 # - Supabase (local) in k3s
-# - service-layer nitros
+# - service-layer services
 # - Edge gateway
 #
 # Usage:
@@ -90,7 +90,7 @@ echo "[3/5] Applying secrets + config..."
 ./scripts/apply_k8s_config_from_env.sh --env-file "$ENV_FILE"
 
 echo ""
-echo "[4/5] Deploying service-layer nitros..."
+echo "[4/5] Deploying service-layer services..."
 ./scripts/deploy_k8s.sh --env dev
 
 echo ""

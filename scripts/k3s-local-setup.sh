@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # k3s Local Development Stack Setup Script (DEVSTACK-1)
-# Purpose: Complete local k3s setup with NitroRun, cert-manager, and ingress
+# Purpose: Complete local k3s setup with local mesh mode, cert-manager, and ingress
 # Idempotent: Can be run multiple times safely
 #
 
