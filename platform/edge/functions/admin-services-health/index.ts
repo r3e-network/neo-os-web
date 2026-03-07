@@ -93,13 +93,13 @@ async function checkServiceHealth(name: string, url: string) {
   }
 }
 
-async function handler(req: Request): Promise<Response> {
+export async function handler(req: Request): Promise<Response> {
     const corsResponse = handleCorsPreflight(req);
     if (corsResponse) return corsResponse;
 
     try {
-        const { error: authErr } = await requireAdminRole(req);
-        if (authErr) return error(403, "Admin role required", "FORBIDDEN", req);
+        const adminAuth = await requireAdminRole(req);
+        if (adminAuth.error) return adminAuth.error;
 
         if (req.method !== "GET") {
             return error(405, "Method not allowed", "METHOD_NOT_ALLOWED", req);
