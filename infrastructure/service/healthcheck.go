@@ -3,6 +3,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -172,7 +173,7 @@ func HTTPHealthCheck(name, url string, timeout time.Duration) HealthCheckFunc {
 			return &ComponentHealth{
 				Name:    name,
 				Status:  "unhealthy",
-				Message: fmt.Sprintf("request failed: %v", err),
+				Message: classifyHealthCheckError(err),
 			}
 		}
 		defer resp.Body.Close()
@@ -203,6 +204,20 @@ func HTTPHealthCheck(name, url string, timeout time.Duration) HealthCheckFunc {
 			Status: "healthy",
 		}
 	}
+}
+
+func classifyHealthCheckError(err error) string {
+	if err == nil {
+		return "request failed"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "request timed out"
+	}
+	var timeoutErr interface{ Timeout() bool }
+	if errors.As(err, &timeoutErr) && timeoutErr.Timeout() {
+		return "request timed out"
+	}
+	return "request failed"
 }
 
 func readHealthCheckBody(body io.Reader, maxBytes int64) (bodyText string, truncated bool, err error) {
