@@ -1,8 +1,13 @@
 import { useState, useCallback, useMemo } from "react";
 import type { SocialComment, SocialRating, ProofOfInteraction, VoteType } from "../components/types";
 import { fetchJSON, fetchOK, toApiError, type ApiError } from "@/lib/fetch-client";
+import { getPublicSupabaseEnv } from "@/lib/supabase-env";
 
-const API_BASE = (process.env.NEXT_PUBLIC_SUPABASE_URL || "") + "/functions/v1";
+function getCommunityApiBase(): string {
+  const { url } = getPublicSupabaseEnv();
+  const baseURL = url.replace(/\/+$/, "");
+  return `${baseURL}/functions/v1`;
+}
 
 interface UseCommunityOptions {
   appId: string;
@@ -19,6 +24,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<CommunityError | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const apiBase = getCommunityApiBase();
 
   const headers = useMemo(() => {
     const h: Record<string, string> = { "Content-Type": "application/json" };
@@ -26,14 +32,13 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
     return h;
   }, [token]);
 
-  // Fetch comments with error handling
   const fetchComments = useCallback(
     async (offset = 0) => {
       setLoading(true);
       setError(null);
       try {
         const data = await fetchJSON<{ comments?: SocialComment[]; has_more?: boolean }>(
-          `${API_BASE}/social-comments?app_id=${encodeURIComponent(appId)}&limit=20&offset=${offset}&parent_id=null`,
+          `${apiBase}/social-comments?app_id=${encodeURIComponent(appId)}&limit=20&offset=${offset}&parent_id=null`,
           { headers },
         );
         if (offset === 0) {
@@ -48,26 +53,24 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
         setLoading(false);
       }
     },
-    [appId, headers],
+    [apiBase, appId, headers],
   );
 
-  // Fetch rating with error handling
   const fetchRating = useCallback(async () => {
     setError(null);
     try {
-      const data = await fetchJSON<SocialRating>(`${API_BASE}/social-ratings?app_id=${encodeURIComponent(appId)}`, { headers });
+      const data = await fetchJSON<SocialRating>(`${apiBase}/social-ratings?app_id=${encodeURIComponent(appId)}`, { headers });
       setRating(data);
     } catch (err) {
       setError(toApiError(err));
     }
-  }, [appId, headers]);
+  }, [apiBase, appId, headers]);
 
-  // Verify proof with error handling
   const verifyProof = useCallback(async () => {
     if (!token) return;
     setError(null);
     try {
-      const data = await fetchJSON<ProofOfInteraction>(`${API_BASE}/social-proof-verify`, {
+      const data = await fetchJSON<ProofOfInteraction>(`${apiBase}/social-proof-verify`, {
         method: "POST",
         headers,
         body: JSON.stringify({ app_id: appId }),
@@ -76,9 +79,8 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
     } catch (err) {
       setError(toApiError(err));
     }
-  }, [appId, token, headers]);
+  }, [apiBase, appId, token, headers]);
 
-  // Create comment
   const createComment = useCallback(
     async (content: string, parentId?: string): Promise<boolean> => {
       if (!token) {
@@ -88,7 +90,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       setSubmitting(true);
       setError(null);
       try {
-        const data = await fetchJSON<{ comment?: SocialComment }>(`${API_BASE}/social-comment-create`, {
+        const data = await fetchJSON<{ comment?: SocialComment }>(`${apiBase}/social-comment-create`, {
           method: "POST",
           headers,
           body: JSON.stringify({ app_id: appId, content, parent_id: parentId }),
@@ -105,10 +107,9 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
         setSubmitting(false);
       }
     },
-    [appId, token, headers],
+    [apiBase, appId, token, headers],
   );
 
-  // Vote on comment
   const voteComment = useCallback(
     async (commentId: string, voteType: VoteType): Promise<boolean> => {
       if (!token) {
@@ -117,7 +118,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       }
       setError(null);
       try {
-        const data = await fetchJSON<{ upvotes: number; downvotes: number }>(`${API_BASE}/social-comment-vote`, {
+        const data = await fetchJSON<{ upvotes: number; downvotes: number }>(`${apiBase}/social-comment-vote`, {
           method: "POST",
           headers,
           body: JSON.stringify({ comment_id: commentId, vote_type: voteType }),
@@ -131,10 +132,9 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
         return false;
       }
     },
-    [token, headers],
+    [apiBase, token, headers],
   );
 
-  // Submit rating
   const submitRating = useCallback(
     async (value: number, reviewText?: string): Promise<boolean> => {
       if (!token) {
@@ -144,7 +144,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       setSubmitting(true);
       setError(null);
       try {
-        await fetchOK(`${API_BASE}/social-rating-submit`, {
+        await fetchOK(`${apiBase}/social-rating-submit`, {
           method: "POST",
           headers,
           body: JSON.stringify({ app_id: appId, rating_value: value, review_text: reviewText }),
@@ -158,16 +158,15 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
         setSubmitting(false);
       }
     },
-    [appId, token, headers, fetchRating],
+    [apiBase, appId, token, headers, fetchRating],
   );
 
-  // Load replies for a comment
   const loadReplies = useCallback(
     async (parentId: string): Promise<SocialComment[]> => {
       setError(null);
       try {
         const data = await fetchJSON<{ comments?: SocialComment[] }>(
-          `${API_BASE}/social-comments?app_id=${encodeURIComponent(appId)}&parent_id=${encodeURIComponent(parentId)}&limit=50`,
+          `${apiBase}/social-comments?app_id=${encodeURIComponent(appId)}&parent_id=${encodeURIComponent(parentId)}&limit=50`,
           { headers },
         );
         return data.comments || [];
@@ -176,10 +175,9 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
         return [];
       }
     },
-    [appId, headers],
+    [apiBase, appId, headers],
   );
 
-  // Delete comment
   const deleteComment = useCallback(
     async (commentId: string): Promise<boolean> => {
       if (!token) {
@@ -188,7 +186,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
       }
       setError(null);
       try {
-        await fetchOK(`${API_BASE}/social-comment-delete`, {
+        await fetchOK(`${apiBase}/social-comment-delete`, {
           method: "POST",
           headers,
           body: JSON.stringify({ comment_id: commentId }),
@@ -200,7 +198,7 @@ export function useCommunity({ appId, token }: UseCommunityOptions) {
         return false;
       }
     },
-    [token, headers],
+    [apiBase, token, headers],
   );
 
   const clearError = useCallback(() => setError(null), []);
