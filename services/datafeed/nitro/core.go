@@ -379,7 +379,7 @@ func (s *Service) fetchPriceFromSource(ctx context.Context, pair string, feed *F
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("price source %s request failed for %s: %w", strings.TrimSpace(src.ID), url, err)
 	}
 	defer resp.Body.Close()
 

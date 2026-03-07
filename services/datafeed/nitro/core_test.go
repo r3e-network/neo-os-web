@@ -16,6 +16,12 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
 func TestIsDuplicatePriceFeedError(t *testing.T) {
 	tests := []struct {
 		name string
@@ -213,6 +219,38 @@ func TestFetchPriceFromSourceRedirectDoesNotFollow(t *testing.T) {
 	}
 	if hits := atomic.LoadInt32(&redirectedHits); hits != 0 {
 		t.Fatalf("redirect target should not be called, got %d hit(s)", hits)
+	}
+}
+
+func TestFetchPriceFromSourceWrapsTransportErrorWithSourceContext(t *testing.T) {
+	t.Parallel()
+
+	transportErr := errors.New("connection reset by peer")
+	svc := &Service{
+		httpClient: &http.Client{
+			Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+				return nil, transportErr
+			}),
+		},
+	}
+	src := &SourceConfig{
+		ID:       "primary",
+		URL:      "https://prices.example.test/quote?pair={pair}",
+		JSONPath: "price",
+	}
+
+	_, err := svc.fetchPriceFromSource(context.Background(), "BTCUSD", nil, src)
+	if err == nil {
+		t.Fatal("fetchPriceFromSource() expected transport error")
+	}
+	if !errors.Is(err, transportErr) {
+		t.Fatalf("wrapped error should preserve original transport error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "primary") {
+		t.Fatalf("error = %q, want to contain source id", err.Error())
+	}
+	if !strings.Contains(err.Error(), "prices.example.test") {
+		t.Fatalf("error = %q, want to contain source url", err.Error())
 	}
 }
 
