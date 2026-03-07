@@ -107,5 +107,38 @@ namespace NeoMiniAppPlatform.Contracts.Tests
                 warnings.Count == 0,
                 "Expected no PriceFeed compiler warnings, but found:" + Environment.NewLine + string.Join(Environment.NewLine, warnings));
         }
+
+        [Fact]
+        public void OracleServiceBuildHasNoNullableWarnings()
+        {
+            string repoRoot = ContractSourceAssertions.FindRepoRoot();
+            string projectPath = Path.Combine(repoRoot, "contracts", "OracleService", "OracleService.csproj");
+
+            var startInfo = new ProcessStartInfo("dotnet", $"build \"{projectPath}\" -v q -t:Rebuild")
+            {
+                WorkingDirectory = repoRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+
+            using var process = Process.Start(startInfo);
+            Assert.NotNull(process);
+
+            string output = process!.StandardOutput.ReadToEnd() + Environment.NewLine + process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            Assert.Equal(0, process.ExitCode);
+
+            List<string> warnings = output
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(line => line.Contains("warning CS", StringComparison.Ordinal) &&
+                               line.Contains("contracts/OracleService/", StringComparison.Ordinal))
+                .ToList();
+
+            Assert.True(
+                warnings.Count == 0,
+                "Expected no OracleService compiler warnings, but found:" + Environment.NewLine + string.Join(Environment.NewLine, warnings));
+        }
     }
 }
