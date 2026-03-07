@@ -84,6 +84,11 @@ spec:
                 configMapKeyRef:
                   name: edge-gateway-config
                   key: SUPABASE_URL
+            - name: INDEXER_SUPABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: edge-gateway-config
+                  key: INDEXER_SUPABASE_URL
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
@@ -100,6 +105,12 @@ spec:
                 secretKeyRef:
                   name: edge-gateway-secrets
                   key: SUPABASE_SERVICE_KEY
+                  optional: true
+            - name: INDEXER_SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: edge-gateway-secrets
+                  key: INDEXER_SUPABASE_SERVICE_KEY
                   optional: true
             - name: TEE_MTLS_CERT_PEM
               valueFrom:
