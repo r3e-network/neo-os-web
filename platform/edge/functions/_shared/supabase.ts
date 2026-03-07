@@ -125,3 +125,56 @@ export async function ensureUserRow(
   if (upsertErr) return error(500, "failed to ensure user", "DB_ERROR", req);
   return data ?? { id: auth.userId };
 }
+
+function collectRoleClaims(value: unknown, roles: Set<string>) {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized) roles.add(normalized);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectRoleClaims(item, roles);
+  }
+}
+
+function hasAdminClaims(user: { app_metadata?: unknown; user_metadata?: unknown }): boolean {
+  const roles = new Set<string>();
+  const appMetadata = user.app_metadata && typeof user.app_metadata === "object"
+    ? user.app_metadata as Record<string, unknown>
+    : {};
+  const userMetadata = user.user_metadata && typeof user.user_metadata === "object"
+    ? user.user_metadata as Record<string, unknown>
+    : {};
+
+  collectRoleClaims(appMetadata.role, roles);
+  collectRoleClaims(appMetadata.roles, roles);
+  collectRoleClaims(userMetadata.role, roles);
+  collectRoleClaims(userMetadata.roles, roles);
+
+  return roles.has("admin") || roles.has("super_admin") || roles.has("*");
+}
+
+export async function requireAdminRole(req: Request): Promise<{ auth?: AuthContext; error?: Response }> {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) {
+    return { error: auth };
+  }
+
+  const scopes = (auth.scopes ?? []).map((scope) => String(scope).trim().toLowerCase());
+  if (scopes.includes("admin") || scopes.includes("super_admin") || scopes.includes("*")) {
+    return { auth };
+  }
+
+  if (auth.authType === "bearer" && auth.token) {
+    const supabase = supabaseClient();
+    const { data, error: authErr } = await supabase.auth.getUser(auth.token);
+    if (authErr || !data?.user) {
+      return { error: error(401, "invalid session", "AUTH_INVALID", req) };
+    }
+    if (hasAdminClaims(data.user)) {
+      return { auth };
+    }
+  }
+
+  return { error: error(403, "admin role required", "FORBIDDEN", req) };
+}

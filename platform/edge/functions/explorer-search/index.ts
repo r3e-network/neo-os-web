@@ -8,7 +8,7 @@ import { getEnv } from "../_shared/env.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { error, json } from "../_shared/response.ts";
 
-async function handler(req: Request): Promise<Response> {
+export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
   if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
@@ -31,8 +31,8 @@ async function handler(req: Request): Promise<Response> {
     }
 
     // Use INDEXER Supabase credentials (isolated)
-    const supabaseUrl = getEnv("INDEXER_SUPABASE_URL");
-    const supabaseKey = getEnv("INDEXER_SUPABASE_SERVICE_KEY");
+    const supabaseUrl = getEnv("INDEXER_SUPABASE_URL") ?? getEnv("SUPABASE_URL");
+    const supabaseKey = getEnv("INDEXER_SUPABASE_SERVICE_KEY") ?? getEnv("SUPABASE_SERVICE_ROLE_KEY") ?? getEnv("SUPABASE_SERVICE_KEY");
 
     if (!supabaseUrl || !supabaseKey) {
       return error(500, "Indexer not configured", "CONFIG_ERROR", req);
@@ -68,7 +68,6 @@ if (import.meta.main) {
   Deno.serve(handler);
 }
 
-export { handler };
 
 function detectSearchType(query: string): string {
   if (/^0x[0-9a-fA-F]{64}$/.test(query)) return "transaction";
