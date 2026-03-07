@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
@@ -677,6 +678,15 @@ func TestFetchPriceMissingPath(t *testing.T) {
 	if err == nil {
 		t.Error("fetchPrice() expected error for missing JSON path")
 	}
+	if !strings.Contains(err.Error(), "Mock") {
+		t.Fatalf("error = %q, want source name context", err.Error())
+	}
+	if !strings.Contains(err.Error(), mockServer.URL) {
+		t.Fatalf("error = %q, want source url context", err.Error())
+	}
+	if !strings.Contains(err.Error(), "price not found") {
+		t.Fatalf("error = %q, want missing price context", err.Error())
+	}
 }
 
 func TestFetchPriceHTTPError(t *testing.T) {
@@ -719,6 +729,12 @@ func TestFetchPriceConnectionError(t *testing.T) {
 	_, err := svc.fetchPrice(context.Background(), "BTCUSDT", source)
 	if err == nil {
 		t.Error("fetchPrice() expected error for connection failure")
+	}
+	if !strings.Contains(err.Error(), "Mock") {
+		t.Fatalf("error = %q, want source name context", err.Error())
+	}
+	if !strings.Contains(err.Error(), source.URL) {
+		t.Fatalf("error = %q, want source url context", err.Error())
 	}
 }
 

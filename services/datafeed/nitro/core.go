@@ -637,12 +637,12 @@ func (s *Service) fetchPrice(ctx context.Context, pair string, source PriceSourc
 
 	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("price source %s request build failed for %s: %w", strings.TrimSpace(source.Name), url, err)
 	}
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("price source %s request failed for %s: %w", strings.TrimSpace(source.Name), url, err)
 	}
 	defer resp.Body.Close()
 
@@ -652,17 +652,17 @@ func (s *Service) fetchPrice(ctx context.Context, pair string, source PriceSourc
 
 	body, err := httputil.ReadAllStrict(resp.Body, 1<<20)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("price source %s response read failed for %s: %w", strings.TrimSpace(source.Name), url, err)
 	}
 
 	result := gjson.GetBytes(body, source.JSONPath)
 	if !result.Exists() {
-		return 0, fmt.Errorf("price not found in response")
+		return 0, fmt.Errorf("price source %s payload error for %s: price not found in response", strings.TrimSpace(source.Name), url)
 	}
 
 	price, err := parsePriceResult(result)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("price source %s payload error for %s: %w", strings.TrimSpace(source.Name), url, err)
 	}
 	return price, nil
 }
