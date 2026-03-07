@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useWalletStore, WalletProvider } from "@/lib/wallet/store";
+import { getEdgeFunctionsBaseUrl } from "@/lib/edge";
 
 type AuthMethod = "social" | "wallet" | null;
 
@@ -23,7 +24,9 @@ interface AuthActions {
 
 type AuthStore = AuthState & AuthActions;
 
-const EDGE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+function getAuthEdgeBaseUrl(): string {
+  return getEdgeFunctionsBaseUrl();
+}
 
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   authenticated: false,
@@ -48,7 +51,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       const { address, publicKey } = useWalletStore.getState();
       if (!address) throw new Error("wallet connection failed");
 
-      const nonceResp = await fetch(`${EDGE_URL}/functions/v1/auth-wallet-nonce`, {
+      const edgeBaseUrl = getAuthEdgeBaseUrl();
+
+      const nonceResp = await fetch(`${edgeBaseUrl}/auth-wallet-nonce`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address }),
@@ -61,7 +66,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       if (!adapter) throw new Error("no wallet adapter");
       const signResult = await adapter.signMessage(message);
 
-      const authResp = await fetch(`${EDGE_URL}/functions/v1/auth-wallet`, {
+      const authResp = await fetch(`${edgeBaseUrl}/auth-wallet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
