@@ -165,21 +165,20 @@ func (c *ChainlinkClient) GetPrice(ctx context.Context, feedID string) (priceFlo
 		return 0, 0, fmt.Errorf("rpc error: %s", rpcResp.Error.Message)
 	}
 
-	// Parse the result - latestRoundData returns (roundId, answer, startedAt, updatedAt, answeredInRound)
-	// Each is 32 bytes, answer is at offset 32 (bytes 64-128 in hex, or chars 66-130 with 0x prefix)
+	// Parse the result - latestRoundData returns (roundId, answer, startedAt, updatedAt, answeredInRound).
+	// Each value occupies one 32-byte ABI slot, so the fixed-width response must contain 5 slots = 160 bytes = 320 hex chars.
 	result := strings.TrimPrefix(rpcResp.Result, "0x")
-	if len(result) < 128 {
+	const latestRoundDataHexLength = 64 * 5
+	if len(result) < latestRoundDataHexLength {
 		return 0, 0, fmt.Errorf("invalid response length")
 	}
 
-	// updatedAt is the fourth 32-byte value (slot 3, chars 192-256)
-	if len(result) >= 256 {
-		updatedAtHex := result[192:256]
-		updatedAt := new(big.Int)
-		updatedAt.SetString(updatedAtHex, 16)
-		if time.Now().Unix()-updatedAt.Int64() > 3600 {
-			return 0, 0, fmt.Errorf("chainlink price stale for %s: updatedAt %d", feedID, updatedAt.Int64())
-		}
+	// updatedAt is the fourth 32-byte value (slot 3, chars 192-256).
+	updatedAtHex := result[192:256]
+	updatedAt := new(big.Int)
+	updatedAt.SetString(updatedAtHex, 16)
+	if time.Now().Unix()-updatedAt.Int64() > 3600 {
+		return 0, 0, fmt.Errorf("chainlink price stale for %s: updatedAt %d", feedID, updatedAt.Int64())
 	}
 
 	// answer is the second 32-byte value (position 32-64 bytes = chars 64-128)
