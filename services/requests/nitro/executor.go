@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -239,6 +240,9 @@ func wrapUpstreamServiceError(serviceName string, err error) error {
 	if isUpstreamTimeoutError(err) {
 		return fmt.Errorf("%s service unavailable: %w", serviceName, err)
 	}
+	if isUpstreamTransportError(err) {
+		return fmt.Errorf("%s service unavailable: %w", serviceName, err)
+	}
 
 	statusCode, ok := upstreamStatusCode(err)
 	if !ok {
@@ -266,6 +270,14 @@ func isUpstreamTimeoutError(err error) bool {
 	}
 	var timeoutErr interface{ Timeout() bool }
 	return errors.As(err, &timeoutErr) && timeoutErr.Timeout()
+}
+
+func isUpstreamTransportError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var urlErr *url.Error
+	return errors.As(err, &urlErr)
 }
 
 func upstreamStatusCode(err error) (int, bool) {
