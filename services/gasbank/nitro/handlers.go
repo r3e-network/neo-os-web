@@ -194,7 +194,7 @@ func (s *Service) handleGetDeposits(w http.ResponseWriter, r *http.Request, user
 
 func isClientValidationError(msg string) bool {
 	switch msg {
-	case errUserIDRequired, errAmountMustBePositive, errServiceIDRequired:
+	case errRequestNil, errUserIDRequired, errAmountMustBePositive, errServiceIDRequired:
 		return true
 	default:
 		return false

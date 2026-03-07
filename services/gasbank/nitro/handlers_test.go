@@ -8,6 +8,7 @@ func TestIsClientValidationError(t *testing.T) {
 		msg  string
 		want bool
 	}{
+		{name: "request nil", msg: errRequestNil, want: true},
 		{name: "user id required", msg: errUserIDRequired, want: true},
 		{name: "amount positive", msg: errAmountMustBePositive, want: true},
 		{name: "service id required", msg: errServiceIDRequired, want: true},
