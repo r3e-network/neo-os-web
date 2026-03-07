@@ -6,13 +6,13 @@ import { getEnv } from "../_shared/env.ts";
 
 const SIMULATION_URL = getEnv("NEOSIMULATION_URL") || "http://neosimulation:8093";
 
-async function handler(req: Request): Promise<Response> {
+export async function handler(req: Request): Promise<Response> {
     const corsResponse = handleCorsPreflight(req);
     if (corsResponse) return corsResponse;
 
     try {
-        const { error: authErr } = await requireAdminRole(req);
-        if (authErr) return error(403, "Admin role required", "FORBIDDEN", req);
+        const adminAuth = await requireAdminRole(req);
+        if (adminAuth.error) return adminAuth.error;
 
         if (req.method === "GET") {
             const url = new URL(req.url);
