@@ -6,7 +6,9 @@ type Props = {
   view?: string;
 };
 
-const hasRemotes = Boolean(process.env.NEXT_PUBLIC_MF_REMOTES);
+function hasFederatedRemotes(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_MF_REMOTES);
+}
 
 // Cache with LRU-like cleanup to prevent memory leaks
 const MAX_CACHE_SIZE = 10;
@@ -117,7 +119,7 @@ function FederatedLoader({ remote, appId, view }: Props) {
 }
 
 export function FederatedMiniApp(props: Props) {
-  if (!hasRemotes) return <NotConfiguredMessage />;
+  if (!hasFederatedRemotes()) return <NotConfiguredMessage />;
   return (
     <RemoteErrorBoundary>
       <FederatedLoader {...props} />
