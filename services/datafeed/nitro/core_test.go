@@ -222,6 +222,56 @@ func TestFetchPriceFromSourceRedirectDoesNotFollow(t *testing.T) {
 	}
 }
 
+func TestRefreshYahooQuoteMapWrapsTransportErrorWithSourceContext(t *testing.T) {
+	t.Setenv("NEOFEEDS_SIGNING_KEY", "0000000000000000000000000000000000000000000000000000000000000000")
+
+	transportErr := errors.New("connection reset by peer")
+	m, _ := nitro.New(nitro.Config{NitroType: "neofeeds"})
+	cfg := &NeoFeedsConfig{
+		Version: "1.0",
+		Sources: []SourceConfig{{
+			ID:       "yahoo",
+			Name:     "Yahoo",
+			URL:      "https://prices.example.test/quote?symbols={symbols}",
+			JSONPath: "quoteResponse.result.0.regularMarketPrice",
+			Weight:   1,
+			Timeout:  time.Second,
+		}},
+		Feeds: []FeedConfig{{
+			ID:       "NVDA-USD",
+			Base:     "NVDA",
+			Quote:    "USD",
+			Decimals: 8,
+			Sources:  []string{"yahoo"},
+			Enabled:  true,
+		}},
+		UpdateInterval: time.Minute,
+	}
+
+	svc, err := New(Config{Nitro: m, FeedsConfig: cfg, HTTPClient: &http.Client{
+		Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+			return nil, transportErr
+		}),
+	}})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	_, err = svc.refreshYahooQuoteMap(context.Background(), cfg.GetSource("yahoo"))
+	if err == nil {
+		t.Fatal("refreshYahooQuoteMap() expected transport error")
+	}
+	if !errors.Is(err, transportErr) {
+		t.Fatalf("wrapped error should preserve original transport error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "yahoo") {
+		t.Fatalf("error = %q, want to contain source id", err.Error())
+	}
+	if !strings.Contains(err.Error(), "prices.example.test") {
+		t.Fatalf("error = %q, want to contain source url", err.Error())
+	}
+}
+
 func TestFetchPriceFromSourceWrapsTransportErrorWithSourceContext(t *testing.T) {
 	t.Parallel()
 

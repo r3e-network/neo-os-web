@@ -479,7 +479,11 @@ func (s *Service) refreshYahooQuoteMap(ctx context.Context, src *SourceConfig) (
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		sourceID := ""
+		if src != nil {
+			sourceID = src.ID
+		}
+		return nil, fmt.Errorf("price source %s request failed for %s: %w", strings.TrimSpace(sourceID), url, err)
 	}
 	defer resp.Body.Close()
 
