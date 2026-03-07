@@ -12,7 +12,10 @@ import { warnOnce } from "@/lib/log-once";
 import { canonicalizeMiniAppId } from "@/lib/miniapp-id";
 import { isMissingSupabaseSchemaObject } from "@/lib/supabase-errors";
 
-const PLATFORM_TX_COUNT = parseInt(process.env.PLATFORM_TX_COUNT || "444981", 10);
+function getPlatformTxCount(): number {
+  return parseInt(process.env.PLATFORM_TX_COUNT || "444981", 10);
+}
+
 const colors = ["#00d4aa", "#3498db", "#9b59b6", "#f1c40f", "#e67e22"];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -23,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const base = {
     totalUsers: 0,
-    totalTransactions: PLATFORM_TX_COUNT,
+    totalTransactions: getPlatformTxCount(),
     totalVolume: "0",
     activeApps: 62,
     topApps: [] as { name: string; users: number; color: string }[],
