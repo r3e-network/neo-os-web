@@ -18,6 +18,7 @@ data:
   # Supabase configuration (internal k8s service URL)
   # Points to self-hosted Supabase in k3s cluster
   SUPABASE_URL: "http://supabase-gateway.supabase.svc.cluster.local:8000"
+  INDEXER_SUPABASE_URL: "http://supabase-gateway.supabase.svc.cluster.local:8000"
 
   # Neo RPC URL (internal k8s service URL)
   # Points to external Neo N3 RPC (testnet by default)
