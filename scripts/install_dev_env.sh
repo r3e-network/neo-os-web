@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Installation script for Nitro-oriented local development tooling.
-# Target: Ubuntu 24.04 LTS
+# Target: apt- and dnf-based Linux hosts
 #
 set -e
 
@@ -20,36 +20,86 @@ check_sudo() {
     fi
 }
 
-require_apt() {
-    if ! command -v apt-get >/dev/null 2>&1; then
-        log_error "scripts/install_dev_env.sh currently supports apt-based hosts only (for example Ubuntu 24.04). Install the required tools manually on this host."
-        return 1
+detect_package_manager() {
+    if command -v apt-get >/dev/null 2>&1; then
+        echo apt
+        return 0
     fi
+    if command -v dnf >/dev/null 2>&1; then
+        echo dnf
+        return 0
+    fi
+    log_error "scripts/install_dev_env.sh currently supports apt- or dnf-based hosts. Install the required tools manually on this host."
+    return 1
 }
 
 install_prerequisites() {
     log_info "Installing prerequisites..."
-    sudo apt-get update
-    sudo apt-get install -y \
-        build-essential \
-        libssl-dev \
-        curl \
-        wget \
-        gnupg \
-        apt-transport-https \
-        ca-certificates \
-        software-properties-common
+
+    case "$PACKAGE_MANAGER" in
+        apt)
+            local apt_packages=(
+                build-essential
+                libssl-dev
+                curl
+                wget
+                gnupg
+                apt-transport-https
+                ca-certificates
+                software-properties-common
+            )
+            sudo apt-get update
+            sudo apt-get install -y "${apt_packages[@]}"
+            ;;
+        dnf)
+            local dnf_packages=(
+                gcc
+                gcc-c++
+                make
+                openssl-devel
+                curl
+                wget
+                gnupg2
+                ca-certificates
+                tar
+                gzip
+            )
+            sudo dnf install -y "${dnf_packages[@]}"
+            ;;
+        *)
+            log_error "Unsupported package manager: $PACKAGE_MANAGER"
+            return 1
+            ;;
+    esac
+
     log_info "Prerequisites installed."
 }
 
 install_nitro_tools() {
     log_info "Installing AWS Nitro Enclaves tooling..."
-    if sudo apt-get install -y aws-nitro-enclaves-cli >/dev/null 2>&1; then
-        log_info "aws-nitro-enclaves-cli installed."
-    else
-        log_warn "aws-nitro-enclaves-cli package not found in apt repositories."
-        log_warn "Install Nitro tooling manually per AWS documentation."
-    fi
+
+    case "$PACKAGE_MANAGER" in
+        apt)
+            if sudo apt-get install -y aws-nitro-enclaves-cli >/dev/null 2>&1; then
+                log_info "aws-nitro-enclaves-cli installed."
+            else
+                log_warn "aws-nitro-enclaves-cli package not found in apt repositories."
+                log_warn "Install Nitro tooling manually per AWS documentation."
+            fi
+            ;;
+        dnf)
+            if sudo dnf install -y aws-nitro-enclaves-cli >/dev/null 2>&1; then
+                log_info "aws-nitro-enclaves-cli installed."
+            else
+                log_warn "aws-nitro-enclaves-cli package not found in dnf repositories."
+                log_warn "Install Nitro tooling manually per AWS documentation."
+            fi
+            ;;
+        *)
+            log_error "Unsupported package manager: $PACKAGE_MANAGER"
+            return 1
+            ;;
+    esac
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -166,12 +216,9 @@ usage() {
 main() {
     echo "=============================================="
     echo "  Nitro Dev Environment Installation"
-    echo "  Target: Ubuntu 24.04 LTS"
+    echo "  Target: apt- and dnf-based Linux hosts"
     echo "=============================================="
     echo ""
-
-    check_sudo
-    require_apt
 
     SKIP_K8S=false
     SKIP_NITRORUN=false
@@ -194,6 +241,10 @@ main() {
                 ;;
         esac
     done
+
+    check_sudo
+    PACKAGE_MANAGER="$(detect_package_manager)"
+    log_info "Using package manager: $PACKAGE_MANAGER"
 
     install_prerequisites
     install_nitro_tools
