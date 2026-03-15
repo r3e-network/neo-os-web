@@ -128,7 +128,8 @@ namespace NeoMiniAppPlatform.Contracts
 
         protected static object[] RequireObjectArray(object? value, string errorMessage)
         {
-            if (value is object[] array)
+            object[] array = (object[])value;
+            if (array != null)
             {
                 return array;
             }

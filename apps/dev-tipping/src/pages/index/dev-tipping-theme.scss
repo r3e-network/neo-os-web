@@ -1,0 +1,78 @@
+:global(.theme-dev-tipping) {
+  --cafe-bg: #1c1917;
+  --cafe-neon: #f97316;
+  --cafe-glass: rgba(41, 37, 36, 0.85);
+  --cafe-panel: rgba(20, 15, 10, 0.9);
+  --cafe-text: #fed7aa;
+  --cafe-muted: rgba(254, 215, 170, 0.65);
+  --cafe-border: #431407;
+  --cafe-card-shadow: 0 0 15px rgba(249, 115, 22, 0.15);
+  --cafe-input-bg: rgba(0, 0, 0, 0.4);
+  --cafe-input-border: rgba(249, 115, 22, 0.3);
+  --cafe-panel-weak: rgba(255, 255, 255, 0.03);
+  --cafe-panel-border: rgba(249, 115, 22, 0.2);
+  --cafe-panel-hover: rgba(249, 115, 22, 0.1);
+  --cafe-avatar-bg: linear-gradient(135deg, #292524, #000);
+  --cafe-badge-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --cafe-dash-border: rgba(249, 115, 22, 0.2);
+  --cafe-secondary-border: rgba(249, 115, 22, 0.3);
+  --cafe-secondary-text: var(--cafe-neon);
+  --cafe-error-bg: rgba(69, 10, 10, 0.8);
+  --cafe-error-border: #ef4444;
+  --cafe-text-strong: #ffffff;
+  --cafe-button-text: #ffffff;
+  --cafe-button-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
+  --cafe-button-shadow-press: 0 0 5px rgba(249, 115, 22, 0.2);
+  --cafe-neon-glow: 0 0 10px rgba(249, 115, 22, 0.3);
+  --cafe-neon-glow-strong: 0 0 15px rgba(249, 115, 22, 0.4);
+  --cafe-badge-text: #ffffff;
+  --cafe-preset-active-text: #ffffff;
+
+  --bg-primary: var(--cafe-bg);
+  --bg-secondary: var(--cafe-bg);
+  --bg-card: var(--cafe-glass);
+  --text-primary: var(--cafe-text);
+  --text-secondary: var(--cafe-muted);
+  --text-muted: var(--cafe-muted);
+  --border-color: var(--cafe-panel-border);
+}
+
+:global(.theme-light .theme-dev-tipping),
+:global([data-theme="light"] .theme-dev-tipping) {
+  --cafe-bg: #fff7ed;
+  --cafe-neon: #ea580c;
+  --cafe-glass: rgba(255, 255, 255, 0.92);
+  --cafe-panel: #ffffff;
+  --cafe-text: #7c2d12;
+  --cafe-muted: #9a3412;
+  --cafe-border: rgba(251, 146, 60, 0.4);
+  --cafe-card-shadow: 0 12px 24px rgba(234, 88, 12, 0.12);
+  --cafe-input-bg: #fffaf5;
+  --cafe-input-border: rgba(234, 88, 12, 0.25);
+  --cafe-panel-weak: rgba(251, 146, 60, 0.08);
+  --cafe-panel-border: rgba(234, 88, 12, 0.18);
+  --cafe-panel-hover: rgba(234, 88, 12, 0.12);
+  --cafe-avatar-bg: linear-gradient(135deg, #fed7aa, #fff7ed);
+  --cafe-badge-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  --cafe-dash-border: rgba(234, 88, 12, 0.2);
+  --cafe-secondary-border: rgba(234, 88, 12, 0.3);
+  --cafe-secondary-text: #c2410c;
+  --cafe-error-bg: rgba(239, 68, 68, 0.12);
+  --cafe-error-border: rgba(239, 68, 68, 0.4);
+  --cafe-text-strong: #3b1d0f;
+  --cafe-button-text: #ffffff;
+  --cafe-button-shadow: 0 0 10px rgba(234, 88, 12, 0.25);
+  --cafe-button-shadow-press: 0 0 5px rgba(234, 88, 12, 0.2);
+  --cafe-neon-glow: 0 0 10px rgba(234, 88, 12, 0.25);
+  --cafe-neon-glow-strong: 0 0 15px rgba(234, 88, 12, 0.3);
+  --cafe-badge-text: #ffffff;
+  --cafe-preset-active-text: #ffffff;
+
+  --bg-primary: var(--cafe-bg);
+  --bg-secondary: var(--cafe-bg);
+  --bg-card: var(--cafe-glass);
+  --text-primary: var(--cafe-text);
+  --text-secondary: var(--cafe-muted);
+  --text-muted: var(--cafe-muted);
+  --border-color: var(--cafe-panel-border);
+}

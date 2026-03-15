@@ -1,0 +1,22 @@
+/**
+ * Main Theme Import for Miniapps
+ *
+ * This file serves as the main entry point for all theme-related styles.
+ * It imports the base theme and can be extended with app-specific themes.
+ *
+ * Usage in components:
+ * ```scss
+ * @use "@shared/styles/theme.scss" as *;
+ * ```
+ */
+
+// Import base theme with all CSS variables
+@use "./theme-base";
+
+// Import design tokens
+@use "./tokens";
+
+// Import desktop-specific theme (optional)
+@use "./desktop-theme";
+
+// Additional theme extensions can be added here

@@ -1,0 +1,20 @@
+// Shared page-level mixins for miniapp index.vue files.
+//
+// Usage:
+//   @use "@shared/styles/page-common" as *;
+//   @include page-background(var(--bg-primary));
+//
+// These mixins wrap the :global(page) pattern that every miniapp uses
+// so the boilerplate lives in one place.
+
+/// Sets the :global(page) background (required by every miniapp).
+/// $bg — any valid CSS background value (color, gradient, var()).
+/// $extras — optional map of additional properties (color, font-family, etc.).
+@mixin page-background($bg, $extras: ()) {
+  :global(page) {
+    background: $bg;
+    @each $prop, $val in $extras {
+      #{$prop}: $val;
+    }
+  }
+}

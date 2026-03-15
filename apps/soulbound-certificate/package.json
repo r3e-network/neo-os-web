@@ -1,0 +1,22 @@
+{
+  "name": "miniapp-soulbound-certificate",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "uni",
+    "dev:h5": "vite -p h5",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.3",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5",
+    "sass": "catalog:",
+    "terser": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "@vitejs/plugin-vue": "^5.0.0"
+  }
+}

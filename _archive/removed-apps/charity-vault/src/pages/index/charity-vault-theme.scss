@@ -1,0 +1,77 @@
+:global(.theme-charity-vault) {
+  // Primary colors - warm, charitable theme
+  --charity-bg: #0f172a;
+  --charity-bg-secondary: #1e293b;
+  --charity-accent: #f59e0b;
+  --charity-accent-hover: #d97706;
+  --charity-primary: #10b981;
+  --charity-primary-bg: rgba(16, 185, 129, 0.1);
+  --charity-secondary: #8b5cf6;
+  --charity-secondary-bg: rgba(139, 92, 246, 0.1);
+
+  // Text colors
+  --charity-text-primary: #f1f5f9;
+  --charity-text-secondary: #94a3b8;
+  --charity-text-muted: #64748b;
+
+  // Card styles
+  --charity-card-bg: #1e293b;
+  --charity-card-border: #334155;
+  --charity-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+
+  // Progress bar
+  --charity-progress-bg: #334155;
+  --charity-progress-fill: linear-gradient(to right, #10b981, #059669);
+
+  // Status colors
+  --charity-success: #10b981;
+  --charity-success-bg: rgba(16, 185, 129, 0.15);
+  --charity-warning: #f59e0b;
+  --charity-warning-bg: rgba(245, 158, 11, 0.15);
+  --charity-danger: #ef4444;
+  --charity-danger-bg: rgba(239, 68, 68, 0.15);
+  --charity-info: #3b82f6;
+  --charity-info-bg: rgba(59, 130, 246, 0.15);
+
+  // Input styles
+  --charity-input-bg: #0f172a;
+  --charity-input-border: #334155;
+  --charity-input-focus: #10b981;
+
+  // Button styles
+  --charity-btn-primary: #10b981;
+  --charity-btn-primary-hover: #059669;
+  --charity-btn-secondary: #334155;
+  --charity-btn-secondary-hover: #475569;
+}
+
+:global(.theme-light .theme-charity-vault),
+:global([data-theme="light"] .theme-charity-vault) {
+  --charity-bg: #f8fafc;
+  --charity-bg-secondary: #f1f5f9;
+  --charity-accent: #f59e0b;
+  --charity-accent-hover: #d97706;
+  --charity-primary: #059669;
+  --charity-primary-bg: rgba(5, 150, 105, 0.1);
+  --charity-secondary: #7c3aed;
+  --charity-secondary-bg: rgba(124, 58, 237, 0.1);
+
+  // Text colors
+  --charity-text-primary: #0f172a;
+  --charity-text-secondary: #475569;
+  --charity-text-muted: #94a3b8;
+
+  // Card styles
+  --charity-card-bg: #ffffff;
+  --charity-card-border: #e2e8f0;
+  --charity-card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+
+  // Progress bar
+  --charity-progress-bg: #e2e8f0;
+  --charity-progress-fill: linear-gradient(to right, #059669, #047857);
+
+  // Input styles
+  --charity-input-bg: #ffffff;
+  --charity-input-border: #cbd5e1;
+  --charity-input-focus: #059669;
+}

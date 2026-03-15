@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-self-loan",
+  "name": "SelfLoan",
+  "name_zh": "自我借贷",
+  "version": "2.0.0",
+  "description": "Lock NEO to borrow GAS upfront against your future staking rewards. NEO stays locked until generated GAS plus fee repays the loan, then auto-unlocks. Zero liquidation, self-repaying liquidity.",
+  "description_zh": "自我借贷 — 锁定 NEO 预借 GAS，利用未来质押收益自动还款。NEO 保持锁定直到产生的 GAS 偿还贷款和手续费后自动解锁。零清算风险，自偿性流动性。",
+  "category": "finance",
+  "category_name": "Finance",
+  "category_name_zh": "金融",
+  "tags": [
+    "lending",
+    "defi",
+    "collateral",
+    "self-loan",
+    "neo"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+    "neo-n3-testnet": "0x46bf67c133f4206e13cbacb53d91c2c493d8755a"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/self-loan/index.html",
+    "icon": "/miniapps/self-loan/logo.jpg",
+    "banner": "/miniapps/self-loan/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://self-loan"
+  },
+  "stateSource": {
+    "type": "n3index",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-03-15T00:00:00Z",
+  "featured": true,
+  "featured_order": 1,
+  "technologies": {
+    "keeper": {
+      "enabled": true,
+      "description": "Auto-monitors health factor and triggers alerts",
+      "conditions": [
+        "health_factor_threshold"
+      ]
+    }
+  }
+}

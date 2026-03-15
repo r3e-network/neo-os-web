@@ -1,0 +1,82 @@
+:global(.theme-gov-merc) {
+  --merc-bg: #100010;
+  --merc-bg-secondary: #16001a;
+  --merc-card-bg: rgba(10, 5, 20, 0.9);
+  --merc-card-border: #00f3ff;
+  --merc-card-border-accent: #ff007f;
+  --merc-card-shadow: 0 0 15px rgba(255, 0, 127, 0.2), inset 0 0 30px rgba(0, 243, 255, 0.05);
+  --merc-card-danger-bg: rgba(30, 0, 0, 0.9);
+  --merc-card-danger-border: rgba(255, 51, 51, 0.9);
+  --merc-card-danger-text: #fecaca;
+  --merc-text: #f8eaff;
+  --merc-text-muted: rgba(248, 234, 255, 0.7);
+  --merc-text-subtle: rgba(248, 234, 255, 0.55);
+  --merc-grid-strong: rgba(255, 0, 127, 0.2);
+  --merc-grid: rgba(255, 0, 127, 0.1);
+  --merc-button-primary-bg: linear-gradient(90deg, #ff007f, #9900ff);
+  --merc-button-primary-text: #ffffff;
+  --merc-button-primary-shadow: 5px 5px 0 rgba(0, 243, 255, 0.5);
+  --merc-button-primary-shadow-pressed: 3px 3px 0 rgba(0, 243, 255, 0.5);
+  --merc-button-secondary-border: #00f3ff;
+  --merc-button-secondary-text: #00f3ff;
+  --merc-button-secondary-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+  --merc-input-bg: rgba(0, 0, 0, 0.5);
+  --merc-input-border: #ff007f;
+  --merc-input-text: #00f3ff;
+  --merc-empty-text: #00f3ff;
+  --merc-empty-shadow: 0 0 5px rgba(0, 243, 255, 0.6);
+  --merc-bid-divider: rgba(255, 0, 127, 0.3);
+  --merc-bid-address: #c6c1d4;
+  --merc-bid-amount: #ff007f;
+  --merc-bid-amount-shadow: 0 0 5px rgba(255, 0, 127, 0.6);
+  --merc-status-text: #00f3ff;
+  --merc-status-title: #ff9abf;
+  --merc-status-detail: rgba(248, 234, 255, 0.8);
+
+  --bg-primary: var(--merc-bg);
+  --bg-secondary: var(--merc-bg-secondary);
+  --bg-card: var(--merc-card-bg);
+  --text-primary: var(--merc-text);
+  --text-secondary: var(--merc-text-muted);
+  --text-muted: var(--merc-text-subtle);
+  --border-color: var(--merc-card-border);
+  --shadow-color: rgba(0, 0, 0, 0.35);
+}
+
+:global(.theme-light .theme-gov-merc),
+:global([data-theme="light"] .theme-gov-merc) {
+  --merc-bg: #f7efff;
+  --merc-bg-secondary: #f2e5ff;
+  --merc-card-bg: rgba(255, 255, 255, 0.92);
+  --merc-card-border: #22d3ee;
+  --merc-card-border-accent: #f472b6;
+  --merc-card-shadow: 0 10px 20px rgba(88, 28, 135, 0.12);
+  --merc-card-danger-bg: #fee2e2;
+  --merc-card-danger-border: rgba(239, 68, 68, 0.6);
+  --merc-card-danger-text: #b91c1c;
+  --merc-text: #2a0a3d;
+  --merc-text-muted: #5b3b7a;
+  --merc-text-subtle: #7b6a94;
+  --merc-grid-strong: rgba(244, 114, 182, 0.25);
+  --merc-grid: rgba(244, 114, 182, 0.15);
+  --merc-button-primary-bg: linear-gradient(90deg, #f472b6, #a855f7);
+  --merc-button-primary-text: #ffffff;
+  --merc-button-primary-shadow: 5px 5px 0 rgba(34, 211, 238, 0.3);
+  --merc-button-primary-shadow-pressed: 3px 3px 0 rgba(34, 211, 238, 0.3);
+  --merc-button-secondary-border: rgba(34, 211, 238, 0.6);
+  --merc-button-secondary-text: #0891b2;
+  --merc-button-secondary-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+  --merc-input-bg: rgba(255, 255, 255, 0.85);
+  --merc-input-border: rgba(244, 114, 182, 0.6);
+  --merc-input-text: #0e7490;
+  --merc-empty-text: #0e7490;
+  --merc-empty-shadow: 0 0 4px rgba(34, 211, 238, 0.2);
+  --merc-bid-divider: rgba(244, 114, 182, 0.35);
+  --merc-bid-address: #6b7280;
+  --merc-bid-amount: #a855f7;
+  --merc-bid-amount-shadow: 0 0 5px rgba(168, 85, 247, 0.25);
+  --merc-status-text: #0e7490;
+  --merc-status-title: #dc2626;
+  --merc-status-detail: #6b7280;
+  --shadow-color: rgba(42, 10, 61, 0.12);
+}

@@ -1,0 +1,49 @@
+<template>
+  <div class="sidebar-karma-card">
+    <span class="sidebar-karma-label">{{ t("yourKarma") }}</span>
+    <span class="sidebar-karma-value">{{ karma }}</span>
+    <span class="sidebar-karma-rank">{{ t("rank") }} #{{ rank || "-" }}</span>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+defineProps<{
+  karma: number;
+  rank: number | null;
+}>();
+
+const { t } = createUseI18n(messages)();
+</script>
+
+<style lang="scss" scoped>
+.sidebar-karma-card {
+  background: linear-gradient(135deg, var(--karma-primary), var(--karma-secondary));
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+  
+  .sidebar-karma-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+  }
+  
+  .sidebar-karma-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: white;
+    margin: 8px 0;
+  }
+  
+  .sidebar-karma-rank {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+}
+</style>
