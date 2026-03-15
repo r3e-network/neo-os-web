@@ -1,0 +1,50 @@
+:global(.theme-neo-convert) {
+  --convert-hero-gradient: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+  --convert-label: var(--erobo-purple);
+  --convert-success: #00e599;
+  --convert-error: #ff6b6b;
+  --convert-panel-bg: rgba(255, 255, 255, 0.03);
+  --convert-panel-border: rgba(255, 255, 255, 0.08);
+  --convert-panel-hover: rgba(255, 255, 255, 0.06);
+  --convert-panel-hover-border: rgba(255, 255, 255, 0.15);
+  --convert-panel-strong: rgba(0, 0, 0, 0.2);
+  --convert-input-bg: rgba(255, 255, 255, 0.03);
+  --convert-input-border: rgba(255, 255, 255, 0.1);
+  --convert-input-focus-border: #00e599;
+  --convert-input-focus-shadow: rgba(0, 229, 153, 0.12);
+  --convert-danger-bg: rgba(239, 68, 68, 0.08);
+  --convert-danger-border: rgba(239, 68, 68, 0.25);
+  --convert-danger-surface: rgba(0, 0, 0, 0.22);
+  --convert-danger-chip-bg: rgba(239, 68, 68, 0.18);
+  --convert-danger-text: #ef4444;
+  --convert-opcode-bg: rgba(0, 229, 153, 0.12);
+  --convert-opcode-border: rgba(0, 229, 153, 0.2);
+  --convert-opcode-text: #00e599;
+  --convert-copy-bg: rgba(255, 255, 255, 0.05);
+  --convert-copy-bg-active: rgba(255, 255, 255, 0.1);
+  --convert-qr-bg: #ffffff;
+  --convert-qr-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+:global(.theme-light .theme-neo-convert),
+:global([data-theme="light"] .theme-neo-convert) {
+  --convert-hero-gradient: linear-gradient(135deg, #1b1b2f 0%, #4a4a63 100%);
+  --convert-label: #5a58a3;
+  --convert-error: #dc2626;
+  --convert-panel-bg: rgba(27, 27, 47, 0.04);
+  --convert-panel-border: rgba(27, 27, 47, 0.1);
+  --convert-panel-hover: rgba(27, 27, 47, 0.08);
+  --convert-panel-hover-border: rgba(27, 27, 47, 0.18);
+  --convert-panel-strong: rgba(27, 27, 47, 0.08);
+  --convert-input-bg: rgba(27, 27, 47, 0.04);
+  --convert-input-border: rgba(27, 27, 47, 0.12);
+  --convert-input-focus-shadow: rgba(0, 229, 153, 0.18);
+  --convert-danger-surface: rgba(239, 68, 68, 0.06);
+  --convert-danger-text: #dc2626;
+  --convert-opcode-bg: rgba(5, 150, 105, 0.12);
+  --convert-opcode-border: rgba(5, 150, 105, 0.2);
+  --convert-opcode-text: #047857;
+  --convert-copy-bg: rgba(27, 27, 47, 0.06);
+  --convert-copy-bg-active: rgba(27, 27, 47, 0.12);
+  --convert-qr-shadow: 0 4px 15px rgba(27, 27, 47, 0.08);
+}

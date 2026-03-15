@@ -1,0 +1,18 @@
+/**
+ * Shared Styles for Miniapps
+ *
+ * This file imports all shared styles that can be used across miniapps.
+ *
+ * Usage in miniapp:
+ * ```scss
+ * @use "@shared/styles/theme" as *;
+ *
+ * .my-app {
+ *   background: var(--bg-card);
+ *   border: 1px solid var(--border-color);
+ * }
+ * ```
+ */
+
+// Import main theme (includes base theme, tokens, and desktop theme)
+@use "./theme";

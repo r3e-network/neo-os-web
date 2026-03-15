@@ -1,0 +1,8 @@
+:global(.theme-neo-sign-anything) {
+  --sign-success: #22c55e;
+}
+
+:global(.theme-light .theme-neo-sign-anything),
+:global([data-theme="light"] .theme-neo-sign-anything) {
+  --sign-success: #16a34a;
+}

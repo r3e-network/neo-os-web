@@ -1,0 +1,495 @@
+<template>
+  <MiniAppPage
+    name="trustanchor"
+    :config="templateConfig"
+    :state="appState"
+    :t="t"
+    :status-message="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :on-boundary-error="handleBoundaryError"
+    :on-boundary-retry="loadAll"
+  >
+    <!-- Overview Tab (default) -->
+    <template #content>
+      <div class="hero-container">
+        <span class="hero-label">{{ t("appName") }}</span>
+        <div class="hero-gauge">
+          <svg viewBox="0 0 200 120" class="gauge-svg">
+            <path
+              d="M20 100 A80 80 0 0 1 180 100"
+              fill="none"
+              stroke="rgba(255,255,255,0.08)"
+              stroke-width="12"
+              stroke-linecap="round"
+            />
+            <path
+              d="M20 100 A80 80 0 0 1 180 100"
+              fill="none"
+              stroke="url(#gaugeGrad)"
+              stroke-width="12"
+              stroke-linecap="round"
+              :stroke-dasharray="gaugeCircumference"
+              :stroke-dashoffset="gaugeOffset"
+              class="gauge-fill"
+            />
+            <defs>
+              <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#34d399" />
+                <stop offset="100%" stop-color="#10b981" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="gauge-center">
+            <span class="gauge-value">{{ formatNum(stats?.totalStaked ?? 0) }}</span>
+            <span class="gauge-unit">NEO</span>
+          </div>
+        </div>
+        <div class="hero-stats-row">
+          <div class="hero-stat">
+            <span class="hero-stat-label">{{ t("myStake") }}</span>
+            <span class="hero-stat-value">{{ formatNum(myStake) }} NEO</span>
+          </div>
+          <div class="hero-stat-divider" />
+          <div class="hero-stat">
+            <span class="hero-stat-label">{{ t("pendingRewards") }}</span>
+            <span class="hero-stat-value hero-stat-value--accent">{{ formatNum(pendingRewards) }} GAS</span>
+          </div>
+        </div>
+      </div>
+
+      <StatsDisplay :items="trustStats" layout="grid" class="mb-6" />
+
+      <NeoCard variant="erobo" class="mb-4 px-1">
+        <div class="section-header mb-4">
+          <span class="section-title">{{ t("voteForReputation") }}</span>
+        </div>
+        <span class="section-desc mb-4">{{ t("voteForReputationDesc") }}</span>
+
+        <div class="section-header section-header--spaced mb-4">
+          <span class="section-title">{{ t("notForProfit") }}</span>
+        </div>
+        <span class="section-desc">{{ t("notForProfitDesc") }}</span>
+      </NeoCard>
+
+      <NeoCard variant="erobo" class="px-1">
+        <div class="section-header mb-4">
+          <span class="section-title">{{ t("claim") }}</span>
+        </div>
+        <div class="claim-section">
+          <span class="claim-amount">{{ formatNum(pendingRewards) }} GAS</span>
+          <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
+            {{ t("claim") }}
+          </NeoButton>
+        </div>
+      </NeoCard>
+    </template>
+
+    <template #operation>
+      <NeoCard variant="erobo" :title="t('stake')" class="mb-4 px-1">
+        <div v-if="address" class="stake-form">
+          <div class="input-group mb-4">
+            <div class="input-row">
+              <NeoInput type="number" v-model="stakeAmount" :label="t('stake NEO')" :placeholder="t('amount')" />
+              <NeoButton variant="primary" :loading="isStaking" @click="handleStake">
+                {{ t("stake") }}
+              </NeoButton>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <div class="input-row">
+              <NeoInput type="number" v-model="unstakeAmount" :label="t('unstake')" :placeholder="t('amount')" />
+              <NeoButton variant="secondary" :loading="isUnstaking" @click="handleUnstake">
+                {{ t("unstake") }}
+              </NeoButton>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="connect-prompt">
+          <NeoButton variant="primary" @click="connect">
+            {{ t("connectWallet") }}
+          </NeoButton>
+        </div>
+      </NeoCard>
+    </template>
+
+    <!-- Agents Tab -->
+    <template #tab-agents>
+      <AgentsTab :agents="agents" />
+    </template>
+
+    <!-- History Tab -->
+    <template #tab-history>
+      <HistoryTab :stats="stats" />
+    </template>
+  </MiniAppPage>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from "vue";
+import { useWallet } from "@shared/utils/wallet-sdk";
+import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import { formatNumber } from "@shared/utils/format";
+import { MiniAppPage, StatsDisplay, NeoButton, NeoCard, NeoInput } from "@shared/components";
+import { createMiniApp } from "@shared/utils/createMiniApp";
+import { messages } from "@/locale/messages";
+import { useTrustAnchor } from "./composables/useTrustAnchor";
+
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
+  name: "trustanchor",
+  messages,
+  template: {
+    tabs: [
+      { key: "overview", labelKey: "tabOverview", icon: "layout", default: true },
+      { key: "agents", labelKey: "tabAgents", icon: "users" },
+      { key: "history", labelKey: "tabHistory", icon: "clock" },
+    ],
+    docSubtitleKey: "docsSubtitle",
+    docFeatureCount: 3,
+  },
+  sidebarItems: [
+    { labelKey: "stake", value: () => `${formatNum(myStake.value)} NEO` },
+    { labelKey: "claim", value: () => `${formatNum(pendingRewards.value)} GAS` },
+    { labelKey: "totalStaked", value: () => `${formatNum(stats.value?.totalStaked ?? 0)} NEO` },
+    { labelKey: "agentsLabel", value: () => stats.value?.agentCount ?? 0 },
+  ],
+});
+const { address, connect } = useWallet() as WalletSDK;
+
+const { agents, stats, myStake, pendingRewards, totalRewards, setError, loadAll, stake, unstake, claimRewards } =
+  useTrustAnchor(t);
+
+const isClaiming = ref(false);
+const isStaking = ref(false);
+const isUnstaking = ref(false);
+const stakeAmount = ref("");
+const unstakeAmount = ref("");
+
+const appState = computed(() => ({
+  myStake: myStake.value,
+  pendingRewards: pendingRewards.value,
+  totalRewards: totalRewards.value,
+}));
+
+const formatNum = (n: number | string) => formatNumber(n, 2);
+
+// Gauge: half-circle arc length for r=80 is π * 80 ≈ 251.3
+const GAUGE_ARC = Math.PI * 80;
+const gaugeCircumference = GAUGE_ARC;
+const MAX_STAKED = 10_000_000; // normalise gauge to 10M NEO
+const gaugePercent = computed(() => {
+  const total = stats.value?.totalStaked ?? 0;
+  return Math.min(total / MAX_STAKED, 1);
+});
+const gaugeOffset = computed(() => GAUGE_ARC - gaugePercent.value * GAUGE_ARC);
+
+const trustStats = computed<StatsDisplayItem[]>(() => [
+  { label: t("myStake"), value: `${formatNum(myStake.value)} NEO` },
+  { label: t("pendingRewards"), value: `${formatNum(pendingRewards.value)} GAS`, variant: "success" },
+  { label: t("totalRewards"), value: `${formatNum(totalRewards.value)} GAS`, variant: "accent" },
+  { label: t("zeroFee"), value: t("zeroFeeDesc"), variant: "erobo" },
+]);
+const handleStake = async () => {
+  const amount = parseInt(stakeAmount.value, 10);
+  if (!amount || amount <= 0) return;
+  isStaking.value = true;
+  try {
+    await stake(amount);
+    stakeAmount.value = "";
+  } finally {
+    isStaking.value = false;
+  }
+};
+
+const handleUnstake = async () => {
+  const amount = parseInt(unstakeAmount.value, 10);
+  if (!amount || amount <= 0) return;
+  isUnstaking.value = true;
+  try {
+    await unstake(amount);
+    unstakeAmount.value = "";
+  } finally {
+    isUnstaking.value = false;
+  }
+};
+
+const handleClaim = async () => {
+  if (pendingRewards.value <= 0) return;
+  isClaiming.value = true;
+  try {
+    await claimRewards();
+  } finally {
+    isClaiming.value = false;
+  }
+};
+
+onMounted(() => {
+  loadAll();
+});
+</script>
+
+<style lang="scss" scoped>
+@use "@shared/styles/hero" as *;
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@use "./trustanchor-theme.scss" as *;
+
+:global(body) {
+  background: var(--bg-primary);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &--spaced {
+    margin-top: 16px;
+  }
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.section-desc {
+  font-size: 14px;
+  opacity: 0.8;
+  display: block;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-label {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.input-row {
+  display: flex;
+  gap: 12px;
+}
+
+.claim-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.claim-amount {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.connect-prompt {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+@media (max-width: 767px) {
+  .input-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .claim-section {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+}
+
+.hero-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  gap: 16px;
+  padding: 32px 20px;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, transparent 100%);
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+
+.hero-label {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.hero-gauge {
+  position: relative;
+  width: 200px;
+  height: 120px;
+}
+
+.gauge-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gauge-fill {
+  transition: stroke-dashoffset 0.8s ease;
+}
+
+.gauge-center {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gauge-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.gauge-unit {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+
+.hero-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--bg-card-hover, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 16px 24px;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+
+.hero-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+
+  &--accent {
+    color: #34d399;
+  }
+}
+
+.hero-stat-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+/* ── Trust Anchor Hero Enhancements ── */
+@keyframes anchor-drop-sway {
+  0% {
+    transform: translateY(-8px) rotate(-3deg);
+    opacity: 0.8;
+  }
+  30% {
+    transform: translateY(2px) rotate(1deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  100% {
+    transform: translateY(-8px) rotate(-3deg);
+    opacity: 0.8;
+  }
+}
+
+@keyframes anchor-chain-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes anchor-deep-blue-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes anchor-gauge-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.5));
+  }
+}
+
+.hero-container {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.12), rgba(17, 24, 39, 0.08), rgba(16, 185, 129, 0.06));
+  background-size: 200% 200%;
+  animation: anchor-deep-blue-gradient 8s ease-in-out infinite;
+  box-shadow:
+    0 0 30px rgba(30, 58, 138, 0.1),
+    inset 0 1px 0 rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(30, 58, 138, 0.12);
+}
+
+.hero-gauge {
+  animation: anchor-drop-sway 6s ease-in-out infinite;
+}
+
+.gauge-svg {
+  animation: anchor-gauge-glow 4s ease-in-out infinite;
+}
+
+.gauge-value {
+  background: linear-gradient(
+    90deg,
+    var(--text-primary, #fff) 40%,
+    rgba(52, 211, 153, 0.9) 50%,
+    var(--text-primary, #fff) 60%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: anchor-chain-shimmer 5s linear infinite;
+}
+
+.hero-stats-row {
+  box-shadow: 0 0 20px rgba(30, 58, 138, 0.1);
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.06), rgba(255, 255, 255, 0.02));
+}
+</style>

@@ -1,0 +1,25 @@
+{
+  "name": "miniapp-neo-gacha",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "uni",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "sass": "catalog:",
+    "terser": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "@vitejs/plugin-vue": "^5.0.0"
+  },
+  "keywords": [
+    "neo",
+    "gaming",
+    "nft",
+    "gacha"
+  ]
+}

@@ -1,0 +1,191 @@
+/**
+ * Shared Hero Styles — extracted from 33+ miniapps
+ *
+ * Usage in any miniapp's index.vue:
+ *   @use "@shared/styles/hero" as *;
+ *
+ * Provides:
+ * - .hero-container (flexbox center layout)
+ * - .hero-stats / .hero-stat / .hero-stat-value / .hero-stat-label
+ * - .hero-stats-row / .hero-stat-divider
+ * - Common @keyframes (hero-breathe, shimmer-line, stat-enter, pulse-glow)
+ * - Responsive breakpoints
+ */
+
+// ── Hero Container ──
+.hero-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  text-align: center;
+  gap: 20px;
+  padding: 8px 0;
+  position: relative;
+}
+
+// ── Hero Stats Row ──
+.hero-stats,
+.hero-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  z-index: 2;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 30px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+}
+
+// ── Hero Stat Card ──
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  animation: stat-enter 0.4s ease-out both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+.hero-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hero-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.hero-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+// ── Hero Title/Subtitle ──
+.hero-title {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.hero-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.hero-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+// ── Common Keyframes ──
+@keyframes hero-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes shimmer-line {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes stat-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(0, 229, 153, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(0, 229, 153, 0.5);
+  }
+}
+
+@keyframes float-up-down {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes rotate-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ── Responsive ──
+@media (max-width: 480px) {
+  .hero-container {
+    min-height: 200px;
+    gap: 14px;
+  }
+
+  .hero-stats,
+  .hero-stats-row {
+    gap: 12px;
+    padding: 10px 18px;
+    flex-wrap: wrap;
+  }
+
+  .hero-stat-value {
+    font-size: 16px;
+  }
+  .hero-title {
+    font-size: 22px;
+  }
+  .hero-icon {
+    font-size: 36px;
+  }
+}

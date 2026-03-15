@@ -1,0 +1,19 @@
+.neo-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+
+  &-title {
+    color: #00d9ff;
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+
+  &-content {
+    width: 100%;
+  }
+}

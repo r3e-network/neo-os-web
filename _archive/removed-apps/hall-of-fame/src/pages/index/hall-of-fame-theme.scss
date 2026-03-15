@@ -1,0 +1,93 @@
+:global(.theme-hall-of-fame) {
+  --hof-font: 'Cormorant Garamond', serif;
+  --hof-bg: #1b1612;
+  --hof-bg-secondary: #231d18;
+  --hof-card: #2b241e;
+  --hof-card-elevated: #322a24;
+  --hof-text: #f7f0e6;
+  --hof-text-muted: #c8b8a1;
+  --hof-text-subtle: #9f8f7b;
+  --hof-frame: #6f5a43;
+  --hof-accent: #d4af37;
+  --hof-accent-strong: #e6c767;
+  --hof-accent-border: #b18a2a;
+  --hof-divider: rgba(255, 255, 255, 0.12);
+  --hof-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+  --hof-shadow-strong: 0 14px 24px rgba(0, 0, 0, 0.45);
+  --hof-shadow-inner: inset 0 0 10px rgba(0, 0, 0, 0.35);
+  --hof-spine-start: #2a1f16;
+  --hof-spine-mid: #4a3627;
+  --hof-avatar-bg: #2f261f;
+  --hof-avatar-border: rgba(255, 255, 255, 0.12);
+  --hof-progress-bg: #3b3128;
+  --hof-progress: #8e7c69;
+  --hof-progress-top: #d4af37;
+  --hof-glow: rgba(255, 255, 255, 0.2);
+  --hof-empty-border: rgba(255, 255, 255, 0.16);
+  --hof-danger-bg: rgba(127, 29, 29, 0.25);
+  --hof-danger-border: #ef4444;
+  --hof-danger-text: #fecaca;
+  --hof-success-bg: rgba(5, 150, 105, 0.18);
+  --hof-success-border: #10b981;
+  --hof-success-text: #6ee7b7;
+  --hof-texture-dot: rgba(255, 255, 255, 0.06);
+  --hof-button-text: #1f160d;
+  --hof-secondary-bg: transparent;
+  --hof-bronze: #d97706;
+  --hof-button-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+
+  --bg-primary: var(--hof-bg);
+  --bg-secondary: var(--hof-bg-secondary);
+  --bg-card: var(--hof-card);
+  --bg-elevated: var(--hof-card-elevated);
+  --text-primary: var(--hof-text);
+  --text-secondary: var(--hof-text-muted);
+  --text-muted: var(--hof-text-subtle);
+}
+
+:global(.theme-light .theme-hall-of-fame),
+:global([data-theme="light"] .theme-hall-of-fame) {
+  --hof-bg: #f9fafb;
+  --hof-bg-secondary: #f3f4f6;
+  --hof-card: #ffffff;
+  --hof-card-elevated: #ffffff;
+  --hof-text: #1f2937;
+  --hof-text-muted: #6b7280;
+  --hof-text-subtle: #9ca3af;
+  --hof-frame: #4b5563;
+  --hof-accent: #d4af37;
+  --hof-accent-strong: #d4af37;
+  --hof-accent-border: #b4941f;
+  --hof-divider: #e5e7eb;
+  --hof-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  --hof-shadow-strong: 0 14px 24px rgba(0, 0, 0, 0.14);
+  --hof-shadow-inner: inset 0 0 10px rgba(0, 0, 0, 0.2);
+  --hof-spine-start: #3e2723;
+  --hof-spine-mid: #5c4033;
+  --hof-avatar-bg: #f3f4f6;
+  --hof-avatar-border: #e5e7eb;
+  --hof-progress-bg: #f3f4f6;
+  --hof-progress: #9ca3af;
+  --hof-progress-top: #d4af37;
+  --hof-glow: rgba(255, 255, 255, 0.4);
+  --hof-empty-border: #e5e7eb;
+  --hof-danger-bg: #ffebee;
+  --hof-danger-border: #ef4444;
+  --hof-danger-text: #b91c1c;
+  --hof-success-bg: #ecfdf3;
+  --hof-success-border: #10b981;
+  --hof-success-text: #047857;
+  --hof-texture-dot: rgba(0, 0, 0, 0.06);
+  --hof-button-text: #1f160d;
+  --hof-secondary-bg: #ffffff;
+  --hof-bronze: #d97706;
+  --hof-button-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+
+  --bg-primary: var(--hof-bg);
+  --bg-secondary: var(--hof-bg-secondary);
+  --bg-card: var(--hof-card);
+  --bg-elevated: var(--hof-card-elevated);
+  --text-primary: var(--hof-text);
+  --text-secondary: var(--hof-text-muted);
+  --text-muted: var(--hof-text-subtle);
+}
