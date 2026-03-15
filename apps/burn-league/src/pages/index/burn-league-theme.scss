@@ -1,0 +1,51 @@
+@use "@shared/styles/mixins.scss" as *;
+
+@include theme-dark("burn-league") {
+  --burn-bg: #0f0505;
+  --burn-orange: #ff4500;
+  --burn-yellow: #ffd700;
+  --burn-text: #fff0f0;
+  --burn-font: "Russo One", sans-serif;
+  --burn-gradient-start: #300000;
+  --burn-gradient-end: #000000;
+  --burn-card-bg: rgba(40, 5, 5, 0.8);
+  --burn-card-border: #770000;
+  --burn-card-shadow: 0 4px 20px rgba(255, 69, 0, 0.2);
+  --burn-danger-bg: #2a0000;
+  --burn-danger-border: #ff0000;
+  --burn-button-gradient: linear-gradient(45deg, #ff4500, #ff0000);
+  --burn-purple: #9f9df3;
+  --burn-button-text: #ffffff;
+  --burn-button-shadow: 4px 4px 0 #550000;
+  --burn-button-shadow-press: 2px 2px 0 #550000;
+  --burn-flame-orange: #f97316;
+  --burn-flame-red: #ef4444;
+  --burn-flame-amber: #f59e0b;
+  --burn-coral: #ff6b6b;
+  --burn-gold-bright: #ffd93d;
+}
+
+@include theme-light("burn-league") {
+  --burn-bg: #fff1f0;
+  --burn-orange: #e43d0f;
+  --burn-yellow: #f5b700;
+  --burn-text: #5a1a14;
+  --burn-font: "Russo One", sans-serif;
+  --burn-gradient-start: #ffd6cc;
+  --burn-gradient-end: #fff5f2;
+  --burn-card-bg: rgba(255, 255, 255, 0.9);
+  --burn-card-border: rgba(228, 61, 15, 0.3);
+  --burn-card-shadow: 0 10px 24px rgba(228, 61, 15, 0.18);
+  --burn-danger-bg: #ffe5e5;
+  --burn-danger-border: #f87171;
+  --burn-button-gradient: linear-gradient(45deg, #ff6a2e, #e13a0c);
+  --burn-purple: #8b89e0;
+  --burn-button-text: #ffffff;
+  --burn-button-shadow: 4px 4px 0 rgba(228, 61, 15, 0.35);
+  --burn-button-shadow-press: 2px 2px 0 rgba(228, 61, 15, 0.35);
+  --burn-flame-orange: #ea580c;
+  --burn-flame-red: #dc2626;
+  --burn-flame-amber: #d97706;
+  --burn-coral: #e05252;
+  --burn-gold-bright: #eab308;
+}

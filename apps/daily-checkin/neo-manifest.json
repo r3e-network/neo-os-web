@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-dailycheckin",
+  "name": "Daily Check-in",
+  "name_zh": "每日签到",
+  "version": "2.0.0",
+  "description": "Check in every day to earn GAS rewards with streak bonuses. 7-day streak earns 1 GAS, 14-day streak earns 2 GAS. Streak resets and restarts with escalating NFT badges as proof of loyalty.",
+  "description_zh": "每日签到 — 连续签到赢取 GAS 奖励：7天连续获1 GAS，14天获2 GAS。连续记录重置后重新开始，同时铸造逐级升级的 NFT 徽章作为忠诚证明。",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "tags": [
+    "rewards",
+    "daily",
+    "streak",
+    "engagement",
+    "gamification"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x908867b23ab551a598723ceeaaedd70c54e10c76",
+    "neo-n3-testnet": "0xb83a51ec3e37b96110ab89b2e768d17048cd98ee"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/daily-checkin/index.html",
+    "icon": "/miniapps/daily-checkin/logo.jpg",
+    "banner": "/miniapps/daily-checkin/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://daily-checkin"
+  },
+  "stateSource": {
+    "type": "n3index",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-03-15T00:00:00Z",
+  "featured": true,
+  "featured_order": 4,
+  "technologies": {
+    "aa": {
+      "enabled": true,
+      "description": "Simplified check-in with session keys — no daily signing required",
+      "features": [
+        "session_keys"
+      ]
+    }
+  }
+}

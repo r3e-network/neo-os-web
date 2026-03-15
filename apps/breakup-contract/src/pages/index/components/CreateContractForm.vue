@@ -1,0 +1,320 @@
+<template>
+  <NeoCard variant="erobo-neo" class="contract-card">
+    <div class="document-body">
+      <div class="clause-box-glass">
+        <div class="clause-deco top-left"></div>
+        <div class="clause-deco bottom-right"></div>
+        <span class="document-clause">{{ t("clause1") }}</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <span class="form-label">{{ t("partnerLabel") }}</span>
+          <NeoInput
+            :modelValue="partnerAddress"
+            @update:modelValue="$emit('update:partnerAddress', $event)"
+            :placeholder="t('partnerPlaceholder')"
+            class="partner-input"
+          />
+        </div>
+
+        <div class="form-group full-width">
+          <span class="form-label">{{ t("titleLabel") }}</span>
+          <NeoInput
+            :modelValue="title"
+            @update:modelValue="$emit('update:title', $event)"
+            :placeholder="t('titlePlaceholder')"
+          />
+        </div>
+
+        <div class="form-group">
+          <span class="form-label">{{ t("stakeLabel") }}</span>
+          <NeoInput
+            :modelValue="stakeAmount"
+            @update:modelValue="$emit('update:stakeAmount', $event)"
+            type="number"
+            :placeholder="t('stakePlaceholder')"
+            suffix="GAS"
+          />
+        </div>
+
+        <div class="form-group">
+          <span class="form-label">{{ t("durationLabel") }}</span>
+          <NeoInput
+            :modelValue="duration"
+            @update:modelValue="$emit('update:duration', $event)"
+            type="number"
+            :placeholder="t('durationPlaceholder')"
+            :suffix="t('daysSuffix')"
+          />
+        </div>
+
+        <div class="form-group full-width">
+          <span class="form-label">{{ t("termsLabel") }}</span>
+          <NeoInput
+            :modelValue="terms"
+            @update:modelValue="$emit('update:terms', $event)"
+            type="textarea"
+            :placeholder="t('termsPlaceholder')"
+          />
+        </div>
+      </div>
+
+      <div class="signature-section">
+        <span class="signature-label">{{ t("signatureLabel") }}</span>
+        <div class="signature-pad-glass">
+          <div class="sign-line"></div>
+          <span class="signature-text mono" :class="{ signed: !!address }">
+            {{ address ? `✍️ ${address}` : t("connectWallet") }}
+          </span>
+          <div class="biometric-scan" v-if="address"></div>
+        </div>
+      </div>
+
+      <NeoButton variant="primary" size="lg" block :loading="isLoading" @click="$emit('create')" class="create-btn">
+        <span class="btn-text">{{ isLoading ? t("creating") : t("createBtn") }}</span>
+      </NeoButton>
+    </div>
+  </NeoCard>
+</template>
+
+<script setup lang="ts">
+import { NeoInput, NeoButton, NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+
+defineProps<{
+  partnerAddress: string;
+  stakeAmount: string;
+  duration: string;
+  title: string;
+  terms: string;
+  address: string | null;
+  isLoading: boolean;
+}>();
+
+const { t } = createUseI18n(messages)();
+
+defineEmits([
+  "update:partnerAddress",
+  "update:stakeAmount",
+  "update:duration",
+  "update:title",
+  "update:terms",
+  "create",
+]);
+</script>
+
+<style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
+
+.contract-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.hologram-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 105, 180, 0.3);
+  margin-bottom: 24px;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 40%;
+    height: 1px;
+    background: var(--heartbreak-love);
+    box-shadow: 0 0 10px var(--heartbreak-love);
+  }
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.document-title {
+  font-weight: 800;
+  font-size: 16px;
+  text-transform: uppercase;
+  color: var(--heartbreak-love);
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 10px rgba(255, 107, 107, 0.4);
+}
+
+.id-badge {
+  font-size: 9px;
+  font-family: $font-mono;
+  background: rgba(255, 107, 107, 0.1);
+  color: var(--heartbreak-love);
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+  border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
+.glowing-seal {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seal-icon {
+  font-size: 20px;
+  z-index: 2;
+  filter: drop-shadow(0 0 5px rgba(255, 105, 180, 0.6));
+}
+
+.seal-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed rgba(255, 105, 180, 0.4);
+  border-radius: 50%;
+  animation: spin-slow 10s linear infinite;
+}
+
+.clause-box-glass {
+  @include card-base(4px, 16px);
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.clause-deco {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: var(--text-muted);
+  border-style: solid;
+
+  &.top-left {
+    top: -1px;
+    left: -1px;
+    border-width: 1px 0 0 1px;
+  }
+  &.bottom-right {
+    bottom: -1px;
+    right: -1px;
+    border-width: 0 1px 1px 0;
+  }
+}
+
+.document-clause {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--text-primary);
+  font-family: serif; /* Elegant contract font */
+  font-style: italic;
+  text-align: center;
+}
+
+.form-grid {
+  @include grid-layout(2, 16px);
+  margin-bottom: 24px;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+.form-label {
+  @include stat-label;
+  font-size: 10px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.signature-section {
+  margin-bottom: 24px;
+}
+
+.signature-label {
+  @include stat-label;
+  font-size: 10px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.signature-pad-glass {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sign-line {
+  position: absolute;
+  bottom: 12px;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.signature-text {
+  font-family: "Dancing Script", cursive, serif; /* Fallback to serif/cursive */
+  font-size: 16px;
+  color: var(--text-muted);
+  z-index: 2;
+  transition: all 0.3s;
+
+  &.signed {
+    color: var(--heartbreak-love);
+    font-size: 14px;
+    font-family: $font-mono;
+    text-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
+    letter-spacing: -0.5px;
+  }
+}
+
+.biometric-scan {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 107, 107, 0.1), transparent);
+  transform: translateX(-100%);
+  animation: scan 2s infinite linear;
+}
+
+.create-btn {
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.2);
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes scan {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+</style>

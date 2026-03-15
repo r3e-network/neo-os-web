@@ -1,0 +1,68 @@
+:global(.theme-million-piece) {
+  --map-bg: #2f271e;
+  --map-sea: #111827;
+  --map-ink: #f5f3ed;
+  --map-gold: #fbbf24;
+  --map-red: #f87171;
+  --map-paper: #3b3128;
+  --map-border: #d7c9b6;
+  --map-shadow: 10px 10px 0 rgba(0, 0, 0, 0.5);
+  --map-grid: rgba(255, 255, 255, 0.08);
+  --map-tile-bg: #fdfbf7;
+  --map-tile-border: rgba(245, 243, 237, 0.25);
+  --map-panel-shadow: inset 0 0 20px rgba(0, 0, 0, 0.25);
+  --map-card-shadow-lite: 4px 4px 0 rgba(62, 51, 42, 0.2);
+  --map-danger-bg: rgba(239, 68, 68, 0.12);
+  --map-button-text: #ffffff;
+  --map-territory-1: #f472b6;
+  --map-territory-2: #00e599;
+  --map-territory-3: #7000ff;
+  --map-territory-4: #22d3ee;
+  --map-territory-5: #fde047;
+  --map-territory-6: #a78bfa;
+  --map-territory-7: #fb923c;
+  --map-territory-8: #60a5fa;
+
+  --bg-primary: var(--map-sea);
+  --bg-secondary: var(--map-sea);
+  --bg-card: var(--map-bg);
+  --text-primary: var(--map-ink);
+  --text-secondary: var(--map-ink);
+  --text-muted: rgba(245, 243, 237, 0.7);
+  --border-color: var(--map-border);
+}
+
+:global(.theme-light .theme-million-piece),
+:global([data-theme="light"] .theme-million-piece) {
+  --map-bg: #e6dcc5;
+  --map-sea: #b4cee6;
+  --map-ink: #3e332a;
+  --map-gold: #d4a017;
+  --map-red: #c0392b;
+  --map-paper: #ffffff;
+  --map-border: #3e332a;
+  --map-shadow: 10px 10px 0 rgba(62, 51, 42, 0.4);
+  --map-grid: rgba(255, 255, 255, 0.1);
+  --map-tile-bg: #fdfbf7;
+  --map-tile-border: rgba(62, 51, 42, 0.2);
+  --map-panel-shadow: inset 0 0 20px rgba(62, 51, 42, 0.1);
+  --map-card-shadow-lite: 4px 4px 0 rgba(62, 51, 42, 0.15);
+  --map-danger-bg: rgba(239, 68, 68, 0.12);
+  --map-button-text: #ffffff;
+  --map-territory-1: #f472b6;
+  --map-territory-2: #00e599;
+  --map-territory-3: #7000ff;
+  --map-territory-4: #22d3ee;
+  --map-territory-5: #fde047;
+  --map-territory-6: #a78bfa;
+  --map-territory-7: #fb923c;
+  --map-territory-8: #60a5fa;
+
+  --bg-primary: var(--map-sea);
+  --bg-secondary: var(--map-sea);
+  --bg-card: var(--map-bg);
+  --text-primary: var(--map-ink);
+  --text-secondary: var(--map-ink);
+  --text-muted: rgba(62, 51, 42, 0.7);
+  --border-color: var(--map-border);
+}

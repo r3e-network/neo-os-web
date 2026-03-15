@@ -1,0 +1,87 @@
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  // App translations
+  title: { en: "LastSurvivor", zh: "最后生还者" },
+  subtitle: { en: "Last buyer wins the entire prize pool", zh: "最后一个按按钮的人赢得全部奖池" },
+  timeUntilEvent: { en: "Time Until Event", zh: "距离事件" },
+  totalPot: { en: "Total Pot", zh: "奖池总额" },
+  yourKeys: { en: "Your Keys", zh: "你的钥匙" },
+  round: { en: "Round", zh: "轮次" },
+  lastBuyer: { en: "Last Buyer", zh: "最后购买者" },
+  roundStatus: { en: "Round Status", zh: "轮次状态" },
+  activeRound: { en: "Active", zh: "进行中" },
+  inactiveRound: { en: "Inactive", zh: "未开始" },
+  buyKeys: { en: "Buy Keys", zh: "购买钥匙" },
+  buying: { en: "Buying...", zh: "购买中..." },
+  keyCountPlaceholder: { en: "1", zh: "1" },
+  estimatedCost: { en: "Estimated Cost", zh: "预估花费" },
+  keyPrice: {
+    en: "Base price: 0.1 GAS per key (increases with demand)",
+    zh: "基础价格：0.1 GAS/钥匙（价格随需求递增）",
+  },
+  totalStaked: { en: "Total Staked", zh: "总质押" },
+  yourStake: { en: "Your Stake", zh: "您的质押" },
+  players: { en: "Players", zh: "参与者" },
+  eventHistory: { en: "Event History", zh: "事件历史" },
+  noHistory: { en: "No events yet", zh: "暂无事件记录" },
+  failedToLoad: { en: "Failed to load data", zh: "加载数据失败" },
+  missingContract: { en: "Contract not configured", zh: "合约未配置" },
+  keysPurchased: { en: "Keys purchased", zh: "钥匙购买成功" },
+  roundStarted: { en: "Round started", zh: "新一轮开始" },
+  winnerDeclared: { en: "Winner declared", zh: "赢家已揭晓" },
+  docSubtitle: {
+    en: "A social experiment — the last person to press the button wins everything",
+    zh: "人性博弈社交实验 — 最后按下按钮的人赢走全部奖池",
+  },
+  docDescription: {
+    en: "The Last Survivor is inspired by Reddit's famous 'The Button' experiment. Everyone can contribute GAS to a growing prize pool, which resets a 24-hour countdown. If nobody presses the button for 24 hours, the last person to press it wins the entire pot. It's a game of nerves, greed, and human nature.",
+    zh: "「最后生还者」灵感来源于 Reddit 著名的愚人节实验 The Button。所有人都可以往奖金池里投入 GAS，每次投入都会重置 24 小时倒计时。如果连续 24 小时无人按按钮，最后按下的人将独吞全部奖池。这是一场关于贪婪、恐惧和人性的终极博弈。",
+  },
+  step1: { en: "Connect your Neo wallet and check the current round.", zh: "连接 Neo 钱包，查看当前轮次和奖池。" },
+  step2: {
+    en: "Contribute GAS to the pool — each contribution resets the 24h countdown.",
+    zh: "投入 GAS 到奖池中 — 每次投入都会重置 24 小时倒计时。",
+  },
+  step3: {
+    en: "Watch the danger meter — tension rises as the countdown nears zero.",
+    zh: "关注危险指数 — 倒计时越接近零，紧张感越强。",
+  },
+  step4: {
+    en: "If 24 hours pass with no one pressing the button, the last contributor wins everything!",
+    zh: "如果 24 小时内无人按按钮，最后一个投入的人赢得全部奖池！",
+  },
+  feature1Name: { en: "Growing Prize Pool", zh: "持续增长的奖池" },
+  feature1Desc: {
+    en: "Every contribution adds to the pot and resets the 24-hour timer — the stakes keep rising.",
+    zh: "每次投入都会增加奖池并重置 24 小时倒计时 — 赌注不断升高。",
+  },
+  feature2Name: { en: "Real-Time Tension Meter", zh: "实时紧张指数" },
+  feature2Desc: {
+    en: "Watch the danger level climb from safe to critical as the countdown nears zero.",
+    zh: "观察危险等级从安全逐步攀升至危急，紧张感扑面而来。",
+  },
+  feature3Name: { en: "Winner-Takes-All", zh: "赢者通吃" },
+  feature3Desc: {
+    en: "When the timer hits zero with no new contributions, the last person to contribute wins the entire on-chain pot.",
+    zh: "当倒计时归零且无人新投入时，最后一个投入的人赢得链上全部奖池。",
+  },
+  safe: { en: "SAFE", zh: "安全" },
+  critical: { en: "CRITICAL", zh: "危急" },
+  nextEvent: { en: "NEXT EVENT", zh: "下一事件" },
+  dangerLow: { en: "LOW RISK", zh: "低风险" },
+  dangerMedium: { en: "ELEVATED", zh: "警戒" },
+  dangerHigh: { en: "HIGH ALERT", zh: "高度警戒" },
+  dangerCritical: { en: "CRITICAL", zh: "危急" },
+  tabStats: { en: "Stats", zh: "统计" },
+  youWon: { en: "You Won the Pot!", zh: "你赢得了奖池！" },
+  claimPrize: { en: "Claim Prize", zh: "领取奖金" },
+  prizeClaimed: { en: "Prize Claimed!", zh: "奖金已领取！" },
+  doomsdayErrorFallback: { en: "Something went wrong", zh: "出现错误" },
+  ariaHistory: { en: "History", zh: "历史" },
+  sidebarTotalPot: { en: "Total Pot", zh: "奖池总额" },
+  sidebarYourKeys: { en: "Your Keys", zh: "你的钥匙" },
+  sidebarTimeLeft: { en: "Time Left", zh: "剩余时间" },
+} as const;
+
+export const messages = mergeMessages(appMessages);

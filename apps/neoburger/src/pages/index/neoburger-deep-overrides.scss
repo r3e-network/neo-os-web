@@ -1,0 +1,132 @@
+/* NeoBurger deep component style overrides — extracted from index.vue */
+
+:deep(.app-layout) {
+  background: var(--burger-bg);
+  background-image:
+    radial-gradient(circle at 10% 10%, var(--burger-bg-glow-1), transparent 45%),
+    radial-gradient(circle at 90% 30%, var(--burger-bg-glow-2), transparent 40%),
+    radial-gradient(circle at 50% 80%, var(--burger-bg-glow-3), transparent 60%);
+  color: var(--burger-text);
+  font-family: "Manrope", "Outfit", sans-serif;
+}
+
+:deep(.app-content) {
+  background: transparent;
+}
+
+:deep(.navbar) {
+  background: var(--burger-nav-bg);
+  border-top: 1px solid var(--burger-nav-border);
+}
+
+:deep(.nav-item) {
+  color: var(--burger-nav-item);
+}
+
+:deep(.nav-item.active) {
+  color: var(--burger-accent-strong);
+}
+
+:deep(.nav-item::after) {
+  background: var(--burger-accent-strong);
+}
+
+:deep(.neo-btn--primary) {
+  background: var(--burger-primary-gradient);
+  color: var(--burger-accent-text);
+  box-shadow: var(--burger-accent-shadow);
+}
+
+:deep(.neo-btn--secondary) {
+  background: var(--burger-surface);
+  color: var(--burger-text-strong);
+  border: 1px solid var(--burger-border-strong);
+  box-shadow: none;
+}
+
+:deep(.neo-btn--success) {
+  background: var(--burger-success-gradient);
+  color: var(--burger-success-text);
+  box-shadow: var(--burger-success-shadow);
+}
+
+:deep(.neo-input__wrapper) {
+  background: var(--burger-surface);
+  border: 1px solid var(--burger-border-strong);
+  box-shadow: var(--burger-input-inset);
+}
+
+:deep(.neo-card) {
+  background: var(--burger-surface);
+  border: 1px solid var(--burger-border);
+  box-shadow: var(--burger-card-shadow);
+  color: var(--burger-text);
+  backdrop-filter: none;
+}
+
+:deep(.neo-card--danger) {
+  background: var(--burger-danger-bg);
+  border-color: var(--burger-danger-border);
+  color: var(--burger-danger-text);
+}
+
+:deep(.neo-card--success) {
+  background: var(--burger-success-card-bg);
+  border-color: var(--burger-success-card-border);
+  color: var(--burger-success-card-text);
+}
+
+:deep(.neo-btn),
+:deep(.neo-input__field) {
+  font-family: "Manrope", "Outfit", sans-serif;
+}
+
+:deep(.neo-input__field) {
+  color: var(--burger-text);
+}
+
+:deep(.neo-input__field::placeholder) {
+  color: var(--burger-text-placeholder);
+}
+
+:deep(.neo-doc) {
+  color: var(--burger-text);
+}
+
+:deep(.neo-doc .doc-header),
+:deep(.neo-doc .doc-footer) {
+  border-color: var(--burger-border);
+}
+
+:deep(.neo-doc .doc-badge) {
+  background: var(--burger-doc-badge-bg);
+  color: var(--burger-doc-badge-text);
+  border-color: var(--burger-doc-badge-border);
+  box-shadow: var(--burger-doc-badge-shadow);
+}
+
+:deep(.neo-doc .doc-subtitle),
+:deep(.neo-doc .section-text),
+:deep(.neo-doc .step-text),
+:deep(.neo-doc .feature-desc),
+:deep(.neo-doc .footer-text) {
+  color: var(--burger-text-soft);
+}
+
+:deep(.neo-doc .section-label) {
+  color: var(--burger-accent-deep);
+  text-shadow: none;
+}
+
+:deep(.neo-doc .step-number) {
+  background: var(--burger-surface);
+  color: var(--burger-accent-deep);
+  border-color: var(--burger-doc-step-border);
+  box-shadow: none;
+}
+
+:deep(.neo-doc .feature-card) {
+  background: var(--burger-surface-alt);
+  border-color: var(--burger-border);
+  box-shadow: var(--burger-shadow-soft);
+}

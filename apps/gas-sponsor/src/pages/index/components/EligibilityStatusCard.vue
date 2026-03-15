@@ -1,0 +1,56 @@
+<template>
+  <NeoCard variant="default">
+    <div class="eligibility-check">
+      <div class="check-item">
+        <span class="check-icon">{{ parseFloat(gasBalance) < 0.1 ? "✓" : "✗" }}</span>
+        <span class="check-text">{{ t("balanceCheck") }} ({{ formatBalance(gasBalance) }} GAS)</span>
+      </div>
+      <div class="check-item">
+        <span class="check-icon">{{ remainingQuota > 0 ? "✓" : "✗" }}</span>
+        <span class="check-text">{{ t("quotaCheck") }} ({{ formatBalance(remainingQuota) }} GAS)</span>
+      </div>
+      <div class="check-item">
+        <span class="check-icon">{{ userAddress ? "✓" : "✗" }}</span>
+        <span class="check-text">{{ t("walletCheck") }}</span>
+      </div>
+    </div>
+  </NeoCard>
+</template>
+
+<script setup lang="ts">
+import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
+
+defineProps<{
+  gasBalance: string;
+  remainingQuota: number;
+  userAddress: string;
+}>();
+
+const { t } = createUseI18n(messages)();
+
+const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
+</script>
+
+<style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+
+.eligibility-check {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  font-size: 10px;
+  font-weight: $font-weight-bold;
+}
+.check-icon {
+  font-weight: $font-weight-black;
+  color: var(--neo-green);
+}
+</style>
