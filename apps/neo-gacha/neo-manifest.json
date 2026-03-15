@@ -1,0 +1,85 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neo-gacha",
+  "name": "GASBOX",
+  "name_zh": "GASBOX",
+  "version": "2.0.0",
+  "description": "Ultra-low-cost spins (e.g. 0.1 GAS) for chances to win NEO, rare NFTs, or points. Addictive gacha-style fun with provably fair randomness.",
+  "description_zh": "GAS盲盒 — 超低成本抽取（0.1 GAS 起），赢取 NEO、稀有 NFT 或平台积分。可验证公平的去中心化盲盒经济。",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "tags": [
+    "gacha",
+    "blind-box",
+    "nft",
+    "randomness",
+    "gaming"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0xc9af7c9de5b0963e6514b6462b293f0179eb3798",
+    "neo-n3-testnet": "0x0fe7031381647039025b1e06c12f0579069ed0bc"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/neo-gacha/index.html",
+    "icon": "/miniapps/neo-gacha/logo.jpg",
+    "banner": "/miniapps/neo-gacha/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neo-gacha"
+  },
+  "stateSource": {
+    "type": "n3index",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-03-15T00:00:00Z",
+  "featured": true,
+  "featured_order": 7,
+  "technologies": {
+    "vrf": {
+      "enabled": true,
+      "description": "Verifiable random function ensures fair blind box draws"
+    },
+    "aa": {
+      "enabled": true,
+      "description": "Session keys for rapid consecutive draws without signing each time",
+      "features": [
+        "session_keys",
+        "gas_sponsoring"
+      ]
+    },
+    "keeper": {
+      "enabled": true,
+      "description": "Auto-broadcasts big win announcements and triggers fireworks",
+      "conditions": [
+        "big_win_event"
+      ]
+    }
+  }
+}

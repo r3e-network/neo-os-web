@@ -1,0 +1,357 @@
+<template>
+  <FormCard
+    :title="t('studioTitle')"
+    :description="t('studioSubtitle')"
+    :submit-label="t('createMachineAction')"
+    :submit-loading="props.publishing"
+    :submit-disabled="!isValid || props.publishing"
+    @submit="publish"
+  >
+    <div class="form-step">
+      <span class="label">{{ t("machineNameLabel") }}</span>
+      <NeoInput v-model="form.name" :placeholder="t('machineNamePlaceholder')" />
+    </div>
+
+    <div class="form-step">
+      <span class="label">{{ t("descriptionLabel") }}</span>
+      <NeoInput v-model="form.description" type="textarea" :placeholder="t('descriptionPlaceholder')" />
+    </div>
+
+    <div class="form-step">
+      <span class="label">{{ t("categoryLabel") }}</span>
+      <NeoInput v-model="form.category" :placeholder="t('categoryPlaceholder')" />
+    </div>
+
+    <div class="form-step">
+      <span class="label">{{ t("tagsLabel") }}</span>
+      <NeoInput v-model="form.tags" :placeholder="t('tagsPlaceholder')" />
+    </div>
+
+    <div class="form-step">
+      <span class="label">{{ t("pricePerPlayLabel") }}</span>
+      <NeoInput v-model="form.price" type="number" placeholder="1.0" />
+    </div>
+
+    <div class="form-step">
+      <div class="label-row">
+        <span class="label">{{ t("inventoryAndOdds") }}</span>
+        <NeoButton size="sm" variant="secondary" @click="addItem">+ {{ t("addItem") }}</NeoButton>
+      </div>
+
+      <div class="inventory-list">
+        <div v-if="form.items.length === 0" class="empty-inventory">
+          {{ t("emptyInventory", { action: t("addItem") }) }}
+        </div>
+
+        <div v-for="(item, idx) in form.items" :key="idx" class="inventory-item">
+          <div class="item-header">
+            <span class="item-idx">#{{ idx + 1 }}</span>
+            <span
+              class="remove-btn"
+              role="button"
+              tabindex="0"
+              :aria-label="t('removeItem', { index: idx + 1 }) || `Remove item #${idx + 1}`"
+              @click="removeItem(idx)"
+              >✕</span
+          >
+          </div>
+
+          <div class="item-inputs">
+            <NeoInput v-model="item.name" :placeholder="t('itemNamePlaceholder')" class="mb-2" />
+            <div class="probability-row">
+              <NeoInput v-model="item.probability" type="number" suffix="%" :placeholder="t('probPlaceholder')" />
+              <div class="rarity-badge">{{ getRarity(item.probability) }}</div>
+            </div>
+
+            <div class="asset-row">
+              <span class="asset-label">{{ t("assetTypeLabel") }}</span>
+              <div class="asset-buttons">
+                <NeoButton
+                  size="sm"
+                  :variant="item.assetType === 'nep17' ? 'primary' : 'secondary'"
+                  @click="item.assetType = 'nep17'"
+                >
+                  NEP-17
+                </NeoButton>
+                <NeoButton
+                  size="sm"
+                  :variant="item.assetType === 'nep11' ? 'primary' : 'secondary'"
+                  @click="item.assetType = 'nep11'"
+                >
+                  NEP-11
+                </NeoButton>
+              </div>
+            </div>
+
+            <div class="asset-inputs">
+              <NeoInput v-model="item.assetHash" :placeholder="t('tokenContractPlaceholder')" class="mb-2" />
+              <NeoInput
+                v-if="item.assetType === 'nep17'"
+                v-model="item.amount"
+                type="number"
+                :placeholder="t('tokenAmountPlaceholder')"
+              />
+              <NeoInput v-else v-model="item.tokenId" :placeholder="t('tokenIdPlaceholder')" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="total-odds" :class="{ valid: totalProbability === 100 }">
+        {{ t("totalProbabilityLabel") }}: {{ totalProbability }}%
+      </div>
+      <span class="inventory-note">
+        {{ t("inventoryNote") }}
+      </span>
+    </div>
+  </FormCard>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import { NeoInput, NeoButton, FormCard } from "@shared/components";
+import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+interface FormItemData {
+  name: string;
+  probability: string;
+  icon: string;
+  assetType: string;
+  assetHash: string;
+  amount: string;
+  tokenId: string;
+}
+
+const props = defineProps<{
+  publishing?: boolean;
+}>();
+
+const emit = defineEmits(["publish"]);
+
+const { t } = createUseI18n(messages)();
+
+const form = ref({
+  name: "",
+  description: "",
+  category: "",
+  tags: "",
+  price: "",
+  items: [] as FormItemData[],
+});
+
+const toNumber = (value: string | number) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+};
+const isWholeNumber = (value: string | number) => Number.isInteger(toNumber(value));
+
+const isNonEmpty = (value: string) => value.trim().length > 0;
+const normalizeAssetHash = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^(0x)?[0-9a-fA-F]{40}$/.test(trimmed)) {
+    return normalizeScriptHash(trimmed);
+  }
+  return addressToScriptHash(trimmed);
+};
+const isValidAssetHash = (value: string) => Boolean(normalizeAssetHash(value));
+
+const addItem = () => {
+  form.value.items.push({
+    name: "",
+    probability: "10", // Default 10%
+    icon: "📦",
+    assetType: "nep17",
+    assetHash: "",
+    amount: "",
+    tokenId: "",
+  });
+};
+
+const removeItem = (idx: number) => {
+  form.value.items.splice(idx, 1);
+};
+
+const totalProbability = computed(() => {
+  return form.value.items.reduce((sum, item) => sum + toNumber(item.probability || 0), 0);
+});
+
+const isValid = computed(() => {
+  const priceValue = toNumber(form.value.price);
+  const itemsValid =
+    form.value.items.length > 0 &&
+    form.value.items.every((item) => {
+      const probabilityValue = toNumber(item.probability);
+      if (!isNonEmpty(String(item.name || "")) || !isWholeNumber(probabilityValue) || probabilityValue <= 0) {
+        return false;
+      }
+      if (!isValidAssetHash(String(item.assetHash || ""))) {
+        return false;
+      }
+      if (item.assetType === "nep17") {
+        return toNumber(item.amount) > 0;
+      }
+      if (item.assetType === "nep11") return true;
+      return false;
+    });
+  const totalIsValid = totalProbability.value === 100;
+  return (
+    isNonEmpty(form.value.name) && isNonEmpty(form.value.description) && priceValue > 0 && itemsValid && totalIsValid
+  );
+});
+
+const getRarity = (prob: string | number) => {
+  const p = toNumber(prob);
+  if (p <= 1) return "LEGENDARY";
+  if (p <= 5) return "EPIC";
+  if (p <= 20) return "RARE";
+  return "COMMON";
+};
+
+const publish = () => {
+  if (!isValid.value) return;
+  const normalizedItems = form.value.items.map((item) => ({
+    name: String(item.name || "").trim(),
+    probability: Math.trunc(toNumber(item.probability)),
+    icon: item.icon || "📦",
+    rarity: getRarity(item.probability),
+    assetType: item.assetType,
+    assetHash: String(item.assetHash || "").trim(),
+    amount: String(item.amount || "").trim(),
+    tokenId: String(item.tokenId || "").trim(),
+  }));
+  const priceValue = toNumber(form.value.price);
+  emit("publish", {
+    id: Date.now().toString(),
+    name: form.value.name.trim(),
+    description: form.value.description.trim(),
+    category: form.value.category.trim(),
+    tags: form.value.tags.trim(),
+    price: priceValue.toString(),
+    items: normalizedItems,
+  });
+  // Reset
+  form.value = { name: "", description: "", category: "", tags: "", price: "", items: [] };
+};
+</script>
+
+<style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
+
+.form-step {
+  margin-bottom: $spacing-4;
+}
+
+.label {
+  @include stat-label;
+  font-size: 11px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.inventory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty-inventory {
+  padding: 20px;
+  text-align: center;
+  border: 1px dashed var(--gacha-panel-border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.inventory-item {
+  background: var(--gacha-surface-strong);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--gacha-panel-border);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.item-idx {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.remove-btn {
+  color: var(--gacha-danger-text);
+  font-weight: bold;
+}
+
+.probability-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.asset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.asset-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.asset-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.asset-inputs {
+  margin-top: 8px;
+}
+
+.rarity-badge {
+  font-size: 9px;
+  padding: 4px 8px;
+  background: var(--gacha-badge-bg);
+  border-radius: 4px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: center;
+}
+
+.total-odds {
+  margin-top: 10px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gacha-danger-text);
+
+  &.valid {
+    color: var(--gacha-accent-green);
+  }
+}
+
+.inventory-note {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: block;
+}
+</style>

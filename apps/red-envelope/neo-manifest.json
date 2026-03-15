@@ -1,0 +1,83 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-redenvelope",
+  "name": "Red Envelope",
+  "name_zh": "红包",
+  "version": "2.0.0",
+  "description": "Drop tokens/NFTs into shareable links — friends claim instantly without wallets or gas via auto shadow accounts and sponsored fees. Better-than-WeChat virality on Web3.",
+  "description_zh": "链上红包 — 投入代币或 NFT，生成分享链接，好友无需钱包即可领取（自动影子账户+代付Gas）。Web3 上超越微信的病毒式社交裂变。",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [
+    "red-packet",
+    "social",
+    "viral",
+    "sharing",
+    "gift"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+    "neo-n3-testnet": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/red-envelope/index.html",
+    "icon": "/miniapps/red-envelope/logo.jpg",
+    "banner": "/miniapps/red-envelope/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://red-envelope"
+  },
+  "stateSource": {
+    "type": "n3index",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-03-15T00:00:00Z",
+  "featured": true,
+  "featured_order": 2,
+  "technologies": {
+    "aa": {
+      "enabled": true,
+      "description": "Recipients can claim without a wallet — auto-create AA account via social login",
+      "features": [
+        "social_login",
+        "gas_sponsoring",
+        "temporary_accounts"
+      ]
+    },
+    "tee": {
+      "enabled": true,
+      "description": "Lucky red packet random distribution runs in TEE for provable fairness"
+    },
+    "neodid": {
+      "enabled": true,
+      "description": "Anti-sybil protection — require verified social accounts to claim"
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-stream-vault",
+  "name": "NeoPay",
+  "name_zh": "流式支付",
+  "version": "2.0.0",
+  "description": "Set up recurring auto-payments for salaries, subscriptions, and memberships. Sensitive details processed privately in TEE; chain only sees aggregated transfers. Web3 version of auto-renewals and payroll.",
+  "description_zh": "流式支付 — 设置自动定期付款：工资、订阅、会员费。敏感细节在 TEE 中隐私处理，链上仅可见聚合转账。Web3 版的自动续费和薪资发放。",
+  "category": "finance",
+  "category_name": "Finance",
+  "category_name_zh": "金融",
+  "tags": [
+    "streaming",
+    "payroll",
+    "subscription",
+    "automation",
+    "payment"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "",
+    "neo-n3-testnet": ""
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/stream-vault/index.html",
+    "icon": "/miniapps/stream-vault/logo.jpg",
+    "banner": "/miniapps/stream-vault/banner.jpg"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://stream-vault"
+  },
+  "stateSource": {
+    "type": "n3index",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "updatedAt": "2026-03-15T00:00:00Z",
+  "featured": true,
+  "featured_order": 6,
+  "technologies": {
+    "aa": {
+      "enabled": true,
+      "description": "AA hooks enable automatic scheduled payment execution",
+      "features": [
+        "hooks",
+        "subscription"
+      ]
+    },
+    "neodid": {
+      "enabled": true,
+      "description": "Employee/subscriber identity verification via NeoDID"
+    },
+    "tee": {
+      "enabled": true,
+      "description": "Payroll details processed in TEE — only aggregates visible on-chain"
+    }
+  }
+}
