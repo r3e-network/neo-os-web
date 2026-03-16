@@ -22,9 +22,9 @@ namespace NeoMiniAppPlatform.Contracts
     /// <summary>
     /// CoinFlip MiniApp - 50/50 double-or-nothing betting game.
     ///
-    /// ARCHITECTURE (Chainlink-style):
-    /// - User invokes PlaceBet → Contract requests RNG from ServiceLayerGateway
-    /// - Gateway fulfills request → Contract receives callback → Settles bet
+    /// ARCHITECTURE:
+    /// - User invokes PlaceBet → Contract requests RNG from Morpheus Oracle
+    /// - Oracle fulfills request → Contract receives callback → Settles bet
     ///
     /// GAME MECHANICS:
     /// - Player chooses heads (true) or tails (false)
@@ -34,15 +34,15 @@ namespace NeoMiniAppPlatform.Contracts
     ///
     /// SECURITY:
     /// - PlaceBet: Requires player signature (CheckWitness)
-    /// - OnServiceCallback: Only gateway can call (ValidateGateway)
+    /// - OnOracleResult: Only oracle can call
     /// - Randomness from TEE prevents manipulation
     /// - Bet data stored on-chain, preventing callback manipulation
     ///
     /// WORKFLOW (NEW - MiniApp initiates service request):
     /// 1. User pays via PaymentHub (SDK.payGAS)
     /// 2. User calls PlaceBet → bet stored + RNG requested
-    /// 3. ServiceLayerGateway processes RNG request
-    /// 4. Gateway calls OnServiceCallback with VRF result
+    /// 3. Morpheus Oracle processes RNG request
+    /// 4. Oracle calls OnOracleResult with VRF result
     /// 5. Contract settles bet + emits payout event
     /// 6. Platform sends payout via PaymentHub
     /// </summary>
@@ -115,12 +115,12 @@ namespace NeoMiniAppPlatform.Contracts
         #region User-Facing Methods
 
         /// <summary>
-        /// Places a new bet and requests RNG from ServiceLayerGateway.
+        /// Places a new bet and requests RNG from Morpheus Oracle.
         ///
         /// FLOW:
         /// 1. Validate player signature and bet amount
         /// 2. Store bet data on-chain
-        /// 3. Call gateway.requestService("rng") with callback
+        /// 3. Call MorpheusOracle.request("rng") with callback
         /// 4. Store request-to-bet mapping for callback resolution
         ///
         /// SECURITY:
@@ -139,9 +139,7 @@ namespace NeoMiniAppPlatform.Contracts
             // Anti-Martingale: Validate bet limits (daily cap, cooldown, consecutive)
             ValidateBetLimits(player, amount);
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+            ValidateUserOrAbstractAccount(player);
 
             ValidatePaymentReceipt(APP_ID, player, amount, receiptId);
 
@@ -163,7 +161,7 @@ namespace NeoMiniAppPlatform.Contracts
             // Record bet for anti-Martingale tracking
             RecordBet(player, amount);
 
-            // Request RNG from gateway
+            // Request randomness from the configured oracle contract
             BigInteger requestId = RequestRng(betId);
 
             // Map request to bet for callback resolution
@@ -193,57 +191,55 @@ namespace NeoMiniAppPlatform.Contracts
         #region Service Request Methods
 
         /// <summary>
-        /// Requests RNG from ServiceLayerGateway.
+        /// Requests RNG from Morpheus Oracle.
         ///
-        /// CHAINLINK-STYLE:
-        /// - Contract actively calls gateway.requestService
+        /// ORACLE CALLBACK FLOW:
+        /// - Contract actively calls MorpheusOracle.request
         /// - Provides callback contract and method
-        /// - Gateway will call OnServiceCallback when RNG is ready
+        /// - Oracle will call OnOracleResult when RNG is ready
         /// </summary>
         private static BigInteger RequestRng(BigInteger betId)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
 
             // Payload contains betId for reference
             ByteString payload = StdLib.Serialize(new object[] { betId });
 
             return (BigInteger)Contract.Call(
-                gateway,
-                "requestService",
+                oracle,
+                "request",
                 CallFlags.All,
-                APP_ID,
                 "rng",
                 payload,
                 Runtime.ExecutingScriptHash,
-                "onServiceCallback"
+                "onOracleResult"
             );
         }
 
         /// <summary>
-        /// Callback from ServiceLayerGateway with RNG result.
+        /// Callback from the configured oracle contract with RNG result.
         ///
         /// SECURITY:
-        /// - ValidateGateway ensures only TEE-attested gateway can call
+        /// - ValidateOracle ensures only the configured oracle can call
         /// - Bet data retrieved from storage (not from callback params)
         /// - Prevents replay via Resolved flag
         ///
         /// FLOW:
-        /// 1. Validate gateway caller
+        /// 1. Validate oracle caller
         /// 2. Lookup bet by requestId
         /// 3. Parse RNG result
         /// 4. Determine outcome and payout
         /// 5. Emit BetResolved event
         /// </summary>
-        public static void OnServiceCallback(
+        public static void OnOracleResult(
             BigInteger requestId,
-            string appId,
-            string serviceType,
+            string requestType,
             bool success,
             ByteString result,
             string error)
         {
-            ValidateGateway();
+            ValidateOracle();
 
             // Lookup bet from request mapping
             ByteString betIdData = Storage.Get(Storage.CurrentContext,

@@ -1,0 +1,88 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-dailycheckin",
+  "name": "Daily Check-in",
+  "description": "Check in every day to earn GAS rewards with streak bonuses. 7-day streak earns 1 GAS, 14-day streak earns 2 GAS, plus loyalty NFT badges.",
+  "template_type": "gaming",
+  "category": "Gaming",
+  "tags": [
+    "daily-checkin",
+    "streaks",
+    "rewards",
+    "badges",
+    "nft-badges"
+  ],
+  "version": "2.0.0",
+  "status": "active",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "contract": {
+    "template_id": "gaming-daily-checkin",
+    "contract_hash": "0x297bfabe68535ab1abfadb843d5a5c00db7aca75"
+  },
+  "entry_url": "mf://manifest?app=miniapp-dailycheckin",
+  "media": {
+    "icon": "/miniapps/daily-checkin/logo.jpg",
+    "banner": "/miniapps/daily-checkin/banner.jpg"
+  },
+  "permissions": {
+    "payments": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "Daily Check-in"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content"
+      },
+      {
+        "id": "streak",
+        "label": "Streak",
+        "type": "content"
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Check In",
+      "subtitle": "One tap per UTC day to keep the streak alive.",
+      "cta_label": "Open Daily Check-in",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Check In",
+      "method": "checkIn",
+      "button_style": "primary",
+      "params": []
+    },
+    {
+      "name": "Claim Rewards",
+      "method": "claimRewards",
+      "button_style": "secondary",
+      "params": []
+    }
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": [
+      "daily_active_users",
+      "weekly_active_users",
+      "total_transactions"
+    ]
+  },
+  "docs_url": "https://docs.r3e.network/daily-check-in"
+}

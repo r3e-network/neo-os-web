@@ -1,0 +1,98 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-neo-gacha",
+  "name": "GASBOX",
+  "description": "Ultra-low-cost GAS spins for chances to win NEO, rare NFTs, or points. Addictive gacha-style fun with provably fair randomness.",
+  "template_type": "gaming",
+  "category": "Gaming",
+  "tags": [
+    "gasbox",
+    "gacha",
+    "blind-box",
+    "nft",
+    "randomness"
+  ],
+  "version": "2.0.0",
+  "status": "active",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "contract": {
+    "template_id": "gaming-gasbox",
+    "contract_hash": "0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d"
+  },
+  "entry_url": "mf://manifest?app=miniapp-neo-gacha",
+  "media": {
+    "icon": "/miniapps/neo-gacha/logo.jpg",
+    "banner": "/miniapps/neo-gacha/banner.jpg"
+  },
+  "permissions": {
+    "payments": true,
+    "randomness": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "GASBOX"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content"
+      },
+      {
+        "id": "machines",
+        "label": "Machines",
+        "type": "content"
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Spin",
+      "subtitle": "Provably fair blind-box draws with direct wallet play.",
+      "cta_label": "Open GASBOX",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Spin x1",
+      "method": "playMachine",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "machineId",
+          "type": "integer",
+          "label": "Machine ID",
+          "required": true,
+          "placeholder": "1"
+        },
+        {
+          "name": "receiptId",
+          "type": "integer",
+          "label": "Receipt ID",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": [
+      "total_transactions",
+      "weekly_active_users",
+      "total_gas_used"
+    ]
+  },
+  "docs_url": "https://docs.r3e.network/gasbox"
+}

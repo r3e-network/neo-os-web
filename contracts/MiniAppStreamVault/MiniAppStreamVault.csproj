@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="../MiniApp.DevPack/MiniAppBase.cs" />
+    <Compile Include="../MiniApp.DevPack/MiniAppComputeBase.cs" />
+    <Compile Include="../MiniApp.DevPack/MiniAppGameBase.cs" />
+    <Compile Include="../MiniApp.DevPack/MiniAppGameComputeBase.cs" />
+    <Compile Include="../MiniApp.DevPack/MiniAppServiceBase.cs" />
+    <Compile Include="../MiniApp.DevPack/MiniAppTimeLockBase.cs" />
+    <Compile Include="../MiniApp.DevPack/ServiceInterfaces.cs" />
+  </ItemGroup>
+</Project>

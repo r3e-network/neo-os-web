@@ -21,8 +21,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger CalculateNextRewardDay(BigInteger currentStreak)
         {
             if (currentStreak < 7) return 7;
-            BigInteger nextMultiple = ((currentStreak / 7) + 1) * 7;
-            return nextMultiple;
+            if (currentStreak < STREAK_RESET_DAYS) return STREAK_RESET_DAYS;
+            return 7;
         }
 
         #endregion

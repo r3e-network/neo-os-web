@@ -12,8 +12,19 @@
         <div class="input-group">
           <span class="input-label">{{ t("assetType") }}</span>
           <div class="asset-toggle">
-            <NeoButton size="sm" variant="primary" disabled>
+            <NeoButton
+              size="sm"
+              :variant="localForm.asset === 'GAS' ? 'primary' : 'secondary'"
+              @click="setAsset('GAS')"
+            >
               {{ t("assetGas") }}
+            </NeoButton>
+            <NeoButton
+              size="sm"
+              :variant="localForm.asset === 'NEO' ? 'primary' : 'secondary'"
+              @click="setAsset('NEO')"
+            >
+              {{ t("assetNeo") }}
             </NeoButton>
           </div>
         </div>
@@ -106,6 +117,10 @@ watch(
 
 const handleCreate = () => {
   emit("create", { ...localForm });
+};
+
+const setAsset = (asset: "GAS" | "NEO") => {
+  localForm.asset = asset;
 };
 </script>
 

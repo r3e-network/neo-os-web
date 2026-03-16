@@ -18,11 +18,9 @@ namespace NeoMiniAppPlatform.Contracts
             stats["totalCheckins"] = TotalCheckins();
             stats["totalRewarded"] = TotalRewarded();
             stats["checkInFee"] = CHECK_IN_FEE;
-            stats["firstReward"] = FIRST_REWARD;
-            stats["subsequentReward"] = SUBSEQUENT_REWARD;
-            stats["milestone30Bonus"] = MILESTONE_30_BONUS;
-            stats["milestone100Bonus"] = MILESTONE_100_BONUS;
-            stats["milestone365Bonus"] = MILESTONE_365_BONUS;
+            stats["weekReward"] = FIRST_REWARD;
+            stats["twoWeekReward"] = SUBSEQUENT_REWARD;
+            stats["resetAfterDays"] = STREAK_RESET_DAYS;
 
             BigInteger currentDay = Runtime.Time / TWENTY_FOUR_HOURS_SECONDS;
             stats["currentUtcDay"] = currentDay;

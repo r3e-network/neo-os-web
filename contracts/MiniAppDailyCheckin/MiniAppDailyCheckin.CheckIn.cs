@@ -11,7 +11,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void CheckIn(UInt160 user, BigInteger receiptId)
         {
-            ValidateGateway();
+            ValidateUserOrAbstractAccount(user);
             ValidateNotPaused();
             ValidateAddress(user);
             ValidateAndUseReceipt(receiptId);
@@ -50,7 +50,6 @@ namespace NeoMiniAppPlatform.Contracts
                 SetUserUnclaimed(user, unclaimed + reward);
             }
 
-            SetUserStreak(user, currentStreak);
             SetUserLastCheckin(user, currentDay);
             SetUserCheckins(user, userCheckins + 1);
 
@@ -68,6 +67,9 @@ namespace NeoMiniAppPlatform.Contracts
 
             CheckMilestones(user, currentStreak);
             CheckBadges(user, currentStreak, isNewUser);
+
+            BigInteger storedStreak = currentStreak >= STREAK_RESET_DAYS ? 0 : currentStreak;
+            SetUserStreak(user, storedStreak);
 
             BigInteger nextEligible = (currentDay + 1) * TWENTY_FOUR_HOURS_SECONDS;
             OnCheckedIn(user, currentStreak, reward, nextEligible);

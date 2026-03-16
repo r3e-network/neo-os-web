@@ -27,12 +27,10 @@ namespace NeoMiniAppPlatform.Contracts
         #region App Constants
         private const string APP_ID = "miniapp-dailycheckin";
         private const long TWENTY_FOUR_HOURS_SECONDS = 86400;
+        private const int STREAK_RESET_DAYS = 14;
         private const long CHECK_IN_FEE = 100000;
         private const long FIRST_REWARD = 100000000;
-        private const long SUBSEQUENT_REWARD = 150000000;
-        private const long MILESTONE_30_BONUS = 500000000;
-        private const long MILESTONE_100_BONUS = 2000000000;
-        private const long MILESTONE_365_BONUS = 10000000000;
+        private const long SUBSEQUENT_REWARD = 200000000;
         #endregion
 
         #region App Prefixes

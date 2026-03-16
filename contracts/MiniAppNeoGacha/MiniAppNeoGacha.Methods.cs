@@ -38,9 +38,7 @@ namespace NeoMiniAppPlatform.Contracts
             GameBetLimitsConfig limits = GetGameBetLimits();
             ExecutionEngine.Assert(price <= limits.MaxBet, "price exceeds max bet");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
+            ValidateUserOrAbstractAccount(creator);
 
             BigInteger machineId = TotalMachines() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_MACHINE_ID, machineId);
@@ -266,9 +264,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(machine.SalePrice > 0, "not for sale");
             ExecutionEngine.Assert(machine.Owner != buyer, "already owner");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(buyer), "unauthorized");
+            ValidateUserOrAbstractAccount(buyer);
 
             BigInteger price = machine.SalePrice;
             ValidatePaymentReceipt(APP_ID, buyer, price, receiptId);
@@ -285,6 +281,23 @@ namespace NeoMiniAppPlatform.Contracts
             StoreMachine(machineId, machine);
 
             OnMachineSold(machineId, seller, buyer, price, platformFee, creatorRoyalty);
+        }
+
+        public static object[] InitiatePlay(UInt160 player, BigInteger machineId, BigInteger receiptId)
+        {
+            MachineData machine = LoadMachine(machineId);
+            ExecutionEngine.Assert(machine.Creator != UInt160.Zero, "machine not found");
+
+            BigInteger availableWeight = CalculateAvailableWeight(machineId, machine.ItemCount);
+            BigInteger sampleItemIndex = FindFirstAvailableItemIndex(machineId, machine.ItemCount);
+
+            return InitiatePlayOptimized(player, machineId, receiptId, availableWeight, sampleItemIndex);
+        }
+
+        public static void SettlePlay(UInt160 player, BigInteger playId, BigInteger selectedIndex)
+        {
+            ByteString scriptHash = RequireByteString(GetRegisteredScriptHash(SCRIPT_SELECT_ITEM), "script not registered");
+            SettlePlayOptimized(player, playId, selectedIndex, scriptHash);
         }
 
         public static void DepositItem(UInt160 owner, BigInteger machineId, BigInteger itemIndex, BigInteger amount)
@@ -399,6 +412,33 @@ namespace NeoMiniAppPlatform.Contracts
             StoreItem(machineId, itemIndex, item);
 
             OnInventoryWithdrawn(machineId, itemIndex, 1, selectedTokenId);
+        }
+
+        private static BigInteger CalculateAvailableWeight(BigInteger machineId, BigInteger itemCount)
+        {
+            BigInteger total = 0;
+            for (BigInteger i = 1; i <= itemCount; i++)
+            {
+                ItemData item = LoadItem(machineId, i);
+                if (IsItemAvailable(item))
+                {
+                    total += item.Weight;
+                }
+            }
+            return total;
+        }
+
+        private static BigInteger FindFirstAvailableItemIndex(BigInteger machineId, BigInteger itemCount)
+        {
+            for (BigInteger i = 1; i <= itemCount; i++)
+            {
+                ItemData item = LoadItem(machineId, i);
+                if (IsItemAvailable(item))
+                {
+                    return i;
+                }
+            }
+            return 0;
         }
 
         #endregion

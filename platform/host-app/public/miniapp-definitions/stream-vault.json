@@ -1,0 +1,105 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-stream-vault",
+  "name": "NeoPay",
+  "description": "Recurring GAS or NEO payment streams with on-chain release schedules, beneficiary claims, and creator cancellation.",
+  "template_type": "defi",
+  "category": "DeFi",
+  "tags": [
+    "neopay",
+    "payroll",
+    "subscription",
+    "streaming",
+    "automation"
+  ],
+  "version": "2.0.0",
+  "status": "active",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "contract": {
+    "template_id": "defi-neopay",
+    "contract_hash": "0x4e4a27ae72d06d057f54d4136ed8c5176b552b16"
+  },
+  "entry_url": "mf://manifest?app=miniapp-stream-vault",
+  "media": {
+    "icon": "/miniapps/stream-vault/logo.jpg",
+    "banner": "/miniapps/stream-vault/banner.jpg"
+  },
+  "permissions": {
+    "payments": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "NeoPay"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content"
+      },
+      {
+        "id": "streams",
+        "label": "Streams",
+        "type": "content"
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Create Stream",
+      "subtitle": "Create recurring on-chain streams with GAS or NEO.",
+      "cta_label": "Open NeoPay",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Create Stream",
+      "method": "createStream",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Per-Period Amount",
+          "required": true,
+          "placeholder": "100"
+        },
+        {
+          "name": "schedule",
+          "type": "select",
+          "label": "Schedule",
+          "required": true,
+          "options": [
+            {
+              "label": "Weekly",
+              "value": "weekly"
+            },
+            {
+              "label": "Monthly",
+              "value": "monthly"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": [
+      "total_transactions",
+      "total_gas_used"
+    ]
+  },
+  "docs_url": "https://docs.r3e.network/neopay"
+}

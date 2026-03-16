@@ -100,9 +100,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(calculatedAvailableWeight > 0, "no inventory");
             ExecutionEngine.Assert(calculatedAvailableWeight <= machine.TotalWeight, "weight exceeds total");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+            ValidateUserOrAbstractAccount(player);
 
             ValidateGameBetLimits(player, machine.Price);
             ValidatePaymentReceipt(APP_ID, player, machine.Price, receiptId);
@@ -157,9 +155,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(play.HybridMode, "not hybrid mode");
             ExecutionEngine.Assert(play.Player == player, "not play owner");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+            ValidateUserOrAbstractAccount(player);
 
             MachineData machine = LoadMachine(play.MachineId);
             ExecutionEngine.Assert(machine.Creator != UInt160.Zero, "machine not found");

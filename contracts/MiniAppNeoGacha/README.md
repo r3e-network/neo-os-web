@@ -1,60 +1,50 @@
 # MiniAppNeoGacha
 
-Neo Gacha is an on-chain blind box marketplace with escrowed prizes, transparent odds, and verifiable randomness.
-Machines, inventory, and marketplace state are stored on-chain, while randomness is provided via the ServiceLayerGateway.
+`MiniAppNeoGacha` is the on-chain engine behind **GASBOX**.
 
-## Testnet Deployment
+## Current Product Rules
 
-- Contract address: `NQhDGifaGnnoCjYysHPLwBCKUfVQ7UHpsT`
-- Script hash (LE): `0x346efabde02c195f5431e2bcb7b077f5836bd4b2`
-- Script hash (BE): `0xb2d46b83f577b0b7bce231545f192ce0bdfa6e34`
-- Deploy tx: `0xd615f2fe436037ee22f7defc9ef577b3635f6632a370d126840ad9e736def454`
-- PaymentHub: `NLyxAiXdbc7pvckLw8aHpEiYb7P7NYHpQq`
-- ServiceLayerGateway: `NPXyVuEVfp47Abcwq6oTKmtwbJM6Yh965c`
+- blind-box / gacha machines are created and stocked on-chain
+- prize odds are explicit and total machine weight must equal `100`
+- inventory is escrowed in the contract
+- draw resolution uses direct Morpheus Oracle randomness callbacks
+- rapid repeat play is handled at the UX layer through AA session keys
+
+## Contract Role
+
+The contract is responsible for:
+
+- machine creation and machine marketplace state
+- prize inventory deposits / withdrawals
+- draw requests and request-to-play bookkeeping
+- deterministic prize selection verification
+- prize transfer logic for NEP-17 and NEP-11 items
+
+It does **not** implement ServiceLayerGateway anymore. Oracle callbacks are expected to come from the configured Morpheus Oracle contract.
 
 ## Core Methods
 
-- `CreateMachine(creator, name, description, category, tags, price)` -> `machineId`
-- `UpdateMachine(owner, machineId, name, description, category, tags, price)`
-- `AddMachineItem(creator, machineId, name, weight, rarity, assetType, assetHash, amount, tokenId)`
-- `SetMachineActive(owner, machineId, active)`
-- `SetMachineListed(owner, machineId, listed)`
-- `ListMachineForSale(owner, machineId, price)`
-- `CancelMachineSale(owner, machineId)`
-- `BuyMachine(buyer, machineId, receiptId)`
-- `DepositItem(owner, machineId, itemIndex, amount)` (NEP-17)
-- `DepositItemToken(owner, machineId, itemIndex, tokenId)` (NEP-11)
-- `WithdrawItem(owner, machineId, itemIndex, amount)` (NEP-17)
-- `WithdrawItemToken(owner, machineId, itemIndex, tokenId)` (NEP-11)
-- `PlayMachine(player, machineId, receiptId)` -> `playId`
+- `CreateMachine(...)`
+- `UpdateMachine(...)`
+- `AddMachineItem(...)`
+- `SetMachineActive(...)`
+- `ListMachineForSale(...)`
+- `BuyMachine(...)`
+- `DepositItem(...)`
+- `DepositItemToken(...)`
+- `WithdrawItem(...)`
+- `WithdrawItemToken(...)`
+- `PlayMachine(player, machineId, receiptId)`
 
-## Read Methods
+## Key Read Methods
 
 - `TotalMachines()`
 - `GetMachine(machineId)`
 - `GetMachineItem(machineId, itemIndex)`
 - `GetPlay(playId)`
 
-## Events
+## Integration Notes
 
-- `MachineCreated(creator, machineId)`
-- `MachineUpdated(machineId)`
-- `MachineItemAdded(machineId, itemIndex)`
-- `MachineActivated(machineId, active)`
-- `MachineListed(machineId, listed)`
-- `MachineBanned(machineId, banned)`
-- `MachineSaleListed(machineId, price)`
-- `MachineSold(machineId, seller, buyer, price, platformFee, creatorRoyalty)`
-- `InventoryDeposited(machineId, itemIndex, amount, tokenId)`
-- `InventoryWithdrawn(machineId, itemIndex, amount, tokenId)`
-- `PlayRequested(player, machineId, playId, requestId)`
-- `PlayResolved(player, machineId, itemIndex, playId, assetType, assetHash, amount, tokenId)`
-- `RngRequested(playId, requestId)`
-
-## Notes
-
-- Prize weights must sum to 100 before activation.
-- Inventory must be deposited for each prize type before activation.
-- Inventory is escrowed in-contract for trustless prize delivery.
-- Payments are validated using PaymentHub receipts.
-- RNG requests are fulfilled via the ServiceLayerGateway callback.
+- The canonical app id is `miniapp-neo-gacha`.
+- Mainnet product name is **GASBOX**.
+- Frontend, manifest, host definitions, and contract docs should all refer to direct Oracle randomness rather than ServiceLayerGateway.

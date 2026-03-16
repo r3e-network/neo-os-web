@@ -1,69 +1,50 @@
 {
   "$schema": "./miniapp-config.schema.json",
-  "version": "1.0.0",
-  "status": "active",
-  "developer": {
-    "name": "Neo MiniApp Platform",
-    "url": "https://r3e.network"
-  },
-  "app_id": "coin-flip",
-  "name": "Coin Flip",
-  "description": "Classic 50/50 coin flip with cryptographically secure randomness.",
+  "app_id": "miniapp-coinflip",
+  "name": "FogPlay",
+  "description": "Fast oracle-backed coin flips with on-chain settlement and direct GAS wagering.",
   "template_type": "gaming",
   "category": "Gaming",
   "tags": [
+    "fogplay",
     "coin-flip",
-    "vrf",
-    "gaming"
+    "oracle",
+    "betting",
+    "gas"
   ],
+  "version": "2.0.0",
+  "status": "active",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "contract": {
+    "template_id": "gaming-fogplay",
+    "contract_hash": "0x01d0e1f78ea5a76b6bb0bce26649d5bf449999e0"
+  },
+  "entry_url": "mf://manifest?app=miniapp-coinflip",
+  "media": {
+    "icon": "/miniapps/coin-flip/logo.jpg",
+    "banner": "/miniapps/coin-flip/banner.jpg"
+  },
+  "permissions": {
+    "payments": true,
+    "randomness": true
+  },
   "frontend_spec": {
     "layout": "default",
     "hero": {
-      "eyebrow": "Coin Flip"
+      "eyebrow": "FogPlay"
     },
     "tabs": [
       {
         "id": "overview",
         "label": "Overview",
-        "type": "content",
-        "blocks": [
-          {
-            "type": "notice",
-            "tone": "info",
-            "content": "Classic 50/50 coin flip with cryptographically secure randomness."
-          },
-          {
-            "type": "key_value",
-            "title": "Quick Facts",
-            "items": [
-              {
-                "key": "Category",
-                "value": "Gaming"
-              },
-              {
-                "key": "Asset",
-                "value": "GAS"
-              },
-              {
-                "key": "Randomness",
-                "value": "VRF"
-              }
-            ]
-          },
-          {
-            "type": "bullet_list",
-            "title": "How To Play",
-            "items": [
-              "Choose Heads or Tails.",
-              "Set your wager amount.",
-              "Flip and win double if correct."
-            ]
-          }
-        ]
+        "type": "content"
       },
       {
-        "id": "leaderboard",
-        "label": "Leaderboard",
+        "id": "history",
+        "label": "History",
         "type": "content"
       },
       {
@@ -73,16 +54,16 @@
       }
     ],
     "operation_panel": {
-      "title": "Play",
-      "subtitle": "Choose your side and flip!",
-      "cta_label": "Launch Game",
+      "title": "Flip",
+      "subtitle": "Oracle callback settlement with a focused single-player flow.",
+      "cta_label": "Open FogPlay",
       "operations": []
     }
   },
   "operations": [
     {
       "name": "Flip",
-      "method": "flip",
+      "method": "placeBet",
       "button_style": "primary",
       "params": [
         {
@@ -110,5 +91,17 @@
         }
       ]
     }
-  ]
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": [
+      "total_transactions",
+      "daily_active_users",
+      "total_gas_used"
+    ]
+  },
+  "docs_url": "https://docs.r3e.network/fogplay"
 }
