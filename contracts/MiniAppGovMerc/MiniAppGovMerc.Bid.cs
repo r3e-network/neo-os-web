@@ -17,9 +17,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(bidAmount >= MIN_BID, "min 0.1 GAS bid");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(candidate), "unauthorized");
+            ValidateUserOrAbstractAccount(candidate);
 
             ValidatePaymentReceipt(APP_ID, candidate, bidAmount, receiptId);
 

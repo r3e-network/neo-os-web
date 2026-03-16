@@ -1,24 +1,31 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
+import { getEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireAdminRole } from "../_shared/supabase.ts";
 
-const PLATFORM_SERVICES = [
-  { name: "neofeeds", url: "http://neofeeds.service-layer.svc.cluster.local:8083" },
-  { name: "neoflow", url: "http://neoflow.service-layer.svc.cluster.local:8084" },
-  { name: "neoaccounts", url: "http://neoaccounts.service-layer.svc.cluster.local:8085" },
-  { name: "neocompute", url: "http://neocompute.service-layer.svc.cluster.local:8086" },
-  { name: "neovrf", url: "http://neovrf.service-layer.svc.cluster.local:8087" },
-  { name: "neooracle", url: "http://neooracle.service-layer.svc.cluster.local:8088" },
-  { name: "txproxy", url: "http://txproxy.service-layer.svc.cluster.local:8090" },
-  { name: "neogasbank", url: "http://neogasbank.service-layer.svc.cluster.local:8091" },
-  { name: "globalsigner", url: "http://globalsigner.service-layer.svc.cluster.local:8092" },
-  { name: "neosimulation", url: "http://neosimulation.service-layer.svc.cluster.local:8093" },
-  { name: "neorequests", url: "http://neorequests.service-layer.svc.cluster.local:8094" },
-  { name: "edge-gateway", url: "http://edge-gateway.platform.svc.cluster.local:8787" },
-];
+type ServiceEntry = { name: string; url: string };
 
 const NEO_RPC_URL = Deno.env.get("NEO_RPC_URL") || "http://neo-express:50012";
 const HEALTH_CHECK_TIMEOUT_MS = 5000;
+
+function buildPlatformServices(): ServiceEntry[] {
+  const entries: Array<ServiceEntry | null> = [
+    { name: "morpheus-datafeed", url: getEnv("NEOFEEDS_URL") || getEnv("NEOFEEDS_SERVICE_URL") || "" },
+    { name: "morpheus-automation", url: getEnv("NEOFLOW_URL") || getEnv("NEOFLOW_SERVICE_URL") || "" },
+    { name: "morpheus-compute", url: getEnv("NEOCOMPUTE_URL") || getEnv("NEOCOMPUTE_SERVICE_URL") || "" },
+    { name: "morpheus-vrf", url: getEnv("NEOVRF_URL") || getEnv("NEOVRF_SERVICE_URL") || "" },
+    { name: "morpheus-oracle", url: getEnv("NEOORACLE_URL") || getEnv("NEOORACLE_SERVICE_URL") || "" },
+    { name: "txproxy", url: getEnv("TXPROXY_URL") || getEnv("TXPROXY_SERVICE_URL") || "" },
+    { name: "gasbank", url: getEnv("GASBANK_URL") || getEnv("GASBANK_SERVICE_URL") || "" },
+    { name: "globalsigner", url: getEnv("GLOBALSIGNER_SERVICE_URL") || "" },
+    { name: "neoaccounts", url: getEnv("NEOACCOUNTS_SERVICE_URL") || "" },
+    { name: "aa-relay", url: getEnv("AA_RELAY_URL") || getEnv("NEXT_PUBLIC_AA_RELAY_URL") || "" },
+    { name: "morpheus-paymaster", url: getEnv("MORPHEUS_PAYMASTER_ENDPOINT") || getEnv("AA_PAYMASTER_ENDPOINT") || "" },
+    { name: "edge-gateway", url: getEnv("NEXT_PUBLIC_EDGE_URL") || getEnv("EDGE_BASE_URL") || "" },
+  ];
+
+  return entries.filter((entry): entry is ServiceEntry => Boolean(entry && entry.url));
+}
 
 async function checkNeoBlockchainHealth(): Promise<any> {
   const lastCheck = new Date().toISOString();
@@ -105,7 +112,8 @@ export async function handler(req: Request): Promise<Response> {
             return error(405, "Method not allowed", "METHOD_NOT_ALLOWED", req);
         }
 
-        const promises = PLATFORM_SERVICES.map((service) => checkServiceHealth(service.name, service.url));
+        const services = buildPlatformServices();
+        const promises = services.map((service) => checkServiceHealth(service.name, service.url));
         promises.push(checkNeoBlockchainHealth());
         
         const results = await Promise.allSettled(promises);
@@ -114,11 +122,11 @@ export async function handler(req: Request): Promise<Response> {
             if (r.status === "fulfilled") return r.value;
             
             // Fallback for failed promises
-            const isNeo = i === PLATFORM_SERVICES.length;
+            const isNeo = i === services.length;
             return { 
-                name: isNeo ? "neo-n3-blockchain" : PLATFORM_SERVICES[i].name, 
+                name: isNeo ? "neo-n3-blockchain" : services[i].name, 
                 status: "unhealthy", 
-                url: isNeo ? NEO_RPC_URL : PLATFORM_SERVICES[i].url, 
+                url: isNeo ? NEO_RPC_URL : services[i].url, 
                 lastCheck: new Date().toISOString(), 
                 error: r.reason?.message || "Health check failed" 
             };

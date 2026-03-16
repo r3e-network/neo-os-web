@@ -37,7 +37,6 @@ var contractsToDeploy = []string{
 	"PaymentHubV2",
 	"PriceFeed",
 	"RandomnessLog",
-	"ServiceLayerGateway",
 	"OracleService",
 }
 

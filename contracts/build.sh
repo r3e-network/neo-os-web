@@ -6,12 +6,11 @@ mkdir -p build
 
 echo "=== Building Platform Contracts ==="
 
-for d in AppRegistry AutomationAnchor Governance PaymentHub PriceFeed RandomnessLog ServiceLayerGateway MiniAppCoinFlip MiniAppDiceGame MiniAppLottery MiniAppPredictionMarket OracleService MiniAppFactoryV2 MiniAppTemplates; do
-  if [ -f "$d/$d.csproj" ]; then
-    echo "Building $d..."
-    dotnet build "$d/$d.csproj" -c Release
-    ~/.dotnet/tools/nccs "$d/$d.csproj" --optimize=All --output ./build/
-  fi
+find . -mindepth 2 -maxdepth 2 -name '*.csproj' ! -path './__tests__/*' | sort | while read -r project; do
+  d="$(basename "$(dirname "$project")")"
+  echo "Building $d..."
+  dotnet build "$project" -c Release
+  ~/.dotnet/tools/nccs "$project" --optimize=All --output ./build/
 done
 
 echo "=== Build Complete ==="

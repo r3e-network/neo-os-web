@@ -14,14 +14,15 @@ namespace NeoMiniAppPlatform.Contracts
     ///
     /// Provides ONLY essential functionality that ALL MiniApps need:
     /// - Admin management with TimeLock security
-    /// - Gateway validation
+    /// - Oracle / callback-authority validation
     /// - Pause mechanism (local + global)
     /// - Payment receipt validation
     /// - Contract lifecycle (Update/Destroy)
     ///
     /// SECURITY MODEL:
     /// - Admin: Human operator with TimeLock-protected control
-    /// - Gateway: TEE-attested service layer (required for callbacks; optional for user flows)
+    /// - Oracle: Morpheus Oracle contract (for async callback-based flows)
+    /// - AbstractAccount: optional AA core allowed to call user actions on behalf of users
     /// - Users: End users may call directly when CheckWitness is allowed; PaymentHub receipts still apply
     ///
     /// INHERITANCE HIERARCHY:
@@ -31,7 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
     /// - MiniAppTimeLockBase → Time-locked operations
     ///
     /// STORAGE LAYOUT:
-    /// - 0x01-0x09: Core (Admin, Gateway, PaymentHub, Pause, TimeLock)
+    /// - 0x01-0x09: Core (Admin, Oracle, PaymentHub, Pause, TimeLock)
     /// - 0x0A-0x0E: Optional core (Automation, Badges, TotalUsers)
     /// - 0x10-0x17: Game base (bet limits, player tracking, request data)
     /// - 0x18-0x1B: Service base (service request data)
@@ -49,7 +50,7 @@ namespace NeoMiniAppPlatform.Contracts
         #region Core Storage Prefixes (0x01-0x09)
 
         protected static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
-        protected static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
+        protected static readonly byte[] PREFIX_ORACLE = new byte[] { 0x02 };
         protected static readonly byte[] PREFIX_PAYMENTHUB = new byte[] { 0x03 };
         protected static readonly byte[] PREFIX_PAUSED = new byte[] { 0x04 };
         protected static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
@@ -61,6 +62,7 @@ namespace NeoMiniAppPlatform.Contracts
         // Automation anchor (optional, for contracts needing periodic execution)
         protected static readonly byte[] PREFIX_AUTOMATION_ANCHOR = new byte[] { 0x0A };
         protected static readonly byte[] PREFIX_AUTOMATION_TASK = new byte[] { 0x0B };
+        protected static readonly byte[] PREFIX_ABSTRACT_ACCOUNT = new byte[] { 0x0C };
 
         #endregion
 
@@ -147,8 +149,8 @@ namespace NeoMiniAppPlatform.Contracts
             GetStoredHashOrZero(PREFIX_ADMIN);
 
         [Safe]
-        public static UInt160 Gateway() =>
-            GetStoredHashOrZero(PREFIX_GATEWAY);
+        public static UInt160 Oracle() =>
+            GetStoredHashOrZero(PREFIX_ORACLE);
 
         [Safe]
         public static UInt160 PaymentHub() =>
@@ -182,6 +184,10 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger GetAutomationTaskId() =>
             GetStoredIntegerOrZero(PREFIX_AUTOMATION_TASK);
 
+        [Safe]
+        public static UInt160 AbstractAccount() =>
+            GetStoredHashOrZero(PREFIX_ABSTRACT_ACCOUNT);
+
         #endregion
 
         #region Core Validation Methods
@@ -193,11 +199,24 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
-        protected static void ValidateGateway()
+        protected static void ValidateOracle()
         {
-            UInt160 gw = Gateway();
-            ExecutionEngine.Assert(gw != UInt160.Zero && gw.IsValid, "gateway not set");
-            ExecutionEngine.Assert(Runtime.CallingScriptHash == gw, "only gateway");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != UInt160.Zero && oracle.IsValid, "oracle not set");
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == oracle, "only oracle");
+        }
+
+        protected static void ValidateUserOrAbstractAccount(UInt160 user)
+        {
+            ValidateAddress(user);
+            if (Runtime.CheckWitness(user))
+            {
+                return;
+            }
+
+            UInt160 aa = AbstractAccount();
+            ExecutionEngine.Assert(aa != UInt160.Zero && aa.IsValid, "unauthorized");
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == aa, "unauthorized");
         }
 
         protected static void ValidateAddress(UInt160 addr)
@@ -290,13 +309,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         #endregion
 
-        #region Gateway & PaymentHub Management
+        #region Oracle & PaymentHub Management
 
-        public static void SetGateway(UInt160 gw)
+        public static void SetOracle(UInt160 oracle)
         {
             ValidateAdmin();
-            ValidateAddress(gw);
-            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, gw);
+            ValidateAddress(oracle);
+            Storage.Put(Storage.CurrentContext, PREFIX_ORACLE, oracle);
         }
 
         public static void SetPaymentHub(UInt160 hub)
@@ -311,6 +330,13 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAdmin();
             ValidateAddress(registry);
             Storage.Put(Storage.CurrentContext, PREFIX_PAUSE_REGISTRY, registry);
+        }
+
+        public static void SetAbstractAccount(UInt160 abstractAccount)
+        {
+            ValidateAdmin();
+            ValidateAddress(abstractAccount);
+            Storage.Put(Storage.CurrentContext, PREFIX_ABSTRACT_ACCOUNT, abstractAccount);
         }
 
         

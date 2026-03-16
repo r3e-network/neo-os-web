@@ -98,7 +98,6 @@ PLATFORM_CONTRACTS=(
   "RandomnessLog"
   "AppRegistry"
   "AutomationAnchor"
-  "ServiceLayerGateway"
 )
 
 should_sync_name() {

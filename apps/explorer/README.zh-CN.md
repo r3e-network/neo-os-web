@@ -60,7 +60,7 @@ Explorer 提供 Neo N3 区块链的全面视图。搜索交易、检查地址并
 | RandomnessLog | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` |
 | AppRegistry | `0x79d16bee03122e992bb80c478ad4ed405f33bc7f` |
 | AutomationAnchor | `0x1c888d699ce76b0824028af310d90c3c18adeab5` |
-| ServiceLayerGateway | `0x27b79cf631eff4b520dd9d95cd1425ec33025a53` |
+| Morpheus Oracle | `0x4b882e94ed766807c4fd728768f972e13008ad52` |
 
 ### 主网 (Mainnet)
 
@@ -72,7 +72,7 @@ Explorer 提供 Neo N3 区块链的全面视图。搜索交易、检查地址并
 | RandomnessLog | `0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25` |
 | AppRegistry | `0x583cabba8beff13e036230de844c2fb4118ee38c` |
 | AutomationAnchor | `0x0fd51557facee54178a5d48181dcfa1b61956144` |
-| ServiceLayerGateway | `0x7f73ae3036c1ca57cad0d4e4291788653b0fa7d7` |
+| Morpheus Oracle | `0x017520f068fd602082fe5572596185e62a4ad991` |
 
 ## 资产
 

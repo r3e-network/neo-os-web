@@ -10,7 +10,7 @@ Responsibilities:
 - sandbox MiniApps via **Module Federation remotes** and `iframe` containers
 - strict CSP + postMessage allowlists
 - provide `window.MiniAppSDK` for federated apps and same-origin iframes
-- surface wallet binding, intent submission, and AppRegistry workflows
+- surface wallet binding, intent submission, AppRegistry workflows, and AA relay proxying
 
 Current capabilities:
 
@@ -27,6 +27,7 @@ Current capabilities:
 - `NEXT_PUBLIC_MF_REMOTES`: comma-separated Module Federation remotes (e.g. `miniapp@https://cdn.miniapps.com/miniapps/miniapp-mf`).
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL for `connect-src` allowlist.
 - `EDGE_RPC_ALLOWLIST`: comma-separated Edge function names that `/api/rpc/*` may call (`*` to allow all).
+- `AA_RELAY_URL`: external `neo-abstract-account` relay URL used by `/api/aa/relay`.
 
 ### MiniApp Approval & Governance
 
@@ -56,6 +57,7 @@ This host app includes an optional proxy route:
 
 - `platform/host-app/pages/api/rpc/[fn].ts`
 - `platform/host-app/pages/api/rpc/relay.ts` (blueprint alias)
+- `platform/host-app/pages/api/aa/relay.ts` (AA relay proxy)
 
 It forwards `GET/POST/...` requests to:
 
@@ -69,6 +71,10 @@ Set `EDGE_BASE_URL` to one of:
 
 The `/api/rpc/relay` alias accepts `fn` via query string or JSON body and
 forwards the remaining payload to the named Edge function.
+
+The `/api/aa/relay` route forwards relay-ready AA payloads to the configured
+external `AA_RELAY_URL`, keeping MiniApps on the same origin while the AA relay
+runtime remains external to this repo.
 
 In production, `/api/rpc/*` requires `EDGE_RPC_ALLOWLIST` to be set. Use `*` to
 preserve the previous open-proxy behavior or list the exact functions you want

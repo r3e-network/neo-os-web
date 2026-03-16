@@ -14,7 +14,7 @@ Neo smart contracts don't support abstract class inheritance, so we use **partia
 │  • Standard Storage Prefixes (0x01-0x05)                    │
 │  • Standard Getters (Admin, Gateway, PaymentHub, etc.)      │
 │  • Validation Methods (ValidateAdmin, ValidateGateway)      │
-│  • Admin Management (SetAdmin, SetGateway, SetPaused, etc.) │
+│  • Admin Management (SetAdmin, SetOracle, SetPaused, etc.) │
 │  • Global Pause Check (ValidateNotGloballyPaused)           │
 │  • Contract Update                                           │
 └─────────────────────────────────────────────────────────────┘
@@ -49,21 +49,21 @@ Core shared functionality for all MiniApp contracts. Includes:
 
 - **Standard Getters**:
   - `Admin()` - Get admin address
-  - `Gateway()` - Get gateway address
+  - `Oracle()` - Get oracle address
   - `PaymentHub()` - Get payment hub address
   - `PauseRegistry()` - Get pause registry address
   - `IsPaused()` - Check local pause state
 
 - **Validation Methods**:
   - `ValidateAdmin()` - Require admin witness
-  - `ValidateGateway()` - Require gateway caller
+  - `ValidateOracle()` - Require oracle caller
   - `ValidateAddress(addr)` - Validate address
   - `ValidateNotPaused()` - Check local pause
   - `ValidateNotGloballyPaused(appId)` - Check global + local pause
 
 - **Admin Management**:
   - `SetAdmin(newAdmin)`
-  - `SetGateway(gw)`
+  - `SetOracle(gw)`
   - `SetPaymentHub(hub)`
   - `SetPauseRegistry(registry)`
   - `SetPaused(paused)`
@@ -169,9 +169,9 @@ If you have an existing MiniApp contract:
 1. Change `public class MiniAppXxx : SmartContract` to `public partial class MiniAppContract : SmartContract`
 2. Remove these sections (now in Core.cs):
    - Standard Prefixes (PREFIX_ADMIN, PREFIX_GATEWAY, etc.)
-   - Standard Getters (Admin(), Gateway(), etc.)
+   - Standard Getters (Admin(), Oracle(), etc.)
    - Standard Validation (ValidateAdmin, ValidateGateway)
-   - Admin Management (SetAdmin, SetGateway, etc.)
+   - Admin Management (SetAdmin, SetOracle, etc.)
    - Update method
 3. Add `APP_ID` constant
 4. Update `_deploy` to use `PREFIX_ADMIN` from Core.cs

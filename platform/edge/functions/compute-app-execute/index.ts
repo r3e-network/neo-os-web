@@ -1,25 +1,14 @@
 /**
- * @deprecated This endpoint is deprecated for MiniApp use.
+ * Registered-script compute execution for MiniApps.
  *
- * MiniApps should NOT call this endpoint directly from the frontend.
- * Instead, use the on-chain service request flow:
+ * This is the preferred direct platform path when a script body is too large to
+ * inline in `compute-execute`.
  *
- * 1. MiniApp contract calls ServiceLayerGateway.RequestService()
- *    - appId: your app ID
- *    - serviceType: "compute"
- *    - payload: JSON with { "script_name": "your-script", "input": {...} }
- *    - callbackContract: your contract address
- *    - callbackMethod: "onComputeCallback"
- *
- * 2. Off-chain service listener detects the ServiceRequested event
- * 3. Service loads script from manifest by appId and script_name
- * 4. Script executes in TEE (Trusted Execution Environment)
- * 5. ServiceLayerGateway.FulfillRequest() calls back to your contract
- *
- * This endpoint remains available for:
- * - Internal testing and debugging
- * - Admin tools that need direct compute access
- * - Legacy integrations (will be removed in future versions)
+ * Flow:
+ * 1. Host/admin caller submits `{ app_id, script_name, input }`
+ * 2. Edge loads script metadata from the MiniApp manifest / CDN
+ * 3. Edge forwards the resolved source to external NeoCompute
+ * 4. Caller receives the direct compute result / job envelope
  */
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { readJsonBody } from "../_shared/request.ts";

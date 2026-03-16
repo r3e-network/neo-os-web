@@ -10,6 +10,11 @@ For lifecycle and event flow details, see `docs/WORKFLOWS.md` and
 - **TEE Services**: trusted execution + key custody + signing + verifiable origin.
 - **Neo N3 Contracts**: final authorization, state updates, and public audit trail.
 
+Preferred runtime model:
+
+- direct calls to external Oracle / DataFeed / Compute / sponsorship services through the platform gateway
+- direct AA relay submission through the external AA relay
+
 ## Edge Endpoints (Gateway)
 
 Supabase deploys Edge functions under:
@@ -46,29 +51,18 @@ explicit scopes** in production; bearer JWTs are rejected there.
 Most state-changing endpoints also require a **verified primary wallet binding**
 (`wallet-nonce` + `wallet-bind`).
 
-## On-Chain Service Requests (ServiceLayerGateway)
+## Direct External Integrations
 
-MiniApps that need confidential services can use the on-chain request/callback
-pattern instead of calling Edge endpoints directly:
+Primary service integrations are:
 
-1. MiniApp contract calls `ServiceLayerGateway.RequestService(...)`.
-2. Gateway emits `ServiceRequested` event.
-3. NeoRequests executes the TEE workflow and prepares the result.
-4. NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)` via `tx-proxy`.
-5. Gateway calls the MiniApp callback method on-chain.
+- `POST /functions/v1/oracle-query`
+- `GET /functions/v1/datafeed-price`
+- `POST /functions/v1/rng-request`
+- `POST /functions/v1/compute-execute`
+- `POST /functions/v1/compute-app-execute`
+- host `/api/aa/relay` -> external AA relay
 
-This flow is recorded in Supabase `contract_events` and `chain_txs`.
-
-When configured, NeoRequests also verifies that the MiniApp is **Approved** in
-AppRegistry and that the on-chain `manifest_hash` matches the Supabase record
-before executing the request.
-
-Payload formats are defined in `docs/service-request-payloads.md`.
-
-**Callback payload size:** the ServiceLayerGateway `ServiceFulfilled` event
-emits the result bytes. Neo limits notifications to 1024 bytes, so NeoRequests
-enforces a conservative result size cap (configurable via
-`NEOREQUESTS_MAX_RESULT_BYTES`).
+These should be treated as the default production integration paths.
 
 ### Payments (GAS only)
 

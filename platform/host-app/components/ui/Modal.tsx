@@ -7,7 +7,7 @@ import React, { useEffect, useCallback, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { useFocusTrap, keyboardNavigation, generateAriaId } from "@/lib/design-system/a11y";
-import { IconButton } from "./button";
+import { IconButton } from "./Button";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "full";
 export type ModalAnimation = "fade" | "zoom" | "slide" | "none";

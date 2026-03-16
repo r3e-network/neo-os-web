@@ -25,7 +25,6 @@ declare -A PLATFORM=(
     ["Governance"]="0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05|Governance"
     ["AppRegistry"]="0x79d16bee03122e992bb80c478ad4ed405f33bc7f|AppRegistry"
     ["AutomationAnchor"]="0x1c888d699ce76b0824028af310d90c3c18adeab5|AutomationAnchor"
-    ["ServiceLayerGateway"]="0x27b79cf631eff4b520dd9d95cd1425ec33025a53|ServiceLayerGateway"
 )
 
 # MiniApp contracts: name -> hash|nef_name

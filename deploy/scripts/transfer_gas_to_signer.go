@@ -15,20 +15,22 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
-	"math/big"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
+	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
-
-	"github.com/r3e-network/neo-miniapp-platform/infrastructure/chain"
+	"github.com/nspcc-dev/neo-go/pkg/rpcclient"
+	"github.com/nspcc-dev/neo-go/pkg/rpcclient/actor"
+	"github.com/nspcc-dev/neo-go/pkg/util"
+	"github.com/nspcc-dev/neo-go/pkg/wallet"
 )
 
 const (
@@ -91,30 +93,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	networkMagic := defaultNetworkMagic
-	if raw := strings.TrimSpace(os.Getenv("NEO_NETWORK_MAGIC")); raw != "" {
-		parsed, parseErr := strconv.ParseUint(raw, 10, 32)
-		if parseErr != nil {
-			fmt.Printf("Invalid NEO_NETWORK_MAGIC: %s\n", raw)
-			os.Exit(1)
-		}
-		networkMagic = uint32(parsed)
-	}
-
-	client, err := chain.NewClient(chain.Config{
-		RPCURL:    rpcURL,
-		NetworkID: networkMagic,
-	})
+	client, err := rpcclient.New(ctx, rpcURL, rpcclient.Options{})
 	if err != nil {
-		fmt.Printf("Failed to create chain client: %v\n", err)
+		fmt.Printf("Failed to create RPC client: %v\n", err)
 		os.Exit(1)
 	}
+	defer client.Close()
 
-	signer, err := chain.AccountFromWIF(wif)
+	privateKey, err := keys.NewPrivateKeyFromWIF(wif)
 	if err != nil {
 		fmt.Printf("Failed to create signer: %v\n", err)
 		os.Exit(1)
 	}
+	signer := wallet.NewAccountFromPrivateKey(privateKey)
 
 	toHash, err := address.StringToUint160(toAddress)
 	if err != nil {
@@ -141,42 +132,81 @@ func main() {
 
 	fromHash := signer.ScriptHash()
 
-	params := []chain.ContractParam{
-		chain.NewHash160Param("0x" + fromHash.StringLE()),
-		chain.NewHash160Param("0x" + toHash.StringLE()),
-		chain.NewIntegerParam(big.NewInt(amountFractions)),
-		chain.NewAnyParam(),
+	act, err := actor.New(client, []actor.SignerAccount{{
+		Signer: transaction.Signer{
+			Account: signer.ScriptHash(),
+			Scopes:  transaction.CalledByEntry,
+		},
+		Account: signer,
+	}})
+	if err != nil {
+		fmt.Printf("Failed to create actor: %v\n", err)
+		os.Exit(1)
 	}
 
 	fmt.Printf("Sending %.8f GAS from %s to %s\n", amountGas, signer.Address, toAddress)
 
-	result, err := client.InvokeFunctionWithSignerAndWait(
-		ctx,
-		defaultGasHash,
-		"transfer",
-		params,
-		signer,
-		transaction.CalledByEntry,
-		true,
-	)
+	gasHash, err := parseHash160(defaultGasHash)
+	if err != nil {
+		fmt.Printf("Invalid GAS contract hash: %v\n", err)
+		os.Exit(1)
+	}
+	testResult, err := act.Call(gasHash, "transfer", fromHash, toHash, amountFractions, nil)
+	if err != nil {
+		fmt.Printf("Transfer simulation failed: %v\n", err)
+		os.Exit(1)
+	}
+	if testResult.State != "HALT" {
+		fmt.Printf("Transfer simulation faulted: %s\n", testResult.FaultException)
+		os.Exit(1)
+	}
+	txHash, _, err := act.SendCall(gasHash, "transfer", fromHash, toHash, amountFractions, nil)
 	if err != nil {
 		fmt.Printf("Transfer failed: %v\n", err)
 		os.Exit(1)
 	}
-
-	if result.VMState != "HALT" {
-		fmt.Printf("Transfer VMState: %s\n", result.VMState)
-		if result.AppLog != nil && len(result.AppLog.Executions) > 0 {
-			fmt.Printf("Exception: %s\n", result.AppLog.Executions[0].Exception)
-		}
+	if _, err := waitForAppLog(ctx, client, txHash); err != nil {
+		fmt.Printf("Failed waiting for confirmation: %v\n", err)
 		os.Exit(1)
 	}
-
-	fmt.Printf("✅ Transfer confirmed: %s\n", result.TxHash)
+	fmt.Printf("✅ Transfer confirmed: 0x%s\n", txHash.StringLE())
 
 	newBalanceFractions, err := getGASBalance(ctx, client, toAddress)
 	if err == nil {
 		fmt.Printf("Recipient balance: %.8f GAS -> %.8f GAS\n", currentBalanceGas, float64(newBalanceFractions)/1e8)
+	}
+}
+
+func parseHash160(raw string) (util.Uint160, error) {
+	raw = strings.TrimPrefix(strings.TrimSpace(raw), "0x")
+	return util.Uint160DecodeStringLE(raw)
+}
+
+func waitForAppLog(ctx context.Context, client *rpcclient.Client, txHash util.Uint256) (any, error) {
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	timeout := time.After(2 * time.Minute)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-timeout:
+			return nil, fmt.Errorf("timeout waiting for application log")
+		case <-ticker.C:
+			appLog, err := client.GetApplicationLog(txHash, nil)
+			if err != nil {
+				continue
+			}
+			if len(appLog.Executions) == 0 {
+				continue
+			}
+			exec := appLog.Executions[0]
+			if !exec.VMState.HasFlag(1) {
+				return nil, fmt.Errorf("transaction failed: %s", exec.FaultException)
+			}
+			return appLog, nil
+		}
 	}
 }
 
@@ -244,29 +274,19 @@ func envBool(key string) bool {
 	}
 }
 
-type nep17Balance struct {
-	AssetHash string `json:"assethash"`
-	Amount    string `json:"amount"`
-}
-
-type nep17BalancesResult struct {
-	Balance []nep17Balance `json:"balance"`
-}
-
-func getGASBalance(ctx context.Context, client *chain.Client, addr string) (int64, error) {
-	result, err := client.Call(ctx, "getnep17balances", []interface{}{addr})
+func getGASBalance(ctx context.Context, client *rpcclient.Client, addr string) (int64, error) {
+	recipient, err := address.StringToUint160(addr)
+	if err != nil {
+		return 0, err
+	}
+	result, err := client.GetNEP17Balances(recipient)
 	if err != nil {
 		return 0, err
 	}
 
-	var balances nep17BalancesResult
-	if err := json.Unmarshal(result, &balances); err != nil {
-		return 0, fmt.Errorf("unmarshal balances: %w", err)
-	}
-
 	gasHash := strings.TrimPrefix(defaultGasHash, "0x")
-	for _, bal := range balances.Balance {
-		hash := strings.TrimPrefix(bal.AssetHash, "0x")
+	for _, bal := range result.Balances {
+		hash := strings.TrimPrefix(bal.Asset.StringLE(), "0x")
 		if !strings.EqualFold(hash, gasHash) {
 			continue
 		}

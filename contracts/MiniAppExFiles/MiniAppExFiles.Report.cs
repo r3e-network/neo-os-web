@@ -22,9 +22,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(record.Active, "record inactive");
             ExecutionEngine.Assert(record.Creator != reporter, "cannot self-report");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(reporter), "unauthorized");
+            ValidateUserOrAbstractAccount(reporter);
 
             ValidatePaymentReceipt(APP_ID, reporter, REPORT_FEE, receiptId);
 

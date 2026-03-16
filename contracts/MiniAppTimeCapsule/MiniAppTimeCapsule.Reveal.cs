@@ -25,9 +25,7 @@ namespace NeoMiniAppPlatform.Contracts
             bool canReveal = isOwner || capsule.IsPublic || IsRecipient(capsuleId, revealer);
             ExecutionEngine.Assert(canReveal, "not authorized to reveal");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(revealer), "unauthorized");
+            ValidateUserOrAbstractAccount(revealer);
 
             capsule.IsRevealed = true;
             capsule.Revealer = revealer;
@@ -52,9 +50,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateNotGloballyPaused(APP_ID);
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(fisher), "unauthorized");
+            ValidateUserOrAbstractAccount(fisher);
 
             ValidatePaymentReceipt(APP_ID, fisher, FISH_FEE, receiptId);
 

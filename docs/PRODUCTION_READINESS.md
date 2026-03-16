@@ -1,122 +1,137 @@
-# Production Readiness (Current)
+# Production Readiness
 
-This document is the **current** production readiness checklist for the Neo
-Service Layer as described in `docs/ARCHITECTURE.md`.
+This checklist covers the **MiniApp platform repo**.
+
+It assumes the Oracle / DataFeed / VRF / Compute / Paymaster / AA runtimes are
+provided externally by:
+
+- `neo-morpheus-oracle`
+- `neo-abstract-account`
 
 ## Scope
 
-**Gateway (edge)**:
-- Auth (Supabase Auth: OAuth providers), sessions/JWT, API keys, wallet bindings
-- Secrets API + permissions (stored in Supabase; not a separate service)
-- Delegated payments / gas bank (stored in Supabase)
-- Service proxy routes (mTLS inside the mesh)
+In-scope for this repo:
 
-**Enclave workloads (NitroRun + Nitro-oriented runtime)**:
-- Infrastructure nitros: `infrastructure/accountpool`, `infrastructure/globalsigner`
-- Product services: `services/datafeed`, `services/automation`, `services/confcompute`, `services/conforacle`, `services/txproxy`
+- host app
+- admin console
+- edge functions
+- platform contracts
+- MiniApp contracts
+- deploy / validation helpers
+- integration config and runtime wiring
+
+Out-of-scope for this repo:
+
+- operating the Morpheus worker / relayer / paymaster runtime
+- operating the AA relay runtime
+- proving enclave measurements for the external repos
 
 ## Required External Dependencies
 
-- **Supabase** (Postgres + PostgREST): migrations applied, service role key available.
-- **Neo N3 RPC**: one or more reliable endpoints configured.
-- **Deployed contracts**: MiniApp platform contracts deployed and hashes set (`PaymentHub`, `Governance`, `PriceFeed`, `RandomnessLog`, `AppRegistry`, `AutomationAnchor`).
+- Supabase project with required migrations applied
+- Neo N3 RPC endpoint
+- external Morpheus service URLs:
+  - `NEOFEEDS_URL`
+  - `NEOORACLE_URL`
+  - `NEOVRF_URL`
+  - `NEOCOMPUTE_URL`
+  - `TXPROXY_URL`
+- optional external AA / paymaster URLs:
+  - `AA_RELAY_URL`
+  - `AA_PAYMASTER_ENDPOINT` or `MORPHEUS_PAYMASTER_*`
 
-## Required Secrets / Config
+## Required Platform Env
 
-### Gateway (recommended outside TEE)
+### Core
 
 - `SUPABASE_URL`
-- `SUPABASE_ANON_KEY` (Edge validates `Authorization: Bearer <jwt>`)
-- `SUPABASE_SERVICE_ROLE_KEY` (Edge reads/writes `public.*` platform tables)
-- `SECRETS_MASTER_KEY` (hex-encoded 32 bytes)
-- Host-only endpoints (oracle/compute/automation/secrets) require API keys with explicit scopes in production
-- `rate_limit_bump(...)` RPC available in Postgres (see `migrations/024_rate_limit_bump.sql`) if you enable gateway rate limiting in production
-- `miniapps` table available (see `migrations/025_miniapps.sql`) for manifest/limit enforcement
-- `miniapp_usage` table + `miniapp_usage_bump(...)` RPC available (see `migrations/026_miniapp_usage.sql`) for daily cap enforcement
-  (`miniapp_usage_check(...)` also available when using `MINIAPP_USAGE_MODE=check`)
-- `TEE_MTLS_CERT_PEM`, `TEE_MTLS_KEY_PEM`, `TEE_MTLS_ROOT_CA_PEM` for Edge → TEE mTLS (required in production; Edge rejects non-HTTPS TEE URLs)
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_EDGE_URL`
+- `NEO_RPC_URL`
+- `NEO_NETWORK_MAGIC`
 
-### Enclave Workloads
+### Platform Contracts
 
-Injected via NitroRun secrets (values depend on which services you run):
+- `CONTRACT_PAYMENTHUB_HASH`
+- `CONTRACT_GOVERNANCE_HASH`
+- `CONTRACT_PRICEFEED_HASH`
+- `CONTRACT_RANDOMNESSLOG_HASH`
+- `CONTRACT_APPREGISTRY_HASH`
+- `CONTRACT_AUTOMATIONANCHOR_HASH`
+- `CONTRACT_SERVICEGATEWAY_HASH`
+- `CONTRACT_MINIAPP_CONSUMER_HASH` or `MINIAPP_CALLBACK_CONTRACT_HASH` for workflow validation
 
-- `POOL_MASTER_KEY` (+ `POOL_MASTER_KEY_HASH` in enclave mode) for AccountPool
-- `GLOBALSIGNER_MASTER_SEED` for GlobalSigner
-- `NEOFEEDS_SIGNING_KEY` for Datafeeds
-- `COMPUTE_MASTER_KEY` for Confidential Compute
-- `GASBANK_DEPOSIT_ADDRESS` (public) for GasBank deposit verification
-- `TEE_PRIVATE_KEY` (fallback only) if `txproxy` cannot use GlobalSigner and must sign/broadcast directly
-- NeoRequests limits + enforcement (recommended in production):
-  `NEOREQUESTS_MAX_RESULT_BYTES`, `NEOREQUESTS_MAX_ERROR_LEN`,
-  `NEOREQUESTS_RNG_RESULT_MODE`, `NEOREQUESTS_TX_WAIT`, `TXPROXY_TIMEOUT`,
-  `NEOREQUESTS_ENFORCE_APPREGISTRY`, `NEOREQUESTS_APPREGISTRY_CACHE_SECONDS`,
-  `NEOREQUESTS_REQUIRE_MANIFEST_CONTRACT`, `NEO_EVENT_CONFIRMATIONS`,
-  `NEO_EVENT_BACKFILL_BLOCKS`
-- NeoFeeds publish policy (recommended explicit values):
-  `NEOFEEDS_UPDATE_INTERVAL`, `NEOFEEDS_PUBLISH_THRESHOLD_BPS`,
-  `NEOFEEDS_PUBLISH_HYSTERESIS_BPS`, `NEOFEEDS_PUBLISH_MIN_INTERVAL`,
-  `NEOFEEDS_PUBLISH_MAX_PER_MINUTE`, `NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL`
+### External Service Wiring
 
-### Nitro Attestation Configuration (Production)
+- `NEOFEEDS_URL`
+- `NEOORACLE_URL`
+- `NEOVRF_URL`
+- `NEOCOMPUTE_URL`
+- `TXPROXY_URL`
+- `GLOBALSIGNER_SERVICE_URL` when health checks should include signer availability
+- `AA_RELAY_URL` when host `/api/aa/relay` should be enabled
 
-- `NITRO_ATTESTATION_DOCUMENT_B64` must be present at runtime.
-- Optional: `NITRO_MODULE_ID`, `NITRO_PCR0..NITRO_PCR31`.
-- Validate before deployment:
+## Contract / Domain Consistency
 
-```bash
-set -a; source .env; set +a
-./scripts/check_enclave_signing_key.sh --backend nitro
-```
+Before marking a release as ready, verify that:
 
-## Chain / Contract Configuration
+- frontend shared config matches upstream mainnet / testnet anchors
+- README and docs match the same canonical hashes
+- testnet platform contracts in `.env` match the currently deployed platform contracts
+- mainnet AA / Morpheus domains point to the intended external contracts
 
-Contract hashes are configured via environment variables (0x-prefixed Uint160 strings):
+Primary shared registry in this repo:
 
-- `CONTRACT_PAYMENTHUB_HASH` (**payments/settlement = GAS only**, enforced on-chain)
-- `CONTRACT_GOVERNANCE_HASH` (**governance = NEO only**, enforced on-chain)
-- `CONTRACT_PRICEFEED_HASH` (datafeed anchoring)
-- `CONTRACT_RANDOMNESSLOG_HASH` (optional randomness anchoring)
-- `CONTRACT_APPREGISTRY_HASH` (app allowlist + manifest hashes)
-- `CONTRACT_AUTOMATIONANCHOR_HASH` (automation task registry + anti-replay)
-- `CONTRACT_SERVICEGATEWAY_HASH` (on-chain service requests + callbacks)
-
-The gateway for user workflows is **Supabase Edge** (there is no on-chain
-gateway contract in the current blueprint).
-
-Current testnet values (from `.env`, validated on **February 26, 2026**):
-
-- `CONTRACT_PAYMENTHUB_HASH=0x340cb33d770b38f26d066716dd1f9df5283d629e`
-- `CONTRACT_GOVERNANCE_HASH=0x2ec930202e6d03313d97198259b298cc3c29295e`
-- `CONTRACT_PRICEFEED_HASH=0x5284ef25f1bbbf36d139f6f94356e46b89138602`
-- `CONTRACT_RANDOMNESSLOG_HASH=0xa24f83dcbafff909d4209ac76ca5d09237c0cda6`
-- `CONTRACT_APPREGISTRY_HASH=0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d`
-- `CONTRACT_AUTOMATIONANCHOR_HASH=0xa016f7be94ad7c4d87ad2f8d38784797c2dc494b`
-- `CONTRACT_SERVICEGATEWAY_HASH=0x194fcb975c47952c5a030e89946a5907b33efd23`
-
-## Identity / Trust Boundary
-
-- **Production should run in strict identity mode** (NitroRun TLS injected).
-- Public clients must not be able to spoof identity headers.
-- Gateway is the trust boundary: it authenticates users and forwards derived
-  identity into the mesh over mTLS.
+- `apps/shared/constants/rpc.ts`
 
 ## Validation Commands
 
 ```bash
-set -a; source .env; set +a
+cd /Users/jinghuiliao/git/neo-miniapps-platform
 
-go test ./...
-go vet ./...
-./scripts/production_readiness_check.sh
-./scripts/verify_testnet_workflows.sh --env-file .env
+# Env sanity
+npm run validate:miniapp-env -- --stage=prod --json
 
-env PRICEFEED_WATCH_SYMBOLS='NEO-USD,GAS-USD,USDT-USD,USDC-USD,BTC-USD,ETH-USD,XRP-USD,BNB-USD,SOL-USD,TRX-USD,DOGE-USD,XAU-USD,XAG-USD,NVDA-USD,AAPL-USD,GOOGL-USD,MSFT-USD,META-USD,TSM-USD,TSLA-USD,TCEHY-USD' \
-  PRICEFEED_WATCH_MAX_STALENESS='24h' \
-  go run -tags=scripts scripts/check_pricefeed_freshness.go
+# Frontend / shared tests
+npm test
+
+# Production builds
+cd platform/host-app && npm run build
+cd ../admin-console && npm run build
+
+# Platform workflow validations
+cd ../..
+bash deploy/scripts/verify_testnet_workflows.sh --env-file .env --skip-stats-rollup-check
+
+# Preferred direct Oracle / direct AA validation
+AA_TEST_WIF=<funded-aa-testnet-wif> \
+  bash deploy/scripts/verify_cross_repo_testnet.sh
 ```
 
-Local simulation:
+## Interpretation Of Workflow Results
 
-```bash
-make docker-up
-```
+`verify_testnet_workflows.sh` proves different things depending on the current
+external environment:
+
+- if request submission succeeds, the platform contracts, wallet wiring, and request payload construction are working
+- if callback fulfillment also succeeds, the external Morpheus worker / relayer path is live and correctly integrated
+- if callback waits time out, the unresolved area is usually the external Oracle worker / relayer environment, not the local MiniApp platform code
+
+Treat callback timeouts as an integration or environment gap until the external
+stack is confirmed healthy.
+
+## Release Gate
+
+A platform release is ready when all of the following are true:
+
+- env validation passes
+- `npm test` passes
+- host and admin builds pass
+- canonical external AA / Morpheus config is aligned in code and docs
+- direct Oracle testnet callback path is proven healthy
+- direct AA paymaster + relay path is proven healthy
+- wallet-signed flows still work
+- testnet workflow script can at minimum submit requests successfully
+- any callback failures are either fixed or explicitly attributed to an external environment outage

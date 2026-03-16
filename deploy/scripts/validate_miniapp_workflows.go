@@ -9,13 +9,12 @@
 // 3. PriceFeed/DataFeed workflow (update → event → query)
 // 4. Automation workflow (register → trigger → execute)
 // 5. Governance workflow (stake → vote → unstake)
-// 6. ServiceLayerGateway workflow (request → fulfill → callback)
 package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"math/big"
 	"os"
 	"strings"
 
@@ -34,7 +33,6 @@ type ContractHashes struct {
 	RandomnessLog    util.Uint160
 	AppRegistry      util.Uint160
 	AutomationAnchor util.Uint160
-	ServiceGateway   util.Uint160
 }
 
 // ValidationResult holds the result of a workflow validation
@@ -58,6 +56,11 @@ type Validator struct {
 func main() {
 	ctx := context.Background()
 
+	workflowFlag := flag.String("workflow", "", "optional workflow filter: deployment,paymenthub,rng,pricefeed,governance,automation")
+	flag.Parse()
+
+	selected := normalizeWorkflowFilter(*workflowFlag)
+
 	fmt.Println("╔════════════════════════════════════════════════════════════════╗")
 	fmt.Println("║         MiniApp Workflow Validation Suite                      ║")
 	fmt.Println("╚════════════════════════════════════════════════════════════════╝")
@@ -68,17 +71,52 @@ func main() {
 	}
 	defer v.Close()
 
-	// Run all validations
-	v.ValidateContractDeployment()
-	v.ValidatePaymentHubWorkflow()
-	v.ValidateRNGWorkflow()
-	v.ValidatePriceFeedWorkflow()
-	v.ValidateGovernanceWorkflow()
-	v.ValidateAutomationWorkflow()
-	v.ValidateServiceGatewayWorkflow()
-
+	// Run selected validations
+	if shouldRun(selected, "deployment") {
+		v.ValidateContractDeployment()
+	}
+	if shouldRun(selected, "paymenthub") {
+		v.ValidatePaymentHubWorkflow()
+	}
+	if shouldRun(selected, "rng") {
+		v.ValidateRNGWorkflow()
+	}
+	if shouldRun(selected, "pricefeed") {
+		v.ValidatePriceFeedWorkflow()
+	}
+	if shouldRun(selected, "governance") {
+		v.ValidateGovernanceWorkflow()
+	}
+	if shouldRun(selected, "automation") {
+		v.ValidateAutomationWorkflow()
+	}
 	// Print summary
 	v.PrintSummary()
+}
+
+func normalizeWorkflowFilter(raw string) map[string]struct{} {
+	filter := strings.TrimSpace(strings.ToLower(raw))
+	if filter == "" {
+		return nil
+	}
+
+	selected := make(map[string]struct{})
+	for _, part := range strings.Split(filter, ",") {
+		name := strings.TrimSpace(strings.ToLower(part))
+		if name == "" {
+			continue
+		}
+		selected[name] = struct{}{}
+	}
+	return selected
+}
+
+func shouldRun(selected map[string]struct{}, name string) bool {
+	if len(selected) == 0 {
+		return true
+	}
+	_, ok := selected[name]
+	return ok
 }
 
 func NewValidator(ctx context.Context) (*Validator, error) {
@@ -160,11 +198,6 @@ func loadContractHashes() (ContractHashes, error) {
 		return c, fmt.Errorf("AutomationAnchor: %w", err)
 	}
 
-	c.ServiceGateway, err = parseHash(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
-	if err != nil {
-		return c, fmt.Errorf("ServiceGateway: %w", err)
-	}
-
 	return c, nil
 }
 
@@ -219,7 +252,6 @@ func (v *Validator) ValidateContractDeployment() {
 		{"RandomnessLog", v.contracts.RandomnessLog},
 		{"AppRegistry", v.contracts.AppRegistry},
 		{"AutomationAnchor", v.contracts.AutomationAnchor},
-		{"ServiceGateway", v.contracts.ServiceGateway},
 	}
 
 	allDeployed := true
@@ -484,48 +516,6 @@ func (v *Validator) ValidateAutomationWorkflow() {
 		Status:      "PASS",
 		Description: "Automation workflow validated (register → trigger → execute)",
 		Details:     map[string]interface{}{"contract": "0x" + v.contracts.AutomationAnchor.StringLE()},
-	})
-}
-
-// =============================================================================
-// ServiceGateway Workflow Validation
-// =============================================================================
-
-func (v *Validator) ValidateServiceGatewayWorkflow() {
-	fmt.Println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("🔗 Validating ServiceGateway Workflow...")
-
-	result, err := v.rpc.InvokeFunction(v.contracts.ServiceGateway, "getRequest", []smartcontract.Parameter{
-		{Type: smartcontract.IntegerType, Value: big.NewInt(1)},
-	}, nil)
-
-	if err != nil {
-		v.addResult(ValidationResult{
-			Workflow: "ServiceGateway",
-			Status:   "FAIL",
-			Error:    fmt.Sprintf("Failed to query ServiceGateway: %v", err),
-		})
-		return
-	}
-
-	if result.State != "HALT" {
-		v.addResult(ValidationResult{
-			Workflow: "ServiceGateway",
-			Status:   "FAIL",
-			Error:    fmt.Sprintf("VM fault: %s", result.FaultException),
-		})
-		return
-	}
-
-	fmt.Printf("   ✅ ServiceGateway.GetRequest() method available\n")
-	fmt.Printf("   ✅ ServiceGateway.RequestService() method available\n")
-	fmt.Printf("   ✅ ServiceGateway.FulfillRequest() method available (TEE)\n")
-
-	v.addResult(ValidationResult{
-		Workflow:    "ServiceGateway",
-		Status:      "PASS",
-		Description: "ServiceGateway workflow validated (request → fulfill → callback)",
-		Details:     map[string]interface{}{"contract": "0x" + v.contracts.ServiceGateway.StringLE()},
 	})
 }
 

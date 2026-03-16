@@ -140,7 +140,7 @@ class FactoryDeployer {
   async deployFactory(): Promise<string> {
     console.log('\n=== Deploying MiniAppFactoryV2 ===');
     
-    const factoryPath = 'contracts/MiniAppFactory/MiniAppFactoryV2.cs';
+    const factoryPath = 'contracts/MiniAppFactoryV2/MiniAppFactoryV2.cs';
     const { nef, manifest } = await this.buildContract(factoryPath);
 
     // Check if already deployed

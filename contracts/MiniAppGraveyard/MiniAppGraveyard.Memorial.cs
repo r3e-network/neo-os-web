@@ -18,9 +18,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(title.Length > 0 && title.Length <= MAX_TITLE_LENGTH, "invalid title");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
+            ValidateUserOrAbstractAccount(creator);
 
             ValidatePaymentReceipt(APP_ID, creator, MEMORIAL_FEE, receiptId);
 
@@ -59,9 +57,7 @@ namespace NeoMiniAppPlatform.Contracts
             Memorial memorial = GetMemorial(memorialId);
             ExecutionEngine.Assert(memorial.Active, "memorial not active");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(sender), "unauthorized");
+            ValidateUserOrAbstractAccount(sender);
 
             ValidatePaymentReceipt(APP_ID, sender, amount, receiptId);
 

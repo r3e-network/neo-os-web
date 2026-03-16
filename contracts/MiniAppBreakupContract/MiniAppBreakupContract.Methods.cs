@@ -31,9 +31,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(title.Length > 0 && title.Length <= 100, "invalid title");
             ExecutionEngine.Assert(terms.Length <= 2000, "terms too long");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(party1), "unauthorized");
+            ValidateUserOrAbstractAccount(party1);
 
             ValidatePaymentReceipt(APP_ID, party1, stake, receiptId);
 
@@ -86,9 +84,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(!contract.Cancelled, "contract cancelled");
             ExecutionEngine.Assert(Runtime.Time <= contract.SignDeadline, "sign deadline passed");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(party), "unauthorized");
+            ValidateUserOrAbstractAccount(party);
 
             ValidatePaymentReceipt(APP_ID, party, contract.Stake, receiptId);
 
@@ -354,9 +350,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount > 0, "invalid amount");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(contributor), "unauthorized");
+            ValidateUserOrAbstractAccount(contributor);
 
             ValidatePaymentReceipt(APP_ID, contributor, amount, receiptId);
 

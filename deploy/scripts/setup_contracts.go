@@ -28,7 +28,6 @@ var contracts = map[string]string{
 	"RandomnessLog":       envOrDefault("CONTRACT_RANDOMNESSLOG_HASH", "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"),
 	"PaymentHub":          envOrDefault("CONTRACT_PAYMENTHUB_HASH", "0x45777109546ceaacfbeed9336d695bb8b8bd77ca"),
 	"AutomationAnchor":    envOrDefault("CONTRACT_AUTOMATIONANCHOR_HASH", "0x1c888d699ce76b0824028af310d90c3c18adeab5"),
-	"ServiceLayerGateway": envOrDefault("CONTRACT_SERVICEGATEWAY_HASH", ""),
 }
 
 func envOrDefault(key, fallback string) string {
@@ -98,21 +97,7 @@ func main() {
 	}
 	time.Sleep(2 * time.Second)
 
-	// 3. Set updater for ServiceLayerGateway (if configured)
-	if strings.TrimSpace(contracts["ServiceLayerGateway"]) != "" {
-		fmt.Println("\n--- ServiceLayerGateway: SetUpdater ---")
-		if err := setUpdater(ctx, client, act, contracts["ServiceLayerGateway"], deployerHash); err != nil {
-			fmt.Printf("ServiceLayerGateway SetUpdater failed: %v\n", err)
-		} else {
-			fmt.Println("✅ ServiceLayerGateway updater set")
-		}
-		time.Sleep(2 * time.Second)
-	} else {
-		fmt.Println("\n--- ServiceLayerGateway: SetUpdater ---")
-		fmt.Println("⚠️  ServiceLayerGateway hash not configured; skipping")
-	}
-
-	// 4. Configure MiniApps in PaymentHub
+	// 3. Configure MiniApps in PaymentHub
 	fmt.Println("\n--- PaymentHub: ConfigureApp ---")
 	for _, appID := range miniApps {
 		if err := configureApp(ctx, client, act, contracts["PaymentHub"], appID, deployerHash); err != nil {

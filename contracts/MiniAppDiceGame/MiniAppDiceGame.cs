@@ -20,9 +20,9 @@ namespace NeoMiniAppPlatform.Contracts
     /// <summary>
     /// Dice Game MiniApp - Roll dice, win up to 6x.
     ///
-    /// ARCHITECTURE (Chainlink-style):
-    /// - User invokes PlaceBet → Contract requests RNG from ServiceLayerGateway
-    /// - Gateway fulfills request → Contract receives callback → Settles bet
+    /// ARCHITECTURE:
+    /// - User invokes PlaceBet → Contract requests RNG from Morpheus Oracle
+    /// - Oracle fulfills request → Contract receives callback → Settles bet
     ///
     /// GAME MECHANICS:
     /// - Player chooses a number 1-6
@@ -150,22 +150,22 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger RequestRng(BigInteger betId)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
 
             ByteString payload = StdLib.Serialize(new object[] { betId });
             return (BigInteger)Contract.Call(
-                gateway, "requestService", CallFlags.All,
-                APP_ID, "rng", payload,
-                Runtime.ExecutingScriptHash, "onServiceCallback"
+                oracle, "request", CallFlags.All,
+                "rng", payload,
+                Runtime.ExecutingScriptHash, "onOracleResult"
             );
         }
 
-        public static void OnServiceCallback(
-            BigInteger requestId, string appId, string serviceType,
+        public static void OnOracleResult(
+            BigInteger requestId, string requestType,
             bool success, ByteString result, string error)
         {
-            ValidateGateway();
+            ValidateOracle();
 
             ByteString betIdData = Storage.Get(Storage.CurrentContext,
                 Helper.Concat(PREFIX_REQUEST_TO_BET, (ByteString)requestId.ToByteArray()));

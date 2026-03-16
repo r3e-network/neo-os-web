@@ -27,9 +27,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(neoAmount >= MIN_PRINCIPAL, "below minimum principal");
             ExecutionEngine.Assert(trustName.Length > 0 && trustName.Length <= 100, "invalid name");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             BigInteger intervalSeconds = heartbeatIntervalDays * 86400;
             ExecutionEngine.Assert(intervalSeconds >= MIN_HEARTBEAT_SECONDS && intervalSeconds <= MAX_HEARTBEAT_SECONDS, "invalid interval");

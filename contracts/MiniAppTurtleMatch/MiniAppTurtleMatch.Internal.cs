@@ -42,11 +42,7 @@ namespace NeoMiniAppPlatform.Contracts
         #region Payment
         private static void PayReward(UInt160 player, BigInteger amount)
         {
-            UInt160 gateway = Gateway();
-            if (gateway != null && gateway.IsValid)
-            {
-                Contract.Call(gateway, "payout", CallFlags.All, player, amount);
-            }
+            // Payouts are settled by the platform after observing GameSettled events.
         }
         #endregion
 

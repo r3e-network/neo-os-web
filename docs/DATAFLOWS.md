@@ -3,38 +3,35 @@
 This document describes how data moves through the platform, including
 event ingestion, service dispatch, and audit persistence.
 
+Primary rule:
+
+- direct Oracle / direct AA flows are the preferred runtime path
+
 ## Components
 
-- **MiniApp Contract**: emits `ServiceRequested`, receives callbacks.
-- **ServiceLayerGateway**: on-chain request router + callback dispatcher.
-- **NeoRequests**: on-chain event listener + service dispatcher.
+- **MiniApp Contract**: business logic and state.
 - **TEE Services**: neovrf, neooracle, neocompute (and others).
 - **TxProxy**: allowlisted transaction signer + broadcaster.
 - **Indexer/Aggregator**: chain syncer + analytics rollups + notifications.
 - **Supabase**: Auth, RLS, and audit tables.
 - **Edge Functions**: gateway API surface for the SDK/host.
 
-## Dataflow: On-Chain Request + Callback
+## Dataflow: Direct Oracle / AA
 
-```
-MiniApp Contract
-  └─ RequestService(...) ──▶ ServiceLayerGateway
-      └─ ServiceRequested event ──▶ NeoRequests
-          ├─ contract_events (Supabase)
-          ├─ processed_events (idempotency)
-          ├─ service_requests (status + payload)
-          └─ call TEE service (neovrf/neooracle/neocompute)
-                 └─ result payload
-          └─ TxProxy.FulfillRequest ──▶ ServiceLayerGateway
-              └─ ServiceFulfilled event
-              └─ callback to MiniApp Contract
-              └─ chain_txs (Supabase)
+```text
+MiniApp / Host
+  └─ SDK / host proxy ──▶ Edge or /api/aa/relay
+      ├─ direct request to neo-morpheus-oracle
+      │   ├─ oracle-query
+      │   ├─ datafeed-price
+      │   ├─ rng-request
+      │   ├─ compute-execute
+      │   └─ paymaster/authorize
+      └─ direct request to neo-abstract-account relay
+          └─ executeUserOp / relay-backed AA execution
 ```
 
-`ServiceRequested` and `ServiceFulfilled` are the **authoritative notifications**
-for MiniApp service lifecycles. NeoRequests is the only component that consumes
-`ServiceRequested` and produces `FulfillRequest` callback transactions.
-Payload formats are defined in `docs/service-request-payloads.md`.
+This is the preferred path for platform UX and production integrations.
 
 ## Dataflow: MiniApp Registration (AppRegistry)
 
@@ -170,105 +167,14 @@ NeoGasBank Service (polling loop)
 5. **Deduction**: Services call `/deduct` to charge fees
 6. **Withdrawal**: User can withdraw remaining balance
 
-## Dataflow: VRF Randomness (NeoVRF)
+## Dataflow: Direct Service Responses
 
-```
-MiniApp Contract
-  └─ RequestService("rng", payload) ──▶ ServiceLayerGateway
-      └─ ServiceRequested event
+Direct service usage is the normal path:
 
-NeoRequests (event listener)
-  └─ Dispatch to NeoVRF service
-      │
-      ▼
-NeoVRF Service
-  ├─ Parse request (seed, range, count)
-  ├─ Generate VRF proof using TEE private key
-  ├─ Sign output with attestation
-  │
-  └─ Return: { randomness, proof, signature }
-
-NeoRequests
-  └─ TxProxy.FulfillRequest(requestId, result)
-      └─ ServiceLayerGateway.fulfillRequest
-          └─ MiniApp.OnServiceCallback(requestId, result)
-          └─ RandomnessLog.recordRandomness (optional)
-```
-
-### NeoVRF Lifecycle
-
-1. **Request**: MiniApp requests randomness via Gateway
-2. **Dispatch**: NeoRequests routes to VRF service
-3. **Generation**: TEE generates verifiable random bytes
-4. **Signing**: Output signed with TEE attestation key
-5. **Callback**: Result delivered to MiniApp contract
-6. **Logging**: Optionally recorded in RandomnessLog for audit
-
-## Dataflow: Oracle Queries (NeoOracle)
-
-```
-MiniApp Contract
-  └─ RequestService("oracle", payload) ──▶ ServiceLayerGateway
-      └─ ServiceRequested event
-
-NeoRequests (event listener)
-  └─ Dispatch to NeoOracle service
-      │
-      ▼
-NeoOracle Service
-  ├─ Validate URL against whitelist
-  ├─ Inject secrets into headers (if configured)
-  ├─ Execute HTTP request to external API
-  ├─ Parse and transform response
-  │
-  └─ Return: { data, status, timestamp }
-
-NeoRequests
-  └─ TxProxy.FulfillRequest(requestId, result)
-      └─ MiniApp.OnServiceCallback(requestId, result)
-```
-
-### NeoOracle Lifecycle
-
-1. **Request**: MiniApp requests external data via Gateway
-2. **Validation**: URL checked against domain whitelist
-3. **Secret Injection**: API keys injected from TEE secrets
-4. **Fetch**: HTTP GET/POST to external endpoint
-5. **Transform**: Response parsed and formatted
-6. **Callback**: Result delivered to MiniApp contract
-
-## Dataflow: Confidential Compute (NeoCompute)
-
-```
-MiniApp Contract
-  └─ RequestService("compute", payload) ──▶ ServiceLayerGateway
-      └─ ServiceRequested event
-
-NeoRequests (event listener)
-  └─ Dispatch to NeoCompute service
-      │
-      ▼
-NeoCompute Service
-  ├─ Load JavaScript code from payload
-  ├─ Inject secrets into execution context
-  ├─ Execute in sandboxed V8 isolate
-  ├─ Capture output and logs
-  │
-  └─ Return: { result, logs, gasUsed }
-
-NeoRequests
-  └─ TxProxy.FulfillRequest(requestId, result)
-      └─ MiniApp.OnServiceCallback(requestId, result)
-```
-
-### NeoCompute Lifecycle
-
-1. **Request**: MiniApp submits compute job via Gateway
-2. **Loading**: JavaScript code loaded into TEE
-3. **Secret Injection**: Secrets available as environment vars
-4. **Execution**: Code runs in isolated V8 sandbox
-5. **Output**: Result captured with execution metrics
-6. **Callback**: Result delivered to MiniApp contract
+- `rng-request` returns randomness plus verification material
+- `oracle-query` returns allowlisted fetch results
+- `compute-execute` and `compute-app-execute` return compute output and attestation
+- AA relay consumes paymaster approval and submits `executeUserOp`
 
 ## Dataflow: Transaction Proxy (TxProxy)
 

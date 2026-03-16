@@ -190,9 +190,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(message.Length <= 256, "message too long");
             ExecutionEngine.Assert(tipperName.Length <= 64, "name too long");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(tipper), "unauthorized");
+            ValidateUserOrAbstractAccount(tipper);
 
             ValidatePaymentReceipt(APP_ID, tipper, amount, receiptId);
 

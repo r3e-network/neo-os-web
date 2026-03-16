@@ -24,9 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(lockDuration >= MIN_LOCK_DURATION_SECONDS, "lock too short");
             ExecutionEngine.Assert(lockDuration <= MAX_LOCK_DURATION_SECONDS, "lock too long");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             ValidatePaymentReceipt(APP_ID, owner, BURY_FEE, receiptId);
 

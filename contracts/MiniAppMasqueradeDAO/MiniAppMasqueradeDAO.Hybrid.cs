@@ -130,9 +130,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(mask.Active, "mask inactive");
             ExecutionEngine.Assert(choice >= 1 && choice <= 3, "invalid choice");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(voter), "unauthorized");
+            ValidateUserOrAbstractAccount(voter);
 
             ProposalData proposal = GetProposal(proposalId);
             ExecutionEngine.Assert(proposal.Id > 0, "proposal not found");
@@ -194,9 +192,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(mask.Owner == owner, "not mask owner");
             ExecutionEngine.Assert(mask.Active, "mask inactive");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             // Get current delegation
             BigInteger currentDelegation = GetDelegation(maskId);

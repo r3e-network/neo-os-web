@@ -21,9 +21,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(spreadType >= SPREAD_SINGLE && spreadType <= SPREAD_CELTIC_CROSS, "invalid spread");
             ExecutionEngine.Assert(category >= 1 && category <= 5, "invalid category");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(user), "unauthorized");
+            ValidateUserOrAbstractAccount(user);
 
             BigInteger fee = GetSpreadFee(spreadType);
             ValidatePaymentReceipt(APP_ID, user, fee, receiptId);
@@ -197,18 +195,18 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger RequestRng(BigInteger readingId, BigInteger cardCount)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
 
             ByteString payload = StdLib.Serialize(new object[] { readingId, cardCount });
-            return (BigInteger)Contract.Call(gateway, "requestService", CallFlags.All,
-                APP_ID, "rng", payload, Runtime.ExecutingScriptHash, "onServiceCallback");
+            return (BigInteger)Contract.Call(oracle, "request", CallFlags.All,
+                "rng", payload, Runtime.ExecutingScriptHash, "onOracleResult");
         }
 
-        public static void OnServiceCallback(BigInteger requestId, string appId, string serviceType,
+        public static void OnOracleResult(BigInteger requestId, string requestType,
             bool success, ByteString result, string error)
         {
-            ValidateGateway();
+            ValidateOracle();
 
             ByteString readingIdData = Storage.Get(Storage.CurrentContext,
                 Helper.Concat((ByteString)PREFIX_REQUEST_MAP, (ByteString)requestId.ToByteArray()));

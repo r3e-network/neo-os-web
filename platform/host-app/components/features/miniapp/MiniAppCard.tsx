@@ -3,7 +3,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { buildMiniAppBannerSources } from "@/lib/miniapp-media";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { Users, Activity } from "lucide-react";

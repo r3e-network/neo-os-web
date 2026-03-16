@@ -8,6 +8,10 @@ This package is the TypeScript SDK matching the platform blueprint:
 - Calls go to **Supabase Edge**, which enforces policy and either:
   - returns an invocation for the wallet to sign (user-signed flows), or
   - forwards to a TEE service (RNG/compute/oracle).
+- The preferred platform architecture is direct Oracle / direct AA.
+- AA relay integration is intentionally kept outside the core SDK surface today;
+  the platform consumes it through `useAbstractAccount()` and the host
+  `/api/aa/relay` proxy backed by `AA_RELAY_URL`.
 
 Code lives under `platform/sdk/src/`.
 
@@ -76,6 +80,10 @@ const job = await host.compute.execute({
 });
 console.log(job.job_id, job.status);
 ```
+
+If the script source is too large for inline payloads, use the platform's
+registered-script flow (`compute-app-execute`) through the shared
+`useOracle().executeRegisteredScript(...)` helper or your own host-side call.
 
 ## Automation (Host-only)
 

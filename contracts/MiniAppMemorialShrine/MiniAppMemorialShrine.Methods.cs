@@ -27,9 +27,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateNotGloballyPaused(APP_ID);
             
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
+            ValidateUserOrAbstractAccount(creator);
 
             // 验证输入
             ExecutionEngine.Assert(deceasedName.Length > 0 && deceasedName.Length <= 100, "invalid name");
@@ -92,9 +90,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(memorial.Creator != UInt160.Zero, "memorial not found");
             ExecutionEngine.Assert(memorial.Creator == caller, "not owner");
             
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(caller), "unauthorized");
+            ValidateUserOrAbstractAccount(caller);
 
             ExecutionEngine.Assert(biography.Length <= 2000, "biography too long");
             ExecutionEngine.Assert(obituary.Length <= 1000, "obituary too long");
@@ -123,9 +119,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateNotGloballyPaused(APP_ID);
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(visitor), "unauthorized");
+            ValidateUserOrAbstractAccount(visitor);
 
             Memorial memorial = GetMemorial(memorialId);
             ExecutionEngine.Assert(memorial.Active, "memorial not found");
