@@ -10,7 +10,7 @@
  * - Abstract Account (AA) via social login
  */
 import { ref, type Ref } from "vue";
-import { getMiniAppContractHash, getNetwork, getPaymentHubHash, type NeoNetwork, N3INDEX_API } from "../constants/rpc";
+import { getMiniAppContractHash, getNetwork, getPaymentHubHash, getRpcUrl, type NeoNetwork, N3INDEX_API } from "../constants/rpc";
 
 // Re-export types that were previously in @neo/types
 export interface WalletSDK {
@@ -372,6 +372,60 @@ export interface PaymentResult {
 export function usePayments(appId?: string) {
   const wallet = useWallet();
 
+  const fetchApplicationLog = async (rpcUrl: string, txid: string) => {
+    const response = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "getapplicationlog",
+        params: [txid],
+        id: 1,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok || payload.error) {
+      throw new Error(payload?.error?.message || "failed to fetch application log");
+    }
+    return payload.result;
+  };
+
+  const extractReceiptIdFromLog = (log: any, paymentHubHash: string): string => {
+    const executions = Array.isArray(log?.executions) ? log.executions : [];
+    for (const execution of executions) {
+      const notifications = Array.isArray(execution?.notifications) ? execution.notifications : [];
+      for (const notification of notifications) {
+        if (
+          String(notification?.contract || "").toLowerCase() === String(paymentHubHash || "").toLowerCase() &&
+          String(notification?.eventname || "") === "PaymentReceived"
+        ) {
+          const values = notification?.state?.value;
+          const receipt = Array.isArray(values) ? values[0] : null;
+          if (receipt?.type === "Integer") {
+            return String(receipt.value || "");
+          }
+        }
+      }
+    }
+    return "";
+  };
+
+  const waitForReceiptId = async (txid: string, paymentHubHash: string, timeoutMs = 30000): Promise<string> => {
+    const rpcUrl = getRpcUrl();
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      try {
+        const log = await fetchApplicationLog(rpcUrl, txid);
+        const receiptId = extractReceiptIdFromLog(log, paymentHubHash);
+        if (receiptId) return receiptId;
+      } catch {
+        // retry until timeout
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    throw new Error("Payment receipt not found");
+  };
+
   const payGAS = async (
     amount: string,
     memo: string,
@@ -394,14 +448,17 @@ export function usePayments(appId?: string) {
         { type: "Hash160", value: wallet.address.value },
         { type: "Hash160", value: paymentHubHash },
         { type: "Integer", value: amountFixed8 },
-        { type: "String", value: `${scopedAppId}:${memo}` },
+        { type: "String", value: scopedAppId },
       ],
     });
 
+    const txid = result.txid ?? "";
+    const receiptId = txid ? await waitForReceiptId(txid, paymentHubHash) : "";
+
     return {
-      request_id: result.txid ?? "",
-      receipt_id: result.txid ?? "",
-      txid: result.txid ?? "",
+      request_id: txid,
+      receipt_id: receiptId,
+      txid,
     };
   };
 

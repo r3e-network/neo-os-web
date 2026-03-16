@@ -183,6 +183,19 @@ export function useStreamVault(t: (key: string) => string) {
       const notes = formData.notes.trim().slice(0, 240);
 
       await invokeContract({
+        scriptHash: assetHash,
+        operation: "transfer",
+        args: [
+          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: totalFixed },
+          { type: "Any", value: null },
+        ],
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      await invokeContract({
         scriptHash: contract,
         operation: "CreateStream",
         args: [
