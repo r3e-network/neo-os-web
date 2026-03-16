@@ -139,102 +139,33 @@ Current Neo N3 testnet platform contract values from `.env`:
 | AppRegistry         | `0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d` | MiniApp registration      |
 | AutomationAnchor    | `0xa016f7be94ad7c4d87ad2f8d38784797c2dc494b` | Periodic task scheduling  |
 
-## MiniApps (62 Apps)
+## MiniApps
 
-MiniApp contracts use the shared `MiniAppContract` partial class pattern. New
-user-facing service integrations use direct Oracle / direct AA paths.
+The repository currently contains **35 Neo N3 miniapp manifests** under `apps/*`.
+Those manifests are the practical source of truth for the current catalog.
 
-### 🎮 Gaming (15 Apps)
+Category spread:
 
-| App             | Contract               | Description                       |
-| --------------- | ---------------------- | --------------------------------- |
-| Lottery         | `MiniAppLottery`       | Provable VRF lottery with jackpot |
-| Coin Flip       | `MiniAppCoinFlip`      | 50/50 double-or-nothing           |
-| Dice Game       | `MiniAppDiceGame`      | Roll dice, win up to 6x           |
-| Scratch Card    | `MiniAppScratchCard`   | Instant win scratch cards         |
-| Neo Crash       | `MiniAppNeoCrash`      | Multiplier crash game             |
-| No-Loss Lottery | `MiniAppNoLossLottery` | Stake to win, keep principal      |
-| Fog Chess       | `MiniAppFogChess`      | Chess with fog of war             |
-| Fog Puzzle      | `MiniAppFogPuzzle`     | Hidden puzzle solving             |
-| Secret Poker    | `MiniAppSecretPoker`   | TEE Texas Hold'em                 |
-| Algo Battle     | `MiniAppAlgoBattle`    | Algorithm competition             |
-| Puzzle Mining   | `MiniAppPuzzleMining`  | Solve puzzles to earn             |
-| Crypto Riddle   | `MiniAppCryptoRiddle`  | Cryptographic puzzles             |
-| On-Chain Tarot  | `MiniAppOnChainTarot`  | VRF-based tarot readings          |
-| World Piano     | `MiniAppWorldPiano`    | Collaborative music creation      |
-| Scream to Earn  | `MiniAppScreamToEarn`  | Voice-activated rewards           |
+- `games`: 6
+- `finance`: 7
+- `social`: 8
+- `governance`: 3
+- `tools`: 11
 
-### 💰 DeFi (14 Apps)
+Current featured flagship 7:
 
-| App               | Contract                  | Description                 |
-| ----------------- | ------------------------- | --------------------------- |
-| Flash Loan        | `MiniAppFlashLoan`        | Instant borrow and repay    |
-| Grid Bot          | `MiniAppGridBot`          | Automated grid trading      |
-| AI Trader         | `MiniAppAITrader`         | Autonomous trading agent    |
-| Price Ticker      | `MiniAppPriceTicker`      | Real-time price feeds       |
-| Prediction Market | `MiniAppPredictionMarket` | Price movement predictions  |
-| IL Guard          | `MiniAppILGuard`          | Impermanent loss protection |
-| Candle Wars       | `MiniAppCandleWars`       | Price candle predictions    |
-| Dark Pool         | `MiniAppDarkPool`         | Anonymous large trades      |
-| Dutch Auction     | `MiniAppDutchAuction`     | Descending price auctions   |
-| Self Loan         | `MiniAppSelfLoan`         | Self-collateralized loans   |
-| Compound Capsule  | `MiniAppCompoundCapsule`  | Auto-compounding yields     |
-| Quantum Swap      | `MiniAppQuantumSwap`      | Atomic token swaps          |
-| Melting Asset     | `MiniAppMeltingAsset`     | Time-decaying tokens        |
-| NeoBurger         | External Integration      | NEO staking for GAS rewards |
+| Featured app | App ID | Current role |
+| --- | --- | --- |
+| SelfLoan | `miniapp-self-loan` | direct NEO-collateral loan flow |
+| Red Envelope | `miniapp-redenvelope` | prepaid GAS + Oracle callback flow |
+| FogPlay | `miniapp-coinflip` | prepaid GAS + Oracle RNG callback flow |
+| Daily Check-in | `miniapp-dailycheckin` | direct GAS check-in reward path |
+| LastSurvivor | `miniapp-doomsday-clock` | PaymentHub receipt-based key purchase |
+| NeoPay | `miniapp-stream-vault` | prepaid asset credit recurring streams |
+| GASBOX | `miniapp-neo-gacha` | prepaid GAS hybrid gacha settlement |
 
-### 👥 Social (12 Apps)
-
-| App              | Contract                 | Description               |
-| ---------------- | ------------------------ | ------------------------- |
-| Red Envelope     | `MiniAppRedEnvelope`     | Social GAS red packets    |
-| Gas Circle       | `MiniAppGasCircle`       | Daily savings circle      |
-| Secret Vote      | `MiniAppSecretVote`      | Privacy-preserving voting |
-| Whisper Chain    | `MiniAppWhisperChain`    | Anonymous messaging       |
-| Dev Tipping      | `MiniAppDevTipping`      | Developer appreciation    |
-| Bounty Hunter    | `MiniAppBountyHunter`    | Bug bounty platform       |
-| Breakup Contract | `MiniAppBreakupContract` | Relationship agreements   |
-| Ex Files         | `MiniAppExFiles`         | Shared memory vault       |
-| AI Soulmate      | `MiniAppAISoulmate`      | AI companion matching     |
-| Geo Spotlight    | `MiniAppGeoSpotlight`    | Location-based discovery  |
-| Masquerade DAO   | `MiniAppMasqueradeDAO`   | Anonymous governance      |
-| Dark Radio       | `MiniAppDarkRadio`       | Anonymous broadcasting    |
-
-### 🎨 NFT (8 Apps)
-
-| App               | Contract                 | Description                 |
-| ----------------- | ------------------------ | --------------------------- |
-| Canvas            | `MiniAppCanvas`          | Collaborative pixel art NFT |
-| NFT Evolve        | `MiniAppNFTEvolve`       | Dynamic NFT evolution       |
-| NFT Chimera       | `MiniAppNFTChimera`      | NFT fusion and breeding     |
-| Schrodinger NFT   | `MiniAppSchrodingerNFT`  | Quantum state NFTs          |
-| Garden of Neo     | `MiniAppGardenOfNeo`     | Virtual garden NFTs         |
-| Million Piece Map | `MiniAppMillionPieceMap` | Collaborative world map     |
-| Pay to View       | `MiniAppPayToView`       | Gated content access        |
-| Graveyard         | `MiniAppGraveyard`       | NFT memorial                |
-
-### 🏛️ Governance (6 Apps)
-
-| App             | Contract                | Description               |
-| --------------- | ----------------------- | ------------------------- |
-| Gov Booster     | `MiniAppGovBooster`     | NEO governance tools      |
-| Candidate Vote  | `MiniAppCandidateVote`  | Vote for consensus nodes  |
-| Gov Merc        | `MiniAppGovMerc`        | Governance delegation     |
-| Guardian Policy | `MiniAppGuardianPolicy` | TEE transaction security  |
-| Bridge Guardian | `MiniAppBridgeGuardian` | Cross-chain asset bridge  |
-| Burn League     | `MiniAppBurnLeague`     | Token burning competition |
-
-### 🔧 Utility (7 Apps)
-
-| App               | Contract                  | Description                |
-| ----------------- | ------------------------- | -------------------------- |
-| Time Capsule      | `MiniAppTimeCapsule`      | Time-locked messages       |
-| Dead Switch       | `MiniAppDeadSwitch`       | Dead man's switch          |
-| Heritage Trust    | `MiniAppHeritageTrust`    | Digital inheritance        |
-| Unbreakable Vault | `MiniAppUnbreakableVault` | Secure asset storage       |
-| ZK Badge          | `MiniAppZKBadge`          | Zero-knowledge credentials |
-| Doomsday Clock    | `MiniAppDoomsdayClock`    | Countdown events           |
-| Parasite          | `MiniAppParasite`         | Token attachment protocol  |
+For current verified testnet behavior of these flagship apps, see
+[`docs/reports/2026-03-16-flagship-live-user-flows.md`](docs/reports/2026-03-16-flagship-live-user-flows.md).
 
 ## Quick Start
 
