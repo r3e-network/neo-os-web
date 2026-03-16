@@ -108,6 +108,11 @@ This report covers the first-wave flagship Neo N3 miniapps:
   - request id `3858` fulfilled successfully on testnet
   - envelope `3` became `Ready = true`
   - claim tx `0x0ede646f330c9c7ba4a873da00629ac0584fe954c398334d5cd5a376ce6b1a2d` completed and transferred GAS
+- `SelfLoan` testnet contract was updated in place at `0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b` to use direct NEO collateral credit plus explicit GAS pool funding.
+- `SelfLoan` live borrow path was validated on testnet:
+  - collateral transfer tx: `0xb2597e1f0ccb16e14b5b97b0f1788084ea83c6fbd2da185323cdb002783e9ac9`
+  - loan creation tx: `0xd3efe7e23da846911b45784737f2c754eb866f3ad81b6724630f0bbaf2892f3f`
+  - resulting loan: `loanId = 1`, `collateral = 1`, `debt = 20000000`
 - `FogPlay` PvP duel scaffold was removed again so the codebase matches the current single-player user-versus-system product decision.
 - Host contract stats and live-status queries were retargeted to the currently deployed flagship testnet contracts and verified against live RPC responses.
 - Host public miniapp definitions were updated to the latest flagship testnet contract hashes.

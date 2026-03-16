@@ -20,15 +20,13 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(ltvTier >= 1 && ltvTier <= 3, "invalid LTV tier (1-3)");
 
             ValidateUserOrAbstractAccount(borrower);
-
-            bool transferred = NEO.Transfer(borrower, Runtime.ExecutingScriptHash, neoAmount);
-            ExecutionEngine.Assert(transferred, "NEO transfer failed");
+            ConsumeDirectNeoCollateral(borrower, neoAmount);
 
             BigInteger loanId = TotalLoans() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_LOAN_ID, loanId);
 
             BigInteger ltvBps = GetLtvForTier(ltvTier);
-            BigInteger loanAmount = neoAmount * ltvBps / 10000;
+            BigInteger loanAmount = neoAmount * GAS_FIXED8 * ltvBps / 10000;
             BigInteger fee = loanAmount * PLATFORM_FEE_BPS / 10000;
             BigInteger netLoan = loanAmount - fee;
 
@@ -109,9 +107,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(neoAmount > 0, "invalid amount");
 
             ValidateUserOrAbstractAccount(depositor);
-
-            bool transferred = NEO.Transfer(depositor, Runtime.ExecutingScriptHash, neoAmount);
-            ExecutionEngine.Assert(transferred, "NEO transfer failed");
+            ConsumeDirectNeoCollateral(depositor, neoAmount);
 
             loan.Collateral += neoAmount;
             StoreLoan(loanId, loan);
@@ -136,7 +132,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             BigInteger newCollateral = loan.Collateral - neoAmount;
             BigInteger newHealthFactor = loan.Debt > 0
-                ? newCollateral * LIQUIDATION_THRESHOLD_BPS / loan.Debt
+                ? newCollateral * GAS_FIXED8 * 100 / loan.Debt
                 : 10000;
 
             ExecutionEngine.Assert(newHealthFactor >= MIN_HEALTH_FACTOR * 15 / 10, "health factor too low");
@@ -190,7 +186,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             // Estimate GAS yield (simplified: ~5% APY on NEO)
             BigInteger yearSeconds = 365 * 86400;
-            BigInteger estimatedYield = loan.Collateral * 500 * elapsed / (10000 * yearSeconds);
+            BigInteger estimatedYield = loan.Collateral * GAS_FIXED8 * 500 * elapsed / (10000 * yearSeconds);
 
             if (estimatedYield > 0)
             {
