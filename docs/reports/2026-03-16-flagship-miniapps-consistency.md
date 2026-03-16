@@ -30,9 +30,9 @@ This report covers the first-wave flagship Neo N3 miniapps:
 | --- | --- |
 | LastSurvivor | `0xf0914d411877c8393c029f48ec0c4c64d44f1b49` |
 | GASBOX | `0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d` |
-| Red Envelope | `0xa28379b2e0a608053458d435acd7041fc4a0fded` |
-| Daily Check-in | `0x297bfabe68535ab1abfadb843d5a5c00db7aca75` |
-| FogPlay | `0x01d0e1f78ea5a76b6bb0bce26649d5bf449999e0` |
+| Red Envelope | `0x4079c09a0ff121fc44d817c37d6ae8694b268e9f` |
+| Daily Check-in | `0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528` |
+| FogPlay | `0x43f953c00931ca38044bf0e5ca50d608aea7ae8b` |
 | SelfLoan | `0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b` |
 | NeoPay | `0x89d2499928e3035247186f412934d6b0e0b665ef` |
 
@@ -94,6 +94,20 @@ This report covers the first-wave flagship Neo N3 miniapps:
   - waits for `BetPlaced`
   - polls `BetResolved`
   - no longer calls the nonexistent `initiateBet / settleBet` flow
+- Morpheus Oracle integration for contract-mediated callback flows was updated
+  to use `requestFromCallback(...)`, which fixes the prior nested-call
+  `unauthorized requester` fault for direct MiniApp -> Oracle execution.
+- Shared testnet `rng` routing was corrected in the local relayer stack so
+  `request_type = rng` now reaches `/vrf/random` and returns raw 32-byte
+  randomness bytes instead of being misrouted to URL fetch handling.
+- `FogPlay` was revalidated against the new testnet deployment:
+  - contract: `0x43f953c00931ca38044bf0e5ca50d608aea7ae8b`
+  - request id `3857` fulfilled successfully on testnet
+- `Red Envelope` was revalidated against the new testnet deployment:
+  - contract: `0x4079c09a0ff121fc44d817c37d6ae8694b268e9f`
+  - request id `3858` fulfilled successfully on testnet
+  - envelope `3` became `Ready = true`
+  - claim tx `0x0ede646f330c9c7ba4a873da00629ac0584fe954c398334d5cd5a376ce6b1a2d` completed and transferred GAS
 - `FogPlay` PvP duel scaffold was removed again so the codebase matches the current single-player user-versus-system product decision.
 - Host contract stats and live-status queries were retargeted to the currently deployed flagship testnet contracts and verified against live RPC responses.
 - Host public miniapp definitions were updated to the latest flagship testnet contract hashes.
@@ -121,7 +135,6 @@ This report covers the first-wave flagship Neo N3 miniapps:
 
 Remaining work is now concentrated in deeper end-to-end product execution rather than address drift.
 
-- Red Envelope and FogPlay still depend on emitted payout / claim events and do not yet have a fully closed production payout executor inside this repository.
 - Most flagship miniapps still use direct wallet flow rather than a fully wired AA relay / paymaster UX.
 
 ## Additional Notes

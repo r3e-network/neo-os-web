@@ -45,12 +45,13 @@ const props = defineProps<{
   displayOutcome: "heads" | "tails" | null;
   isFlipping: boolean;
   result: GameResult | null;
+  t: (key: string) => string;
 }>();
 
 const statusText = computed(() => {
-  if (props.isFlipping) return t("flipping");
-  if (props.result) return props.result.won ? t("youWon") : t("youLost");
-  return t("placeBet");
+  if (props.isFlipping) return props.t("flipping");
+  if (props.result) return props.result.won ? props.t("youWon") : props.t("youLost");
+  return props.t("placeBet");
 });
 </script>
 

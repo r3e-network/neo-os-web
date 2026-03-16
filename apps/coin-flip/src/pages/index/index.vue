@@ -33,7 +33,7 @@
 
         <!-- 3D Coin Display -->
         <div class="hero-coin-stage">
-          <CoinArena :display-outcome="displayOutcome" :is-flipping="isFlipping" :result="result" />
+          <CoinArena :display-outcome="displayOutcome" :is-flipping="isFlipping" :result="result" :t="t" />
         </div>
 
         <!-- Side Labels -->

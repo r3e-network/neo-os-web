@@ -133,15 +133,18 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
+            ValidateUserOrAbstractAccount(player);
+            ConsumeDirectGasCredit(player, amount);
+            return PlaceBetInternal(player, amount, choice);
+        }
+
+        private static BigInteger PlaceBetInternal(UInt160 player, BigInteger amount, bool choice)
+        {
             ExecutionEngine.Assert(amount >= MIN_BET, "min bet 0.05 GAS");
             ExecutionEngine.Assert(amount <= MAX_BET, "max bet 50 GAS (anti-Martingale)");
 
             // Anti-Martingale: Validate bet limits (daily cap, cooldown, consecutive)
             ValidateBetLimits(player, amount);
-
-            ValidateUserOrAbstractAccount(player);
-
-            ValidatePaymentReceipt(APP_ID, player, amount, receiptId);
 
             // Generate bet ID
             BigInteger betId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_BET_ID) + 1;
@@ -162,7 +165,7 @@ namespace NeoMiniAppPlatform.Contracts
             RecordBet(player, amount);
 
             // Request randomness from the configured oracle contract
-            BigInteger requestId = RequestRng(betId);
+            BigInteger requestId = RequestRng(player, betId);
 
             // Map request to bet for callback resolution
             Storage.Put(Storage.CurrentContext,
@@ -198,23 +201,10 @@ namespace NeoMiniAppPlatform.Contracts
         /// - Provides callback contract and method
         /// - Oracle will call OnOracleResult when RNG is ready
         /// </summary>
-        private static BigInteger RequestRng(BigInteger betId)
+        private static BigInteger RequestRng(UInt160 requester, BigInteger betId)
         {
-            UInt160 oracle = Oracle();
-            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
-
-            // Payload contains betId for reference
             ByteString payload = StdLib.Serialize(new object[] { betId });
-
-            return (BigInteger)Contract.Call(
-                oracle,
-                "request",
-                CallFlags.All,
-                "rng",
-                payload,
-                Runtime.ExecutingScriptHash,
-                "onOracleResult"
-            );
+            return RequestOracleForCallback(requester, "rng", payload);
         }
 
         /// <summary>
@@ -282,6 +272,11 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         #endregion
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
+        }
 
         #region Internal Storage Helpers
 

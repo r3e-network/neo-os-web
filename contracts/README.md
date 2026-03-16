@@ -72,10 +72,9 @@ private static readonly byte[] PREFIX_BETS = new byte[] { 0x11 };
 private static readonly byte[] PREFIX_REQUEST_TO_BET = new byte[] { 0x12 };
 
 // Request service from Morpheus Oracle
-private static BigInteger RequestRng(BigInteger betId)
+private static BigInteger RequestRng(UInt160 player, BigInteger betId)
 {
-    return Contract.Call(Oracle(), "request", CallFlags.All,
-        "rng", payload, Runtime.ExecutingScriptHash, "onOracleResult");
+    return RequestOracleForCallback(player, "rng", payload);
 }
 
 // Receive callback from Morpheus Oracle
@@ -96,7 +95,7 @@ MiniApp contracts follow a **Chainlink-style oracle pattern** where contracts ac
 │  1. USER ACTION: Invoke MiniApp Contract                        │
 │     User calls MiniApp method (e.g., PlaceBet, CreateGrid)      │
 │     → Contract stores bet/position data                         │
-│     → Contract calls MorpheusOracle.request(requestType, payload)│
+│     → Contract calls MorpheusOracle.requestFromCallback(...)     │
 ├─────────────────────────────────────────────────────────────────┤
 │  2. ORACLE ACTION: Route to TEE Service                         │
 │     Morpheus Oracle routes request to off-chain service         │
@@ -116,7 +115,8 @@ MiniApp contracts follow a **Chainlink-style oracle pattern** where contracts ac
 
 **Service Types:**
 
-- `rng` - Random number generation (gaming, NFT evolution)
+- `rng` - Random number generation (gaming, NFT evolution); callback result is
+  raw 32-byte randomness
 - `pricefeed` - Price oracle data (prediction markets, trading)
 - `bridge-oracle` - Cross-chain verification (bridges)
 
