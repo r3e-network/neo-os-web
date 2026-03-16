@@ -31,6 +31,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_USER_STREAM_COUNT = new byte[] { 0x23 };
         private static readonly byte[] PREFIX_BENEFICIARY_STREAMS = new byte[] { 0x24 };
         private static readonly byte[] PREFIX_BENEFICIARY_STREAM_COUNT = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_PENDING_ASSET_CREDIT = new byte[] { 0x26 };
 
         public struct StreamData
         {
@@ -64,6 +65,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(isSupportedAsset, "unsupported asset");
             if (from == Runtime.ExecutingScriptHash) return;
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            CreditPendingAsset(from, Runtime.CallingScriptHash, amount);
         }
 
         public static void _deploy(object data, bool update)
@@ -143,8 +145,11 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(normalizedTitle.Length <= MAX_TITLE_LENGTH, "title too long");
             ExecutionEngine.Assert(normalizedNotes.Length <= MAX_NOTES_LENGTH, "notes too long");
 
-            bool transferred = TransferAsset(asset, creator, Runtime.ExecutingScriptHash, totalAmount);
-            ExecutionEngine.Assert(transferred, "asset transfer failed");
+            if (!TryConsumePendingAsset(creator, asset, totalAmount))
+            {
+                bool transferred = TransferAsset(asset, creator, Runtime.ExecutingScriptHash, totalAmount);
+                ExecutionEngine.Assert(transferred, "asset transfer failed");
+            }
 
             BigInteger streamId = TotalStreams() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_STREAM_ID, streamId);
@@ -232,6 +237,42 @@ namespace NeoMiniAppPlatform.Contracts
         {
             if (amount <= 0) return true;
             return (bool)Contract.Call(asset, "transfer", CallFlags.All, from, to, amount, null);
+        }
+
+        private static byte[] PendingAssetCreditKey(UInt160 owner, UInt160 asset) =>
+            Helper.Concat(
+                PREFIX_PENDING_ASSET_CREDIT,
+                (ByteString)((string)owner + "|" + (string)asset));
+
+        private static BigInteger GetPendingAssetCredit(UInt160 owner, UInt160 asset)
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PendingAssetCreditKey(owner, asset));
+            return data == null ? 0 : (BigInteger)data;
+        }
+
+        private static void CreditPendingAsset(UInt160 owner, UInt160 asset, BigInteger amount)
+        {
+            BigInteger current = GetPendingAssetCredit(owner, asset);
+            Storage.Put(Storage.CurrentContext, PendingAssetCreditKey(owner, asset), current + amount);
+        }
+
+        private static bool TryConsumePendingAsset(UInt160 owner, UInt160 asset, BigInteger amount)
+        {
+            BigInteger current = GetPendingAssetCredit(owner, asset);
+            if (current < amount) return false;
+
+            BigInteger next = current - amount;
+            byte[] key = PendingAssetCreditKey(owner, asset);
+            if (next == 0)
+            {
+                Storage.Delete(Storage.CurrentContext, key);
+            }
+            else
+            {
+                Storage.Put(Storage.CurrentContext, key, next);
+            }
+
+            return true;
         }
 
         private static void StoreStream(BigInteger streamId, StreamData stream)

@@ -16,6 +16,7 @@ const WIF =
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_TESTNET_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52").trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+const PAYMENT_HUB_HASH = "0x340cb33d770b38f26d066716dd1f9df5283d629e";
 
 const DAILY_CHECKIN_FEE = "100000";
 const FOGPLAY_BET = "5000000";
@@ -118,7 +119,7 @@ async function transferGAS(toHash, amount, memo) {
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.hash160(toHash),
     Neon.sc.ContractParam.integer(String(amount)),
-    typeof memo === "string" ? memo : Neon.sc.ContractParam.hash160(memo),
+    memo == null ? Neon.sc.ContractParam.any(null) : typeof memo === "string" ? memo : Neon.sc.ContractParam.hash160(memo),
   ]);
   const { execution } = await waitForLog(txid);
   if (execution.vmstate !== "HALT") {
@@ -172,6 +173,28 @@ async function waitForEnvelopeReady(contractHash, envelopeId, timeoutMs = 120000
   throw new Error(`timed out waiting for envelope ${envelopeId} to become ready`);
 }
 
+async function getOracleRequestFee() {
+  const fee = await invokeRead(ORACLE_HASH, "requestFee");
+  return String(fee || "1000000");
+}
+
+async function topUpOracleCallbackCredit(callbackContractHash) {
+  const fee = await getOracleRequestFee();
+  const cleanHash = String(callbackContractHash || "").replace(/^0x/i, "");
+  const callbackBytes = Buffer.from(cleanHash, "hex").reverse();
+  const txid = await gasContract.invoke("transfer", [
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.hash160(ORACLE_HASH),
+    Neon.sc.ContractParam.integer(String(fee)),
+    Neon.sc.ContractParam.byteArray(callbackBytes.toString("base64")),
+  ]);
+  const { execution } = await waitForLog(txid);
+  if (execution.vmstate !== "HALT") {
+    throw new Error(execution.exception || "oracle fee top-up failed");
+  }
+  return asTxid(txid);
+}
+
 async function findPlayableGasBoxMachine(contractHash) {
   const total = Number(await invokeRead(contractHash, "totalMachines"));
   for (let machineId = 1; machineId <= total; machineId += 1) {
@@ -191,6 +214,77 @@ async function findPlayableGasBoxMachine(contractHash) {
   throw new Error("no active GASBOX machine with funded GAS prize inventory found");
 }
 
+async function provisionGasBoxMachine(contractHash) {
+  const contract = new Neon.experimental.SmartContract(contractHash, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account,
+  });
+  const machineName = `Codex Live Box ${Date.now()}`;
+  const createTx = await contract.invoke("createMachine", [
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.string(machineName),
+    Neon.sc.ContractParam.string("Live validation machine"),
+    Neon.sc.ContractParam.string("games"),
+    Neon.sc.ContractParam.string("gasbox,validation"),
+    Neon.sc.ContractParam.integer("10000000"),
+  ]);
+  const createLog = await waitForLog(createTx);
+  if (createLog.execution.vmstate !== "HALT") {
+    throw new Error(createLog.execution.exception || "createMachine failed");
+  }
+  const created = findNotification(createLog.execution, contractHash, "MachineCreated");
+  if (!created) throw new Error("MachineCreated notification missing");
+  const machineId = Number(stackValue(created.state?.value?.[1]));
+
+  const addItemTx = await contract.invoke("addMachineItem", [
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.integer(String(machineId)),
+    Neon.sc.ContractParam.string("Small GAS Prize"),
+    Neon.sc.ContractParam.integer("100"),
+    Neon.sc.ContractParam.string("COMMON"),
+    Neon.sc.ContractParam.integer("1"),
+    Neon.sc.ContractParam.hash160(GAS_HASH),
+    Neon.sc.ContractParam.integer("1000000"),
+    Neon.sc.ContractParam.string(""),
+  ]);
+  const addItemLog = await waitForLog(addItemTx);
+  if (addItemLog.execution.vmstate !== "HALT") {
+    throw new Error(addItemLog.execution.exception || "addMachineItem failed");
+  }
+
+  const fundTx = await transferGAS(contractHash, "5000000", null);
+  await sleep(4000);
+  const depositTx = await contract.invoke("depositItem", [
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.integer(String(machineId)),
+    Neon.sc.ContractParam.integer("1"),
+    Neon.sc.ContractParam.integer("5000000"),
+  ]);
+  const depositLog = await waitForLog(depositTx);
+  if (depositLog.execution.vmstate !== "HALT") {
+    throw new Error(depositLog.execution.exception || "depositItem failed");
+  }
+
+  const activateTx = await contract.invoke("setMachineActiveWithValidation", [
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.integer(String(machineId)),
+    Neon.sc.ContractParam.boolean(true),
+    Neon.sc.ContractParam.integer("1"),
+  ]);
+  const activateLog = await waitForLog(activateTx);
+  if (activateLog.execution.vmstate !== "HALT") {
+    throw new Error(activateLog.execution.exception || "setMachineActiveWithValidation failed");
+  }
+
+  const machine = await invokeRead(contractHash, "getMachine", [{ type: "Integer", value: String(machineId) }]);
+  const item = await invokeRead(contractHash, "getMachineItem", [
+    { type: "Integer", value: String(machineId) },
+    { type: "Integer", value: "1" },
+  ]);
+  return { machineId, machine, item, createTx: asTxid(createTx), fundTx, depositTx: asTxid(depositTx), activateTx: asTxid(activateTx) };
+}
+
 async function runGasBox() {
   const contractHash = testnetHash("apps/neo-gacha/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
@@ -199,7 +293,15 @@ async function runGasBox() {
     account,
   });
 
-  const { machineId, machine } = await findPlayableGasBoxMachine(contractHash);
+  let provisioned = null;
+  let playable;
+  try {
+    playable = await findPlayableGasBoxMachine(contractHash);
+  } catch {
+    provisioned = await provisionGasBoxMachine(contractHash);
+    playable = { machineId: provisioned.machineId, machine: provisioned.machine };
+  }
+  const { machineId, machine } = playable;
   const playPrice = String(machine.price || "0");
   if (!playPrice || playPrice === "0") {
     throw new Error(`invalid GASBOX machine price for machine ${machineId}`);
@@ -246,6 +348,7 @@ async function runGasBox() {
   return {
     contractHash,
     machineId,
+    provisioned,
     transferTx,
     initiateTx: asTxid(initiateTx),
     playId,
@@ -266,6 +369,98 @@ async function runDailyCheckin() {
   return { contractHash, txid };
 }
 
+async function runLastSurvivor() {
+  const contractHash = testnetHash("apps/doomsday-clock/neo-manifest.json");
+  const contract = new Neon.experimental.SmartContract(contractHash, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account,
+  });
+
+  const startRound = async () => {
+    const tx = await contract.invoke("startNewRound", []);
+    const { execution } = await waitForLog(tx);
+    if (execution.vmstate !== "HALT") {
+      throw new Error(execution.exception || "startNewRound failed");
+    }
+    const started = findNotification(execution, contractHash, "RoundStarted");
+    if (!started) throw new Error("RoundStarted notification missing");
+    return { roundId: String(stackValue(started.state?.value?.[0])), txid: asTxid(tx) };
+  };
+
+  const attemptBuy = async (roundId) => {
+    const refreshed = await invokeRead(contractHash, "getGameStatus");
+    const totalKeys = BigInt(String(refreshed.totalKeys || "0"));
+    const basePrice = 10000000n;
+    const commonDiff = (basePrice * 10n) / 10000n;
+    const cost = basePrice + totalKeys * commonDiff;
+
+    const paymentTx = await transferGAS(PAYMENT_HUB_HASH, String(cost), "miniapp-doomsday-clock");
+    const paymentLog = await waitForLog(paymentTx);
+    const receipt = findNotification(paymentLog.execution, PAYMENT_HUB_HASH, "PaymentReceived");
+    if (!receipt) throw new Error("PaymentReceived notification missing");
+    const receiptId = stackValue(receipt.state?.value?.[0]);
+
+    const buyTx = await contract.invoke("buyKeysWithCost", [
+      Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+      Neon.sc.ContractParam.integer("1"),
+      Neon.sc.ContractParam.integer(String(cost)),
+      Neon.sc.ContractParam.integer(String(receiptId)),
+    ]);
+    const { execution } = await waitForLog(buyTx);
+    if (execution.vmstate !== "HALT") {
+      throw new Error(execution.exception || "buyKeysWithCost failed");
+    }
+    return {
+      cost: String(cost),
+      paymentTx,
+      receiptId,
+      buyTx: asTxid(buyTx),
+      purchased: !!findNotification(execution, contractHash, "KeysPurchased"),
+      extended: !!findNotification(execution, contractHash, "TimeExtended"),
+      settled: !!findNotification(execution, contractHash, "DoomsdayWinner"),
+    };
+  };
+
+  const status = await invokeRead(contractHash, "getGameStatus");
+  let roundId = String(status.roundId || "0");
+  let startTx = "";
+  if (status.active !== true) {
+    const started = await startRound();
+    roundId = started.roundId;
+    startTx = started.txid;
+  }
+
+  let result = await attemptBuy(roundId);
+  if (!result.purchased || !result.extended) {
+    const started = await startRound();
+    roundId = started.roundId;
+    startTx = startTx || started.txid;
+    result = await attemptBuy(roundId);
+  }
+
+  if (!result.purchased || !result.extended) {
+    throw new Error("KeysPurchased or TimeExtended notification missing");
+  }
+
+  const after = await invokeRead(contractHash, "getGameStatus");
+  const userKeys = await invokeRead(contractHash, "getPlayerKeys", [
+    { type: "Hash160", value: `0x${account.scriptHash}` },
+    { type: "Integer", value: String(roundId) },
+  ]);
+  return {
+    contractHash,
+    startTx,
+    roundId,
+    cost: result.cost,
+    paymentTx: result.paymentTx,
+    receiptId: result.receiptId,
+    buyTx: result.buyTx,
+    after,
+    userKeys,
+  };
+}
+
 async function runFogPlay() {
   const contractHash = testnetHash("apps/coin-flip/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
@@ -274,6 +469,7 @@ async function runFogPlay() {
     account,
   });
 
+  const oracleFeeTx = await topUpOracleCallbackCredit(contractHash);
   const transferTx = await transferGAS(contractHash, FOGPLAY_BET, "miniapp-coinflip:bet");
   await sleep(4000);
   const betTx = await contract.invoke("placeBet", [
@@ -297,7 +493,7 @@ async function runFogPlay() {
   const requestId = stackValue(oracleRequested.state?.value?.[0]);
   const request = await waitForRequestStatus(requestId);
   const bet = await invokeRead(contractHash, "getBet", [{ type: "Integer", value: String(betId) }]);
-  return { contractHash, transferTx, betTx: asTxid(betTx), requestId, request, betId, bet };
+  return { contractHash, oracleFeeTx, transferTx, betTx: asTxid(betTx), requestId, request, betId, bet };
 }
 
 async function runRedEnvelope() {
@@ -308,6 +504,7 @@ async function runRedEnvelope() {
     account,
   });
 
+  const oracleFeeTx = await topUpOracleCallbackCredit(contractHash);
   const transferTx = await transferGAS(contractHash, RED_ENVELOPE_TOTAL, "miniapp-redenvelope:create");
   await sleep(4000);
   const createTx = await contract.invoke("createEnvelope", [
@@ -348,6 +545,7 @@ async function runRedEnvelope() {
 
   return {
     contractHash,
+    oracleFeeTx,
     transferTx,
     createTx: asTxid(createTx),
     requestId,
@@ -395,6 +593,74 @@ async function runSelfLoan() {
   };
 }
 
+async function runNeoPay() {
+  const contractHash = testnetHash("apps/stream-vault/neo-manifest.json");
+  const contract = new Neon.experimental.SmartContract(contractHash, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account,
+  });
+
+  const fundTx = await transferGAS(contractHash, "100000000", null);
+  await sleep(4000);
+
+  const createTx = await contract.invoke("createStream", [
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.hash160(GAS_HASH),
+    Neon.sc.ContractParam.integer("100000000"),
+    Neon.sc.ContractParam.integer("100000000"),
+    Neon.sc.ContractParam.integer("86400"),
+    Neon.sc.ContractParam.string("Codex Payroll Smoke"),
+    Neon.sc.ContractParam.string("testnet validation stream"),
+  ]);
+  const createLog = await waitForLog(createTx);
+  if (createLog.execution.vmstate !== "HALT") {
+    throw new Error(createLog.execution.exception || "createStream failed");
+  }
+  const created = findNotification(createLog.execution, contractHash, "StreamCreated");
+  if (!created) throw new Error("StreamCreated notification missing");
+  const streamId = stackValue(created.state?.value?.[0]);
+  const detailsBefore = await invokeRead(contractHash, "getStreamDetails", [{ type: "Integer", value: String(streamId) }]);
+
+  const claimSimulation = await rpcClient.execute(new Neon.rpc.Query({
+    method: "invokefunction",
+    params: [
+      contractHash,
+      "claimStream",
+      [
+        { type: "Hash160", value: `0x${account.scriptHash}` },
+        { type: "Integer", value: String(streamId) },
+      ],
+      [{ account: account.scriptHash, scopes: "CalledByEntry" }],
+    ],
+  }));
+
+  const cancelTx = await contract.invoke("cancelStream", [
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.integer(String(streamId)),
+  ]);
+  const cancelLog = await waitForLog(cancelTx);
+  if (cancelLog.execution.vmstate !== "HALT") {
+    throw new Error(cancelLog.execution.exception || "cancelStream failed");
+  }
+  const cancelled = findNotification(cancelLog.execution, contractHash, "StreamCancelled");
+  if (!cancelled) throw new Error("StreamCancelled notification missing");
+
+  const detailsAfter = await invokeRead(contractHash, "getStreamDetails", [{ type: "Integer", value: String(streamId) }]);
+  return {
+    contractHash,
+    fundTx,
+    createTx: asTxid(createTx),
+    streamId,
+    cancelTx: asTxid(cancelTx),
+    claimSimulationState: claimSimulation.state,
+    claimSimulationError: claimSimulation.exception || null,
+    detailsBefore,
+    detailsAfter,
+  };
+}
+
 async function main() {
   const summary = {
     generatedAt: new Date().toISOString(),
@@ -407,10 +673,12 @@ async function main() {
   let failed = false;
   for (const [label, runner] of [
     ["dailyCheckin", runDailyCheckin],
+    ["lastSurvivor", runLastSurvivor],
     ["gasBox", runGasBox],
     ["fogPlay", runFogPlay],
     ["redEnvelope", runRedEnvelope],
     ["selfLoan", runSelfLoan],
+    ["neoPay", runNeoPay],
   ]) {
     try {
       summary.results[label] = { ok: true, ...(await runner()) };
