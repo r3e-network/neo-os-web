@@ -42,7 +42,7 @@ The platform provides:
 
 - **MiniApp host UX**: the end-user shell that injects `window.MiniAppSDK`, wallet flows, feeds, stats, and MiniApp rendering.
 - **Admin UX**: manifest review, health monitoring, secrets / Oracle tooling, and operational checks.
-- **MiniApp contracts and templates**: PaymentHub, Governance, AppRegistry, AutomationAnchor, and example MiniApp contracts.
+- **MiniApp contracts and templates**: Governance, AppRegistry, AutomationAnchor, flagship/example MiniApp contracts, plus legacy/optional platform contracts such as `PaymentHub`.
 - **Thin edge gateways**: Supabase / Deno functions that authenticate users, rate-limit traffic, enforce policy, and forward Oracle / Compute / RNG / sponsorship requests to external systems.
 - **Validation and deployment scripts**: testnet workflow checks, contract scripts, and environment validators.
 
@@ -126,7 +126,7 @@ Current Neo N3 testnet platform contract values from `.env`:
 
 | Contract            | Hash                                         | Description               |
 | ------------------- | -------------------------------------------- | ------------------------- |
-| PaymentHub          | `0x340cb33d770b38f26d066716dd1f9df5283d629e` | GAS payment processing    |
+| PaymentHub          | `0x340cb33d770b38f26d066716dd1f9df5283d629e` | Legacy / optional GAS settlement |
 | Governance          | `0x2ec930202e6d03313d97198259b298cc3c29295e` | NEO staking and voting    |
 | PriceFeed           | `0x5284ef25f1bbbf36d139f6f94356e46b89138602` | Oracle price data         |
 | RandomnessLog       | `0xa24f83dcbafff909d4209ac76ca5d09237c0cda6` | VRF attestation anchoring |

@@ -337,3 +337,11 @@ All services expose:
 
 - `GET /health`: returns `{ status: "ok" }` when healthy
 - `GET /ready`: returns `{ ready: true }` when ready to serve
+# Note
+
+This service API document predates the direct Morpheus / direct AA repo split
+and still contains legacy `PaymentHub`-based examples.
+
+Use the host / edge proxy routes together with the external
+`neo-morpheus-oracle` and `neo-abstract-account` repos as the current service
+boundary.

@@ -272,3 +272,10 @@ MiniApps that require confidential services use direct on-chain requests:
 2. Bring up enclave services in simulation:
     - tx-proxy, vrf-service, compute-service, datafeed-service, automation-service, oracle-gateway, request-dispatcher
 3. Wire Supabase Edge → services (auth + routing) and the Next.js host app.
+# Note
+
+This blueprint is an older architecture snapshot.
+
+It still models `PaymentHub` as the universal payment path. Current flagship
+MiniApps use a mix of direct contract transfer, direct Morpheus callback, and
+direct AA relay patterns instead.

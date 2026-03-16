@@ -335,3 +335,10 @@ Runtime values are sourced from:
 
 All service and gateway deployments should read contract hashes and URLs from
 these sources to avoid hardcoding.
+# Note
+
+This document still contains older PaymentHub-centric examples.
+
+Current flagship MiniApps no longer assume that all user payments route through
+`PaymentHub`. Prefer the direct contract flows described in
+`docs/ARCHITECTURE.md` and the latest `docs/reports/`.
