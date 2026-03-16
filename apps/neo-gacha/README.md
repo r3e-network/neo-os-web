@@ -8,7 +8,7 @@ GASBOX is the first fully on-chain gacha (blind box) experience on Neo N3. For a
 
 Think of it as a decentralized gachapon machine. Creators can set up custom machines with their own prize pools, rarity tiers, and pricing. Players spin and instantly see results, complete with fireworks animations for big wins. The gacha economy is transparent — every probability, every stock level, every payout is recorded on-chain for anyone to verify.
 
-What makes GASBOX special is the seamless experience. Account Abstraction session keys let players do rapid consecutive draws without approving each transaction individually — it feels like tapping a physical gacha machine. Keeper automation broadcasts big win announcements across the platform, creating social proof and excitement.
+What makes GASBOX special is the transparency of the machine itself. Prize tables, stock levels, and machine configuration live on-chain. Keeper automation can still broadcast big wins across the platform, creating social proof and excitement.
 
 ## How to Play
 
@@ -16,7 +16,7 @@ What makes GASBOX special is the seamless experience. Account Abstraction sessio
 2. **Connect & Spin** — Log in with a social account or wallet. Pay the spin cost (starting at 0.1 GAS) to draw.
 3. **See Your Prize** — The VRF generates a random seed on-chain. Your prize is determined instantly with a satisfying reveal animation.
 4. **Collect Rewards** — NEO, GAS, NFTs, or points are credited to your account automatically.
-5. **Go Again** — Session keys mean you can keep spinning without re-approving. Chase that legendary drop!
+5. **Go Again** — Start another draw whenever you want and keep chasing the legendary drop.
 
 ## Key Features
 
@@ -24,7 +24,6 @@ What makes GASBOX special is the seamless experience. Account Abstraction sessio
 - **Tiered Rarity System**: Prizes span multiple rarity tiers. View exact probabilities and remaining stock before you spin.
 - **Ultra-Low Entry**: Spins start at 0.1 GAS — accessible to everyone.
 - **Creator Machines**: Anyone can create and stock a gacha machine with custom prizes, probabilities, and pricing.
-- **Rapid-Fire Spins**: AA session keys enable consecutive draws without signing each transaction.
 - **Big Win Broadcasts**: Keeper automation detects legendary wins and broadcasts them platform-wide.
 - **Machine Marketplace**: Machines can be listed for sale — buy a profitable machine from another creator.
 
@@ -43,14 +42,14 @@ What makes GASBOX special is the seamless experience. Account Abstraction sessio
 ### Service Layer Technologies
 
 - **VRF (Verifiable Random Function)**: On-chain randomness ensures every draw is fair. The seed is generated during `initiatePlay` and used deterministically to select a prize.
-- **Account Abstraction (AA)**: Session keys for rapid consecutive draws — no wallet popup per spin. Gas sponsoring keeps the experience frictionless.
 - **Keeper (Automation)**: Monitors for big win events (`PlayResolved` with high-value prizes) and triggers platform-wide broadcast notifications and celebration effects.
+- **Current wallet flow**: the live testnet app uses direct wallet transactions rather than AA session keys.
 
 ### Contract Methods
 
 | Method              | Type   | Parameters                          | Description                                          |
 | ------------------- | ------ | ----------------------------------- | ---------------------------------------------------- |
-| `initiatePlay`      | Action | `player`, `machineId`, `receiptId`  | Start a gacha draw — pays, generates VRF seed        |
+| `initiatePlay`      | Action | `player`, `machineId`, `receiptId`  | Start a gacha draw using the compatibility wrapper over the optimized hybrid flow |
 | `settlePlay`        | Action | `player`, `playId`, `selectedIndex` | Settle the draw — verify selection, distribute prize |
 | `buyMachine`        | Action | `player`, `machineId`, `receiptId`  | Purchase a machine listed for sale                   |
 | `getMachineDetails` | Query  | `machineId`                         | Get machine info (items, prices, stock)              |
@@ -75,12 +74,12 @@ npm run build
 
 | Network | Address                                      |
 | ------- | -------------------------------------------- |
-| Testnet | `0x0fe7031381647039025b1e06c12f0579069ed0bc` |
+| Testnet | `0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d` |
 | Mainnet | `0xc9af7c9de5b0963e6514b6462b293f0179eb3798` |
 
 ### Explorer Links
 
-- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0x0fe7031381647039025b1e06c12f0579069ed0bc)
+- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d)
 - **Mainnet**: [View on NeoTube](https://neotube.io/contract/0xc9af7c9de5b0963e6514b6462b293f0179eb3798)
 
 ## Tech Stack
@@ -90,7 +89,7 @@ npm run build
 | Frontend        | Vue 3 + TypeScript (uni-app)              |
 | Smart Contract  | C# / Neo N3                               |
 | Randomness      | VRF (On-chain Verifiable Random Function) |
-| UX Optimization | Account Abstraction (Session Keys)        |
+| Interaction     | Direct wallet invocation                  |
 | Social Features | Keeper (Big Win Broadcast)                |
 | Payment         | PaymentHub (GAS)                          |
 

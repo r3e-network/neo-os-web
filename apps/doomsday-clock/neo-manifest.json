@@ -23,13 +23,13 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x8f46753fd7123bd276d77ef1100839004b9a3440",
-    "neo-n3-testnet": "0xa94212c703039382aeb9bf5d2055ea99759f3af7"
+    "neo-n3-testnet": "0xf0914d411877c8393c029f48ec0c4c64d44f1b49"
   },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/doomsday-clock/index.html",
     "icon": "/miniapps/doomsday-clock/logo.jpg",
@@ -46,7 +46,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-mainnet",
+    "chain": "neo-n3-testnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -58,7 +58,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-15T00:00:00Z",
+  "updatedAt": "2026-03-16T00:00:00Z",
   "featured": true,
   "featured_order": 5,
   "technologies": {
@@ -70,12 +70,8 @@
       ]
     },
     "aa": {
-      "enabled": true,
-      "description": "Social login for easy onboarding — play without a wallet",
-      "features": [
-        "social_login",
-        "gas_sponsoring"
-      ]
+      "enabled": false,
+      "description": "AA social onboarding is planned but is not the live testnet flow"
     }
   }
 }

@@ -7,18 +7,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { timingSafeEqual } from "crypto";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
-import { getContractStats, CONTRACTS } from "../../../lib/chain";
+import { getContractStats, FLAGSHIP_APPS } from "../../../lib/chain";
 import { apiError } from "@/lib/api-response";
 
-// All apps with deployed contracts
-const DEPLOYED_APPS = [
-  { appId: "miniapp-lottery", contract: CONTRACTS.lottery },
-  { appId: "miniapp-coinflip", contract: CONTRACTS.coinFlip },
-  { appId: "miniapp-dicegame", contract: CONTRACTS.diceGame },
-  { appId: "miniapp-secretvote", contract: CONTRACTS.secretVote },
-  { appId: "miniapp-predictionmarket", contract: CONTRACTS.predictionMarket },
-  { appId: "miniapp-redenvelope", contract: CONTRACTS.redEnvelope },
-];
+const DEPLOYED_APPS = Object.entries(FLAGSHIP_APPS).map(([appId, meta]) => ({
+  appId,
+  contract: meta.contract,
+}));
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET" && req.method !== "POST") {
@@ -41,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   for (const app of DEPLOYED_APPS) {
     try {
-      const stats = await getContractStats(app.contract, "testnet");
+      const stats = await getContractStats(app.contract, "testnet", app.appId);
 
       const { error: upsertError } = await supabase.from("miniapp_stats").upsert(
         {

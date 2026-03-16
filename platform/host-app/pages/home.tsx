@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { StatsBar } from "@/components/features/stats";
 import { MiniAppGrid, type MiniAppInfo } from "@/components/features/miniapp";
 import { TwitterFeed } from "@/components/features/twitter";
@@ -18,60 +18,60 @@ const platformStats = [
 // MiniApp catalog
 const miniApps: MiniAppInfo[] = [
   {
-    app_id: "miniapp-lottery",
-    name: "Neo Lottery",
-    description: "Decentralized lottery with provably fair randomness",
-    icon: "🎰",
+    app_id: "miniapp-doomsday-clock",
+    name: "LastSurvivor",
+    description: "Every contribution resets the timer. The last survivor wins the whole jackpot.",
+    icon: "⏱️",
     category: "gaming",
     stats: { users: 12500, transactions: 45000 },
   },
   {
     app_id: "miniapp-coinflip",
-    name: "Coin Flip",
-    description: "50/50 coin flip - double your GAS",
+    name: "FogPlay",
+    description: "Oracle-backed coin flips with direct GAS wagering and on-chain settlement.",
     icon: "🪙",
     category: "gaming",
     stats: { users: 8900, transactions: 32000 },
   },
   {
-    app_id: "miniapp-dicegame",
-    name: "Dice Game",
-    description: "Roll the dice and win up to 6x",
-    icon: "🎲",
-    category: "gaming",
-    stats: { users: 6700, transactions: 28000 },
-  },
-  {
-    app_id: "miniapp-predictionmarket",
-    name: "Prediction Market",
-    description: "Trade on future outcomes",
-    icon: "📊",
-    category: "defi",
-    stats: { users: 3200, transactions: 15000 },
-  },
-  {
-    app_id: "miniapp-redenvelope",
-    name: "Airdrop Center",
-    description: "Claim Multi-Chain Tokens & NFTs",
-    icon: "🪂",
-    category: "defi",
-    stats: { users: 15600, transactions: 42000 },
-  },
-  {
-    app_id: "miniapp-secretvote",
-    name: "DAO Snapshot",
-    description: "On-Chain Governance & Voting",
-    icon: "⚖️",
-    category: "governance",
-    stats: { users: 8100, transactions: 12500 },
-  },
-  {
-    app_id: "miniapp-gacha",
-    name: "On-Chain Gacha",
-    description: "Blind Box Gamification",
+    app_id: "miniapp-neo-gacha",
+    name: "GASBOX",
+    description: "Blind-box economy with provably fair randomness and rapid consecutive spins.",
     icon: "🎁",
     category: "gaming",
     stats: { users: 24100, transactions: 88000 },
+  },
+  {
+    app_id: "miniapp-redenvelope",
+    name: "Red Envelope",
+    description: "Create shareable GAS envelopes with equal-split or lucky-draw claim modes.",
+    icon: "🧧",
+    category: "social",
+    stats: { users: 15600, transactions: 42000 },
+  },
+  {
+    app_id: "miniapp-dailycheckin",
+    name: "Daily Check-in",
+    description: "Build streaks, unlock badges, and claim GAS rewards every day.",
+    icon: "📅",
+    category: "gaming",
+    stats: { users: 9800, transactions: 27100 },
+  },
+  {
+    app_id: "miniapp-self-loan",
+    name: "SelfLoan",
+    description: "Borrow GAS instantly against future NEO staking rewards with no liquidations.",
+    icon: "🔁",
+    category: "defi",
+    stats: { users: 5200, transactions: 11600 },
+  },
+  {
+    app_id: "miniapp-stream-vault",
+    name: "NeoPay",
+    description: "Recurring GAS or NEO streams with beneficiary claims and creator cancellation.",
+    icon: "💸",
+    category: "defi",
+    stats: { users: 4100, transactions: 9300 },
   },
 ];
 

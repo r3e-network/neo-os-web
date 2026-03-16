@@ -1,0 +1,104 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-self-loan",
+  "name": "SelfLoan",
+  "description": "Lock NEO to borrow GAS against future staking rewards. NEO stays locked until generated GAS plus fee repays the loan, then auto-unlocks.",
+  "template_type": "defi",
+  "category": "DeFi",
+  "tags": [
+    "self-loan",
+    "lending",
+    "neo",
+    "gas",
+    "yield"
+  ],
+  "version": "2.0.0",
+  "status": "active",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "contract": {
+    "template_id": "defi-self-loan",
+    "contract_hash": "0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b"
+  },
+  "entry_url": "mf://manifest?app=miniapp-self-loan",
+  "media": {
+    "icon": "/miniapps/self-loan/logo.jpg",
+    "banner": "/miniapps/self-loan/banner.jpg"
+  },
+  "permissions": {
+    "payments": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "SelfLoan"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content"
+      },
+      {
+        "id": "loans",
+        "label": "Loans",
+        "type": "content"
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Open Loan",
+      "subtitle": "Borrow GAS against future NEO yield with no liquidation.",
+      "cta_label": "Open SelfLoan",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Create Loan",
+      "method": "createLoan",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "neoAmount",
+          "type": "integer",
+          "label": "Collateral (NEO)",
+          "required": true,
+          "placeholder": "10"
+        }
+      ]
+    },
+    {
+      "name": "Repay",
+      "method": "repay",
+      "button_style": "secondary",
+      "params": [
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Repay Amount (GAS)",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": [
+      "total_transactions",
+      "weekly_active_users",
+      "total_gas_used"
+    ]
+  },
+  "docs_url": "https://docs.r3e.network/self-loan"
+}

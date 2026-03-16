@@ -50,9 +50,7 @@ export function useCheckinPage(t: (key: string) => string) {
   // Reward milestones
   const milestones = [
     { day: 7, reward: 1, cumulative: 1 },
-    { day: 14, reward: 1.5, cumulative: 2.5 },
-    { day: 21, reward: 1.5, cumulative: 4 },
-    { day: 28, reward: 1.5, cumulative: 5.5 },
+    { day: 14, reward: 2, cumulative: 3 },
   ];
 
   // Countdown timer

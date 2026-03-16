@@ -1,14 +1,14 @@
 # Red Envelope — Crypto Gifts That Spread Like Wildfire
 
-> Create a red packet, share a link, friends claim instantly — no wallet needed. Web3 gifting, perfected.
+> Create a red packet, share a link or code, and let friends claim through the miniapp flow. Social gifting on Neo N3.
 
 ## What is Red Envelope?
 
-Red Envelope brings the beloved tradition of hongbao (红包) to the blockchain. Create a crypto red packet filled with GAS, generate a shareable link, and let friends claim their portion — even if they've never touched a crypto wallet before. Account Abstraction creates instant shadow accounts for new users, and TEE ensures fair distribution for lucky-draw mode.
+Red Envelope brings the beloved tradition of hongbao (红包) to the blockchain. Create a GAS red packet, generate a shareable link or code, and let friends claim their portion through the miniapp flow.
 
-This is social virality, Web3-style. A sender deposits GAS into a smart contract, chooses between equal splits or lucky-draw random amounts, and shares a link via any messaging app. Recipients tap the link, log in with a social account, and claim their share — gas fees are sponsored, no wallet setup required. It's the onboarding tool that doesn't feel like onboarding.
+This is social gifting, Web3-style. A sender deposits GAS into a smart contract, chooses between equal splits or lucky-draw amounts, and shares a link or code via any messaging app. Recipients open the miniapp and claim their share through the standard wallet flow.
 
-What elevates Red Envelope beyond a simple transfer tool is its anti-sybil layer powered by NeoDID. Verified social identities prevent a single person from claiming multiple shares, keeping the game fair. The TEE (Trusted Execution Environment) handles random distribution computation, ensuring lucky-draw amounts are truly unpredictable and verifiable.
+What elevates Red Envelope beyond a simple transfer tool is that creation, claiming, and remaining balances are tracked directly on-chain. Lucky-draw mode still adds tension, but the current release keeps the implementation grounded in the contract flow that is actually deployed.
 
 ## How to Use
 
@@ -16,14 +16,14 @@ What elevates Red Envelope beyond a simple transfer tool is its anti-sybil layer
 2. **Choose Distribution** — Select equal split (everyone gets the same) or lucky draw (random amounts, with a best-luck bonus of 5%).
 3. **Set Conditions** — Optionally require recipients to hold a minimum amount of NEO or have held it for a minimum number of days.
 4. **Share** — Get a unique link or QR code. Share it via WeChat, Telegram, Twitter, or any platform.
-5. **Friends Claim** — Recipients open the link, log in with a social account, and claim instantly. No wallet or gas needed.
+5. **Friends Claim** — Recipients open the link, connect a wallet in the miniapp, and claim their share.
 6. **Expiry** — Unclaimed packets are automatically refunded to the sender after the expiry window (default: 24 hours).
 
 ## Key Features
 
-- **Zero-Friction Claiming**: Recipients don't need a wallet. AA auto-creates a shadow account via social login with sponsored gas fees.
-- **Lucky Draw Mode**: Random distribution computed in TEE for provable fairness. The luckiest recipient gets a 5% bonus.
-- **Anti-Sybil Protection**: NeoDID verifies social identities to prevent one person from claiming multiple shares.
+- **Shareable Claims**: Create a link or code and let recipients claim through the miniapp.
+- **Lucky Draw Mode**: Switch between equal split and randomized claim amounts.
+- **On-Chain Tracking**: Envelope status, claims, and remaining balance stay queryable on-chain.
 - **Eligibility Gates**: Optionally require recipients to hold NEO (minimum amount and/or holding duration) to claim.
 - **Expiry & Refund**: Unclaimed packets return to the sender automatically.
 - **Cultural Flair**: Custom blessing messages, themed UI, and celebration animations.
@@ -43,9 +43,7 @@ What elevates Red Envelope beyond a simple transfer tool is its anti-sybil layer
 
 ### Service Layer Technologies
 
-- **Account Abstraction (AA)**: Auto-creates accounts for new users via social login. Gas fees are sponsored so recipients pay nothing. Temporary accounts can later be upgraded to full wallets.
-- **TEE (Trusted Execution Environment)**: Lucky-draw random distribution runs inside a TEE enclave, ensuring amounts are unpredictable yet verifiable after the fact.
-- **NeoDID (Decentralized Identity)**: Anti-sybil protection — claims require a verified social identity to prevent duplicate claiming.
+- **Contract-based distribution**: The current release relies on contract logic and on-chain state rather than external AA / TEE / NeoDID services.
 
 ### Contract Methods
 
@@ -76,12 +74,12 @@ npm run build
 
 | Network | Address                                      |
 | ------- | -------------------------------------------- |
-| Testnet | `0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e` |
+| Testnet | `0xa28379b2e0a608053458d435acd7041fc4a0fded` |
 | Mainnet | `0x5f371cc50116bb13d79554d96ccdd6e246cd5d59` |
 
 ### Explorer Links
 
-- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e)
+- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0xa28379b2e0a608053458d435acd7041fc4a0fded)
 - **Mainnet**: [View on NeoTube](https://neotube.io/contract/0x5f371cc50116bb13d79554d96ccdd6e246cd5d59)
 
 ## Tech Stack
@@ -90,9 +88,9 @@ npm run build
 | --------------- | --------------------------------------------------- |
 | Frontend        | Vue 3 + TypeScript (uni-app)                        |
 | Smart Contract  | C# / Neo N3                                         |
-| User Onboarding | Account Abstraction (Social Login + Gas Sponsoring) |
-| Fair Randomness | TEE (Trusted Execution Environment)                 |
-| Identity        | NeoDID (Anti-Sybil Verification)                    |
+| Claim Flow      | Direct miniapp + wallet interaction                 |
+| Distribution    | Smart contract state                                |
+| Sharing         | Link / code based social distribution               |
 | Payment         | PaymentHub (GAS)                                    |
 
 ## License

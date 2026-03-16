@@ -27,18 +27,6 @@
           </div>
         </div>
 
-        <div v-if="machine.revenueRaw > 0" class="manage-actions manage-actions--revenue">
-          <span class="revenue-label"> {{ t("revenueLabel") }}: {{ formatGas(machine.revenueRaw) }} GAS </span>
-          <NeoButton
-            size="sm"
-            variant="primary"
-            :loading="actionLoading[`withdrawRevenue:${machine.id}`]"
-            @click="$emit('withdraw-revenue', machine)"
-          >
-            {{ t("withdrawRevenue") }}
-          </NeoButton>
-        </div>
-
         <div class="manage-actions">
           <NeoInput v-model="getMachineInput(machine).price" :label="t('priceGas')" type="number" />
           <NeoButton

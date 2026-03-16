@@ -14,7 +14,7 @@ const appMessages = {
     feature1Name: { en: "Transparent Odds", zh: "透明概率" },
     feature1Desc: { en: "Weights and inventory are stored on-chain for auditability.", zh: "概率与库存链上记录，可审计。" },
     feature2Name: { en: "Verifiable RNG", zh: "可验证随机" },
-    feature2Desc: { en: "Outcomes resolve via ServiceLayerGateway randomness.", zh: "通过 ServiceLayerGateway 随机数解析结果。" },
+    feature2Desc: { en: "Outcomes resolve via Morpheus Oracle randomness.", zh: "通过 Morpheus Oracle 随机数解析结果。" },
     feature3Name: { en: "Marketplace Ops", zh: "市场运营" },
     feature3Desc: { en: "List, manage, and trade machines with on-chain metadata.", zh: "可上架、管理与交易链上机器。" },
     market: { en: "Market", zh: "市场" },

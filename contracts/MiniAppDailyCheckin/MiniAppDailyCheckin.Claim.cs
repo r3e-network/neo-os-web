@@ -12,7 +12,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void ClaimRewards(UInt160 user)
         {
-            ValidateGateway();
+            ValidateUserOrAbstractAccount(user);
             ValidateNotPaused();
             ValidateAddress(user);
 
