@@ -3,20 +3,24 @@
 const fs = require("fs");
 const path = require("path");
 const Neon = require("@cityofzion/neon-js");
+const { getManifestContractHash, getNetworkConfig, normalizeNetworkName } = require("./lib/neo_network");
 
 const root = path.resolve(__dirname, "..", "..");
-const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
-const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || 894710606);
+const TARGET_NETWORK = normalizeNetworkName(process.env.NEO_TARGET_NETWORK || process.env.FLAGSHIP_NETWORK) || "testnet";
+const NETWORK_CONFIG = getNetworkConfig(TARGET_NETWORK);
+const RPC_URL = process.env.NEO_RPC_URL || NETWORK_CONFIG.rpcUrl;
+const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || NETWORK_CONFIG.networkMagic);
 const WIF =
   process.env.FLAGSHIP_LIVE_WIF ||
   process.env.DEPLOYER_WIF ||
+  (TARGET_NETWORK === "mainnet" ? process.env.NEO_MAINNET_WIF : "") ||
   process.env.FLAGSHIP_TESTNET_WIF ||
   process.env.NEO_TESTNET_WIF ||
   "";
-const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_TESTNET_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52").trim();
+const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || NETWORK_CONFIG.oracleHash).trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-const PAYMENT_HUB_HASH = "0x340cb33d770b38f26d066716dd1f9df5283d629e";
+const PAYMENT_HUB_HASH = NETWORK_CONFIG.paymentHubHash;
 
 const DAILY_CHECKIN_FEE = "100000";
 const FOGPLAY_BET = "5000000";
@@ -25,7 +29,7 @@ const SELF_LOAN_POOL_TOPUP = process.env.SELF_LOAN_POOL_TOPUP || "30000000";
 const SELF_LOAN_COLLATERAL = "1";
 
 if (!WIF) {
-  console.error("FLAGSHIP_LIVE_WIF / NEO_TESTNET_WIF is required");
+  console.error("FLAGSHIP_LIVE_WIF / DEPLOYER_WIF / network-specific Neo WIF is required");
   process.exit(1);
 }
 
@@ -50,9 +54,9 @@ function readJson(rel) {
   return JSON.parse(fs.readFileSync(path.join(root, rel), "utf8"));
 }
 
-function testnetHash(manifestRel) {
+function appHash(manifestRel) {
   const manifest = readJson(manifestRel);
-  return String(manifest.contracts?.["neo-n3-testnet"] || "").trim();
+  return getManifestContractHash(manifest, TARGET_NETWORK);
 }
 
 function asTxid(value) {
@@ -286,7 +290,7 @@ async function provisionGasBoxMachine(contractHash) {
 }
 
 async function runGasBox() {
-  const contractHash = testnetHash("apps/gasbox/neo-manifest.json");
+  const contractHash = appHash("apps/gasbox/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -359,7 +363,7 @@ async function runGasBox() {
 }
 
 async function runDailyCheckin() {
-  const contractHash = testnetHash("apps/daily-checkin/neo-manifest.json");
+  const contractHash = appHash("apps/daily-checkin/neo-manifest.json");
   const txid = await transferGAS(contractHash, DAILY_CHECKIN_FEE, "miniapp-dailycheckin:checkin");
   const { execution } = await waitForLog(txid);
   const checkedIn = findNotification(execution, contractHash, "CheckedIn");
@@ -370,7 +374,7 @@ async function runDailyCheckin() {
 }
 
 async function runLastSurvivor() {
-  const contractHash = testnetHash("apps/last-survivor/neo-manifest.json");
+  const contractHash = appHash("apps/last-survivor/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -462,7 +466,7 @@ async function runLastSurvivor() {
 }
 
 async function runFogPlay() {
-  const contractHash = testnetHash("apps/fogplay/neo-manifest.json");
+  const contractHash = appHash("apps/fogplay/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -497,7 +501,7 @@ async function runFogPlay() {
 }
 
 async function runRedEnvelope() {
-  const contractHash = testnetHash("apps/red-envelope/neo-manifest.json");
+  const contractHash = appHash("apps/red-envelope/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -557,7 +561,7 @@ async function runRedEnvelope() {
 }
 
 async function runSelfLoan() {
-  const contractHash = testnetHash("apps/self-loan/neo-manifest.json");
+  const contractHash = appHash("apps/self-loan/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -594,7 +598,7 @@ async function runSelfLoan() {
 }
 
 async function runNeoPay() {
-  const contractHash = testnetHash("apps/neo-pay/neo-manifest.json");
+  const contractHash = appHash("apps/neo-pay/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,

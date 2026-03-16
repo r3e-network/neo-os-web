@@ -1,6 +1,6 @@
-# MiniAppDailyCheckin
+# MiniAppDailyCheckIn
 
-`MiniAppDailyCheckin` is the on-chain reward engine behind **Daily Check-in**.
+`MiniAppDailyCheckIn` is the on-chain reward engine behind **Daily Check-in**.
 
 ## Current Product Rules
 

@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "defi-self-loan",
-    "contract_hash": "0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b"
+    "contract_hash": "0x942da575b31f39cbb59e64b5813b128739b44c25"
   },
   "entry_url": "mf://manifest?app=miniapp-self-loan",
   "media": {
