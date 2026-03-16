@@ -10,7 +10,17 @@ namespace NeoMiniAppPlatform.Contracts
         #region User Methods
 
         /// <summary>
-        /// Buy keys to extend timer and increase pot.
+        /// Legacy receipt-based key purchase entrypoint.
+        ///
+        /// CURRENT LIVE FLOW:
+        /// - the wallet sends GAS to PaymentHub
+        /// - PaymentHub emits a numeric receiptId
+        /// - the frontend passes that receiptId into this contract call
+        ///
+        /// NOTE:
+        /// - receiptId is the on-chain PaymentHub receipt identifier, not the payment tx hash
+        /// - newer frontend code prefers BuyKeysWithCost so the contract can verify the
+        ///   user-visible price formula without looping
         /// </summary>
         public static void BuyKeys(UInt160 player, BigInteger keyCount, BigInteger receiptId)
         {
