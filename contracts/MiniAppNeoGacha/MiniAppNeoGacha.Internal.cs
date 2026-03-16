@@ -44,12 +44,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger ToPositiveInteger(byte[] bytes)
         {
-            byte[] unsigned = new byte[bytes.Length + 1];
-            for (int i = 0; i < bytes.Length; i++)
+            BigInteger value = 0;
+            int limit = bytes.Length < 8 ? bytes.Length : 8;
+            for (int i = 0; i < limit; i++)
             {
-                unsigned[i] = bytes[i];
+                value = (value << 8) + bytes[i];
             }
-            return new BigInteger(unsigned);
+            return value;
         }
 
         private static void ValidateOwnerOrAdmin(UInt160 owner, MachineData machine)
@@ -234,6 +235,41 @@ namespace NeoMiniAppPlatform.Contracts
             };
         }
 
+        private static byte[] PendingAssetCreditKey(UInt160 owner, UInt160 assetHash) =>
+            Helper.Concat(
+                PREFIX_PENDING_ASSET_CREDIT,
+                (ByteString)((string)owner + "|" + (string)assetHash));
+
+        private static BigInteger GetPendingAssetCredit(UInt160 owner, UInt160 assetHash)
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, PendingAssetCreditKey(owner, assetHash));
+            return data == null ? 0 : (BigInteger)data;
+        }
+
+        private static void CreditPendingAsset(UInt160 owner, UInt160 assetHash, BigInteger amount)
+        {
+            BigInteger current = GetPendingAssetCredit(owner, assetHash);
+            Storage.Put(Storage.CurrentContext, PendingAssetCreditKey(owner, assetHash), current + amount);
+        }
+
+        private static bool TryConsumePendingAsset(UInt160 owner, UInt160 assetHash, BigInteger amount)
+        {
+            BigInteger current = GetPendingAssetCredit(owner, assetHash);
+            if (current < amount) return false;
+
+            BigInteger next = current - amount;
+            byte[] key = PendingAssetCreditKey(owner, assetHash);
+            if (next == 0)
+            {
+                Storage.Delete(Storage.CurrentContext, key);
+            }
+            else
+            {
+                Storage.Put(Storage.CurrentContext, key, next);
+            }
+            return true;
+        }
+
         private static void StorePlay(BigInteger playId, PlayData play)
         {
             byte[] key = GetPlayKey(playId);
@@ -243,7 +279,7 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, Helper.Concat(key, PLAY_FIELD_PRICE), play.Price);
             Storage.Put(Storage.CurrentContext, Helper.Concat(key, PLAY_FIELD_TIMESTAMP), play.Timestamp);
             PutBool(key, PLAY_FIELD_RESOLVED, play.Resolved);
-            if (play.Seed != null)
+            if (play.Seed != null && play.Seed.Length > 0)
             {
                 Storage.Put(Storage.CurrentContext, Helper.Concat(key, PLAY_FIELD_SEED), play.Seed);
             }
@@ -319,6 +355,42 @@ namespace NeoMiniAppPlatform.Contracts
 
             item.TokenCount = count - 1;
             return selectedTokenId;
+        }
+
+        private static BigInteger TransferNep17Prize(UInt160 player, ref ItemData item)
+        {
+            ExecutionEngine.Assert(item.Stock >= item.Amount, "insufficient stock");
+            bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.All,
+                Runtime.ExecutingScriptHash, player, item.Amount, null);
+            ExecutionEngine.Assert(ok, "transfer failed");
+
+            item.Stock -= item.Amount;
+            return item.Amount;
+        }
+
+        private static string TransferNep11Prize(UInt160 player, BigInteger machineId, BigInteger itemIndex, ref ItemData item)
+        {
+            ExecutionEngine.Assert(item.TokenCount > 0, "no tokens");
+            string awardedTokenId = RemoveItemToken(machineId, itemIndex, ref item, "");
+            bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.All,
+                Runtime.ExecutingScriptHash, player, awardedTokenId, null);
+            ExecutionEngine.Assert(ok, "transfer failed");
+            return awardedTokenId;
+        }
+
+        private static void EmitResolvedPlay(UInt160 player, BigInteger machineId, BigInteger playId, BigInteger selectedIndex, ItemData item, BigInteger awardedAmount, string awardedTokenId)
+        {
+            string safeTokenId = awardedTokenId == null ? "" : awardedTokenId;
+            OnPlayResolved(player, machineId, selectedIndex, playId,
+                item.AssetType, item.AssetHash, awardedAmount, safeTokenId);
+        }
+
+        private static void ResolveEmptyPlay(BigInteger playId, ref PlayData play)
+        {
+            play.Resolved = true;
+            StorePlay(playId, play);
+            DeleteOperationSeed(playId);
+            OnPlayResolved(play.Player, play.MachineId, 0, playId, 0, UInt160.Zero, 0, "");
         }
 
 

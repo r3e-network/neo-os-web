@@ -318,9 +318,12 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(item.Amount > 0, "item amount missing");
             ExecutionEngine.Assert(amount % item.Amount == 0, "amount must align with prize unit");
 
-            bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.All,
-                owner, Runtime.ExecutingScriptHash, amount, null);
-            ExecutionEngine.Assert(ok, "transfer failed");
+            if (!TryConsumePendingAsset(owner, item.AssetHash, amount))
+            {
+                bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.All,
+                    owner, Runtime.ExecutingScriptHash, amount, null);
+                ExecutionEngine.Assert(ok, "transfer failed");
+            }
 
             item.Stock = item.Stock + amount;
             StoreItem(machineId, itemIndex, item);
@@ -453,7 +456,19 @@ namespace NeoMiniAppPlatform.Contracts
         #region Token Receivers
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            // Accept NEP-17 transfers; inventory is managed via DepositItem.
+            if (Runtime.CallingScriptHash == GAS.Hash)
+            {
+                string memo = ReadPaymentMemo(data);
+                if (memo.StartsWith(APP_ID + ":"))
+                {
+                    CreditDirectGasPayment(APP_ID, from, amount, data);
+                    return;
+                }
+            }
+
+            if (from == Runtime.ExecutingScriptHash) return;
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            CreditPendingAsset(from, Runtime.CallingScriptHash, amount);
         }
 
         public static void OnNEP11Payment(UInt160 from, ByteString tokenId, object data)
