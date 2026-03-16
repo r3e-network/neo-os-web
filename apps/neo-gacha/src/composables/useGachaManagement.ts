@@ -137,22 +137,6 @@ export function useGachaManagement() {
     }
   };
 
-  const withdrawMachineRevenue = async (machine: Machine, onSuccess?: () => Promise<void>) => {
-    const key = `withdrawRevenue:${machine.id}`;
-    if (actionLoading.value[key]) return;
-
-    try {
-      setActionLoading(key, true);
-      await invokeDirectly("withdrawMachineRevenue", [{ type: "Integer", value: machine.id }]);
-      if (onSuccess) await onSuccess();
-    } catch (e: unknown) {
-      handleError(e, { operation: "withdrawMachineRevenue" });
-      throw e;
-    } finally {
-      setActionLoading(key, false);
-    }
-  };
-
   const depositItem = async (
     machine: Machine,
     item: MachineItem,
@@ -246,7 +230,6 @@ export function useGachaManagement() {
     toggleMachineListed,
     listMachineForSale,
     cancelMachineSale,
-    withdrawMachineRevenue,
     depositItem,
     withdrawItem,
     t,

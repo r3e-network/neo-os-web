@@ -4,16 +4,16 @@
   "name": "FogPlay",
   "name_zh": "迷雾对决",
   "version": "2.0.0",
-  "description": "Instant, lag-free on-chain matches. Choices encrypted, TEE compares instantly, winner auto-paid. Feels like a native mobile game thanks to session keys.",
-  "description_zh": "迷雾对决 — 即时、零延迟的链上博弈。选择加密后由 TEE 瞬间比对，赢家自动收款。借助 Session Key 实现如本地游戏般流畅的体验。",
+  "description": "Fast oracle-backed coin flips on Neo N3. Pick heads or tails, place a GAS wager, and wait for the on-chain callback to settle the round.",
+  "description_zh": "迷雾对决是一款基于预言机回调的 Neo N3 链上猜硬币游戏。选择正面或反面、下注 GAS，并等待链上回调完成结算。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
   "tags": [
     "coin-flip",
     "gambling",
-    "pvp",
     "randomness",
+    "oracle",
     "betting"
   ],
   "developer": {
@@ -23,13 +23,13 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x0a39f71c274dc944cd20cb49e4a38ce10f3ceea1",
-    "neo-n3-testnet": "0xbd4c9203495048900e34cd9c4618c05994e86cc0"
+    "neo-n3-testnet": "0x01d0e1f78ea5a76b6bb0bce26649d5bf449999e0"
   },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/coin-flip/index.html",
     "icon": "/miniapps/coin-flip/logo.jpg",
@@ -46,7 +46,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-mainnet",
+    "chain": "neo-n3-testnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -58,24 +58,21 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-15T00:00:00Z",
+  "updatedAt": "2026-03-16T00:00:00Z",
   "featured": true,
   "featured_order": 3,
   "technologies": {
-    "tee": {
+    "oracle": {
       "enabled": true,
-      "description": "TEE resolves bets instantly — no commit-reveal needed"
+      "description": "Morpheus Oracle randomness callbacks settle each flip on-chain"
     },
     "aa": {
-      "enabled": true,
-      "description": "Session keys for rapid consecutive bets without signing",
-      "features": [
-        "session_keys"
-      ]
+      "enabled": false,
+      "description": "AA rapid-play integration is planned but is not the live testnet flow"
     },
-    "vrf": {
-      "enabled": true,
-      "description": "On-chain verifiable randomness for provably fair coin flips"
+    "tee": {
+      "enabled": false,
+      "description": "The live product is single-player user-versus-system coin flip; PvP TEE duel mode is not enabled"
     }
   }
 }

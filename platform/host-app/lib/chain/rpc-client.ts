@@ -29,6 +29,7 @@ export type StackItem =
   | { type: "ByteString"; value: string }
   | { type: "Boolean"; value: boolean }
   | { type: "Array"; value: StackItem[] }
+  | { type: "Struct"; value: StackItem[] }
   | { type: "Map"; value: { key: StackItem; value: StackItem }[] }
   | { type: "Any"; value: null };
 

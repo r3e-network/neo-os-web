@@ -137,6 +137,8 @@ describe("GET /api/analytics", () => {
   it("fails fast when Supabase env is missing", async () => {
     vi.unstubAllEnvs();
     vi.stubEnv("ADMIN_CONSOLE_API_KEY", API_KEY);
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.resetModules();
 
     const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/route");
@@ -177,6 +179,8 @@ describe("GET /api/analytics/by-app", () => {
   it("fails fast when Supabase env is missing", async () => {
     vi.unstubAllEnvs();
     vi.stubEnv("ADMIN_CONSOLE_API_KEY", API_KEY);
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.resetModules();
 
     const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/by-app/route");

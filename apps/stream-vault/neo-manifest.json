@@ -4,8 +4,8 @@
   "name": "NeoPay",
   "name_zh": "流式支付",
   "version": "2.0.0",
-  "description": "Set up recurring auto-payments for salaries, subscriptions, and memberships. Sensitive details processed privately in TEE; chain only sees aggregated transfers. Web3 version of auto-renewals and payroll.",
-  "description_zh": "流式支付 — 设置自动定期付款：工资、订阅、会员费。敏感细节在 TEE 中隐私处理，链上仅可见聚合转账。Web3 版的自动续费和薪资发放。",
+  "description": "Create recurring GAS or NEO payment streams for payroll, subscriptions, allowances, or treasury releases. Funds lock on-chain, vest over time, and beneficiaries claim when available.",
+  "description_zh": "流式支付用于创建周期性的 GAS 或 NEO 资金流，可用于工资、订阅、津贴或金库释放。资金锁定在链上，按周期释放，受益人可在可领取时提取。",
   "category": "finance",
   "category_name": "Finance",
   "category_name_zh": "金融",
@@ -23,12 +23,13 @@
   },
   "contracts": {
     "neo-n3-mainnet": "",
-    "neo-n3-testnet": ""
+    "neo-n3-testnet": "0x4e4a27ae72d06d057f54d4136ed8c5176b552b16"
   },
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/stream-vault/index.html",
     "icon": "/miniapps/stream-vault/logo.jpg",
@@ -45,7 +46,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-mainnet",
+    "chain": "neo-n3-testnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -57,25 +58,21 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-15T00:00:00Z",
+  "updatedAt": "2026-03-16T00:00:00Z",
   "featured": true,
   "featured_order": 6,
   "technologies": {
     "aa": {
-      "enabled": true,
-      "description": "AA hooks enable automatic scheduled payment execution",
-      "features": [
-        "hooks",
-        "subscription"
-      ]
+      "enabled": false,
+      "description": "The live testnet flow uses direct wallet transactions; AA scheduling is not enabled yet"
     },
     "neodid": {
-      "enabled": true,
-      "description": "Employee/subscriber identity verification via NeoDID"
+      "enabled": false,
+      "description": "NeoDID verification is not part of the current NeoPay release"
     },
     "tee": {
-      "enabled": true,
-      "description": "Payroll details processed in TEE — only aggregates visible on-chain"
+      "enabled": false,
+      "description": "Current stream creation and release logic runs directly on-chain without TEE privacy processing"
     }
   }
 }

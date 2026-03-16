@@ -94,7 +94,6 @@
         @toggle-listed="handleToggleListed"
         @list-for-sale="handleListForSale"
         @cancel-sale="handleCancelSale"
-        @withdraw-revenue="handleWithdrawRevenue"
         @deposit-item="handleDepositItem"
         @withdraw-item="handleWithdrawItem"
       />
@@ -182,7 +181,6 @@ const {
   toggleMachineListed,
   listMachineForSale,
   cancelMachineSale,
-  withdrawMachineRevenue,
   depositItem,
   withdrawItem,
 } = useGachaManagement();
@@ -258,15 +256,6 @@ const handleCancelSale = async (machine: Machine) => {
   if (!(await requireAddress())) return;
   try {
     await cancelMachineSale(machine, loadMachines);
-  } catch {
-    /* error handled in composable */
-  }
-};
-
-const handleWithdrawRevenue = async (machine: Machine) => {
-  if (!(await requireAddress())) return;
-  try {
-    await withdrawMachineRevenue(machine, loadMachines);
   } catch {
     /* error handled in composable */
   }

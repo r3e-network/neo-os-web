@@ -4,8 +4,8 @@
   "name": "Red Envelope",
   "name_zh": "红包",
   "version": "2.0.0",
-  "description": "Drop tokens/NFTs into shareable links — friends claim instantly without wallets or gas via auto shadow accounts and sponsored fees. Better-than-WeChat virality on Web3.",
-  "description_zh": "链上红包 — 投入代币或 NFT，生成分享链接，好友无需钱包即可领取（自动影子账户+代付Gas）。Web3 上超越微信的病毒式社交裂变。",
+  "description": "Create equal-split or lucky-draw GAS envelopes, protect them with share codes, and track claims directly on-chain.",
+  "description_zh": "链上红包支持固定均分或拼手气模式，可设置分享口令，并在链上追踪领取与剩余额度。",
   "category": "social",
   "category_name": "Social",
   "category_name_zh": "社交",
@@ -23,13 +23,13 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
-    "neo-n3-testnet": "0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e"
+    "neo-n3-testnet": "0xa28379b2e0a608053458d435acd7041fc4a0fded"
   },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/red-envelope/index.html",
     "icon": "/miniapps/red-envelope/logo.jpg",
@@ -46,7 +46,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-mainnet",
+    "chain": "neo-n3-testnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -58,26 +58,21 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-15T00:00:00Z",
+  "updatedAt": "2026-03-16T00:00:00Z",
   "featured": true,
   "featured_order": 2,
   "technologies": {
     "aa": {
-      "enabled": true,
-      "description": "Recipients can claim without a wallet — auto-create AA account via social login",
-      "features": [
-        "social_login",
-        "gas_sponsoring",
-        "temporary_accounts"
-      ]
+      "enabled": false,
+      "description": "Walletless AA claim flow is not enabled in the current testnet release"
     },
     "tee": {
-      "enabled": true,
-      "description": "Lucky red packet random distribution runs in TEE for provable fairness"
+      "enabled": false,
+      "description": "Lucky-draw amount splitting is handled by the current contract flow, not by a TEE service"
     },
     "neodid": {
-      "enabled": true,
-      "description": "Anti-sybil protection — require verified social accounts to claim"
+      "enabled": false,
+      "description": "NeoDID anti-sybil gating is not part of the current Red Envelope release"
     }
   }
 }

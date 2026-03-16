@@ -34,8 +34,8 @@ namespace NeoMiniAppPlatform.Contracts
         private const int REFERRAL_SHARE_BPS = 700;
         private const long BASE_KEY_PRICE = 10000000;
         private const int KEY_PRICE_INCREMENT_BPS = 10;
-        private const long TIME_ADDED_PER_KEY_SECONDS = 30;
-        private const long INITIAL_DURATION_SECONDS = 3600;
+        private const long TIME_ADDED_PER_KEY_SECONDS = 86400;
+        private const long INITIAL_DURATION_SECONDS = 86400;
         private const long MAX_DURATION_SECONDS = 86400;
         private const long MIN_KEYS = 1;
         #endregion

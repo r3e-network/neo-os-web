@@ -8,7 +8,7 @@ LastSurvivor is a high-stakes social game built on Neo N3 where psychology meets
 
 The beauty lies in its simplicity. There are no complex rules, no hidden mechanics — just a timer, a growing prize pool, and the eternal question: _will someone else press the button, or is this my moment?_ The game creates a natural crescendo of tension as the pot swells and the timer winds down, turning every participant into both ally (growing the pot) and rival (competing for the final position).
 
-Built as a Neo N3 MiniApp, LastSurvivor leverages Account Abstraction for frictionless onboarding (play with just a social login — no wallet required) and Keeper automation to guarantee fair, trustless prize distribution the instant the clock hits zero.
+Built as a Neo N3 MiniApp, LastSurvivor uses direct on-chain purchases plus Keeper automation to guarantee fair, trustless prize distribution the instant the clock hits zero.
 
 ## How to Play
 
@@ -42,7 +42,6 @@ Built as a Neo N3 MiniApp, LastSurvivor leverages Account Abstraction for fricti
 
 ### Service Layer Technologies
 
-- **Account Abstraction (AA)**: Social login onboarding — players can participate without installing a wallet. Gas sponsoring removes the friction of managing transaction fees.
 - **Keeper (Automation)**: Automatically triggers prize distribution when the 24-hour countdown expires. No manual intervention needed — the contract settles trustlessly.
 
 ### Contract Methods
@@ -74,12 +73,12 @@ npm run build
 
 | Network | Address                                      |
 | ------- | -------------------------------------------- |
-| Testnet | `0xa94212c703039382aeb9bf5d2055ea99759f3af7` |
+| Testnet | `0xf0914d411877c8393c029f48ec0c4c64d44f1b49` |
 | Mainnet | `0x8f46753fd7123bd276d77ef1100839004b9a3440` |
 
 ### Explorer Links
 
-- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0xa94212c703039382aeb9bf5d2055ea99759f3af7)
+- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0xf0914d411877c8393c029f48ec0c4c64d44f1b49)
 - **Mainnet**: [View on NeoTube](https://neotube.io/contract/0x8f46753fd7123bd276d77ef1100839004b9a3440)
 
 ## Tech Stack
@@ -88,7 +87,7 @@ npm run build
 | -------------- | ---------------------------------- |
 | Frontend       | Vue 3 + TypeScript (uni-app)       |
 | Smart Contract | C# / Neo N3                        |
-| Onboarding     | Account Abstraction (Social Login) |
+| Interaction    | Direct wallet invocation           |
 | Automation     | Keeper (Timer Expiry Trigger)      |
 | Payment        | PaymentHub (GAS)                   |
 

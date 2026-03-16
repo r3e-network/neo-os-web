@@ -86,13 +86,68 @@ const T_GACHA: AppTemplate = {
   operations: [op("Draw x1", "drawOne", "primary", [amt("fee", "Cost", "1.0")]), op("Draw x10", "drawTen", "primary", [amt("fee", "Cost", "10.0")])]
 };
 
+const T_LAST_SURVIVOR = gaming(
+  "Every contribution grows the jackpot and resets the 24-hour timer. Last buyer standing wins the pot.",
+  [{ key: "Mode", value: "Countdown jackpot" }],
+  ["Buy keys to reset the timer.", "Track the live countdown and pot size.", "Be the last buyer before expiry to win everything."],
+  [op("Buy Keys", "buyKeys", "primary", [int("keyCount", "Key Count", "1")])]
+);
+
+const T_DAILY_CHECKIN: AppTemplate = {
+  detail_template: {
+    layout: "default",
+    tabs: [
+      { id: "overview", label: "Overview", type: "content", blocks: [
+        { type: "notice", tone: "success", content: "Check in daily, maintain your streak, and unlock GAS rewards plus NFT badges." },
+        { type: "key_value", title: "Reward Schedule", items: [{ key: "Day 7", value: "1 GAS" }, { key: "Day 14", value: "2 GAS" }, { key: "Bonus", value: "Loyalty NFT badges" }] },
+      ]},
+      { id: "history", label: "History", type: "content" },
+      { id: "reviews", label: "Reviews", type: "reviews" }
+    ],
+    operation_panel: { title: "Check In", subtitle: "One tap per UTC day to maintain your streak.", cta_label: "Open Daily Check-in", operations: [] },
+  },
+  operations: [op("Check In", "checkIn"), op("Claim Rewards", "claimRewards", "secondary")],
+};
+
+const T_SELF_LOAN: AppTemplate = {
+  detail_template: {
+    layout: "default",
+    tabs: [
+      { id: "overview", label: "Overview", type: "content", blocks: [
+        { type: "notice", tone: "info", content: "Lock NEO, borrow GAS up front, and let staking rewards repay the debt over time." },
+        { type: "key_value", title: "Loan Terms", items: [{ key: "Collateral", value: "NEO" }, { key: "Borrow Asset", value: "GAS" }, { key: "Risk", value: "No liquidation" }] },
+      ]},
+      { id: "health", label: "Health", type: "content" },
+      { id: "reviews", label: "Reviews", type: "reviews" }
+    ],
+    operation_panel: { title: "Open Loan", subtitle: "Choose your NEO collateral and borrow against future yield.", cta_label: "Start SelfLoan", operations: [] },
+  },
+  operations: [op("Create Loan", "createLoan", "primary", [int("neoAmount", "Collateral (NEO)", "10")]), op("Repay", "repay", "secondary", [amt()])],
+};
+
+const T_NEOPAY: AppTemplate = {
+  detail_template: {
+    layout: "default",
+    tabs: [
+      { id: "overview", label: "Overview", type: "content", blocks: [
+        { type: "notice", tone: "info", content: "Recurring payrolls, subscriptions, memberships, and treasury releases with on-chain stream schedules." },
+        { type: "key_value", title: "Use Cases", items: [{ key: "Payroll", value: "Monthly salaries" }, { key: "Subscription", value: "Auto-renewing memberships" }, { key: "Assets", value: "GAS / NEO" }] },
+      ]},
+      { id: "streams", label: "Streams", type: "content" },
+      { id: "reviews", label: "Reviews", type: "reviews" }
+    ],
+    operation_panel: { title: "Create Stream", subtitle: "Configure amount, cadence, and beneficiary.", cta_label: "Open NeoPay", operations: [] },
+  },
+  operations: [op("Create Stream", "createStream", "primary", [amt("totalAmount", "Total Amount", "100"), sel("schedule", "Schedule", ["Monthly", "Weekly"]), int("installments", "Installments", "12")])],
+};
+
 
 export const MINIAPP_TEMPLATES: Record<string, AppTemplate> = {
-  "miniapp-lottery": T_LOTTERY,
   "miniapp-coinflip": T_COINFLIP,
-  "miniapp-dicegame": T_DICE,
-  "miniapp-predictionmarket": T_PREDICTION,
+  "miniapp-dailycheckin": T_DAILY_CHECKIN,
+  "miniapp-doomsday-clock": T_LAST_SURVIVOR,
+  "miniapp-neo-gacha": T_GACHA,
   "miniapp-redenvelope": T_AIRDROP,
-  "miniapp-secretvote": T_DAO,
-  "miniapp-gacha": T_GACHA
+  "miniapp-self-loan": T_SELF_LOAN,
+  "miniapp-stream-vault": T_NEOPAY,
 };

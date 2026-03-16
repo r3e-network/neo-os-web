@@ -6,7 +6,7 @@
 import type { MiniAppStats, MiniAppLiveStatus } from "./types";
 import { statsCache, CACHE_TTL } from "./collector";
 import { supabase, isSupabaseConfigured } from "../supabase";
-import { getLotteryState, getContractStats } from "../chain";
+import { FLAGSHIP_APPS, getContractStats, getLiveStatus as getChainLiveStatus } from "../chain";
 
 /**
  * Get stats for a single MiniApp
@@ -33,6 +33,27 @@ export async function getMiniAppStats(
   }
 
   // Return default stats if not found
+  const flagship = FLAGSHIP_APPS[appId];
+  if (flagship) {
+    const chainStats = await getContractStats(flagship.contract, network, appId);
+    return {
+      appId,
+      activeUsersMonthly: chainStats.uniqueUsers,
+      activeUsersWeekly: chainStats.uniqueUsers,
+      activeUsersDaily: chainStats.uniqueUsers,
+      totalTransactions: chainStats.totalTransactions,
+      transactionsWeekly: chainStats.totalTransactions,
+      transactionsDaily: chainStats.totalTransactions,
+      totalVolumeGas: chainStats.totalValueLocked,
+      volumeWeeklyGas: chainStats.totalValueLocked,
+      volumeDailyGas: chainStats.totalValueLocked,
+      rating: 0,
+      reviewCount: 0,
+      weeklyTrend: 0,
+      lastUpdated: Date.now(),
+    };
+  }
+
   return getDefaultStats(appId);
 }
 
@@ -76,25 +97,13 @@ export async function getLiveStatus(
   category: string,
   network: "testnet" | "mainnet" = "testnet",
 ): Promise<MiniAppLiveStatus> {
-  const status: MiniAppLiveStatus = { appId };
-
   try {
-    if (category === "gaming") {
-      const state = await getLotteryState(contractHash, network);
-      status.jackpot = state.prizePool;
-      status.playersOnline = state.ticketsSold;
-    }
-
-    if (category === "defi") {
-      const stats = await getContractStats(contractHash, network);
-      status.tvl = stats.totalValueLocked;
-      status.volume24h = stats.totalValueLocked;
-    }
+    return await getChainLiveStatus(appId, contractHash, category, network);
   } catch {
     // Return partial status on error
   }
 
-  return status;
+  return { appId };
 }
 
 function mapDbToStats(data: Record<string, unknown>): MiniAppStats {

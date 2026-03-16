@@ -74,7 +74,7 @@ export function getEnv(options: GetEnvOptions = {}): Env {
 }
 
 export function getSupabaseServiceEnv(options: { strict?: boolean } = {}): SupabaseServiceEnv {
-  const env = getEnv({ required: ["SUPABASE_SERVICE_ROLE_KEY"] });
+  const env = getEnv({ strict: options.strict, required: ["SUPABASE_SERVICE_ROLE_KEY"] });
   const url = String(env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
   const serviceRoleKey = String(env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 

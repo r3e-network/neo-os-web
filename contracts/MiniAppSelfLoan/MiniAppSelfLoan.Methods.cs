@@ -19,9 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(neoAmount >= MIN_COLLATERAL, "min 1 NEO collateral");
             ExecutionEngine.Assert(ltvTier >= 1 && ltvTier <= 3, "invalid LTV tier (1-3)");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(borrower), "unauthorized");
+            ValidateUserOrAbstractAccount(borrower);
 
             bool transferred = NEO.Transfer(borrower, Runtime.ExecutingScriptHash, neoAmount);
             ExecutionEngine.Assert(transferred, "NEO transfer failed");
@@ -75,9 +73,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(loan.Active, "loan not active");
             ExecutionEngine.Assert(amount > 0, "invalid amount");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(payer), "unauthorized");
+            ValidateUserOrAbstractAccount(payer);
 
             ExecutionEngine.Assert(Runtime.Time >= loan.CreatedTime + MIN_LOAN_DURATION_SECONDS, "min 24h loan duration");
 
@@ -112,9 +108,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(loan.Active, "loan not active");
             ExecutionEngine.Assert(neoAmount > 0, "invalid amount");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(depositor), "unauthorized");
+            ValidateUserOrAbstractAccount(depositor);
 
             bool transferred = NEO.Transfer(depositor, Runtime.ExecutingScriptHash, neoAmount);
             ExecutionEngine.Assert(transferred, "NEO transfer failed");

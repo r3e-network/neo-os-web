@@ -23,13 +23,13 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0xc9af7c9de5b0963e6514b6462b293f0179eb3798",
-    "neo-n3-testnet": "0x0fe7031381647039025b1e06c12f0579069ed0bc"
+    "neo-n3-testnet": "0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d"
   },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/neo-gacha/index.html",
     "icon": "/miniapps/neo-gacha/logo.jpg",
@@ -46,7 +46,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-mainnet",
+    "chain": "neo-n3-testnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -58,7 +58,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-15T00:00:00Z",
+  "updatedAt": "2026-03-16T00:00:00Z",
   "featured": true,
   "featured_order": 7,
   "technologies": {
@@ -67,12 +67,8 @@
       "description": "Verifiable random function ensures fair blind box draws"
     },
     "aa": {
-      "enabled": true,
-      "description": "Session keys for rapid consecutive draws without signing each time",
-      "features": [
-        "session_keys",
-        "gas_sponsoring"
-      ]
+      "enabled": false,
+      "description": "AA rapid-draw integration is planned but is not the live testnet flow"
     },
     "keeper": {
       "enabled": true,

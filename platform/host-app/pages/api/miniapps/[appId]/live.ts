@@ -1,29 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getLiveStatus } from "../../../../lib/miniapp-stats";
-import { CONTRACTS } from "../../../../lib/chain";
+import { FLAGSHIP_APPS } from "../../../../lib/chain";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
-
-// Map app IDs to contract hashes
-const APP_CONTRACTS: Record<string, string> = {
-  "miniapp-lottery": CONTRACTS.lottery,
-  "miniapp-coinflip": CONTRACTS.coinFlip,
-  "miniapp-dicegame": CONTRACTS.diceGame,
-  "miniapp-secretvote": CONTRACTS.secretVote,
-  "miniapp-predictionmarket": CONTRACTS.predictionMarket,
-  "miniapp-redenvelope": CONTRACTS.redEnvelope,
-};
-
-// Map app IDs to categories
-const APP_CATEGORIES: Record<string, string> = {
-  "miniapp-lottery": "gaming",
-  "miniapp-coinflip": "gaming",
-  "miniapp-dicegame": "gaming",
-  "miniapp-secretvote": "governance",
-  "miniapp-predictionmarket": "defi",
-  "miniapp-redenvelope": "social",
-};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -40,8 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Auto-resolve contract hash from app ID (whitelist only)
-  const contractHash = APP_CONTRACTS[appId];
-  const category = (req.query.category as string) || APP_CATEGORIES[appId] || "gaming";
+  const contractHash = FLAGSHIP_APPS[appId]?.contract;
+  const category = (req.query.category as string) || FLAGSHIP_APPS[appId]?.category || "gaming";
   const network = (req.query.network as "testnet" | "mainnet") || "testnet";
 
   if (!contractHash) {

@@ -11,20 +11,22 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void CheckBadges(UInt160 user, BigInteger streak, bool isNewUser)
         {
+            BigInteger totalCheckins = GetUserCheckins(user);
+
             if (isNewUser)
                 AwardBadge(user, 1, "First Check-in");
 
             if (streak >= 7)
                 AwardBadge(user, 2, "Week Warrior");
 
-            if (streak >= 30)
-                AwardBadge(user, 3, "Month Master");
+            if (streak >= STREAK_RESET_DAYS)
+                AwardBadge(user, 3, "Fortnight Finisher");
 
-            if (streak >= 100)
-                AwardBadge(user, 4, "Centurion");
+            if (totalCheckins >= 30)
+                AwardBadge(user, 4, "Habit Builder");
 
-            if (streak >= 365)
-                AwardBadge(user, 5, "Year Legend");
+            if (totalCheckins >= 100)
+                AwardBadge(user, 5, "Loyalty Legend");
 
             BigInteger resets = GetUserResets(user);
             if (resets > 0 && streak >= 7)
