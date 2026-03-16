@@ -1,0 +1,13 @@
+{
+  "app_id": "gasbox",
+  "name": "GASBOX",
+  "version": "3.0.0",
+  "description": "Hybrid on-chain/off-chain item selection for GASBOX.",
+  "tee_scripts": {
+    "select-item": {
+      "file": "select-item.js",
+      "entry_point": "selectItem",
+      "description": "Deterministically select one available machine item from the generated seed."
+    }
+  }
+}

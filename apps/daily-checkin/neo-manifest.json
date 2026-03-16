@@ -22,14 +22,14 @@
     "website": "https://r3e.network"
   },
   "contracts": {
-    "neo-n3-mainnet": "0x908867b23ab551a598723ceeaaedd70c54e10c76",
+    "neo-n3-mainnet": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
     "neo-n3-testnet": "0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528"
   },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-testnet",
+  "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/daily-checkin/index.html",
     "icon": "/miniapps/daily-checkin/logo.jpg",

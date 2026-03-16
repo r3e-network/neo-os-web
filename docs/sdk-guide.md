@@ -257,7 +257,7 @@ The platform includes 24 platform MiniApps demonstrating SDK usage patterns:
 | Category   | App ID                      | Description                          |
 | ---------- | --------------------------- | ------------------------------------ |
 | Gaming     | `miniapp-lottery`           | Lottery with provable VRF randomness |
-| Gaming     | `miniapp-coinflip`         | 50/50 double-or-nothing              |
+| Gaming     | `miniapp-fogplay`         | 50/50 double-or-nothing              |
 | Gaming     | `miniapp-dicegame`         | Roll dice, win up to 6x              |
 | Gaming     | `miniapp-scratch-card`      | Instant win scratch cards            |
 | Gaming     | `miniapp-gas-spin`          | Lucky wheel with VRF                 |

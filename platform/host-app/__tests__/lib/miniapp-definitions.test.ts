@@ -219,7 +219,7 @@ describe("miniapp-definitions loader", () => {
       path.join(definitionsDir, "legacy-coinflip.json"),
       JSON.stringify(
         {
-          app_id: "miniapp-coin-flip",
+          app_id: "miniapp-fogplay",
           name: "Legacy Coin Flip",
           content: {
             category: "gaming",
@@ -240,10 +240,10 @@ describe("miniapp-definitions loader", () => {
         entry_url: "mf://manifest?app=miniapp-dicegame",
       }),
     );
-    expect(byId.get("miniapp-coinflip")).toEqual(
+    expect(byId.get("miniapp-fogplay")).toEqual(
       expect.objectContaining({
-        app_id: "miniapp-coinflip",
-        entry_url: "mf://manifest?app=miniapp-coinflip",
+        app_id: "miniapp-fogplay",
+        entry_url: "mf://manifest?app=miniapp-fogplay",
       }),
     );
   });

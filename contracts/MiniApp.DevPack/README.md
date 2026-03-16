@@ -28,7 +28,7 @@ SmartContract (Neo Framework)
        └─→ MiniAppTimeLockBase (abstract) → Time-locked operations
 
 Examples:
-  MiniAppCoinFlip    : MiniAppGameBase
+  MiniAppFogPlay    : MiniAppGameBase
   MiniAppLottery     : MiniAppGameBase
   MiniAppDailyCheckin: MiniAppBase (direct)
   MiniAppOnChainTarot: MiniAppServiceBase

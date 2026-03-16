@@ -39,7 +39,7 @@ func envOrDefault(key, fallback string) string {
 }
 
 // MiniApps to configure
-var miniApps = []string{"miniapp-lottery", "miniapp-coinflip", "miniapp-dicegame"}
+var miniApps = []string{"miniapp-lottery", "miniapp-fogplay", "miniapp-dicegame"}
 
 func main() {
 	wif := os.Getenv("NEO_TESTNET_WIF")

@@ -9,8 +9,8 @@ const rpcUrl = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 const FLAGSHIP_APPS = [
   {
     brand: "LastSurvivor",
-    slug: "doomsday-clock",
-    contractName: "MiniAppDoomsdayClock",
+    slug: "last-survivor",
+    contractName: "MiniAppLastSurvivor",
     readChecks: [
       { method: "getGameStatus", args: [], expectedStackType: "Map" },
       { method: "getPlatformStats", args: [], expectedStackType: "Map" },
@@ -18,8 +18,8 @@ const FLAGSHIP_APPS = [
   },
   {
     brand: "GASBOX",
-    slug: "neo-gacha",
-    contractName: "MiniAppNeoGacha",
+    slug: "gasbox",
+    contractName: "MiniAppGASBox",
     readChecks: [
       { method: "totalMachines", args: [], expectedStackType: "Integer" },
     ],
@@ -42,8 +42,8 @@ const FLAGSHIP_APPS = [
   },
   {
     brand: "FogPlay",
-    slug: "coin-flip",
-    contractName: "MiniAppCoinFlip",
+    slug: "fogplay",
+    contractName: "MiniAppFogPlay",
     readChecks: [
       { method: "getBetLimits", args: [], expectedStackType: "Struct" },
     ],
@@ -59,8 +59,8 @@ const FLAGSHIP_APPS = [
   },
   {
     brand: "NeoPay",
-    slug: "stream-vault",
-    contractName: "MiniAppStreamVault",
+    slug: "neo-pay",
+    contractName: "MiniAppNeoPay",
     readChecks: [
       { method: "totalStreams", args: [], expectedStackType: "Integer" },
       { method: "getStreamDetails", args: [{ type: "Integer", value: "0" }], expectedStackType: "Map" },

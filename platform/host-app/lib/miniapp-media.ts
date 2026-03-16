@@ -23,16 +23,16 @@ const imageExtensions = ["jpg", "png", "jpeg", "svg"] as const;
 type AssetKind = "logo" | "banner";
 
 const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
-  "miniapp-coinflip": ["coin-flip"],
+  "miniapp-fogplay": ["fogplay"],
   "miniapp-dailycheckin": ["daily-checkin"],
   "miniapp-dicegame": ["dice-game"],
-  "miniapp-doomsday-clock": ["doomsday-clock"],
-  "miniapp-neo-gacha": ["neo-gacha"],
+  "miniapp-last-survivor": ["last-survivor"],
+  "miniapp-gasbox": ["gasbox"],
   "miniapp-predictionmarket": ["prediction-market"],
   "miniapp-redenvelope": ["red-envelope"],
   "miniapp-secretvote": ["secret-vote", "candidate-vote"],
   "miniapp-self-loan": ["self-loan"],
-  "miniapp-stream-vault": ["stream-vault"],
+  "miniapp-neo-pay": ["neo-pay"],
 };
 
 const MINIAPP_PRIMARY_STATIC_ASSETS: Record<string, { logoURL: string; bannerURL: string }> = {

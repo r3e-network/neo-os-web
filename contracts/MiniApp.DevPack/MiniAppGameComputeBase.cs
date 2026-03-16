@@ -33,10 +33,10 @@ namespace NeoMiniAppPlatform.Contracts
     /// - 0x35-0x3F: Reserved for game extensions
     ///
     /// USE FOR:
-    /// - MiniAppCoinFlip
+    /// - MiniAppFogPlay
     /// - MiniAppLottery
-    /// - MiniAppNeoGacha
-    /// - MiniAppDoomsdayClock
+    /// - MiniAppGASBox
+    /// - MiniAppLastSurvivor
     /// - Any betting/gambling MiniApp needing hybrid compute
     /// </summary>
     public abstract class MiniAppGameComputeBase : MiniAppComputeBase

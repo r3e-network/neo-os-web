@@ -53,7 +53,7 @@ echo "=== Building Template Contracts ==="
 
 TEMPLATES=(
     "MiniAppLottery:Lottery Game:gaming"
-    "MiniAppCoinFlip:Coin Flip:gaming"
+    "MiniAppFogPlay:Coin Flip:gaming"
     "MiniAppDiceGame:Dice Game:gaming"
     "MiniAppScratchCard:Scratch Card:gaming"
     "MiniAppPredictionMarket:Prediction Market:defi"

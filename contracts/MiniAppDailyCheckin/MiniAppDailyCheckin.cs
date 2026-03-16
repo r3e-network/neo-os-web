@@ -16,7 +16,7 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void BadgeEarnedHandler(UInt160 user, BigInteger badgeType, string badgeName);
     public delegate void BonusRewardHandler(UInt160 user, BigInteger bonusAmount, string bonusType);
 
-    [DisplayName("MiniAppDailyCheckin")]
+    [DisplayName("MiniAppDailyCheckIn")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]

@@ -13,7 +13,7 @@ KEEP=(
   "PaymentHub"
   "PriceFeed"
   "RandomnessLog"
-  "MiniAppCoinFlip"
+  "MiniAppFogPlay"
   "MiniAppDiceGame"
   "MiniAppGasCircle"
   "MiniAppLottery"
