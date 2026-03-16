@@ -4,10 +4,8 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import {
   MiniAppInfo,
-  MiniAppStats,
   MiniAppNotification,
   AppDetailHeader,
-  AppStatsCard,
   AppNewsList,
   OperationPanel,
   MiniAppContentBlock,
@@ -42,14 +40,6 @@ function sanitizeForJson<T>(obj: T): T {
   return result as T;
 }
 
-type StatCardConfig = {
-  title: string;
-  value: string | number;
-  icon: string;
-  trend?: "up" | "down" | "neutral";
-  trendValue?: string;
-};
-
 type RequestLike = {
   headers?: Record<string, string | string[] | undefined>;
 };
@@ -61,59 +51,13 @@ type ResolvedTab = {
   blocks: MiniAppContentBlock[];
 };
 
-const DEFAULT_STATS_DISPLAY = ["total_transactions", "daily_active_users", "total_gas_used", "weekly_active_users"];
-
-const STAT_KEY_ALIASES: Record<string, string> = {
-  tx_count: "total_transactions",
-  gas_burned: "total_gas_used",
-  gas_consumed: "total_gas_used",
-};
-
-const STAT_CARD_BUILDERS: Record<string, (stats: MiniAppStats) => StatCardConfig | null> = {
-  total_transactions: (stats) =>
-    stats.total_transactions != null
-      ? { title: "Total TXs", value: stats.total_transactions.toLocaleString(), icon: "📊", trend: "neutral" }
-      : null,
-  total_users: (stats) =>
-    stats.total_users != null
-      ? { title: "Total Users", value: stats.total_users.toLocaleString(), icon: "👥", trend: "neutral" }
-      : null,
-  total_gas_used: (stats) => ({
-    title: "GAS Burned",
-    value: formatGas(stats.total_gas_used),
-    icon: "🔥",
-    trend: "neutral",
-  }),
-  total_gas_earned: (stats) => ({
-    title: "GAS Earned",
-    value: formatGas(stats.total_gas_earned),
-    icon: "💰",
-    trend: "neutral",
-  }),
-  daily_active_users: (stats) =>
-    stats.daily_active_users != null
-      ? { title: "Daily Active Users", value: stats.daily_active_users.toLocaleString(), icon: "👥", trend: "up" }
-      : null,
-  weekly_active_users: (stats) =>
-    stats.weekly_active_users != null
-      ? { title: "Weekly Active", value: stats.weekly_active_users.toLocaleString(), icon: "📈", trend: "up" }
-      : null,
-  last_activity_at: (stats) => ({
-    title: "Last Active",
-    value: formatLastActive(stats.last_activity_at),
-    icon: "⏱",
-    trend: "neutral",
-  }),
-};
-
 export type AppDetailPageProps = {
   app: MiniAppInfo | null;
-  stats: MiniAppStats | null;
   notifications: MiniAppNotification[];
   error?: string;
 };
 
-export default function MiniAppDetailPage({ app, stats, notifications, error }: AppDetailPageProps) {
+export default function MiniAppDetailPage({ app, notifications, error }: AppDetailPageProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [invokeFeedback, setInvokeFeedback] = useState<{
@@ -232,7 +176,6 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
     }
   }, [app.contract_hash, walletAddress, walletConnected]);
 
-  const statCards = stats ? buildStatCards(stats, app.stats_display ?? undefined) : [];
   const operationPanel = app.detail_template?.operation_panel;
   const operationTitle = operationPanel?.title || (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
   const operationSubtitle = operationPanel?.subtitle;
@@ -242,7 +185,7 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
       <Head>
         <title>{`${app.name} - R3E MiniApps`}</title>
       </Head>
-      <AppDetailHeader app={app} stats={stats || undefined} onBack={handleBack} />
+      <AppDetailHeader app={app} onBack={handleBack} />
 
       <main className="max-w-[1280px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <section className="mb-6">
@@ -260,21 +203,6 @@ export default function MiniAppDetailPage({ app, stats, notifications, error }: 
             </p>
           )}
         </section>
-
-        {stats && statCards.length > 0 && (
-          <section className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4 mb-8">
-            {statCards.map((card) => (
-              <AppStatsCard
-                key={card.title}
-                title={card.title}
-                value={card.value}
-                icon={card.icon}
-                trend={card.trend}
-                trendValue={card.trendValue}
-              />
-            ))}
-          </section>
-        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
           <section className="space-y-6">
@@ -532,44 +460,6 @@ function formatPermission(key: string): string {
     .join(" ");
 }
 
-function buildStatCards(stats: MiniAppStats, display?: string[]): StatCardConfig[] {
-  const keys = display ? display : DEFAULT_STATS_DISPLAY;
-  const cards: StatCardConfig[] = [];
-  for (const rawKey of keys) {
-    const key = String(rawKey || "")
-      .trim()
-      .toLowerCase();
-    if (!key) continue;
-    const canonicalKey = STAT_KEY_ALIASES[key] ?? key;
-    const builder = STAT_CARD_BUILDERS[canonicalKey];
-    if (!builder) continue;
-    const card = builder(stats);
-    if (card) cards.push(card);
-  }
-  return cards;
-}
-
-function formatGas(value?: string): string {
-  if (!value) return "0.00";
-  const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed)) return "0.00";
-  return parsed.toFixed(2);
-}
-
-function formatLastActive(value: string | null): string {
-  if (!value) return "Never";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
-  const diffMs = Date.now() - date.getTime();
-  if (diffMs <= 0) return "Just now";
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 function buildInvokeArgs(
   params: OperationParam[],
   values: Record<string, string>,
@@ -649,25 +539,13 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
   try {
     const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
     // Parallel fetch with shorter timeout (2s) for faster page load
-    const [catalogRes, statsRes, notifRes] = await Promise.all([
+    const [catalogRes, notifRes] = await Promise.all([
       fetchWithTimeout(`${baseUrl}/api/miniapps/catalog?app_id=${encodedId}`, {}, 2000).catch(() => null),
-      fetchWithTimeout(`${baseUrl}/api/miniapp-stats?app_id=${encodedId}`, {}, 2000).catch(() => null),
       fetchWithTimeout(`${baseUrl}/api/app/${encodedId}/news?limit=20`, {}, 2000).catch(() => null),
     ]);
 
     const catalogData = catalogRes?.ok ? await catalogRes.json().catch(() => ({})) : {};
-    const statsData = statsRes?.ok ? await statsRes.json().catch(() => ({})) : {};
     const notifData = notifRes?.ok ? await notifRes.json().catch(() => ({ notifications: [] })) : { notifications: [] };
-
-    const statsList = Array.isArray(statsData?.stats)
-      ? statsData.stats
-      : Array.isArray(statsData)
-        ? statsData
-        : statsData
-          ? [statsData]
-          : [];
-
-    const rawStats = statsList.find((s: Record<string, unknown>) => s?.app_id === id) ?? statsList[0] ?? null;
     const catalogApp = catalogData?.app ?? null;
     const app = coerceMiniAppInfo(catalogApp, fallback ?? undefined);
 
@@ -675,7 +553,6 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
       return {
         props: {
           app: null,
-          stats: null,
           notifications: [],
           error: "App not found",
         },
@@ -685,7 +562,6 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
     return {
       props: {
         app: sanitizeForJson(app),
-        stats: sanitizeForJson(rawStats) || null,
         notifications: notifData.notifications || [],
       },
     };
@@ -695,7 +571,6 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
       return {
         props: {
           app: sanitizeForJson(fallback),
-          stats: null,
           notifications: [],
           error: "Using fallback app metadata while live API data is unavailable",
         },
@@ -704,7 +579,6 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
     return {
       props: {
         app: null,
-        stats: null,
         notifications: [],
         error: "Failed to load app details",
       },

@@ -1,19 +1,10 @@
 import Head from "next/head";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
-import { StatsBar } from "@/components/features/stats";
 import { MiniAppGrid, type MiniAppInfo } from "@/components/features/miniapp";
 import { TwitterFeed } from "@/components/features/twitter";
 import { StakingCard } from "@/components/features/staking";
 import { useTranslation } from "@/lib/i18n/react";
-
-// Platform stats
-const platformStats = [
-  { label: "Total Transactions", value: "1.2M+" },
-  { label: "Active Users", value: "45K+" },
-  { label: "MiniApps", value: "23" },
-  { label: "Total Volume", value: "$2.5M" },
-];
 
 // MiniApp catalog
 const miniApps: MiniAppInfo[] = [
@@ -23,7 +14,6 @@ const miniApps: MiniAppInfo[] = [
     description: "Every contribution resets the timer. The last survivor wins the whole jackpot.",
     icon: "⏱️",
     category: "gaming",
-    stats: { users: 12500, transactions: 45000 },
   },
   {
     app_id: "miniapp-coinflip",
@@ -31,7 +21,6 @@ const miniApps: MiniAppInfo[] = [
     description: "Oracle-backed coin flips with direct GAS wagering and on-chain settlement.",
     icon: "🪙",
     category: "gaming",
-    stats: { users: 8900, transactions: 32000 },
   },
   {
     app_id: "miniapp-neo-gacha",
@@ -39,7 +28,6 @@ const miniApps: MiniAppInfo[] = [
     description: "Blind-box economy with provably fair randomness and rapid consecutive spins.",
     icon: "🎁",
     category: "gaming",
-    stats: { users: 24100, transactions: 88000 },
   },
   {
     app_id: "miniapp-redenvelope",
@@ -47,7 +35,6 @@ const miniApps: MiniAppInfo[] = [
     description: "Create shareable GAS envelopes with equal-split or lucky-draw claim modes.",
     icon: "🧧",
     category: "social",
-    stats: { users: 15600, transactions: 42000 },
   },
   {
     app_id: "miniapp-dailycheckin",
@@ -55,7 +42,6 @@ const miniApps: MiniAppInfo[] = [
     description: "Build streaks, unlock badges, and claim GAS rewards every day.",
     icon: "📅",
     category: "gaming",
-    stats: { users: 9800, transactions: 27100 },
   },
   {
     app_id: "miniapp-self-loan",
@@ -63,7 +49,6 @@ const miniApps: MiniAppInfo[] = [
     description: "Borrow GAS instantly against future NEO staking rewards with no liquidations.",
     icon: "🔁",
     category: "defi",
-    stats: { users: 5200, transactions: 11600 },
   },
   {
     app_id: "miniapp-stream-vault",
@@ -71,7 +56,6 @@ const miniApps: MiniAppInfo[] = [
     description: "Recurring GAS or NEO streams with beneficiary claims and creator cancellation.",
     icon: "💸",
     category: "defi",
-    stats: { users: 4100, transactions: 9300 },
   },
 ];
 
@@ -101,9 +85,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Stats Bar */}
-      <StatsBar stats={platformStats} />
 
       {/* Staking & Twitter Section */}
       <section className="py-12 bg-gray-50 dark:bg-gray-900">

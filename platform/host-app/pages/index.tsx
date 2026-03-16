@@ -1,15 +1,15 @@
-import { useState, useMemo, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
 import { logger } from "@/lib/logger";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
-import { StatsBar } from "@/components/features/stats";
 import { MiniAppCard, MiniAppListItem } from "@/components/features/miniapp";
 import type { MiniAppInfo } from "@/components/types";
+import { FLAGSHIP_MINIAPP_IDS } from "@/lib/miniapp-registry";
 import {
   Rocket,
   Shield,
@@ -30,11 +30,6 @@ import {
 } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 
-// Interface for stats from API
-interface AppStats {
-  [appId: string]: { users: number; transactions: number };
-}
-
 // Category definitions with icons
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ size?: number | string; className?: string }>> = {
   all: LayoutGrid,
@@ -49,43 +44,13 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ size?: number | strin
 export default function LandingPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [sortBy, setSortBy] = useState<"trending" | "recent" | "popular">("trending");
-  const [appStats, setAppStats] = useState<AppStats>({});
-  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<"featured" | "recent" | "name">("featured");
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogApps, setCatalogApps] = useState<MiniAppInfo[]>([]);
-  const [displayedTxCount, setDisplayedTxCount] = useState(0);
 
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 1000], [0, 200]);
   const y2 = useTransform(scrollY, [0, 1000], [0, -200]);
-
-  // Fetch real stats from API
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const res = await fetch("/api/platform/stats", { signal: AbortSignal.timeout(30000) });
-        if (!active) return;
-        if (res.ok) {
-          const data = await res.json();
-          if (!active) return;
-          setAppStats({
-            _platform: {
-              users: data.totalUsers || 0,
-              transactions: data.totalTransactions || 0,
-            },
-          });
-          setDisplayedTxCount(data.totalTransactions || 0);
-        }
-      } catch (err) {
-        logger.error("Failed to fetch stats:", err);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -96,7 +61,9 @@ export default function LandingPage() {
         if (!res.ok) return;
         const data = await res.json();
         if (!active) return;
-        const apps = Array.isArray(data?.apps) ? data.apps : [];
+        const apps = Array.isArray(data?.apps)
+          ? data.apps.filter((app: MiniAppInfo) => FLAGSHIP_MINIAPP_IDS.includes(app.app_id))
+          : [];
         setCatalogApps(apps);
       } catch (err) {
         logger.error("Failed to fetch miniapp catalog:", err);
@@ -106,24 +73,6 @@ export default function LandingPage() {
     })();
     return () => { active = false; };
   }, []);
-
-  // Auto-increment transactions
-  const hasTxCount = displayedTxCount > 0;
-  useEffect(() => {
-    if (!hasTxCount) return;
-    const interval = setInterval(() => {
-      const increment = Math.floor(Math.random() * 11) + 10;
-      setDisplayedTxCount((prev) => prev + increment);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [hasTxCount]);
-
-  const appsWithStats = useMemo(() => {
-    return catalogApps.map((app) => ({
-      ...app,
-      stats: appStats[app.app_id] || { users: 0, transactions: 0 },
-    }));
-  }, [appStats, catalogApps]);
 
   const categories = useMemo(() => {
     const counts: Record<string, number> = { all: catalogApps.length };
@@ -142,22 +91,14 @@ export default function LandingPage() {
   }, [catalogApps]);
 
   const filteredApps = useMemo(() => {
-    let apps = selectedCategory === "all" ? appsWithStats : appsWithStats.filter((app) => app.category === selectedCategory);
-    if (sortBy === "popular") {
-      apps = [...apps].sort((a, b) => (b.stats?.users || 0) - (a.stats?.users || 0));
+    let apps = selectedCategory === "all" ? catalogApps : catalogApps.filter((app) => app.category === selectedCategory);
+    if (sortBy === "name") {
+      apps = [...apps].sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === "recent") {
       apps = [...apps].reverse();
     }
     return apps.slice(0, 12);
-  }, [selectedCategory, sortBy, appsWithStats]);
-
-  const totalStats = useMemo(() => {
-    const platformStats = appStats._platform;
-    return {
-      users: platformStats?.users || 0,
-      transactions: platformStats?.transactions || 0,
-    };
-  }, [appStats]);
+  }, [selectedCategory, sortBy, catalogApps]);
 
   return (
     <Layout>
@@ -213,18 +154,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Featured Statistics */}
-      <div className="relative -mt-24 z-20 px-4 mb-20 max-w-7xl mx-auto">
-        <StatsBar
-          stats={[
-            { label: "Active Users", value: loading ? "..." : totalStats.users.toLocaleString(), icon: Globe },
-            { label: "Total Transactions", value: loading ? "..." : displayedTxCount.toLocaleString(), icon: Zap },
-            { label: "MiniApps Live", value: catalogLoading ? "..." : String(catalogApps.length), icon: LayoutGrid },
-            { label: "Categories", value: String(categories.length - 1), icon: Shield },
-          ]}
-        />
-      </div>
-
       {/* Main Content Section */}
       <section className="py-16 px-4 bg-transparent min-h-screen relative z-10">
         <div className="mx-auto max-w-[1600px]">
@@ -273,7 +202,7 @@ export default function LandingPage() {
             <div className="flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 glass-panel p-2 rounded-2xl">
                 <div className="flex items-center gap-2 overflow-x-auto p-1 no-scrollbar w-full sm:w-auto">
-                  {(["trending", "recent", "popular"] as const).map((opt) => (
+                  {(["featured", "recent", "name"] as const).map((opt) => (
                     <Button
                       key={opt}
                       variant="ghost"
