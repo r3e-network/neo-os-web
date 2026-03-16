@@ -5,6 +5,8 @@
 > The current platform direction is simpler:
 > direct Oracle / direct AA for user-facing flows, with old callback-gateway
 > patterns treated as archival or compatibility-only material.
+> Prefer `docs/ARCHITECTURE.md`, `docs/DATAFLOWS.md`, and the latest
+> flagship live validation reports for current implementation truth.
 
 This document is the **reviewed, polished, and fully expanded** design blueprint.
 It explicitly lists the technology stack, open-source tools, and platforms to use
