@@ -42,8 +42,14 @@ type MiniAppStatsRow = {
   last_activity_at?: string | null;
 };
 
+function useLocalCatalogOnly(): boolean {
+  return process.env.NODE_ENV === "test"
+    || process.env.PLAYWRIGHT === "1"
+    || process.env.MINIAPP_CATALOG_SOURCE === "local";
+}
+
 async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMiniAppCatalogOptions = {}): Promise<MiniAppInfo[]> {
-  if (process.env.NODE_ENV === "test") return [];
+  if (useLocalCatalogOnly()) return [];
   const { url: supabaseURL, authHeaders } = getSupabaseEnv();
   if (!supabaseURL || !authHeaders) return [];
 
@@ -146,7 +152,7 @@ export async function loadMiniAppStatsMap(): Promise<Record<string, {
   volume: number;
   lastActivityAt: string | null;
 }>> {
-  if (process.env.NODE_ENV === "test") return {};
+  if (useLocalCatalogOnly()) return {};
   const { url: supabaseURL, authHeaders } = getSupabaseEnv();
   if (!supabaseURL || !authHeaders) return {};
 
