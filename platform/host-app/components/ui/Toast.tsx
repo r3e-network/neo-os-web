@@ -13,7 +13,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import { IconButton } from "./button";
+import { IconButton } from "./Button";
 
 export type ToastType = "success" | "error" | "warning" | "info" | "default";
 export type ToastPosition =

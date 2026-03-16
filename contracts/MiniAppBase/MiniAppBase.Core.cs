@@ -11,12 +11,13 @@ namespace NeoMiniAppPlatform.Contracts
     ///
     /// ARCHITECTURE:
     /// - All MiniApp contracts inherit from this partial class
-    /// - Provides standardized admin, gateway, and pause management
-    /// - Enforces security boundaries via ValidateAdmin/ValidateGateway
+    /// - Provides standardized admin, oracle, AA, and pause management
+    /// - Enforces security boundaries via ValidateAdmin/ValidateOracle/ValidateUserOrAbstractAccount
     ///
     /// SECURITY MODEL:
-    /// - Admin: Human operator with full control (SetAdmin, SetGateway, Update)
-    /// - Gateway: TEE-attested service layer (only caller for business methods)
+    /// - Admin: Human operator with full control (SetAdmin, SetOracle, SetAbstractAccount, Update)
+    /// - Oracle: Morpheus Oracle contract (callback authority for async service flows)
+    /// - AbstractAccount: optional AA core allowed to call user actions on behalf of users
     /// - Users: Never call MiniApp contracts directly; they pay via PaymentHub
     ///
     /// STORAGE LAYOUT:
@@ -28,11 +29,12 @@ namespace NeoMiniAppPlatform.Contracts
         #region Standard Storage Prefixes (0x01-0x06 reserved)
 
         protected static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
-        protected static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
+        protected static readonly byte[] PREFIX_ORACLE = new byte[] { 0x02 };
         protected static readonly byte[] PREFIX_PAYMENTHUB = new byte[] { 0x03 };
         protected static readonly byte[] PREFIX_PAUSED = new byte[] { 0x04 };
         protected static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
         protected static readonly byte[] PREFIX_RECEIPT_USED = new byte[] { 0x06 };
+        protected static readonly byte[] PREFIX_ABSTRACT_ACCOUNT = new byte[] { 0x07 };
 
         #endregion
 
@@ -46,11 +48,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static UInt160 Admin() => ReadAddress(PREFIX_ADMIN);
 
-        public static UInt160 Gateway() => ReadAddress(PREFIX_GATEWAY);
+        public static UInt160 Oracle() => ReadAddress(PREFIX_ORACLE);
 
         public static UInt160 PaymentHub() => ReadAddress(PREFIX_PAYMENTHUB);
 
         public static UInt160 PauseRegistry() => ReadAddress(PREFIX_PAUSE_REGISTRY);
+
+        public static UInt160 AbstractAccount() => ReadAddress(PREFIX_ABSTRACT_ACCOUNT);
 
         public static bool IsPaused()
         {
@@ -75,16 +79,26 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
-        /// Validates that the caller is the ServiceLayerGateway.
-        /// SECURITY: Uses CallingScriptHash (unforgeable) instead of CheckWitness.
-        /// CORRECTNESS: Only TEE-attested gateway can invoke business methods.
-        /// WHY CallingScriptHash: Prevents replay attacks; gateway signs its own tx.
+        /// Validates that the caller is the configured Oracle callback authority.
         /// </summary>
-        protected static void ValidateGateway()
+        protected static void ValidateOracle()
         {
-            UInt160 gw = Gateway();
-            ExecutionEngine.Assert(gw != UInt160.Zero && gw.IsValid, "gateway not set");
-            ExecutionEngine.Assert(Runtime.CallingScriptHash == gw, "only gateway");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != UInt160.Zero && oracle.IsValid, "oracle not set");
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == oracle, "only oracle");
+        }
+
+        protected static void ValidateUserOrAbstractAccount(UInt160 user)
+        {
+            ValidateAddress(user);
+            if (Runtime.CheckWitness(user))
+            {
+                return;
+            }
+
+            UInt160 aa = AbstractAccount();
+            ExecutionEngine.Assert(aa != UInt160.Zero && aa.IsValid, "unauthorized");
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == aa, "unauthorized");
         }
 
         /// <summary>
@@ -122,14 +136,13 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
-        /// Sets the ServiceLayerGateway address.
-        /// SECURITY: Only admin can set; gateway is the sole caller for business methods.
+        /// Sets the Morpheus Oracle address used for callback-based flows.
         /// </summary>
-        public static void SetGateway(UInt160 gw)
+        public static void SetOracle(UInt160 oracle)
         {
             ValidateAdmin();
-            ValidateAddress(gw);
-            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, gw);
+            ValidateAddress(oracle);
+            Storage.Put(Storage.CurrentContext, PREFIX_ORACLE, oracle);
         }
 
         /// <summary>
@@ -152,6 +165,13 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAdmin();
             ValidateAddress(registry);
             Storage.Put(Storage.CurrentContext, PREFIX_PAUSE_REGISTRY, registry);
+        }
+
+        public static void SetAbstractAccount(UInt160 abstractAccount)
+        {
+            ValidateAdmin();
+            ValidateAddress(abstractAccount);
+            Storage.Put(Storage.CurrentContext, PREFIX_ABSTRACT_ACCOUNT, abstractAccount);
         }
 
         /// <summary>

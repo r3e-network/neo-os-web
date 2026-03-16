@@ -2,16 +2,18 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
-const keep = new Set([
+const requiredPlatformContracts = new Set([
   "AppRegistry",
   "AutomationAnchor",
+  "Governance",
+  "OracleService",
   "PauseRegistry",
   "PaymentHub",
   "PriceFeed",
   "RandomnessLog",
-  "ServiceLayerGateway",
-  "UniversalMiniApp",
 ]);
+
+const forbiddenLegacyContracts = new Set(["ServiceLayerGateway", "UniversalMiniApp"]);
 
 const ignore = new Set(["__tests__", "build", "build_single", "cmd"]);
 
@@ -23,8 +25,13 @@ const entries = fs
   .filter((name) => !ignore.has(name));
 
 describe("platform contracts", () => {
-  it("only contains platform contracts", () => {
-    const unexpected = entries.filter((name) => !keep.has(name));
-    expect(unexpected).toEqual([]);
+  it("contains the required platform contracts", () => {
+    const missing = [...requiredPlatformContracts].filter((name) => !entries.includes(name));
+    expect(missing).toEqual([]);
+  });
+
+  it("does not keep removed legacy platform contracts", () => {
+    const present = [...forbiddenLegacyContracts].filter((name) => entries.includes(name));
+    expect(present).toEqual([]);
   });
 });

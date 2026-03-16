@@ -32,9 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger StartGame(UInt160 player, BigInteger boxCount, BigInteger receiptId)
         {
             // Authorization check
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "Not authorized");
+            ValidateUserOrAbstractAccount(player);
 
             // Validate box count
             ExecutionEngine.Assert(boxCount >= MIN_BLINDBOXES && boxCount <= MAX_BLINDBOXES, "Invalid box count");
@@ -95,9 +93,7 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString scriptHash)
         {
             // Authorization check
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "Not authorized");
+            ValidateUserOrAbstractAccount(player);
             
             // Verify script is registered (Standard Compliance)
             ValidateScriptHash(SCRIPT_MATCH_LOGIC, scriptHash);

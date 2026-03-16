@@ -5,7 +5,7 @@
 
 import React, { forwardRef, useId } from "react";
 import { cn } from "@/lib/utils";
-import { IconButton } from "./button";
+import { IconButton } from "./Button";
 
 export type AlertVariant = "success" | "error" | "warning" | "info";
 

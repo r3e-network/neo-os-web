@@ -19,9 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(identityHash.Length == 32, "invalid hash");
             ExecutionEngine.Assert(maskType >= 1 && maskType <= 2, "invalid mask type");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             BigInteger fee = maskType == 2 ? PREMIUM_MASK_FEE : MASK_FEE;
             ValidatePaymentReceipt(APP_ID, owner, fee, receiptId);

@@ -19,9 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(rating >= 1 && rating <= 5, "rating 1-5");
             ExecutionEngine.Assert(category >= 1 && category <= 5, "invalid category");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
+            ValidateUserOrAbstractAccount(creator);
 
             ValidatePaymentReceipt(APP_ID, creator, CREATE_FEE, receiptId);
 

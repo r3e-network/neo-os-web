@@ -117,18 +117,18 @@ func main() {
 		fmt.Printf("✅ Contract deployed at: %s\n", contractHash)
 	}
 
-	gatewayHash, err := resolveGatewayHash()
+	oracleHash, err := resolveOracleHash()
 	if err != nil {
-		fmt.Printf("Invalid ServiceLayerGateway hash: %v\n", err)
+		fmt.Printf("Invalid Morpheus Oracle hash: %v\n", err)
 		os.Exit(1)
 	}
-	if gatewayHash != (util.Uint160{}) {
-		fmt.Println("Configuring gateway on MiniAppServiceConsumer...")
-		if err := setGateway(ctx, client, act, expectedHash, gatewayHash); err != nil {
-			fmt.Printf("❌ setGateway failed: %v\n", err)
+	if oracleHash != (util.Uint160{}) {
+		fmt.Println("Configuring oracle on MiniAppServiceConsumer...")
+		if err := setOracle(ctx, client, act, expectedHash, oracleHash); err != nil {
+			fmt.Printf("❌ setOracle failed: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println("✅ Gateway configured")
+		fmt.Println("✅ Oracle configured")
 	}
 
 	saveDeploymentRecord(buildDir, contractHash)
@@ -158,10 +158,10 @@ func loadManifest(path string) (*manifest.Manifest, error) {
 	return &m, nil
 }
 
-func resolveGatewayHash() (util.Uint160, error) {
-	raw := strings.TrimSpace(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
+func resolveOracleHash() (util.Uint160, error) {
+	raw := strings.TrimSpace(os.Getenv("CONTRACT_MORPHEUS_ORACLE_HASH"))
 	if raw == "" {
-		raw = strings.TrimSpace(os.Getenv("CONTRACT_SERVICE_GATEWAY_HASH"))
+		raw = strings.TrimSpace(os.Getenv("CONTRACT_ORACLE_HASH"))
 	}
 	if raw == "" {
 		return util.Uint160{}, nil
@@ -174,8 +174,8 @@ func parseHash160(raw string) (util.Uint160, error) {
 	return util.Uint160DecodeStringLE(raw)
 }
 
-func setGateway(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contract util.Uint160, gateway util.Uint160) error {
-	testResult, err := act.Call(contract, "setGateway", gateway)
+func setOracle(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contract util.Uint160, oracle util.Uint160) error {
+	testResult, err := act.Call(contract, "setOracle", oracle)
 	if err != nil {
 		return fmt.Errorf("test invoke failed: %w", err)
 	}
@@ -183,7 +183,7 @@ func setGateway(ctx context.Context, client *rpcclient.Client, act *actor.Actor,
 		return fmt.Errorf("test invoke failed: %s (fault: %s)", testResult.State, testResult.FaultException)
 	}
 
-	txHash, vub, err := act.SendCall(contract, "setGateway", gateway)
+	txHash, vub, err := act.SendCall(contract, "setOracle", oracle)
 	if err != nil {
 		return fmt.Errorf("send transaction: %w", err)
 	}

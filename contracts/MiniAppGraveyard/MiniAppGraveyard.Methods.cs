@@ -19,9 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(contentHash.Length > 0, "invalid content");
             ExecutionEngine.Assert(memoryType >= 1 && memoryType <= 5, "invalid type");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             ValidatePaymentReceipt(APP_ID, owner, BURY_FEE, receiptId);
 
@@ -62,9 +60,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(memory.Owner == owner, "not owner");
             ExecutionEngine.Assert(!memory.Forgotten, "already forgotten");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             ValidatePaymentReceipt(APP_ID, owner, FORGET_FEE, receiptId);
 

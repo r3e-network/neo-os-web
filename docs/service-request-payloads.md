@@ -1,14 +1,19 @@
-# Service Request Payloads (On-Chain)
+# Oracle Request Payloads (Direct Morpheus Oracle)
 
-This document defines the **payload format** for on-chain service requests
-submitted via `ServiceLayerGateway.RequestService(...)`.
+This document defines the preferred **payload format** for MiniApp contracts
+that call the external Morpheus Oracle contract directly.
 
-All payloads are passed as **ByteString** and are interpreted as **UTF-8 JSON**
-unless explicitly stated otherwise.
+The request shape follows:
+
+```text
+MorpheusOracle.request(requestType, payload, callbackContract, "onOracleResult")
+```
+
+Payloads are passed as **ByteString** and interpreted as **UTF-8 JSON** unless
+explicitly stated otherwise.
 
 ## Common Fields
 
-- `app_id`: MiniApp identifier (supplied by the caller contract).
 - `request_id`: optional client-provided correlation id (string).
 
 ## Service Types
@@ -48,7 +53,9 @@ JSONPath output plus metadata.
 
 ### `compute`
 
-Payload mirrors the Edge `compute-execute` API:
+Payload mirrors the external Morpheus compute runtime.
+
+Inline-script mode:
 
 ```json
 {
@@ -59,20 +66,48 @@ Payload mirrors the Edge `compute-execute` API:
 }
 ```
 
+When the callback / notification size is too small for inline source, prefer a
+registered script reference. This matches the Morpheus worker `script_ref`
+resolver and lets the MiniApp send only a script name plus the registry getter
+location:
+
+```json
+{
+  "script_ref": {
+    "contract_hash": "0x1111111111111111111111111111111111111111",
+    "method": "getScript",
+    "script_name": "sum"
+  },
+  "entry_point": "main",
+  "input": { "a": 2, "b": 3 }
+}
+```
+
+Equivalent shorthand fields are also accepted by the external runtime:
+
+```json
+{
+  "script_registry_contract": "0x1111111111111111111111111111111111111111",
+  "script_registry_method": "getScript",
+  "script_name": "sum",
+  "entry_point": "main",
+  "input": { "a": 2, "b": 3 }
+}
+```
+
 **Result (`ByteString`)**: UTF-8 JSON containing the compute result + metadata.
 
 ## Callback Contract Parameters
 
-When the request completes, `ServiceLayerGateway.FulfillRequest(...)` calls the
+When the request completes, `MorpheusOracle.fulfillRequest(...)` calls the
 MiniApp callback method with:
 
 ```
-(request_id, app_id, service_type, success, result, error)
+(request_id, request_type, success, result, error)
 ```
 
 - `request_id`: `Integer`
-- `app_id`: `String`
-- `service_type`: `String`
+- `request_type`: `String`
 - `success`: `Boolean`
 - `result`: `ByteString`
 - `error`: `String`

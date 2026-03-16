@@ -1,15 +1,22 @@
-// Centralized service definitions used by both API routes and client hooks.
+// Shared admin-console timing and service labels.
+//
+// Runtime service URLs come from the edge health endpoint, which now reads the
+// configured external Oracle / AA integration URLs instead of hard-coded local
+// service-layer DNS names.
 
 export const PLATFORM_SERVICES = [
-  { name: "neofeeds", url: "http://neofeeds.service-layer.svc.cluster.local:8080" },
-  { name: "neoaccounts", url: "http://neoaccounts.service-layer.svc.cluster.local:8085" },
-  { name: "confcompute", url: "http://confcompute.service-layer.svc.cluster.local:8081" },
-  { name: "conforacle", url: "http://conforacle.service-layer.svc.cluster.local:8082" },
-  { name: "datafeed", url: "http://datafeed.service-layer.svc.cluster.local:8083" },
-  { name: "vrf", url: "http://vrf.service-layer.svc.cluster.local:8084" },
-  { name: "automation", url: "http://automation.service-layer.svc.cluster.local:8086" },
-  { name: "gasbank", url: "http://gasbank.service-layer.svc.cluster.local:8087" },
-  { name: "edge-gateway", url: "http://edge-gateway.platform.svc.cluster.local:8787" },
+  "morpheus-datafeed",
+  "morpheus-automation",
+  "morpheus-compute",
+  "morpheus-vrf",
+  "morpheus-oracle",
+  "txproxy",
+  "gasbank",
+  "globalsigner",
+  "neoaccounts",
+  "aa-relay",
+  "morpheus-paymaster",
+  "edge-gateway",
 ] as const;
 
 export const HEALTH_CHECK_TIMEOUT_MS = 5000;

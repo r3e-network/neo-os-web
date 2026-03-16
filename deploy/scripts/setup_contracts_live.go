@@ -91,10 +91,9 @@ func main() {
 
 	fmt.Println("\n=== Setting Up Updaters ===")
 	updaterTargets := map[string]string{
-		"PriceFeed":           os.Getenv("CONTRACT_PRICEFEED_HASH"),
-		"RandomnessLog":       os.Getenv("CONTRACT_RANDOMNESSLOG_HASH"),
-		"AutomationAnchor":    os.Getenv("CONTRACT_AUTOMATIONANCHOR_HASH"),
-		"ServiceLayerGateway": os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"),
+		"PriceFeed":        os.Getenv("CONTRACT_PRICEFEED_HASH"),
+		"RandomnessLog":    os.Getenv("CONTRACT_RANDOMNESSLOG_HASH"),
+		"AutomationAnchor": os.Getenv("CONTRACT_AUTOMATIONANCHOR_HASH"),
 	}
 
 	for name, hash := range updaterTargets {

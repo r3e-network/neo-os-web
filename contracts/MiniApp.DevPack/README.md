@@ -67,7 +67,7 @@ Core abstract base class providing essential functionality for ALL MiniApps.
 | Prefix | Constant | Purpose |
 |--------|----------|---------|
 | 0x01 | PREFIX_ADMIN | Admin address |
-| 0x02 | PREFIX_GATEWAY | Gateway address |
+| 0x02 | PREFIX_GATEWAY | Oracle address |
 | 0x03 | PREFIX_PAYMENTHUB | PaymentHub address |
 | 0x04 | PREFIX_PAUSED | Local pause flag |
 | 0x05 | PREFIX_PAUSE_REGISTRY | Global pause registry |
@@ -93,7 +93,7 @@ SetTimeLockDelay(BigInteger delaySeconds) // Set delay (min 1 hour)
 
 **Configuration**
 ```csharp
-SetGateway(UInt160 gw)              // Set gateway address
+SetOracle(UInt160 gw)              // Set oracle address
 SetPaymentHub(UInt160 hub)          // Set payment hub
 SetPauseRegistry(UInt160 registry)  // Set global pause registry
 SetAutomationAnchor(UInt160 anchor) // Set automation anchor
@@ -103,7 +103,7 @@ SetPaused(bool paused, string appId) // Toggle local pause
 **Validation Helpers**
 ```csharp
 ValidateAdmin()                      // Check admin witness
-ValidateGateway()                    // Check gateway caller
+ValidateOracle()                    // Check oracle caller
 ValidateAddress(UInt160 addr)        // Validate address
 ValidateNotPaused()                  // Check local pause
 ValidateNotGloballyPaused(string appId) // Check global pause
@@ -368,7 +368,7 @@ public class MiniAppMyApp : MiniAppBase
 
     public static void MyMethod(UInt160 user, BigInteger receiptId)
     {
-        UInt160 gateway = Gateway();
+        UInt160 gateway = Oracle();
         bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
         ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(user), "unauthorized");
 
@@ -389,7 +389,7 @@ public class MiniAppMyGame : MiniAppGameBase
     public static BigInteger PlaceBet(UInt160 player, BigInteger amount,
                                        bool choice, BigInteger receiptId)
     {
-        UInt160 gateway = Gateway();
+        UInt160 gateway = Oracle();
         bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
         ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
 

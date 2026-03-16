@@ -213,18 +213,17 @@ namespace NeoMiniAppPlatform.Contracts
 
         protected static BigInteger RequestRng(string appId, ByteString payload)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != UInt160.Zero && gateway.IsValid, "gateway not set");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != UInt160.Zero && oracle.IsValid, "oracle not set");
 
             return (BigInteger)Contract.Call(
-                gateway,
-                "requestService",
+                oracle,
+                "request",
                 CallFlags.All,
-                appId,
                 ServiceTypes.RNG,
                 payload,
                 Runtime.ExecutingScriptHash,
-                "onServiceCallback"
+                "onOracleResult"
             );
         }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSecretsStore } from "@/lib/secrets";
 import { useWalletStore } from "@/lib/wallet/store";

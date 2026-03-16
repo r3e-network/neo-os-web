@@ -2,11 +2,17 @@
 
 This repository is evolving into a **Neo N3 MiniApp Platform**. MiniApps are loaded by a host application (Next.js) and interact with Neo N3 only through the platform SDK + attested services.
 
+Preferred architecture note:
+
+- user-facing integrations should prefer direct Oracle / direct AA
+- callback-specific manifest fields only matter for MiniApps that still use the
+  legacy on-chain callback gateway pattern
+
 ## Goals
 
 - **Payments/settlement only GAS** (no other payment assets).
 - **Governance only bNEO**.
-- **No direct transaction construction in MiniApps**: all sensitive actions flow through `SDK → Edge → TEE → Chain`.
+- **No direct transaction construction in MiniApps**: sensitive actions flow through `SDK → Edge/Host Proxy → Oracle or AA Runtime → Chain`.
 - **Deterministic permissions**: each MiniApp declares capabilities; runtime enforces allowlists and limits.
 - **Platform analytics**: optional metadata for notifications and stats display.
 
@@ -167,7 +173,7 @@ triggered by the MiniApp.
 
 - `callback_contract` (string): Neo N3 script hash (Hash160) for the MiniApp
   callback contract.
-- `callback_method` (string): method name invoked by `ServiceLayerGateway.FulfillRequest`.
+- `callback_method` (string): method name invoked by the upstream callback transaction.
 
 If a request explicitly specifies a different callback target on-chain, the
 dispatcher will enforce that it matches the manifest unless the app is

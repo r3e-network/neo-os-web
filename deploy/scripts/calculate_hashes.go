@@ -21,7 +21,7 @@ const (
 	buildDir = "contracts/build"
 )
 
-var contracts = []string{"PaymentHub", "Governance", "PriceFeed", "RandomnessLog", "AppRegistry", "AutomationAnchor", "ServiceLayerGateway"}
+var contracts = []string{"PaymentHub", "Governance", "PriceFeed", "RandomnessLog", "AppRegistry", "AutomationAnchor"}
 
 func main() {
 	wif := os.Getenv("NEO_TESTNET_WIF")

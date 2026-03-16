@@ -1,139 +1,218 @@
 /**
- * Abstract Account (AA) integration composable for Neo N3 miniapps.
+ * Abstract Account integration composable for Neo N3 MiniApps.
  *
- * Provides account abstraction features:
- * - Social login via Web3Auth (Google, Twitter, etc.)
- * - Session keys for gasless/signless rapid interactions
- * - Meta-transactions with gas sponsoring
- * - Keeper automation for time-triggered actions
+ * This composable does not try to replace `neo-abstract-account`.
+ * It gives the MiniApp platform a thin, accurate integration layer for:
+ * - canonical AA contract / verifier / domain discovery
+ * - GAS sponsorship checks via the platform gateway
+ * - relay submission into an external AA relay
+ * - session metadata hydration for UX state
  *
- * Integration flow:
- *   Web3Auth SDK → EVM key → deriveAddressFromEVM → registerAccount
- *   Session keys: generate secp256r1 keypair → SessionKeyVerifier.SetSessionKey
- *   Execution: build UserOp → sign with session private key → relay via /api/relay-transaction
- *
- * Reference: github.com/r3e-network/neo-abstract-account
+ * The actual Web3Auth login, `executeUserOp` construction, verifier updates,
+ * and on-chain AA lifecycle continue to live in the dedicated AA project.
  */
-import { ref, computed } from "vue";
+import { computed, ref } from "vue";
+import {
+  getExternalIntegrationConfig,
+  getNetwork,
+  type NeoNetwork,
+} from "../constants/rpc";
 
-// ---------------------------------------------------------------------------
-// Deployed contract hashes
-// ---------------------------------------------------------------------------
+type MaybePromise<T> = T | Promise<T>;
 
-/** AA Master Contract – Neo N3 mainnet */
-const AA_MASTER_CONTRACT_MAINNET = "0x0466fa7e8fe548480d7978d2652625d4a22589a6";
+type TokenResolver = () => MaybePromise<string | undefined>;
 
-/** AA Master Contract – Neo N3 testnet (placeholder, to be filled after testnet deploy) */
-const AA_MASTER_CONTRACT_TESTNET = "0x0000000000000000000000000000000000000000";
+type GasSponsorClientLike = {
+  check: () => Promise<GasSponsorCheckResponse>;
+  request: (amount: string) => Promise<GasSponsorRequestResponse>;
+};
 
-/** Web3Auth social-login verifier hash registered in the AA contract */
-const WEB3AUTH_VERIFIER_HASH = "0x0000000000000000000000000000000000000000";
-
-/** SessionKeyVerifier contract hash (validates secp256r1 session signatures) */
-const SESSION_KEY_VERIFIER_HASH = "0x0000000000000000000000000000000000000000";
-
-// ---------------------------------------------------------------------------
-// Service endpoints
-// ---------------------------------------------------------------------------
-
-/** Relay service endpoint for meta-transaction submission */
-const RELAY_ENDPOINT = "/api/relay-transaction";
+type MiniAppSDKLike = {
+  gasSponsor?: GasSponsorClientLike;
+};
 
 export interface AAConfig {
-  /** The AA master contract hash on Neo N3 */
-  masterContractHash?: string;
-  /** RPC endpoint for AA operations */
-  rpcUrl?: string;
-  /** Whether to enable session keys for this miniapp */
-  enableSessionKeys?: boolean;
-  /** Session key validity duration in seconds (default: 3600 = 1 hour) */
-  sessionKeyDuration?: number;
-  /** Whether to enable gas sponsoring for new users */
-  enableGasSponsoring?: boolean;
+  network?: NeoNetwork;
+  edgeBaseUrl?: string;
+  relayUrl?: string;
+  paymasterDappId?: string;
+  aaAddress?: string;
+  sdk?: MiniAppSDKLike;
+  getAuthToken?: TokenResolver;
+  getAPIKey?: TokenResolver;
+  resolveAAAddress?: (provider: "google" | "twitter" | "github") => MaybePromise<string>;
+  registerSessionKey?: (params: RegisterSessionKeyParams) => MaybePromise<SessionKey>;
+}
+
+export interface RegisterSessionKeyParams {
+  aaAddress: string;
+  sessionKeyVerifierHash?: string;
+  scope: {
+    contractHash: string;
+    allowedMethods: string[];
+  };
+  maxInvocations: number;
+  expiresAt: number;
 }
 
 export interface SessionKey {
-  /** The derived session key address */
   address: string;
-  /** Expiry timestamp */
+  publicKey?: string;
   expiresAt: number;
-  /** Remaining allowed invocations */
   remainingInvocations: number;
-  /** Whether the session is still valid */
   isValid: boolean;
 }
 
-/**
- * Composable for Abstract Account integration.
- *
- * Usage in miniapps:
- * ```ts
- * const { isAAEnabled, aaAddress, createSessionKey, executeWithSession } = useAbstractAccount({
- *   enableSessionKeys: true,
- *   sessionKeyDuration: 3600,
- * });
- * ```
- *
- * Integration requires:
- * 1. Web3Auth SDK configured with the Neo N3 chain adapter
- * 2. The AA Master Contract deployed (see AA_MASTER_CONTRACT_MAINNET)
- * 3. The relay service running at RELAY_ENDPOINT
- */
-export function useAbstractAccount(config: AAConfig = {}) {
-  const {
-    masterContractHash = AA_MASTER_CONTRACT_MAINNET,
-    rpcUrl = "",
-    enableSessionKeys = false,
-    sessionKeyDuration = 3600,
-    enableGasSponsoring = false,
-  } = config;
+export interface GasSponsorCheckResponse {
+  eligible: boolean;
+  gas_balance: string;
+  daily_limit: string;
+  used_today: string;
+  remaining: string;
+  resets_at: string;
+}
 
-  // State
-  const isAAEnabled = ref(false);
-  const aaAddress = ref<string | null>(null);
+export interface GasSponsorRequestResponse {
+  request_id: string;
+  amount: string;
+  status: string;
+  tx_hash: string | null;
+}
+
+export interface AARelayPayload {
+  metaInvocation?: Record<string, unknown>;
+  rawTransaction?: string;
+  paymaster?: Record<string, unknown>;
+  simulate?: boolean;
+  [key: string]: unknown;
+}
+
+export interface AARelayResponse {
+  txid?: string;
+  networkFee?: string;
+  systemFee?: string;
+  invocation?: {
+    scriptHash?: string;
+    operation?: string;
+  };
+  paymaster?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+function getWindowMiniAppSDK(): MiniAppSDKLike | undefined {
+  if (typeof window === "undefined") return undefined;
+  const host = window as Window & { MiniAppSDK?: MiniAppSDKLike };
+  return host.MiniAppSDK;
+}
+
+function normalizeUrl(raw: string | undefined, fallback = ""): string {
+  const value = String(raw ?? "").trim();
+  if (!value) return fallback;
+  return value.replace(/\/$/, "");
+}
+
+async function resolveToken(resolver?: TokenResolver): Promise<string | undefined> {
+  if (!resolver) return undefined;
+  const value = await resolver();
+  const trimmed = String(value ?? "").trim();
+  return trimmed || undefined;
+}
+
+async function requestJson<T>(
+  url: string,
+  options: {
+    method: "GET" | "POST";
+    body?: Record<string, unknown>;
+    getAuthToken?: TokenResolver;
+    getAPIKey?: TokenResolver;
+  },
+): Promise<T> {
+  const headers = new Headers();
+  if (options.method !== "GET") {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const authToken = await resolveToken(options.getAuthToken);
+  if (authToken) headers.set("Authorization", `Bearer ${authToken}`);
+
+  const apiKey = await resolveToken(options.getAPIKey);
+  if (apiKey) headers.set("X-API-Key", apiKey);
+
+  const response = await fetch(url, {
+    method: options.method,
+    headers,
+    credentials: "include",
+    ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(text || `${options.method} ${url} failed (${response.status})`);
+  }
+
+  if (!text) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`invalid JSON response from ${url}`);
+  }
+}
+
+export function useAbstractAccount(config: AAConfig = {}) {
+  const network = config.network ?? getNetwork();
+  const integration = getExternalIntegrationConfig(network);
+  const edgeBaseUrl = normalizeUrl(config.edgeBaseUrl, "/api/rpc");
+  const relayUrl = normalizeUrl(config.relayUrl, "/api/aa/relay");
+  const sdk = config.sdk ?? getWindowMiniAppSDK();
+
+  const aaAddress = ref<string | null>(String(config.aaAddress ?? "").trim() || null);
   const sessionKey = ref<SessionKey | null>(null);
   const isInitializing = ref(false);
+  const isCheckingSponsorship = ref(false);
+  const isRelaying = ref(false);
+  const lastRelayResponse = ref<AARelayResponse | null>(null);
   const error = ref<string | null>(null);
 
-  // Computed
+  const isAAEnabled = computed(() => Boolean(aaAddress.value));
   const hasActiveSession = computed(
-    () => sessionKey.value?.isValid && (sessionKey.value?.expiresAt ?? 0) > Date.now() / 1000,
+    () => Boolean(
+      sessionKey.value
+      && sessionKey.value.isValid
+      && sessionKey.value.remainingInvocations > 0
+      && sessionKey.value.expiresAt > Math.floor(Date.now() / 1000),
+    ),
   );
-  const canUseGasSponsoring = computed(() => enableGasSponsoring && isAAEnabled.value);
+  const canUseGasSponsoring = computed(() => Boolean(config.paymasterDappId));
 
-  /**
-   * Initialize AA with social login (Web3Auth).
-   * Creates or recovers an AA wallet from social credentials.
-   *
-   * Flow:
-   *   1. Web3Auth SDK authenticates the user with the chosen provider
-   *   2. Obtain the EVM secp256k1 key pair from Web3Auth
-   *   3. Call AbstractAccountContract.deriveAddressFromEVM(evmPublicKey)
-   *      to compute the deterministic Neo N3 address
-   *   4. If no on-chain account exists yet, invoke MasterContract.registerAccount
-   *      with the EVM public key and the Web3Auth verifier proof
-   *   5. Set aaAddress to the derived Neo N3 address
-   */
+  const setAAAddress = (address: string | null | undefined) => {
+    const next = String(address ?? "").trim();
+    aaAddress.value = next || null;
+  };
+
+  const hydrateSessionKey = (value: SessionKey | null) => {
+    sessionKey.value = value;
+  };
+
   const initWithSocialLogin = async (provider: "google" | "twitter" | "github") => {
     isInitializing.value = true;
     error.value = null;
     try {
-      // Step 1: Web3Auth login → obtain EVM key pair
-      // const web3auth = new Web3Auth({ verifier: WEB3AUTH_VERIFIER_HASH, ... });
-      // const evmKey = await web3auth.login(provider);
+      if (config.resolveAAAddress) {
+        const address = await config.resolveAAAddress(provider);
+        setAAAddress(address);
+        return address;
+      }
 
-      // Step 2: Derive Neo N3 address from EVM public key
-      // const neoAddress = await contract.invokeRead(masterContractHash, "deriveAddressFromEVM", [evmKey.publicKey]);
+      if (aaAddress.value) {
+        return aaAddress.value;
+      }
 
-      // Step 3: Check on-chain existence; register if new
-      // const exists = await contract.invokeRead(masterContractHash, "accountExists", [neoAddress]);
-      // if (!exists) {
-      //   await contract.invoke(masterContractHash, "registerAccount", [evmKey.publicKey, verifierProof]);
-      // }
-
-      // Step 4: Populate composable state
-      // aaAddress.value = neoAddress;
-      isAAEnabled.value = true;
+      throw new Error(
+        "AA address resolver is not configured. Wire this MiniApp to neo-abstract-account or the host Web3Auth flow.",
+      );
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : "AA initialization failed";
       throw e;
@@ -142,131 +221,140 @@ export function useAbstractAccount(config: AAConfig = {}) {
     }
   };
 
-  /**
-   * Create a session key for gasless rapid interactions.
-   * The session key allows the miniapp to submit transactions
-   * without prompting the user to sign each one.
-   *
-   * Flow:
-   *   1. Generate a secp256r1 (P-256) ephemeral key pair on the client
-   *   2. Invoke SessionKeyVerifier.SetSessionKey on-chain with:
-   *      - sessionPublicKey (the P-256 public key)
-   *      - scope: { contractHash, allowedMethods }
-   *      - expiresAt: current timestamp + sessionKeyDuration
-   *      - maxInvocations
-   *   3. Store the private key in secure local storage for signing UserOps
-   *
-   * @param scope - Contract and methods this session key is permitted to call
-   * @param maxInvocations - Maximum number of invocations before key expires
-   */
-  const createSessionKey = async (scope: { contractHash: string; allowedMethods: string[] }, maxInvocations = 100) => {
-    if (!isAAEnabled.value) {
-      throw new Error("AA not initialized. Call initWithSocialLogin first.");
+  const createSessionKey = async (
+    scope: { contractHash: string; allowedMethods: string[] },
+    maxInvocations = 100,
+  ): Promise<SessionKey> => {
+    if (!aaAddress.value) {
+      throw new Error("AA address not initialized");
     }
+    if (!config.registerSessionKey) {
+      throw new Error(
+        "Session key registration is not configured. Use neo-abstract-account to produce the on-chain session key and hydrate it here.",
+      );
+    }
+
     try {
-      // Step 1: Generate secp256r1 key pair
-      // const { publicKey, privateKey } = crypto.generateKeyPair("P-256");
-
-      // Step 2: Register with SessionKeyVerifier contract
-      // await contract.invoke(SESSION_KEY_VERIFIER_HASH, "SetSessionKey", [
-      //   { type: "ByteArray", value: publicKey },
-      //   { type: "Hash160",   value: scope.contractHash },
-      //   { type: "Array",     value: scope.allowedMethods },
-      //   { type: "Integer",   value: expiresAt },
-      //   { type: "Integer",   value: maxInvocations },
-      // ]);
-
-      // Step 3: Persist session key locally
-      const expiresAt = Math.floor(Date.now() / 1000) + sessionKeyDuration;
-      sessionKey.value = {
-        address: "",
+      const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+      const created = await config.registerSessionKey({
+        aaAddress: aaAddress.value,
+        sessionKeyVerifierHash: integration.contracts.aaSessionKeyVerifier,
+        scope,
+        maxInvocations,
         expiresAt,
-        remainingInvocations: maxInvocations,
-        isValid: true,
-      };
-      return sessionKey.value;
+      });
+      sessionKey.value = created;
+      return created;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : "Session key creation failed";
       throw e;
     }
   };
 
-  /**
-   * Execute a contract invocation using the active session key.
-   * No user signature required if session is valid.
-   *
-   * Flow:
-   *   1. Build a UserOperation struct: { sender, contractHash, operation, args, nonce }
-   *   2. Sign the UserOp with the session private key (secp256r1 / P-256)
-   *   3. POST to RELAY_ENDPOINT (/api/relay-transaction) with:
-   *      { userOp, sessionSignature, sessionPublicKey }
-   *   4. Relay service validates session key on-chain via SessionKeyVerifier,
-   *      wraps the call in a meta-transaction, and submits to the network
-   *   5. Decrement local invocation counter
-   *
-   * @param contractHash - Target contract script hash
-   * @param operation - Contract operation to invoke
-   * @param args - Typed arguments for the operation
-   */
-  const executeWithSession = async (
-    contractHash: string,
-    operation: string,
-    args: Array<{ type: string; value: unknown }>,
-  ) => {
-    if (!hasActiveSession.value) {
-      throw new Error("No active session key. Create one first.");
-    }
+  const checkGasSponsorship = async (): Promise<GasSponsorCheckResponse> => {
+    isCheckingSponsorship.value = true;
+    error.value = null;
     try {
-      // Step 1: Build UserOperation
-      // const userOp = { sender: aaAddress.value, contractHash, operation, args, nonce: Date.now() };
-
-      // Step 2: Sign with session private key (P-256)
-      // const signature = crypto.sign(userOp, sessionPrivateKey);
-
-      // Step 3: Submit via relay
-      // const response = await fetch(RELAY_ENDPOINT, {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ userOp, sessionSignature: signature, sessionPublicKey }),
-      // });
-
-      // Step 4: Update local session state
-      if (sessionKey.value) {
-        sessionKey.value.remainingInvocations--;
-        if (sessionKey.value.remainingInvocations <= 0) {
-          sessionKey.value.isValid = false;
-        }
+      if (sdk?.gasSponsor?.check) {
+        return await sdk.gasSponsor.check();
       }
+      return await requestJson<GasSponsorCheckResponse>(`${edgeBaseUrl}/gas-sponsor-check`, {
+        method: "GET",
+        getAuthToken: config.getAuthToken,
+      });
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "Session execution failed";
+      error.value = e instanceof Error ? e.message : "Gas sponsorship check failed";
       throw e;
+    } finally {
+      isCheckingSponsorship.value = false;
     }
   };
 
-  /**
-   * Revoke the current session key.
-   *
-   * Clears the local session state. Optionally invoke
-   * SessionKeyVerifier.RevokeSessionKey on-chain to invalidate
-   * the key even if the local storage is compromised.
-   */
+  const requestGasSponsorship = async (amount: string): Promise<GasSponsorRequestResponse> => {
+    isCheckingSponsorship.value = true;
+    error.value = null;
+    try {
+      if (sdk?.gasSponsor?.request) {
+        return await sdk.gasSponsor.request(amount);
+      }
+      return await requestJson<GasSponsorRequestResponse>(`${edgeBaseUrl}/gas-sponsor-request`, {
+        method: "POST",
+        body: { amount },
+        getAuthToken: config.getAuthToken,
+      });
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : "Gas sponsorship request failed";
+      throw e;
+    } finally {
+      isCheckingSponsorship.value = false;
+    }
+  };
+
+  const buildPaymasterConfig = (dappId = config.paymasterDappId): Record<string, unknown> | undefined => {
+    const clean = String(dappId ?? "").trim();
+    if (!clean) return undefined;
+    return { dapp_id: clean, network };
+  };
+
+  const submitRelayTransaction = async (payload: AARelayPayload): Promise<AARelayResponse> => {
+    if (!relayUrl) {
+      throw new Error("AA relay URL is not configured");
+    }
+
+    isRelaying.value = true;
+    error.value = null;
+    try {
+      const paymaster = payload.paymaster ?? buildPaymasterConfig();
+      const response = await requestJson<AARelayResponse>(relayUrl, {
+        method: "POST",
+        body: {
+          ...payload,
+          ...(paymaster ? { paymaster } : {}),
+        },
+        getAuthToken: config.getAuthToken,
+        getAPIKey: config.getAPIKey,
+      });
+
+      lastRelayResponse.value = response;
+      if (sessionKey.value) {
+        sessionKey.value.remainingInvocations = Math.max(0, sessionKey.value.remainingInvocations - 1);
+        sessionKey.value.isValid = sessionKey.value.remainingInvocations > 0;
+      }
+      return response;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : "AA relay submission failed";
+      throw e;
+    } finally {
+      isRelaying.value = false;
+    }
+  };
+
+  // Backwards-compatible alias for existing examples.
+  const executeWithSession = submitRelayTransaction;
+
   const revokeSession = async () => {
-    // Optional: on-chain revocation
-    // await contract.invoke(SESSION_KEY_VERIFIER_HASH, "RevokeSessionKey", [sessionPublicKey]);
     sessionKey.value = null;
   };
 
   return {
-    // Constants (useful for downstream consumers)
-    AA_MASTER_CONTRACT_MAINNET,
-    AA_MASTER_CONTRACT_TESTNET,
-    RELAY_ENDPOINT,
+    integration,
+    network,
+    edgeBaseUrl,
+    relayUrl,
+
+    // Canonical external deployment metadata.
+    AA_MASTER_CONTRACT_MAINNET: getExternalIntegrationConfig("mainnet").contracts.aaCore,
+    AA_MASTER_CONTRACT_TESTNET: getExternalIntegrationConfig("testnet").contracts.aaCore,
+    RELAY_ENDPOINT: relayUrl,
 
     // State
     isAAEnabled,
     aaAddress,
     sessionKey,
     isInitializing,
+    isCheckingSponsorship,
+    isRelaying,
+    lastRelayResponse,
     error,
 
     // Computed
@@ -274,8 +362,14 @@ export function useAbstractAccount(config: AAConfig = {}) {
     canUseGasSponsoring,
 
     // Actions
+    setAAAddress,
+    hydrateSessionKey,
     initWithSocialLogin,
     createSessionKey,
+    checkGasSponsorship,
+    requestGasSponsorship,
+    buildPaymasterConfig,
+    submitRelayTransaction,
     executeWithSession,
     revokeSession,
   };

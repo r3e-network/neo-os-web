@@ -1,14 +1,13 @@
 # =============================================================================
-# Neo Service Layer - Makefile
-# Nitro-oriented + AWS Nitro + Supabase + Vercel Architecture
+# Neo MiniApps Platform - Makefile
+# Frontend/admin apps + contracts + deployment helpers
 # =============================================================================
 
-.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-nitro
+.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-nitro test-testnet-direct
 .PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
 .PHONY: edge-check edge-dev
 
 # Variables
-CMD_BINARIES := nitro create-wallet deploy-fairy deploy-testnet master-bundle verify-bundle
 # Compose resolves relative .env files from the compose file directory (`docker/`).
 # Prefer the repository root `.env` when present to keep runtime vars consistent.
 DOCKER_COMPOSE_ENV_FILE ?= $(if $(wildcard .env),--env-file .env,)
@@ -33,39 +32,38 @@ endif
 
 all: build
 
-build: ## Build all services
-	@echo "Building all services..."
-	@for bin in $(CMD_BINARIES); do \
-		echo "Building $$bin..."; \
-		go build -o bin/$$bin ./cmd/$$bin; \
-	done
+build: ## Build current shipped applications
+	@echo "Building host app and admin console..."
+	npm --prefix platform/host-app run build
+	npm --prefix platform/admin-console run build
 	@echo "Build complete"
 
 # =============================================================================
 # Test
 # =============================================================================
 
-test: ## Run all tests
-	@echo "Running tests..."
-	NITRO_ENV=testing TEE_BACKEND=nitro go test -v ./...
+test: ## Run current workspace tests (host app + admin console)
+	@echo "Running current workspace tests..."
+	npm test
 
-test-unit: ## Run unit tests only
-	@echo "Running unit tests..."
-	NITRO_ENV=testing TEE_BACKEND=nitro go test -v -short ./...
+test-unit: ## Run current workspace tests only
+	@echo "Running current workspace unit tests..."
+	npm test
 
-test-coverage: ## Run tests with coverage
-	@echo "Running tests with coverage..."
-	NITRO_ENV=testing TEE_BACKEND=nitro go test -v -coverprofile=coverage.out ./...
-	go tool cover -html=coverage.out -o coverage.html
-	@echo "Coverage report: coverage.html"
+test-coverage: ## Run current JS/TS test coverage where available
+	@echo "Running frontend coverage suites..."
+	npm --prefix platform/host-app run test:coverage
+	npm --prefix platform/admin-console run test:coverage
 
-test-integration: ## Run integration tests
-	@echo "Running integration tests..."
-	go test -v -tags=integration ./test/integration/...
+test-integration: ## Legacy Go service layer tests were moved to external repos
+	@echo "Legacy Go service layer moved to external repos; integration tests no longer run from this repo."
 
-test-e2e: ## Run end-to-end tests
-	@echo "Running e2e tests..."
-	go test -v -tags=e2e ./test/e2e/...
+test-e2e: ## Legacy Go service layer tests were moved to external repos
+	@echo "Legacy Go service layer moved to external repos; e2e Go tests no longer run from this repo."
+
+test-testnet-direct: ## Run the preferred cross-repo direct Oracle / direct AA testnet validation
+	@echo "Running direct Oracle / direct AA cross-repo validation..."
+	bash ./deploy/scripts/verify_cross_repo_testnet.sh
 
 fairy-start: ## Start Neo Fairy (requires NEOROOT)
 	@if [ -z "$$NEOROOT" ]; then \
@@ -77,20 +75,14 @@ fairy-start: ## Start Neo Fairy (requires NEOROOT)
 fairy-stop: ## Stop Neo Fairy
 	./test/fairy/stop-fairy.sh
 
-test-fairy: ## Run Neo Fairy connectivity/session tests
-	@echo "Running Neo Fairy tests..."
-	go test -count=1 -v ./test/fairy/...
+test-fairy: ## Legacy Go/Fairy tests were moved out with the service layer
+	@echo "Legacy Go/Fairy tests moved to the extracted service-layer repos."
 
-test-fairy-full: ## Run full Neo Fairy tests (requires NEO_TESTNET_WIF)
-	@if [ -z "$$NEO_TESTNET_WIF" ]; then \
-		echo "NEO_TESTNET_WIF is required for full Fairy tests"; \
-		exit 1; \
-	fi
-	@echo "Running full Neo Fairy tests..."
-	NEO_TESTNET_WIF="$$NEO_TESTNET_WIF" go test -count=1 -v ./test/fairy/...
+test-fairy-full: ## Legacy Go/Fairy tests were moved out with the service layer
+	@echo "Legacy Go/Fairy tests moved to the extracted service-layer repos."
 
-test-race: ## Run tests with race detector
-	go test -race ./...
+test-race: ## Root Go race suite removed with extracted service layer
+	@echo "Go race tests moved with the extracted service-layer repos."
 
 test-watch: ## Run tests in watch mode
 	@echo "Running tests in watch mode..."
@@ -117,16 +109,16 @@ docker-build: ## Build all Docker images
 	$(DOCKER_COMPOSE) build
 
 docker-up: ## Start all services in Nitro mode
-	./scripts/up_nitro.sh
+	./deploy/scripts/up_nitro.sh
 
 docker-smoke: ## Smoke-check Nitro stack health end-to-end
-	./scripts/docker_smoke.sh
+	./deploy/scripts/docker_smoke.sh
 
 docker-smoke-nitro: ## Smoke-check Nitro stack health end-to-end
-	./scripts/docker_smoke.sh
+	./deploy/scripts/docker_smoke.sh
 
 docker-up-nitro: ## Start all services with Nitro backend
-	./scripts/up_nitro.sh
+	./deploy/scripts/up_nitro.sh
 
 docker-up-tee: docker-up-nitro ## Alias for docker-up-nitro
 
@@ -185,32 +177,32 @@ db-seed: ## Seed database with test data
 # Frontend
 # =============================================================================
 
-export-miniapps: ## Export built-in MiniApps into host public/
-	./scripts/export_host_miniapps.sh
+export-miniapps: ## No standalone export script is currently shipped
+	@echo "export_host_miniapps.sh is not present in this repo; use the host-app build/export flow instead."
 
 export-supabase-functions: ## Export Edge functions into supabase/functions/
-	./scripts/export_supabase_functions.sh
+	./deploy/scripts/export_supabase_functions.sh
 
 export-supabase-migrations: ## Export SQL migrations into supabase/migrations/
-	./scripts/export_supabase_migrations.sh
+	./deploy/scripts/export_supabase_migrations.sh
 
 supabase-start: ## Start Supabase locally (dockerized CLI)
 	$(MAKE) export-supabase-functions
 	$(MAKE) export-supabase-migrations
-	./scripts/supabase.sh start
+	./deploy/scripts/supabase.sh start
 
 supabase-stop: ## Stop local Supabase (dockerized CLI)
-	./scripts/supabase.sh stop || true
+	./deploy/scripts/supabase.sh stop || true
 
 supabase-status: ## Show local Supabase status (dockerized CLI)
-	./scripts/supabase.sh status
+	./deploy/scripts/supabase.sh status
 
 supabase-cli-install: ## Install Supabase CLI into ./bin/supabase
-	@chmod +x ./scripts/install_supabase_cli.sh
-	./scripts/install_supabase_cli.sh
+	@chmod +x ./deploy/scripts/install_supabase_cli.sh
+	./deploy/scripts/install_supabase_cli.sh
 
 check-git: ## Report untracked canonical source/exports
-	./scripts/git_completeness_check.sh
+	./deploy/scripts/git_completeness_check.sh
 
 frontend-install: ## Install frontend dependencies
 	cd platform/host-app && npm install
@@ -241,17 +233,17 @@ edge-dev: ## Run local Edge dev server (requires deno)
 
 dev-stack-up: ## Bring up entire local k3s dev stack
 	@echo "Setting up local k3s dev stack..."
-	@./scripts/k3s-local-setup.sh install
+	@./deploy/scripts/k3s-local-setup.sh install
 
 dev-stack-down: ## Tear down local k3s dev stack
 	@echo "Tearing down local k3s dev stack..."
-	@./scripts/k3s-local-setup.sh cleanup
+	@./deploy/scripts/k3s-local-setup.sh cleanup
 
 dev-stack-status: ## Check status of all dev stack components
-	@./scripts/k3s-local-setup.sh status
+	@./deploy/scripts/k3s-local-setup.sh status
 
 dev-stack-bootstrap: ## Bootstrap full k3s dev stack (Supabase + services + Edge)
-	@./scripts/bootstrap_k3s_dev.sh
+	@./deploy/scripts/bootstrap_k3s_dev.sh
 
 # =============================================================================
 # Development
@@ -259,12 +251,12 @@ dev-stack-bootstrap: ## Bootstrap full k3s dev stack (Supabase + services + Edge
 
 dev: ## Start development environment
 	@echo "Starting development environment..."
-	@./scripts/install_dev_env.sh --skip-k8s || echo "Dependencies already installed"
+	@./deploy/scripts/install_dev_env.sh --skip-k8s || echo "Dependencies already installed"
 	@$(MAKE) docker-up
 
 dev-full: ## Start full development environment with all services
 	@echo "Starting full development environment..."
-	@./scripts/deploy_k8s.sh --env dev
+	@./deploy/scripts/deploy_k8s.sh --env dev
 
 dev-stop: ## Stop development environment
 	@echo "Stopping development environment..."
@@ -287,11 +279,11 @@ tidy: ## Tidy go modules
 
 deploy-staging: ## Deploy to staging
 	@echo "Deploying to staging (Kubernetes staging overlay)..."
-	@./scripts/deploy_k8s.sh --env staging
+	@./deploy/scripts/deploy_k8s.sh --env staging
 
 deploy-production: ## Deploy to production
 	@echo "Deploying to production (Kubernetes prod overlay)..."
-	@./scripts/deploy_k8s.sh --env prod
+	@./deploy/scripts/deploy_k8s.sh --env prod
 
 # =============================================================================
 # Utilities
@@ -331,7 +323,7 @@ install-tools: ## Install development tools
 
 setup: ## Setup development environment
 	@echo "Setting up development environment..."
-	@./scripts/install_dev_env.sh --all
+	@./deploy/scripts/install_dev_env.sh --all
 	$(MAKE) install-tools
 	@echo "Setup complete"
 

@@ -125,7 +125,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	gatewayHash, _ := resolveGatewayHash()
+	oracleHash, _ := resolveOracleHash()
 
 	var results []DeployResult
 	var failures []string
@@ -133,7 +133,7 @@ func main() {
 	for i, contractName := range availableContracts {
 		fmt.Printf("\n[%d/%d] Deploying %s...\n", i+1, len(availableContracts), contractName)
 
-		hash, err := deployContract(ctx, client, act, buildDir, contractName, deployerHash, gatewayHash)
+		hash, err := deployContract(ctx, client, act, buildDir, contractName, deployerHash, oracleHash)
 		if err != nil {
 			fmt.Printf("  ❌ Failed: %v\n", err)
 			failures = append(failures, contractName)
@@ -185,7 +185,7 @@ func main() {
 	}
 }
 
-func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Actor, buildDir, contractName string, deployerHash, gatewayHash util.Uint160) (string, error) {
+func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Actor, buildDir, contractName string, deployerHash, oracleHash util.Uint160) (string, error) {
 	nefPath, manifestPath, ok := resolveContractArtifactPaths(buildDir, contractName)
 	if !ok {
 		return "", fmt.Errorf("artifacts not found for %s", contractName)
@@ -224,12 +224,12 @@ func deployContract(ctx context.Context, client *rpcclient.Client, act *actor.Ac
 		return "", fmt.Errorf("wait: %w", err)
 	}
 
-	// Configure gateway if available
-	if gatewayHash != (util.Uint160{}) {
-		if err := setGateway(ctx, client, act, expectedHash, gatewayHash); err != nil {
-			fmt.Printf("  ⚠ Gateway config failed: %v\n", err)
+	// Configure oracle if available
+	if oracleHash != (util.Uint160{}) {
+		if err := setOracle(ctx, client, act, expectedHash, oracleHash); err != nil {
+			fmt.Printf("  ⚠ Oracle config failed: %v\n", err)
 		} else {
-			fmt.Printf("  Gateway configured\n")
+			fmt.Printf("  Oracle configured\n")
 		}
 	}
 
@@ -279,10 +279,10 @@ func loadManifest(path string) (*manifest.Manifest, error) {
 	return &m, nil
 }
 
-func resolveGatewayHash() (util.Uint160, error) {
-	raw := strings.TrimSpace(os.Getenv("CONTRACT_SERVICEGATEWAY_HASH"))
+func resolveOracleHash() (util.Uint160, error) {
+	raw := strings.TrimSpace(os.Getenv("CONTRACT_MORPHEUS_ORACLE_HASH"))
 	if raw == "" {
-		raw = strings.TrimSpace(os.Getenv("CONTRACT_SERVICE_GATEWAY_HASH"))
+		raw = strings.TrimSpace(os.Getenv("CONTRACT_ORACLE_HASH"))
 	}
 	if raw == "" {
 		return util.Uint160{}, nil
@@ -295,8 +295,8 @@ func parseHash160(raw string) (util.Uint160, error) {
 	return util.Uint160DecodeStringLE(raw)
 }
 
-func setGateway(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contract, gateway util.Uint160) error {
-	testResult, err := act.Call(contract, "setGateway", gateway)
+func setOracle(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contract, oracle util.Uint160) error {
+	testResult, err := act.Call(contract, "setOracle", oracle)
 	if err != nil {
 		return fmt.Errorf("test invoke: %w", err)
 	}
@@ -304,11 +304,11 @@ func setGateway(ctx context.Context, client *rpcclient.Client, act *actor.Actor,
 		return fmt.Errorf("test failed: %s", testResult.FaultException)
 	}
 
-	txHash, vub, err := act.SendCall(contract, "setGateway", gateway)
+	txHash, vub, err := act.SendCall(contract, "setOracle", oracle)
 	if err != nil {
 		return fmt.Errorf("send: %w", err)
 	}
-	fmt.Printf("  Gateway tx: %s (vub: %d)\n", txHash.StringLE(), vub)
+	fmt.Printf("  Oracle tx: %s (vub: %d)\n", txHash.StringLE(), vub)
 	return waitForTx(ctx, client, txHash)
 }
 

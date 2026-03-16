@@ -32,7 +32,7 @@ describe("/api/miniapps/search", () => {
   it("returns search results for valid query", async () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { q: "lottery" },
+      query: { q: "loan" },
     });
 
     await handler(req, res);
@@ -40,7 +40,7 @@ describe("/api/miniapps/search", () => {
     expect(res._getStatusCode()).toBe(200);
     const data = JSON.parse(res._getData());
     expect(data.results.length).toBeGreaterThan(0);
-    expect(data.query).toBe("lottery");
+    expect(data.query).toBe("loan");
   });
 
   it("filters by category", async () => {

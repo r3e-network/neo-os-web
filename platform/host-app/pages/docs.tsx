@@ -2,7 +2,7 @@ import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   Search,
   Rocket,
@@ -270,22 +270,26 @@ function SDKReferenceContent() {
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">MiniApp Class</h3>
       <p className="text-gray-600 dark:text-gray-400 mb-4">The main entry point for all SDK functionality:</p>
       <CodeBlock
-        code={`interface MiniAppConfig {
-  appId: string;
-  network: 'mainnet' | 'testnet';
-  permissions?: Permission[];
-}
+        code={`// Browser / host-injected SDK
+const sdk = window.MiniAppSDK;
 
-const app = new MiniApp(config: MiniAppConfig);
+// End-user modules
+sdk.wallet;
+sdk.payments;
+sdk.governance;
+sdk.rng;
+sdk.datafeed;
+sdk.stats;
+sdk.events;
+sdk.transactions;
+sdk.gasSponsor;
+sdk.privacy;
 
-// Available modules
-app.wallet    // Wallet operations
-app.contract  // Smart contract calls
-app.storage   // Data storage
-app.vrf       // Verifiable randomness
-app.oracle    // Price feeds & external data
-app.tee       // Confidential computing
-app.privacy   // Zero-knowledge Relayer`}
+// Host-only modules are created separately via createHostSDK(...)
+// host.oracle
+// host.compute
+// host.automation
+// host.secrets`}
         language="typescript"
       />
 
@@ -399,8 +403,14 @@ function PlatformServicesContent() {
           {
             icon: Database,
             title: "Oracle Service",
-            desc: "Real-time external data feeds",
+            desc: "Allowlisted external fetches plus on-chain callback flows",
             color: "from-blue-500 to-cyan-500",
+          },
+          {
+            icon: Key,
+            title: "AA / Smart Wallet",
+            desc: "External AA relay, verifiers, and gas sponsorship hooks",
+            color: "from-amber-500 to-orange-500",
           },
           { icon: Lock, title: "NeoPrivacy Relayer", desc: "Zero-knowledge gasless transfers", color: "from-gray-500 to-slate-800" },
         ].map((item) => (
@@ -421,47 +431,60 @@ function PlatformServicesContent() {
 
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Using VRF</h3>
       <CodeBlock
-        code={`// Request verifiable random number
-const randomResult = await app.vrf.requestRandom({
-  seed: 'my-game-round-123',
-  callback: 'onRandomReceived',
-});
-
-// The random number is verifiable on-chain
-console.log('Random:', randomResult.value);
-console.log('Proof:', randomResult.proof);`}
+        code={`// End-user MiniApp flow
+const randomResult = await window.MiniAppSDK.rng.requestRandom("miniapp-lottery");
+console.log(randomResult.request_id, randomResult.randomness);
+`}
         language="typescript"
       />
 
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Using Oracle</h3>
       <CodeBlock
-        code={`// Get price feed
-const price = await app.oracle.getPrice('NEO/USD');
-console.log('NEO Price:', price.value, 'USD');
+        code={`// Public DataFeed read through the platform gateway
+const price = await window.MiniAppSDK.datafeed.getPrice("NEO");
+console.log(price.pair, price.price);
 
-// Subscribe to price updates
-app.oracle.subscribe('GAS/USD', (update) => {
-  console.log('New GAS price:', update.value);
-});`}
+// Host-only allowlisted fetch
+const host = createHostSDK({
+  edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
+  getAPIKey: async () => "<host-api-key>",
+});
+
+const oracleRes = await host.oracle.query({
+  url: "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+});
+console.log(oracleRes.status_code, oracleRes.body);`}
         language="typescript"
       />
 
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Using TEE</h3>
       <CodeBlock
-        code={`// Execute confidential computation
-const result = await app.tee.execute({
-  function: 'computeWinner',
-  inputs: {
-    participants: ['player1', 'player2', 'player3'],
-    seed: randomResult.value,
-  },
-  // Inputs are encrypted, only TEE can see them
-  encrypted: true,
+        code={`// Host-only inline compute
+const computeResult = await host.compute.execute({
+  script: "function main(){ return { ok: true, sum: input.a + input.b }; }",
+  entry_point: "main",
+  input: { a: 2, b: 3 },
 });
+console.log(computeResult.status, computeResult.output);
 
-// Result is attested by the TEE
-console.log('Winner:', result.output);
-console.log('Attestation:', result.attestation);`}
+// If the script body is too large for request payloads, register it elsewhere
+// and call the platform's registered-script path instead of inlining source.`}
+        language="typescript"
+      />
+
+      <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Using AA Relay</h3>
+      <CodeBlock
+        code={`// Same-origin host proxy to the external AA relay
+const relayResponse = await fetch("/api/aa/relay", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    metaInvocation: relayReadyInvocation,
+    paymaster: { dapp_id: "demo-dapp" },
+  }),
+}).then((res) => res.json());
+
+console.log(relayResponse.txid);`}
         language="typescript"
       />
 
