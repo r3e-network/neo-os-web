@@ -42,7 +42,7 @@ The live testnet flow keeps the mechanic straightforward: connect your Neo N3 wa
 
 | Component           | Details                                |
 | ------------------- | -------------------------------------- |
-| **Contract Name**   | `MiniAppDailyCheckin`                  |
+| **Contract Name**   | `MiniAppDailyCheckIn`                  |
 | **Language**        | C# (Neo N3 Smart Contract)             |
 | **Blockchain**      | Neo N3                                 |
 | **Check-in Window** | Once per UTC day (resets at 00:00 UTC) |

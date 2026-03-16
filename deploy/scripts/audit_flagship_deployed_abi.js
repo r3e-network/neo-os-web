@@ -2,9 +2,9 @@
 
 const fs = require("fs");
 const path = require("path");
+const { getManifestContractHash, getNetworkConfig, getTargetNetwork } = require("./lib/neo_network");
 
 const root = path.resolve(__dirname, "..", "..");
-const rpcUrl = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 
 const items = [
   { brand: "LastSurvivor", manifest: "apps/last-survivor/neo-manifest.json", buildManifest: "contracts/build/MiniAppLastSurvivor.manifest.json" },
@@ -16,7 +16,7 @@ const items = [
   { brand: "NeoPay", manifest: "apps/neo-pay/neo-manifest.json", buildManifest: "contracts/build/MiniAppNeoPay.manifest.json" },
 ];
 
-async function getContractState(hash) {
+async function getContractState(rpcUrl, hash) {
   const res = await fetch(rpcUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -41,15 +41,22 @@ async function main() {
   for (const item of items) {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, item.manifest), "utf8"));
     const buildManifest = JSON.parse(fs.readFileSync(path.join(root, item.buildManifest), "utf8"));
-    const deployedHash = manifest.contracts?.["neo-n3-testnet"] || "";
+    const targetNetwork = getTargetNetwork(manifest);
+    const networkConfig = getNetworkConfig(targetNetwork);
+    const deployedHash = getManifestContractHash(manifest, targetNetwork);
     if (!deployedHash) {
-      rows.push({ brand: item.brand, deployedHash: "missing", problems: ["manifest missing testnet hash"] });
+      rows.push({
+        brand: item.brand,
+        targetNetwork: networkConfig.key,
+        deployedHash: "missing",
+        problems: [`manifest missing ${networkConfig.key} hash`],
+      });
       failed = true;
       continue;
     }
 
     try {
-      const remote = await getContractState(deployedHash);
+      const remote = await getContractState(networkConfig.rpcUrl, deployedHash);
       const localMethods = buildManifest.abi.methods.map((m) => m.name);
       const remoteMethods = (remote.manifest?.abi?.methods || []).map((m) => m.name);
       const missing = localMethods.filter((m) => !remoteMethods.includes(m));
@@ -61,6 +68,7 @@ async function main() {
 
       rows.push({
         brand: item.brand,
+        targetNetwork: networkConfig.key,
         deployedHash,
         remoteContractName: remote.manifest?.name || null,
         localMethodCount: localMethods.length,
@@ -71,6 +79,7 @@ async function main() {
       failed = true;
       rows.push({
         brand: item.brand,
+        targetNetwork: networkConfig.key,
         deployedHash,
         problems: [String(error.message || error)],
       });
