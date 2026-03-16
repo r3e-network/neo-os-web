@@ -2,6 +2,13 @@
 
 This document describes the **end-to-end workflows** for Neo N3 MiniApps.
 
+Legacy workflow note:
+
+- some later sections still preserve older PaymentHub-first examples as historical
+  reference
+- current flagship paths prefer direct prepaid MiniApp contract flows, direct
+  Oracle callbacks, and direct AA relay integrations where applicable
+
 Primary rule:
 
 - prefer direct Oracle / direct AA integrations for user-facing flows

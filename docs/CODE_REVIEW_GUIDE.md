@@ -1,5 +1,17 @@
 # Service Layer Code Review Guide
 
+> Historical review guide note:
+> this guide was written against the earlier in-repo “Service Layer” framing.
+> The current platform no longer owns the old monolithic service layer runtime;
+> Oracle and AA live in external dedicated projects, and MiniApps increasingly
+> use direct prepaid contract flows instead of universal `PaymentHub` routing.
+>
+> Use this file as an archival review checklist only. For current architecture,
+> prefer:
+> - `docs/ARCHITECTURE.md`
+> - `docs/DATAFLOWS.md`
+> - `docs/service-api.md`
+
 This document provides structured instructions for Codex to perform a comprehensive module-by-module code review of the Service Layer project.
 
 ## Table of Contents

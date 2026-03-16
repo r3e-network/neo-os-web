@@ -3,6 +3,12 @@
 The **MiniApp Platform** exposes its public gateway via **Supabase Edge Functions**.
 TEE services are internal (mesh/mTLS) and should be reached through Edge routing.
 
+Legacy API note:
+
+- some endpoint descriptions below preserve older `PaymentHub`-centric examples
+- for current payment behavior, prefer `docs/service-api.md` and the latest
+  flagship live validation report
+
 For the full intended API surface, see:
 
 - `docs/service-api.md`
