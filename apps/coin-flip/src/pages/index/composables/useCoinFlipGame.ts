@@ -6,10 +6,10 @@ import { useContractInteraction } from "@shared/composables/useContractInteracti
 import { useGameState } from "@shared/composables/useGameState";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { waitForEventByTransaction } from "@shared/utils/transaction";
 import { useEvents } from "@shared/utils/wallet-sdk";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { audioManager } from "../../../utils/audio";
 import type { GameResult } from "../components/CoinArena.vue";
 
@@ -22,7 +22,6 @@ export function useCoinFlipGame(wallet: WalletSDK, t: (key: string) => string) {
   const { handleError, canRetry, clearError } = useErrorHandler();
   const { status: errorStatus, setStatus: setErrorStatus } = useStatusMessage(5000);
   const { wins, losses, totalGames, recordWin, recordLoss } = useGameState();
-  const { processPayment } = usePaymentFlow(APP_ID);
   const { list: listEvents } = useEvents();
 
   const betAmount = ref("1");
@@ -108,24 +107,50 @@ export function useCoinFlipGame(wallet: WalletSDK, t: (key: string) => string) {
       if (amountBase === "0") throw new Error(t("invalidBetAmount"));
 
       const contract = await ensureContractAddress();
-      const { receiptId, invoke, waitForEvent } = await processPayment(
-        betAmount.value,
-        `coinflip:${choice.value}:${betAmount.value}`,
-      );
-      if (!receiptId) throw new Error(t("betPending"));
+      await wallet.invokeContract({
+        scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+        operation: "transfer",
+        args: [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: amountBase },
+          { type: "String", value: `${APP_ID}:bet` },
+        ],
+      });
 
-      const { txid } = await invoke(
-        "placeBet",
-        [
+      // Wait briefly for the prepaid GAS transfer to be indexed on-chain before
+      // consuming the credit in the bet call.
+      await sleep(4000);
+
+      const { txid } = await wallet.invokeContract({
+        scriptHash: contract,
+        operation: "placeBet",
+        args: [
           { type: "Hash160", value: address.value as string },
           { type: "Integer", value: amountBase },
           { type: "Boolean", value: choice.value === "heads" },
-          { type: "Integer", value: String(receiptId) },
+          { type: "Integer", value: "0" },
         ],
-        contract,
-      );
+      });
 
-      const initiatedEvent = await waitForEventByTransaction({ txid, receiptId: "" }, "BetPlaced", waitForEvent);
+      const initiatedEvent = await waitForEventByTransaction(
+        { txid },
+        "BetPlaced",
+        async (txidToFind: string, eventName: string, timeoutMs = 30000) => {
+          const deadline = Date.now() + timeoutMs;
+          while (Date.now() < deadline) {
+            const resultEvents = await listEvents({
+              app_id: APP_ID,
+              event_name: eventName,
+              limit: 20,
+              tx_hash: txidToFind,
+            });
+            if (resultEvents.events.length > 0) return resultEvents.events[0] as unknown as Record<string, unknown>;
+            await sleep(2500);
+          }
+          throw new Error(t("betPending"));
+        },
+      );
       if (!initiatedEvent) throw new Error(t("betPending"));
 
       const initiatedRecord = initiatedEvent as unknown as Record<string, unknown>;

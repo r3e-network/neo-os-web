@@ -10,6 +10,7 @@
  * - Abstract Account (AA) via social login
  */
 import { ref, type Ref } from "vue";
+import { getMiniAppContractHash, getNetwork, getPaymentHubHash, type NeoNetwork, N3INDEX_API } from "../constants/rpc";
 
 // Re-export types that were previously in @neo/types
 export interface WalletSDK {
@@ -19,6 +20,7 @@ export interface WalletSDK {
   invokeContract: (params: InvokeParams) => Promise<InvokeResult>;
   invokeRead: (params: InvokeParams) => Promise<InvokeResult>;
   getBalance: (asset: string) => Promise<string | number>;
+  getContractAddress: () => Promise<string>;
 }
 
 export interface InvokeParams {
@@ -94,6 +96,11 @@ interface NeoLineN3 {
   }) => Promise<{ [asset: string]: { amount: string; contract: string }[] }>;
 }
 
+type MiniAppManifest = {
+  contracts?: Record<string, string>;
+  default_network?: string;
+};
+
 declare global {
   interface Window {
     NEOLineN3?: { Init: new () => NeoLineN3 };
@@ -118,7 +125,7 @@ async function fetchEvents(params: EventsListParams): Promise<EventsListResponse
   if (params.offset) query.set("offset", String(params.offset));
   if (params.tx_hash) query.set("tx_hash", params.tx_hash);
 
-  const res = await fetch(`${PLATFORM_API}/api/events?${query.toString()}`);
+  const res = await fetch(`${PLATFORM_API}/api/activity/events?${query.toString()}`);
   if (!res.ok) return { events: [], total: 0 };
   return res.json();
 }
@@ -133,6 +140,24 @@ function normalizeOperationName(operation: string): string {
   const raw = String(operation || "").trim();
   if (!raw) return raw;
   return raw.charAt(0).toLowerCase() + raw.slice(1);
+}
+
+let cachedManifest: MiniAppManifest | null | undefined;
+
+async function loadCurrentMiniAppManifest(): Promise<MiniAppManifest | null> {
+  if (cachedManifest !== undefined) return cachedManifest;
+  try {
+    const response = await fetch("/neo-manifest.json", { cache: "no-store" });
+    if (!response.ok) {
+      cachedManifest = null;
+      return null;
+    }
+    cachedManifest = (await response.json()) as MiniAppManifest;
+    return cachedManifest;
+  } catch {
+    cachedManifest = null;
+    return null;
+  }
 }
 
 export function useWallet(existingWallet?: WalletSDK): WalletSDK {
@@ -226,6 +251,22 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     return match?.amount ?? "0";
   };
 
+  const getContractAddress = async (): Promise<string> => {
+    const manifest = await loadCurrentMiniAppManifest();
+    const network = getNetwork();
+    const configured = manifest?.contracts?.[`neo-n3-${network}`] || manifest?.contracts?.[network] || "";
+    if (configured) return configured;
+
+    const fallbackAppId =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("app_id") || new URLSearchParams(window.location.search).get("appId") || ""
+        : "";
+    const fallback = fallbackAppId ? getMiniAppContractHash(fallbackAppId, network) : "";
+    if (fallback) return fallback;
+
+    throw new Error("Contract address unavailable");
+  };
+
   walletInstance = {
     address,
     chainType,
@@ -233,6 +274,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     invokeContract,
     invokeRead,
     getBalance,
+    getContractAddress,
   };
 
   return walletInstance;
@@ -322,21 +364,28 @@ export function useGasSponsor() {
 // ---------------------------------------------------------------------------
 
 export interface PaymentResult {
-  receiptId: string;
+  request_id?: string;
+  receipt_id: string;
   txid: string;
 }
 
-export function usePayments() {
+export function usePayments(appId?: string) {
   const wallet = useWallet();
 
-  const processPayment = async (
-    paymentHubHash: string,
-    appId: string,
+  const payGAS = async (
     amount: string,
     memo: string,
+    paymentHubHash = getPaymentHubHash(),
+    scopedAppId = appId || "miniapp",
   ): Promise<PaymentResult> => {
     const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
     const amountFixed8 = Math.round(parseFloat(amount) * 1e8).toString();
+    if (!paymentHubHash) {
+      throw new Error("PaymentHub address unavailable");
+    }
+    if (!wallet.address.value) {
+      await wallet.connect();
+    }
 
     const result = await wallet.invokeContract({
       scriptHash: GAS_HASH,
@@ -345,17 +394,22 @@ export function usePayments() {
         { type: "Hash160", value: wallet.address.value },
         { type: "Hash160", value: paymentHubHash },
         { type: "Integer", value: amountFixed8 },
-        { type: "String", value: `${appId}:${memo}` },
+        { type: "String", value: `${scopedAppId}:${memo}` },
       ],
     });
 
     return {
-      receiptId: result.txid ?? "",
+      request_id: result.txid ?? "",
+      receipt_id: result.txid ?? "",
       txid: result.txid ?? "",
     };
   };
 
-  return { processPayment };
+  const processPayment = async (paymentHubHash: string, scopedAppId: string, amount: string, memo: string): Promise<PaymentResult> => {
+    return payGAS(amount, `${memo}`, paymentHubHash || getPaymentHubHash(getNetwork()), scopedAppId);
+  };
+
+  return { payGAS, processPayment };
 }
 
 // ---------------------------------------------------------------------------
@@ -363,8 +417,6 @@ export function usePayments() {
 // ---------------------------------------------------------------------------
 
 export function useEvents() {
-  const N3INDEX = "https://api.n3index.dev";
-
   /**
    * List contract events via N3Index decoded events API.
    * Falls back to platform API if N3Index is unavailable.
@@ -373,9 +425,12 @@ export function useEvents() {
     // Try N3Index first (decoded events, more reliable)
     if (params.app_id) {
       try {
-        const network = "mainnet"; // TODO: detect from context
-        const contractHash = params.app_id.replace("miniapp-", "");
-        const url = new URL(`${N3INDEX}/indexer/v1/networks/${network}/contracts/${contractHash}/events`);
+        const network = getNetwork() as NeoNetwork;
+        const contractHash = getMiniAppContractHash(params.app_id, network);
+        if (!contractHash) {
+          throw new Error(`missing contract hash for ${params.app_id}`);
+        }
+        const url = new URL(`${N3INDEX_API}/indexer/v1/networks/${network}/contracts/${contractHash}/events`);
         if (params.event_name) url.searchParams.set("event_name", params.event_name);
         if (params.limit) url.searchParams.set("limit", String(params.limit));
         if (params.offset) url.searchParams.set("offset", String(params.offset));

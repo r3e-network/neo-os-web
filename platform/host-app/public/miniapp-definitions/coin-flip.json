@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-fogplay",
-    "contract_hash": "0x01d0e1f78ea5a76b6bb0bce26649d5bf449999e0"
+    "contract_hash": "0x43f953c00931ca38044bf0e5ca50d608aea7ae8b"
   },
   "entry_url": "mf://manifest?app=miniapp-coinflip",
   "media": {

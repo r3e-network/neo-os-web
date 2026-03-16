@@ -63,6 +63,36 @@ export type ExternalIntegrationConfig = {
   };
 };
 
+export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
+  mainnet: {
+    "miniapp-doomsday-clock": "0x8f46753fd7123bd276d77ef1100839004b9a3440",
+    "miniapp-neo-gacha": "0xc9af7c9de5b0963e6514b6462b293f0179eb3798",
+    "miniapp-redenvelope": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+    "miniapp-dailycheckin": "0x908867b23ab551a598723ceeaaedd70c54e10c76",
+    "miniapp-coinflip": "0x0a39f71c274dc944cd20cb49e4a38ce10f3ceea1",
+    "miniapp-self-loan": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+    "miniapp-stream-vault": "",
+  },
+  testnet: {
+    "miniapp-doomsday-clock": "0xf0914d411877c8393c029f48ec0c4c64d44f1b49",
+    "miniapp-neo-gacha": "0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d",
+    "miniapp-redenvelope": "0x4079c09a0ff121fc44d817c37d6ae8694b268e9f",
+    "miniapp-dailycheckin": "0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528",
+    "miniapp-coinflip": "0x43f953c00931ca38044bf0e5ca50d608aea7ae8b",
+    "miniapp-self-loan": "0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b",
+    "miniapp-stream-vault": "0x89d2499928e3035247186f412934d6b0e0b665ef",
+  },
+};
+
+export const PLATFORM_CONTRACTS: Record<NeoNetwork, { paymentHub: string }> = {
+  mainnet: {
+    paymentHub: "",
+  },
+  testnet: {
+    paymentHub: "0x340cb33d770b38f26d066716dd1f9df5283d629e",
+  },
+};
+
 export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig> = {
   mainnet: {
     network: "mainnet",
@@ -145,4 +175,12 @@ export function getRpcUrl(network?: NeoNetwork): string {
 /** Get the canonical external Oracle / AA config for the selected network. */
 export function getExternalIntegrationConfig(network?: NeoNetwork): ExternalIntegrationConfig {
   return EXTERNAL_INTEGRATIONS[network ?? getNetwork()];
+}
+
+export function getMiniAppContractHash(appId: string, network?: NeoNetwork): string {
+  return MINIAPP_CONTRACTS[network ?? getNetwork()]?.[String(appId || "").trim()] || "";
+}
+
+export function getPaymentHubHash(network?: NeoNetwork): string {
+  return PLATFORM_CONTRACTS[network ?? getNetwork()]?.paymentHub || "";
 }

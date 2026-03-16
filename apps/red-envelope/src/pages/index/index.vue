@@ -21,7 +21,6 @@
         :envelope="openingEnvelope"
         :is-connected="!!address"
         :is-opening="!!openingId"
-        :eligibility="address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null"
         @connect="handleConnect"
         @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
         @close="showOpeningModal = false"
@@ -94,22 +93,11 @@
       <OpeningModal
         :visible="showOpeningModal"
         :envelope="openingEnvelope"
-        :claim="openingClaim"
         :is-connected="!!address"
         :is-opening="!!openingId"
-        :eligibility="
-          openingClaim ? null : address ? { isEligible, neoBalance, holdingDays, reason: eligibilityReason } : null
-        "
         @connect="handleConnect"
         @open="() => openingEnvelope && openEnvelope(openingEnvelope)"
-        @open-claim="handleOpenClaim"
         @close="showOpeningModal = false"
-      />
-      <TransferModal
-        :visible="showTransferModal"
-        :envelope="transferringEnvelope"
-        @transfer="handleTransfer"
-        @close="showTransferModal = false"
       />
 
       <MyEnvelopes
@@ -117,11 +105,6 @@
         :claims="claims"
         :current-address="address || ''"
         @open="openFromList"
-        @transfer="startTransfer"
-        @reclaim="reclaimEnvelope"
-        @open-claim="openClaimFromList"
-        @transfer-claim="startTransferClaim"
-        @reclaim-pool="handleReclaimPool"
       />
     </template>
   </MiniAppPage>
@@ -133,7 +116,6 @@ import { messages } from "@/locale/messages";
 import { useRedEnvelopeCreation } from "@/composables/useRedEnvelopeCreation";
 import { useRedEnvelopeOpen } from "@/composables/useRedEnvelopeOpen";
 import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
-import { useNeoEligibility } from "@/composables/useNeoEligibility";
 import { useEnvelopeActions } from "./composables/useEnvelopeActions";
 import { MiniAppPage } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
@@ -180,28 +162,14 @@ const {
 
 const {
   envelopes,
-  loadingEnvelopes,
   contractAddress,
   ensureContractAddress: ensureOpenContract,
   loadEnvelopeDetails,
   loadEnvelopes,
   claims,
   pools,
-  loadingPools,
-  claimFromPool,
-  openClaim,
-  transferClaim,
-  reclaimPool,
+  claimEnvelope,
 } = useRedEnvelopeOpen();
-
-const {
-  isEligible,
-  neoBalance,
-  holdingDays,
-  reason: eligibilityReason,
-  checking: checkingEligibility,
-  checkEligibility,
-} = useNeoEligibility();
 
 const envelopeType = ref<EnvelopeType>("spreading");
 
@@ -210,47 +178,24 @@ const {
   openingId,
   showOpeningModal,
   openingEnvelope,
-  showTransferModal,
-  transferringEnvelope,
-  openingClaim,
   handleConnect,
   create,
   openEnvelope,
   openFromList,
-  startTransfer,
-  handleTransfer,
-  reclaimEnvelope,
   handleClaimFromPool,
-  openClaimFromList,
-  handleOpenClaim,
-  startTransferClaim,
-  handleReclaimPool,
   address,
 } = useEnvelopeActions({
   status,
   setStatus,
   clearStatus,
   isLoading,
-  defaultBlessing,
   ensureCreationContract,
-  ensureOpenContract,
   loadEnvelopes,
-  loadEnvelopeDetails,
-  claimFromPool,
-  openClaim,
-  transferClaim,
-  reclaimPool,
-  checkEligibility,
-  isEligible,
-  eligibilityReason,
+  claimEnvelope,
   name,
-  description,
   amount,
   count,
   expiryHours,
-  minNeoRequired,
-  minHoldDays,
-  envelopeType,
 });
 
 const appState = computed(() => ({

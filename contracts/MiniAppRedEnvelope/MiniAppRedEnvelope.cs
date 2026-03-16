@@ -45,6 +45,7 @@ namespace NeoMiniAppPlatform.Contracts
         #region App Constants
         private const string APP_ID = "miniapp-redenvelope";
         private const long MIN_AMOUNT = 10000000; // 0.1 GAS
+        private const long MIN_PER_PACKET = 1000000; // 0.01 GAS
         private const int MAX_PACKETS = 100;
         #endregion
 
@@ -118,12 +119,12 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(totalAmount >= MIN_AMOUNT, "min amount 0.1 GAS");
             ExecutionEngine.Assert(packetCount > 0 && packetCount <= MAX_PACKETS, "1-100 packets");
-            ExecutionEngine.Assert(totalAmount >= packetCount * 1000000, "min 0.01 GAS per packet");
+            ExecutionEngine.Assert(totalAmount >= packetCount * MIN_PER_PACKET, "min 0.01 GAS per packet");
             ExecutionEngine.Assert(expiryDurationMs > 0, "expiry duration required");
 
             ValidateUserOrAbstractAccount(creator);
 
-            ValidatePaymentReceipt(APP_ID, creator, totalAmount, receiptId);
+            ConsumeDirectGasCredit(creator, totalAmount);
 
             BigInteger envelopeId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_ENVELOPE_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_ENVELOPE_ID, envelopeId);
@@ -143,7 +144,7 @@ namespace NeoMiniAppPlatform.Contracts
             StoreEnvelope(envelopeId, envelope);
 
             // Request RNG to generate packet amounts
-            BigInteger requestId = RequestRng(envelopeId, packetCount);
+            BigInteger requestId = RequestRng(creator, envelopeId, packetCount);
             Storage.Put(Storage.CurrentContext,
                 Helper.Concat((ByteString)PREFIX_REQUEST_TO_ENVELOPE, (ByteString)requestId.ToByteArray()),
                 envelopeId);
@@ -192,6 +193,10 @@ namespace NeoMiniAppPlatform.Contracts
 
             StoreEnvelope(envelopeId, envelope);
 
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, claimer, amount),
+                "claim payout failed");
+
             BigInteger remaining = envelope.PacketCount - envelope.ClaimedCount;
             OnEnvelopeClaimed(envelopeId, claimer, amount, remaining);
 
@@ -234,19 +239,17 @@ namespace NeoMiniAppPlatform.Contracts
 
         #endregion
 
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
+        }
+
         #region Service Request Methods
 
-        private static BigInteger RequestRng(BigInteger envelopeId, BigInteger packetCount)
+        private static BigInteger RequestRng(UInt160 requester, BigInteger envelopeId, BigInteger packetCount)
         {
-            UInt160 oracle = Oracle();
-            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
-
             ByteString payload = StdLib.Serialize(new object[] { envelopeId, packetCount });
-            return (BigInteger)Contract.Call(
-                oracle, "request", CallFlags.All,
-                "rng", payload,
-                Runtime.ExecutingScriptHash, "onOracleResult"
-            );
+            return RequestOracleForCallback(requester, "rng", payload);
         }
 
         public static void OnOracleResult(
@@ -269,19 +272,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (success && result != null && result.Length > 0)
             {
-                // Result format: array of amounts for each packet
-                object[] amounts = (object[])StdLib.Deserialize(result);
-
-                // Store pre-computed amounts
-                for (BigInteger i = 1; i <= envelope.PacketCount; i++)
-                {
-                    BigInteger amount = (BigInteger)amounts[(int)(i - 1)];
-                    ByteString amountKey = Helper.Concat(
-                        Helper.Concat((ByteString)PREFIX_AMOUNTS, (ByteString)envelopeId.ToByteArray()),
-                        (ByteString)i.ToByteArray());
-                    Storage.Put(Storage.CurrentContext, amountKey, amount);
-                }
-
+                StoreGeneratedAmounts(envelopeId, envelope.TotalAmount, envelope.PacketCount, (byte[])result);
                 envelope.Ready = true;
                 StoreEnvelope(envelopeId, envelope);
             }
@@ -296,6 +287,54 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext,
                 Helper.Concat((ByteString)PREFIX_ENVELOPES, (ByteString)envelopeId.ToByteArray()),
                 StdLib.Serialize(envelope));
+        }
+
+        private static void StoreGeneratedAmounts(BigInteger envelopeId, BigInteger totalAmount, BigInteger packetCount, byte[] randomBytes)
+        {
+            ExecutionEngine.Assert(randomBytes != null && randomBytes.Length > 0, "rng bytes required");
+            ExecutionEngine.Assert(packetCount > 0, "packet count required");
+
+            BigInteger remaining = totalAmount;
+
+            for (BigInteger i = 1; i < packetCount; i++)
+            {
+                BigInteger packetsLeft = packetCount - i + 1;
+                BigInteger minRemaining = (packetsLeft - 1) * MIN_PER_PACKET;
+                BigInteger maxForThis = remaining - minRemaining;
+                ExecutionEngine.Assert(maxForThis >= MIN_PER_PACKET, "invalid packet bounds");
+
+                BigInteger amount = MIN_PER_PACKET;
+                BigInteger range = maxForThis - MIN_PER_PACKET;
+                if (range > 0)
+                {
+                    amount += RandomChunk(randomBytes, i) % (range + 1);
+                }
+
+                StorePacketAmount(envelopeId, i, amount);
+                remaining -= amount;
+            }
+
+            StorePacketAmount(envelopeId, packetCount, remaining);
+        }
+
+        private static BigInteger RandomChunk(byte[] randomBytes, BigInteger index)
+        {
+            int length = randomBytes.Length;
+            int offset = (int)((index * 4) % length);
+
+            BigInteger value = randomBytes[offset];
+            value = (value << 8) + randomBytes[(offset + 1) % length];
+            value = (value << 8) + randomBytes[(offset + 2) % length];
+            value = (value << 8) + randomBytes[(offset + 3) % length];
+            return value;
+        }
+
+        private static void StorePacketAmount(BigInteger envelopeId, BigInteger index, BigInteger amount)
+        {
+            ByteString amountKey = Helper.Concat(
+                Helper.Concat((ByteString)PREFIX_AMOUNTS, (ByteString)envelopeId.ToByteArray()),
+                (ByteString)index.ToByteArray());
+            Storage.Put(Storage.CurrentContext, amountKey, amount);
         }
 
         #endregion
@@ -404,6 +443,10 @@ namespace NeoMiniAppPlatform.Contracts
                     BigInteger refundAmount = envelope.RemainingAmount;
                     envelope.RemainingAmount = 0;
                     StoreEnvelope(envelopeId, envelope);
+
+                    ExecutionEngine.Assert(
+                        GAS.Transfer(Runtime.ExecutingScriptHash, envelope.Creator, refundAmount),
+                        "refund failed");
 
                     OnEnvelopeRefunded(envelopeId, envelope.Creator, refundAmount);
                 }
