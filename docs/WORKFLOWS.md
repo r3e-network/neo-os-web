@@ -740,3 +740,11 @@ Response:
    - Executions stop
    - User deposits more GAS to continue
 ```
+# Note
+
+This workflow document includes older PaymentHub-first examples.
+
+For the current flagship path, treat direct contract transfers, direct
+Morpheus Oracle callbacks, and direct AA relay integration as canonical. Use
+`docs/ARCHITECTURE.md` plus the latest `docs/reports/` as the current source
+of truth.

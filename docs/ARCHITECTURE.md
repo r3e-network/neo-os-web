@@ -118,7 +118,7 @@ runtime remains external.
 
 Platform-owned Neo N3 contracts in this repo include:
 
-- `PaymentHub`
+- `PaymentHub` (legacy / optional; not the preferred path for current flagship MiniApps)
 - `Governance`
 - `PriceFeed`
 - `RandomnessLog`
