@@ -73,20 +73,6 @@
           "placeholder": "10"
         }
       ]
-    },
-    {
-      "name": "Repay",
-      "method": "repay",
-      "button_style": "secondary",
-      "params": [
-        {
-          "name": "amount",
-          "type": "amount",
-          "label": "Repay Amount (GAS)",
-          "required": true,
-          "placeholder": "1"
-        }
-      ]
     }
   ],
   "integration": {
