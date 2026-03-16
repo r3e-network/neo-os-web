@@ -21,6 +21,12 @@ const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || NETWORK_CONFIG.oracleHa
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const PAYMENT_HUB_HASH = NETWORK_CONFIG.paymentHubHash;
+const LIVE_TARGET_FILTER = new Set(
+  String(process.env.FLAGSHIP_LIVE_TARGETS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
 
 const DAILY_CHECKIN_FEE = "100000";
 const FOGPLAY_BET = "5000000";
@@ -668,6 +674,7 @@ async function runNeoPay() {
 async function main() {
   const summary = {
     generatedAt: new Date().toISOString(),
+    targetNetwork: TARGET_NETWORK,
     rpcUrl: RPC_URL,
     address: account.address,
     oracleHash: ORACLE_HASH,
@@ -684,11 +691,19 @@ async function main() {
     ["selfLoan", runSelfLoan],
     ["neoPay", runNeoPay],
   ]) {
+    if (LIVE_TARGET_FILTER.size > 0 && !LIVE_TARGET_FILTER.has(label)) {
+      summary.results[label] = { skipped: true };
+      continue;
+    }
+    const startedAt = Date.now();
+    console.error(`[run] ${label} (${TARGET_NETWORK})`);
     try {
       summary.results[label] = { ok: true, ...(await runner()) };
+      console.error(`[ok] ${label} (${Math.round((Date.now() - startedAt) / 1000)}s)`);
     } catch (error) {
       failed = true;
       summary.results[label] = { ok: false, error: String(error?.message || error) };
+      console.error(`[fail] ${label}: ${String(error?.message || error)}`);
     }
   }
 
