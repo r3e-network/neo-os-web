@@ -87,6 +87,8 @@ export const MINIAPP_REGISTRY: MiniAppInfo[] = MINIAPP_REGISTRY_RAW.map((app) =>
   withMiniAppCardAssets(forceManifestEntry(applyTemplate(app)))
 );
 
+export const FLAGSHIP_MINIAPP_IDS = MINIAPP_REGISTRY.map((app) => app.app_id);
+
 export const MINIAPP_REGISTRY_MAP: Record<string, MiniAppInfo> = Object.fromEntries(
   MINIAPP_REGISTRY.map((app) => [app.app_id, app]),
 );
