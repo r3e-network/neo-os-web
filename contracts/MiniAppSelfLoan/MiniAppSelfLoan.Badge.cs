@@ -24,7 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (stats.LoansFullyRepaid >= 5)
                 AwardBorrowerBadge(borrower, 2, "Repayer");
 
-            if (stats.TotalCollateralDeposited >= 10000000000) // 100 NEO
+            if (stats.TotalCollateralDeposited >= 100) // 100 NEO
                 AwardBorrowerBadge(borrower, 3, "Whale");
 
             if (stats.Tier3LoansCreated >= 5)

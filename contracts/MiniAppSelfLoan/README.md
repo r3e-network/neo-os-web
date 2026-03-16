@@ -19,12 +19,16 @@
 The contract is responsible for:
 
 - opening loans against locked NEO collateral
+- tracking prepaid direct NEO collateral credits received through `OnNEP17Payment`
 - tracking debt, original debt, total repaid amount, and borrower stats
 - allowing manual repayment and collateral management
 - accounting for auto-repayment from modeled NEO GAS yield
 - exposing health-factor and loan-state queries for the frontend
 
 The contract does **not** perform liquidation. The product promise is still “self-repaying liquidity with zero liquidation risk”.
+
+It also assumes the contract holds a funded GAS lending pool. Borrow creation
+fails if the contract balance cannot cover the net GAS payout.
 
 ## Core Methods
 
@@ -48,6 +52,9 @@ The contract does **not** perform liquidation. The product promise is still “s
 - The canonical app id is `miniapp-self-loan`.
 - Frontend, manifest, and host definitions should describe all three LTV tiers, not only the conservative tier.
 - AA can be used for smoother UX, but the lending logic itself remains fully on-chain.
+- The live borrow flow is:
+  1. `NEO.transfer(user, selfLoanContract, neoAmount, "miniapp-self-loan:collateral")`
+  2. `createLoan(user, neoAmount, ltvTier)`
 
 ## Important Clarification
 

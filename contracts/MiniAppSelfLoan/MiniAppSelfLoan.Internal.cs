@@ -67,6 +67,28 @@ namespace NeoMiniAppPlatform.Contracts
                 StdLib.Serialize(stats));
         }
 
+        private static void ConsumeDirectNeoCollateral(UInt160 payer, BigInteger amount)
+        {
+            ValidateAddress(payer);
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_NEO_COLLATERAL);
+            ByteString key = (ByteString)(byte[])payer;
+            ByteString existing = credits.Get(key);
+            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid neo");
+
+            BigInteger next = balance - amount;
+            if (next == 0)
+            {
+                credits.Delete(key);
+            }
+            else
+            {
+                credits.Put(key, next);
+            }
+        }
+
         #endregion
     }
 }

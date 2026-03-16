@@ -46,12 +46,13 @@ namespace NeoMiniAppPlatform.Contracts
     {
         #region App Constants
         private const string APP_ID = "miniapp-self-loan";
+        private const long GAS_FIXED8 = 100000000;
         private const int LTV_TIER1_BPS = 2000;  // 20% - Conservative
         private const int LTV_TIER2_BPS = 3000;  // 30% - Standard
         private const int LTV_TIER3_BPS = 4000;  // 40% - Aggressive
         private const int LIQUIDATION_THRESHOLD_BPS = 8000; // 80%
         private const int MIN_HEALTH_FACTOR = 100; // 1.0 (scaled by 100)
-        private const long MIN_COLLATERAL = 100000000; // 1 NEO
+        private const long MIN_COLLATERAL = 1; // 1 NEO
         private const int MIN_LOAN_DURATION_SECONDS = 86400; // 24h anti-flash
         private const int PLATFORM_FEE_BPS = 50; // 0.5% origination fee
         #endregion
@@ -67,6 +68,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_USER_STATS = new byte[] { 0x27 };
         private static readonly byte[] PREFIX_USER_BADGES = new byte[] { 0x28 };
         private static readonly byte[] PREFIX_TOTAL_BORROWERS = new byte[] { 0x29 };
+        private static readonly byte[] PREFIX_DIRECT_NEO_COLLATERAL = new byte[] { 0x2A };
         #endregion
 
         #region Data Structures
@@ -125,6 +127,34 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("BorrowerBadgeEarned")]
         public static event BorrowerBadgeEarnedHandler OnBorrowerBadgeEarned;
         #endregion
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            string memo = ReadPaymentMemo(data);
+            if (Runtime.CallingScriptHash == NEO.Hash)
+            {
+                ValidateAddress(from);
+                ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+                ExecutionEngine.Assert(memo.StartsWith(APP_ID + ":"), "invalid collateral memo");
+
+                StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_NEO_COLLATERAL);
+                ByteString key = (ByteString)(byte[])from;
+                ByteString existing = credits.Get(key);
+                BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+                credits.Put(key, balance + amount);
+                return;
+            }
+
+            if (Runtime.CallingScriptHash == GAS.Hash)
+            {
+                if (from == Runtime.ExecutingScriptHash) return;
+                if (memo != APP_ID + ":pool") return;
+                ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+                return;
+            }
+
+            ExecutionEngine.Assert(false, "unsupported asset");
+        }
 
         #region Lifecycle
         public static void _deploy(object data, bool update)
@@ -188,7 +218,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             Loan loan = GetLoan(loanId);
             if (loan.Debt == 0) return 10000;
-            return loan.Collateral * LIQUIDATION_THRESHOLD_BPS / loan.Debt;
+            return loan.Collateral * GAS_FIXED8 * 100 / loan.Debt;
         }
         #endregion
     }

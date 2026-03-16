@@ -19,6 +19,13 @@ Three LTV (Loan-to-Value) tiers let you choose your risk profile: Conservative (
 5. **Wait & Watch** — Your locked NEO generates GAS staking rewards that automatically repay the loan balance. Monitor progress on the dashboard.
 6. **Manage & Auto-Unlock** — The current miniapp UI focuses on opening and monitoring loans. The contract also supports manual repayment, and your NEO unlocks automatically once debt reaches zero.
 
+The live borrow path is a two-step wallet flow under the hood:
+
+1. `NEO.transfer(..., "miniapp-self-loan:collateral")`
+2. `createLoan(...)`
+
+The frontend executes both steps for you.
+
 ## Key Features
 
 - **Zero Liquidation**: Debt is repaid by yield from the same collateral. No price oracle risk, no margin calls.
@@ -93,6 +100,12 @@ npm run build
 | Smart Contract    | C# / Neo N3                  |
 | Health Monitoring | Keeper (Automated Alerts)    |
 | Collateral        | NEO (Staking Yield → GAS)    |
+
+## Latest Testnet Validation
+
+- Borrow collateral transfer tx: `0xb2597e1f0ccb16e14b5b97b0f1788084ea83c6fbd2da185323cdb002783e9ac9`
+- Borrow create-loan tx: `0xd3efe7e23da846911b45784737f2c754eb866f3ad81b6724630f0bbaf2892f3f`
+- Result: `loanId = 1`, `collateral = 1 NEO`, `debt = 0.2 GAS`
 
 ## License
 
