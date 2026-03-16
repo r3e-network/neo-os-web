@@ -7,10 +7,17 @@ The request shape follows:
 
 ```text
 MorpheusOracle.request(requestType, payload, callbackContract, "onOracleResult")
+MorpheusOracle.requestFromCallback(requester, requestType, payload, callbackContract, "onOracleResult")
 ```
 
 Payloads are passed as **ByteString** and interpreted as **UTF-8 JSON** unless
 explicitly stated otherwise.
+
+For MiniApp contracts that validate the user or AA context themselves and then
+call Morpheus from inside contract execution, prefer
+`requestFromCallback(...)`. That path keeps the callback contract as the
+explicit caller boundary and is the supported pattern for direct MiniApp ->
+Morpheus callback flows.
 
 ## Common Fields
 
@@ -20,8 +27,8 @@ explicitly stated otherwise.
 
 ### `rng`
 
-Randomness requests do not require a payload. If provided, the dispatcher will
-honor the optional `request_id`.
+Randomness requests do not require a structured payload. The current worker
+ignores the payload body and returns raw randomness bytes.
 
 Example:
 
@@ -29,8 +36,7 @@ Example:
 { "request_id": "optional-id" }
 ```
 
-**Result (`ByteString`)**: 32-byte randomness output. The dispatcher may also
-attach a JSON blob (signature, public key, attestation hash) when configured.
+**Result (`ByteString`)**: raw 32-byte randomness output.
 
 ### `oracle`
 

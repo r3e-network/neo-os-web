@@ -76,12 +76,12 @@ npm run build
 
 | 网络   | 地址                                         |
 | ------ | -------------------------------------------- |
-| 测试网 | `0x01d0e1f78ea5a76b6bb0bce26649d5bf449999e0` |
+| 测试网 | `0x43f953c00931ca38044bf0e5ca50d608aea7ae8b` |
 | 主网   | `0x0a39f71c274dc944cd20cb49e4a38ce10f3ceea1` |
 
 ### 区块浏览器
 
-- **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0x01d0e1f78ea5a76b6bb0bce26649d5bf449999e0)
+- **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0x43f953c00931ca38044bf0e5ca50d608aea7ae8b)
 - **主网**：[在 NeoTube 查看](https://neotube.io/contract/0x0a39f71c274dc944cd20cb49e4a38ce10f3ceea1)
 
 ## 技术栈

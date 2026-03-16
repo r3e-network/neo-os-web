@@ -7,12 +7,13 @@ import { createSidebarItems, isTxEventPendingError } from "@shared/utils";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { StatsDisplayItem } from "@shared/components";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const APP_ID = "miniapp-dailycheckin";
 const CHECK_IN_FEE = 0.001;
 
 export function useCheckinContract(t: (key: string, params?: Record<string, string>) => string) {
-  const { address, ensureWallet, read, invoke, isProcessing: isLoading } = useContractInteraction({ appId: APP_ID, t });
+  const { address, ensureWallet, read, invokeDirectly, ensureContractAddress, isProcessing: isLoading } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
 
   // User state
@@ -131,11 +132,33 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
     try {
       await ensureWallet();
 
-      const { txid, waitForEvent } = await invoke(String(CHECK_IN_FEE), "checkin", "checkIn", [
-        { type: "Hash160", value: address.value as string },
-      ]);
+      const contract = await ensureContractAddress();
+      const tx = await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: String(Math.round(CHECK_IN_FEE * 1e8)) },
+          { type: "String", value: `${APP_ID}:checkin` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH
+      );
 
-      const result = txid ? await waitForPendingOrConfirm(txid, "CheckedIn", waitForEvent) : { pending: true };
+      const result = tx.txid
+        ? await waitForPendingOrConfirm(
+            tx.txid,
+            "CheckedIn",
+            async (txid: string, eventName: string, timeoutMs = 30000) => {
+              const deadline = Date.now() + timeoutMs;
+              while (Date.now() < deadline) {
+                const listed = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 20, tx_hash: txid });
+                if (listed.events.length > 0) return listed.events[0];
+                await new Promise((resolve) => setTimeout(resolve, 2500));
+              }
+              throw new Error(`Event "${eventName}" not found for transaction ${txid}`);
+            }
+          )
+        : { pending: true };
 
       if (result.pending) {
         setStatus(t("pendingConfirmation", { action: t("checkinSuccess") }), "success");
