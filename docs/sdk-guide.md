@@ -278,3 +278,13 @@ The platform includes 24 platform MiniApps demonstrating SDK usage patterns:
 | Governance | `miniapp-gov-booster`       | bNEO governance tools                |
 | Security   | `miniapp-guardian-policy`   | TEE transaction security             |
 | Gaming     | `miniapp-nft-evolve`        | Dynamic NFT evolution                |
+# Note
+
+This SDK guide still shows older PaymentHub-only payment diagrams in some
+sections.
+
+The current flagship direction is:
+
+- direct contract transfers when the MiniApp business flow allows it
+- direct Morpheus Oracle callbacks for async service flows
+- direct AA relay integration where sponsored / verifier-aware execution is needed
