@@ -31,6 +31,18 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "3.0.0")]
     [ManifestExtra("Description", "This is Neo R3E Network MiniApp. NeoGacha is an on-chain blind box marketplace with escrowed prizes, transparent odds, and verifiable randomness.")]
     [ContractPermission("*", "*")]
+    /// <summary>
+    /// GASBOX on-chain gacha marketplace.
+    ///
+    /// CURRENT LIVE TESTNET FLOW:
+    /// - operators fund machine inventory by transferring assets into the contract first
+    /// - players prepay GAS directly to this contract
+    /// - initiatePlay stores a deterministic seed
+    /// - settlePlay replays the selection logic on-chain and transfers the prize
+    ///
+    /// The older receipt-centric wrappers are still exposed for compatibility, but the
+    /// production user flow is the direct prepaid contract-credit model.
+    /// </summary>
     public partial class MiniAppContract : SmartContract
     {
         #region App Constants

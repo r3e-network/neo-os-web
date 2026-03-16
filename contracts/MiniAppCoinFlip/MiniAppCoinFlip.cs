@@ -23,7 +23,8 @@ namespace NeoMiniAppPlatform.Contracts
     /// CoinFlip MiniApp - 50/50 double-or-nothing betting game.
     ///
     /// ARCHITECTURE:
-    /// - User invokes PlaceBet → Contract requests RNG from Morpheus Oracle
+    /// - User prepays GAS directly to this contract
+    /// - User invokes PlaceBet → Contract consumes prepaid GAS credit and requests RNG from Morpheus Oracle
     /// - Oracle fulfills request → Contract receives callback → Settles bet
     ///
     /// GAME MECHANICS:
@@ -38,13 +39,14 @@ namespace NeoMiniAppPlatform.Contracts
     /// - Randomness from TEE prevents manipulation
     /// - Bet data stored on-chain, preventing callback manipulation
     ///
-    /// WORKFLOW (NEW - MiniApp initiates service request):
-    /// 1. User pays via PaymentHub (SDK.payGAS)
+    /// WORKFLOW:
+    /// 1. User prepays GAS to this contract (OnNEP17Payment credit)
+    /// 2. Callback contract must also hold prepaid Oracle request fee credit
     /// 2. User calls PlaceBet → bet stored + RNG requested
     /// 3. Morpheus Oracle processes RNG request
     /// 4. Oracle calls OnOracleResult with VRF result
     /// 5. Contract settles bet + emits payout event
-    /// 6. Platform sends payout via PaymentHub
+    /// 6. Contract emits the resolved payout result for downstream indexing / UI
     /// </summary>
     [DisplayName("MiniAppCoinFlip")]
     [ManifestExtra("Author", "R3E Network")]
@@ -120,13 +122,17 @@ namespace NeoMiniAppPlatform.Contracts
         /// FLOW:
         /// 1. Validate player signature and bet amount
         /// 2. Store bet data on-chain
-        /// 3. Call MorpheusOracle.request("rng") with callback
+        /// 3. Call MorpheusOracle.requestFromCallback("rng") with callback
         /// 4. Store request-to-bet mapping for callback resolution
         ///
         /// SECURITY:
-        /// - CheckWitness ensures player authorized this bet
+        /// - direct prepaid GAS credit prevents \"bet without funding\"
+        /// - the callback contract needs Oracle fee credit before the request can queue
         /// - Bet data stored BEFORE requesting RNG (prevents manipulation)
         /// - Minimum bet prevents dust attacks
+        ///
+        /// NOTE:
+        /// - receiptId is retained for ABI compatibility but the live flow uses direct prepaid GAS
         ///
         /// RETURNS: betId for tracking
         /// </summary>

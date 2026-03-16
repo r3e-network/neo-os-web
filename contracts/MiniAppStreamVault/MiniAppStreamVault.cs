@@ -17,6 +17,16 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "2.0.0")]
     [ManifestExtra("Description", "Recurring payroll and subscription streams with claimable interval-based releases.")]
     [ContractPermission("*", "*")]
+    /// <summary>
+    /// NeoPay recurring stream contract.
+    ///
+    /// CURRENT LIVE TESTNET FLOW:
+    /// - creator first transfers GAS or NEO into this contract
+    /// - OnNEP17Payment records pending asset credit per creator/asset pair
+    /// - createStream consumes that credited balance and opens the stream
+    /// - beneficiary claims unlocked funds over time
+    /// - creator can cancel to reclaim the still-locked remainder
+    /// </summary>
     public partial class MiniAppContract : SmartContract
     {
         private const string APP_ID = "miniapp-stream-vault";
@@ -59,6 +69,10 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("StreamCancelled")]
         public static event StreamCancelledHandler OnStreamCancelled;
 
+        /// <summary>
+        /// Accepts direct GAS / NEO funding transfers and records them as pending stream credit.
+        /// Stream creation consumes this credit before attempting any fallback pull-style transfer.
+        /// </summary>
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
             bool isSupportedAsset = Runtime.CallingScriptHash == GAS.Hash || Runtime.CallingScriptHash == NEO.Hash;
@@ -132,6 +146,8 @@ namespace NeoMiniAppPlatform.Contracts
             string title,
             string notes)
         {
+            // Users are expected to pre-fund the contract first. The fallback transfer path is kept
+            // only as a compatibility backstop for environments where direct credit was not prepared.
             ValidateNotGloballyPaused(APP_ID);
             ValidateUserOrAbstractAccount(creator);
             ValidateAddress(beneficiary);
