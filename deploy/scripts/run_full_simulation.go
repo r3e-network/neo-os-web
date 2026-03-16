@@ -472,7 +472,7 @@ func getCandidateAppIDs() []string {
 		"miniapp-price-predict",
 		"miniapp-secretvote",
 		"miniapp-lottery",
-		"miniapp-coinflip",
+		"miniapp-fogplay",
 		"miniapp-dicegame",
 		"miniapp-secret-poker",
 		"miniapp-micro-predict",

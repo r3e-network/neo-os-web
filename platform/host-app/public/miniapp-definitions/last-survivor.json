@@ -1,0 +1,76 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-last-survivor",
+  "name": "LastSurvivor",
+  "description": "Prize pool grows with every contribution; the 24-hour countdown resets on each press. Last contributor wins everything if the timer reaches zero.",
+  "template_type": "gaming",
+  "category": "Gaming",
+  "tags": [
+    "last-survivor",
+    "countdown",
+    "tontine",
+    "jackpot",
+    "social-experiment"
+  ],
+  "version": "2.0.0",
+  "status": "active",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "contract": {
+    "template_id": "gaming-last-survivor",
+    "contract_hash": "0x180a3a35c088eab4feded508c2ccb1556e07a840"
+  },
+  "entry_url": "mf://manifest?app=miniapp-last-survivor",
+  "media": {
+    "icon": "/miniapps/last-survivor/logo.jpg",
+    "banner": "/miniapps/last-survivor/banner.jpg"
+  },
+  "permissions": {
+    "payments": true,
+    "randomness": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "LastSurvivor"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content"
+      },
+      {
+        "id": "history",
+        "label": "History",
+        "type": "content"
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Buy Keys",
+      "subtitle": "Reset the countdown and fight for the last spot.",
+      "cta_label": "Open LastSurvivor",
+      "operations": []
+    }
+  },
+  "operations": [],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": [
+      "total_transactions",
+      "daily_active_users",
+      "total_gas_used"
+    ]
+  },
+  "docs_url": "https://docs.r3e.network/lastsurvivor"
+}

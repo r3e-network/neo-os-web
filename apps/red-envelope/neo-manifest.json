@@ -29,7 +29,7 @@
     "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-testnet",
+  "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/red-envelope/index.html",
     "icon": "/miniapps/red-envelope/logo.jpg",

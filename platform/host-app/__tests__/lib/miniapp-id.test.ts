@@ -11,6 +11,6 @@ describe("miniapp-id canonicalization", () => {
   });
 
   it("uses fallback slug when input is empty", () => {
-    expect(canonicalizeMiniAppId("", { fallbackSlug: "coin-flip", coerceMiniappPrefix: true })).toBe("miniapp-coin-flip");
+    expect(canonicalizeMiniAppId("", { fallbackSlug: "fogplay", coerceMiniappPrefix: true })).toBe("miniapp-fogplay");
   });
 });

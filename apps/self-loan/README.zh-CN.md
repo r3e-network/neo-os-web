@@ -90,6 +90,10 @@ npm run build
 - **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b)
 - **主网**：[在 NeoTube 查看](https://neotube.io/contract/0x942da575b31f39cbb59e64b5813b128739b44c25)
 
+## 域名
+
+- 主网域名：`selfloan.miniapp.neo`
+
 ## 技术栈
 
 | 层级     | 技术                          |

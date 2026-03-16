@@ -33,7 +33,7 @@ type MiniAppRegistration struct {
 var miniApps = []MiniAppRegistration{
 	// Gaming apps
 	{"miniapp-lottery", "Lottery", "mf://manifest?app=miniapp-lottery", []string{"wallet", "payments", "rng"}},
-	{"miniapp-coinflip", "Coin Flip", "mf://manifest?app=miniapp-coinflip", []string{"wallet", "payments", "rng"}},
+	{"miniapp-fogplay", "Coin Flip", "mf://manifest?app=miniapp-fogplay", []string{"wallet", "payments", "rng"}},
 	{"miniapp-dicegame", "Dice Game", "mf://manifest?app=miniapp-dicegame", []string{"wallet", "payments", "rng"}},
 	{"miniapp-secret-poker", "Secret Poker", "mf://manifest?app=miniapp-secret-poker", []string{"wallet", "payments", "rng", "compute"}},
 	{"miniapp-redenvelope", "Red Envelope", "mf://manifest?app=miniapp-redenvelope", []string{"wallet", "payments", "rng"}},

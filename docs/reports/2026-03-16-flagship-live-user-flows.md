@@ -29,6 +29,33 @@ All actions below were executed with the shared testnet account:
 | Morpheus Oracle | `0x4b882e94ed766807c4fd728768f972e13008ad52` |
 | PaymentHub | `0x340cb33d770b38f26d066716dd1f9df5283d629e` |
 
+## Mainnet Flagship Rollout
+
+Mainnet contracts and miniapp subdomains currently deployed / updated:
+
+| App | Mainnet Contract | Domain | Notes |
+| --- | --- | --- | --- |
+| LastSurvivor | `0x180a3a35c088eab4feded508c2ccb1556e07a840` | `lastsurvivor.miniapp.neo` | newly deployed to correct manifest name |
+| GASBOX | `0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c` | `gasbox.miniapp.neo` | newly deployed to correct manifest name |
+| Red Envelope | `0x5f371cc50116bb13d79554d96ccdd6e246cd5d59` | `redenvelope.miniapp.neo` | updated in place |
+| Daily Check-in | `0xbd4f3646e189350b9c11a659655854e6f03f9be4` | `dailycheckin.miniapp.neo` | newly deployed to correct manifest name |
+| FogPlay | `0xa5a4b5b82066d86eae9312f6072d1c3604882c81` | `fogplay.miniapp.neo` | newly deployed to correct manifest name |
+| SelfLoan | `0x942da575b31f39cbb59e64b5813b128739b44c25` | `selfloan.miniapp.neo` | updated in place |
+| NeoPay | `0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34` | `neopay.miniapp.neo` | newly deployed; first mainnet address |
+
+Related mainnet support contract:
+
+| Contract | Hash | Purpose |
+| --- | --- | --- |
+| PaymentHubV2 | `0x5c389477ce466224f02935dae61e0690846478b2` | compatibility receipt settlement for LastSurvivor |
+
+Mainnet dependency alignment completed:
+
+- all 7 flagship contracts now point `abstractAccount` to mainnet AA Core `0x9742b4ed62a84a886f404d36149da6147528ee33`
+- `FogPlay` and `Red Envelope` point `oracle` to mainnet Morpheus Oracle `0x017520f068fd602082fe5572596185e62a4ad991`
+- those callback consumer contracts are allowlisted on the mainnet Oracle and funded with callback fee credit
+- `LastSurvivor` points `paymentHub` to `PaymentHubV2` `0x5c389477ce466224f02935dae61e0690846478b2`
+
 ## Live Validation Summary
 
 ### Daily Check-in
@@ -42,7 +69,7 @@ All actions below were executed with the shared testnet account:
 
 This path required testnet dependency alignment before validation:
 
-- PaymentHub app configured for `miniapp-doomsday-clock`
+- PaymentHub app configured for `miniapp-last-survivor`
   - tx: `0xa004bd84f92e984578043e19afc84f1b41c89b347cc255201760f3a384fb44c8`
 - LastSurvivor contract `paymentHub` updated to testnet PaymentHub
   - tx: `0xd6063741675742d07ddf8b4c272a6fb3344f36fdbbcf6138123dcf8c99832ff3`

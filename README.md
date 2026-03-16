@@ -126,6 +126,25 @@ For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | AA Web3Auth verifier | `0xf2560a0db44bbb32d0a6919cf90a3d0643ad8e3d` |
 | AA SessionKey verifier | `0xed44c88535650b4dd6b8d59776e6ed045462cab6` |
 
+## Mainnet Flagship MiniApps
+
+| App | Mainnet Contract | Domain |
+| --- | --- | --- |
+| LastSurvivor | `0x180a3a35c088eab4feded508c2ccb1556e07a840` | `lastsurvivor.miniapp.neo` |
+| GASBOX | `0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c` | `gasbox.miniapp.neo` |
+| Red Envelope | `0x5f371cc50116bb13d79554d96ccdd6e246cd5d59` | `redenvelope.miniapp.neo` |
+| Daily Check-in | `0xbd4f3646e189350b9c11a659655854e6f03f9be4` | `dailycheckin.miniapp.neo` |
+| FogPlay | `0xa5a4b5b82066d86eae9312f6072d1c3604882c81` | `fogplay.miniapp.neo` |
+| SelfLoan | `0x942da575b31f39cbb59e64b5813b128739b44c25` | `selfloan.miniapp.neo` |
+| NeoPay | `0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34` | `neopay.miniapp.neo` |
+
+Operational alignment now applied on mainnet:
+
+- all 7 flagship contracts point `abstractAccount` to mainnet AA Core `0x9742b4ed62a84a886f404d36149da6147528ee33`
+- `FogPlay` and `Red Envelope` point `oracle` to mainnet Morpheus Oracle `0x017520f068fd602082fe5572596185e62a4ad991`
+- those callback consumers are allowlisted on the mainnet Oracle and funded with callback fee credit
+- `LastSurvivor` points `paymentHub` to mainnet `PaymentHubV2` `0x5c389477ce466224f02935dae61e0690846478b2`
+
 ## Platform Contracts
 
 Current Neo N3 testnet platform contract values from `.env`:
@@ -138,6 +157,13 @@ Current Neo N3 testnet platform contract values from `.env`:
 | RandomnessLog       | `0xa24f83dcbafff909d4209ac76ca5d09237c0cda6` | VRF attestation anchoring |
 | AppRegistry         | `0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d` | MiniApp registration      |
 | AutomationAnchor    | `0xa016f7be94ad7c4d87ad2f8d38784797c2dc494b` | Periodic task scheduling  |
+
+Mainnet compatibility settlement / support contract deployed by the current
+flagship admin:
+
+| Contract | Hash | Description |
+| --- | --- | --- |
+| PaymentHubV2 | `0x5c389477ce466224f02935dae61e0690846478b2` | Mainnet compatibility receipt settlement for LastSurvivor |
 
 ## MiniApps
 
@@ -158,11 +184,11 @@ Current featured flagship 7:
 | --- | --- | --- |
 | SelfLoan | `miniapp-self-loan` | direct NEO-collateral loan flow |
 | Red Envelope | `miniapp-redenvelope` | prepaid GAS + Oracle callback flow |
-| FogPlay | `miniapp-coinflip` | prepaid GAS + Oracle RNG callback flow |
+| FogPlay | `miniapp-fogplay` | prepaid GAS + Oracle RNG callback flow |
 | Daily Check-in | `miniapp-dailycheckin` | direct GAS check-in reward path |
-| LastSurvivor | `miniapp-doomsday-clock` | PaymentHub receipt-based key purchase |
-| NeoPay | `miniapp-stream-vault` | prepaid asset credit recurring streams |
-| GASBOX | `miniapp-neo-gacha` | prepaid GAS hybrid gacha settlement |
+| LastSurvivor | `miniapp-last-survivor` | PaymentHub receipt-based key purchase |
+| NeoPay | `miniapp-neo-pay` | prepaid asset credit recurring streams |
+| GASBOX | `miniapp-gasbox` | prepaid GAS hybrid gacha settlement |
 
 For current verified testnet behavior of these flagship apps, see
 [`docs/reports/2026-03-16-flagship-live-user-flows.md`](docs/reports/2026-03-16-flagship-live-user-flows.md).

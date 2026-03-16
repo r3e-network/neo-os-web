@@ -46,13 +46,13 @@ const TEMPLATES = {
     ]
   },
 
-  "miniapp-coinflip": {
-    app_id: "coin-flip",
+  "miniapp-fogplay": {
+    app_id: "fogplay",
     name: "Coin Flip",
     description: "Classic 50/50 coin flip with cryptographically secure randomness.",
     template_type: "gaming",
     category: "Gaming",
-    tags: ["coin-flip", "vrf", "gaming"],
+    tags: ["fogplay", "vrf", "gaming"],
     frontend_spec: {
       layout: "default",
       hero: { eyebrow: "Coin Flip" },

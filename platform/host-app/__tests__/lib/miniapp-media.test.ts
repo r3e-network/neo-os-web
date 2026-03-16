@@ -9,11 +9,11 @@ import {
 describe("miniapp-media helpers", () => {
   describe("resolveMiniAppSlug", () => {
     it("extracts slug from /miniapps entry URL", () => {
-      expect(resolveMiniAppSlug("miniapp-coinflip", "/miniapps/coin-flip/")).toBe("coin-flip");
+      expect(resolveMiniAppSlug("miniapp-fogplay", "/miniapps/fogplay/")).toBe("fogplay");
     });
 
     it("extracts slug from /miniapp-assets entry URL", () => {
-      expect(resolveMiniAppSlug("miniapp-coinflip", "/miniapp-assets/coin-flip/index.html")).toBe("coin-flip");
+      expect(resolveMiniAppSlug("miniapp-fogplay", "/miniapp-assets/fogplay/index.html")).toBe("fogplay");
     });
 
     it("falls back to app_id when entry URL is not static", () => {
@@ -23,7 +23,7 @@ describe("miniapp-media helpers", () => {
     });
 
     it("maps known compact app ids to canonical asset slugs", () => {
-      expect(resolveMiniAppSlug("miniapp-coinflip", "mf://manifest?app=miniapp-coinflip")).toBe("coin-flip");
+      expect(resolveMiniAppSlug("miniapp-fogplay", "mf://manifest?app=miniapp-fogplay")).toBe("fogplay");
       expect(resolveMiniAppSlug("miniapp-dicegame", "mf://manifest?app=miniapp-dicegame")).toBe("dice-game");
       expect(resolveMiniAppSlug("miniapp-predictionmarket", "mf://manifest?app=miniapp-predictionmarket")).toBe(
         "prediction-market",
@@ -162,16 +162,16 @@ describe("miniapp-media helpers", () => {
   describe("withMiniAppCardAssets", () => {
     it("fills missing card media fields from convention", () => {
       const app = withMiniAppCardAssets({
-        app_id: "miniapp-coinflip",
-        entry_url: "/miniapps/coin-flip/",
+        app_id: "miniapp-fogplay",
+        entry_url: "/miniapps/fogplay/",
         name: "Coin Flip",
         description: "test",
         icon: "🪙",
         category: "gaming",
       });
 
-      expect(app.logo_url).toBe("/miniapp-assets/coin-flip/logo.jpg");
-      expect(app.banner_url).toBe("/miniapp-assets/coin-flip/banner.jpg");
+      expect(app.logo_url).toBe("/miniapp-assets/fogplay/logo.jpg");
+      expect(app.banner_url).toBe("/miniapp-assets/fogplay/banner.jpg");
     });
 
     it("fills manifest-mode app media from canonical aliases", () => {

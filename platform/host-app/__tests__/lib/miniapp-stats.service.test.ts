@@ -5,7 +5,7 @@ describe("miniapp stats service", () => {
 
   it("delegates live status to chain-specific query helpers", async () => {
     const chainLiveStatus = jest.fn().mockResolvedValue({
-      appId: "miniapp-doomsday-clock",
+      appId: "miniapp-last-survivor",
       jackpot: "5",
       playersOnline: 9,
       nextDraw: 86400,
@@ -19,20 +19,20 @@ describe("miniapp stats service", () => {
 
     const { getLiveStatus } = require("../../lib/miniapp-stats/service");
     const status = await getLiveStatus(
-      "miniapp-doomsday-clock",
+      "miniapp-last-survivor",
       "0xf0914d411877c8393c029f48ec0c4c64d44f1b49",
       "gaming",
       "testnet",
     );
 
     expect(chainLiveStatus).toHaveBeenCalledWith(
-      "miniapp-doomsday-clock",
+      "miniapp-last-survivor",
       "0xf0914d411877c8393c029f48ec0c4c64d44f1b49",
       "gaming",
       "testnet",
     );
     expect(status).toEqual({
-      appId: "miniapp-doomsday-clock",
+      appId: "miniapp-last-survivor",
       jackpot: "5",
       playersOnline: 9,
       nextDraw: 86400,

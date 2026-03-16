@@ -66,10 +66,10 @@ import { buildMiniAppLogoSources } from "@/lib/miniapp-media";
 // Map app_id to professional Lucide icons
 const APP_ICONS: Record<string, LucideIcon> = {
   // Gaming
-  "miniapp-coinflip": Coins,
+  "miniapp-fogplay": Coins,
   "miniapp-dailycheckin": Award,
-  "miniapp-doomsday-clock": Timer,
-  "miniapp-neo-gacha": Sparkles,
+  "miniapp-last-survivor": Timer,
+  "miniapp-gasbox": Sparkles,
   "miniapp-scratchcard": CreditCard,
   "miniapp-secretpoker": Spade,
   "miniapp-neocrash": TrendingUp,
@@ -99,7 +99,7 @@ const APP_ICONS: Record<string, LucideIcon> = {
   "miniapp-quantumswap": Repeat,
   "miniapp-self-loan": Repeat,
   "miniapp-priceticker": LineChart,
-  "miniapp-stream-vault": LineChart,
+  "miniapp-neo-pay": LineChart,
 
   // Social
   "miniapp-aisoulmate": Heart,

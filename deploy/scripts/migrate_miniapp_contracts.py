@@ -15,7 +15,7 @@ for app_name in os.listdir(miniapps_dir):
     if not os.path.isdir(app_contracts_dir):
         continue
         
-    # Convert kebab-case to PascalCase (e.g. coin-flip -> CoinFlip)
+    # Convert kebab-case to PascalCase (e.g. fogplay -> CoinFlip)
     pascal_name = "".join(word.title() for word in app_name.split("-"))
     target_contract_name = f"MiniApp{pascal_name}"
     target_dir = os.path.join(contracts_dir, target_contract_name)

@@ -13,7 +13,7 @@ const ROOT = path.resolve(__dirname, "..");
 const ALL_ADDRESSES = {
   // Phase 1-5 (existing)
   MiniAppLottery: "0x3e330b4c396b40aa08d49912c0179319831b3a6e",
-  MiniAppCoinFlip: "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
+  MiniAppFogPlay: "0xbd4c9203495048900e34cd9c4618c05994e86cc0",
   MiniAppDiceGame: "0xfacff9abd201dca86e6a63acfb5d60da278da8ea",
   MiniAppScratchCard: "0x2674ef3b4d8c006201d1e7e473316592f6cde5f2",
   MiniAppGasSpin: "0x19bcb0a50ddf5bf7cefbb47044cdb3ce4cb9e4cd",
@@ -41,7 +41,7 @@ const ALL_ADDRESSES = {
   MiniAppParasite: "0xe1726fbc4b6a5862eb2336ff32494be9f117563b",
   MiniAppThroneOfGas: "0xa89c3f6d82ad2803e1e576a2b441660c93316678",
   MiniAppNoLossLottery: "0x18cecd52efb529ac4e2827e9c9956c1bc450f154",
-  MiniAppDoomsdayClock: "0xe4f386057d6308b83a5fd2e84bc3eb9149adc719",
+  MiniAppLastSurvivor: "0xe4f386057d6308b83a5fd2e84bc3eb9149adc719",
   MiniAppPayToView: "0xfa920907126e63b5360a68fbf607294a82ef6266",
   // Phase 6+ (newly deployed)
   MiniAppAlgoBattle: "0xdeb2117b8db028e68e6acf2e9c67c26517d00a3e",

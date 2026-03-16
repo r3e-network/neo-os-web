@@ -6,13 +6,13 @@ const path = require("path");
 const root = path.resolve(__dirname, "..", "..");
 
 const FLAGSHIP_APPS = [
-  { brand: "LastSurvivor", slug: "doomsday-clock", contractDir: "MiniAppDoomsdayClock", expectedMethods: ["buyKeys", "getGameStatus"] },
-  { brand: "GASBOX", slug: "neo-gacha", contractDir: "MiniAppNeoGacha", expectedMethods: ["getMachine", "initiatePlay", "settlePlay"] },
+  { brand: "LastSurvivor", slug: "last-survivor", contractDir: "MiniAppLastSurvivor", expectedMethods: ["buyKeys", "getGameStatus"] },
+  { brand: "GASBOX", slug: "gasbox", contractDir: "MiniAppGASBox", expectedMethods: ["getMachine", "initiatePlay", "settlePlay"] },
   { brand: "Red Envelope", slug: "red-envelope", contractDir: "MiniAppRedEnvelope", expectedMethods: ["createEnvelope", "claim", "getEnvelope"] },
   { brand: "Daily Check-in", slug: "daily-checkin", contractDir: "MiniAppDailyCheckin", expectedMethods: ["checkIn", "claimRewards", "getCheckinStatus"] },
-  { brand: "FogPlay", slug: "coin-flip", contractDir: "MiniAppCoinFlip", expectedMethods: ["placeBet", "getBet", "getPlayerDailyBet", "getPlayerBetCount"] },
+  { brand: "FogPlay", slug: "fogplay", contractDir: "MiniAppFogPlay", expectedMethods: ["placeBet", "getBet", "getPlayerDailyBet", "getPlayerBetCount"] },
   { brand: "SelfLoan", slug: "self-loan", contractDir: "MiniAppSelfLoan", expectedMethods: ["createLoan", "repayDebt", "getLoanDetails"] },
-  { brand: "NeoPay", slug: "stream-vault", contractDir: "MiniAppStreamVault", expectedMethods: ["createStream", "claimStream", "cancelStream", "getStreamDetails", "getUserStreams", "getBeneficiaryStreams"] },
+  { brand: "NeoPay", slug: "neo-pay", contractDir: "MiniAppNeoPay", expectedMethods: ["createStream", "claimStream", "cancelStream", "getStreamDetails", "getUserStreams", "getBeneficiaryStreams"] },
 ];
 
 function readJson(file) {

@@ -1,0 +1,107 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-fogplay",
+  "name": "FogPlay",
+  "description": "Fast oracle-backed coin flips with on-chain settlement and direct GAS wagering.",
+  "template_type": "gaming",
+  "category": "Gaming",
+  "tags": [
+    "fogplay",
+    "fogplay",
+    "oracle",
+    "betting",
+    "gas"
+  ],
+  "version": "2.0.0",
+  "status": "active",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "contract": {
+    "template_id": "gaming-fogplay",
+    "contract_hash": "0xa5a4b5b82066d86eae9312f6072d1c3604882c81"
+  },
+  "entry_url": "mf://manifest?app=miniapp-fogplay",
+  "media": {
+    "icon": "/miniapps/fogplay/logo.jpg",
+    "banner": "/miniapps/fogplay/banner.jpg"
+  },
+  "permissions": {
+    "payments": true,
+    "randomness": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "FogPlay"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content"
+      },
+      {
+        "id": "history",
+        "label": "History",
+        "type": "content"
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Flip",
+      "subtitle": "Oracle callback settlement with a focused single-player flow.",
+      "cta_label": "Open FogPlay",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Flip",
+      "method": "placeBet",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "side",
+          "type": "select",
+          "label": "Side",
+          "required": true,
+          "options": [
+            {
+              "label": "Heads",
+              "value": "heads"
+            },
+            {
+              "label": "Tails",
+              "value": "tails"
+            }
+          ]
+        },
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Wager (GAS)",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": [
+      "total_transactions",
+      "daily_active_users",
+      "total_gas_used"
+    ]
+  },
+  "docs_url": "https://docs.r3e.network/fogplay"
+}
