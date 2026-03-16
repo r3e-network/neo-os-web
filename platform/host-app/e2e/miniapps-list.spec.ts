@@ -39,8 +39,8 @@ test.describe("MiniApps List", () => {
   test("should have search functionality", async ({ page }) => {
     const searchInput = page.getByRole("searchbox", { name: /search/i }).first();
     await expect(searchInput).toBeVisible();
-    await searchInput.fill("lottery");
-    await expect(searchInput).toHaveValue("lottery");
+    await searchInput.fill("survivor");
+    await expect(searchInput).toHaveValue("survivor");
     await searchInput.fill("");
   });
 
