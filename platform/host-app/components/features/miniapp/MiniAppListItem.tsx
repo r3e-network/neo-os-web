@@ -2,7 +2,6 @@
 
 import { memo } from "react";
 import Link from "next/link";
-import { Users, Activity } from "lucide-react";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
 import type { MiniAppInfo } from "./MiniAppCard";
@@ -51,16 +50,7 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate" title={app.description}>{app.description}</p>
           </div>
 
-          {/* Stats */}
           <div className="hidden sm:flex items-center gap-6 text-xs font-semibold text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">
-            <div className="flex items-center gap-1.5" title="Users">
-              <Users size={14} className="text-gray-400 dark:text-gray-500 group-hover:text-neo transition-colors" aria-hidden="true" />
-              <span>{app.stats?.users?.toLocaleString() || "0"}</span>
-            </div>
-            <div className="flex items-center gap-1.5" title="Transactions">
-              <Activity size={14} className="text-gray-400 dark:text-gray-500 group-hover:text-neo transition-colors" aria-hidden="true" />
-              <span>{app.stats?.transactions?.toLocaleString() || "0"}</span>
-            </div>
             <div className="flex items-center gap-1 justify-end text-neo opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 duration-300">
               <span className="font-bold">Launch &rarr;</span>
             </div>

@@ -17,16 +17,9 @@ export default function FederatedMiniApp() {
 
     const loadPermissions = async () => {
       try {
-        const res = await fetch(`/api/miniapp-stats?app_id=${encodeURIComponent(appId)}`, { signal: AbortSignal.timeout(30000) });
+        const res = await fetch(`/api/miniapps/catalog?app_id=${encodeURIComponent(appId)}`, { signal: AbortSignal.timeout(30000) });
         const payload = await res.json();
-        const list = Array.isArray(payload?.stats)
-          ? payload.stats
-          : Array.isArray(payload)
-            ? payload
-            : payload
-              ? [payload]
-              : [];
-        const info = coerceMiniAppInfo(list[0]);
+        const info = coerceMiniAppInfo(payload?.app);
         if (!mounted) return;
         installMiniAppSDK({ appId: info?.app_id ?? appId, permissions: info?.permissions });
       } catch (err) {
