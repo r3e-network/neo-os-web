@@ -44,13 +44,13 @@ FogPlay 的重点不只是速度，更是流程足够清楚。翻转、赢、输
 
 - **Morpheus Oracle**：每次下注都会触发一次随机数回调。
 - **链上结算**：下注状态、开奖结果和收益事件都由合约记录。
-- **PaymentHub**：下注前会校验 GAS 支付回执，避免无付款下注。
+- **预付 GAS + Oracle 费信用**：用户先向小程序合约预付 GAS，回调合约还需要预付 Morpheus Oracle 请求费信用。
 
 ### 合约接口
 
 | 方法                    | 类型 | 参数                                   | 说明                          |
 | ----------------------- | ---- | -------------------------------------- | ----------------------------- |
-| `placeBet`              | 操作 | `player`, `amount`, `choice`, `receiptId` | 下注并触发预言机随机数请求 |
+| `placeBet`              | 操作 | `player`, `amount`, `choice`, `receiptId` | 用户预付 GAS 后下注，并触发预言机随机数请求 |
 | `onOracleResult`        | 操作 | `requestId`, `requestType`, `success`, `result`, `error` | 预言机回调并完成结算 |
 | `getBet`                | 查询 | `betId`                                    | 获取特定投注详情 |
 | `getPlayerDailyBet`     | 查询 | `player`                                   | 获取玩家当日下注总额 |
@@ -92,7 +92,7 @@ npm run build
 | 智能合约 | C# / Neo N3                   |
 | 结算路径 | 预言机回调                    |
 | 随机数   | Morpheus Oracle               |
-| 支付     | PaymentHub（GAS）             |
+| 支付     | 直接预付 GAS + Morpheus Oracle 回调费信用 |
 
 ## 许可证
 

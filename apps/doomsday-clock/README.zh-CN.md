@@ -51,7 +51,7 @@ LastSurvivor 是一款构建在 Neo N3 上的社交博弈游戏，灵感来源�
 | `getGameStatus`   | 查询 | —                                 | 返回轮次 ID、奖池金额、活跃状态、最后买家、剩余时间 |
 | `getPlayerKeys`   | 查询 | `player`, `roundId`               | 查询玩家在指定轮次的钥匙数量                        |
 | `getRoundDetails` | 查询 | `roundId`                         | 返回指定轮次的详细信息                              |
-| `BuyKeys`         | 操作 | `player`, `keyCount`, `receiptId` | 购买当前轮次的钥匙（通过 PaymentHub 付款）          |
+| `buyKeysWithCost` | 操作 | `player`, `keyCount`, `submittedCost`, `receiptId` | 使用 PaymentHub 回执和公式校验价格购买当前轮次钥匙 |
 
 ## 快速开始
 

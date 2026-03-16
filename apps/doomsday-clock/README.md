@@ -51,7 +51,7 @@ Built as a Neo N3 MiniApp, LastSurvivor uses direct on-chain purchases plus Keep
 | `getGameStatus`   | Query  | —                                 | Returns round ID, pot size, active status, last buyer, remaining time, total keys |
 | `getPlayerKeys`   | Query  | `player`, `roundId`               | Returns key count for a specific player in a specific round                       |
 | `getRoundDetails` | Query  | `roundId`                         | Returns detailed information about a specific round                               |
-| `BuyKeys`         | Action | `player`, `keyCount`, `receiptId` | Purchase keys for the current round (payment via PaymentHub)                      |
+| `buyKeysWithCost` | Action | `player`, `keyCount`, `submittedCost`, `receiptId` | Purchase keys for the current round using a PaymentHub receipt plus formula-verified price |
 
 ## Getting Started
 

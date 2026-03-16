@@ -49,7 +49,7 @@ GASBOX 最大的亮点在于机器本身的透明度。奖品表、库存和配�
 
 | 方法                | 类型 | 参数                                | 说明                             |
 | ------------------- | ---- | ----------------------------------- | -------------------------------- |
-| `initiatePlay`      | 操作 | `player`, `machineId`, `receiptId`  | 发起抽奖——付费并生成 VRF 种子    |
+| `initiatePlay`      | 操作 | `player`, `machineId`, `receiptId`  | 用户先向合约预付 GAS，再发起抽奖并生成 VRF 种子 |
 | `settlePlay`        | 操作 | `player`, `playId`, `selectedIndex` | 结算抽奖——验证选择并分发奖品     |
 | `buyMachine`        | 操作 | `player`, `machineId`, `receiptId`  | 购买挂牌出售的扭蛋机             |
 | `getMachineDetails` | 查询 | `machineId`                         | 获取机器信息（奖品、价格、库存） |
@@ -74,12 +74,12 @@ npm run build
 
 | 网络   | 地址                                         |
 | ------ | -------------------------------------------- |
-| 测试网 | `0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d` |
+| 测试网 | `0x523c112560a2e196fa0fcfa215d93c08e117d9c1` |
 | 主网   | `0xc9af7c9de5b0963e6514b6462b293f0179eb3798` |
 
 ### 区块浏览器
 
-- **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d)
+- **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0x523c112560a2e196fa0fcfa215d93c08e117d9c1)
 - **主网**：[在 NeoTube 查看](https://neotube.io/contract/0xc9af7c9de5b0963e6514b6462b293f0179eb3798)
 
 ## 技术栈
@@ -91,7 +91,7 @@ npm run build
 | 随机数   | VRF（链上可验证随机函数）     |
 | 交互方式 | 直接钱包调用                 |
 | 社交功能 | Keeper（大奖广播）            |
-| 支付     | PaymentHub（GAS）             |
+| 支付     | 先向小程序合约预付 GAS        |
 
 ## 许可证
 

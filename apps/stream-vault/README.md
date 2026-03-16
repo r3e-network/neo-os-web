@@ -17,7 +17,7 @@ Think of it as the Web3 equivalent of a programmable vesting or subscription vau
 3. **Choose Asset** — Select GAS or NEO as the payment asset.
 4. **Configure Stream** — Set the total amount, release rate per interval, and interval duration (1–365 days).
 5. **Add Details** — Optionally add a title and notes for record-keeping.
-6. **Create Stream** — Confirm the transaction. The total amount is locked in the smart contract immediately.
+6. **Fund Then Create** — The wallet first transfers the full amount into the stream contract, then `createStream` consumes that credited balance and opens the stream.
 7. **Beneficiary Claims** — The recipient can claim released funds at any time by visiting NeoPay and connecting their wallet.
 8. **Cancel (Optional)** — The creator can cancel the stream at any time to reclaim unreleased funds.
 
@@ -61,10 +61,10 @@ Think of it as the Web3 equivalent of a programmable vesting or subscription vau
 
 | Method                  | Type   | Parameters                                                                                          | Description                             |
 | ----------------------- | ------ | --------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `CreateStream`          | Action | `creator`, `beneficiary`, `asset`, `totalAmount`, `rateAmount`, `intervalSeconds`, `title`, `notes` | Create a new payment stream             |
-| `ClaimStream`           | Action | `beneficiary`, `streamId`                                                                           | Claim released funds                    |
-| `CancelStream`          | Action | `creator`, `streamId`                                                                               | Cancel stream, reclaim unreleased funds |
-| `GetStreamDetails`      | Query  | `streamId`                                                                                          | Get stream parameters and status        |
+| `createStream`          | Action | `creator`, `beneficiary`, `asset`, `totalAmount`, `rateAmount`, `intervalSeconds`, `title`, `notes` | Create a new payment stream from prepaid contract balance |
+| `claimStream`           | Action | `beneficiary`, `streamId`                                                                           | Claim released funds                    |
+| `cancelStream`          | Action | `creator`, `streamId`                                                                               | Cancel stream, reclaim unreleased funds |
+| `getStreamDetails`      | Query  | `streamId`                                                                                          | Get stream parameters and status        |
 | `getUserStreams`        | Query  | `user`, `offset`, `limit`                                                                           | Get streams created by a user           |
 | `getBeneficiaryStreams` | Query  | `beneficiary`, `offset`, `limit`                                                                    | Get streams where user is beneficiary   |
 

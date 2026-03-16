@@ -49,7 +49,7 @@ What makes GASBOX special is the transparency of the machine itself. Prize table
 
 | Method              | Type   | Parameters                          | Description                                          |
 | ------------------- | ------ | ----------------------------------- | ---------------------------------------------------- |
-| `initiatePlay`      | Action | `player`, `machineId`, `receiptId`  | Start a gacha draw using the compatibility wrapper over the optimized hybrid flow |
+| `initiatePlay`      | Action | `player`, `machineId`, `receiptId`  | Start a gacha draw after the user prepays GAS directly to the contract |
 | `settlePlay`        | Action | `player`, `playId`, `selectedIndex` | Settle the draw — verify selection, distribute prize |
 | `buyMachine`        | Action | `player`, `machineId`, `receiptId`  | Purchase a machine listed for sale                   |
 | `getMachineDetails` | Query  | `machineId`                         | Get machine info (items, prices, stock)              |
@@ -74,12 +74,12 @@ npm run build
 
 | Network | Address                                      |
 | ------- | -------------------------------------------- |
-| Testnet | `0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d` |
+| Testnet | `0x523c112560a2e196fa0fcfa215d93c08e117d9c1` |
 | Mainnet | `0xc9af7c9de5b0963e6514b6462b293f0179eb3798` |
 
 ### Explorer Links
 
-- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d)
+- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0x523c112560a2e196fa0fcfa215d93c08e117d9c1)
 - **Mainnet**: [View on NeoTube](https://neotube.io/contract/0xc9af7c9de5b0963e6514b6462b293f0179eb3798)
 
 ## Tech Stack
@@ -91,7 +91,7 @@ npm run build
 | Randomness      | VRF (On-chain Verifiable Random Function) |
 | Interaction     | Direct wallet invocation                  |
 | Social Features | Keeper (Big Win Broadcast)                |
-| Payment         | PaymentHub (GAS)                          |
+| Payment         | Direct prepaid GAS to the miniapp contract |
 
 ## License
 
