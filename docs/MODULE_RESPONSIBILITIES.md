@@ -7,9 +7,9 @@ This document is the **responsibility map** for the repository. The goal is:
 - explicit TEE boundary (what runs inside NitroRun/Nitro runtime vs outside)
 - strict enforcement of constraints: **payments = GAS only**, **governance = bNEO only**
 
-For the end-to-end architecture, see `docs/ARCHITECTURE.md`. For the platform
-blueprint/spec, see `docs/neo-miniapp-platform-blueprint.md` and
-`docs/neo-miniapp-platform-full.md`.
+For the end-to-end architecture, see `docs/ARCHITECTURE.md`. For current flow
+and policy details, see `docs/DATAFLOWS.md`, `docs/service-api.md`, and
+`docs/manifest-spec.md`.
 
 Current platform note:
 

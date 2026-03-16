@@ -42,7 +42,7 @@ The platform provides:
 
 - **MiniApp host UX**: the end-user shell that injects `window.MiniAppSDK`, wallet flows, feeds, stats, and MiniApp rendering.
 - **Admin UX**: manifest review, health monitoring, secrets / Oracle tooling, and operational checks.
-- **MiniApp contracts and templates**: Governance, AppRegistry, AutomationAnchor, flagship/example MiniApp contracts, plus legacy/optional platform contracts such as `PaymentHub`.
+- **MiniApp contracts and templates**: Governance, AppRegistry, AutomationAnchor, flagship/example MiniApp contracts, plus compatibility contracts such as `PaymentHub` for older receipt-based flows.
 - **Thin edge gateways**: Supabase / Deno functions that authenticate users, rate-limit traffic, enforce policy, and forward Oracle / Compute / RNG / sponsorship requests to external systems.
 - **Validation and deployment scripts**: testnet workflow checks, contract scripts, and environment validators.
 
@@ -62,6 +62,12 @@ The platform does **not** embed the Morpheus Oracle runtime or the AA runtime an
 Primary integration rule:
 
 - user-facing MiniApp flows use **direct Oracle / direct AA**
+
+Current flagship payment rule:
+
+- prefer direct prepaid transfer to the MiniApp contract itself
+- use `PaymentHub` only when the contract still explicitly validates a numeric receiptId
+- Oracle callback apps may additionally require prepaid Oracle request fee credit on the callback contract
 
 ## Architecture
 
@@ -126,7 +132,7 @@ Current Neo N3 testnet platform contract values from `.env`:
 
 | Contract            | Hash                                         | Description               |
 | ------------------- | -------------------------------------------- | ------------------------- |
-| PaymentHub          | `0x340cb33d770b38f26d066716dd1f9df5283d629e` | Legacy / optional GAS settlement |
+| PaymentHub          | `0x340cb33d770b38f26d066716dd1f9df5283d629e` | Compatibility-only GAS receipt settlement |
 | Governance          | `0x2ec930202e6d03313d97198259b298cc3c29295e` | NEO staking and voting    |
 | PriceFeed           | `0x5284ef25f1bbbf36d139f6f94356e46b89138602` | Oracle price data         |
 | RandomnessLog       | `0xa24f83dcbafff909d4209ac76ca5d09237c0cda6` | VRF attestation anchoring |
@@ -272,6 +278,10 @@ set -a; source .env; set +a
 ./deploy/scripts/check_enclave_signing_key.sh --backend nitro
 ./deploy/scripts/production_readiness_check.sh
 
+# Current flagship live testnet validation (7 flagship MiniApps)
+FLAGSHIP_LIVE_WIF=<funded-testnet-wif> \
+  node deploy/scripts/live_validate_flagship_user_flows.js
+
 # Legacy platform-only compatibility verification
 ./deploy/scripts/verify_testnet_workflows.sh --env-file .env
 
@@ -287,6 +297,7 @@ env PRICEFEED_WATCH_SYMBOLS='NEO-USD,GAS-USD,USDT-USD,USDC-USD,BTC-USD,ETH-USD,X
 
 Notes:
 
+- `live_validate_flagship_user_flows.js` is the current end-to-end flagship testnet proof path.
 - `verify_cross_repo_testnet.sh` is the preferred validation entrypoint.
 - `verify_testnet_workflows.sh` is legacy / compatibility-oriented.
 
