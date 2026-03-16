@@ -17,7 +17,7 @@ SelfLoan 最精妙之处在于它不可能被清算。传统 DeFi 借贷中，�
 3. **输入抵押数量** — 指定锁定多少 NEO（必须为整数）。
 4. **发起借贷** — 确认交易。GAS 立即到账，已扣除 0.5% 平台费。
 5. **等待与观察** — 锁定的 NEO 产生质押收益，自动偿还贷款余额。在仪表盘上监控进度。
-6. **自动解锁** — 当累积收益完全覆盖贷款+手续费，NEO 自动解锁返还到钱包。
+6. **管理与自动解锁** — 当前小程序 UI 主要提供借款和监控。合约本身支持手动还款，债务归零后抵押品会自动解锁返还。
 
 ## 核心特性
 
@@ -55,7 +55,7 @@ SelfLoan 最精妙之处在于它不可能被清算。传统 DeFi 借贷中，�
 | `CreateLoan`       | 操作 | `borrower`, `collateral`, `ltvTier` | 锁定 NEO 并获得 GAS                         |
 | `GetLoanDetails`   | 查询 | `loanId`                            | 获取贷款状态（抵押品、债务、活跃状态、LTV） |
 | `GetPlatformStats` | 查询 | —                                   | 获取平台 LTV 档位、最短期限、费率           |
-| `RepayLoan`        | 操作 | `borrower`, `loanId`                | 使用外部 GAS 手动还款                       |
+| `RepayDebt`        | 操作 | `loanId`, `payer`, `amount`, `receiptId` | 合约层手动还款路径 |
 
 ## 快速开始
 
@@ -77,12 +77,12 @@ npm run build
 
 | 网络   | 地址                                         |
 | ------ | -------------------------------------------- |
-| 测试网 | `0x46bf67c133f4206e13cbacb53d91c2c493d8755a` |
+| 测试网 | `0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b` |
 | 主网   | `0x942da575b31f39cbb59e64b5813b128739b44c25` |
 
 ### 区块浏览器
 
-- **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0x46bf67c133f4206e13cbacb53d91c2c493d8755a)
+- **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b)
 - **主网**：[在 NeoTube 查看](https://neotube.io/contract/0x942da575b31f39cbb59e64b5813b128739b44c25)
 
 ## 技术栈

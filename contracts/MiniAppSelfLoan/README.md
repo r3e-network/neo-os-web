@@ -28,13 +28,13 @@ The contract does **not** perform liquidation. The product promise is still “s
 
 ## Core Methods
 
-- `CreateLoan(UInt160 borrower, BigInteger neoAmount, BigInteger ltvTier, BigInteger receiptId)`
+- `CreateLoan(UInt160 borrower, BigInteger neoAmount, BigInteger ltvTier)`
   Creates a new loan using the selected LTV tier.
-- `Repay(UInt160 payer, BigInteger loanId, BigInteger amount, BigInteger receiptId)`
+- `RepayDebt(BigInteger loanId, UInt160 payer, BigInteger amount, BigInteger receiptId)`
   Repays debt manually.
-- `AddCollateral(UInt160 borrower, BigInteger loanId, BigInteger neoAmount, BigInteger receiptId)`
+- `AddCollateral(BigInteger loanId, UInt160 depositor, BigInteger neoAmount)`
   Adds more NEO collateral to an active loan.
-- `WithdrawCollateral(UInt160 borrower, BigInteger loanId, BigInteger neoAmount)`
+- `WithdrawCollateral(BigInteger loanId, BigInteger neoAmount)`
   Withdraws excess collateral when safe.
 - `GetLoan(BigInteger loanId)`
   Returns the full stored loan struct.
