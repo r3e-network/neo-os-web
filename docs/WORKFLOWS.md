@@ -93,86 +93,76 @@ This is the **correct business workflow** for MiniApps that involve payments
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           MiniApp Payment Workflow                          │
+│                        Current MiniApp Payment Workflow                     │
 ├─────────────────────────────────────────────────────────────────────────────┤
+│  Direct prepaid flow                                                       │
+│  User wallet ──▶ GAS / asset transfer ──▶ MiniApp contract                 │
+│                    └─ OnNEP17Payment records prepaid credit                │
+│                    └─ user then invokes MiniApp method                     │
+│                    └─ contract consumes credit and updates state           │
 │                                                                             │
-│  ┌──────────┐    ┌─────────┐    ┌────────────┐    ┌──────────────────────┐ │
-│  │  User    │───▶│   SDK   │───▶│ PaymentHub │───▶│ OnNEP17Payment       │ │
-│  │ (Wallet) │    │ payGAS  │    │  (GAS)     │    │ (records payment)    │ │
-│  └──────────┘    └─────────┘    └────────────┘    └──────────────────────┘ │
-│       │                                                     │               │
-│       │ USER ACTION                                         │               │
-│       ▼                                                     ▼               │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                        PLATFORM ACTIONS                               │  │
-│  ├──────────────────────────────────────────────────────────────────────┤  │
-│  │  1. Platform detects payment via PaymentHub events                    │  │
-│  │  2. Platform invokes MiniApp Contract (game logic, state updates)     │  │
-│  │  3. Platform determines winners (using VRF for randomness)            │  │
-│  │  4. Platform sends payouts to winners via PayoutToUser                │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
+│  Legacy receipt flow                                                       │
+│  User wallet ──▶ GAS transfer ──▶ PaymentHub                               │
+│                    └─ PaymentReceived emits numeric receiptId              │
+│                    └─ user then invokes MiniApp method with receiptId      │
+│                    └─ contract validates receipt before updating state     │
 │                                                                             │
+│  Oracle / VRF apps                                                         │
+│  MiniApp contract ──▶ Morpheus Oracle callback request                     │
+│                    └─ callback contract may need prepaid Oracle fee credit │
+│                    └─ callback resolves state and emits final result       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Step-by-Step Flow
 
-1. **USER ACTION: Pay via SDK**
-    - User interacts with MiniApp frontend (e.g., buy lottery ticket, place bet)
-    - MiniApp calls `window.MiniAppSDK.payments.payGAS(appId, amount, memo)`
-    - SDK returns an invocation intent for GAS `transfer` to `PaymentHub`
-    - User's wallet signs and broadcasts the GAS transfer
+1. **USER ACTION: SDK prepares the correct transfer**
+    - direct prepaid apps return a transfer intent targeting the MiniApp contract
+    - legacy receipt apps return a transfer intent targeting `PaymentHub`
+    - the wallet signs and broadcasts the transfer
 
-2. **PLATFORM ACTION: Process Payment**
-    - `PaymentHub.OnNEP17Payment` callback receives the GAS
-    - Payment is recorded with `appId` extracted from memo/data
-    - Platform services detect the payment event
+2. **USER ACTION: call the MiniApp contract**
+    - direct prepaid apps call the MiniApp contract after credit is recorded
+    - legacy receipt apps pass the numeric `receiptId` emitted by `PaymentReceived`
 
-3. **PLATFORM ACTION: Invoke MiniApp Contract**
-    - Platform calls the MiniApp's own contract to process game logic
-    - Example: `MiniAppLottery.recordTickets(round, user, ticketCount)`
-    - MiniApp contract stores app-specific state (bets, tickets, votes, etc.)
+3. **CONTRACT ACTION: update app state**
+    - MiniApp contracts record bets, tickets, streams, keys, envelopes, or inventory
 
-4. **PLATFORM ACTION: Determine Outcome**
-    - For games: Platform uses VRF service for provable randomness
-    - For predictions: Platform checks oracle price feeds
-    - MiniApp contract records the outcome
+4. **OPTIONAL ORACLE ACTION**
+    - VRF / Oracle / compute flows queue Morpheus callback requests
+    - callback consumer contracts may need prepaid Oracle fee credit
 
-5. **PLATFORM ACTION: Send Payouts**
-    - Platform calls `PayoutToUser(appId, winner, amount, memo)`
-    - Winners receive GAS directly to their wallets
-    - Payout is recorded for auditing
+5. **FINAL ON-CHAIN RESULT**
+    - the MiniApp contract emits the settlement / payout event
+    - direct token transfers and event logs become the audit trail
 
-### Example: Lottery Workflow
+### Example: Direct Prepaid Workflow
 
 ```
-User clicks "Buy 5 Tickets" in Lottery MiniApp
+User clicks "Spin" in GASBOX
     │
     ▼
-SDK.payGAS("miniapp-lottery", "0.5", "lottery:round:42:tickets:5")
+SDK returns GAS.transfer to the GASBOX contract
     │
     ▼
-PaymentHub receives 0.5 GAS with memo
+MiniApp contract receives prepaid GAS in OnNEP17Payment
     │
     ▼
-Platform invokes MiniAppLottery.recordTickets(42, userAddr, 5)
+User invokes initiatePlay(...)
     │
     ▼
-[Later] Platform triggers draw using VRF randomness
+Contract stores seed and later verifies settlePlay(...)
     │
     ▼
-Platform invokes MiniAppLottery.recordWinner(42, winnerAddr)
-    │
-    ▼
-Platform calls PayoutToUser("miniapp-lottery", winnerAddr, prizeAmount, "lottery:win:42")
+Contract transfers prize and emits PlayResolved
 ```
 
 ### Key Principles
 
-- **Users never directly invoke MiniApp contracts** - they only pay via SDK
-- **MiniApp contracts store app-specific state** - not payment logic
-- **Platform orchestrates the workflow** - payment → logic → payout
-- **All payments flow through PaymentHub** - single audit point
+- users sign both value transfer and MiniApp contract calls when required
+- MiniApp contracts own app-specific state and settlement logic
+- `PaymentHub` is a compatibility path, not the universal payment path
+- Oracle callback apps may require separate prepaid fee credit for the callback contract
 
 ## Off-Chain (Gateway) Workflows
 
@@ -183,7 +173,8 @@ Platform calls PayoutToUser("miniapp-lottery", winnerAddr, prizeAmount, "lottery
     - manifest permissions (`payments`)
     - `assets_allowed == ["GAS"]`
     - per-user daily caps
-3. Edge returns a GAS `transfer` invocation to `PaymentHub`.
+3. Edge returns a GAS `transfer` invocation to either the MiniApp contract or `PaymentHub`,
+   depending on the app integration path.
 4. Wallet signs and broadcasts the network.
 
 ### Governance (bNEO only)
@@ -209,10 +200,10 @@ Platform calls PayoutToUser("miniapp-lottery", winnerAddr, prizeAmount, "lottery
 
 Use these scripts to validate GAS payments and bNEO governance flows on testnet.
 
-### GAS Payment (PaymentHub)
+### GAS Payment
 
 ```bash
-# Send a real GAS transfer to PaymentHub (OnNEP17Payment)
+# Send a real GAS transfer for a compatibility receipt flow
 go run scripts/send_paymenthub_gas.go
 
 # Optional overrides
