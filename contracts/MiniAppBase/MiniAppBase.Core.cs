@@ -18,7 +18,8 @@ namespace NeoMiniAppPlatform.Contracts
     /// - Admin: Human operator with full control (SetAdmin, SetOracle, SetAbstractAccount, Update)
     /// - Oracle: Morpheus Oracle contract (callback authority for async service flows)
     /// - AbstractAccount: optional AA core allowed to call user actions on behalf of users
-    /// - Users: Never call MiniApp contracts directly; they pay via PaymentHub
+    /// - Users: May either prepay GAS directly to the MiniApp contract or use
+    ///   direct contract invocation when the business flow supports it
     ///
     /// STORAGE LAYOUT:
     /// - 0x01-0x05: Reserved for this Core class
@@ -35,6 +36,7 @@ namespace NeoMiniAppPlatform.Contracts
         protected static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
         protected static readonly byte[] PREFIX_RECEIPT_USED = new byte[] { 0x06 };
         protected static readonly byte[] PREFIX_ABSTRACT_ACCOUNT = new byte[] { 0x07 };
+        protected static readonly byte[] PREFIX_DIRECT_GAS_CREDIT = new byte[] { 0x70 };
 
         #endregion
 
@@ -248,6 +250,85 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(receiptAmount >= minAmount, "insufficient payment");
 
             used.Put(receiptKey, 1);
+        }
+
+        #endregion
+
+        #region Direct GAS Credit Flow
+
+        protected static string ReadPaymentMemo(object data)
+        {
+            if (data == null) return "";
+            if (data is string text) return text ?? "";
+            if (data is ByteString byteString) return (string)byteString;
+            return data.ToString();
+        }
+
+        protected static void CreditDirectGasPayment(string appId, UInt160 from, BigInteger amount, object data)
+        {
+            if (from == Runtime.ExecutingScriptHash) return;
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == GAS.Hash, "unsupported asset");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            string memo = ReadPaymentMemo(data);
+            ExecutionEngine.Assert(memo.StartsWith(appId + ":"), "invalid payment memo");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
+            ByteString key = (ByteString)(byte[])from;
+            ByteString existing = credits.Get(key);
+            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+            credits.Put(key, balance + amount);
+        }
+
+        protected static BigInteger GetDirectGasCredit(UInt160 payer)
+        {
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
+            ByteString existing = credits.Get((ByteString)(byte[])payer);
+            return existing == null ? 0 : (BigInteger)existing;
+        }
+
+        protected static void ConsumeDirectGasCredit(UInt160 payer, BigInteger amount)
+        {
+            ValidateAddress(payer);
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
+            ByteString key = (ByteString)(byte[])payer;
+            ByteString existing = credits.Get(key);
+            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid gas");
+
+            BigInteger next = balance - amount;
+            if (next == 0)
+            {
+                credits.Delete(key);
+            }
+            else
+            {
+                credits.Put(key, next);
+            }
+        }
+
+        #endregion
+
+        #region Oracle Request Helpers
+
+        protected static BigInteger RequestOracleForCallback(UInt160 requester, string requestType, ByteString payload)
+        {
+            ValidateAddress(requester);
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != UInt160.Zero && oracle.IsValid, "oracle not set");
+
+            return (BigInteger)Contract.Call(
+                oracle,
+                "requestFromCallback",
+                CallFlags.All,
+                requester,
+                requestType,
+                payload,
+                Runtime.ExecutingScriptHash,
+                "onOracleResult"
+            );
         }
 
         #endregion

@@ -14,8 +14,12 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUserOrAbstractAccount(user);
             ValidateNotPaused();
             ValidateAddress(user);
-            ValidateAndUseReceipt(receiptId);
+            ConsumeDirectGasCredit(user, CHECK_IN_FEE);
+            ProcessCheckIn(user);
+        }
 
+        private static void ProcessCheckIn(UInt160 user)
+        {
             BigInteger currentDay = Runtime.Time / TWENTY_FOUR_HOURS_SECONDS;
             BigInteger lastCheckinDay = GetUserLastCheckin(user);
             BigInteger currentStreak = GetUserStreak(user);
@@ -76,5 +80,17 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         #endregion
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
+            if (amount == CHECK_IN_FEE && ReadPaymentMemo(data) == APP_ID + ":checkin")
+            {
+                ValidateNotPaused();
+                ValidateAddress(from);
+                ConsumeDirectGasCredit(from, CHECK_IN_FEE);
+                ProcessCheckIn(from);
+            }
+        }
     }
 }

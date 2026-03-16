@@ -55,7 +55,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUserOrAbstractAccount(user);
             ValidateNotPaused();
             ValidateAddress(user);
-            ValidateAndUseReceipt(receiptId);
+            ConsumeDirectGasCredit(user, CHECK_IN_FEE);
 
             BigInteger currentDay = Runtime.Time / TWENTY_FOUR_HOURS_SECONDS;
             BigInteger lastCheckinDay = GetUserLastCheckin(user);
