@@ -14,7 +14,7 @@ namespace NeoMiniAppPlatform.Contracts
     // ============================================================================
     // Copy this template for new MiniApp contracts. It includes:
     // - Standard storage prefixes (0x01-0x04 reserved for base functionality)
-    // - Admin/Gateway/PaymentHub management
+    // - Admin/Oracle/PaymentHub management
     // - Pause functionality
     // - Update capability
     // - Service callback handler
@@ -35,7 +35,7 @@ namespace NeoMiniAppPlatform.Contracts
         #region Standard Storage Prefixes (DO NOT CHANGE)
 
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
-        private static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
+        private static readonly byte[] PREFIX_ORACLE = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_PAYMENTHUB = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_PAUSED = new byte[] { 0x04 };
         private static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
@@ -62,7 +62,7 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         public static UInt160 Admin() => ReadAddress(PREFIX_ADMIN);
-        public static UInt160 Gateway() => ReadAddress(PREFIX_GATEWAY);
+        public static UInt160 Oracle() => ReadAddress(PREFIX_ORACLE);
         public static UInt160 PaymentHub() => ReadAddress(PREFIX_PAYMENTHUB);
         public static UInt160 PauseRegistry() => ReadAddress(PREFIX_PAUSE_REGISTRY);
 
@@ -83,11 +83,11 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
-        private static void ValidateGateway()
+        private static void ValidateOracle()
         {
-            UInt160 gw = Gateway();
-            ExecutionEngine.Assert(gw != UInt160.Zero && gw.IsValid, "gateway not set");
-            ExecutionEngine.Assert(Runtime.CallingScriptHash == gw, "only gateway");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != UInt160.Zero && oracle.IsValid, "oracle not set");
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == oracle, "only oracle");
         }
 
         private static void ValidateNotPaused()
@@ -131,11 +131,11 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, (ByteString)newAdmin);
         }
 
-        public static void SetGateway(UInt160 gw)
+        public static void SetOracle(UInt160 oracle)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(gw != UInt160.Zero && gw.IsValid, "invalid");
-            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, (ByteString)gw);
+            ExecutionEngine.Assert(oracle != UInt160.Zero && oracle.IsValid, "invalid");
+            Storage.Put(Storage.CurrentContext, PREFIX_ORACLE, (ByteString)oracle);
         }
 
         public static void SetPaymentHub(UInt160 hub)
@@ -162,11 +162,11 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Service Callback
 
-        public static void OnServiceCallback(
-            BigInteger requestId, string appId, string serviceType,
+        public static void OnOracleResult(
+            BigInteger requestId, string requestType,
             bool success, ByteString result, string error)
         {
-            ValidateGateway();
+            ValidateOracle();
             // Handle service callbacks here
         }
 

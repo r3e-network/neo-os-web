@@ -52,9 +52,7 @@ namespace NeoMiniAppPlatform.Contracts
             // Verify script is registered
             ExecutionEngine.Assert(IsScriptEnabled(SCRIPT_CALCULATE_CARDS), "script not registered");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(user), "unauthorized");
+            ValidateUserOrAbstractAccount(user);
 
             BigInteger fee = GetSpreadFee(spreadType);
             ValidatePaymentReceipt(APP_ID, user, fee, receiptId);
@@ -115,9 +113,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateNotGloballyPaused(APP_ID);
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(user), "unauthorized");
+            ValidateUserOrAbstractAccount(user);
 
             ReadingData reading = GetReading(readingId);
             ExecutionEngine.Assert(reading.User != UInt160.Zero, "reading not found");

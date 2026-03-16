@@ -2,7 +2,7 @@
 
 ## Overview
 
-MiniAppDiceGame is a provably fair dice rolling game where players choose a number from 1-6 and win 6x their bet (minus 5% platform fee) if the dice roll matches their chosen number. The game uses VRF (Verifiable Random Function) randomness provided through the ServiceLayerGateway to ensure fairness.
+MiniAppDiceGame is a provably fair dice rolling game where players choose a number from 1-6 and win 6x their bet (minus 5% platform fee) if the dice roll matches their chosen number. The game uses VRF (Verifiable Random Function) randomness provided through the Morpheus Oracle to ensure fairness.
 
 ## How It Works
 
@@ -17,7 +17,7 @@ MiniAppDiceGame is a provably fair dice rolling game where players choose a numb
 
 The contract follows the standard MiniApp architecture:
 
-- **Gateway Integration**: Only the ServiceLayerGateway can trigger game logic
+- **Gateway Integration**: Only the Morpheus Oracle can trigger game logic
 - **Admin Controls**: Admin can configure gateway, payment hub, and pause state
 - **Event-Driven**: Emits events for off-chain tracking and UI updates
 
@@ -50,9 +50,9 @@ Executes a dice roll for the player.
 
 ### Admin Methods
 
-#### `SetGateway(UInt160 gateway)`
+#### `SetOracle(UInt160 gateway)`
 
-Sets the ServiceLayerGateway address. Only admin can call.
+Sets the Morpheus Oracle address. Only admin can call.
 
 #### `SetPaymentHub(UInt160 hub)`
 
@@ -72,9 +72,9 @@ Updates the contract code. Only admin can call.
 
 Returns the admin address.
 
-#### `Gateway() → UInt160`
+#### `Oracle() → UInt160`
 
-Returns the gateway address.
+Returns the oracle address.
 
 #### `PaymentHub() → UInt160`
 
@@ -122,7 +122,7 @@ Emitted when a dice roll is completed.
 ```
 1. Deploy contract
    ↓
-2. Admin calls SetGateway() with gateway address
+2. Admin calls SetOracle() with oracle address
    ↓
 3. Admin calls SetPaymentHub() with payment hub address
    ↓
@@ -192,7 +192,7 @@ This contract supports periodic automation via AutomationAnchor integration.
 
 ### 概述
 
-MiniAppDiceGame 是一个可证明公平的掷骰子游戏,玩家选择 1-6 之间的数字,如果骰子结果匹配所选数字,则赢得 6 倍赌注(扣除 5% 平台费用)。游戏使用通过 ServiceLayerGateway 提供的 VRF(可验证随机函数)随机性确保公平性。
+MiniAppDiceGame 是一个可证明公平的掷骰子游戏,玩家选择 1-6 之间的数字,如果骰子结果匹配所选数字,则赢得 6 倍赌注(扣除 5% 平台费用)。游戏使用通过 Morpheus Oracle 提供的 VRF(可验证随机函数)随机性确保公平性。
 
 ### 核心功能
 

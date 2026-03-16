@@ -50,7 +50,7 @@ echo "=== Building MiniAppFactoryV2 ==="
 cd "$PROJECT_ROOT/contracts"
 
 mkdir -p build/temp_factory
-cs_files=$(find MiniAppFactory -maxdepth 1 -name "*.cs" -type f | sort)
+cs_files=$(find MiniAppFactoryV2 -maxdepth 1 -name "*.cs" -type f | sort)
 
 if ! "$NCCS" $cs_files -o build/temp_factory; then
     echo "Compilation failed for MiniAppFactoryV2"

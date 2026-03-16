@@ -21,15 +21,9 @@ gateway + TEE services, with final enforcement at the contract layer.
 ┌────────────────────────────────────────────────────────────────┐
 │                    MiniApp Contracts (C#)                      │
 │   MiniAppTemplates (Prediction, Lottery, Governance, etc.)     │
-│   (Store state, request services, handle callbacks)            │
+│   (Store state, call Morpheus Oracle when needed, handle AA)   │
 └────────────────────────────────────────────────────────────────┘
-                             │ requestService()
-                             ▼
-┌────────────────────────────────────────────────────────────────┐
-│                  ServiceLayerGateway Contract                  │
-│   (Route requests to TEE, deliver callbacks to MiniApps)       │
-└────────────────────────────────────────────────────────────────┘
-                             │
+                             │ direct request / callback
                              ▼
 ┌────────────────────────────────────────────────────────────────┐
 │                    TEE Service Layer (Nitro-oriented)                     │
@@ -55,11 +49,13 @@ gateway + TEE services, with final enforcement at the contract layer.
 | **AppRegistry**         | `AppRegistry/AppRegistry.cs`                 | MiniApp manifest and status registry               |
 | **MiniAppFactory**      | `MiniAppFactory/MiniAppFactory.cs`           | Template registry + one-click MiniApp deployment  |
 | **AutomationAnchor**    | `AutomationAnchor/AutomationAnchor.cs`       | Task scheduling with nonce-based anti-replay       |
-| **ServiceLayerGateway** | `ServiceLayerGateway/ServiceLayerGateway.cs` | On-chain service request routing + callbacks       |
 
 ## MiniApp Contracts (60 Deployed)
 
-Each MiniApp has its own smart contract that handles app-specific logic using the **Chainlink-style oracle pattern**. Contracts actively request services from ServiceLayerGateway and receive callbacks with results. All MiniApp contracts use the shared `MiniAppContract` partial class pattern for common functionality.
+Each MiniApp has its own smart contract that handles app-specific logic using
+direct Morpheus Oracle integration where async oracle/VRF/compute is needed.
+All MiniApp contracts use the shared `MiniAppContract` partial class pattern for
+common functionality.
 
 ### Contract Pattern
 
@@ -68,25 +64,25 @@ All MiniApp contracts use the `MiniAppContract` partial class pattern with servi
 ```csharp
 // Base configuration (from MiniAppBase)
 private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
-private static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
+private static readonly byte[] PREFIX_ORACLE = new byte[] { 0x02 };
 
 // App-specific storage prefixes (start from 0x10)
 private static readonly byte[] PREFIX_BET_ID = new byte[] { 0x10 };
 private static readonly byte[] PREFIX_BETS = new byte[] { 0x11 };
 private static readonly byte[] PREFIX_REQUEST_TO_BET = new byte[] { 0x12 };
 
-// Request service from Gateway
+// Request service from Morpheus Oracle
 private static BigInteger RequestRng(BigInteger betId)
 {
-    return Contract.Call(Gateway(), "requestService", CallFlags.All,
-        APP_ID, "rng", payload, Runtime.ExecutingScriptHash, "onServiceCallback");
+    return Contract.Call(Oracle(), "request", CallFlags.All,
+        "rng", payload, Runtime.ExecutingScriptHash, "onOracleResult");
 }
 
-// Receive callback from Gateway
-public static void OnServiceCallback(BigInteger requestId, string appId,
-    string serviceType, bool success, ByteString result, string error)
+// Receive callback from Morpheus Oracle
+public static void OnOracleResult(BigInteger requestId, string requestType,
+    bool success, ByteString result, string error)
 {
-    ValidateGateway();
+    ValidateOracle();
     // Resolve business logic using result
 }
 ```
@@ -100,15 +96,15 @@ MiniApp contracts follow a **Chainlink-style oracle pattern** where contracts ac
 │  1. USER ACTION: Invoke MiniApp Contract                        │
 │     User calls MiniApp method (e.g., PlaceBet, CreateGrid)      │
 │     → Contract stores bet/position data                         │
-│     → Contract calls Gateway.requestService(appId, serviceType) │
+│     → Contract calls MorpheusOracle.request(requestType, payload)│
 ├─────────────────────────────────────────────────────────────────┤
-│  2. GATEWAY ACTION: Route to TEE Service                        │
-│     ServiceLayerGateway routes request to off-chain service     │
+│  2. ORACLE ACTION: Route to TEE Service                         │
+│     Morpheus Oracle routes request to off-chain service         │
 │     → TEE executes service (RNG, PriceFeed, etc.)               │
 │     → Returns result via callback                               │
 ├─────────────────────────────────────────────────────────────────┤
-│  3. GATEWAY ACTION: Fulfill Callback                            │
-│     Gateway calls MiniApp.OnServiceCallback(requestId, result)  │
+│  3. ORACLE ACTION: Fulfill Callback                             │
+│     Oracle calls MiniApp.OnOracleResult(requestId, result)      │
 │     → Contract resolves bet/position using service result       │
 │     → Emits result event                                        │
 ├─────────────────────────────────────────────────────────────────┤
@@ -156,7 +152,7 @@ public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice
 // Step 2: Gateway calls back with result
 public static void OnServiceCallback(BigInteger requestId, bool success, ByteString result)
 {
-    ValidateGateway();
+    ValidateOracle();
     BigInteger betId = Storage.Get(PREFIX_REQUEST_TO_BET + requestId);
     BetData bet = GetBet(betId);
 
@@ -262,7 +258,6 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | RandomnessLog       | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` | ✅ Active |
 | AppRegistry         | `0x79d16bee03122e992bb80c478ad4ed405f33bc7f` | ✅ Active |
 | AutomationAnchor    | `0x1c888d699ce76b0824028af310d90c3c18adeab5` | ✅ Active |
-| ServiceLayerGateway | `0x27b79cf631eff4b520dd9d95cd1425ec33025a53` | ✅ Active |
 
 ### MiniApp Contracts (Testnet)
 

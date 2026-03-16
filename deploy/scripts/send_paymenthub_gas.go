@@ -134,7 +134,7 @@ func main() {
 
 func parseHash160(raw string) (util.Uint160, error) {
 	raw = strings.TrimPrefix(strings.TrimSpace(raw), "0x")
-	return util.Uint160DecodeStringBE(raw)
+	return util.Uint160DecodeStringLE(raw)
 }
 
 func waitForAppLog(ctx context.Context, client *rpcclient.Client, txHash util.Uint256) (*result.ApplicationLog, error) {

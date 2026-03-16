@@ -9,17 +9,17 @@
 // Core Components
 // ============================================================================
 
-export { Button, IconButton, ButtonGroup } from "./button";
-export type { ButtonProps, ButtonVariant, ButtonSize, IconButtonProps } from "./button";
+export { Button, IconButton, ButtonGroup } from "./Button";
+export type { ButtonProps, ButtonVariant, ButtonSize, IconButtonProps } from "./Button";
 
-export { Input, Textarea } from "./input";
-export type { InputProps, InputSize, InputVariant, TextareaProps } from "./input";
+export { Input, Textarea } from "./Input";
+export type { InputProps, InputSize, InputVariant, TextareaProps } from "./Input";
 
 export { Select } from "./Select";
 export type { SelectProps, SelectOption, SelectSize, SelectVariant } from "./Select";
 
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardMedia, CardBadge, CompositeCard } from "./card";
-export type { CardProps, CardVariant, CardPadding, CardHeaderProps, CardTitleProps, CardDescriptionProps, CardContentProps, CardFooterProps, CardMediaProps, CardBadgeProps, CompositeCardProps } from "./card";
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardMedia, CardBadge, CompositeCard } from "./Card";
+export type { CardProps, CardVariant, CardPadding, CardHeaderProps, CardTitleProps, CardDescriptionProps, CardContentProps, CardFooterProps, CardMediaProps, CardBadgeProps, CompositeCardProps } from "./Card";
 
 export { Modal, ConfirmModal } from "./Modal";
 export type { ModalProps, ModalSize, ModalAnimation, ConfirmModalProps } from "./Modal";

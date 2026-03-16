@@ -6,7 +6,7 @@ describe("/api/miniapps/catalog search", () => {
   it("filters catalog by search keyword", async () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { search: "prediction" },
+      query: { search: "loan" },
     });
 
     await handler(req, res);
@@ -20,8 +20,8 @@ describe("/api/miniapps/catalog search", () => {
     expect(payload.apps.length).toBeGreaterThan(0);
     expect(
       payload.apps.every((app) =>
-        String(app.app_id).toLowerCase().includes("prediction") ||
-        String(app.name).toLowerCase().includes("prediction"),
+        String(app.app_id).toLowerCase().includes("loan") ||
+        String(app.name).toLowerCase().includes("loan"),
       ),
     ).toBe(true);
   });

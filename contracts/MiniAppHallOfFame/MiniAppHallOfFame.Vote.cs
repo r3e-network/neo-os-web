@@ -19,9 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(season.Active, "no active season");
             ExecutionEngine.Assert(Runtime.Time < season.EndTime, "season ended");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(voter), "unauthorized");
+            ValidateUserOrAbstractAccount(voter);
 
             Nominee nom = GetNominee(category, nominee);
             ExecutionEngine.Assert(nom.AddedBy != UInt160.Zero, "invalid nominee");

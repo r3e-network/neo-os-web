@@ -65,9 +65,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount >= MIN_BURN, "min 0.1 GAS");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(burner), "unauthorized");
+            ValidateUserOrAbstractAccount(burner);
 
             ValidatePaymentReceipt(APP_ID, burner, amount, receiptId);
 

@@ -22,9 +22,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(!record.Verified, "already verified");
             ExecutionEngine.Assert(record.Creator != verifier, "cannot self-verify");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(verifier), "unauthorized");
+            ValidateUserOrAbstractAccount(verifier);
 
             ValidatePaymentReceipt(APP_ID, verifier, VERIFY_FEE, receiptId);
 

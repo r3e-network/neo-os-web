@@ -222,22 +222,22 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger RequestTeeCompute(string proposalId, BigInteger voteCount)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
 
             ByteString payload = StdLib.Serialize(new object[] { proposalId, voteCount });
             return (BigInteger)Contract.Call(
-                gateway, "requestService", CallFlags.All,
-                APP_ID, "tee-compute", payload,
-                Runtime.ExecutingScriptHash, "onServiceCallback"
+                oracle, "request", CallFlags.All,
+                "compute", payload,
+                Runtime.ExecutingScriptHash, "onOracleResult"
             );
         }
 
-        public static void OnServiceCallback(
-            BigInteger requestId, string appId, string serviceType,
+        public static void OnOracleResult(
+            BigInteger requestId, string requestType,
             bool success, ByteString result, string error)
         {
-            ValidateGateway();
+            ValidateOracle();
 
             ByteString proposalIdData = Storage.Get(Storage.CurrentContext,
                 Helper.Concat((ByteString)PREFIX_REQUEST_TO_PROPOSAL, (ByteString)requestId.ToByteArray()));

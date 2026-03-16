@@ -3,7 +3,7 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Activity, Wallet, LayoutGrid, Clock } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import dynamic from "next/dynamic";

@@ -1,353 +1,220 @@
-# Service Layer Architecture
+# MiniApp Platform Architecture
 
-This document describes the **current** architecture of the Neo Service Layer.
-For a quick map of directory responsibilities, see `docs/LAYERING.md`.
-For end-to-end flow details, see `docs/WORKFLOWS.md` and `docs/DATAFLOWS.md`.
+This document describes the **current** architecture of the Neo MiniApp
+platform repo.
 
-## Goals
+The key boundary is simple:
 
-- **Clean layering**: one module = one responsibility.
-- **Minimal TEE surface**: only sensitive computation + signing runs in enclaves.
-- **No duplicated chain I/O**: Neo RPC, tx building, and event monitoring live in one place.
-- **Consistent service shape**: same patterns for config, routing, storage, and workers.
+- this repo owns the MiniApp platform surface
+- `neo-morpheus-oracle` owns Oracle / DataFeed / VRF / Compute / Paymaster
+- `neo-abstract-account` owns AA core contracts, verifiers, relay UX, and AA runtime
 
-## Core Constraints
+Current production target is **Neo N3 only**.
 
-- **Settlement**: GAS only (PaymentHub rejects all other assets).
-- **Governance**: bNEO only (Governance rejects all other assets).
-- **Confidentiality**: NitroRun + Nitro-oriented enclaves for sensitive services.
-- **Gateway**: Supabase Edge Functions (Auth + routing + RLS).
-- **Dev stack**: k3s + local Supabase for development.
+## Repo Responsibilities
+
+This repo owns:
+
+- `platform/host-app`: end-user host shell that injects `window.MiniAppSDK`
+- `platform/admin-console`: operational/admin UX
+- `platform/edge/functions`: thin gateways for auth, wallet binding, policy enforcement, and forwarding to external services
+- `contracts/`: MiniApp platform contracts and example MiniApp contracts
+- `apps/`: shared MiniApp UI/composable/template code plus example MiniApps
+- `deploy/scripts`: deployment, validation, and testnet workflow helpers
+
+This repo does **not** own the full Oracle / AA runtime anymore.
 
 ## High-Level Topology
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                               DAPPS / FRONTEND                               │
-│                           (Vercel / browsers / CLI)                          │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │ HTTPS
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                  GATEWAY                                     │
-│     Supabase Edge Functions (“thin gateway”): auth, wallet binding, routing, │
-│           rate limits, nonce/replay protection, secrets API (RLS)            │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │ mTLS (mesh, optional)
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           NITRORUN COORDINATOR                              │
-│         Attestation, topology verification, mTLS certs, secret injection     │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │ mTLS (NitroRun-issued)
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             ENCLAVE WORKLOADS                                │
-│                                                                             │
-│  Infrastructure nitros:                                                    │
-│   - GlobalSigner  (TEE-managed domain-separated signing + rotation)         │
-│   - NeoAccounts   (account pool management + rotation)                      │
-│                                                                             │
-│  Product services:                                                          │
-│   - NeoFeeds    (data feeds)                                                │
-│   - NeoFlow     (automation)                                                │
-│   - NeoCompute  (confidential compute)                                      │
-│   - NeoOracle   (confidential oracle)                                       │
-│   - NeoRequests (on-chain request dispatcher + callbacks)                   │
-│   - TxProxy     (allowlisted tx signing/broadcast)                           │
-│   - NeoGasBank  (GAS deposits + fee deduction, optional)                    │
-│   - NeoSimulation (dev/test transaction simulator, optional)                │
-│   - Randomness  (via NeoCompute scripts, optional on-chain anchoring)        │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                   SUPABASE                                   │
-│     Auth metadata + sessions + secrets + service state (Postgres + RLS)      │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                  NEO N3 CHAIN                                │
-│   MiniApp platform contracts + ServiceLayerGateway (requests + callbacks)    │
-└─────────────────────────────────────────────────────────────────────────────┘
+```text
+MiniApp frontend / host UI / admin UI
+            |
+            v
+Supabase Edge + host-side proxy routes
+  - auth
+  - wallet binding
+  - API keys / scopes
+  - rate limits
+  - usage caps
+  - request routing
+            |
+            +------------------------------+
+            |                              |
+            v                              v
+neo-morpheus-oracle                 neo-abstract-account
+  - oracle                              - AA core contract
+  - datafeed                            - verifier contracts
+  - vrf                                 - relay endpoint
+  - compute                             - paymaster-aware relay flow
+  - paymaster
+            |                              |
+            +---------------+--------------+
+                            v
+                         Neo N3
+  - platform contracts
+  - MiniApp contracts
+  - Morpheus Oracle / DataFeed
+  - Abstract Account + verifiers
 ```
 
-## Layering (Code)
+## Trust Boundaries
 
-The repo is split into:
+### 1. Browser / MiniApp
 
-- `infrastructure/`: shared building blocks (runtime, middleware, storage, chain I/O, secrets, signing).
-- `services/`: product services only (`datafeed`, `automation`, `confcompute`, `conforacle`, `vrf`, `requests`, `txproxy`, `gasbank`, `simulation`).
-- `cmd/`: binaries (`cmd/nitro`, deployment tooling, bundle verification helpers).
-- `platform/`: Supabase Edge gateway + host app + SDK.
+The browser can:
 
-See `docs/LAYERING.md` for the concrete mapping.
+- call host-injected `window.MiniAppSDK`
+- request wallet signatures
+- call same-origin host proxies such as `/api/rpc/*` and `/api/aa/relay`
 
-## Identity & User Workflow (Outside the Enclave)
+The browser must **not** receive:
 
-User-facing workflow lives **outside the enclave** and can run directly on Vercel/Supabase:
+- service role keys
+- host-only API keys
+- raw Oracle / Compute secrets
 
-- **Auth**: Supabase Auth (OAuth providers: Google/GitHub/etc.).
-- **Wallet binding**: users bind a Neo N3 address after OAuth registration (Edge nonce + signature verification).
-- **Sessions**: Supabase JWT/cookie sessions (Edge validates).
-- **Secrets UX**: users create secrets and manage which internal services may read them.
+### 2. Platform Edge Gateway
 
-Enclave services should not implement login/registration flows.
+The edge layer is the platform policy boundary. It handles:
 
-### Strict Identity Mode
+- Supabase auth
+- wallet binding requirements
+- app permission checks
+- daily usage caps
+- per-function scopes
+- rate limiting
 
-In strict production mode, internal services only trust identity headers over verified
-mTLS. This is enforced by `infrastructure/runtime.StrictIdentityMode()` and
-`infrastructure/middleware`.
+It then forwards work to the external Oracle stack or returns wallet invocation
+intents to the client.
 
-## Secrets (Gateway + Supabase, Not a Separate Service)
+### 3. External Oracle Stack
 
-User secrets are stored in Supabase, encrypted with `SECRETS_MASTER_KEY`.
+`neo-morpheus-oracle` owns:
 
-- **Write path**: Supabase Edge functions under `/functions/v1/secrets-*`.
-- **Encryption + policy**: `infrastructure/secrets.Manager` (Go) and `platform/edge/functions/_shared/secrets.ts` (Deno), using compatible AES‑GCM envelopes.
-- **Storage**: `infrastructure/secrets/supabase`.
+- allowlisted external fetches
+- datafeed aggregation
+- VRF generation
+- confidential compute
+- paymaster authorization
+- on-chain callback fulfillment
 
-### Service Access (Secret Injection)
+This repo only stores the integration URLs, domains, and contract hashes needed
+to reach that stack.
 
-Enclave services do not implement user-facing secret workflows. They receive a
-`secrets.Provider` implementation (injected by `cmd/nitro`) that enforces:
+### 4. External AA Stack
 
-- per-user ownership
-- per-secret allowed services (permissions)
-- audit logging
+`neo-abstract-account` owns:
 
-Compute and oracle support secret injection via request fields (`secret_refs`,
-`secret_name`).
+- canonical AA contract deployment
+- verifier and hook contracts
+- relay endpoint
+- paymaster-aware AA relay submission
+- Web3Auth / session-key / recovery flows
 
-## Chain Module (Single Source of Truth)
+This repo exposes a host-side relay proxy and shared AA config, but the AA
+runtime remains external.
 
-All Neo chain communication belongs to `infrastructure/chain`:
+## On-Chain Components Owned Here
 
-- RPC client + pooling
-- transaction building + signing helpers
-- event monitoring/listeners
-- shared contract parsing helpers
+Platform-owned Neo N3 contracts in this repo include:
 
-Contract wrappers and typed event parsing also live in `infrastructure/chain`
-(`contracts_*.go`, `listener_events_*.go`) to keep services free of duplicated
-chain bindings. This includes the **ServiceLayerGateway** request/callback
-events used by NeoRequests.
+- `PaymentHub`
+- `Governance`
+- `PriceFeed`
+- `RandomnessLog`
+- `AppRegistry`
+- `AutomationAnchor`
+- MiniApp-specific contracts under `contracts/` and `apps/*`
 
-State-changing on-chain writes are centralized behind `services/txproxy`, which
-uses `infrastructure/chain` for tx building/broadcast and enforces an explicit
-contract+method allowlist. Other services should only use `infrastructure/chain`
-for **read-only** calls and event monitoring.
+These contracts integrate with the external Oracle / AA systems rather than
+embedding those runtimes.
 
-TxProxy clients use a configurable request timeout (`TXPROXY_TIMEOUT`) to
-accommodate on-chain confirmation waits (e.g., NeoRequests callbacks or
-anchored automation tasks).
+## Integration Paths
 
-## Platform Indexer & Analytics (Non-TEE)
+### Wallet-Signed Flows
 
-The platform engine maintains the **news + stats** layer for MiniApps:
+User-signed actions typically go:
 
-- **Ingestion:** consumes AppRegistry + MiniApp events and scans `System.Contract.Call`
-  activity using `infrastructure/chain`.
-- **Validation:** rejects MiniApp events that do not match the on-chain `contract_hash` when strict ingestion is enabled.
-- **Idempotency:** uses `processed_events` to avoid double-processing.
-- **Rollups:** writes `miniapp_tx_events`, `miniapp_stats`, `miniapp_stats_daily`, `miniapp_notifications`.
-- **Consistency:** handles confirmation depth, reorg backfill, and replay tooling.
-- **Realtime:** `miniapp_notifications` inserts trigger Supabase Realtime updates.
+1. MiniApp calls `window.MiniAppSDK`
+2. edge returns an invocation intent
+3. host wallet signs/submits
+4. events and stats are indexed back into platform views
 
-## App Registry (On-Chain Anchor + Supabase Mirror)
+Examples:
 
-The AppRegistry contract is the on-chain anchor for MiniApp manifests,
-metadata, and approval status:
+- `pay-gas`
+- `vote-bneo`
+- `app-register`
+- `app-update-manifest`
 
-- Developers register `manifest_hash`, `entry_url`, and display metadata
-  (`name`, `description`, `icon`, `banner`, `category`, `contract_hash`) on-chain
-  (typically via the Edge `app-register` intent).
-- An admin sets status to `Approved` or `Disabled` on-chain (default is `Pending`).
-- Supabase `miniapps` stores the canonical manifest for fast runtime checks and
-  auditing. NeoRequests syncs AppRegistry metadata/status back into Supabase so
-  the cache reflects on-chain state; AppRegistry remains the immutable reference
-  for governance and third‑party verification.
-  When enabled, NeoRequests verifies AppRegistry status + manifest hash before
-  executing callbacks.
+### Primary Oracle / AA Flows
 
-## Global Signer (TEE-Managed Signing)
+The preferred production path is:
 
-`infrastructure/globalsigner` provides a single place to manage enclave-held
-master key material and derive **domain-separated** signing keys.
+1. MiniApp host or host-only tooling calls the platform edge / host proxy
+2. the platform forwards directly to:
+   - `neo-morpheus-oracle` for Oracle / DataFeed / VRF / Compute / sponsorship
+   - `neo-abstract-account` for AA relay / verifier-aware execution
+3. the external system performs the chain interaction
+4. the platform only consumes the result, receipt, or user-facing state
 
-Use cases:
+This keeps the MiniApp platform simple and avoids a second platform-owned
+service bus on top of the existing Oracle / AA systems.
 
-- signing service-layer on-chain fulfillments / callbacks
-- signing off-chain service receipts (future)
-- key rotation with auditability
+### Edge -> External Oracle Flows
 
-## Account Pool (Large-Scale Neo N3 Accounts)
+Gateway-backed service calls go:
 
-`infrastructure/accountpool` manages a large pool of Neo N3 accounts (target:
-10,000+ accounts) and provides:
+1. MiniApp or host calls edge function
+2. edge authenticates and validates policy
+3. edge forwards to configured external Morpheus endpoint
+4. response returns directly to caller
 
-- account allocation + locking (`service_id`)
-- balance tracking + updates
-- rotation/archival of accounts (move funds, retire old accounts)
+Examples:
 
-This is an infrastructure capability used by multiple services; it is not a
-product-facing API.
+- `rng-request`
+- `datafeed-price`
+- `oracle-query`
+- `compute-execute`
+- `compute-app-execute`
+- `gas-sponsor-check`
+- `gas-sponsor-request`
 
-### Account Pool Persistence (Supabase)
+## Compute Script Size Strategy
 
-Account pool metadata and balances are **durably stored** in Supabase:
+Inline compute scripts are supported, but they are not the only option.
 
-- `pool_accounts`: address, lock state, rotation flags, usage stats
-- `pool_account_balances`: per-token balances per account
+When notification or callback payload size is too small, prefer a registered
+script reference:
 
-The pool is **deterministically derived** from `POOL_MASTER_KEY`, but Supabase
-holds critical state (locks, rotations, balances). Losing the database loses
-allocation history and makes active locks ambiguous, so:
+- store script source in a user-controlled registry contract getter
+- send `script_ref` / `script_name` metadata on-chain
+- let the external Morpheus worker resolve the script body at execution time
 
-- keep `POOL_MASTER_KEY` stable across upgrades
-- do **not** enable `NEOACCOUNTS_ALLOW_EPHEMERAL_MASTER_KEY` outside explicit
-  local experiments
-- ensure Postgres storage is persistent (PVC or Docker volume)
-
-Use backups for production and avoid destructive resets in local dev if you
-need to preserve pool allocations.
-
-## Product Services (Responsibilities)
-
-Only these services are considered product services right now:
-
-- **NeoFeeds (`neofeeds`)**: aggregate prices, sign responses, optionally push updates on-chain.
-- **NeoFlow (`neoflow`)**: schedule triggers, run webhooks, optionally execute on-chain actions.
-- **NeoCompute (`neocompute`)**: execute JS with strict limits + optional secret injection.
-- **NeoOracle (`neooracle`)**: fetch external data with allowlist + optional secret injection.
-- **TxProxy (`txproxy`)**: allowlisted transaction signing + broadcast proxy (single point for tx policy).
-- **NeoRequests (`neorequests`)**: listens to on-chain ServiceLayerGateway
-  requests, routes to TEE services, and submits callback transactions via
-  `txproxy`.
-- **NeoGasBank (`neogasbank`)**: manages GAS deposits/balances and supports
-  service fee deduction (optional).
-- **NeoSimulation (`neosimulation`)**: development-only transaction simulator
-  for MiniApp workflows (optional).
-
-Randomness is provided by running scripts in NeoCompute (`neocompute`) inside the enclave (optionally anchoring results via `RandomnessLog`).
-
-## On-Chain Request/Callback Workflow (ServiceLayerGateway)
-
-The ServiceLayerGateway contract coordinates on-chain service requests:
-
-1. MiniApp contract calls `ServiceLayerGateway.RequestService(...)`.
-2. Gateway emits `ServiceRequested` event (payload is a `ByteString` — see
-   `docs/service-request-payloads.md` for the canonical JSON formats).
-3. NeoRequests listens to the event, validates the MiniApp manifest, and calls
-   the appropriate TEE service
-   (`neovrf`, `neooracle`, `neocompute`), and prepares the result payload.
-4. NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)` via `txproxy`
-   (txproxy must be allowlisted and the Gateway updater set).
-5. Gateway emits `ServiceFulfilled` and calls the MiniApp callback method
-   on-chain with `(request_id, app_id, service_type, success, result, error)`.
-
-Events are persisted to Supabase `contract_events` and the callback transaction
-is recorded in `chain_txs` for auditing and UI consumption.
-
-Each service follows the same internal pattern:
-
-- `services/<svc>/nitro`: HTTP handlers + workers (enclave runtime).
-- `services/<svc>/supabase`: service-specific persistence (only when needed).
-
-Platform contracts live under `contracts/` and are written by the enclave-managed
-signer (Updater pattern) when needed.
-
-## Nitro Runtime Boundary (What belongs in the enclave)
-
-Keep enclave code focused on operations that need:
-
-- confidentiality (private compute / secret-using fetch)
-- integrity + verifiable origin (proofs/signatures)
-- key custody (global signer)
-
-Keep outside-TEE code focused on:
-
-- user workflows and web-facing APIs
-- data modeling and storage (Supabase)
-- deployment glue and observability
-
-## System Architecture Diagrams
-
-### High-Level Component Flow
-
-```mermaid
-graph TD
-    subgraph "Client Layer (Web/Mobile)"
-        MA[MiniApp / UI]
-        SDK[Platform SDK]
-        MA <--> SDK
-    end
-
-    subgraph "Platform Layer (Edge)"
-        GW[Edge Gateway / Supabase]
-        Auth[Authentication & RLS]
-        Cache[MiniApp Cache]
-        GW <--> Auth
-        GW <--> Cache
-        SDK <-->|REST / WS| GW
-    end
-
-    subgraph "Service Layer (AWS Nitro TEEs)"
-        direction TB
-        Proxy[TxProxy Service]
-        Req[Request Dispatcher]
-        
-        VRF[NeoVRF]
-        Oracle[NeoOracle]
-        Compute[NeoCompute]
-        Feeds[NeoFeeds]
-        Flow[NeoFlow Automation]
-        
-        GW <--> Req
-        Req --> VRF
-        Req --> Oracle
-        Req --> Compute
-        Feeds --> Proxy
-        Flow --> Proxy
-        VRF --> Proxy
-        Oracle --> Proxy
-        Compute --> Proxy
-        
-        KMS[AWS KMS] -.->|Injects Secrets & Certs| VRF
-        KMS -.-> Oracle
-        KMS -.-> Compute
-    end
-
-    subgraph "Infrastructure Layer (Neo N3)"
-        N3[Neo Blockchain RPC]
-        Contracts[Platform Smart Contracts]
-        Proxy -->|Signed TXs| N3
-        N3 <--> Contracts
-        Req <-->|Listen for Events| N3
-    end
-```
-
-### Smart Contract TEE Callback Lifecycle
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Contract as MiniApp Contract
-    participant Indexer as Request Dispatcher
-    participant TEE as TEE Service (Compute/Oracle/VRF)
-    participant Proxy as TxProxy (KeyHolder)
-
-    User->>Contract: Invoke Request() method
-    Contract->>Contract: Store pending state, Emit Event
-    Indexer->>Contract: Listen for Event
-    Indexer->>TEE: Route Request Payload
-    TEE->>TEE: Execute securely (Fetch data, eval JS, etc)
-    TEE->>TEE: Generate Attestation & Sign result
-    TEE->>Proxy: Forward Fulfilled Payload
-    Proxy->>Proxy: Verify Policy & Allowlist
-    Proxy->>Contract: Invoke Callback() method
-    Contract->>Contract: Verify TxProxy Signature & Update State
-```
+This keeps the MiniApp platform aligned with the external compute runtime and
+avoids forcing large scripts through request payloads.
 
+## Runtime Configuration
+
+Canonical external Neo N3 addresses and domains are centralized in:
+
+- `apps/shared/constants/rpc.ts`
+
+That registry powers:
+
+- `useOracle()`
+- `useAbstractAccount()`
+- shared frontend network selection
+- host / admin documentation
+
+## Local Development Model
+
+Local development no longer means "boot the old in-repo Go service layer".
+
+The supported model is:
+
+1. run host/admin apps from this repo
+2. point `.env` to deployed external Oracle / AA services
+3. optionally run the external repos themselves if you need a private dev stack
+
+See [`docs/LOCAL_DEV.md`](./LOCAL_DEV.md) for the detailed flow.

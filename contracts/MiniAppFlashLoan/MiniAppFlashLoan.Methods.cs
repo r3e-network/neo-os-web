@@ -157,22 +157,22 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger RequestTeeVerification(BigInteger loanId, BigInteger amount, UInt160 callbackContract, string callbackMethod)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
 
             ByteString payload = StdLib.Serialize(new object[] { loanId, amount, callbackContract, callbackMethod });
             return (BigInteger)Contract.Call(
-                gateway, "requestService", CallFlags.All,
-                APP_ID, "tee-compute", payload,
-                Runtime.ExecutingScriptHash, "onServiceCallback"
+                oracle, "request", CallFlags.All,
+                "compute", payload,
+                Runtime.ExecutingScriptHash, "onOracleResult"
             );
         }
 
-        public static void OnServiceCallback(
-            BigInteger requestId, string appId, string serviceType,
+        public static void OnOracleResult(
+            BigInteger requestId, string requestType,
             bool success, ByteString result, string error)
         {
-            ValidateGateway();
+            ValidateOracle();
 
             ByteString loanIdData = Storage.Get(Storage.CurrentContext,
                 Helper.Concat(PREFIX_REQUEST_TO_LOAN, (ByteString)requestId.ToByteArray()));

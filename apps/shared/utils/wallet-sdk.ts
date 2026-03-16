@@ -129,6 +129,12 @@ async function fetchEvents(params: EventsListParams): Promise<EventsListResponse
 
 let walletInstance: WalletSDK | null = null;
 
+function normalizeOperationName(operation: string): string {
+  const raw = String(operation || "").trim();
+  if (!raw) return raw;
+  return raw.charAt(0).toLowerCase() + raw.slice(1);
+}
+
 export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   if (existingWallet) return existingWallet;
   if (walletInstance) return walletInstance;
@@ -182,7 +188,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     if (!address.value) await connect();
     const result = await nl.invoke({
       scriptHash: params.scriptHash,
-      operation: params.operation,
+      operation: normalizeOperationName(params.operation),
       args: params.args ?? [],
       signers: params.signers?.map((s) => ({
         account: s.account,
@@ -196,7 +202,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     const nl = await ensureNeoLine();
     return nl.invokeRead({
       scriptHash: params.scriptHash,
-      operation: params.operation,
+      operation: normalizeOperationName(params.operation),
       args: params.args,
     });
   };

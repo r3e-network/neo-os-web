@@ -164,7 +164,6 @@ deploy_contract "PriceFeed"
 deploy_contract "RandomnessLog"
 deploy_contract "AppRegistry"
 deploy_contract "AutomationAnchor"
-deploy_contract "ServiceLayerGateway"
 
 echo ""
 echo "=== Deployment Complete ==="

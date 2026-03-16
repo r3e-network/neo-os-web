@@ -1,5 +1,11 @@
 # Neo N3 Mini-App Platform (Architectural Blueprint)
 
+> Legacy blueprint note:
+> this document captures an earlier platform-service-bus architecture.
+> The current platform direction is simpler:
+> direct Oracle / direct AA for user-facing flows, with old callback-gateway
+> patterns treated as archival or compatibility-only material.
+
 This document is the **reviewed, polished, and fully expanded** design blueprint.
 It explicitly lists the technology stack, open-source tools, and platforms to use
 for every layer, ensuring the **Payment = GAS / Governance = bNEO** constraint is
@@ -82,7 +88,7 @@ neo-miniapp-platform/
 │   ├── RandomnessLog/          # Logic: VRF verification storage
 │   ├── AppRegistry/            # Logic: On-chain metadata + manifest hash + Dev Allowlist
 │   ├── AutomationAnchor/       # Logic: Task registry
-│   └── ServiceLayerGateway/    # Logic: Service request + callback router
+│   └── OracleService/          # Logic: direct oracle request + callback entrypoint
 │
 ├── services/                   # [Go] Nitro runtime + NitroRun TEE Services
 │   ├── datafeed/               # High-freq polling, threshold logic
@@ -131,9 +137,9 @@ neo-miniapp-platform/
     - Stores manifest hash + status + allowlist anchor hash.
 6. **AutomationAnchor.cs**
     - Task registry + nonce-based anti-replay for automation tasks.
-7. **ServiceLayerGateway.cs**
-    - Accepts `RequestService(...)` from MiniApps.
-    - Emits `ServiceRequested` events and routes callbacks via `FulfillRequest(...)`.
+7. **OracleService.cs / direct callback entrypoints**
+    - Accept direct Oracle requests from MiniApps.
+    - Emit request events and allow direct callback completion without a shared gateway bus.
 
 ### B. TEE Services (The "Black Box")
 
@@ -155,8 +161,8 @@ All services run inside Nitro runtime enclaves. Keys **never** leave the enclave
 6. **automation**
     - Scheduler + triggers (cron/price).
 7. **requests (NeoRequests)**
-    - Listens for `ServiceRequested` events.
-    - Routes to VRF/Oracle/Compute and submits `FulfillRequest` callbacks via `txproxy`.
+    - Listens for direct request events where needed.
+    - Routes to VRF/Oracle/Compute and submits direct callback transactions via `txproxy`.
 
 ### C. Gateway (Supabase Edge)
 
@@ -194,13 +200,13 @@ public static event Action<string, BigInteger> OnMetric;
 The manifest should include `contract_hash` so AppRegistry can anchor it; the indexer verifies the emitting
 contract against the on-chain `contract_hash` cache (strict mode can require it even when `app_id` is provided).
 
-### E. On-Chain Service Request Flow
+### E. Direct On-Chain Service Flow
 
-1. MiniApp contract calls `ServiceLayerGateway.RequestService(...)`.
-2. Gateway emits `ServiceRequested`.
+1. MiniApp contract calls the configured Oracle or automation entrypoint directly.
+2. The upstream service emits or observes the request.
 3. NeoRequests processes the request and prepares the result.
-4. NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)`.
-5. Gateway calls the MiniApp callback method on-chain.
+4. NeoRequests submits the callback transaction directly.
+5. The MiniApp callback method runs on-chain.
 
 ## 4. Frontend & Security Sandbox
 
@@ -247,6 +253,6 @@ interface MiniAppSDK {
 ## 7. MVP Roadmap
 
 1. Infra setup (neo-express, Supabase, CI).
-2. Deploy PaymentHub + AppRegistry + ServiceLayerGateway to local chain.
+2. Deploy PaymentHub + AppRegistry + OracleService to local chain.
 3. TEE skeleton (Nitro runtime hello world, txproxy, requests).
-4. End-to-end `payGAS` + on-chain service request callbacks with a built-in MiniApp.
+4. End-to-end `payGAS` + direct Oracle callback flow with a built-in MiniApp.
