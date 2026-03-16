@@ -88,7 +88,7 @@ npm run build
 
 | Network | Address            |
 | ------- | ------------------ |
-| Testnet | `0x4e4a27ae72d06d057f54d4136ed8c5176b552b16` |
+| Testnet | `0x89d2499928e3035247186f412934d6b0e0b665ef` |
 | Mainnet | _Not yet deployed_ |
 
 > The current miniapp should default to testnet until a mainnet deployment is completed and verified.

@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "defi-neopay",
-    "contract_hash": "0x4e4a27ae72d06d057f54d4136ed8c5176b552b16"
+    "contract_hash": "0x89d2499928e3035247186f412934d6b0e0b665ef"
   },
   "entry_url": "mf://manifest?app=miniapp-stream-vault",
   "media": {

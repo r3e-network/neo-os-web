@@ -82,7 +82,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             StreamData stream = GetStream(streamId);
             Map<string, object> details = new Map<string, object>();
-            if (stream.Creator == UInt160.Zero) return details;
+            if (stream.TotalAmount <= 0 || stream.IntervalSeconds <= 0) return details;
 
             BigInteger payoutCap = GetPayoutCap(stream);
             BigInteger claimable = GetClaimable(stream);

@@ -1,0 +1,181 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const root = path.resolve(__dirname, "..", "..");
+const rpcUrl = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
+
+const FLAGSHIP_APPS = [
+  {
+    brand: "LastSurvivor",
+    slug: "doomsday-clock",
+    contractName: "MiniAppDoomsdayClock",
+    readChecks: [
+      { method: "getGameStatus", args: [], expectedStackType: "Map" },
+      { method: "getPlatformStats", args: [], expectedStackType: "Map" },
+    ],
+  },
+  {
+    brand: "GASBOX",
+    slug: "neo-gacha",
+    contractName: "MiniAppNeoGacha",
+    readChecks: [
+      { method: "totalMachines", args: [], expectedStackType: "Integer" },
+    ],
+  },
+  {
+    brand: "Red Envelope",
+    slug: "red-envelope",
+    contractName: "MiniAppRedEnvelope",
+    readChecks: [
+      { method: "getEnvelope", args: [{ type: "Integer", value: "0" }], expectedStackType: "Struct" },
+    ],
+  },
+  {
+    brand: "Daily Check-in",
+    slug: "daily-checkin",
+    contractName: "MiniAppDailyCheckin",
+    readChecks: [
+      { method: "getPlatformStats", args: [], expectedStackType: "Map" },
+    ],
+  },
+  {
+    brand: "FogPlay",
+    slug: "coin-flip",
+    contractName: "MiniAppCoinFlip",
+    readChecks: [
+      { method: "getBetLimits", args: [], expectedStackType: "Struct" },
+    ],
+  },
+  {
+    brand: "SelfLoan",
+    slug: "self-loan",
+    contractName: "MiniAppSelfLoan",
+    readChecks: [
+      { method: "getPlatformStats", args: [], expectedStackType: "Map" },
+      { method: "getLoanDetails", args: [{ type: "Integer", value: "0" }], expectedStackType: "Map" },
+    ],
+  },
+  {
+    brand: "NeoPay",
+    slug: "stream-vault",
+    contractName: "MiniAppStreamVault",
+    readChecks: [
+      { method: "totalStreams", args: [], expectedStackType: "Integer" },
+      { method: "getStreamDetails", args: [{ type: "Integer", value: "0" }], expectedStackType: "Map" },
+    ],
+  },
+];
+
+function readJson(rel) {
+  return JSON.parse(fs.readFileSync(path.join(root, rel), "utf8"));
+}
+
+async function rpc(method, params) {
+  const response = await fetch(rpcUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method,
+      params,
+    }),
+  });
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(data.error.message || `rpc ${method} failed`);
+  }
+  return data.result;
+}
+
+async function main() {
+  const rows = [];
+  let failed = false;
+
+  for (const app of FLAGSHIP_APPS) {
+    const manifest = readJson(`apps/${app.slug}/neo-manifest.json`);
+    const definition = readJson(`platform/host-app/public/miniapp-definitions/${app.slug}.json`);
+    const network = manifest.default_network || "neo-n3-testnet";
+    const contractHash = manifest.contracts?.[network] || "";
+
+    const row = {
+      brand: app.brand,
+      manifestId: manifest.id,
+      network,
+      contractHash: contractHash || "missing",
+      definitionHash: definition?.contract?.contract_hash || "missing",
+      remoteContractName: null,
+      readChecks: [],
+      problems: [],
+    };
+
+    if (!contractHash) {
+      row.problems.push("manifest missing active network contract hash");
+      rows.push(row);
+      failed = true;
+      continue;
+    }
+
+    if (row.definitionHash !== contractHash) {
+      row.problems.push("host definition hash mismatch");
+    }
+
+    try {
+      const state = await rpc("getcontractstate", [contractHash]);
+      row.remoteContractName = state?.manifest?.name || null;
+      if (row.remoteContractName !== app.contractName) {
+        row.problems.push(`remote contract name mismatch: ${row.remoteContractName || "missing"}`);
+      }
+    } catch (error) {
+      row.problems.push(`getcontractstate failed: ${String(error.message || error)}`);
+      rows.push(row);
+      failed = true;
+      continue;
+    }
+
+    for (const check of app.readChecks) {
+      try {
+        const result = await rpc("invokefunction", [contractHash, check.method, check.args]);
+        const stackItem = result?.stack?.[0];
+        const stackType = stackItem?.type || "missing";
+        const checkRow = {
+          method: check.method,
+          vmstate: result?.state || "unknown",
+          stackType,
+        };
+        row.readChecks.push(checkRow);
+
+        if (result?.state !== "HALT") {
+          row.problems.push(`${check.method} returned ${result?.state || "unknown"}`);
+        }
+        if (stackType !== check.expectedStackType) {
+          row.problems.push(`${check.method} stack type mismatch: expected ${check.expectedStackType}, got ${stackType}`);
+        }
+      } catch (error) {
+        row.readChecks.push({
+          method: check.method,
+          vmstate: "ERROR",
+          stackType: "error",
+        });
+        row.problems.push(`${check.method} failed: ${String(error.message || error)}`);
+      }
+    }
+
+    if (row.problems.length) {
+      failed = true;
+    }
+    rows.push(row);
+  }
+
+  console.log(JSON.stringify(rows, null, 2));
+  if (failed) {
+    process.exitCode = 1;
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
