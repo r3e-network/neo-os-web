@@ -221,3 +221,11 @@ Aliases (normalized at registration):
 - `category` (if present) must be one of `gaming`, `defi`, `governance`, `utility`, `social`, `nft`, `data`, `other`.
 - `contract_hash` must be a valid Hash160 (0x-prefixed or raw hex) and is required
   unless `news_integration=false` and no stats are requested.
+# Note
+
+This manifest spec still references older `PaymentHub`-specific payment wiring
+in a few examples.
+
+`permissions.payments` should now be read as “the MiniApp performs value
+transfer on Neo N3”, not strictly “all payments must route through
+`PaymentHub`”.

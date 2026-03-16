@@ -428,3 +428,9 @@ Invoke a Neo N3 smart contract method (requires on-chain anchoring).
 4. **Set Appropriate Schedules**: Avoid overly frequent executions (respect rate limits)
 5. **Handle Failures Gracefully**: Webhook endpoints should return 2xx status codes on success
 6. **Disable Unused Triggers**: Disable or delete triggers that are no longer needed
+# Note
+
+This API document includes legacy `pay-gas -> PaymentHub` descriptions.
+
+Current flagship MiniApps may use direct contract payment or contract-native
+asset transfer flows instead of routing every payment through `PaymentHub`.

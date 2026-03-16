@@ -256,3 +256,10 @@ interface MiniAppSDK {
 2. Deploy PaymentHub + AppRegistry + OracleService to local chain.
 3. TEE skeleton (Nitro runtime hello world, txproxy, requests).
 4. End-to-end `payGAS` + direct Oracle callback flow with a built-in MiniApp.
+# Note
+
+This blueprint is an older architecture snapshot and still contains
+PaymentHub-first assumptions.
+
+For the current implementation and validation state, use `docs/ARCHITECTURE.md`
+plus the latest `docs/reports/` as the canonical reference.
