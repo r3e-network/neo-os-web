@@ -190,4 +190,3 @@ For `FogPlay` and `Red Envelope` to remain healthy on testnet:
   Oracle updater
 - callback consumer contracts must retain at least one Oracle request fee of
   prepaid credit (`0.01 GAS` at the current testnet setting)
-

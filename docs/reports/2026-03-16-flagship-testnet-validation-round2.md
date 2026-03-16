@@ -147,7 +147,7 @@ Interpretation:
 | Brand | Contract |
 | --- | --- |
 | LastSurvivor | `0xf0914d411877c8393c029f48ec0c4c64d44f1b49` |
-| GASBOX | `0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d` |
+| GASBOX | `0x523c112560a2e196fa0fcfa215d93c08e117d9c1` |
 | Red Envelope | `0xa28379b2e0a608053458d435acd7041fc4a0fded` |
 | Daily Check-in | `0x297bfabe68535ab1abfadb843d5a5c00db7aca75` |
 | FogPlay | `0x01d0e1f78ea5a76b6bb0bce26649d5bf449999e0` |

@@ -22,7 +22,7 @@ describe("/api/cron/rollup-stats", () => {
     jest.doMock("../../lib/chain", () => ({
       FLAGSHIP_APPS: {
         "miniapp-doomsday-clock": { contract: "0xf0914d411877c8393c029f48ec0c4c64d44f1b49", category: "gaming" },
-        "miniapp-neo-gacha": { contract: "0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d", category: "gaming" },
+        "miniapp-neo-gacha": { contract: "0x523c112560a2e196fa0fcfa215d93c08e117d9c1", category: "gaming" },
         "miniapp-redenvelope": { contract: "0x4079c09a0ff121fc44d817c37d6ae8694b268e9f", category: "social" },
         "miniapp-dailycheckin": { contract: "0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528", category: "gaming" },
         "miniapp-coinflip": { contract: "0x43f953c00931ca38044bf0e5ca50d608aea7ae8b", category: "gaming" },
