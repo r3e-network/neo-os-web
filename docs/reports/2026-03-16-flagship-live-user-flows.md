@@ -1,15 +1,15 @@
-# 2026-03-16 Flagship Live User Flows
-
 ## Scope
 
-This report captures real Neo N3 testnet user-flow execution for the currently
-verified flagship paths:
+This report captures real Neo N3 testnet execution for the seven current
+flagship miniapp paths:
 
-- Daily Check-in
+- LastSurvivor
 - GASBOX
-- FogPlay
 - Red Envelope
+- Daily Check-in
+- FogPlay
 - SelfLoan
+- NeoPay
 
 All actions below were executed with the shared testnet account:
 
@@ -19,97 +19,144 @@ All actions below were executed with the shared testnet account:
 
 | App | Testnet Contract |
 | --- | --- |
-| Daily Check-in | `0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528` |
+| LastSurvivor | `0xf0914d411877c8393c029f48ec0c4c64d44f1b49` |
 | GASBOX | `0x523c112560a2e196fa0fcfa215d93c08e117d9c1` |
-| FogPlay | `0x43f953c00931ca38044bf0e5ca50d608aea7ae8b` |
 | Red Envelope | `0x4079c09a0ff121fc44d817c37d6ae8694b268e9f` |
+| Daily Check-in | `0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528` |
+| FogPlay | `0x43f953c00931ca38044bf0e5ca50d608aea7ae8b` |
 | SelfLoan | `0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b` |
+| NeoPay | `0x89d2499928e3035247186f412934d6b0e0b665ef` |
 | Morpheus Oracle | `0x4b882e94ed766807c4fd728768f972e13008ad52` |
+| PaymentHub | `0x340cb33d770b38f26d066716dd1f9df5283d629e` |
 
 ## Live Validation Summary
 
 ### Daily Check-in
 
-- check-in tx: `0x8670ee0358ee127b289085707e0038f3899e54939c8b7e32158d482efe406bed`
-- path:
-  - direct `GAS.transfer`
-  - contract auto-check-in in `OnNEP17Payment`
+- check-in tx: `0xae9ffef5daf02b4c215c2861b202f3cb0ee040dab80cfa2f4348082b4039417c`
 - result:
+  - direct `GAS.transfer` path succeeded
   - `CheckedIn` notification present
+
+### LastSurvivor
+
+This path required testnet dependency alignment before validation:
+
+- PaymentHub app configured for `miniapp-doomsday-clock`
+  - tx: `0xa004bd84f92e984578043e19afc84f1b41c89b347cc255201760f3a384fb44c8`
+- LastSurvivor contract `paymentHub` updated to testnet PaymentHub
+  - tx: `0xd6063741675742d07ddf8b4c272a6fb3344f36fdbbcf6138123dcf8c99832ff3`
+
+Validated user flow:
+
+- round start tx: `0x07b12014aad9a3699a9d7c1e5c2526fa4d5abf25e0393b4501506a743bc459ed`
+- payment tx: `0x2c7f06f2f3d11c4cd136c9ee71b27f171cdd7d3bfc328952aa92bb4c0aa9c350`
+- receipt id: `705`
+- buy tx: `0x5f34e37310ec071f10faa4989369ce61650149725f201d6ffb35e1c9675bae3c`
+- result:
+  - `startNewRound` HALTed
+  - PaymentHub emitted `PaymentReceived`
+  - `buyKeysWithCost` HALTed
+  - `KeysPurchased` emitted
+  - `TimeExtended` emitted
+  - `getGameStatus()` returned:
+    - `roundId = 7`
+    - `active = true`
+    - `pot = 9500000`
+    - `totalKeys = 1`
+    - `lastBuyer = NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX`
+  - `getPlayerKeys(address, 7) = 1`
 
 ### GASBOX
 
-This path required a fresh testnet redeploy plus in-place updates until the
-hybrid settle path became signer-safe under real `settlePlay` execution.
+This path required a fresh testnet redeploy and signer-safe hybrid settlement
+fixes before the live flow could pass.
 
-- update tx: `0x5b5e15ac096acf0d4919b0437439b15db348082109425fff6f0e077e63221136`
-- validation machine: `machineId = 1`
-- prepaid GAS tx: `0x4f8266d30b175de8a1f78f049fa01c908d599b41afdfddb3094c7860ae0c155f`
-- initiate tx: `0xae3be658943e45432fcb7c421e34390418feb9658257747dff25ccbc56a3c3a8`
-- play id: `4`
-- settle tx: `0x827af9c1b791f03167f4f11875c5044e109858f618c23fa2a37ab669ff5ee30b`
+Key deployment and validation transactions:
+
+- deploy tx: `0xbf0a240019a57a3033392401c3653b779592f3ec4c3eb9ca5a790e09dd13d1ce`
+- script registration tx: `0x87cecd9d0b42634da648572a2fa1f1f1e500c140e0f4daee46fcad1741289cba`
+- final update tx: `0x5b5e15ac096acf0d4919b0437439b15db348082109425fff6f0e077e63221136`
+
+Latest live user flow:
+
+- machine id: `2`
+- play payment tx: `0xfc9705c3657493bacebae61e815202f366a140a0a9bfb694e1517c329f30c023`
+- initiate tx: `0x4799a6d03b751c92b7f80a11933c61192eb880abc82d8f6e8fd39687a86ef761`
+- play id: `8`
+- settle tx: `0xd2744b8aca125b98ebc7aed74f92268a10ef69fb2d36bb849559b82ae7cfa633`
 - result:
-  - fresh contract deployed to `0x523c112560a2e196fa0fcfa215d93c08e117d9c1`
-  - `select-item` hybrid script registered successfully
   - direct `GAS.transfer` payment path succeeded
   - `PlayInitiated` emitted
-  - on-chain `debugExpectedSelection(playId)` matched client expectation
+  - on-chain `debugExpectedSelection(playId)` matched the winning index
   - real `settlePlay` HALTed successfully
   - `PlayResolved` emitted with GAS prize transfer
-  - `getPlay(playId)` returned `resolved = true` and `itemIndex = 1`
+  - `getPlay(8)` returned `resolved = true` and `itemIndex = 1`
 
 ### FogPlay
 
-- prepaid GAS tx: `0xaee7b7ca1297e1564bf3fea780cee904256f3516e5b2a8547d6eadf5b37df01e`
-- bet tx: `0x6b44cae8d3ff7f72d0a7a2f8551fc0dc93f72f21830793a1c25e3f44929c119e`
-- oracle request id: `3863`
+This path required explicit Oracle callback-fee top-up to the callback contract
+credit pool before submitting the randomness request.
+
+- oracle fee top-up tx: `0xc7317660b584dc9354f9b0a3822ef5538622548d240d214c5e51f6d89b23793d`
+- prepaid GAS tx: `0xe0494e9247590e798317678b87ffbff666e7580c27da9075c09b62604c39532e`
+- bet tx: `0xd96503fd69bcd369d01a487697fcdfc1759d23752a29295546c5e3d6058aa0c5`
+- oracle request id: `3871`
 - result:
   - `BetPlaced` emitted
   - Oracle request fulfilled successfully
-  - `getRequest(3863)` reached fulfilled status
-  - stored bet `betId = 8` resolved
-
-Additional isolated updater validation after re-separating the Oracle updater:
-
-- oracle request id: `3860`
-- relayer route: `/vrf/random`
-- result:
-  - fulfilled successfully by the isolated local relayer
+  - `getRequest(3871)` reached fulfilled status
+  - stored bet `betId = 11` resolved
 
 ### Red Envelope
 
-- prepaid GAS tx: `0x4a321a107ad84b1f7cd95d96d091fbb6c5aa5b473cd8a832ba59c14d7b11b023`
-- create tx: `0x040a53b87ec39a53be8c323ec46245585a0475658eb4d94b9762e0ac99449d2d`
-- oracle request id: `3864`
-- envelope id: `5`
-- claim tx: `0xc1e03c55739dd1aa480a790919a0014495ef1340e84417760b6264a0a24855ff`
+This path also required explicit Oracle callback-fee top-up for the callback
+consumer contract.
+
+- oracle fee top-up tx: `0x7969982f0412b482bab2803131eccfa43b366678611169de80298ae03b756990`
+- prepaid GAS tx: `0x2fb1785fa897672cb071f7ab49c60bb13c713ca1aa765f006884d36d239e126a`
+- create tx: `0x0b459265bae25bf0f1919ec39db865e6b463981542d4e528826b7ef60584c5df`
+- oracle request id: `3872`
+- envelope id: `10`
+- claim tx: `0x7099726e2e4855b6500d3ae246b433cfc361470cad616d68b2513ee6f3c6081e`
 - result:
   - `EnvelopeCreated` emitted
   - Oracle request fulfilled successfully
-  - `getEnvelope(5)` reached `Ready = true`
+  - `getEnvelope(10)` reached `Ready = true`
   - `EnvelopeClaimed` emitted
   - GAS claim transfer succeeded
 
 ### SelfLoan
 
-This path required the contract to be updated in place to use:
+This path is running on the direct NEO collateral credit plus explicit GAS pool
+funding design.
 
-- direct NEO collateral credit
-- explicit GAS pool funding
-- two-step borrow flow
-
-Latest isolated validation after the final contract update:
-
-- pool funding tx: `0x794945538163ecdc7847495509469135011c3f931723bdb05129f66ad91f34c1`
-- collateral tx: `0x271c2453c0858c0e7f81663fd253a33e7dd29554974b494eaa5880a4c5b57483`
-- create-loan tx: `0x2543f7d5616e7a14c19fa1155d05f7b7cce67cc025597c6301a61d56e12b38d9`
+- pool funding tx: `0x74af7b6c7af55a64f5bb8eb3aa25b9fbbe5e569b7edaae355d737fde97d4c297`
+- collateral tx: `0x3cf8963a4bed2a29f0221ac484d35cb3820e7665c89bc01b1319ef2b6b19ddb3`
+- create-loan tx: `0x4cb3bec61ca31fda265b0ec429b12bfddb7365e1b394de9096c34f10f68eec2b`
 - result:
   - `LoanCreated` emitted
-  - `loanId = 3`
+  - `loanId = 8`
   - `collateral = 1`
   - `debt = 20000000` (`0.2 GAS`)
-  - account NEO decreased by `1`
-  - account GAS increased by the borrowed amount after fee
+
+### NeoPay
+
+This path required a contract update to switch stream creation from contract-side
+asset pulling to prepaid asset credit consumption.
+
+- contract update tx: `0x1f398e6051213b4b1ed7596ed30e331f65e39164953c05bff6d153e4849df31d`
+- funding tx: `0x48219f1196bbedb4b5bcd5fbbec83fdfa66c0b7de7a95eee7f73ca646ce76c97`
+- create tx: `0x696232fd4bc6896d075247bacc1069d62e8d868085b0b65a17ff8736b23af556`
+- stream id: `6`
+- cancel tx: `0x365b51aa646909880847b9c60cc2626c5a12f871529870a78b87caecfe91d8fa`
+- result:
+  - prepaid GAS funding to contract succeeded
+  - `createStream` HALTed and emitted `StreamCreated`
+  - `getStreamDetails(6)` returned active stream state
+  - `claimStream` simulation rejected with `nothing claimable` before interval unlock
+  - `cancelStream` HALTed and emitted `StreamCancelled`
+  - `getStreamDetails(6)` returned `status = cancelled`
 
 ## Runtime Notes
 
@@ -137,10 +184,10 @@ Latest updater-switch tx:
 
 ## Operational Requirement
 
-For `FogPlay` and `Red Envelope` to remain healthy on testnet, the fixed local
-or upgraded remote Morpheus relayer must remain the only actor with Oracle
-`updater` authority.
+For `FogPlay` and `Red Envelope` to remain healthy on testnet:
 
-If updater authority is returned to an older relayer build before it is
-upgraded, new `rng` requests can regress even though the contracts and frontends
-are already correct.
+- the fixed local or upgraded remote Morpheus relayer must remain the active
+  Oracle updater
+- callback consumer contracts must retain at least one Oracle request fee of
+  prepaid credit (`0.01 GAS` at the current testnet setting)
+
