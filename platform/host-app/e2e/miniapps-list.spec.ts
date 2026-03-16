@@ -5,15 +5,12 @@ test.describe("MiniApps List", () => {
     const catalogRequest = page
       .waitForResponse((response) => response.url().includes("/api/miniapps/catalog"))
       .catch(() => null);
-    const statsRequest = page
-      .waitForResponse((response) => response.url().includes("/api/miniapp-stats"))
-      .catch(() => null);
     const communityRequest = page
       .waitForResponse((response) => response.url().includes("/api/miniapps/community"))
       .catch(() => null);
 
     await page.goto("/miniapps");
-    await Promise.all([catalogRequest, statsRequest, communityRequest]);
+    await Promise.all([catalogRequest, communityRequest]);
   });
 
   test("should display MiniApps hero and controls", async ({ page }) => {
