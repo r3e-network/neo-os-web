@@ -74,31 +74,37 @@ Neo N3 blocks
 
 ## Dataflow: MiniApp Payment + Game Logic
 
-This is the **primary dataflow** for MiniApps involving payments (gaming, DeFi).
+This section contains older PaymentHub-centric examples. Current flagship apps
+use two production patterns:
+
+- direct prepaid transfer to the MiniApp contract
+- legacy PaymentHub receipt validation for the few contracts that still require it
 
 ```
+Direct prepaid flow
 User (Wallet)
-  └─ SDK.payGAS(appId, amount, memo) ──▶ GAS.transfer ──▶ PaymentHub (OnNEP17Payment)
-      └─ Payment recorded with appId
-      └─ PaymentReceived event ──▶ Platform Services
-          ├─ Invoke MiniApp Contract (game logic)
-          │   └─ MiniAppLottery.recordTickets(...)
-          │   └─ MiniAppCoinFlip.recordBet(...)
-          │   └─ etc.
-          ├─ Request VRF randomness (if needed)
-          │   └─ neovrf service
-          ├─ Determine outcome
-          └─ PayoutToUser(appId, winner, amount, memo)
-              └─ Winner receives GAS
-              └─ Payout recorded for audit
+  └─ GAS.transfer ──▶ MiniApp Contract (OnNEP17Payment)
+      └─ Contract credits prepaid balance
+      └─ User invokes MiniApp action
+          ├─ Contract consumes prepaid balance
+          ├─ Contract updates app-specific state
+          ├─ Contract requests Oracle / VRF if needed
+          └─ Contract emits settlement / payout events
+
+Legacy receipt flow
+User (Wallet)
+  └─ GAS.transfer ──▶ PaymentHub (OnNEP17Payment)
+      └─ PaymentReceived event + receiptId
+      └─ User invokes MiniApp action with receiptId
+          └─ Contract validates PaymentHub receipt before updating state
 ```
 
 ### Key Points
 
-- **Users only interact with PaymentHub** via SDK `payGAS`
-- **MiniApp contracts store app-specific state** (bets, tickets, votes)
-- **Platform orchestrates** payment → logic → payout flow
-- **All payouts flow through platform** for audit trail
+- MiniApp contracts store app-specific state (bets, tickets, streams, keys)
+- Oracle / VRF callback flows may require prepaid callback fee credit on the
+  Oracle contract in addition to the user-facing payment
+- PaymentHub is now a legacy / optional path, not the universal settlement path
 
 ## Dataflow: Edge-Gated Payments / Governance
 
@@ -106,7 +112,7 @@ User (Wallet)
 SDK ──▶ Edge Function (pay-gas / vote-bneo)
   ├─ validate permissions + limits + assets (GAS/bNEO only)
   └─ return contract invocation for wallet signing
-Wallet ──▶ Neo N3 chain (PaymentHub / Governance)
+Wallet ──▶ Neo N3 chain (MiniApp contract / PaymentHub / Governance)
 ```
 
 ## Dataflow: Datafeed Updates (NeoFeeds)

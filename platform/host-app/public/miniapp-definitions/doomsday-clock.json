@@ -60,29 +60,7 @@
       "operations": []
     }
   },
-  "operations": [
-    {
-      "name": "Buy Keys",
-      "method": "buyKeys",
-      "button_style": "primary",
-      "params": [
-        {
-          "name": "keyCount",
-          "type": "integer",
-          "label": "Key Count",
-          "required": true,
-          "placeholder": "1"
-        },
-        {
-          "name": "receiptId",
-          "type": "integer",
-          "label": "Receipt ID",
-          "required": true,
-          "placeholder": "1"
-        }
-      ]
-    }
-  ],
+  "operations": [],
   "integration": {
     "news_integration": true,
     "reviews_enabled": true,
