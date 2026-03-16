@@ -87,6 +87,19 @@ Neo N3 小程序平台代表了去中心化应用开发的范式转变，提供�
 \end{titlepage}
 
 \newpage
+
+\noindent\fcolorbox{red!60!black}{red!5}{%
+\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}{%
+\textbf{历史白皮书说明。}
+本文反映的是较早期的平台架构快照。
+当前实现已经不再把 \texttt{ServiceLayerGateway} 作为首选运行路径，
+也不再假设所有旗舰小程序都统一通过 \texttt{PaymentHub} 结算。
+当前真实实现请优先参考 \texttt{docs/ARCHITECTURE.md}、
+\texttt{docs/DATAFLOWS.md}、\texttt{docs/service-api.md}
+以及最新旗舰小程序实盘验证报告。%
+}}
+
+\vspace{1em}
 \tableofcontents
 \newpage
 

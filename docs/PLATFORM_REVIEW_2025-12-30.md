@@ -1,5 +1,17 @@
 # Neo N3 MiniApp Platform - Production Readiness Review
 
+> Historical review note:
+> this document reflects a 2025-12-30 snapshot before the later direct Oracle /
+> direct AA simplification work. Treat references to `ServiceLayerGateway`,
+> universal `PaymentHub` settlement, and older host / SDK gaps as archived
+> review context, not the current platform baseline.
+>
+> Current sources of truth:
+> - `docs/ARCHITECTURE.md`
+> - `docs/DATAFLOWS.md`
+> - `docs/service-api.md`
+> - latest `docs/reports/2026-03-16-flagship-live-user-flows.md`
+
 **Review Date:** 2025-12-30
 **Review Type:** Full Stack Completeness Check
 **Reviewer:** Claude Code (Automated Analysis)

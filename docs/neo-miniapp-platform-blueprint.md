@@ -3,6 +3,8 @@
 > Legacy blueprint note:
 > this file still documents an older service-gateway-centric architecture.
 > The current preferred platform path is direct Oracle / direct AA.
+> Prefer `docs/ARCHITECTURE.md`, `docs/DATAFLOWS.md`, and the latest
+> flagship live validation reports for current implementation truth.
 
 This is the **reviewed, polished, and expanded** blueprint the repository is
 converging to. It explicitly locks the technology choices and enforces the hard
