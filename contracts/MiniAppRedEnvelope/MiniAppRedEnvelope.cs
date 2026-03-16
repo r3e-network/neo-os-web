@@ -121,9 +121,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(totalAmount >= packetCount * 1000000, "min 0.01 GAS per packet");
             ExecutionEngine.Assert(expiryDurationMs > 0, "expiry duration required");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
+            ValidateUserOrAbstractAccount(creator);
 
             ValidatePaymentReceipt(APP_ID, creator, totalAmount, receiptId);
 
@@ -240,22 +238,22 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger RequestRng(BigInteger envelopeId, BigInteger packetCount)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
 
             ByteString payload = StdLib.Serialize(new object[] { envelopeId, packetCount });
             return (BigInteger)Contract.Call(
-                gateway, "requestService", CallFlags.All,
-                APP_ID, "rng", payload,
-                Runtime.ExecutingScriptHash, "onServiceCallback"
+                oracle, "request", CallFlags.All,
+                "rng", payload,
+                Runtime.ExecutingScriptHash, "onOracleResult"
             );
         }
 
-        public static void OnServiceCallback(
-            BigInteger requestId, string appId, string serviceType,
+        public static void OnOracleResult(
+            BigInteger requestId, string requestType,
             bool success, ByteString result, string error)
         {
-            ValidateGateway();
+            ValidateOracle();
 
             ByteString envelopeIdData = Storage.Get(Storage.CurrentContext,
                 Helper.Concat(PREFIX_REQUEST_TO_ENVELOPE, (ByteString)requestId.ToByteArray()));

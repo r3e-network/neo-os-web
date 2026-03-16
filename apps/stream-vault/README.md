@@ -1,16 +1,14 @@
-# NeoPay — Streaming Payments on Autopilot
+# NeoPay — On-Chain Recurring Payment Streams
 
-> Set up payroll, subscriptions, or recurring payments that execute automatically on-chain. Private, programmable, and unstoppable.
+> Create recurring GAS or NEO payment streams. Funds lock on-chain, release over time, and beneficiaries claim when available.
 
 ## What is NeoPay?
 
-NeoPay is a streaming payment protocol that brings the power of programmable money to everyday use cases. Set up a payment stream — for payroll, subscriptions, memberships, or any recurring obligation — and funds flow automatically from sender to recipient on a configurable schedule. Once created, streams execute trustlessly on-chain without any manual intervention.
+NeoPay is a streaming payment protocol that brings the power of programmable money to everyday use cases. Set up a payment stream for payroll, subscriptions, memberships, treasury allowances, or any recurring obligation, and funds unlock on a configurable schedule.
 
-Think of it as the Web3 equivalent of direct deposit or auto-pay subscriptions, but with blockchain guarantees: funds are locked in a smart contract, released on schedule, and claimable by the beneficiary at any time. The sender retains the ability to cancel and reclaim unreleased funds, while the beneficiary has full assurance that released funds cannot be revoked.
+Think of it as the Web3 equivalent of a programmable vesting or subscription vault: funds are locked in a smart contract, released on schedule, and claimable by the beneficiary at any time. The sender retains the ability to cancel and reclaim unreleased funds, while the beneficiary has full assurance that released funds cannot be revoked.
 
-NeoPay leverages three cutting-edge Neo service layer technologies. AA Hooks enable automatic scheduled payment execution without the sender being online. NeoDID provides identity verification for payroll scenarios — employers verify employee identities before streaming salaries. TEE processes sensitive payroll details privately, with only aggregated transfer amounts visible on-chain.
-
-> **Note**: NeoPay is currently in development. Smart contract deployment is pending.
+> **Current status**: the `MiniAppStreamVault` smart contract is deployed on testnet and matches the current frontend ABI. Mainnet deployment is still pending.
 
 ## How to Use
 
@@ -25,14 +23,12 @@ NeoPay leverages three cutting-edge Neo service layer technologies. AA Hooks ena
 
 ## Key Features
 
-- **Programmable Payments**: Define total amount, release rate, and interval. Payments execute automatically.
+- **Programmable Payments**: Define total amount, release rate, and interval.
 - **Dual Dashboard**: Creators see streams they've set up; beneficiaries see streams paying them. Both views in one interface.
 - **Multi-Asset Support**: Stream GAS or NEO — both supported natively.
 - **Cancel & Reclaim**: Creators can cancel streams at any time to recover unreleased funds.
 - **Claim Anytime**: Beneficiaries claim released funds whenever convenient — no fixed claim windows.
-- **Privacy via TEE**: Sensitive payroll details (individual salaries) are processed in TEE — only aggregated totals appear on-chain.
-- **Identity Verification**: NeoDID ensures beneficiary identity for compliance-sensitive payroll scenarios.
-- **Auto-Execution**: AA Hooks trigger scheduled payments automatically — no sender action needed after creation.
+- **On-Chain Schedule**: Release logic is stored and enforced directly by the contract.
 
 ## Use Cases
 
@@ -54,13 +50,12 @@ NeoPay leverages three cutting-edge Neo service layer technologies. AA Hooks ena
 | **Blockchain**       | Neo N3                                  |
 | **Supported Assets** | GAS, NEO                                |
 | **Interval Range**   | 1–365 days                              |
-| **Status**           | Development (contract not yet deployed) |
+| **Status**           | Testnet deployed, mainnet pending        |
 
-### Service Layer Technologies
+### Current Boundary
 
-- **AA Hooks (Account Abstraction)**: Automated payment hooks execute scheduled releases without the sender needing to be online. Once a stream is created, AA Hooks handle the recurring execution.
-- **NeoDID (Decentralized Identity)**: Employee and subscriber identity verification. Employers can require NeoDID verification before streaming salary payments.
-- **TEE (Trusted Execution Environment)**: Payroll details (individual amounts, recipient info) are processed inside a TEE enclave. Only aggregated transfer amounts are recorded on-chain, preserving salary privacy.
+- **Live today**: direct wallet transaction flow, on-chain stream accounting, beneficiary claims, creator cancellation.
+- **Not live yet**: AA scheduling hooks, NeoDID verification, and TEE privacy processing.
 
 ### Contract Methods
 
@@ -93,10 +88,10 @@ npm run build
 
 | Network | Address            |
 | ------- | ------------------ |
-| Testnet | _Not yet deployed_ |
+| Testnet | `0x4e4a27ae72d06d057f54d4136ed8c5176b552b16` |
 | Mainnet | _Not yet deployed_ |
 
-> Contract deployment is pending. The `neo-manifest.json` contains empty addresses until deployment is complete.
+> The current miniapp should default to testnet until a mainnet deployment is completed and verified.
 
 ## Tech Stack
 
@@ -104,9 +99,9 @@ npm run build
 | -------------- | ----------------------------------------- |
 | Frontend       | Vue 3 + TypeScript (uni-app)              |
 | Smart Contract | C# / Neo N3                               |
-| Auto-Execution | AA Hooks (Scheduled Payment Triggers)     |
-| Identity       | NeoDID (Employee/Subscriber Verification) |
-| Privacy        | TEE (Private Payroll Processing)          |
+| Asset Support  | GAS / NEO                                 |
+| Release Logic  | On-chain vesting schedule                 |
+| Payment        | Direct wallet invocation                  |
 
 ## License
 

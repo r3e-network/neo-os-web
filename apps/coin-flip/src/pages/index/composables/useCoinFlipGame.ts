@@ -1,51 +1,29 @@
 import { ref, computed } from "vue";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { formatNum, sleep, toFixed8 } from "@shared/utils/format";
-import { sha256Hex, sha256HexFromHex } from "@shared/utils/hash";
 import { parseStackItem } from "@shared/utils/neo";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { useGameState } from "@shared/composables/useGameState";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { waitForEventByTransaction } from "@shared/utils/transaction";
+import { useEvents } from "@shared/utils/wallet-sdk";
 import { audioManager } from "../../../utils/audio";
 import type { GameResult } from "../components/CoinArena.vue";
 
 const APP_ID = "miniapp-coinflip";
-const SCRIPT_NAME = "flip-coin";
 const MAX_BET = 100;
 const MIN_BET = 0.05;
 
-const hexToBigInt = (hex: string): bigint => {
-  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
-  return BigInt("0x" + cleanHex);
-};
-
-const hashSeed = async (seed: string): Promise<string> => {
-  const raw = String(seed ?? "").trim();
-  const cleaned = raw.replace(/^0x/i, "");
-  const isHex = cleaned.length > 0 && /^[0-9a-fA-F]+$/.test(cleaned);
-  return isHex ? sha256HexFromHex(cleaned) : sha256Hex(raw);
-};
-
-const simulateCoinFlip = async (
-  seed: string,
-  playerChoice: boolean,
-): Promise<{ won: boolean; outcome: "heads" | "tails" }> => {
-  const hashHex = await hashSeed(seed);
-  const rand = hexToBigInt(hashHex);
-  const resultFlip = rand % BigInt(2) === BigInt(0);
-  const won = resultFlip === playerChoice;
-  const outcome = resultFlip ? "heads" : "tails";
-  return { won, outcome };
-};
-
 export function useCoinFlipGame(wallet: WalletSDK, t: (key: string) => string) {
-  const { address, ensureWallet, read, invoke, invokeDirectly } = useContractInteraction({ appId: APP_ID, t, wallet });
+  const { address, ensureWallet, ensureContractAddress } = useContractInteraction({ appId: APP_ID, t, wallet });
   const { handleError, canRetry, clearError } = useErrorHandler();
   const { status: errorStatus, setStatus: setErrorStatus } = useStatusMessage(5000);
   const { wins, losses, totalGames, recordWin, recordLoss } = useGameState();
+  const { processPayment } = usePaymentFlow(APP_ID);
+  const { list: listEvents } = useEvents();
 
   const betAmount = ref("1");
   const choice = ref<"heads" | "tails">("heads");
@@ -55,7 +33,6 @@ export function useCoinFlipGame(wallet: WalletSDK, t: (key: string) => string) {
   const displayOutcome = ref<"heads" | "tails" | null>(null);
   const showWinOverlay = ref(false);
   const winAmount = ref("0");
-  const flipScriptHash = ref<string | null>(null);
   const errorMessage = computed(() => errorStatus.value?.msg ?? null);
   const validationError = ref<string | null>(null);
   const canRetryError = ref(false);
@@ -74,28 +51,6 @@ export function useCoinFlipGame(wallet: WalletSDK, t: (key: string) => string) {
     const n = parseFloat(betAmount.value);
     return n >= MIN_BET && n <= MAX_BET && !validationError.value;
   });
-
-  const ensureScriptHash = async () => {
-    if (flipScriptHash.value) return flipScriptHash.value;
-
-    try {
-      const parsed = await read("getFlipScriptInfo");
-      let hash = "";
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        hash = String((parsed as Record<string, unknown>).hash ?? "");
-      }
-      if (!hash) {
-        const parsedDirect = await read("getScriptHash", [{ type: "String", value: SCRIPT_NAME }]);
-        hash = Array.isArray(parsedDirect) ? String(parsedDirect[0] ?? "") : String(parsedDirect ?? "");
-      }
-      if (!hash) throw new Error(t("scriptHashMissing"));
-      flipScriptHash.value = hash.replace(/^0x/i, "");
-      return flipScriptHash.value;
-    } catch (e: unknown) {
-      handleError(e, { operation: "ensureScriptHash" });
-      throw e;
-    }
-  };
 
   const connectWallet = async () => {
     try {
@@ -152,85 +107,85 @@ export function useCoinFlipGame(wallet: WalletSDK, t: (key: string) => string) {
       const amountBase = toFixed8(betAmount.value);
       if (amountBase === "0") throw new Error(t("invalidBetAmount"));
 
-      const { txid, waitForEvent } = await invoke(
+      const contract = await ensureContractAddress();
+      const { receiptId, invoke, waitForEvent } = await processPayment(
         betAmount.value,
         `coinflip:${choice.value}:${betAmount.value}`,
-        "initiateBet",
+      );
+      if (!receiptId) throw new Error(t("betPending"));
+
+      const { txid } = await invoke(
+        "placeBet",
         [
           { type: "Hash160", value: address.value as string },
           { type: "Integer", value: amountBase },
           { type: "Boolean", value: choice.value === "heads" },
+          { type: "Integer", value: String(receiptId) },
         ],
+        contract,
       );
 
-      const initiatedEvent = await waitForEventByTransaction({ txid, receiptId: "" }, "BetInitiated", waitForEvent);
+      const initiatedEvent = await waitForEventByTransaction({ txid, receiptId: "" }, "BetPlaced", waitForEvent);
       if (!initiatedEvent) throw new Error(t("betPending"));
 
       const initiatedRecord = initiatedEvent as unknown as Record<string, unknown>;
       const initiatedValues = Array.isArray(initiatedRecord?.state)
         ? (initiatedRecord.state as unknown[]).map(parseStackItem)
         : [];
-      const betId = String(initiatedValues[1] ?? "");
-      const seed = String(initiatedValues[4] ?? "");
-      if (!betId || !seed) throw new Error(t("betMissing"));
+      const betId = String(initiatedValues[3] ?? "");
+      if (!betId) throw new Error(t("betPending"));
 
       audioManager.play("flip");
-      const playerChoice = choice.value === "heads";
-      // Client-side simulation is for DISPLAY ONLY — used to show coin animation
-      // immediately rather than waiting for on-chain settlement.
-      // The actual win/loss is determined by the smart contract using the seed.
-      // The contract verifies the result independently via the flip script hash.
-      const simulated = await simulateCoinFlip(seed, playerChoice);
+      await sleep(600);
 
-      displayOutcome.value = simulated.outcome;
-      await sleep(400);
-      isFlipping.value = false;
-      result.value = { won: simulated.won, outcome: simulated.outcome.toUpperCase() };
+      const deadline = Date.now() + 60000;
+      let resolvedEvent: Record<string, unknown> | null = null;
 
-      if (simulated.won) audioManager.play("win");
-      else audioManager.play("lose");
+      while (Date.now() < deadline) {
+        const resultEvents = await listEvents({
+          app_id: APP_ID,
+          event_name: "BetResolved",
+          limit: 20,
+        });
 
-      const scriptHash = await ensureScriptHash();
+        const match = resultEvents.events.find((evt) => {
+          const values = Array.isArray(evt.state) ? evt.state.map(parseStackItem) : [];
+          return String(values[3] ?? "") === betId;
+        });
 
-      try {
-        // NOTE: The contract's settleBet uses the scriptHash to independently
-        // verify the result from the seed. The `simulated.won` boolean passed here
-        // is the client's prediction — the contract MUST validate this against the
-        // seed and reject mismatches. If the contract does not enforce this check,
-        // it should be upgraded to derive the result server-side.
-        const { txid: settleTxid } = await invokeDirectly("settleBet", [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: betId },
-          { type: "Boolean", value: simulated.won },
-          { type: "ByteArray", value: scriptHash },
-        ]);
-
-        const resolvedEvent = await waitForEventByTransaction(
-          { txid: settleTxid, receiptId: "" },
-          "BetResolved",
-          waitForEvent,
-        );
-        if (resolvedEvent) {
-          const resolvedRecord = resolvedEvent as unknown as Record<string, unknown>;
-          const values = Array.isArray(resolvedRecord?.state)
-            ? (resolvedRecord.state as unknown[]).map(parseStackItem)
-            : [];
-          const payoutRaw = values[3];
-          const payoutValue = Number(payoutRaw || 0) / 1e8;
-
-          if (simulated.won) {
-            recordWin(payoutValue);
-            totalWon.value += payoutValue;
-            winAmount.value = payoutValue.toFixed(2);
-            showWinOverlay.value = true;
-          } else {
-            recordLoss();
-          }
+        if (match) {
+          resolvedEvent = match as unknown as Record<string, unknown>;
+          break;
         }
-      } catch (settleError: unknown) {
-        handleError(settleError, { operation: "settleBet", metadata: { betId, won: simulated.won } });
-        if (simulated.won) recordWin(0);
-        else recordLoss();
+
+        await sleep(2500);
+      }
+
+      if (!resolvedEvent) {
+        throw new Error(t("betPending"));
+      }
+
+      const values = Array.isArray(resolvedEvent.state)
+        ? (resolvedEvent.state as unknown[]).map(parseStackItem)
+        : [];
+      const payoutRaw = values[1];
+      const won = Boolean(values[2]);
+      const payoutValue = Number(payoutRaw || 0) / 1e8;
+      const outcome = won ? choice.value : choice.value === "heads" ? "tails" : "heads";
+
+      displayOutcome.value = outcome;
+      isFlipping.value = false;
+      result.value = { won, outcome: outcome.toUpperCase() };
+
+      if (won) {
+        audioManager.play("win");
+        recordWin(payoutValue);
+        totalWon.value += payoutValue;
+        winAmount.value = payoutValue.toFixed(2);
+        showWinOverlay.value = true;
+      } else {
+        audioManager.play("lose");
+        recordLoss();
       }
     } catch (e: unknown) {
       handleError(e, { operation: "flip", metadata: { betAmount: betAmount.value, choice: choice.value } });

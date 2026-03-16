@@ -33,11 +33,9 @@ namespace NeoMiniAppPlatform.Contracts
 
             // Constants for frontend calculation
             state["twentyFourHours"] = TWENTY_FOUR_HOURS_SECONDS;
-            state["firstReward"] = FIRST_REWARD;
-            state["subsequentReward"] = SUBSEQUENT_REWARD;
-            state["milestone30Bonus"] = MILESTONE_30_BONUS;
-            state["milestone100Bonus"] = MILESTONE_100_BONUS;
-            state["milestone365Bonus"] = MILESTONE_365_BONUS;
+            state["weekReward"] = FIRST_REWARD;
+            state["twoWeekReward"] = SUBSEQUENT_REWARD;
+            state["resetAfterDays"] = STREAK_RESET_DAYS;
 
             return state;
         }
@@ -54,7 +52,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger calculatedReward,
             bool calculatedStreakReset)
         {
-            ValidateGateway();
+            ValidateUserOrAbstractAccount(user);
             ValidateNotPaused();
             ValidateAddress(user);
             ValidateAndUseReceipt(receiptId);
@@ -109,7 +107,6 @@ namespace NeoMiniAppPlatform.Contracts
                 SetUserUnclaimed(user, unclaimed + calculatedReward);
             }
 
-            SetUserStreak(user, calculatedNewStreak);
             SetUserLastCheckin(user, currentDay);
 
             BigInteger userCheckins = GetUserCheckins(user);
@@ -127,6 +124,12 @@ namespace NeoMiniAppPlatform.Contracts
             }
             IncrementTotalCheckins();
 
+            CheckMilestones(user, calculatedNewStreak);
+            CheckBadges(user, calculatedNewStreak, isNewUser);
+
+            BigInteger storedStreak = calculatedNewStreak >= STREAK_RESET_DAYS ? 0 : calculatedNewStreak;
+            SetUserStreak(user, storedStreak);
+
             BigInteger nextEligible = (currentDay + 1) * TWENTY_FOUR_HOURS_SECONDS;
             OnCheckedIn(user, calculatedNewStreak, calculatedReward, nextEligible);
         }
@@ -139,7 +142,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             if (streak < 7) return 0;
             if (streak == 7) return FIRST_REWARD;
-            if (streak % 7 == 0) return SUBSEQUENT_REWARD;
+            if (streak == STREAK_RESET_DAYS) return SUBSEQUENT_REWARD;
             return 0;
         }
 

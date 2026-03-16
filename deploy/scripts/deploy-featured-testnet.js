@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * Deploy featured miniapp contracts to Neo N3 Testnet.
- * Based on proven red-envelope/scripts/deploy-new.js pattern.
+ * Redeploy flagship miniapp contracts to Neo N3 Testnet.
  * Usage: DEPLOYER_WIF=... node deploy/scripts/deploy-featured-testnet.js
  */
 const fs = require("fs");
@@ -20,12 +19,21 @@ if (!DEPLOYER_WIF) {
 
 const deployer = new Neon.wallet.Account(DEPLOYER_WIF);
 const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+const TARGET_FILTER = new Set(
+  String(process.env.FEATURED_TARGETS || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean),
+);
 
 const CONTRACTS = [
   { name: "MiniAppDoomsdayClock", appDir: "doomsday-clock", displayName: "LastSurvivor" },
   { name: "MiniAppNeoGacha", appDir: "neo-gacha", displayName: "GASBOX" },
+  { name: "MiniAppRedEnvelope", appDir: "red-envelope", displayName: "Red Envelope" },
   { name: "MiniAppDailyCheckin", appDir: "daily-checkin", displayName: "Daily Check-in" },
+  { name: "MiniAppCoinFlip", appDir: "coin-flip", displayName: "FogPlay" },
   { name: "MiniAppSelfLoan", appDir: "self-loan", displayName: "SelfLoan" },
+  { name: "MiniAppStreamVault", appDir: "stream-vault", displayName: "NeoPay" },
 ];
 
 function sleep(ms) {
@@ -56,8 +64,8 @@ async function waitForTx(txid, maxMs = 120000) {
 }
 
 async function deployContract(contract) {
-  const nefPath = path.resolve(__dirname, `../contracts/build/${contract.name}.nef`);
-  const manifestPath = path.resolve(__dirname, `../contracts/build/${contract.name}.manifest.json`);
+  const nefPath = path.resolve(__dirname, `../../contracts/build/${contract.name}.nef`);
+  const manifestPath = path.resolve(__dirname, `../../contracts/build/${contract.name}.manifest.json`);
 
   if (!fs.existsSync(nefPath) || !fs.existsSync(manifestPath)) {
     console.error(`  ❌ Missing .nef or .manifest.json for ${contract.name}`);
@@ -138,13 +146,19 @@ async function deployContract(contract) {
 }
 
 async function main() {
-  console.log("\n🚀 Deploying featured contracts to Neo N3 Testnet");
+  console.log("\n🚀 Redeploying flagship contracts to Neo N3 Testnet");
   console.log(`   Deployer: ${deployer.address}`);
   console.log(`   RPC: ${RPC_URL}\n`);
 
   const results = {};
 
-  for (const contract of CONTRACTS) {
+  const selectedContracts = TARGET_FILTER.size
+    ? CONTRACTS.filter((contract) =>
+        [contract.displayName, contract.appDir, contract.name].some((value) => TARGET_FILTER.has(String(value).toLowerCase())),
+      )
+    : CONTRACTS;
+
+  for (const contract of selectedContracts) {
     console.log(`\n━━━ ${contract.displayName} (${contract.name}) ━━━`);
     try {
       const hash = await deployContract(contract);
@@ -161,7 +175,7 @@ async function main() {
   // Update manifests
   console.log("\n\n📋 Updating manifests...");
   for (const [appDir, hash] of Object.entries(results)) {
-    const manifestPath = path.resolve(__dirname, `../miniapps/apps/${appDir}/neo-manifest.json`);
+    const manifestPath = path.resolve(__dirname, `../../apps/${appDir}/neo-manifest.json`);
     if (fs.existsSync(manifestPath)) {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
       manifest.contracts["neo-n3-testnet"] = hash;

@@ -9,7 +9,7 @@ const appMessages = {
   vaultNamePlaceholder: { en: "Monthly payroll stream", zh: "每月工资流" },
   beneficiary: { en: "Beneficiary address", zh: "受益人地址" },
   beneficiaryPlaceholder: { en: "Enter Neo N3 address", zh: "输入 Neo N3 地址" },
-  assetType: { en: "Asset (GAS only)", zh: "资产（仅 GAS）" },
+  assetType: { en: "Asset", zh: "资产" },
   assetNeo: { en: "NEO", zh: "NEO" },
   assetGas: { en: "GAS", zh: "GAS" },
   totalAmount: { en: "Total amount", zh: "总金额" },
@@ -54,12 +54,12 @@ const appMessages = {
   cancelling: { en: "Cancelling...", zh: "取消中..." },
 
   docSubtitle: {
-    en: "Scheduled releases for payrolls and subscriptions",
-    zh: "用于工资与订阅的定期释放",
+    en: "Scheduled releases for payrolls, subscriptions, and allowances",
+    zh: "用于工资、订阅与津贴的定期释放",
   },
   docDescription: {
-    en: "Stream Vault locks GAS and stores a release schedule on-chain. Claimable amounts accrue per interval, letting beneficiaries claim over time while creators can cancel and recover unvested funds.",
-    zh: "流式金库锁定 GAS，并将释放计划上链。可领取金额按周期累积，受益人按期领取，创建者可取消并收回未释放的余额。",
+    en: "Stream Vault locks GAS or NEO and stores a release schedule on-chain. Claimable amounts accrue per interval, letting beneficiaries claim over time while creators can cancel and recover unvested funds.",
+    zh: "流式金库会锁定 GAS 或 NEO，并将释放计划上链。可领取金额按周期累积，受益人按期领取，创建者可取消并收回未释放的余额。",
   },
   step1: {
     en: "Create a vault with beneficiary, asset, total, and interval.",

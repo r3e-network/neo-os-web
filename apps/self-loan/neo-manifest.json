@@ -23,13 +23,13 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x942da575b31f39cbb59e64b5813b128739b44c25",
-    "neo-n3-testnet": "0x46bf67c133f4206e13cbacb53d91c2c493d8755a"
+    "neo-n3-testnet": "0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b"
   },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/self-loan/index.html",
     "icon": "/miniapps/self-loan/logo.jpg",
@@ -46,7 +46,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-mainnet",
+    "chain": "neo-n3-testnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -58,7 +58,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-15T00:00:00Z",
+  "updatedAt": "2026-03-16T00:00:00Z",
   "featured": true,
   "featured_order": 1,
   "technologies": {

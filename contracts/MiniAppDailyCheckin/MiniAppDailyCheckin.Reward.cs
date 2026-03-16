@@ -11,7 +11,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             if (streak < 7) return 0;
             if (streak == 7) return FIRST_REWARD;
-            if (streak % 7 == 0) return SUBSEQUENT_REWARD;
+            if (streak == STREAK_RESET_DAYS) return SUBSEQUENT_REWARD;
             return 0;
         }
 

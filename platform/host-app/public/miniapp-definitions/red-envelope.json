@@ -1,25 +1,31 @@
 {
   "$schema": "./miniapp-config.schema.json",
-  "app_id": "red-envelope",
+  "app_id": "miniapp-redenvelope",
   "name": "Red Envelope",
-  "description": "Send and receive red envelopes (hongbao) filled with GAS. A fun way to share wealth on special occasions.",
-  "template_type": "tipping",
+  "description": "Create equal-split or lucky-draw GAS envelopes, protect them with share codes, and track claims on-chain.",
+  "template_type": "social",
   "category": "Social",
-  "tags": ["red-envelope", "hongbao", "tipping", "social", "gift"],
-  "version": "1.0.0",
+  "tags": [
+    "red-envelope",
+    "hongbao",
+    "viral",
+    "sharing",
+    "gift"
+  ],
+  "version": "2.0.0",
   "status": "active",
   "developer": {
-    "name": "Neo MiniApp Platform",
+    "name": "R3E Network",
     "url": "https://r3e.network"
   },
   "contract": {
-    "template_id": "tipping-red-envelope",
-    "contract_hash": "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
+    "template_id": "social-red-envelope",
+    "contract_hash": "0xa28379b2e0a608053458d435acd7041fc4a0fded"
   },
-  "entry_url": "https://red-envelope.r3e.network",
+  "entry_url": "mf://manifest?app=miniapp-redenvelope",
   "media": {
-    "icon": "/miniapp-assets/red-envelope/icon.png",
-    "banner": "/miniapp-assets/red-envelope/banner.png"
+    "icon": "/miniapps/red-envelope/logo.jpg",
+    "banner": "/miniapps/red-envelope/banner.jpg"
   },
   "permissions": {
     "payments": true
@@ -27,51 +33,18 @@
   "frontend_spec": {
     "layout": "default",
     "hero": {
-      "eyebrow": "Red Envelope",
-      "disclaimer": "Red envelopes are final and cannot be reclaimed once claimed by recipients."
+      "eyebrow": "Red Envelope"
     },
     "tabs": [
       {
-        "id": "how-it-works",
-        "label": "How It Works",
-        "type": "content",
-        "blocks": [
-          {
-            "type": "bullet_list",
-            "title": "Creating a Red Envelope",
-            "items": [
-              "Set the total amount of GAS to share",
-              "Choose how many people can claim",
-              "Share the envelope link or code",
-              "Recipients claim their share randomly"
-            ]
-          },
-          {
-            "type": "key_value",
-            "title": "Envelope Types",
-            "items": [
-              { "key": "Random", "value": "Amount varies per claim" },
-              { "key": "Fixed", "value": "Same amount for everyone" },
-              { "key": "Lucky", "value": "One person gets the full amount" }
-            ]
-          },
-          {
-            "type": "markdown",
-            "title": "Cultural Significance",
-            "content": "## Red Envelopes (Hongbao)\n\nIn Chinese culture, red envelopes symbolize good luck and are traditionally given during holidays and special occasions. This on-chain version brings the tradition to the blockchain!"
-          }
-        ]
+        "id": "overview",
+        "label": "Overview",
+        "type": "content"
       },
       {
-        "id": "my-envelopes",
-        "label": "My Envelopes",
-        "type": "content",
-        "blocks": [
-          {
-            "type": "markdown",
-            "content": "View all red envelopes you've sent and received."
-          }
-        ]
+        "id": "claims",
+        "label": "Claims",
+        "type": "content"
       },
       {
         "id": "reviews",
@@ -80,81 +53,59 @@
       }
     ],
     "operation_panel": {
-      "title": "Create Red Envelope",
-      "subtitle": "Share GAS with friends and family.",
-      "cta_label": "View My Envelopes",
-      "operations": [
+      "title": "Create Envelope",
+      "subtitle": "Create social gifting links and manage claims directly on-chain.",
+      "cta_label": "Open Red Envelope",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Create Envelope",
+      "method": "createEnvelope",
+      "button_style": "primary",
+      "params": [
         {
-          "name": "Create Random",
-          "method": "createRandom",
-          "description": "Random amounts for each claimant",
-          "button_style": "primary",
-          "gas_cost": "~0.3 GAS",
-          "params": [
-            {
-              "name": "totalAmount",
-              "type": "amount",
-              "label": "Total Amount (GAS)",
-              "required": true,
-              "placeholder": "100.0"
-            },
-            {
-              "name": "claimCount",
-              "type": "integer",
-              "label": "Number of Claims",
-              "required": true,
-              "placeholder": "10"
-            }
-          ]
+          "name": "totalAmount",
+          "type": "amount",
+          "label": "Total Amount (GAS)",
+          "required": true,
+          "placeholder": "10"
         },
         {
-          "name": "Create Fixed",
-          "method": "createFixed",
-          "description": "Same amount for everyone",
-          "button_style": "secondary",
-          "gas_cost": "~0.3 GAS",
-          "params": [
-            {
-              "name": "amountPerClaim",
-              "type": "amount",
-              "label": "Amount Per Claim (GAS)",
-              "required": true,
-              "placeholder": "10.0"
-            },
-            {
-              "name": "claimCount",
-              "type": "integer",
-              "label": "Number of Claims",
-              "required": true,
-              "placeholder": "10"
-            }
-          ]
-        },
+          "name": "packetCount",
+          "type": "integer",
+          "label": "Packet Count",
+          "required": true,
+          "placeholder": "10"
+        }
+      ]
+    },
+    {
+      "name": "Claim",
+      "method": "claim",
+      "button_style": "secondary",
+      "params": [
         {
-          "name": "Claim",
-          "method": "claim",
-          "description": "Claim a red envelope",
-          "button_style": "primary",
-          "gas_cost": "~0.2 GAS",
-          "params": [
-            {
-              "name": "envelopeId",
-              "type": "string",
-              "label": "Envelope ID or Code",
-              "required": true,
-              "placeholder": "Enter code..."
-            }
-          ]
+          "name": "envelopeId",
+          "type": "string",
+          "label": "Envelope ID",
+          "required": true,
+          "placeholder": "Enter code"
         }
       ]
     }
-  },
+  ],
   "integration": {
-    "news_integration": false,
+    "news_integration": true,
     "reviews_enabled": true,
     "forum_enabled": false,
     "activity_feed": true,
-    "stats_display": ["total_transactions", "total_gas_used"]
+    "stats_display": [
+      "total_transactions",
+      "daily_active_users",
+      "total_gas_used"
+    ]
   },
   "docs_url": "https://docs.r3e.network/red-envelope"
 }

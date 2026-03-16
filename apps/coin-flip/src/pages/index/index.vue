@@ -147,6 +147,7 @@ const {
   retryOperation,
   handleFlip,
 } = useCoinFlipGame(wallet, t);
+
 const appState = computed(() => ({
   totalGames: wins.value + losses.value,
   wins: wins.value,

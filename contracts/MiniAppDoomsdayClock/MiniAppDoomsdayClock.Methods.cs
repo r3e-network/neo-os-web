@@ -21,9 +21,7 @@ namespace NeoMiniAppPlatform.Contracts
             Round round = GetRound(roundId);
             ExecutionEngine.Assert(round.Active, "no active round");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
+            ValidateUserOrAbstractAccount(player);
 
             // Check if round ended
             if (Runtime.Time >= round.EndTime)

@@ -42,6 +42,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static void ValidateScriptHash(string scriptName, ByteString scriptHash) =>
             GameComputeAccessor.EnsureScriptHash(scriptName, scriptHash);
 
+        private static ByteString GetRegisteredScriptHash(string scriptName) =>
+            MiniAppComputeBase.GetScriptHash(scriptName);
+
         private static void DeleteOperationSeed(BigInteger operationId) =>
             GameComputeAccessor.ClearSeed(operationId);
     }
