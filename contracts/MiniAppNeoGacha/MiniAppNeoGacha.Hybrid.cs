@@ -68,6 +68,10 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Phase 1: Initiate play with frontend-calculated available weight.
         /// Uses MiniAppComputeBase script registration for verification.
+        ///
+        /// NOTE:
+        /// - the live flow consumes direct prepaid GAS credit already held by the contract
+        /// - receiptId is retained only for ABI compatibility with older wrappers
         /// Returns: [playId, seed, scriptName]
         /// </summary>
         public static object[] InitiatePlayOptimized(
@@ -137,6 +141,10 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Phase 2: Settle play with secure on-chain verification.
         /// Contract verifies script hash and re-calculates selection deterministically.
+        ///
+        /// LIVE TESTNET GUARANTEE:
+        /// - the selected prize is re-derived from the stored seed on-chain
+        /// - settlement does not trust the frontend-provided choice beyond matching the expected index
         /// </summary>
         public static void SettlePlayOptimized(
             UInt160 player,
