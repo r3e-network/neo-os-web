@@ -9,6 +9,7 @@ import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 export type { StatusType, StatusMessage as Status } from "@shared/composables/useStatusMessage";
 export type Terms = { ltvPercent: number; minDurationHours: number };
@@ -99,8 +100,7 @@ export function useSelfLoanCore() {
 
   const healthFactor = computed(() => {
     if (loan.value.borrowed === 0) return 999;
-    const ltvPercent = loan.value.ltvPercent ?? selectedLtvPercent.value;
-    return (loan.value.collateralLocked * (ltvPercent / 100)) / loan.value.borrowed;
+    return loan.value.collateralLocked / loan.value.borrowed;
   });
 
   const currentLTV = computed(() => {
@@ -222,6 +222,19 @@ export function useSelfLoanCore() {
 
     try {
       const selfLoanAddress = await ensureContractAddress();
+
+      await invokeContract({
+        scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH,
+        operation: "transfer",
+        args: [
+          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: selfLoanAddress },
+          { type: "Integer", value: collateral },
+          { type: "String", value: `${APP_ID}:collateral` },
+        ],
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
 
       await invokeContract({
         scriptHash: selfLoanAddress,
