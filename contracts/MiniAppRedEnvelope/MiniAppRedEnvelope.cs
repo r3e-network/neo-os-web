@@ -24,9 +24,10 @@ namespace NeoMiniAppPlatform.Contracts
     /// <summary>
     /// RedEnvelope MiniApp - WeChat-style random GAS red packets with RNG oracle.
     ///
-    /// ARCHITECTURE (Chainlink-style):
-    /// - Creator creates envelope via CreateEnvelope
-    /// - Contract requests RNG to pre-generate random amounts
+    /// CURRENT LIVE FLOW:
+    /// - creator prepays GAS directly to this contract
+    /// - contract requests RNG to pre-generate random amounts
+    /// - callback contract must also have prepaid Oracle request fee credit
     /// - Claimers call Claim → Contract assigns pre-computed amount
     ///
     /// MECHANICS:
@@ -112,7 +113,11 @@ namespace NeoMiniAppPlatform.Contracts
         #region User-Facing Methods
 
         /// <summary>
-        /// Create a new red envelope with RNG-generated amounts.
+        /// Create a new red envelope with RNG-generated amounts from direct prepaid GAS credit.
+        ///
+        /// NOTE:
+        /// - receiptId remains in the ABI for compatibility, but the live flow consumes direct
+        ///   GAS credit recorded by OnNEP17Payment
         /// </summary>
         public static BigInteger CreateEnvelope(UInt160 creator, BigInteger totalAmount, BigInteger packetCount, BigInteger expiryDurationMs, BigInteger receiptId)
         {

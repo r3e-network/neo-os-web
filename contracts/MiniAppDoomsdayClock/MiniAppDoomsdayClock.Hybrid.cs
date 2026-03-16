@@ -36,9 +36,13 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
-        /// Buy keys with pre-calculated cost from frontend.
-        /// Frontend calculates cost using CalculateKeyCostFormula, submits with payment.
-        /// Contract verifies cost matches formula.
+        /// Buy keys with frontend-calculated pricing plus a real PaymentHub receipt.
+        ///
+        /// LIVE TESTNET FLOW:
+        /// - frontend calculates the exact key cost with CalculateKeyCostFormula
+        /// - wallet prepays that amount into PaymentHub
+        /// - frontend passes the resulting numeric receiptId here
+        /// - contract rechecks the formula and validates the PaymentHub receipt
         /// </summary>
         public static void BuyKeysWithCost(
             UInt160 player,
