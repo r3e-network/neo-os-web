@@ -103,7 +103,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUserOrAbstractAccount(player);
 
             ValidateGameBetLimits(player, machine.Price);
-            ValidatePaymentReceipt(APP_ID, player, machine.Price, receiptId);
+            ConsumeDirectGasCredit(player, machine.Price);
 
             BigInteger playId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_PLAY_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_PLAY_ID, playId);
@@ -129,9 +129,9 @@ namespace NeoMiniAppPlatform.Contracts
 
             RecordGameBet(player, machine.Price);
 
-            OnPlayInitiated(player, machineId, playId, (string)seed);
+            OnPlayInitiated(player, machineId, playId, seed);
 
-            return new object[] { playId, (string)seed, SCRIPT_SELECT_ITEM };
+            return new object[] { playId, seed, SCRIPT_SELECT_ITEM };
         }
 
         /// <summary>
@@ -150,40 +150,47 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateScriptHash(SCRIPT_SELECT_ITEM, scriptHash);
 
             PlayData play = LoadPlay(playId);
-            ExecutionEngine.Assert(play.Player != UInt160.Zero, "play not found");
+            UInt160 playOwner = play.Player;
+            BigInteger machineId = play.MachineId;
+            BigInteger playPrice = play.Price;
+            BigInteger playTimestamp = play.Timestamp;
+            bool playHybridMode = play.HybridMode;
+            ByteString seed = play.Seed;
+
+            ExecutionEngine.Assert(playOwner != UInt160.Zero, "play not found");
             ExecutionEngine.Assert(!play.Resolved, "already resolved");
-            ExecutionEngine.Assert(play.HybridMode, "not hybrid mode");
-            ExecutionEngine.Assert(play.Player == player, "not play owner");
+            ExecutionEngine.Assert(playHybridMode, "not hybrid mode");
+            ExecutionEngine.Assert(playOwner == player, "not play owner");
 
-            ValidateUserOrAbstractAccount(player);
+            ValidateUserOrAbstractAccount(playOwner);
 
-            MachineData machine = LoadMachine(play.MachineId);
+            MachineData machine = LoadMachine(machineId);
             ExecutionEngine.Assert(machine.Creator != UInt160.Zero, "machine not found");
 
             // Secure Verification: Re-calculate selection on-chain
             // This iterates O(N) where N <= 100, which is safe for Neo N3.
-            BigInteger expectedIndex = CalculateExpectedSelection(play.Seed, play.MachineId, machine.ItemCount);
+            if (seed == null)
+            {
+                seed = GetStoredOperationSeed(playId);
+            }
+            ByteString verifiedSeed = RequireByteString(seed, "seed missing");
+            BigInteger expectedIndex = CalculateExpectedSelection(verifiedSeed, machineId, machine.ItemCount);
             
             // If expectedIndex is 0, it means something went wrong (e.g. no inventory), but the script claiming a specific index should fail.
             // If the user claims index 0 (refund), and expected is 0, then good.
             ExecutionEngine.Assert(selectedIndex == expectedIndex, "selection mismatch");
+            BigInteger resolvedIndex = expectedIndex;
 
             // If selection is 0 (failure/refund case), handle graceful exit (optional, here we assume selection must be valid for specific item)
             // But if expectedIndex is 0 (no items available despite check in Initiate), then selectedIndex must be 0.
             
-            if (selectedIndex == 0)
+            if (resolvedIndex == 0)
             {
-                // Refund logic could go here, or just fail assertion above if selectedIndex provided by user was > 0
-                // For now, assuming success path. If expectedIndex == 0, we can't award anything.
-                // Resolving as failure.
-                play.Resolved = true;
-                StorePlay(playId, play);
-                DeleteOperationSeed(playId);
-                 OnPlayResolved(play.Player, play.MachineId, 0, playId, 0, UInt160.Zero, 0, "");
+                ResolveEmptyPlay(playId, ref play);
                 return;
             }
 
-            ItemData selectedItem = LoadItem(play.MachineId, selectedIndex);
+            ItemData selectedItem = LoadItem(machineId, resolvedIndex);
             ExecutionEngine.Assert(IsItemAvailable(selectedItem), "item out of stock");
 
             // Execute transfer
@@ -192,41 +199,65 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (selectedItem.AssetType == ASSET_NEP17)
             {
-                ExecutionEngine.Assert(selectedItem.Stock >= selectedItem.Amount, "insufficient stock");
-                bool ok = (bool)Contract.Call(selectedItem.AssetHash, "transfer", CallFlags.All,
-                    Runtime.ExecutingScriptHash, play.Player, selectedItem.Amount, null);
-                ExecutionEngine.Assert(ok, "transfer failed");
-                selectedItem.Stock -= selectedItem.Amount;
-                awardedAmount = selectedItem.Amount;
+                awardedAmount = TransferNep17Prize(playOwner, ref selectedItem);
             }
             else if (selectedItem.AssetType == ASSET_NEP11)
             {
-                ExecutionEngine.Assert(selectedItem.TokenCount > 0, "no tokens");
-                awardedTokenId = RemoveItemToken(play.MachineId, selectedIndex, ref selectedItem, "");
-                bool ok = (bool)Contract.Call(selectedItem.AssetHash, "transfer", CallFlags.All,
-                    Runtime.ExecutingScriptHash, play.Player, awardedTokenId, null);
-                ExecutionEngine.Assert(ok, "transfer failed");
+                awardedTokenId = TransferNep11Prize(playOwner, machineId, resolvedIndex, ref selectedItem);
             }
 
-            StoreItem(play.MachineId, selectedIndex, selectedItem);
+            ItemData settledItem = new ItemData
+            {
+                Name = selectedItem.Name,
+                Weight = selectedItem.Weight,
+                Rarity = selectedItem.Rarity,
+                AssetType = selectedItem.AssetType,
+                AssetHash = selectedItem.AssetHash,
+                Amount = selectedItem.Amount,
+                TokenId = selectedItem.TokenId == null ? "" : selectedItem.TokenId,
+                Stock = selectedItem.Stock,
+                TokenCount = selectedItem.TokenCount,
+                Decimals = selectedItem.Decimals
+            };
+            StoreItem(machineId, resolvedIndex, settledItem);
 
-            // Update play state
-            play.ItemIndex = selectedIndex;
-            play.Resolved = true;
-            StorePlay(playId, play);
+            byte[] playKey = GetPlayKey(playId);
+            Storage.Put(Storage.CurrentContext, Helper.Concat(playKey, PLAY_FIELD_PLAYER), playOwner);
+            Storage.Put(Storage.CurrentContext, Helper.Concat(playKey, PLAY_FIELD_MACHINE_ID), machineId);
+            Storage.Put(Storage.CurrentContext, Helper.Concat(playKey, PLAY_FIELD_ITEM_INDEX), resolvedIndex);
+            Storage.Put(Storage.CurrentContext, Helper.Concat(playKey, PLAY_FIELD_PRICE), playPrice);
+            Storage.Put(Storage.CurrentContext, Helper.Concat(playKey, PLAY_FIELD_TIMESTAMP), playTimestamp);
+            PutBool(playKey, PLAY_FIELD_RESOLVED, true);
+            Storage.Delete(Storage.CurrentContext, Helper.Concat(playKey, PLAY_FIELD_SEED));
+            PutBool(playKey, PLAY_FIELD_HYBRID_MODE, playHybridMode);
 
-            // Update machine stats
-            machine.Plays = machine.Plays + 1;
-            machine.Revenue = machine.Revenue + play.Price;
-            machine.LastPlayedAt = Runtime.Time;
-            StoreMachine(play.MachineId, machine);
+            MachineData updatedMachine = new MachineData
+            {
+                Creator = machine.Creator,
+                Owner = machine.Owner,
+                Name = machine.Name,
+                Description = machine.Description,
+                Category = machine.Category,
+                Tags = machine.Tags,
+                Price = machine.Price,
+                ItemCount = machine.ItemCount,
+                TotalWeight = machine.TotalWeight,
+                Plays = machine.Plays + 1,
+                Revenue = machine.Revenue + playPrice,
+                Sales = machine.Sales,
+                SalesVolume = machine.SalesVolume,
+                CreatedAt = machine.CreatedAt,
+                LastPlayedAt = Runtime.Time,
+                Active = machine.Active,
+                Listed = machine.Listed,
+                Banned = machine.Banned,
+                Locked = machine.Locked,
+                SalePrice = machine.SalePrice
+            };
+            StoreMachine(machineId, updatedMachine);
 
-            // Clean up stored weight and operation seed
-            // DeletePlayAvailableWeight(playId); // Removed as we don't store it anymore
             DeleteOperationSeed(playId);
-
-            OnPlayResolved(play.Player, play.MachineId, selectedIndex, playId,
-                selectedItem.AssetType, selectedItem.AssetHash, awardedAmount, awardedTokenId);
+            EmitResolvedPlay(playOwner, machineId, playId, resolvedIndex, settledItem, awardedAmount, awardedTokenId);
         }
 
         /// <summary>

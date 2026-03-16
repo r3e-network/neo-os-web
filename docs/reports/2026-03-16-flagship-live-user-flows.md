@@ -6,6 +6,7 @@ This report captures real Neo N3 testnet user-flow execution for the currently
 verified flagship paths:
 
 - Daily Check-in
+- GASBOX
 - FogPlay
 - Red Envelope
 - SelfLoan
@@ -19,6 +20,7 @@ All actions below were executed with the shared testnet account:
 | App | Testnet Contract |
 | --- | --- |
 | Daily Check-in | `0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528` |
+| GASBOX | `0x523c112560a2e196fa0fcfa215d93c08e117d9c1` |
 | FogPlay | `0x43f953c00931ca38044bf0e5ca50d608aea7ae8b` |
 | Red Envelope | `0x4079c09a0ff121fc44d817c37d6ae8694b268e9f` |
 | SelfLoan | `0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b` |
@@ -28,23 +30,44 @@ All actions below were executed with the shared testnet account:
 
 ### Daily Check-in
 
-- check-in tx: `0xca385eb785d7e5c1f835795cea003fc2edff5f9a14818a5f12dd4b63e719afd9`
+- check-in tx: `0x8670ee0358ee127b289085707e0038f3899e54939c8b7e32158d482efe406bed`
 - path:
   - direct `GAS.transfer`
   - contract auto-check-in in `OnNEP17Payment`
 - result:
   - `CheckedIn` notification present
 
+### GASBOX
+
+This path required a fresh testnet redeploy plus in-place updates until the
+hybrid settle path became signer-safe under real `settlePlay` execution.
+
+- update tx: `0x5b5e15ac096acf0d4919b0437439b15db348082109425fff6f0e077e63221136`
+- validation machine: `machineId = 1`
+- prepaid GAS tx: `0x4f8266d30b175de8a1f78f049fa01c908d599b41afdfddb3094c7860ae0c155f`
+- initiate tx: `0xae3be658943e45432fcb7c421e34390418feb9658257747dff25ccbc56a3c3a8`
+- play id: `4`
+- settle tx: `0x827af9c1b791f03167f4f11875c5044e109858f618c23fa2a37ab669ff5ee30b`
+- result:
+  - fresh contract deployed to `0x523c112560a2e196fa0fcfa215d93c08e117d9c1`
+  - `select-item` hybrid script registered successfully
+  - direct `GAS.transfer` payment path succeeded
+  - `PlayInitiated` emitted
+  - on-chain `debugExpectedSelection(playId)` matched client expectation
+  - real `settlePlay` HALTed successfully
+  - `PlayResolved` emitted with GAS prize transfer
+  - `getPlay(playId)` returned `resolved = true` and `itemIndex = 1`
+
 ### FogPlay
 
-- prepaid GAS tx: `0x10075a202c8e5ca0f941ab1d6d48351bed60ce86374c7e0bdb207d63e627b401`
-- bet tx: `0xfbe5f3dd0d2e64b7de7243ff67f4c20521b3b6a61f39b56c14dc981aa7076473`
-- oracle request id: `3861`
+- prepaid GAS tx: `0xaee7b7ca1297e1564bf3fea780cee904256f3516e5b2a8547d6eadf5b37df01e`
+- bet tx: `0x6b44cae8d3ff7f72d0a7a2f8551fc0dc93f72f21830793a1c25e3f44929c119e`
+- oracle request id: `3863`
 - result:
   - `BetPlaced` emitted
   - Oracle request fulfilled successfully
-  - `getRequest(3861)` reached fulfilled status
-  - stored bet `betId = 7` resolved
+  - `getRequest(3863)` reached fulfilled status
+  - stored bet `betId = 8` resolved
 
 Additional isolated updater validation after re-separating the Oracle updater:
 
@@ -55,15 +78,15 @@ Additional isolated updater validation after re-separating the Oracle updater:
 
 ### Red Envelope
 
-- prepaid GAS tx: `0x9615b7a2304e310844095c288dc35e60bced367ffb57834863b8a9ddd656e435`
-- create tx: `0xc5d96e8b56d757ba4d9b26e2cb54a7c639caa99eb6cc2dc699921f1260f9e1e8`
-- oracle request id: `3862`
-- envelope id: `4`
-- claim tx: `0x63d13f89deaa7b22b0958e68dd34ce805720c9754d7130235d003865abeb9689`
+- prepaid GAS tx: `0x4a321a107ad84b1f7cd95d96d091fbb6c5aa5b473cd8a832ba59c14d7b11b023`
+- create tx: `0x040a53b87ec39a53be8c323ec46245585a0475658eb4d94b9762e0ac99449d2d`
+- oracle request id: `3864`
+- envelope id: `5`
+- claim tx: `0xc1e03c55739dd1aa480a790919a0014495ef1340e84417760b6264a0a24855ff`
 - result:
   - `EnvelopeCreated` emitted
   - Oracle request fulfilled successfully
-  - `getEnvelope(4)` reached `Ready = true`
+  - `getEnvelope(5)` reached `Ready = true`
   - `EnvelopeClaimed` emitted
   - GAS claim transfer succeeded
 
@@ -75,20 +98,14 @@ This path required the contract to be updated in place to use:
 - explicit GAS pool funding
 - two-step borrow flow
 
-Validated transactions:
+Latest isolated validation after the final contract update:
 
-- pool funding tx: `0x80d8651bf0b834e14eb0c1dcb344a4cd98e124b612c6af3060d499457d10afda`
-- collateral deposit tx: `0xf1da4fc6c69f740bba7cc7416d33ba4e09af7a89de56c4ea785f41ebe7f93ae2`
-- create-loan tx: `0xf5ab63bfbf152f9a5adbf5a0d74ae9ff830fceff36d4ebd8fca9909a56049a13`
-
-Further isolated validation after the final contract update:
-
-- pool funding tx: `0x7b95e8fbdcd0a0c5f206cf089bb92109ec24cd210a743b3c6f4a449d81d2153d`
-- collateral tx: `0xb2597e1f0ccb16e14b5b97b0f1788084ea83c6fbd2da185323cdb002783e9ac9`
-- create-loan tx: `0xd3efe7e23da846911b45784737f2c754eb866f3ad81b6724630f0bbaf2892f3f`
+- pool funding tx: `0x794945538163ecdc7847495509469135011c3f931723bdb05129f66ad91f34c1`
+- collateral tx: `0x271c2453c0858c0e7f81663fd253a33e7dd29554974b494eaa5880a4c5b57483`
+- create-loan tx: `0x2543f7d5616e7a14c19fa1155d05f7b7cce67cc025597c6301a61d56e12b38d9`
 - result:
   - `LoanCreated` emitted
-  - `loanId = 1`
+  - `loanId = 3`
   - `collateral = 1`
   - `debt = 20000000` (`0.2 GAS`)
   - account NEO decreased by `1`
