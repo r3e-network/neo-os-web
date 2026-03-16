@@ -298,7 +298,9 @@ triggers, and the supported action type is `webhook`.
 
 - `POST /invoke`: build+sign+broadcast allowlisted transactions.
     - hard rule: **payments only GAS**, **governance only bNEO**, contract/method allowlists enforced.
-    - optional `intent` field enables stricter gates for `payments` (GAS.transfer to PaymentHub) and `governance` (Governance stake/unstake/vote) when contract hashes are configured.
+    - optional `intent` field enables stricter gates for `payments` (GAS transfer to the
+      expected MiniApp contract or legacy `PaymentHub`) and `governance`
+      (Governance stake/unstake/vote) when contract hashes are configured.
 
 ### `neovrf` (vrf-service)
 
