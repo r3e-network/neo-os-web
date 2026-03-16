@@ -11,7 +11,7 @@ const APP_ID = "miniapp-neo-gacha";
 export function useGachaManagement() {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
-  const { address, invokeDirectly } = useContractInteraction({ appId: APP_ID, t });
+  const { address, invokeDirectly, ensureContractAddress } = useContractInteraction({ appId: APP_ID, t });
 
   const actionLoading = ref<Record<string, boolean>>({});
 
@@ -155,6 +155,22 @@ export function useGachaManagement() {
       if (item.assetType === 1) {
         if (!depositAmount) throw new Error(t("depositAmountRequired"));
         const amountRaw = toRawAmount(depositAmount, item.decimals || 8);
+        const contract = await ensureContractAddress();
+        if (!contract) throw new Error(t("contractMissing"));
+
+        await invokeDirectly(
+          "transfer",
+          [
+            { type: "Hash160", value: address.value as string },
+            { type: "Hash160", value: contract },
+            { type: "Integer", value: amountRaw },
+            { type: "Any", value: null },
+          ],
+          item.assetHash
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+
         await invokeDirectly("depositItem", [
           { type: "Hash160", value: address.value as string },
           { type: "Integer", value: machine.id },
