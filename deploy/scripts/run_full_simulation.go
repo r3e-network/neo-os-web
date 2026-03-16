@@ -266,7 +266,7 @@ func loadContracts() map[string]util.Uint160 {
 	load("PriceFeed", "CONTRACT_PRICEFEED_HASH")
 	load("RandomnessLog", "CONTRACT_RANDOMNESSLOG_HASH")
 	load("Governance", "CONTRACT_GOVERNANCE_HASH")
-	load("ServiceGateway", "CONTRACT_SERVICEGATEWAY_HASH")
+	load("Oracle", "CONTRACT_MORPHEUS_ORACLE_HASH")
 	load("AppRegistry", "CONTRACT_APPREGISTRY_HASH")
 	loadFirst(
 		"Consumer",
@@ -377,7 +377,7 @@ func (s *Simulation) runWorkflow(acc *PoolAccount, round int, mu *sync.Mutex) {
 	}
 	atomic.AddInt64(&s.txSent, 1)
 	paymentHub := s.contracts["PaymentHub"].StringLE()
-	gateway := s.contracts["ServiceGateway"].StringLE()
+	oracleHash := s.contracts["Oracle"].StringLE()
 	rngLog := s.contracts["RandomnessLog"].StringLE()
 
 	// Step 1: User Payment to PaymentHub
@@ -398,25 +398,25 @@ func (s *Simulation) runWorkflow(acc *PoolAccount, round int, mu *sync.Mutex) {
 	acc.Balance -= 5000000
 	mu.Unlock()
 
-	// Step 2: Service Request via ServiceLayerGateway
-	if !s.contracts["ServiceGateway"].Equals(util.Uint160{}) {
-		fmt.Printf("   [2/5] 📤 ServiceGateway.requestService()\n")
+	// Step 2: Direct Oracle request
+	if !s.contracts["Oracle"].Equals(util.Uint160{}) {
+		fmt.Printf("   [2/5] 📤 MorpheusOracle.request()\n")
 		reqTx, reqID, err := s.requestService(appID, "randomness")
 		if err != nil {
 			fmt.Printf("   ⚠️  Request failed: %v\n", err)
 		} else {
 			atomic.AddInt64(&s.serviceRequestTx, 1)
 			fmt.Printf("   ✅ Request TX: %s (ID: %d)\n", reqTx[:16], reqID)
-			s.storeTx(reqTx, "request", appID, acc.Address, gateway, "requestService", 0, "success")
+			s.storeTx(reqTx, "request", appID, acc.Address, oracleHash, "request", 0, "success")
 			s.storeServiceRequest(reqID, appID, "randomness", acc.Address, reqTx)
 			go s.fetchAndStoreEvents(reqTx, appID)
 
-			// Step 3: Service Fulfillment (TEE callback)
+			// Step 3: Oracle fulfillment (TEE callback)
 			if atomic.LoadInt32(&s.fulfillTx) == 0 {
-				fmt.Printf("   [3/5] ⏭️  ServiceGateway.fulfillRequest() skipped\n")
+				fmt.Printf("   [3/5] ⏭️  MorpheusOracle.fulfillRequest() skipped\n")
 				s.updateServiceRequest(reqID, false, "")
 			} else {
-				fmt.Printf("   [3/5] 📥 ServiceGateway.fulfillRequest()\n")
+				fmt.Printf("   [3/5] 📥 MorpheusOracle.fulfillRequest()\n")
 				fulfillTx, err := s.fulfillRequest(reqID)
 				if err != nil {
 					fmt.Printf("   ⚠️  Fulfill failed: %v\n", err)
@@ -427,7 +427,7 @@ func (s *Simulation) runWorkflow(acc *PoolAccount, round int, mu *sync.Mutex) {
 				} else {
 					atomic.AddInt64(&s.serviceFulfillTx, 1)
 					fmt.Printf("   ✅ Fulfill TX: %s\n", fulfillTx[:16])
-					s.storeTx(fulfillTx, "fulfill", appID, "", gateway, "fulfillRequest", 0, "success")
+					s.storeTx(fulfillTx, "fulfill", appID, "", oracleHash, "fulfillRequest", 0, "success")
 					s.updateServiceRequest(reqID, true, fulfillTx)
 					go s.fetchAndStoreEvents(fulfillTx, appID)
 				}
@@ -549,12 +549,12 @@ func (s *Simulation) isAppConfigured(paymentHub util.Uint160, appID string) (boo
 	return false, nil
 }
 
-// requestService calls ServiceLayerGateway.requestService() and returns real requestID from chain
+// requestService calls MorpheusOracle.request() and returns real requestID from chain
 func (s *Simulation) requestService(appID, serviceType string) (string, int64, error) {
 	if s.funderActor == nil {
 		return "", 0, fmt.Errorf("funder actor not configured")
 	}
-	gateway := s.contracts["ServiceGateway"]
+	oracle := s.contracts["Oracle"]
 	consumer := s.contracts["Consumer"]
 	if consumer.Equals(util.Uint160{}) {
 		return "", 0, fmt.Errorf("Consumer contract not configured")
@@ -563,16 +563,16 @@ func (s *Simulation) requestService(appID, serviceType string) (string, int64, e
 	payload := []byte(fmt.Sprintf(`{"app":"%s","type":"%s"}`, appID, serviceType))
 
 	txHash, _, err := s.funderActor.SendCall(
-		gateway, "requestService",
-		appID, serviceType, payload,
-		consumer, "onServiceCallback",
+		oracle, "request",
+		serviceType, payload,
+		consumer, "onOracleResult",
 	)
 	if err != nil {
 		return "", 0, err
 	}
 
 	// Wait for tx and extract real requestID from ServiceRequested event
-	requestID, err := s.waitForRequestID(txHash, gateway)
+	requestID, err := s.waitForRequestID(txHash, oracle)
 	if err != nil {
 		return txHash.StringLE(), 0, fmt.Errorf("tx sent but failed to get requestID: %w", err)
 	}
@@ -580,8 +580,8 @@ func (s *Simulation) requestService(appID, serviceType string) (string, int64, e
 	return txHash.StringLE(), requestID, nil
 }
 
-// waitForRequestID waits for tx confirmation and extracts requestID from ServiceRequested event
-func (s *Simulation) waitForRequestID(txHash util.Uint256, gateway util.Uint160) (int64, error) {
+// waitForRequestID waits for tx confirmation and extracts requestID from OracleRequested event
+func (s *Simulation) waitForRequestID(txHash util.Uint256, oracle util.Uint160) (int64, error) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	timeout := time.After(30 * time.Second)
@@ -600,9 +600,9 @@ func (s *Simulation) waitForRequestID(txHash util.Uint256, gateway util.Uint160)
 			}
 			exec := appLog.Executions[0]
 			if exec.VMState.HasFlag(1) { // HALT
-				// Find ServiceRequested event
+				// Find OracleRequested event
 				for _, notif := range exec.Events {
-					if notif.ScriptHash.Equals(gateway) && notif.Name == "ServiceRequested" {
+					if notif.ScriptHash.Equals(oracle) && notif.Name == "OracleRequested" {
 						// First item is requestId (BigInteger)
 						if len(notif.Item.Value().([]stackitem.Item)) > 0 {
 							reqIDItem := notif.Item.Value().([]stackitem.Item)[0]
@@ -613,25 +613,25 @@ func (s *Simulation) waitForRequestID(txHash util.Uint256, gateway util.Uint160)
 						}
 					}
 				}
-				return 0, fmt.Errorf("ServiceRequested event not found")
+				return 0, fmt.Errorf("OracleRequested event not found")
 			}
 			return 0, fmt.Errorf("tx failed: %s", exec.FaultException)
 		}
 	}
 }
 
-// fulfillRequest calls ServiceLayerGateway.fulfillRequest() - TEE callback
+// fulfillRequest calls MorpheusOracle.fulfillRequest() - TEE callback
 func (s *Simulation) fulfillRequest(requestID int64) (string, error) {
 	if s.teeActor == nil {
 		return "", fmt.Errorf("TEE actor not configured")
 	}
-	gateway := s.contracts["ServiceGateway"]
+	oracle := s.contracts["Oracle"]
 
 	randomResult := make([]byte, 32)
 	rand.Read(randomResult)
 
 	txHash, _, err := s.teeActor.SendCall(
-		gateway, "fulfillRequest",
+		oracle, "fulfillRequest",
 		big.NewInt(requestID), true, randomResult, "",
 	)
 	if err != nil {
@@ -823,8 +823,8 @@ func (s *Simulation) PrintStats() {
 	fmt.Printf("❌ Failed:            %d\n", atomic.LoadInt64(&s.txFailed))
 	fmt.Println("\n📋 Transaction Types:")
 	fmt.Printf("   💰 Payments:          %d (user → PaymentHub)\n", atomic.LoadInt64(&s.paymentTx))
-	fmt.Printf("   📤 Service Requests:  %d (ServiceGateway.requestService)\n", atomic.LoadInt64(&s.serviceRequestTx))
-	fmt.Printf("   📥 Service Fulfills:  %d (ServiceGateway.fulfillRequest)\n", atomic.LoadInt64(&s.serviceFulfillTx))
+	fmt.Printf("   📤 Oracle Requests:   %d (MorpheusOracle.request)\n", atomic.LoadInt64(&s.serviceRequestTx))
+	fmt.Printf("   📥 Oracle Fulfills:   %d (MorpheusOracle.fulfillRequest)\n", atomic.LoadInt64(&s.serviceFulfillTx))
 	fmt.Printf("   🎲 Randomness:        %d (RandomnessLog.record)\n", atomic.LoadInt64(&s.randomnessTx))
 	fmt.Printf("   🎁 Payouts:           %d (callback payout)\n", atomic.LoadInt64(&s.payoutTx))
 	fmt.Printf("   💰 Top-ups:           %d\n", atomic.LoadInt64(&s.topUps))

@@ -19,7 +19,7 @@ This contract facilitates anonymous voting by:
 
 The contract follows the standard MiniApp architecture pattern:
 
-- **Gateway Integration**: All service interactions flow through the ServiceLayerGateway
+- **Gateway Integration**: All service interactions flow through the Morpheus Oracle
 - **Event-Driven**: Emits events that are processed by off-chain services
 - **Minimal On-Chain State**: Stores only administrative configuration, not vote data
 - **Privacy-First**: Vote details are processed off-chain to preserve anonymity
@@ -67,9 +67,9 @@ Receives callbacks from off-chain services via the Gateway.
 
 Updates the contract administrator address.
 
-#### `SetGateway(UInt160 g)`
+#### `SetOracle(UInt160 g)`
 
-Configures the ServiceLayerGateway address for service integration.
+Configures the Morpheus Oracle address for service integration.
 
 #### `SetPaymentHub(UInt160 hub)`
 
@@ -85,9 +85,9 @@ Enables or disables contract operations.
 
 Returns the current administrator address.
 
-#### `Gateway() → UInt160`
+#### `Oracle() → UInt160`
 
-Returns the configured Gateway address.
+Returns the configured Oracle address.
 
 #### `PaymentHub() → UInt160`
 
@@ -193,14 +193,14 @@ User → MiniApp Frontend → CastVote() → VoteCast Event → Gateway Service 
 
 ### Prerequisites
 
-1. ServiceLayerGateway contract deployed and configured
+1. Morpheus Oracle contract deployed and configured
 2. PaymentHub contract deployed (if payment features are used)
 3. Off-chain voting service configured to process `VoteCast` events
 
 ### Configuration Steps
 
 1. Deploy MiniAppSecretVote contract
-2. Call `SetGateway(gatewayAddress)` to configure Gateway integration
+2. Call `SetOracle(gatewayAddress)` to configure Oracle integration
 3. Call `SetPaymentHub(hubAddress)` to enable payment features
 4. Configure off-chain service to monitor and process voting events
 
@@ -267,14 +267,14 @@ CastVote(UInt160 voter, string proposalId)
 #### 管理方法
 
 - `SetAdmin(UInt160 a)`: 更新合约管理员地址
-- `SetGateway(UInt160 g)`: 配置 ServiceLayerGateway 地址
+- `SetOracle(UInt160 g)`: 配置 Morpheus Oracle 地址
 - `SetPaymentHub(UInt160 hub)`: 设置 PaymentHub 合约地址
 - `SetPaused(bool paused)`: 启用或禁用合约操作
 
 #### 查询方法
 
 - `Admin()`: 返回当前管理员地址
-- `Gateway()`: 返回配置的网关地址
+- `Oracle()`: 返回配置的网关地址
 - `PaymentHub()`: 返回 PaymentHub 合约地址
 - `IsPaused()`: 返回合约是否暂停
 

@@ -12,8 +12,8 @@ namespace NeoMiniAppPlatform.Contracts
     /// <summary>
     /// MiniApp DevPack - Service Base Class
     ///
-    /// Extends MiniAppBase with service callback and automation functionality:
-    /// - Service request/callback pattern (Chainlink-style)
+    /// Extends MiniAppBase with direct Morpheus Oracle callback and automation functionality:
+    /// - Oracle request/callback pattern
     /// - Automation anchor integration
     /// - Periodic task registration
     ///
@@ -96,23 +96,22 @@ namespace NeoMiniAppPlatform.Contracts
         #region Service Request Methods
 
         protected static BigInteger RequestService(
-            string appId, string serviceType, ByteString payload)
+            string appId, string requestType, ByteString payload)
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != UInt160.Zero && gateway.IsValid, "gateway not set");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != UInt160.Zero && oracle.IsValid, "oracle not set");
 
             BigInteger requestId = (BigInteger)Contract.Call(
-                gateway,
-                "requestService",
+                oracle,
+                "request",
                 CallFlags.All,
-                appId,
-                serviceType,
+                requestType,
                 payload,
                 Runtime.ExecutingScriptHash,
-                "onServiceCallback"
+                "onOracleResult"
             );
 
-            OnServiceRequested(requestId, serviceType);
+            OnServiceRequested(requestId, requestType);
             return requestId;
         }
 
@@ -170,7 +169,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         protected static ByteString ValidateCallback(BigInteger requestId)
         {
-            ValidateGateway();
+            ValidateOracle();
             ByteString? data = GetRequestData(requestId);
             return RequireByteString(data, "unknown request");
         }

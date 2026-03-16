@@ -58,12 +58,20 @@ function buildPgConfig() {
     };
   }
 
+  const host = getEnv("POSTGRES_HOST");
+  const password = getEnv("POSTGRES_PASSWORD");
+  if (!host || !password) {
+    throw new Error(
+      "DATABASE_URL or POSTGRES_HOST/POSTGRES_PASSWORD is required for direct Postgres verification",
+    );
+  }
+
   return {
-    host: getEnv("POSTGRES_HOST"),
+    host,
     port: Number.parseInt(getEnv("POSTGRES_PORT", "5432"), 10),
     database: getEnv("POSTGRES_DB", "postgres"),
     user: getEnv("POSTGRES_USER", "postgres"),
-    password: getEnv("POSTGRES_PASSWORD"),
+    password,
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 10000,
   };

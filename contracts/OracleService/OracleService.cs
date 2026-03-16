@@ -24,7 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
     public class OracleService : SmartContract
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
-        private static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
+        private static readonly byte[] PREFIX_OPERATOR = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_REQUESTS = new byte[] { 0x03 };
 
         public struct OracleRequest
@@ -68,23 +68,23 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
-        public static void SetGateway(UInt160 gateway)
+        public static void SetOperator(UInt160 operatorAddress)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(gateway != UInt160.Zero && gateway.IsValid, "invalid gateway");
-            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, (ByteString)gateway);
+            ExecutionEngine.Assert(operatorAddress != UInt160.Zero && operatorAddress.IsValid, "invalid operator");
+            Storage.Put(Storage.CurrentContext, PREFIX_OPERATOR, (ByteString)operatorAddress);
         }
 
-        public static UInt160 Gateway()
+        public static UInt160 Operator()
         {
-            return ReadAddress(PREFIX_GATEWAY);
+            return ReadAddress(PREFIX_OPERATOR);
         }
 
-        private static void ValidateGateway()
+        private static void ValidateOperator()
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != UInt160.Zero && gateway.IsValid, "gateway not set");
-            ExecutionEngine.Assert(Runtime.CheckWitness(gateway), "unauthorized");
+            UInt160 operatorAddress = Operator();
+            ExecutionEngine.Assert(operatorAddress != UInt160.Zero && operatorAddress.IsValid, "oracle operator not set");
+            ExecutionEngine.Assert(Runtime.CheckWitness(operatorAddress), "unauthorized");
         }
 
         private static StorageMap RequestMap() => new StorageMap(Storage.CurrentContext, PREFIX_REQUESTS);
@@ -150,11 +150,11 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
-        /// Fulfill the request. Only the attested TEE gateway can call this method.
+        /// Fulfill the request. Only the attested oracle operator can call this method.
         /// </summary>
         public static void Fulfill(string requestId, int statusCode, string value, ByteString attestationHash)
         {
-            ValidateGateway();
+            ValidateOperator();
 
             ExecutionEngine.Assert(requestId != null && requestId.Length > 0, "requestId required");
             ExecutionEngine.Assert(attestationHash != null && attestationHash.Length > 0, "attestation hash required");

@@ -1,5 +1,9 @@
 # Neo N3 小应用平台（更新：支付仅 GAS，治理仅 bNEO）
 
+> 归档说明：
+> 本文属于较早期的完整蓝图快照。当前实现已经不再使用 ServiceLayerGateway，总线式服务路由已被 direct Oracle / direct AA / direct callback 模式替代。以 `docs/ARCHITECTURE.md`、`docs/DATAFLOWS.md` 和最新 `docs/reports/` 为准。
+> 当前平台主路径已经收口为 direct Oracle / direct AA。
+
 > 约束：支付/结算 **仅 GAS**；治理 **仅 bNEO**；服务层基于 **NitroRun + Nitro runtime (Nitro TEE)**；网关/数据用 **Supabase**；宿主前端 **Vercel + Next.js + 微前端**；包含高频 **Datafeed（≥0.1% 变动推送）**、VRF、Oracle、机密计算、自动化。
 >
 > 实现备注（本仓库）：已提供独立 `vrf-service`（`neovrf`）用于随机数生成与签名证明；`compute-service`（`neocompute`）专注机密计算。
@@ -35,7 +39,7 @@ neo-miniapp-platform/
 │  ├─ RandomnessLog/    # 随机数+TEE 报告存证
 │  ├─ AppRegistry/      # 应用上架/状态/allowlist(MRSIGNER/合约)
 │  ├─ AutomationAnchor/ # 自动化任务登记/防重放
-│  └─ ServiceLayerGateway/ # 服务请求路由/回调
+│  └─ OracleService/ # 直接预言机请求/回调入口
 │
 ├─ services/            # TEE 服务层（NitroRun + Nitro runtime）
 │  ├─ oracle-gateway/   # 隐私预言机/Datafeed 拉取+聚合
@@ -81,7 +85,7 @@ neo-miniapp-platform/
 - RandomnessLog：`requestId -> randomness + attestationHash + timestamp`。
 - AppRegistry：`app_id -> manifest_hash/entry_url/contract_hash/metadata/status/allowlist`（合约/MRSIGNER）。
 - AutomationAnchor：登记自动化任务（target/method/trigger/gasLimit），记录 nonce/txHash 防重放。
-- ServiceLayerGateway：`RequestService` 发起服务请求，发出 `ServiceRequested` 事件；`FulfillRequest` 完成并回调 MiniApp 合约。
+- OracleService：直接发起预言机请求，并在结果准备好后直接回调 MiniApp 合约。
 
 ---
 
@@ -93,7 +97,7 @@ neo-miniapp-platform/
 - randomness（RNG/VRF）：通过 vrf-service 生成 → (randomness, signature, attestation) → RandomnessLog 或回调。
 - automation-service：事件/时间触发 → 调用目标合约（allowlist）。
 - tx-proxy：签名/广播；资产仅 GAS/bNEO；方法白名单；mTLS；防重放/额度检查。
-- request-dispatcher：监听 ServiceLayerGateway 的 `ServiceRequested` 事件，调用 VRF/Oracle/Compute 并通过 tx-proxy 回调 `FulfillRequest`。
+- request-dispatcher：监听直接服务请求事件，调用 VRF/Oracle/Compute，并通过 tx-proxy 直接回调 MiniApp 合约。
 - nitrorun：policy/manifest 管理 MRSIGNER/MRENCLAVE、证书与密钥注入、轮换。
 
 ## 3.5 平台引擎（Indexer + Analytics + Notifications）
@@ -159,13 +163,13 @@ await window.MiniAppSDK.stats.getMyUsage(appId);
 
 ---
 
-## 4.5 链上服务请求/回调流程（ServiceLayerGateway）
+## 4.5 直接链上服务请求/回调流程
 
-1. MiniApp 合约调用 `ServiceLayerGateway.RequestService(app_id, service_type, payload, callback_contract, callback_method)`。
-2. 网关合约发出 `ServiceRequested` 事件（包含 request_id/服务类型/回调目标/载荷）。
-3. request-dispatcher 监听事件，调用对应 TEE 服务（neovrf/neooracle/neocompute）并生成结果 payload。
-4. request-dispatcher 通过 tx-proxy 提交 `ServiceLayerGateway.FulfillRequest(request_id, success, result, error)`。
-5. 网关合约校验 updater 权限并调用 MiniApp 回调方法，完成请求闭环。
+1. MiniApp 合约直接调用对应的 Oracle / Automation / 其他服务入口。
+2. 上游服务发出请求事件或读取链上请求状态。
+3. request-dispatcher 调用对应 TEE 服务（neovrf/neooracle/neocompute）并生成结果 payload。
+4. request-dispatcher 通过 tx-proxy 直接提交 MiniApp 回调交易。
+5. MiniApp 合约在自身回调方法中完成状态更新。
 
 结果与事件会写入 Supabase 的 `contract_events` 和 `chain_txs` 用于审计与 UI 查询。
 

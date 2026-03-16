@@ -23,7 +23,6 @@ var contracts = []string{
 	"RandomnessLog",
 	"AppRegistry",
 	"AutomationAnchor",
-	"ServiceLayerGateway",
 	"MiniAppServiceConsumer",
 }
 

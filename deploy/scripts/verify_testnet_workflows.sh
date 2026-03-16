@@ -1,9 +1,15 @@
 #!/bin/bash
 #
-# Verify end-to-end MiniApp workflows on Neo N3 testnet.
-# Runs: PaymentHub GAS, Governance workflow, ServiceGateway RNG callback, Oracle callback, Compute callback.
+# Platform-owned Neo N3 testnet verification.
+# Preferred direct Oracle / direct AA validation now lives in deploy/scripts/verify_cross_repo_testnet.sh.
+# This script checks only platform-native flows:
+# - PaymentHub GAS
+# - Governance
+# - PriceFeed availability
 #
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ENV_FILE=".env"
 MINIAPP_HASH=""
@@ -16,22 +22,18 @@ SKIP_STATS_ROLLUP_CHECK="false"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/verify_testnet_workflows.sh [OPTIONS]
+Usage: ./deploy/scripts/verify_testnet_workflows.sh [OPTIONS]
 
 Options:
   --env-file <path>       Path to env file (default: .env)
-  --miniapp-hash <hash>   MiniApp callback contract hash (overrides env)
-  --app-id <id>           MiniApp app_id (default: miniapp-lottery)
-  --no-wait-callback      Do not wait for on-chain callbacks
   --skip-signer-funding   Skip pre-flight txproxy signer funding check
   --skip-pricefeed-watchdog
                           Skip pre-flight pricefeed freshness watchdog
   --skip-stats-rollup-check
                           Skip pre-flight miniapp stats rollup compatibility check
-  --callback-timeout <s>  Callback wait timeout in seconds (default: 300)
   -h, --help              Show this help
 
-This script sends real testnet transactions.
+This script sends real testnet transactions for platform-native flow checks.
 EOF
 }
 
@@ -76,58 +78,6 @@ set -a
 source "$ENV_FILE"
 set +a
 
-if [[ -n "$MINIAPP_HASH" ]]; then
-  export MINIAPP_CALLBACK_CONTRACT_HASH="$MINIAPP_HASH"
-  export MINIAPP_CONSUMER_HASH="$MINIAPP_HASH"
-fi
-if [[ -n "$APP_ID" ]]; then
-  export MINIAPP_APP_ID="$APP_ID"
-fi
-if [[ -z "${MINIAPP_APP_ID:-}" ]]; then
-  export MINIAPP_APP_ID="miniapp-lottery"
-fi
-
-resolve_miniapp_hash() {
-  if [[ -n "${MINIAPP_CALLBACK_CONTRACT_HASH:-}" ]]; then
-    echo "$MINIAPP_CALLBACK_CONTRACT_HASH"
-    return 0
-  fi
-  if [[ -n "${MINIAPP_CONSUMER_HASH:-}" ]]; then
-    echo "$MINIAPP_CONSUMER_HASH"
-    return 0
-  fi
-  if [[ -n "${MINIAPP_CONTRACT_HASH:-}" ]]; then
-    echo "$MINIAPP_CONTRACT_HASH"
-    return 0
-  fi
-  if [[ -n "${CONTRACT_MINIAPP_CONSUMER_HASH:-}" ]]; then
-    echo "$CONTRACT_MINIAPP_CONSUMER_HASH"
-    return 0
-  fi
-  if command -v jq >/dev/null 2>&1 && [[ -f "contracts/build/miniapp_consumer_deployed_live.json" ]]; then
-    local deployed_consumer
-    deployed_consumer="$(jq -r '.hash // empty' contracts/build/miniapp_consumer_deployed_live.json | head -n 1)"
-    if [[ -n "$deployed_consumer" ]]; then
-      echo "$deployed_consumer"
-      return 0
-    fi
-  fi
-  if command -v jq >/dev/null 2>&1 && [[ -f "contracts/build/miniapps_deployed_live.json" ]]; then
-    local fallback
-    fallback="$(jq -r '.[] | select(.name=="MiniAppServiceConsumer") | .hash // empty' contracts/build/miniapps_deployed_live.json | head -n 1)"
-    if [[ -n "$fallback" ]]; then
-      echo "$fallback"
-      return 0
-    fi
-    fallback="$(jq -r '.[] | select(.name=="MiniAppLottery") | .hash // empty' contracts/build/miniapps_deployed_live.json | head -n 1)"
-    if [[ -n "$fallback" ]]; then
-      echo "$fallback"
-      return 0
-    fi
-  fi
-  return 1
-}
-
 missing=()
 require_env() {
   local key="$1"
@@ -139,12 +89,7 @@ require_env() {
 require_env "NEO_TESTNET_WIF"
 require_env "CONTRACT_PAYMENTHUB_HASH"
 require_env "CONTRACT_GOVERNANCE_HASH"
-require_env "CONTRACT_SERVICEGATEWAY_HASH"
 require_env "CONTRACT_APPREGISTRY_HASH"
-
-if ! resolve_miniapp_hash >/dev/null; then
-  missing+=("MINIAPP_CALLBACK_CONTRACT_HASH")
-fi
 
 if [[ "${#missing[@]}" -gt 0 ]]; then
   echo "Missing required environment variables:" >&2
@@ -156,9 +101,6 @@ if [[ -z "${NEO_RPC_URL:-}" ]]; then
   echo "Warning: NEO_RPC_URL not set; scripts will default to testnet RPC." >&2
 fi
 
-export MINIAPP_CALLBACK_CONTRACT_HASH="$(resolve_miniapp_hash)"
-export MINIAPP_CONSUMER_HASH="${MINIAPP_CONSUMER_HASH:-$MINIAPP_CALLBACK_CONTRACT_HASH}"
-
 FAILED=0
 
 ensure_txproxy_signer_funded() {
@@ -167,13 +109,20 @@ ensure_txproxy_signer_funded() {
     return 0
   fi
 
+  if [[ -z "${GAS_TRANSFER_TO:-}" && -z "${TXPROXY_SIGNER_ADDRESS:-}" ]]; then
+    if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -Eq 'service-txproxy|txproxy'; then
+      echo "Skipping signer funding check: no explicit txproxy signer address and no local txproxy container detected."
+      return 0
+    fi
+  fi
+
   local min_gas="${TXPROXY_SIGNER_MIN_GAS:-30}"
   local topup_gas="${TXPROXY_SIGNER_TOPUP_GAS:-100}"
   echo "Pre-flight: ensuring txproxy signer has at least ${min_gas} GAS..."
   env \
     GAS_TRANSFER_MIN_BALANCE="$min_gas" \
     GAS_TRANSFER_AMOUNT="$topup_gas" \
-    go run -tags=scripts scripts/transfer_gas_to_signer.go
+    go run -tags=scripts "$SCRIPT_DIR/transfer_gas_to_signer.go"
 }
 
 run_pricefeed_watchdog() {
@@ -190,12 +139,12 @@ run_pricefeed_watchdog() {
   local watchdog_symbols="${PRICEFEED_WATCH_SYMBOLS:-BTC-USD,ETH-USD,SOL-USD,XRP-USD,DOGE-USD,GAS-USD,NEO-USD}"
   local watchdog_max_staleness="${PRICEFEED_WATCH_MAX_STALENESS:-45m}"
   local watchdog_exempt="${PRICEFEED_WATCH_EXEMPT_SYMBOLS:-USDT-USD,USDC-USD}"
-  echo "Pre-flight: running pricefeed freshness watchdog..."
+  echo "Pre-flight: running pricefeed availability check..."
   env \
     PRICEFEED_WATCH_SYMBOLS="$watchdog_symbols" \
     PRICEFEED_WATCH_MAX_STALENESS="$watchdog_max_staleness" \
     PRICEFEED_WATCH_EXEMPT_SYMBOLS="$watchdog_exempt" \
-    go run -tags=scripts scripts/check_pricefeed_freshness.go
+    go run -tags=scripts "$SCRIPT_DIR/validate_miniapp_workflows.go" --workflow=pricefeed
 }
 
 run_stats_rollup_check() {
@@ -216,7 +165,7 @@ run_stats_rollup_check() {
   local rollup_date="${STATS_ROLLUP_DATE:-$(date -u +%F)}"
   echo "Pre-flight: verifying miniapp_stats_rollup compatibility for ${rollup_date}..."
   env STATS_ROLLUP_DATE="$rollup_date" \
-    go run -tags=scripts scripts/check_stats_rollup.go
+    go run -tags=scripts "$SCRIPT_DIR/check_stats_rollup.go"
 }
 
 run_step() {
@@ -242,29 +191,10 @@ run_step "Stats rollup pre-flight" \
   run_stats_rollup_check
 
 run_step "PaymentHub GAS flow" \
-  go run scripts/send_paymenthub_gas.go
+  go run "$SCRIPT_DIR/send_paymenthub_gas.go"
 
 run_step "Governance (stake + vote)" \
-  go run scripts/test_governance_flow.go
-
-run_step "MiniApp RNG callback (via ServiceGateway)" \
-  env MINIAPP_WAIT_CALLBACK="$WAIT_CALLBACK" \
-    MINIAPP_CALLBACK_TIMEOUT_SECONDS="$CALLBACK_TIMEOUT_SECONDS" \
-    go run scripts/request_miniapp_rng.go
-
-run_step "MiniApp Oracle callback (via ServiceGateway)" \
-  env MINIAPP_SERVICE_TYPE="oracle" \
-    MINIAPP_SERVICE_PAYLOAD="" \
-    MINIAPP_WAIT_CALLBACK="$WAIT_CALLBACK" \
-    MINIAPP_CALLBACK_TIMEOUT_SECONDS="$CALLBACK_TIMEOUT_SECONDS" \
-    go run scripts/request_miniapp_service.go
-
-run_step "MiniApp Compute callback (via ServiceGateway)" \
-  env MINIAPP_SERVICE_TYPE="compute" \
-    MINIAPP_SERVICE_PAYLOAD="" \
-    MINIAPP_WAIT_CALLBACK="$WAIT_CALLBACK" \
-    MINIAPP_CALLBACK_TIMEOUT_SECONDS="$CALLBACK_TIMEOUT_SECONDS" \
-    go run scripts/request_miniapp_service.go
+  go run -tags=scripts "$SCRIPT_DIR/validate_miniapp_workflows.go" --workflow=governance
 
 if [[ "$FAILED" -ne 0 ]]; then
   echo ""

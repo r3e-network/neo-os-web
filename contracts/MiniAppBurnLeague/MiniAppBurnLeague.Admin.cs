@@ -71,9 +71,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount > 0, "invalid amount");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(funder), "unauthorized");
+            ValidateUserOrAbstractAccount(funder);
 
             ValidatePaymentReceipt(APP_ID, funder, amount, receiptId);
 

@@ -58,8 +58,8 @@ func TestRedEnvelopeContract(t *testing.T) {
 		testRedEnvelopeAdmin(t, nx, contract, account)
 	})
 
-	t.Run("Gateway", func(t *testing.T) {
-		testRedEnvelopeGateway(t, nx, contract, account)
+	t.Run("Oracle", func(t *testing.T) {
+		testRedEnvelopeOracle(t, nx, contract, account)
 	})
 }
 
@@ -76,12 +76,12 @@ func testRedEnvelopeAdmin(t *testing.T, nx *NeoExpress, contract *chain.Deployed
 	t.Logf("Admin: %v", result.Stack[0])
 }
 
-// testRedEnvelopeGateway tests gateway functionality
-func testRedEnvelopeGateway(t *testing.T, nx *NeoExpress, contract *chain.DeployedContract, account string) {
-	// Test gateway() initially returns null/empty
-	result, err := nx.InvokeWithAccountResults(contract.Hash, "gateway", account)
+// testRedEnvelopeOracle tests oracle configuration surface
+func testRedEnvelopeOracle(t *testing.T, nx *NeoExpress, contract *chain.DeployedContract, account string) {
+	// Test oracle() initially returns null/empty
+	result, err := nx.InvokeWithAccountResults(contract.Hash, "oracle", account)
 	if err != nil {
-		t.Fatalf("gateway() invoke failed: %v", err)
+		t.Fatalf("oracle() invoke failed: %v", err)
 	}
-	t.Logf("Gateway: %v", result)
+	t.Logf("Oracle: %v", result)
 }

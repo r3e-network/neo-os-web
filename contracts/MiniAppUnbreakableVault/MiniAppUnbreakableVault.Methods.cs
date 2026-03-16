@@ -28,9 +28,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(difficulty >= 1 && difficulty <= 3, "invalid difficulty");
             ExecutionEngine.Assert(title.Length > 0 && title.Length <= 100, "invalid title");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
+            ValidateUserOrAbstractAccount(creator);
 
             ValidatePaymentReceipt(APP_ID, creator, bounty, receiptId);
 
@@ -78,9 +76,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(!vault.Expired, "vault expired");
             ExecutionEngine.Assert(Runtime.Time < vault.ExpiryTime, "vault expired");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(attacker), "unauthorized");
+            ValidateUserOrAbstractAccount(attacker);
 
             BigInteger attemptFee = GetAttemptFee(vault.Difficulty);
             ValidatePaymentReceipt(APP_ID, attacker, attemptFee, receiptId);
@@ -133,9 +129,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(!vault.Broken && !vault.Expired, "vault closed");
             ExecutionEngine.Assert(amount > 0, "invalid amount");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(vault.Creator), "unauthorized");
+            ValidateUserOrAbstractAccount(vault.Creator);
 
             ValidatePaymentReceipt(APP_ID, vault.Creator, amount, receiptId);
 

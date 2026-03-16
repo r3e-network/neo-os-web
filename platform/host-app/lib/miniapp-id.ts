@@ -7,11 +7,12 @@ const MINIAPP_PREFIX = "miniapp-";
 const MINIAPP_SLUG_ALIAS_MAP: Record<string, string> = {
   "coin-flip": "coinflip",
   "dice-game": "dicegame",
+  "daily-checkin": "dailycheckin",
   "prediction-market": "predictionmarket",
   "red-envelope": "redenvelope",
   "secret-vote": "secretvote",
-  "gas-spin": "gacha",
-  "neo-gacha": "gacha",
+  "gas-spin": "neo-gacha",
+  "neo-gacha": "neo-gacha",
 };
 
 function sanitizeSlug(value: unknown): string {

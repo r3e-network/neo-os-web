@@ -64,9 +64,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ExecutionEngine.Assert(previousOwner != buyer, "already owner");
 
-            UInt160 gateway = Gateway();
-            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(buyer), "unauthorized");
+            ValidateUserOrAbstractAccount(buyer);
 
             ValidatePaymentReceipt(APP_ID, buyer, price, receiptId);
 

@@ -128,10 +128,17 @@ explicit scopes; bearer JWTs are rejected there.
 
 ## On-Chain Service Requests
 
-MiniApps that use the on-chain request/callback pattern should invoke their
-MiniApp contract (or `ServiceLayerGateway`) via the wallet. The callback target
-is configured in the manifest (`callback_contract`, `callback_method`) and
-executed on-chain by the gateway when the TEE result is ready.
+Preferred runtime path:
+
+- use direct Oracle / direct AA through the host SDK and edge/host proxies
+
+Legacy callback path:
+
+- MiniApps that still use an on-chain request/callback pattern should invoke
+  their own MiniApp contract or the upstream Oracle / automation contract
+  directly via the wallet. The callback target is configured in the manifest
+  (`callback_contract`, `callback_method`) and executed on-chain by the
+  upstream service when the result is ready.
 
 ## Contract Events for Platform Feeds
 

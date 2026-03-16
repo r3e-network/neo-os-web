@@ -328,7 +328,7 @@ describe("getServerSideProps", () => {
 
   it("should return app with required fields", async () => {
     const context = {
-      params: { id: "miniapp-dicegame" },
+      params: { id: "miniapp-neo-gacha" },
       req: { headers: { host: "localhost:3000" } },
     } as any;
 

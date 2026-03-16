@@ -14,12 +14,12 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppServiceConsumer")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Minimal callback consumer for ServiceLayerGateway verification")]
+    [ManifestExtra("Description", "Minimal callback consumer for Morpheus Oracle verification")]
     [ContractPermission("*", "*")]
     public partial class MiniAppContract : SmartContract
     {
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
-        private static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x02 };
+        private static readonly byte[] PREFIX_ORACLE = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_CALLBACK = new byte[] { 0x10 };
 
         [DisplayName("CallbackReceived")]
@@ -38,9 +38,9 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [Safe]
-        public static UInt160 Gateway()
+        public static UInt160 Oracle()
         {
-            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_GATEWAY);
+            return (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ORACLE);
         }
 
         public static void SetAdmin(UInt160 newAdmin)
@@ -50,27 +50,26 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
         }
 
-        public static void SetGateway(UInt160 gateway)
+        public static void SetOracle(UInt160 oracle)
         {
             ValidateAdmin();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "invalid");
-            Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, gateway);
+            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "invalid");
+            Storage.Put(Storage.CurrentContext, PREFIX_ORACLE, oracle);
         }
 
-        public static void OnServiceCallback(
+        public static void OnOracleResult(
             BigInteger requestId,
-            string appId,
-            string serviceType,
+            string requestType,
             bool success,
             ByteString result,
             string error)
         {
-            ValidateGateway();
+            ValidateOracle();
 
             byte[] key = Helper.Concat(PREFIX_CALLBACK, (ByteString)requestId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, key, StdLib.Serialize(new object[] { appId, serviceType, success, result, error }));
+            Storage.Put(Storage.CurrentContext, key, StdLib.Serialize(new object[] { requestType, success, result, error }));
 
-            OnCallbackReceived(requestId, appId, serviceType, success, error);
+            OnCallbackReceived(requestId, "", requestType, success, error);
         }
 
         [Safe]
@@ -89,11 +88,11 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
         }
 
-        private static void ValidateGateway()
+        private static void ValidateOracle()
         {
-            UInt160 gateway = Gateway();
-            ExecutionEngine.Assert(gateway != null && gateway.IsValid, "gateway not set");
-            ExecutionEngine.Assert(Runtime.CallingScriptHash == gateway, "unauthorized caller");
+            UInt160 oracle = Oracle();
+            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == oracle, "unauthorized caller");
         }
     }
 }

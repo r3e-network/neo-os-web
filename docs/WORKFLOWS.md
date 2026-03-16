@@ -1,8 +1,10 @@
 # MiniApp Workflows
 
-This document describes the **end-to-end workflows** for Neo N3 MiniApps,
-including on-chain service requests, callback handling, and the platform's
-off-chain gateway flows.
+This document describes the **end-to-end workflows** for Neo N3 MiniApps.
+
+Primary rule:
+
+- prefer direct Oracle / direct AA integrations for user-facing flows
 
 ## MiniApp Lifecycle (Developer + Host)
 
@@ -24,65 +26,35 @@ off-chain gateway flows.
 5. **Runtime Access**
     - Users authenticate via Supabase Auth.
     - Users bind a Neo N3 wallet via `wallet-nonce` + `wallet-bind`.
-    - SDK calls Edge functions or on-chain ServiceLayerGateway for services.
+    - SDK and host proxies call direct Oracle / direct AA integrations for most services.
 6. **Platform Indexing**
     - Indexer tracks approved MiniApps and parses platform events.
     - Host UI reads `miniapp-stats` and `miniapp-notifications` for analytics and news.
 
-## On-Chain Service Request/Callback Workflow
+## Direct Oracle / AA Workflow
 
-This is the **callback workflow** for service contracts requested by MiniApps.
+This is the preferred runtime path.
 
-1. **MiniApp Contract Request**
-    - Contract calls:
-      `ServiceLayerGateway.RequestService(app_id, service_type, payload, callback_contract, callback_method)`.
-    - `payload` is a `ByteString` (UTF-8 JSON); canonical formats live in
-      `docs/service-request-payloads.md`.
-2. **ServiceRequested Event**
-    - `ServiceLayerGateway` emits `ServiceRequested` with:
-      `(request_id, app_id, service_type, requester, callback_contract, callback_method, payload)`.
-3. **NeoRequests Dispatcher**
-    - Listens to `ServiceRequested`.
-    - Stores the event in Supabase `contract_events`.
-    - Marks `processed_events` for idempotency.
-    - Loads the MiniApp manifest from Supabase.
-    - Validates:
-        - app status is active (pending/disabled blocked)
-        - service permission is granted
-        - callback target matches manifest (unless explicitly allowed)
-        - AppRegistry status is `Approved` (when enabled)
-        - AppRegistry manifest hash matches Supabase (when enabled)
-4. **Service Execution**
-    - Routes to the enclave service:
-        - `neovrf` (`/random`)
-        - `neooracle` (`/query`)
-        - `neocompute` (`/execute`)
-    - Normalizes and truncates the result to `NEOREQUESTS_MAX_RESULT_BYTES`.
-5. **Callback Transaction**
-    - NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)` via `txproxy`.
-    - `txproxy` enforces allowlisted contract + method.
-6. **MiniApp Callback**
-    - `ServiceLayerGateway` emits `ServiceFulfilled`.
-    - `ServiceLayerGateway` invokes the MiniApp callback:
-      `(request_id, app_id, service_type, success, result, error)`.
-7. **Audit Records**
-    - `service_requests` and `chain_txs` rows are updated for status + auditing.
-
-### MiniApp Callback Contract Requirements
-
-- Implement the callback method declared in the manifest (`callback_method`).
-- Use the signature:
-  `(request_id, app_id, service_type, success, result, error)`.
-- Avoid throwing/reverting in callbacks; failures are recorded as `service_requests`
-  and can be retried by the dispatcher.
-
-### Event Monitoring & Retry
-
-- NeoRequests is the **event monitor** for `ServiceRequested` and the single
-  place where callbacks are dispatched.
-- Idempotency is enforced via `processed_events` (Supabase).
-- Failed callbacks are recorded with error details; retries are performed using
-  `retry_count` and the queued request state.
+1. **MiniApp / Host Request**
+    - Browser-side MiniApps call `window.MiniAppSDK`.
+    - Host-only tooling uses `createHostSDK(...)` or same-origin host proxies.
+2. **Platform Gateway / Proxy**
+    - Edge validates auth, rate limits, manifest permissions, and usage caps.
+    - Host `/api/aa/relay` forwards relay-ready payloads to the external AA relay.
+3. **External Runtime**
+    - `neo-morpheus-oracle` handles:
+        - `oracle-query`
+        - `datafeed-price`
+        - `rng-request`
+        - `compute-execute`
+        - `compute-app-execute`
+        - paymaster authorization
+    - `neo-abstract-account` handles:
+        - relay submission
+        - verifier-aware `executeUserOp`
+        - paymaster-backed AA execution
+4. **Result / Receipt**
+    - The platform displays the direct response, relay receipt, or indexed chain result.
 
 ## Platform Indexer + Analytics Workflow
 
@@ -321,7 +293,7 @@ workflow on Neo N3 testnet.
         # use a separate admin key (optional)
         export MINIAPP_ADMIN_WIF=Kx...
         ```
-4. **Trigger a service request**
+4. **Trigger a direct service request**
     - Run:
         ```bash
         # set the MiniApp contract hash from step 1
@@ -330,66 +302,34 @@ workflow on Neo N3 testnet.
         export MINIAPP_WAIT_CALLBACK=true
         # optional: override callback wait timeout (default 180s)
         export MINIAPP_CALLBACK_TIMEOUT_SECONDS=240
-        # calls MiniAppLottery.requestRng(app_id) or similar RNG method
-        go run scripts/request_miniapp_rng.go
+        # verify direct Oracle / AA testnet path end-to-end
+        export AA_TEST_WIF=<funded-aa-testnet-wif>
+        bash deploy/scripts/verify_cross_repo_testnet.sh
         ```
-    - For Oracle / Compute:
+    - For Oracle / Compute / AA:
 
         ```bash
-        export MINIAPP_CONSUMER_HASH=0x...
-        export MINIAPP_SERVICE_TYPE=oracle
-        export MINIAPP_WAIT_CALLBACK=true
-        # optional override; uses a Binance price query by default
-        export MINIAPP_SERVICE_PAYLOAD='{"url":"https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT","json_path":"price"}'
-        go run scripts/request_miniapp_service.go
-
-        export MINIAPP_SERVICE_TYPE=compute
-        export MINIAPP_WAIT_CALLBACK=true
-        export MINIAPP_SERVICE_PAYLOAD='{"script":"function main(){return {ok:true,sum:input.a+input.b};}","entry_point":"main","input":{"a":2,"b":3}}'
-        go run scripts/request_miniapp_service.go
+        export AA_TEST_WIF=<funded-aa-testnet-wif>
+        bash deploy/scripts/verify_cross_repo_testnet.sh
         ```
 
-5. **Verify the callback**
-    - Check `neorequests` logs for `ServiceRequested` and `fulfillRequest`.
-    - Check `txproxy` logs for the callback submission.
-    - Query `service_requests` and `chain_txs` in Supabase.
-    - Invoke the MiniApp's callback getter method to confirm data was stored.
+5. **Verify the direct runtime result**
+    - Check the Oracle / AA runtime output and chain receipt.
+    - Query chain state or app-specific getters to confirm the effect.
+    - Review the generated validation report in `docs/reports/`.
 
-If the callback does not arrive, verify:
+If the direct runtime result does not arrive, verify:
 
-- `TXPROXY_ALLOWLIST` includes `ServiceLayerGateway.fulfillRequest`.
-- `ServiceLayerGateway` updater is set to the TEE signer.
-- `miniapps.manifest.permissions` includes the requested service.
-- `CONTRACT_SERVICEGATEWAY_HASH` + `NEO_RPC_URL` + `NEO_NETWORK_MAGIC` match the target network.
-- `NEOVRF_URL` / `NEOORACLE_URL` / `NEOCOMPUTE_URL` are reachable by `neorequests`.
-
-### Recover a Stuck ServiceGateway Request
-
-Use this only when a request is permanently stuck in `PENDING` and normal service
-fulfillment cannot complete it (for example after signer/key drift).
-
-```bash
-set -a; source .env; set +a
-
-# preview actions only
-go run scripts/recover_gateway_request.go --request-id 105 --dry-run
-
-# execute recovery: mark request as FAILED and restore previous updater
-go run scripts/recover_gateway_request.go --request-id 105 --error "manual recovery"
-```
-
-Safety behavior of the script:
-
-- Refuses to run unless `NEO_TESTNET_WIF` is the current `ServiceLayerGateway.admin`.
-- Captures the current updater, temporarily sets updater to admin, fulfills the
-  request as failed, then restores the original updater.
-- Verifies post-state (`status=FAILED`, `success=false`, expected error text,
-  updater restored).
+- `NEOVRF_URL` / `NEOORACLE_URL` / `NEOCOMPUTE_URL` / AA relay endpoints are reachable.
+- `AA_RELAY_URL` points at the intended external relay.
+- paymaster policy allowlists the current AA core and target account when sponsorship is enabled.
 
 ## Automated Full Workflow (Testnet)
 
-Use the helper script to run **payments**, **governance**, and **service callback**
-flows in one sequence.
+Use the helper scripts to run:
+
+- direct Oracle / direct AA cross-repo validation
+- platform-native PaymentHub / Governance / PriceFeed validation
 
 ```bash
 ./scripts/verify_testnet_workflows.sh --env-file .env --miniapp-hash 0x...

@@ -1,5 +1,9 @@
 # Neo N3 Mini‑App Platform (Architectural Blueprint)
 
+> Legacy blueprint note:
+> this file still documents an older service-gateway-centric architecture.
+> The current preferred platform path is direct Oracle / direct AA.
+
 This is the **reviewed, polished, and expanded** blueprint the repository is
 converging to. It explicitly locks the technology choices and enforces the hard
 constraints:
@@ -96,7 +100,7 @@ neo-miniapp-platform/
 │   ├── RandomnessLog/          # Randomness anchoring (TEE report hash)
 │   ├── AppRegistry/            # On-chain metadata + manifest hash + allowlist anchors
 │   ├── AutomationAnchor/       # Task registry + anti-replay nonce
-│   └── ServiceLayerGateway/    # On-chain service requests + callbacks
+│   └── OracleService/          # Direct oracle requests + callbacks
 │
 ├── services/                   # [Go] Nitro runtime + NitroRun TEE services
 │   ├── datafeed-service/       # Price aggregation + publish policy
@@ -162,10 +166,10 @@ The repository also contains an explicit shared **infrastructure** layer:
     - Stores manifest hash + status + allowlist anchor hash
 6. **AutomationAnchor**
     - Stores tasks + marks executed nonces to prevent replay
-7. **ServiceLayerGateway**
-    - Receives MiniApp service requests (`RequestService`)
-    - Emits `ServiceRequested` events for TEE dispatch
-    - Accepts `FulfillRequest` from the TEE updater and calls MiniApp callbacks
+7. **OracleService / direct callback contracts**
+    - Receive direct service requests from MiniApps where needed
+    - Emit request events for TEE dispatch
+    - Accept direct callback completion without a shared gateway bus
 
 ### B. TEE Services (The “Black Box”)
 
@@ -196,9 +200,9 @@ All signing keys and secret material stay **inside the enclave**.
     - Scheduler + triggers
     - Optional anchored tasks via `AutomationAnchor` and on-chain event monitoring
 7. **`request-dispatcher` (NeoRequests)**
-    - Listens for `ServiceRequested` events
+    - Listens for direct Oracle / compute request events where needed
     - Routes to `neovrf`, `neooracle`, `neocompute`
-    - Submits `FulfillRequest` callbacks via `tx-proxy`
+    - Submits direct callback transactions via `tx-proxy`
 
 ### C. Gateway (Supabase Edge)
 
@@ -231,15 +235,15 @@ Canonical endpoints:
 - writes `miniapp_tx_events`, `miniapp_stats`, `miniapp_stats_daily`, `miniapp_notifications`
 - feeds realtime UX via Supabase Realtime
 
-### E. On-Chain Service Request Flow (ServiceLayerGateway)
+### E. Direct On-Chain Service Flow
 
-MiniApps that require confidential services use on-chain requests:
+MiniApps that require confidential services use direct on-chain requests:
 
-1. MiniApp contract calls `ServiceLayerGateway.RequestService(...)`.
-2. Gateway emits `ServiceRequested` with payload + callback target.
+1. MiniApp contract calls the configured Oracle or automation entrypoint directly.
+2. The upstream service emits or observes the request with payload + callback target.
 3. NeoRequests executes the TEE workflow and prepares a result payload.
-4. NeoRequests submits `ServiceLayerGateway.FulfillRequest(...)` via `tx-proxy`.
-5. Gateway calls the MiniApp callback method on-chain and records the result.
+4. NeoRequests submits the callback transaction directly via `tx-proxy`.
+5. The MiniApp callback method runs on-chain and records the result.
 
 ---
 
@@ -264,7 +268,7 @@ MiniApps that require confidential services use on-chain requests:
 ## 6. MVP Roadmap
 
 1. Deploy contracts to local `neo-express` / TestNet:
-    - PaymentHub, Governance, PriceFeed, RandomnessLog, AppRegistry, AutomationAnchor, ServiceLayerGateway
+    - PaymentHub, Governance, PriceFeed, RandomnessLog, AppRegistry, AutomationAnchor, OracleService
 2. Bring up enclave services in simulation:
     - tx-proxy, vrf-service, compute-service, datafeed-service, automation-service, oracle-gateway, request-dispatcher
 3. Wire Supabase Edge → services (auth + routing) and the Next.js host app.

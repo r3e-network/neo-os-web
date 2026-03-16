@@ -11,7 +11,7 @@ The contract provides uncollateralized instant loans with the following characte
 - **Instant Borrowing**: Users can borrow any available amount without upfront collateral
 - **Same-Transaction Repayment**: Loans must be repaid within the same transaction execution
 - **Fee-Based Model**: Charges a 0.09% fee (9 basis points) on borrowed amounts
-- **Gateway-Controlled**: All loan executions are managed through the ServiceLayerGateway
+- **Gateway-Controlled**: All loan executions are managed through the Morpheus Oracle
 
 ## How It Works
 
@@ -20,7 +20,7 @@ The contract provides uncollateralized instant loans with the following characte
 The contract follows the standard MiniApp architecture with:
 
 1. **Admin Management**: Controls contract configuration and upgrades
-2. **Gateway Integration**: All operations route through ServiceLayerGateway
+2. **Gateway Integration**: All operations route through Morpheus Oracle
 3. **PaymentHub Integration**: Handles token transfers and fee collection
 4. **Pause Mechanism**: Emergency stop functionality
 
@@ -38,7 +38,7 @@ For example:
 ### Execution Flow
 
 1. User initiates flash loan request through frontend
-2. Request routes through ServiceLayerGateway
+2. Request routes through Morpheus Oracle
 3. Contract validates user authorization
 4. `ExecuteLoan()` method calculates fee and emits event
 5. External systems (off-chain or other contracts) handle actual token transfer
@@ -71,7 +71,7 @@ Callback handler for external service responses.
 
 **Requirements:**
 
-- Can only be called by ServiceLayerGateway
+- Can only be called by Morpheus Oracle
 
 ### Admin Methods
 
@@ -79,9 +79,9 @@ Callback handler for external service responses.
 
 Updates the contract administrator address.
 
-#### `SetGateway(UInt160 g)`
+#### `SetOracle(UInt160 g)`
 
-Sets the ServiceLayerGateway contract address.
+Sets the Morpheus Oracle contract address.
 
 #### `SetPaymentHub(UInt160 hub)`
 
@@ -101,9 +101,9 @@ Upgrades the contract to a new version.
 
 Returns the current administrator address.
 
-#### `Gateway() → UInt160`
+#### `Oracle() → UInt160`
 
-Returns the ServiceLayerGateway contract address.
+Returns the Morpheus Oracle contract address.
 
 #### `PaymentHub() → UInt160`
 
@@ -164,7 +164,7 @@ Emitted when a flash loan is executed.
    - Uses borrowed tokens for intended purpose (arbitrage, liquidation, etc.)
    - Repays loan amount + fee
 
-2. **Execute Through Gateway**: Submit transaction through ServiceLayerGateway
+2. **Execute Through Gateway**: Submit transaction through Morpheus Oracle
 
 3. **Monitor Events**: Listen for `LoanExecuted` event to confirm execution
 
@@ -188,7 +188,7 @@ await repayLoan(borrowAmount + expectedFee);
 ## Security Considerations
 
 1. **Authorization**: Only authorized users with valid signatures can execute loans
-2. **Gateway Control**: All operations must go through the trusted ServiceLayerGateway
+2. **Gateway Control**: All operations must go through the trusted Morpheus Oracle
 3. **Pause Mechanism**: Admin can pause contract in emergency situations
 4. **Atomic Execution**: Loans must be repaid in the same transaction (enforced by blockchain)
 
@@ -196,10 +196,10 @@ await repayLoan(borrowAmount + expectedFee);
 
 Before using this contract:
 
-1. Admin must call `SetGateway()` to configure ServiceLayerGateway
+1. Admin must call `SetOracle()` to configure Morpheus Oracle
 2. Admin must call `SetPaymentHub()` to configure PaymentHub
 3. Contract must have sufficient liquidity for loans
-4. Users must interact through ServiceLayerGateway, not directly
+4. Users must interact through Morpheus Oracle, not directly
 
 ## Contract Information
 
@@ -220,7 +220,7 @@ MiniAppFlashLoan 是一个闪电贷服务合约,允许用户在同一交易内�
 - **同交易内还款**: 贷款必须在同一交易执行内归还
 - **TEE验证机制**: 通过可信执行环境验证回调合约将正确还款
 - **费用模型**: 对借款金额收取0.09%的手续费(9个基点)
-- **网关控制**: 所有贷款执行通过ServiceLayerGateway管理
+- **网关控制**: 所有贷款执行通过Morpheus Oracle管理
 
 ### 使用方法
 
@@ -283,7 +283,7 @@ Deposit(depositor, amount)
 ### 安全考虑
 
 1. **TEE验证**: 贷款执行前验证回调合约将正确还款
-2. **网关控制**: 所有操作必须通过可信的ServiceLayerGateway
+2. **网关控制**: 所有操作必须通过可信的Morpheus Oracle
 3. **原子执行**: 贷款必须在同一交易内还款(由区块链强制执行)
 4. **暂停机制**: 管理员可在紧急情况下暂停合约
 
@@ -291,7 +291,7 @@ Deposit(depositor, amount)
 
 使用此合约前:
 
-1. 管理员必须调用 `SetGateway()` 配置ServiceLayerGateway
+1. 管理员必须调用 `SetOracle()` 配置Morpheus Oracle
 2. 管理员必须调用 `SetAutomationAnchor()` 配置自动化锚点
 3. 合约必须有足够的流动性用于贷款
-4. 用户必须通过ServiceLayerGateway交互,不能直接调用
+4. 用户必须通过Morpheus Oracle交互,不能直接调用
