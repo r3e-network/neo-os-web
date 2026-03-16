@@ -11,6 +11,13 @@ For the end-to-end architecture, see `docs/ARCHITECTURE.md`. For the platform
 blueprint/spec, see `docs/neo-miniapp-platform-blueprint.md` and
 `docs/neo-miniapp-platform-full.md`.
 
+Current platform note:
+
+- `PaymentHub` is now a legacy / optional settlement contract, not the default
+  path for flagship MiniApps.
+- direct Oracle, direct AA relay, and direct prepaid MiniApp contract flows are
+  the preferred integration model.
+
 ---
 
 ## 1. Layers (Top-Level)
@@ -19,7 +26,7 @@ blueprint/spec, see `docs/neo-miniapp-platform-blueprint.md` and
 
 Platform contracts only:
 
-- `PaymentHub` (**GAS-only** settlement)
+- `PaymentHub` (**legacy / optional GAS-only** settlement)
 - `Governance` (**bNEO-only** staking/voting)
 - `PriceFeed` (datafeed anchoring)
 - `RandomnessLog` (randomness anchoring; randomness is provided via NeoVRF)
