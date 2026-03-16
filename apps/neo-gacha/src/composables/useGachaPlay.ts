@@ -6,7 +6,9 @@ import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useEvents } from "@shared/utils/wallet-sdk";
 import { waitForEventByTransaction } from "@shared/utils/transaction";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Machine, MachineItem } from "@/types";
 
 const APP_ID = "miniapp-neo-gacha";
@@ -14,8 +16,9 @@ const APP_ID = "miniapp-neo-gacha";
 export function useGachaPlay() {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
-  const { address } = useContractInteraction({ appId: APP_ID, t });
+  const { address, invokeDirectly } = useContractInteraction({ appId: APP_ID, t });
   const { processPayment } = usePaymentFlow(APP_ID);
+  const { list: listEvents } = useEvents();
 
   const isPlaying = ref(false);
   const showResult = ref(false);
@@ -87,31 +90,61 @@ export function useGachaPlay() {
       const contract = await options.ensureContract();
       if (!contract) return;
 
-      const payAmount = gasInputFromRaw(machine.priceRaw);
-      const { receiptId, invoke, waitForEvent } = await processPayment(payAmount, `gacha:${machine.id}`);
-      if (!receiptId) {
-        throw new Error(t("receiptMissing"));
-      }
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: String(machine.priceRaw) },
+          { type: "String", value: `${APP_ID}:play:${machine.id}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH
+      );
+      await new Promise((resolve) => setTimeout(resolve, 4000));
 
-      const initiateTx = await invoke(
+      const initiateTx = await invokeDirectly(
         "initiatePlay",
         [
           { type: "Hash160", value: address.value as string },
           { type: "Integer", value: machine.id },
-          { type: "Integer", value: String(receiptId) },
+          { type: "Integer", value: "0" },
         ],
         contract
       );
 
-      const initiatedEvent = await waitForEventByTransaction(initiateTx, "PlayInitiated", waitForEvent);
+      const initiatedEvent = await waitForEventByTransaction(
+        initiateTx,
+        "PlayInitiated",
+        async (txid: string, eventName: string, timeoutMs = 30000) => {
+          const deadline = Date.now() + timeoutMs;
+          while (Date.now() < deadline) {
+            const resultEvents = await listEvents({
+              app_id: APP_ID,
+              event_name: eventName,
+              limit: 20,
+              tx_hash: txid,
+            });
+            if (resultEvents.events.length > 0) return resultEvents.events[0] as unknown as Record<string, unknown>;
+            await new Promise((resolve) => setTimeout(resolve, 2500));
+          }
+          throw new Error(t("playPending"));
+        }
+      );
       if (!initiatedEvent) {
         throw new Error(t("playPending"));
       }
 
       const evtRecord = initiatedEvent as unknown as Record<string, unknown> | null;
-      const initiatedValues = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
+      const rawValues = Array.isArray(evtRecord?.state) ? (evtRecord.state as Record<string, unknown>[]) : [];
+      const initiatedValues = rawValues.map(parseStackItem);
       const playId = String(initiatedValues[2] ?? "");
-      const seed = String(initiatedValues[3] ?? "");
+      let seed = "";
+      const seedItem = rawValues[3] as Record<string, unknown> | undefined;
+      if (seedItem?.type === "ByteString" && typeof seedItem.value === "string") {
+        seed = Buffer.from(seedItem.value, "base64").toString("hex");
+      } else {
+        seed = String(initiatedValues[3] ?? "");
+      }
       if (!playId || !seed) {
         throw new Error(t("playPending"));
       }
@@ -142,7 +175,7 @@ export function useGachaPlay() {
       showResult.value = true;
       showFireworks.value = true;
 
-      const settleTx = await invoke(
+      const settleTx = await invokeDirectly(
         "settlePlay",
         [
           { type: "Hash160", value: address.value as string },
@@ -152,7 +185,24 @@ export function useGachaPlay() {
         contract
       );
 
-      await waitForEventByTransaction(settleTx, "PlayResolved", waitForEvent);
+      await waitForEventByTransaction(
+        settleTx,
+        "PlayResolved",
+        async (txid: string, eventName: string, timeoutMs = 30000) => {
+          const deadline = Date.now() + timeoutMs;
+          while (Date.now() < deadline) {
+            const resultEvents = await listEvents({
+              app_id: APP_ID,
+              event_name: eventName,
+              limit: 20,
+              tx_hash: txid,
+            });
+            if (resultEvents.events.length > 0) return resultEvents.events[0] as unknown as Record<string, unknown>;
+            await new Promise((resolve) => setTimeout(resolve, 2500));
+          }
+          throw new Error(t("playPending"));
+        }
+      );
 
       if (options.onSuccess) await options.onSuccess();
     } catch (e: unknown) {

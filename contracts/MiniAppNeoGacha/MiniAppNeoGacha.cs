@@ -20,9 +20,10 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void InventoryDepositedHandler(BigInteger machineId, BigInteger itemIndex, BigInteger amount, string tokenId);
     public delegate void InventoryWithdrawnHandler(BigInteger machineId, BigInteger itemIndex, BigInteger amount, string tokenId);
     public delegate void PlayRequestedHandler(UInt160 player, BigInteger machineId, BigInteger playId, BigInteger requestId);
-    public delegate void PlayInitiatedHandler(UInt160 player, BigInteger machineId, BigInteger playId, string seed);
+    public delegate void PlayInitiatedHandler(UInt160 player, BigInteger machineId, BigInteger playId, ByteString seed);
     public delegate void PlayResolvedHandler(UInt160 player, BigInteger machineId, BigInteger itemIndex, BigInteger playId, BigInteger assetType, UInt160 assetHash, BigInteger amount, string tokenId);
     public delegate void RngRequestedHandler(BigInteger playId, BigInteger requestId);
+    public delegate void DebugCheckpointHandler(BigInteger step, BigInteger playId, BigInteger selectedIndex);
 
     [DisplayName("MiniAppNeoGacha")]
     [ManifestExtra("Author", "R3E Network")]
@@ -55,6 +56,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_PLAYS = new byte[] { 0x44 };
         private static readonly byte[] PREFIX_REQUEST_TO_PLAY = new byte[] { 0x45 };
         private static readonly byte[] PREFIX_ITEM_TOKEN_LIST = new byte[] { 0x46 };
+        private static readonly byte[] PREFIX_PENDING_ASSET_CREDIT = new byte[] { 0x47 };
         #endregion
 
         #region Data Structures
@@ -151,6 +153,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("RngRequested")]
         public static event RngRequestedHandler OnRngRequested;
+
+        [DisplayName("DebugCheckpoint")]
+        public static event DebugCheckpointHandler OnDebugCheckpoint;
         #endregion
 
         #region Lifecycle

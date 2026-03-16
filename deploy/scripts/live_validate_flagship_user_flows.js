@@ -172,6 +172,89 @@ async function waitForEnvelopeReady(contractHash, envelopeId, timeoutMs = 120000
   throw new Error(`timed out waiting for envelope ${envelopeId} to become ready`);
 }
 
+async function findPlayableGasBoxMachine(contractHash) {
+  const total = Number(await invokeRead(contractHash, "totalMachines"));
+  for (let machineId = 1; machineId <= total; machineId += 1) {
+    const machine = await invokeRead(contractHash, "getMachine", [{ type: "Integer", value: String(machineId) }]);
+    if (!machine || machine.active !== true) continue;
+    const itemCount = Number(machine.itemCount || 0);
+    if (itemCount <= 0) continue;
+    const item = await invokeRead(contractHash, "getMachineItem", [
+      { type: "Integer", value: String(machineId) },
+      { type: "Integer", value: "1" },
+    ]);
+    if (!item || String(item.assetType || "0") !== "1") continue;
+    if (String(item.assetHash || "").toLowerCase() !== GAS_HASH.toLowerCase()) continue;
+    if (BigInt(String(item.stock || "0")) < BigInt(String(item.amount || "0"))) continue;
+    return { machineId, machine, item };
+  }
+  throw new Error("no active GASBOX machine with funded GAS prize inventory found");
+}
+
+async function runGasBox() {
+  const contractHash = testnetHash("apps/neo-gacha/neo-manifest.json");
+  const contract = new Neon.experimental.SmartContract(contractHash, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account,
+  });
+
+  const { machineId, machine } = await findPlayableGasBoxMachine(contractHash);
+  const playPrice = String(machine.price || "0");
+  if (!playPrice || playPrice === "0") {
+    throw new Error(`invalid GASBOX machine price for machine ${machineId}`);
+  }
+
+  const transferTx = await transferGAS(contractHash, playPrice, `miniapp-neo-gacha:play:${machineId}`);
+  await sleep(4000);
+
+  const initiateTx = await contract.invoke("initiatePlay", [
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.integer(String(machineId)),
+    Neon.sc.ContractParam.integer("0"),
+  ]);
+  const initiateLog = await waitForLog(initiateTx);
+  if (initiateLog.execution.vmstate !== "HALT") {
+    throw new Error(initiateLog.execution.exception || "initiatePlay failed");
+  }
+
+  const initiated = findNotification(initiateLog.execution, contractHash, "PlayInitiated");
+  if (!initiated) {
+    throw new Error("PlayInitiated notification missing");
+  }
+  const playId = stackValue(initiated.state?.value?.[2]);
+  const selectedIndex = await invokeRead(contractHash, "debugExpectedSelection", [
+    { type: "Integer", value: String(playId) },
+  ]);
+
+  const settleTx = await contract.invoke("settlePlay", [
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.integer(String(playId)),
+    Neon.sc.ContractParam.integer(String(selectedIndex)),
+  ]);
+  const settleLog = await waitForLog(settleTx);
+  if (settleLog.execution.vmstate !== "HALT") {
+    throw new Error(settleLog.execution.exception || "settlePlay failed");
+  }
+
+  const resolved = findNotification(settleLog.execution, contractHash, "PlayResolved");
+  if (!resolved) {
+    throw new Error("PlayResolved notification missing");
+  }
+
+  const play = await invokeRead(contractHash, "getPlay", [{ type: "Integer", value: String(playId) }]);
+  return {
+    contractHash,
+    machineId,
+    transferTx,
+    initiateTx: asTxid(initiateTx),
+    playId,
+    selectedIndex,
+    settleTx: asTxid(settleTx),
+    play,
+  };
+}
+
 async function runDailyCheckin() {
   const contractHash = testnetHash("apps/daily-checkin/neo-manifest.json");
   const txid = await transferGAS(contractHash, DAILY_CHECKIN_FEE, "miniapp-dailycheckin:checkin");
@@ -324,6 +407,7 @@ async function main() {
   let failed = false;
   for (const [label, runner] of [
     ["dailyCheckin", runDailyCheckin],
+    ["gasBox", runGasBox],
     ["fogPlay", runFogPlay],
     ["redEnvelope", runRedEnvelope],
     ["selfLoan", runSelfLoan],
