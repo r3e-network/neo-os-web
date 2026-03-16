@@ -61,10 +61,10 @@ NeoPay 是一个流式支付协议，将可编程货币的能力带入日常场�
 
 | 方法                    | 类型 | 参数                                                                                                | 说明                       |
 | ----------------------- | ---- | --------------------------------------------------------------------------------------------------- | -------------------------- |
-| `CreateStream`          | 操作 | `creator`, `beneficiary`, `asset`, `totalAmount`, `rateAmount`, `intervalSeconds`, `title`, `notes` | 创建新的支付流             |
-| `ClaimStream`           | 操作 | `beneficiary`, `streamId`                                                                           | 领取已释放的资金           |
-| `CancelStream`          | 操作 | `creator`, `streamId`                                                                               | 取消支付流，回收未释放资金 |
-| `GetStreamDetails`      | 查询 | `streamId`                                                                                          | 获取支付流参数和状态       |
+| `createStream`          | 操作 | `creator`, `beneficiary`, `asset`, `totalAmount`, `rateAmount`, `intervalSeconds`, `title`, `notes` | 先向合约预存资产，再创建新的支付流 |
+| `claimStream`           | 操作 | `beneficiary`, `streamId`                                                                           | 领取已释放的资金           |
+| `cancelStream`          | 操作 | `creator`, `streamId`                                                                               | 取消支付流，回收未释放资金 |
+| `getStreamDetails`      | 查询 | `streamId`                                                                                          | 获取支付流参数和状态       |
 | `getUserStreams`        | 查询 | `user`, `offset`, `limit`                                                                           | 获取用户创建的支付流       |
 | `getBeneficiaryStreams` | 查询 | `beneficiary`, `offset`, `limit`                                                                    | 获取用户作为受益人的支付流 |
 

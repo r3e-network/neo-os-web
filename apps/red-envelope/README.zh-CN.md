@@ -91,7 +91,7 @@ npm run build
 | 领取流程 | 小程序 + 钱包交互               |
 | 分配逻辑 | 智能合约状态                    |
 | 分享方式 | 链接 / 口令社交传播             |
-| 支付     | PaymentHub（GAS）               |
+| 支付     | 直接预付 GAS + Morpheus Oracle 回调费信用 |
 
 ## 许可证
 

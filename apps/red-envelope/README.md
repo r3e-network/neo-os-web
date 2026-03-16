@@ -91,7 +91,7 @@ npm run build
 | Claim Flow      | Direct miniapp + wallet interaction                 |
 | Distribution    | Smart contract state                                |
 | Sharing         | Link / code based social distribution               |
-| Payment         | PaymentHub (GAS)                                    |
+| Payment         | Direct prepaid GAS + Morpheus Oracle callback fee credit |
 
 ## License
 

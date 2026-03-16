@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-gasbox",
-    "contract_hash": "0x13f7a9e8202c9ea6f3a9040a1773e28f03077d7d"
+    "contract_hash": "0x523c112560a2e196fa0fcfa215d93c08e117d9c1"
   },
   "entry_url": "mf://manifest?app=miniapp-neo-gacha",
   "media": {
@@ -73,13 +73,6 @@
           "required": true,
           "placeholder": "1"
         },
-        {
-          "name": "receiptId",
-          "type": "integer",
-          "label": "Receipt ID",
-          "required": true,
-          "placeholder": "1"
-        }
       ]
     }
   ],
