@@ -4,6 +4,7 @@ import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useDoomsdayGame } from "@/composables/useDoomsdayGame";
 import { useDoomsdayTimer } from "@/composables/useDoomsdayTimer";
 
@@ -12,6 +13,7 @@ export function useDoomsdayActions() {
   const { handleError, canRetry, clearError } = useErrorHandler();
   const game = useDoomsdayGame();
   const timer = useDoomsdayTimer();
+  const { processPayment } = usePaymentFlow(game.APP_ID);
 
   const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
   const errorMessage = computed(() => errorStatus.value?.msg ?? null);
@@ -83,10 +85,15 @@ export function useDoomsdayActions() {
       await game.ensureContractAddress();
       const costRaw = game.estimatedCostRaw.value;
       const costGas = Number(costRaw) / 1e8;
-      await game.invoke(costGas.toString(), `keys:${game.roundId.value}:${count}`, "buyKeysWithCost", [
+      const { receiptId } = await processPayment(costGas.toString(), `keys:${game.roundId.value}:${count}`);
+      if (!receiptId) {
+        throw new Error(t("error"));
+      }
+      await game.invokeDirectly("buyKeysWithCost", [
         { type: "Hash160", value: game.address.value as string },
         { type: "Integer", value: count },
         { type: "Integer", value: costRaw.toString() },
+        { type: "Integer", value: String(receiptId) },
       ]);
       game.keyCount.value = "1";
       showStatus(t("keysPurchased"), "success");
