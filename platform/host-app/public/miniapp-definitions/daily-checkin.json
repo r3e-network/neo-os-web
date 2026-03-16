@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-daily-checkin",
-    "contract_hash": "0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528"
+    "contract_hash": "0xbd4f3646e189350b9c11a659655854e6f03f9be4"
   },
   "entry_url": "mf://manifest?app=miniapp-dailycheckin",
   "media": {

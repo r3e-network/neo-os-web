@@ -46,7 +46,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-testnet",
+    "chain": "neo-n3-mainnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]

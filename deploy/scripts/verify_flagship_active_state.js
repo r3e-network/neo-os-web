@@ -2,9 +2,9 @@
 
 const fs = require("fs");
 const path = require("path");
+const { getManifestContractHash, getNetworkConfig, getTargetNetwork } = require("./lib/neo_network");
 
 const root = path.resolve(__dirname, "..", "..");
-const rpcUrl = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 
 const FLAGSHIP_APPS = [
   {
@@ -35,7 +35,7 @@ const FLAGSHIP_APPS = [
   {
     brand: "Daily Check-in",
     slug: "daily-checkin",
-    contractName: "MiniAppDailyCheckin",
+    contractName: "MiniAppDailyCheckIn",
     readChecks: [
       { method: "getPlatformStats", args: [], expectedStackType: "Map" },
     ],
@@ -72,7 +72,7 @@ function readJson(rel) {
   return JSON.parse(fs.readFileSync(path.join(root, rel), "utf8"));
 }
 
-async function rpc(method, params) {
+async function rpc(rpcUrl, method, params) {
   const response = await fetch(rpcUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -97,8 +97,10 @@ async function main() {
   for (const app of FLAGSHIP_APPS) {
     const manifest = readJson(`apps/${app.slug}/neo-manifest.json`);
     const definition = readJson(`platform/host-app/public/miniapp-definitions/${app.slug}.json`);
-    const network = manifest.default_network || "neo-n3-testnet";
-    const contractHash = manifest.contracts?.[network] || "";
+    const targetNetwork = getTargetNetwork(manifest);
+    const networkConfig = getNetworkConfig(targetNetwork);
+    const network = networkConfig.key;
+    const contractHash = getManifestContractHash(manifest, targetNetwork);
 
     const row = {
       brand: app.brand,
@@ -123,7 +125,7 @@ async function main() {
     }
 
     try {
-      const state = await rpc("getcontractstate", [contractHash]);
+      const state = await rpc(networkConfig.rpcUrl, "getcontractstate", [contractHash]);
       row.remoteContractName = state?.manifest?.name || null;
       if (row.remoteContractName !== app.contractName) {
         row.problems.push(`remote contract name mismatch: ${row.remoteContractName || "missing"}`);
@@ -137,7 +139,7 @@ async function main() {
 
     for (const check of app.readChecks) {
       try {
-        const result = await rpc("invokefunction", [contractHash, check.method, check.args]);
+        const result = await rpc(networkConfig.rpcUrl, "invokefunction", [contractHash, check.method, check.args]);
         const stackItem = result?.stack?.[0];
         const stackType = stackItem?.type || "missing";
         const checkRow = {

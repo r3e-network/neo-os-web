@@ -10,7 +10,7 @@
     "test:testnet:direct": "bash deploy/scripts/verify_cross_repo_testnet.sh",
     "test:flagship-miniapps": "node deploy/scripts/audit_flagship_miniapps.js",
     "test:flagship-deployed-abi": "node deploy/scripts/audit_flagship_deployed_abi.js",
-    "test:flagship-testnet-state": "node deploy/scripts/verify_flagship_testnet_state.js",
+    "test:flagship-active-state": "node deploy/scripts/verify_flagship_active_state.js",
     "test:flagship-live-user-flows": "node deploy/scripts/live_validate_flagship_user_flows.js",
     "test:flagship-update-dryrun": "bash -c 'set -a; . ./.env; set +a; go run -tags=scripts deploy/scripts/update_flagship_testnet_contracts.go'",
     "test:host-app": "npm --prefix platform/host-app test --silent",
