@@ -13,6 +13,7 @@ const items = [
   { brand: "Daily Check-in", manifest: "apps/daily-checkin/neo-manifest.json", buildManifest: "contracts/build/MiniAppDailyCheckin.manifest.json" },
   { brand: "FogPlay", manifest: "apps/coin-flip/neo-manifest.json", buildManifest: "contracts/build/MiniAppCoinFlip.manifest.json" },
   { brand: "SelfLoan", manifest: "apps/self-loan/neo-manifest.json", buildManifest: "contracts/build/MiniAppSelfLoan.manifest.json" },
+  { brand: "NeoPay", manifest: "apps/stream-vault/neo-manifest.json", buildManifest: "contracts/build/MiniAppStreamVault.manifest.json" },
 ];
 
 async function getContractState(hash) {

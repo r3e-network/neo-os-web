@@ -28,6 +28,7 @@ Environment overrides:
   AA_TEST_WIF              Funded Neo N3 testnet WIF for AA relay test (required)
   MORPHEUS_PAYMASTER_APP_ID
   PAYMASTER_ACCOUNT_ID
+  SKIP_PAYMASTER_ALLOWLIST_UPDATE
 
 Notes:
   - This script validates the preferred direct Oracle / direct AA testnet path.
@@ -121,7 +122,7 @@ echo "=== Direct AA: neo-abstract-account paymaster relay ==="
     TEST_WIF="$AA_TEST_WIF" \
     TESTNET_RPC_URL=https://testnet1.neo.coz.io:443 \
     PAYMASTER_ACCOUNT_ID="$PAYMASTER_ACCOUNT_ID" \
-    SKIP_PAYMASTER_ALLOWLIST_UPDATE=1 \
+    ${SKIP_PAYMASTER_ALLOWLIST_UPDATE:+SKIP_PAYMASTER_ALLOWLIST_UPDATE=$SKIP_PAYMASTER_ALLOWLIST_UPDATE} \
     node sdk/js/tests/v3_testnet_paymaster_relay.mjs)
 
 echo ""
