@@ -27,13 +27,13 @@ const TARGET_FILTER = new Set(
 );
 
 const CONTRACTS = [
-  { name: "MiniAppDoomsdayClock", appDir: "doomsday-clock", displayName: "LastSurvivor" },
-  { name: "MiniAppNeoGacha", appDir: "neo-gacha", displayName: "GASBOX" },
+  { name: "MiniAppLastSurvivor", appDir: "last-survivor", displayName: "LastSurvivor" },
+  { name: "MiniAppGASBox", appDir: "gasbox", displayName: "GASBOX" },
   { name: "MiniAppRedEnvelope", appDir: "red-envelope", displayName: "Red Envelope" },
   { name: "MiniAppDailyCheckin", appDir: "daily-checkin", displayName: "Daily Check-in" },
-  { name: "MiniAppCoinFlip", appDir: "coin-flip", displayName: "FogPlay" },
+  { name: "MiniAppFogPlay", appDir: "fogplay", displayName: "FogPlay" },
   { name: "MiniAppSelfLoan", appDir: "self-loan", displayName: "SelfLoan" },
-  { name: "MiniAppStreamVault", appDir: "stream-vault", displayName: "NeoPay" },
+  { name: "MiniAppNeoPay", appDir: "neo-pay", displayName: "NeoPay" },
 ];
 
 function sleep(ms) {

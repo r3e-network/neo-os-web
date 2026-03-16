@@ -5,14 +5,13 @@ type CanonicalizeMiniAppIdOptions = {
 
 const MINIAPP_PREFIX = "miniapp-";
 const MINIAPP_SLUG_ALIAS_MAP: Record<string, string> = {
-  "coin-flip": "coinflip",
+  "fogplay": "fogplay",
   "dice-game": "dicegame",
   "daily-checkin": "dailycheckin",
   "prediction-market": "predictionmarket",
   "red-envelope": "redenvelope",
   "secret-vote": "secretvote",
-  "gas-spin": "neo-gacha",
-  "neo-gacha": "neo-gacha",
+  "gasbox": "gasbox",
 };
 
 function sanitizeSlug(value: unknown): string {

@@ -24,7 +24,7 @@ describe("/api/miniapps/[appId]/live", () => {
 
   it("returns live status for a whitelisted flagship app", async () => {
     const getLiveStatus = jest.fn().mockResolvedValue({
-      appId: "miniapp-coinflip",
+      appId: "miniapp-fogplay",
       playersOnline: 3,
     });
 
@@ -39,7 +39,7 @@ describe("/api/miniapps/[appId]/live", () => {
 
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { appId: "miniapp-coinflip" },
+      query: { appId: "miniapp-fogplay" },
     });
 
     await handler(req, res);
@@ -48,7 +48,7 @@ describe("/api/miniapps/[appId]/live", () => {
     expect(res._getStatusCode()).toBe(200);
     expect(JSON.parse(res._getData())).toEqual({
       status: {
-        appId: "miniapp-coinflip",
+        appId: "miniapp-fogplay",
         playersOnline: 3,
       },
     });

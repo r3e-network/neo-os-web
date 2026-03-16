@@ -92,6 +92,10 @@ npm run build
 - **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b)
 - **Mainnet**: [View on NeoTube](https://neotube.io/contract/0x942da575b31f39cbb59e64b5813b128739b44c25)
 
+## Domains
+
+- Mainnet domain: `selfloan.miniapp.neo`
+
 ## Tech Stack
 
 | Layer             | Technology                   |

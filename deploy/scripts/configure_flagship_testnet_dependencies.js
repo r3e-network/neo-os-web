@@ -21,8 +21,8 @@ const account = new Neon.wallet.Account(DEPLOYER_WIF);
 const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
 
 const TARGETS = [
-  { brand: "FogPlay", manifest: "apps/coin-flip/neo-manifest.json", methods: [["setOracle", [ORACLE_HASH]]], callbackCredit: true },
-  { brand: "GASBOX", manifest: "apps/neo-gacha/neo-manifest.json", methods: [["setOracle", [ORACLE_HASH]]], callbackCredit: true },
+  { brand: "FogPlay", manifest: "apps/fogplay/neo-manifest.json", methods: [["setOracle", [ORACLE_HASH]]], callbackCredit: true },
+  { brand: "GASBOX", manifest: "apps/gasbox/neo-manifest.json", methods: [["setOracle", [ORACLE_HASH]]], callbackCredit: true },
   { brand: "Red Envelope", manifest: "apps/red-envelope/neo-manifest.json", methods: [["setOracle", [ORACLE_HASH]]], callbackCredit: true },
 ];
 

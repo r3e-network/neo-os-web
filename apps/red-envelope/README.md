@@ -82,6 +82,10 @@ npm run build
 - **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0x4079c09a0ff121fc44d817c37d6ae8694b268e9f)
 - **Mainnet**: [View on NeoTube](https://neotube.io/contract/0x5f371cc50116bb13d79554d96ccdd6e246cd5d59)
 
+## Domains
+
+- Mainnet domain: `redenvelope.miniapp.neo`
+
 ## Tech Stack
 
 | Layer           | Technology                                          |

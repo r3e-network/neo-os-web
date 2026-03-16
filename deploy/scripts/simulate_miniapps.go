@@ -84,7 +84,7 @@ func (s *Simulator) SimulateAllMiniApps() {
 		fn   func() error
 	}{
 		{"miniapp-lottery", "Neo Lottery", s.SimulateLottery},
-		{"miniapp-coinflip", "Coin Flip", s.SimulateCoinFlip},
+		{"miniapp-fogplay", "Coin Flip", s.SimulateCoinFlip},
 		{"miniapp-dicegame", "Dice Game", s.SimulateDiceGame},
 		{"miniapp-scratch-card", "Scratch Card", s.SimulateScratchCard},
 		{"miniapp-predictionmarket", "Prediction Market", s.SimulatePrediction},
@@ -130,7 +130,7 @@ func (s *Simulator) SimulateLottery() error {
 
 // SimulateCoinFlip tests coin flip game workflow
 func (s *Simulator) SimulateCoinFlip() error {
-	appID := "miniapp-coinflip"
+	appID := "miniapp-fogplay"
 	result, err := s.rpc.InvokeFunction(s.contracts["PaymentHub"], "getApp", []smartcontract.Parameter{
 		{Type: smartcontract.StringType, Value: appID},
 	}, nil)

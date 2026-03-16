@@ -9,21 +9,21 @@ import { useTranslation } from "@/lib/i18n/react";
 // MiniApp catalog
 const miniApps: MiniAppInfo[] = [
   {
-    app_id: "miniapp-doomsday-clock",
+    app_id: "miniapp-last-survivor",
     name: "LastSurvivor",
     description: "Every contribution resets the timer. The last survivor wins the whole jackpot.",
     icon: "⏱️",
     category: "gaming",
   },
   {
-    app_id: "miniapp-coinflip",
+    app_id: "miniapp-fogplay",
     name: "FogPlay",
     description: "Oracle-backed coin flips with direct GAS wagering and on-chain settlement.",
     icon: "🪙",
     category: "gaming",
   },
   {
-    app_id: "miniapp-neo-gacha",
+    app_id: "miniapp-gasbox",
     name: "GASBOX",
     description: "Blind-box economy with provably fair randomness and rapid consecutive spins.",
     icon: "🎁",
@@ -51,7 +51,7 @@ const miniApps: MiniAppInfo[] = [
     category: "defi",
   },
   {
-    app_id: "miniapp-stream-vault",
+    app_id: "miniapp-neo-pay",
     name: "NeoPay",
     description: "Recurring GAS or NEO streams with beneficiary claims and creator cancellation.",
     icon: "💸",

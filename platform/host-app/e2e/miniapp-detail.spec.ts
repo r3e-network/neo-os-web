@@ -7,7 +7,7 @@ test.describe("MiniApp Detail", () => {
   });
 
   test("should load coinflip miniapp", async ({ page }) => {
-    await page.goto("/miniapps/miniapp-coinflip");
+    await page.goto("/miniapps/miniapp-fogplay");
     await expect(page.locator("body")).toBeVisible();
   });
 
