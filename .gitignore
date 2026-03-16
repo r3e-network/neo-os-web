@@ -84,6 +84,8 @@ docs/whitepaper/*.toc
 
 # Supabase local dev artifacts
 supabase/.temp/
+supabase/functions/
+supabase/migrations/
 
 # Environment secrets
 .env
