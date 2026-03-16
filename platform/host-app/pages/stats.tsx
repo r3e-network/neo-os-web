@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 export default function StatsPage() {
   return (
