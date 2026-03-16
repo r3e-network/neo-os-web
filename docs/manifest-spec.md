@@ -94,7 +94,7 @@ High level:
     },
     "callback_contract": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "callback_method": "OnServiceCallback",
-    "contracts_needed": ["PaymentHub", "RandomnessLog", "PriceFeed"],
+    "contracts_needed": ["MorpheusOracle", "RandomnessLog", "PriceFeed"],
     "news_integration": true,
     "stats_display": [
         "total_transactions",
@@ -144,7 +144,9 @@ High level:
 ### Permissions
 
 - `permissions.wallet`: allowed wallet reads (only `read-address`; no signing permissions here).
-- `permissions.payments`: enables GAS payments via `PaymentHub`.
+- `permissions.payments`: enables value transfer flows on Neo N3. Depending on the
+  app, this can mean direct prepaid GAS/asset transfer to the MiniApp contract or
+  a legacy `PaymentHub` receipt flow.
 - `permissions.governance`: enables bNEO governance calls via `Governance`.
 - `permissions.rng`: enables VRF/RNG requests via the TEE services.
 - `permissions.datafeed`: enables reading/subscribing to price feeds.

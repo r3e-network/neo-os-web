@@ -200,22 +200,24 @@ console.log(
 MiniApps follow a specific payment workflow. **Users never directly invoke MiniApp
 contracts** - they only pay via the SDK, and the platform handles the rest.
 
-### Correct Flow
+### Current Production Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  1. USER ACTION: Pay via SDK                                    │
-│     SDK.payGAS(appId, amount, memo) → GAS.transfer → PaymentHub │
-├─────────────────────────────────────────────────────────────────┤
-│  2. PLATFORM ACTION: Process game logic                         │
-│     Platform invokes MiniApp contract (recordBet, recordTickets)│
-├─────────────────────────────────────────────────────────────────┤
-│  3. PLATFORM ACTION: Determine outcome                          │
-│     Platform uses VRF for randomness, oracle for prices         │
-├─────────────────────────────────────────────────────────────────┤
-│  4. PLATFORM ACTION: Send payouts                               │
-│     Platform sends GAS to winners                               │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  1. USER ACTION: SDK returns the right transfer target              │
+│     - direct prepaid flow  → GAS.transfer → MiniApp contract        │
+│     - legacy receipt flow → GAS.transfer → PaymentHub               │
+├──────────────────────────────────────────────────────────────────────┤
+│  2. USER ACTION: invoke the MiniApp contract                        │
+│     - direct prepaid flow consumes credited GAS / asset balance     │
+│     - legacy flow passes a real PaymentHub receiptId                │
+├──────────────────────────────────────────────────────────────────────┤
+│  3. CONTRACT / ORACLE ACTION: resolve app state                     │
+│     Contract updates state, requests Oracle / VRF if needed         │
+├──────────────────────────────────────────────────────────────────────┤
+│  4. CONTRACT ACTION: emit settlement / payout result                │
+│     Events and direct token transfers become the audit trail        │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Example: Lottery MiniApp
@@ -237,10 +239,10 @@ await window.MiniAppSDK.wallet.invokeIntent?.(payment.request_id);
 
 ### Why This Architecture?
 
-1. **Security**: Users only sign GAS transfers, not arbitrary contract calls
-2. **Auditability**: All payments flow through PaymentHub
-3. **Simplicity**: MiniApp frontends don't need contract interaction logic
-4. **Flexibility**: Platform can upgrade game logic without changing user flow
+1. **Security**: the SDK constrains transfer targets and methods by manifest policy.
+2. **Auditability**: payment transfers, Oracle requests, and final settlement all remain on-chain.
+3. **Flexibility**: newer flagship apps can use direct prepaid flows without forcing every product through PaymentHub.
+4. **Compatibility**: older receipt-based apps can continue using PaymentHub until migrated.
 
 ## Security Notes
 

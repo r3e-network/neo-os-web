@@ -68,7 +68,10 @@ These should be treated as the default production integration paths.
 
 - `POST /functions/v1/pay-gas`
     - body: `{ app_id: "...", amount_gas: "1.5", memo?: "..." }`
-    - returns: a GAS `transfer` invocation to `PaymentHub` (GAS-only) for the wallet/SDK to sign and submit
+    - returns: a GAS `transfer` invocation for the wallet/SDK to sign and submit
+    - target depends on the MiniApp integration:
+      - legacy receipt flow → `PaymentHub`
+      - direct prepaid flow → the MiniApp contract itself
     - enforces: manifest `permissions.payments` and `limits.max_gas_per_tx` (when present)
     - enforces: `limits.daily_gas_cap_per_user` via `miniapp_usage_bump(...)`
       (or `miniapp_usage_check(...)` when `MINIAPP_USAGE_MODE=check` or
