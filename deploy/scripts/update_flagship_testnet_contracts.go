@@ -41,6 +41,7 @@ var targets = []flagshipTarget{
 	{"Daily Check-in", "apps/daily-checkin/neo-manifest.json", "contracts/build/MiniAppDailyCheckin.nef", "contracts/build/MiniAppDailyCheckin.manifest.json", "admin"},
 	{"FogPlay", "apps/coin-flip/neo-manifest.json", "contracts/build/MiniAppCoinFlip.nef", "contracts/build/MiniAppCoinFlip.manifest.json", "admin"},
 	{"SelfLoan", "apps/self-loan/neo-manifest.json", "contracts/build/MiniAppSelfLoan.nef", "contracts/build/MiniAppSelfLoan.manifest.json", "admin"},
+	{"NeoPay", "apps/stream-vault/neo-manifest.json", "contracts/build/MiniAppStreamVault.nef", "contracts/build/MiniAppStreamVault.manifest.json", "admin"},
 }
 
 func main() {

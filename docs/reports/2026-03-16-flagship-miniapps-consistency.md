@@ -34,7 +34,7 @@ This report covers the first-wave flagship Neo N3 miniapps:
 | Daily Check-in | `0x297bfabe68535ab1abfadb843d5a5c00db7aca75` |
 | FogPlay | `0x01d0e1f78ea5a76b6bb0bce26649d5bf449999e0` |
 | SelfLoan | `0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b` |
-| NeoPay | `0x4e4a27ae72d06d057f54d4136ed8c5176b552b16` |
+| NeoPay | `0x89d2499928e3035247186f412934d6b0e0b665ef` |
 
 ## Validation Performed
 
@@ -86,7 +86,7 @@ This report covers the first-wave flagship Neo N3 miniapps:
   - round starts at `24 hours`
   - each purchase resets the clock back to `24 hours`
 - `FogPlay` manifest copy was corrected to describe the real implemented coin-flip flow rather than an encrypted PvP match flow.
-- `MiniAppStreamVault` contract source was added for NeoPay, compiled successfully, and deployed on testnet at `0x4e4a27ae72d06d057f54d4136ed8c5176b552b16`.
+- `MiniAppStreamVault` contract source was added for NeoPay, compiled successfully, and deployed on testnet at `0x89d2499928e3035247186f412934d6b0e0b665ef`.
 - Shared wallet SDK now normalizes contract operation names to ABI-style lower camel case before invocation, eliminating a cross-app PascalCase/lowerCamel mismatch.
 - `GASBOX` contract regained compatibility entrypoints `initiatePlay / settlePlay`, and the misleading frontend revenue-withdraw action was removed.
 - `FogPlay` frontend was moved back onto the live contract path:
