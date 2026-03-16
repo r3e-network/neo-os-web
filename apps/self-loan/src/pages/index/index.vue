@@ -63,7 +63,7 @@
             <div class="asset-icon-ring">
               <span class="asset-icon">↗</span>
             </div>
-            <span class="asset-amount">{{ fmt(core.loan.value?.borrowedAmount ?? 0) }}</span>
+            <span class="asset-amount">{{ fmt(core.loan.value?.borrowed ?? 0) }}</span>
             <span class="asset-token">GAS</span>
             <span class="asset-label">{{ t("totalBorrowed") }}</span>
           </div>
@@ -142,7 +142,11 @@ import { useSelfLoanHistory } from "@/composables/useSelfLoanHistory";
 
 const { handleError, canRetry, clearError } = useErrorHandler();
 const core = useSelfLoanCore();
-const history = useSelfLoanHistory();
+const history = useSelfLoanHistory({
+  address: core.address,
+  ensureContractAddress: core.ensureContractAddress,
+  loadLoanPosition: core.loadLoanPosition,
+});
 const fmt = (n: number, d = 2) => formatNumber(n, d);
 
 const healthColor = computed(() => {
