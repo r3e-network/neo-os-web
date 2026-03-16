@@ -83,12 +83,16 @@ npm run build
 | Network | Address                                      |
 | ------- | -------------------------------------------- |
 | Testnet | `0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528` |
-| Mainnet | `0x908867b23ab551a598723ceeaaedd70c54e10c76` |
+| Mainnet | `0xbd4f3646e189350b9c11a659655854e6f03f9be4` |
 
 ### Explorer Links
 
 - **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528)
-- **Mainnet**: [View on NeoTube](https://neotube.io/contract/0x908867b23ab551a598723ceeaaedd70c54e10c76)
+- **Mainnet**: [View on NeoTube](https://neotube.io/contract/0xbd4f3646e189350b9c11a659655854e6f03f9be4)
+
+## Domains
+
+- Mainnet domain: `dailycheckin.miniapp.neo`
 
 ## Tech Stack
 

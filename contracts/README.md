@@ -266,7 +266,7 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | Contract           | Hash                                         | Status    |
 | ------------------ | -------------------------------------------- | --------- |
 | MiniAppLottery     | `0x3e330b4c396b40aa08d49912c0179319831b3a6e` | ✅ Active |
-| MiniAppCoinFlip    | `0xbd4c9203495048900e34cd9c4618c05994e86cc0` | ✅ Active |
+| MiniAppFogPlay    | `0xbd4c9203495048900e34cd9c4618c05994e86cc0` | ✅ Active |
 | MiniAppDiceGame    | `0xfacff9abd201dca86e6a63acfb5d60da278da8ea` | ✅ Active |
 | MiniAppScratchCard | `0x2674ef3b4d8c006201d1e7e473316592f6cde5f2` | ✅ Active |
 
@@ -310,7 +310,7 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | MiniAppDutchAuction  | `0xb4394ee9eee040a9cce5450fceaaeabe83946410` | ✅ Active |
 | MiniAppParasite      | `0xe1726fbc4b6a5862eb2336ff32494be9f117563b` | ✅ Active |
 | MiniAppNoLossLottery | `0x18cecd52efb529ac4e2827e9c9956c1bc450f154` | ✅ Active |
-| MiniAppDoomsdayClock | `0xe4f386057d6308b83a5fd2e84bc3eb9149adc719` | ✅ Active |
+| MiniAppLastSurvivor | `0xe4f386057d6308b83a5fd2e84bc3eb9149adc719` | ✅ Active |
 | MiniAppPayToView     | `0xfa920907126e63b5360a68fbf607294a82ef6266` | ✅ Active |
 
 **Phase 6 - TEE-Powered Creative Apps:**
@@ -369,7 +369,7 @@ All 60 MiniApp contracts support periodic automation via AutomationAnchor integr
 
 | MiniApp                 | Category | Automation Logic                | Trigger Type |
 | ----------------------- | -------- | ------------------------------- | ------------ |
-| MiniAppCoinFlip         | Gaming   | Auto-settle expired bets        | interval     |
+| MiniAppFogPlay         | Gaming   | Auto-settle expired bets        | interval     |
 | MiniAppDiceGame         | Gaming   | Auto-settle expired games       | interval     |
 | MiniAppScratchCard      | Gaming   | Auto-manage prize pool          | interval     |
 | MiniAppLottery          | Gaming   | Auto-trigger lottery draws      | cron         |
@@ -393,7 +393,7 @@ All 60 MiniApp contracts support periodic automation via AutomationAnchor integr
 | MiniAppCandleWars       | Gaming   | Auto-resolve candle battles     | interval     |
 | MiniAppNoLossLottery    | Gaming   | Auto-distribute yield prizes    | cron         |
 | MiniAppDutchAuction     | DeFi     | Auto-settle expired auctions    | interval     |
-| MiniAppDoomsdayClock    | DeFi     | Auto-trigger doomsday events    | cron         |
+| MiniAppLastSurvivor    | DeFi     | Auto-trigger doomsday events    | cron         |
 | MiniAppParasite         | Gaming   | Auto-spread parasite effects    | interval     |
 | MiniAppPayToView        | Social   | Auto-unlock expired content     | interval     |
 | MiniAppSchrodingerNFT   | Creative | Auto-collapse quantum states    | interval     |

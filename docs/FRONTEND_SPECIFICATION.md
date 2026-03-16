@@ -128,11 +128,11 @@ The current flagship 7 shown as primary market-facing apps are:
 
 - `miniapp-self-loan`
 - `miniapp-redenvelope`
-- `miniapp-coinflip`
+- `miniapp-fogplay`
 - `miniapp-dailycheckin`
-- `miniapp-doomsday-clock`
-- `miniapp-stream-vault`
-- `miniapp-neo-gacha`
+- `miniapp-last-survivor`
+- `miniapp-neo-pay`
+- `miniapp-gasbox`
 
 When there is any conflict between older screenshots, older docs, and runtime
 behavior, the manifest + host definitions + live validation report win.

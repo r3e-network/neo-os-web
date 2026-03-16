@@ -19,7 +19,7 @@ function forceManifestEntry(app: MiniAppInfo): MiniAppInfo {
 
 const MINIAPP_REGISTRY_RAW: MiniAppInfo[] = [
   {
-    app_id: "miniapp-doomsday-clock",
+    app_id: "miniapp-last-survivor",
     name: "LastSurvivor",
     description: "The button / tontine tension game where the last buyer takes the full jackpot.",
     icon: "⏱️",
@@ -28,7 +28,7 @@ const MINIAPP_REGISTRY_RAW: MiniAppInfo[] = [
     permissions: { payments: true, randomness: true },
   },
   {
-    app_id: "miniapp-coinflip",
+    app_id: "miniapp-fogplay",
     name: "FogPlay",
     description: "Oracle-backed coin flips with direct GAS wagering and on-chain settlement.",
     icon: "🪙",
@@ -37,7 +37,7 @@ const MINIAPP_REGISTRY_RAW: MiniAppInfo[] = [
     permissions: { payments: true, randomness: true },
   },
   {
-    app_id: "miniapp-neo-gacha",
+    app_id: "miniapp-gasbox",
     name: "GASBOX",
     description: "Provably fair blind-box economy with rapid-fire AA play and rare on-chain drops.",
     icon: "🎁",
@@ -73,7 +73,7 @@ const MINIAPP_REGISTRY_RAW: MiniAppInfo[] = [
     permissions: { payments: true },
   },
   {
-    app_id: "miniapp-stream-vault",
+    app_id: "miniapp-neo-pay",
     name: "NeoPay",
     description: "Recurring GAS or NEO streams with beneficiary claims and creator cancellation.",
     icon: "💸",

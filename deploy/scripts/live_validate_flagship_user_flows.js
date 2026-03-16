@@ -286,7 +286,7 @@ async function provisionGasBoxMachine(contractHash) {
 }
 
 async function runGasBox() {
-  const contractHash = testnetHash("apps/neo-gacha/neo-manifest.json");
+  const contractHash = testnetHash("apps/gasbox/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -307,7 +307,7 @@ async function runGasBox() {
     throw new Error(`invalid GASBOX machine price for machine ${machineId}`);
   }
 
-  const transferTx = await transferGAS(contractHash, playPrice, `miniapp-neo-gacha:play:${machineId}`);
+  const transferTx = await transferGAS(contractHash, playPrice, `miniapp-gasbox:play:${machineId}`);
   await sleep(4000);
 
   const initiateTx = await contract.invoke("initiatePlay", [
@@ -370,7 +370,7 @@ async function runDailyCheckin() {
 }
 
 async function runLastSurvivor() {
-  const contractHash = testnetHash("apps/doomsday-clock/neo-manifest.json");
+  const contractHash = testnetHash("apps/last-survivor/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -395,7 +395,7 @@ async function runLastSurvivor() {
     const commonDiff = (basePrice * 10n) / 10000n;
     const cost = basePrice + totalKeys * commonDiff;
 
-    const paymentTx = await transferGAS(PAYMENT_HUB_HASH, String(cost), "miniapp-doomsday-clock");
+    const paymentTx = await transferGAS(PAYMENT_HUB_HASH, String(cost), "miniapp-last-survivor");
     const paymentLog = await waitForLog(paymentTx);
     const receipt = findNotification(paymentLog.execution, PAYMENT_HUB_HASH, "PaymentReceived");
     if (!receipt) throw new Error("PaymentReceived notification missing");
@@ -462,7 +462,7 @@ async function runLastSurvivor() {
 }
 
 async function runFogPlay() {
-  const contractHash = testnetHash("apps/coin-flip/neo-manifest.json");
+  const contractHash = testnetHash("apps/fogplay/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -470,7 +470,7 @@ async function runFogPlay() {
   });
 
   const oracleFeeTx = await topUpOracleCallbackCredit(contractHash);
-  const transferTx = await transferGAS(contractHash, FOGPLAY_BET, "miniapp-coinflip:bet");
+  const transferTx = await transferGAS(contractHash, FOGPLAY_BET, "miniapp-fogplay:bet");
   await sleep(4000);
   const betTx = await contract.invoke("placeBet", [
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
@@ -594,7 +594,7 @@ async function runSelfLoan() {
 }
 
 async function runNeoPay() {
-  const contractHash = testnetHash("apps/stream-vault/neo-manifest.json");
+  const contractHash = testnetHash("apps/neo-pay/neo-manifest.json");
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,

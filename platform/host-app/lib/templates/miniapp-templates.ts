@@ -143,11 +143,11 @@ const T_NEOPAY: AppTemplate = {
 
 
 export const MINIAPP_TEMPLATES: Record<string, AppTemplate> = {
-  "miniapp-coinflip": T_COINFLIP,
+  "miniapp-fogplay": T_COINFLIP,
   "miniapp-dailycheckin": T_DAILY_CHECKIN,
-  "miniapp-doomsday-clock": T_LAST_SURVIVOR,
-  "miniapp-neo-gacha": T_GACHA,
+  "miniapp-last-survivor": T_LAST_SURVIVOR,
+  "miniapp-gasbox": T_GACHA,
   "miniapp-redenvelope": T_AIRDROP,
   "miniapp-self-loan": T_SELF_LOAN,
-  "miniapp-stream-vault": T_NEOPAY,
+  "miniapp-neo-pay": T_NEOPAY,
 };

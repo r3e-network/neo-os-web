@@ -35,7 +35,7 @@ var miniApps = []struct {
 }{
 	// Gaming (6)
 	{"miniapp-lottery", "Neo Lottery", "gaming", "Decentralized lottery with provably fair randomness"},
-	{"miniapp-coinflip", "Neo Coin Flip", "gaming", "50/50 coin flip game"},
+	{"miniapp-fogplay", "Neo Coin Flip", "gaming", "50/50 coin flip game"},
 	{"miniapp-dicegame", "Neo Dice", "gaming", "Roll dice and win up to 6x"},
 	{"miniapp-scratch-card", "Neo Scratch Cards", "gaming", "Instant win scratch cards"},
 	{"miniapp-mega-millions", "Mega Millions", "gaming", "Multi-tier lottery with 9 prize levels"},

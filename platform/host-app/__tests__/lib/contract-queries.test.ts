@@ -31,7 +31,7 @@ describe("host chain contract queries", () => {
     }));
 
     const { getContractStats } = require("../../lib/chain/contract-queries");
-    const stats = await getContractStats("0xf0914d411877c8393c029f48ec0c4c64d44f1b49", "testnet", "miniapp-doomsday-clock");
+    const stats = await getContractStats("0xf0914d411877c8393c029f48ec0c4c64d44f1b49", "testnet", "miniapp-last-survivor");
 
     expect(stats).toEqual({
       totalValueLocked: "3",

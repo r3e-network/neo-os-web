@@ -7,13 +7,13 @@ const root = path.resolve(__dirname, "..", "..");
 const rpcUrl = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 
 const items = [
-  { brand: "LastSurvivor", manifest: "apps/doomsday-clock/neo-manifest.json", buildManifest: "contracts/build/MiniAppDoomsdayClock.manifest.json" },
-  { brand: "GASBOX", manifest: "apps/neo-gacha/neo-manifest.json", buildManifest: "contracts/build/MiniAppNeoGacha.manifest.json" },
+  { brand: "LastSurvivor", manifest: "apps/last-survivor/neo-manifest.json", buildManifest: "contracts/build/MiniAppLastSurvivor.manifest.json" },
+  { brand: "GASBOX", manifest: "apps/gasbox/neo-manifest.json", buildManifest: "contracts/build/MiniAppGASBox.manifest.json" },
   { brand: "Red Envelope", manifest: "apps/red-envelope/neo-manifest.json", buildManifest: "contracts/build/MiniAppRedEnvelope.manifest.json" },
   { brand: "Daily Check-in", manifest: "apps/daily-checkin/neo-manifest.json", buildManifest: "contracts/build/MiniAppDailyCheckin.manifest.json" },
-  { brand: "FogPlay", manifest: "apps/coin-flip/neo-manifest.json", buildManifest: "contracts/build/MiniAppCoinFlip.manifest.json" },
+  { brand: "FogPlay", manifest: "apps/fogplay/neo-manifest.json", buildManifest: "contracts/build/MiniAppFogPlay.manifest.json" },
   { brand: "SelfLoan", manifest: "apps/self-loan/neo-manifest.json", buildManifest: "contracts/build/MiniAppSelfLoan.manifest.json" },
-  { brand: "NeoPay", manifest: "apps/stream-vault/neo-manifest.json", buildManifest: "contracts/build/MiniAppStreamVault.manifest.json" },
+  { brand: "NeoPay", manifest: "apps/neo-pay/neo-manifest.json", buildManifest: "contracts/build/MiniAppNeoPay.manifest.json" },
 ];
 
 async function getContractState(hash) {

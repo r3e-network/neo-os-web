@@ -32,7 +32,7 @@ const (
 var miniAppContracts = []string{
 	// Phase 1 - Gaming
 	"MiniAppLottery",
-	"MiniAppCoinFlip",
+	"MiniAppFogPlay",
 	"MiniAppDiceGame",
 	"MiniAppScratchCard",
 	// Phase 2 - DeFi/Social

@@ -27,9 +27,9 @@ namespace NeoMiniAppPlatform.Contracts
     /// - 0x15-0x17: Reserved for game extensions
     ///
     /// USE FOR:
-    /// - MiniAppCoinFlip
+    /// - MiniAppFogPlay
     /// - MiniAppLottery
-    /// - MiniAppNeoGacha
+    /// - MiniAppGASBox
     /// - Any betting/gambling MiniApp
     /// </summary>
     public abstract class MiniAppGameBase : MiniAppContract

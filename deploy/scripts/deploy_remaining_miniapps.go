@@ -67,7 +67,7 @@ var remainingContracts = []string{
 	"MiniAppGovMerc",
 	// Security
 	"MiniAppDeadSwitch",
-	"MiniAppDoomsdayClock",
+	"MiniAppLastSurvivor",
 	"MiniAppHeritageTrust",
 	"MiniAppTimeCapsule",
 	"MiniAppUnbreakableVault",

@@ -313,7 +313,7 @@ describe("getServerSideProps", () => {
 
   it("should return props with manifest entry_url", async () => {
     const context = {
-      params: { id: "miniapp-coinflip" },
+      params: { id: "miniapp-fogplay" },
       req: { headers: { host: "localhost:3000" } },
     } as any;
 
@@ -323,12 +323,12 @@ describe("getServerSideProps", () => {
 
     const result = await getServerSideProps(context);
 
-    expect((result as any).props.app.entry_url).toBe("mf://manifest?app=miniapp-coinflip");
+    expect((result as any).props.app.entry_url).toBe("mf://manifest?app=miniapp-fogplay");
   });
 
   it("should return app with required fields", async () => {
     const context = {
-      params: { id: "miniapp-neo-gacha" },
+      params: { id: "miniapp-gasbox" },
       req: { headers: { host: "localhost:3000" } },
     } as any;
 

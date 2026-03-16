@@ -30,7 +30,7 @@ declare -A PLATFORM=(
 # MiniApp contracts: name -> hash|nef_name
 declare -A MINIAPPS=(
     ["MiniAppLottery"]="0x3e330b4c396b40aa08d49912c0179319831b3a6e|MiniAppLottery"
-    ["MiniAppCoinFlip"]="0xbd4c9203495048900e34cd9c4618c05994e86cc0|MiniAppCoinFlip"
+    ["MiniAppFogPlay"]="0xbd4c9203495048900e34cd9c4618c05994e86cc0|MiniAppFogPlay"
     ["MiniAppDiceGame"]="0xfacff9abd201dca86e6a63acfb5d60da278da8ea|MiniAppDiceGame"
     ["MiniAppScratchCard"]="0x2674ef3b4d8c006201d1e7e473316592f6cde5f2|MiniAppScratchCard"
     ["MiniAppPredictionMarket"]="0x64118096bd004a2bcb010f4371aba45121eca790|MiniAppPredictionMarket"
@@ -60,7 +60,7 @@ declare -A MINIAPPS=(
     ["MiniAppParasite"]="0xe1726fbc4b6a5862eb2336ff32494be9f117563b|MiniAppParasite"
     ["MiniAppThroneOfGas"]="0xa89c3f6d82ad2803e1e576a2b441660c93316678|MiniAppThroneOfGas"
     ["MiniAppNoLossLottery"]="0x18cecd52efb529ac4e2827e9c9956c1bc450f154|MiniAppNoLossLottery"
-    ["MiniAppDoomsdayClock"]="0xe4f386057d6308b83a5fd2e84bc3eb9149adc719|MiniAppDoomsdayClock"
+    ["MiniAppLastSurvivor"]="0xe4f386057d6308b83a5fd2e84bc3eb9149adc719|MiniAppLastSurvivor"
     ["MiniAppPayToView"]="0xfa920907126e63b5360a68fbf607294a82ef6266|MiniAppPayToView"
 )
 

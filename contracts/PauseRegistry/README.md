@@ -24,7 +24,7 @@ PauseRegistry provides a single point of control to pause/resume the entire Mini
 │  │                                                       │
 │  Per-App Pause State                                     │
 │  ├── IsAppPaused("miniapp-lottery") → specific app      │
-│  ├── IsAppPaused("miniapp-coinflip") → specific app     │
+│  ├── IsAppPaused("miniapp-fogplay") → specific app     │
 │  └── ...                                                 │
 │                                                          │
 │  IsPaused(appId) = IsGloballyPaused() OR IsAppPaused()  │

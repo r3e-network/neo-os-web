@@ -29,7 +29,7 @@
     "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-testnet",
+  "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/self-loan/index.html",
     "icon": "/miniapps/self-loan/logo.jpg",

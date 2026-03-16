@@ -7,23 +7,23 @@ import { invokeRead, type Network, type StackItem } from "./rpc-client";
 import { logger } from "@/lib/logger";
 
 export const CONTRACTS = {
-  doomsdayClock: "0xf0914d411877c8393c029f48ec0c4c64d44f1b49",
-  neoGacha: "0x523c112560a2e196fa0fcfa215d93c08e117d9c1",
-  redEnvelope: "0x4079c09a0ff121fc44d817c37d6ae8694b268e9f",
-  dailyCheckin: "0xdd01243419941e8cdc8eb194a9d1fc7fcbafd528",
-  coinFlip: "0x43f953c00931ca38044bf0e5ca50d608aea7ae8b",
-  selfLoan: "0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b",
-  streamVault: "0x89d2499928e3035247186f412934d6b0e0b665ef",
+  lastSurvivor: "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+  gasBox: "0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c",
+  redEnvelope: "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+  dailyCheckin: "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
+  fogPlay: "0xa5a4b5b82066d86eae9312f6072d1c3604882c81",
+  selfLoan: "0x942da575b31f39cbb59e64b5813b128739b44c25",
+  neoPay: "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
 } as const;
 
 export const FLAGSHIP_APPS: Record<string, { contract: string; category: string }> = {
-  "miniapp-doomsday-clock": { contract: CONTRACTS.doomsdayClock, category: "gaming" },
-  "miniapp-neo-gacha": { contract: CONTRACTS.neoGacha, category: "gaming" },
+  "miniapp-last-survivor": { contract: CONTRACTS.lastSurvivor, category: "gaming" },
+  "miniapp-gasbox": { contract: CONTRACTS.gasBox, category: "gaming" },
   "miniapp-redenvelope": { contract: CONTRACTS.redEnvelope, category: "social" },
   "miniapp-dailycheckin": { contract: CONTRACTS.dailyCheckin, category: "gaming" },
-  "miniapp-coinflip": { contract: CONTRACTS.coinFlip, category: "gaming" },
+  "miniapp-fogplay": { contract: CONTRACTS.fogPlay, category: "gaming" },
   "miniapp-self-loan": { contract: CONTRACTS.selfLoan, category: "defi" },
-  "miniapp-stream-vault": { contract: CONTRACTS.streamVault, category: "defi" },
+  "miniapp-neo-pay": { contract: CONTRACTS.neoPay, category: "defi" },
 };
 
 function parseInteger(item?: StackItem): bigint {
@@ -88,7 +88,7 @@ export interface MiniAppLiveStatus {
 }
 
 export async function getDoomsdayState(
-  contractHash: string = CONTRACTS.doomsdayClock,
+  contractHash: string = CONTRACTS.lastSurvivor,
   network: Network = "testnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "getGameStatus", [], network);
@@ -96,7 +96,7 @@ export async function getDoomsdayState(
 }
 
 export async function getDoomsdayPlatformStats(
-  contractHash: string = CONTRACTS.doomsdayClock,
+  contractHash: string = CONTRACTS.lastSurvivor,
   network: Network = "testnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "getPlatformStats", [], network);
@@ -120,7 +120,7 @@ export async function getSelfLoanState(
 }
 
 export async function getStreamVaultState(
-  contractHash: string = CONTRACTS.streamVault,
+  contractHash: string = CONTRACTS.neoPay,
   network: Network = "testnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "totalStreams", [], network);
@@ -128,7 +128,7 @@ export async function getStreamVaultState(
 }
 
 export async function getCoinFlipState(
-  contractHash: string = CONTRACTS.coinFlip,
+  contractHash: string = CONTRACTS.fogPlay,
   network: Network = "testnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "getBetLimits", [], network);
@@ -142,7 +142,7 @@ export async function getCoinFlipState(
 }
 
 export async function getNeoGachaState(
-  contractHash: string = CONTRACTS.neoGacha,
+  contractHash: string = CONTRACTS.gasBox,
   network: Network = "testnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "totalMachines", [], network);
@@ -156,7 +156,7 @@ export async function getContractStats(
 ): Promise<MiniAppContractStats> {
   try {
     switch (appId) {
-      case "miniapp-doomsday-clock": {
+      case "miniapp-last-survivor": {
         const state = await getDoomsdayPlatformStats(contractHash, network);
         return {
           totalValueLocked: (BigInt((state.currentRoundPot as bigint) || 0n) / 100000000n).toString(),
@@ -180,7 +180,7 @@ export async function getContractStats(
           uniqueUsers: safeNumber(BigInt(state.totalBorrowers as bigint || 0n)),
         };
       }
-      case "miniapp-stream-vault": {
+      case "miniapp-neo-pay": {
         const state = await getStreamVaultState(contractHash, network);
         return {
           totalValueLocked: "0",
@@ -188,8 +188,8 @@ export async function getContractStats(
           uniqueUsers: 0,
         };
       }
-      case "miniapp-coinflip":
-      case "miniapp-neo-gacha":
+      case "miniapp-fogplay":
+      case "miniapp-gasbox":
       case "miniapp-redenvelope":
       default:
         return { totalValueLocked: "0", totalTransactions: 0, uniqueUsers: 0 };
@@ -210,7 +210,7 @@ export async function getLiveStatus(
 
   try {
     switch (appId) {
-      case "miniapp-doomsday-clock": {
+      case "miniapp-last-survivor": {
         const state = await getDoomsdayState(contractHash, network);
         status.jackpot = (BigInt(state.pot as bigint || 0n) / 100000000n).toString();
         status.playersOnline = safeNumber(BigInt(state.totalKeys as bigint || 0n));
@@ -228,7 +228,7 @@ export async function getLiveStatus(
         status.volume24h = (BigInt(state.totalRepaid as bigint || 0n) / 100000000n).toString();
         return status;
       }
-      case "miniapp-stream-vault": {
+      case "miniapp-neo-pay": {
         const state = await getStreamVaultState(contractHash, network);
         status.tvl = "0";
         status.volume24h = BigInt(state.totalStreams as bigint || 0n).toString();

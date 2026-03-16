@@ -185,7 +185,7 @@ export const CONTRACT_LIMITS = {
  */
 export const APP_IDS = {
   /** Coin flip miniapp */
-  COIN_FLIP: "miniapp-coinflip",
+  COIN_FLIP: "miniapp-fogplay",
 
   /** Lottery miniapp */
   LOTTERY: "miniapp-lottery",

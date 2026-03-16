@@ -76,11 +76,11 @@ const DEFAULT_TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'coinflip-v1',
-    name: 'MiniAppCoinFlip',
+    name: 'MiniAppFogPlay',
     type: 'coinflip',
     category: 'gaming',
-    nefPath: 'contracts/build/MiniAppCoinFlip.nef',
-    manifestPath: 'contracts/build/MiniAppCoinFlip.manifest.json',
+    nefPath: 'contracts/build/MiniAppFogPlay.nef',
+    manifestPath: 'contracts/build/MiniAppFogPlay.manifest.json',
     description: 'Simple coin flip betting game',
     version: '1.0.0',
     configSchema: JSON.stringify({

@@ -209,7 +209,7 @@ func loadContracts() map[string]util.Uint160 {
 func getMiniApps() []MiniAppConfig {
 	return []MiniAppConfig{
 		{"miniapp-lottery", "Lottery", 10000000, 10 * time.Second},            // 0.1 GAS
-		{"miniapp-coinflip", "CoinFlip", 5000000, 8 * time.Second},            // 0.05 GAS
+		{"miniapp-fogplay", "CoinFlip", 5000000, 8 * time.Second},            // 0.05 GAS
 		{"miniapp-dicegame", "DiceGame", 5000000, 8 * time.Second},            // 0.05 GAS
 		{"miniapp-scratch-card", "ScratchCard", 10000000, 15 * time.Second},   // 0.1 GAS
 		{"miniapp-gas-spin", "GasSpin", 5000000, 12 * time.Second},            // 0.05 GAS
