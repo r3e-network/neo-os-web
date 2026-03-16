@@ -7,8 +7,9 @@ import { useAllEvents } from "@shared/composables/useAllEvents";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
-import { useSelfLoanCore, APP_ID } from "./useSelfLoanCore";
+import { APP_ID } from "./useSelfLoanCore";
 import type { Loan } from "./useSelfLoanCore";
+import type { Ref } from "vue";
 
 export interface LoanHistoryEntry {
   icon: string;
@@ -32,13 +33,15 @@ export interface ContractLoanEntry {
   collateral: number;
 }
 
-export function useSelfLoanHistory() {
+interface SelfLoanHistoryDeps {
+  address: Ref<string>;
+  ensureContractAddress: () => Promise<string>;
+  loadLoanPosition: (loanId: number) => Promise<void>;
+}
+
+export function useSelfLoanHistory(deps: SelfLoanHistoryDeps) {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
-  // NOTE: This creates a second instance of useSelfLoanCore with separate reactive state.
-  // The address/ensureContractAddress/loadLoanPosition refs here won't sync with the
-  // primary instance in the parent composable. This is an architectural issue to revisit.
-  const { address, ensureContractAddress, loadLoanPosition } = useSelfLoanCore();
   const { invokeRead } = useWallet() as WalletSDK;
 
   const toNumber = (value: unknown) => {
@@ -63,14 +66,14 @@ export function useSelfLoanHistory() {
   };
 
   const loadHistoryFromContract = async () => {
-    if (!address.value) return;
+    if (!deps.address.value) return;
 
     try {
-      const contract = await ensureContractAddress();
+      const contract = await deps.ensureContractAddress();
       const countRes = await invokeRead({
         scriptHash: contract,
         operation: "GetUserLoanCount",
-        args: [{ type: "Hash160", value: address.value }],
+        args: [{ type: "Hash160", value: deps.address.value }],
       });
       const count = Number(parseInvokeResult(countRes) || 0);
       if (!count) {
@@ -84,7 +87,7 @@ export function useSelfLoanHistory() {
         scriptHash: contract,
         operation: "GetUserLoans",
         args: [
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: deps.address.value },
           { type: "Integer", value: "0" },
           { type: "Integer", value: String(limit) },
         ],
@@ -170,7 +173,7 @@ export function useSelfLoanHistory() {
 
       const latest = validEntries.reduce((max, entry) => (entry.id > max ? entry.id : max), 0);
       if (latest > 0) {
-        await loadLoanPosition(latest);
+        await deps.loadLoanPosition(latest);
       }
     } catch (e: unknown) {
       handleError(e, { operation: "loadHistoryFromContract" });
@@ -180,7 +183,7 @@ export function useSelfLoanHistory() {
   };
 
   const loadHistory = async () => {
-    if (!address.value) return;
+    if (!deps.address.value) return;
 
     try {
       const [createdEvents, repaidEvents, closedEvents] = await Promise.all([
@@ -201,7 +204,7 @@ export function useSelfLoanHistory() {
             tx: evt.tx_hash,
           };
         })
-        .filter((entry) => entry.id > 0 && ownerMatches(entry.borrower, address.value as string));
+        .filter((entry) => entry.id > 0 && ownerMatches(entry.borrower, deps.address.value as string));
 
       const loanIds = new Set(created.map((entry) => entry.id));
 
@@ -227,7 +230,7 @@ export function useSelfLoanHistory() {
             tx: evt.tx_hash,
           };
         })
-        .filter((entry) => loanIds.has(entry.id) || ownerMatches(entry.borrower, address.value as string));
+        .filter((entry) => loanIds.has(entry.id) || ownerMatches(entry.borrower, deps.address.value as string));
 
       if (created.length === 0) {
         await loadHistoryFromContract();
@@ -270,7 +273,7 @@ export function useSelfLoanHistory() {
 
       if (created.length > 0) {
         const latest = created.reduce((max, entry) => (entry.id > max ? entry.id : max), 0);
-        await loadLoanPosition(latest);
+        await deps.loadLoanPosition(latest);
       }
     } catch (e: unknown) {
       handleError(e, { operation: "loadHistory" });

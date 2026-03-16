@@ -17,7 +17,7 @@ Three LTV (Loan-to-Value) tiers let you choose your risk profile: Conservative (
 3. **Enter Collateral** — Specify how many NEO to lock (must be whole numbers).
 4. **Take Loan** — Confirm the transaction. GAS is credited to your wallet immediately, minus the 0.5% platform fee.
 5. **Wait & Watch** — Your locked NEO generates GAS staking rewards that automatically repay the loan balance. Monitor progress on the dashboard.
-6. **Auto-Unlock** — When the accumulated yield fully covers the loan + fee, your NEO is unlocked and returned to your wallet.
+6. **Manage & Auto-Unlock** — The current miniapp UI focuses on opening and monitoring loans. The contract also supports manual repayment, and your NEO unlocks automatically once debt reaches zero.
 
 ## Key Features
 
@@ -55,7 +55,7 @@ Three LTV (Loan-to-Value) tiers let you choose your risk profile: Conservative (
 | `CreateLoan`       | Action | `borrower`, `collateral`, `ltvTier` | Lock NEO and receive GAS                        |
 | `GetLoanDetails`   | Query  | `loanId`                            | Get loan status (collateral, debt, active, LTV) |
 | `GetPlatformStats` | Query  | —                                   | Get platform LTV tiers, min duration, fee       |
-| `RepayLoan`        | Action | `borrower`, `loanId`                | Manually repay with external GAS                |
+| `RepayDebt`        | Action | `loanId`, `payer`, `amount`, `receiptId` | Contract-level manual repayment path |
 
 ## Getting Started
 
@@ -77,12 +77,12 @@ npm run build
 
 | Network | Address                                      |
 | ------- | -------------------------------------------- |
-| Testnet | `0x46bf67c133f4206e13cbacb53d91c2c493d8755a` |
+| Testnet | `0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b` |
 | Mainnet | `0x942da575b31f39cbb59e64b5813b128739b44c25` |
 
 ### Explorer Links
 
-- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0x46bf67c133f4206e13cbacb53d91c2c493d8755a)
+- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b)
 - **Mainnet**: [View on NeoTube](https://neotube.io/contract/0x942da575b31f39cbb59e64b5813b128739b44c25)
 
 ## Tech Stack
