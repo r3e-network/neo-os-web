@@ -1,9 +1,9 @@
 import Head from "next/head";
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, Code, FileCode, Cpu } from "lucide-react";
 
