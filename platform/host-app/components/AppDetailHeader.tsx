@@ -1,17 +1,15 @@
 import React from "react";
-import { MiniAppInfo, MiniAppStats } from "./types";
+import { MiniAppInfo } from "./types";
 import { ArrowLeft } from "lucide-react";
 
 type Props = {
   app: MiniAppInfo;
-  stats?: MiniAppStats;
   onBack: () => void;
 };
 
-export function AppDetailHeader({ app, stats, onBack }: Props) {
-  let statusBadge = stats?.last_activity_at ? "Active" : "Inactive";
-  let statusColor = stats?.last_activity_at ? "text-neo bg-neo/10 border-neo/20" : "text-gray-500 bg-gray-100 border-gray-200 dark:text-gray-400 dark:bg-gray-800 dark:border-gray-700";
-
+export function AppDetailHeader({ app, onBack }: Props) {
+  let statusBadge = "Unavailable";
+  let statusColor = "text-gray-500 bg-gray-100 border-gray-200 dark:text-gray-400 dark:bg-gray-800 dark:border-gray-700";
   if (app.status === "active") {
     statusBadge = "Online";
     statusColor = "text-neo bg-neo/10 border-neo/20";

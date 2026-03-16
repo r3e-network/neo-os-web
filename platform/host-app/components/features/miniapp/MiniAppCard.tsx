@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { buildMiniAppBannerSources } from "@/lib/miniapp-media";
 import { MiniAppLogo } from "./MiniAppLogo";
-import { Users, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface MiniAppInfo {
@@ -116,18 +115,7 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
             {app.description}
           </p>
 
-          <div className="border-t border-gray-200/50 dark:border-white/5 pt-4 mt-auto flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <Users size={14} className="text-gray-400 dark:text-gray-500" />
-                <span>{app.stats?.users?.toLocaleString() || "0"}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Activity size={14} className="text-gray-400 dark:text-gray-500" />
-                <span>{app.stats?.transactions?.toLocaleString() || "0"}</span>
-              </div>
-            </div>
-
+          <div className="border-t border-gray-200/50 dark:border-white/5 pt-4 mt-auto flex items-center justify-end text-xs font-semibold text-gray-500 dark:text-gray-400">
             <div className="text-neo flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300 transform">
               Launch <span aria-hidden="true">&rarr;</span>
             </div>

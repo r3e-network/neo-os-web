@@ -1,19 +1,19 @@
 import Head from "next/head";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
-import { LayoutGrid, List, TrendingUp, Clock, Download, ChevronDown } from "lucide-react";
+import { LayoutGrid, List, Clock, ChevronDown, Star, ArrowDownAZ } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@/components/features/miniapp";
+import { FLAGSHIP_MINIAPP_IDS } from "@/lib/miniapp-registry";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type SortOption = "trending" | "users" | "transactions" | "recent";
+type SortOption = "featured" | "name" | "recent";
 type ViewMode = "grid" | "list";
 
-const sortOptions: { value: SortOption; label: string; icon: typeof TrendingUp }[] = [
-  { value: "trending", label: "Trending", icon: TrendingUp },
-  { value: "users", label: "Most Users", icon: Download },
-  { value: "transactions", label: "Most Active", icon: TrendingUp },
+const sortOptions: { value: SortOption; label: string; icon: typeof Star }[] = [
+  { value: "featured", label: "Featured", icon: Star },
+  { value: "name", label: "A to Z", icon: ArrowDownAZ },
   { value: "recent", label: "Recently Added", icon: Clock },
 ];
 
@@ -44,20 +44,17 @@ const filterSections = [
   },
 ];
 
-type StatsMap = Record<string, { users?: number; transactions?: number; volume?: string }>;
-
 export default function MiniAppsPage() {
   const router = useRouter();
   const rawSearchQuery = (router.query.q as string) || "";
   const searchQuery = sanitizeInput(rawSearchQuery);
 
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [sortBy, setSortBy] = useState<SortOption>("trending");
+  const [sortBy, setSortBy] = useState<SortOption>("featured");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [filters, setFilters] = useState<Record<string, string[]>>({});
   const [communityApps, setCommunityApps] = useState<MiniAppInfo[]>([]);
   const [apps, setApps] = useState<MiniAppInfo[]>([]);
-  const [statsMap, setStatsMap] = useState<StatsMap>({});
   const [fetchError, setFetchError] = useState(false);
   const [loading, setLoading] = useState(true);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -65,27 +62,17 @@ export default function MiniAppsPage() {
   useEffect(() => {
     Promise.all([
       fetch("/api/miniapps/catalog", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
-      fetch("/api/miniapp-stats", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
       fetch("/api/miniapps/community", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
-    ]).then(([catalogData, statsData, communityData]) => {
+    ]).then(([catalogData, communityData]) => {
       if (!catalogData && !communityData) setFetchError(true);
-      const list = Array.isArray(catalogData?.apps) ? catalogData.apps : [];
+      const list = Array.isArray(catalogData?.apps)
+        ? catalogData.apps.filter((app: MiniAppInfo) => FLAGSHIP_MINIAPP_IDS.includes(app.app_id))
+        : [];
       setApps(list);
-
-      const statsList = Array.isArray(statsData?.stats) ? statsData.stats : Array.isArray(statsData) ? statsData : [];
-      const map: StatsMap = {};
-      for (const s of statsList) {
-        if (s?.app_id) {
-          map[s.app_id] = {
-            users: s.total_users || s.daily_active_users || 0,
-            transactions: s.total_transactions || 0,
-            volume: s.total_gas_used ? `${Number(s.total_gas_used).toFixed(1)} GAS` : "0 GAS",
-          };
-        }
-      }
-      setStatsMap(map);
-
-      setCommunityApps(communityData?.apps || []);
+      const communityList = Array.isArray(communityData?.apps)
+        ? communityData.apps.filter((app: MiniAppInfo) => FLAGSHIP_MINIAPP_IDS.includes(app.app_id))
+        : [];
+      setCommunityApps(communityList);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -118,12 +105,7 @@ export default function MiniAppsPage() {
   };
 
   const filteredAndSortedApps = useMemo(() => {
-    const appsWithStats = apps.map((app) => ({
-      ...app,
-      stats: statsMap[app.app_id] || app.stats,
-    }));
-
-    let result = [...appsWithStats, ...communityApps];
+    let result = [...apps, ...communityApps];
 
     // Search filter
     if (searchQuery) {
@@ -144,22 +126,18 @@ export default function MiniAppsPage() {
     // Sort
     result.sort((a, b) => {
       switch (sortBy) {
-        case "users":
-          return (b.stats?.users || 0) - (a.stats?.users || 0);
-        case "transactions":
-          return (b.stats?.transactions || 0) - (a.stats?.transactions || 0);
+        case "name":
+          return a.name.localeCompare(b.name);
         case "recent":
           return 0; // Would need created_at field
-        case "trending":
+        case "featured":
         default:
-          const aScore = (a.stats?.users || 0) + (a.stats?.transactions || 0);
-          const bScore = (b.stats?.users || 0) + (b.stats?.transactions || 0);
-          return bScore - aScore;
+          return 0;
       }
     });
 
     return result;
-  }, [apps, communityApps, statsMap, searchQuery, filters, sortBy]);
+  }, [apps, communityApps, searchQuery, filters, sortBy]);
 
   const currentSort = sortOptions.find((s) => s.value === sortBy) || sortOptions[0];
 

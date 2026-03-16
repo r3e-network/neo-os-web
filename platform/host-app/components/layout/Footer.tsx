@@ -4,7 +4,6 @@ import { Github, Twitter } from "lucide-react";
 const footerLinks = {
   platform: [
     { href: "/miniapps", label: "MiniApps" },
-    { href: "/stats", label: "Statistics" },
     { href: "/developer", label: "Developer" },
   ],
   resources: [

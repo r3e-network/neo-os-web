@@ -17,7 +17,6 @@ const ConnectButton = dynamic(() => import("@/components/features/wallet").then(
 
 const navLinks = [
   { href: "/miniapps", labelKey: "navigation.miniapps" },
-  { href: "/stats", labelKey: "navigation.stats" },
   { href: "/docs", labelKey: "navigation.docs" },
   { href: "/developer", labelKey: "navigation.developer" },
 ];
