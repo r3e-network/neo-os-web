@@ -7,6 +7,7 @@ import { supabaseServiceClient } from "./supabase.ts";
 export type MiniAppPolicy = {
   appId: string;
   manifestHash: string;
+  contractHash?: string;
   status: string;
   permissions: Record<string, unknown>;
   limits: {
@@ -237,6 +238,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
 
   const permissions = (canonical.permissions as Record<string, unknown> | undefined) ?? {};
   const limitsRaw = (canonical.limits as Record<string, unknown> | undefined) ?? {};
+  const contractHash = String(canonical.contract_hash ?? "").trim();
 
   let limits: MiniAppPolicy["limits"];
   try {
@@ -253,6 +255,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
   return {
     appId,
     manifestHash,
+    contractHash: contractHash || undefined,
     status: status || "active",
     permissions,
     limits,
