@@ -62,7 +62,7 @@ The frontend executes both steps for you.
 | `CreateLoan`       | Action | `borrower`, `collateral`, `ltvTier` | Lock NEO and receive GAS                        |
 | `GetLoanDetails`   | Query  | `loanId`                            | Get loan status (collateral, debt, active, LTV) |
 | `GetPlatformStats` | Query  | —                                   | Get platform LTV tiers, min duration, fee       |
-| `RepayDebt`        | Action | `loanId`, `payer`, `amount`, `receiptId` | Contract-level manual repayment path |
+| `RepayDebt`        | Action | `loanId`, `payer`, `amount` | Contract-level manual repayment path using direct prepaid GAS |
 
 ## Getting Started
 
