@@ -24,8 +24,8 @@ Key gateway endpoints in this repo:
 
 - `wallet-nonce`, `wallet-bind` (bind Neo N3 address to Supabase user)
 - `api-keys-*` (user API keys: create/list/revoke; raw key returned once)
-- `pay-gas` (returns a GAS transfer intent; target is either the MiniApp contract
-  or `PaymentHub` depending on the app flow)
+- `pay-gas` (returns a legacy GAS transfer intent for receipt-oriented payment
+  flows; direct prepaid flagship apps often transfer straight to the MiniApp contract instead)
 - `vote-bneo` (Governance intent; governance **bNEO only**)
 - `rng-request` (randomness via `neovrf`; optional RandomnessLog anchoring)
 - `compute-execute`, `compute-jobs`, `compute-job` (host-gated `neocompute` script execution + job inspection)

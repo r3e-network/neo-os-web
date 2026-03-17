@@ -108,9 +108,10 @@ User flow:
 2. the contract records prepaid credit in `OnNEP17Payment`
 3. the frontend invokes the follow-up contract method
 
-### 2. PaymentHub receipt flow
+### 2. Legacy receipt flow
 
-Still used by a smaller compatibility set such as LastSurvivor.
+Still used by a smaller compatibility set and a few secondary resale/payment
+paths. It is no longer the default flagship path.
 
 User flow:
 
@@ -133,6 +134,12 @@ The current flagship 7 shown as primary market-facing apps are:
 - `miniapp-last-survivor`
 - `miniapp-neo-pay`
 - `miniapp-gasbox`
+
+Current flagship payment matrix:
+
+- Direct prepaid GAS: FogPlay, Red Envelope, Daily Check-in, Self Loan, NeoPay
+- Direct prepaid GAS with `receiptId=0` ABI placeholder: LastSurvivor buy flow, GASBOX spin flow
+- Legacy receipt compatibility only: older apps and a few secondary flows such as GASBOX machine resale
 
 When there is any conflict between older screenshots, older docs, and runtime
 behavior, the manifest + host definitions + live validation report win.

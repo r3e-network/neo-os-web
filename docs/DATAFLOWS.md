@@ -104,6 +104,8 @@ User (Wallet)
 - MiniApp contracts store app-specific state (bets, tickets, streams, keys)
 - Oracle / VRF callback flows may require prepaid callback fee credit on the
   Oracle contract in addition to the user-facing payment
+- Some hybrid flagship contracts still expose a `receiptId` ABI field, but the
+  live flow passes `0` after direct prepaid GAS funding
 - PaymentHub is now a legacy / optional path, not the universal settlement path
 
 ## Dataflow: Edge-Gated Payments / Governance

@@ -1,45 +1,41 @@
-# Global Signer Attestation (Current)
+# External Attestation & Signer Boundary (Current)
 
-This repository uses a **TEE-managed signer** for all platform “service-layer writes”
-(datafeed anchoring, randomness anchoring, automation execution marks, etc.).
+This repository does not run the canonical TEE signer stack itself anymore.
 
-## Components
+Current ownership:
 
-- **NitroRun**: attestation + secret distribution + mTLS identities inside the enclave mesh.
-- **Nitro runtime integration**: enclave runtime path for services.
-- **GlobalSigner** (`infrastructure/globalsigner`): holds the active signing key (inside the enclave) and exposes:
-  - `/attestation` (public key + metadata)
-  - `/sign` (raw signing; key never leaves enclave)
-- **TxProxy** (`services/txproxy`): allowlisted transaction signing + broadcast using the enclave signer.
+- `neo-morpheus-oracle`
+  - Oracle worker attestation
+  - Oracle callback signing
+  - paymaster attestation
+  - external confidential compute / VRF proofs
 
-## On-chain Authorization Model (MiniApp Platform)
+- `neo-abstract-account`
+  - AA relay and verifier-side signing / validation UX
 
-Platform contracts use the **Updater** pattern:
+The MiniApp platform consumes those external attested systems through:
 
-- `PriceFeed.setUpdater(<signer>)`
-- `RandomnessLog.setUpdater(<signer>)`
-- `AutomationAnchor.setUpdater(<signer>)`
+- configured URLs
+- canonical contract hashes
+- updater / callback allowlists
+- attestation-bearing responses recorded in validation reports
 
-Only the Updater account can write these contracts’ state. The Updater should be the
-enclave-managed signer (GlobalSigner/TxProxy) in production.
+## What this repo still owns
 
-## Attestation & Audit
+- MiniApp contracts that verify direct callbacks from Morpheus Oracle
+- platform docs that record the current attested endpoints and validation outcomes
+- deployment helpers for platform-owned contracts
 
-The platform relies on **attested TLS** (NitroRun-issued) for service identity and integrity.
-For a public audit trail, platform contracts store an `attestation_hash` field in writes:
+## What this repo should not claim
 
-- `PriceFeed.update(..., attestationHash, ...)`
-- `RandomnessLog.record(..., attestationHash, ...)`
+- that it is the source of truth for the enclave signer
+- that it runs the canonical Oracle / AA confidential runtime
+- that service-layer writes originate from an in-repo Nitro mesh
 
-This repo’s services compute and submit an attestation hash for each anchored write.
+## Operational Rule
 
-## Local Development (Neo Express)
+When signer, attestation, callback, or paymaster behavior changes:
 
-Use the deploy helpers to set Updater to the local `tee` wallet:
-
-```bash
-make -C deploy setup
-make -C deploy run-neoexpress
-make -C deploy deploy
-make -C deploy init
-```
+1. validate in `neo-morpheus-oracle` or `neo-abstract-account`
+2. update the canonical addresses / domains consumed here
+3. refresh the MiniApp platform integration docs and validation reports

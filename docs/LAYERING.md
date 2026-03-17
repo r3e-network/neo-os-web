@@ -1,105 +1,65 @@
-# Service Layer Layering & Responsibilities
+# MiniApp Platform Layering (Current)
 
-This repo is intentionally split into three layers:
+This repository no longer owns the old in-repo Oracle / AA service layer.
 
-1. **Infrastructure**: reusable building blocks (storage, networking, chain I/O, runtime, auth primitives).
-2. **Services**: product services that implement off-chain logic (typically running inside Nitro-oriented TEE runtime).
-3. **Dapps**: frontends and app integrations that consume the gateway + services.
+Current layering is:
 
-The goal is **one module = one responsibility**, with **no duplicated chain I/O** or HTTP middleware across services.
+1. `apps/`
+   - MiniApp frontends and shared Vue composables
+   - user-facing app logic only
 
-## Directory Map
+2. `platform/host-app`
+   - Next.js host shell
+   - embeds MiniApps
+   - same-origin proxying to Edge / AA relay
 
-### `platform/` (host + SDK + Supabase Edge)
+3. `platform/admin-console`
+   - operator UI for manifests, health, services, and contract metadata
 
-- `platform/host-app`: Next.js host app (Vercel) for embedding MiniApps.
-- `platform/sdk`: MiniApp SDK (`window.MiniAppSDK`).
-- `platform/edge`: Supabase Edge functions (thin gateway).
-- `platform/rls`: reserved for platform RLS SQL (current schema is in `migrations/`).
+4. `platform/edge/functions`
+   - thin gateway layer
+   - auth, rate limits, usage caps, policy enforcement
+   - forwarding to external Oracle / AA systems
 
-### `infrastructure/` (shared building blocks)
+5. `contracts/`
+   - platform and MiniApp smart contracts
+   - direct Oracle / direct AA integrations at the contract boundary
+   - legacy compatibility contracts such as `PaymentHub` only where still needed
 
-- `infrastructure/database`: Supabase/PostgREST client + generic repository helpers (**storage**).
-- `infrastructure/nitro`: NitroRun/Nitro runtime integration (**execution engine + enclave runtime glue**).
-- `infrastructure/middleware`: HTTP middleware used everywhere (**middleware only lives here**).
-- `infrastructure/runtime`: environment/identity strictness helpers (**runtime**).
-- `infrastructure/chain`: Neo N3 RPC, tx building/submission, event monitoring, contract invocation (**chain module**).
-- `infrastructure/accountpool`: Neo N3 account pool management (**account pool**).
-- `infrastructure/globalsigner`: TEE-managed domain-separated signing + rotation (**global signer**).
-- `infrastructure/txproxy`: shared txproxy client + request/response DTOs (**chain write delegation**).
-- `infrastructure/secrets`: user secrets encryption + permissions + audit (**secrets**).
-- `infrastructure/service`, `infrastructure/httputil`, `infrastructure/errors`, `infrastructure/logging`, `infrastructure/metrics`, `infrastructure/serviceauth`: shared service framework + transport primitives (**network**).
+6. `deploy/` and `test/`
+   - environment validation
+   - cross-repo integration checks
+   - deployment helpers
 
-### `services/` (product services)
+External runtime ownership:
 
-Only these services are considered “product services” right now:
+- `neo-morpheus-oracle`
+  - Oracle
+  - DataFeed
+  - VRF
+  - Compute
+  - Paymaster
 
-- `services/datafeed`: data feeds (push pattern).
-- `services/automation`: automation / triggers.
-- `services/confcompute`: confidential compute (JS execution).
-- `services/conforacle`: confidential oracle (external fetch with controls).
-- `services/txproxy`: allowlisted transaction signing + broadcast proxy.
+- `neo-abstract-account`
+  - AA core
+  - verifiers / hooks
+  - relay
+  - AA UX and session-key flows
 
-Each service should follow the same internal pattern:
+## Rules
 
-- `services/<svc>/nitro`: enclave runtime + HTTP handlers + worker loops.
-- `services/<svc>/supabase`: service-specific persistence repository (if needed).
+- Do not reintroduce a second platform-owned service bus on top of Oracle / AA.
+- Prefer direct MiniApp contract flows for flagship apps.
+- Keep `PaymentHub` as compatibility-only settlement, not the universal payment path.
+- Keep browser and host code free of service-role secrets and enclave signing logic.
+- Keep Edge functions thin: validate, authorize, forward.
 
-The MiniApp platform does **not** use per-service on-chain contracts. Platform
-contracts live under `contracts/` and are written by the enclave-managed signer
-(via `txproxy` / GlobalSigner) when needed.
+## Source Of Truth
 
-### `cmd/` (binaries)
+For current architecture and workflow details, prefer:
 
-- `cmd/nitro`: **single entrypoint** used to run any enclave service (`NITRO_TYPE=...`).
-
-### `platform/host-app`
-
-User-facing host app consuming Supabase Edge + services. This should not contain
-service-layer business logic.
-
-## Nitro Runtime Boundary (What runs where)
-
-### Inside TEE Runtime (enclave)
-
-Keep enclave code focused on sensitive operations and verifiable execution:
-
-- confidential compute execution
-- oracle fetch (when results need enclave-origin proofs)
-- any key material that must not leave the enclave (e.g. “global signer”)
-- signing of service-layer on-chain fulfillments / datafeed submissions
-
-In code, this is primarily:
-
-- `services/*/nitro`
-- `infrastructure/nitro`
-- `cmd/nitro`
-
-### Outside TEE Runtime (non-enclave)
-
-Keep non-enclave code focused on user/product workflow and “web2 plumbing”:
-
-- user auth (Supabase Auth: OAuth providers), session/JWT handling
-- secrets management & permissions UX/API
-- delegated payments / configuration stored in Supabase
-- API gateway routing, request validation, rate limiting
-- deployment glue (Docker/K8s), CLI tools
-
-In code, this is primarily:
-
-- `platform/edge` (Supabase Edge Functions)
-- `platform/host-app`
-- `deploy/`, `docker/`, `k8s/`
-
-## Responsibility Rules (enforced by refactoring)
-
-- **Chain I/O lives in `infrastructure/chain`** (RPC client, tx submission, event monitoring).
-- **Middleware lives in `infrastructure/middleware`** (no per-service copies).
-- **Services may not talk to Neo RPC directly** except via `infrastructure/chain`.
-- **Services may not duplicate “service base” lifecycle** (use `infrastructure/service.BaseService`).
-- **Contract bindings/event parsing live in `infrastructure/chain`** (`contracts_*.go`, `listener_events_*.go`) to avoid duplication.
-
-## Enforcement (automated)
-
-- Responsibility map: `docs/MODULE_RESPONSIBILITIES.md`
-- Layering guardrail: `test/layering/layering_test.go`
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [DATAFLOWS.md](./DATAFLOWS.md)
+- [WORKFLOWS.md](./WORKFLOWS.md)
+- [MODULE_RESPONSIBILITIES.md](./MODULE_RESPONSIBILITIES.md)
+- [LOCAL_DEV.md](./LOCAL_DEV.md)

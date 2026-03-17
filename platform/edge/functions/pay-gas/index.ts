@@ -23,12 +23,12 @@ const NEO_TESTNET_GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 // - enforces GAS-only settlement
 // - returns an invocation "intent" for the SDK/wallet to sign and submit
 //
-// Payment Flow (Direct GAS.Transfer):
-// 1. User calls GAS.Transfer(from, PaymentHub, amount, appId)
-// 2. GAS contract transfers GAS to PaymentHub
-// 3. PaymentHub.OnNEP17Payment callback is triggered
-// 4. PaymentHub validates appId and updates balance
-// 5. Receipt is created and PaymentReceived event is emitted
+// Current scope:
+// - this route is the legacy receipt-oriented payment helper
+// - it transfers GAS to PaymentHub and expects the downstream app flow to use a
+//   numeric receiptId
+// - direct prepaid flagship apps usually bypass this helper and transfer GAS
+//   straight to the MiniApp contract instead
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -82,7 +82,7 @@ export async function handler(req: Request): Promise<Response> {
 
   const requestId = crypto.randomUUID();
 
-  // Direct GAS.Transfer flow:
+  // Legacy receipt GAS.Transfer flow:
   // The wallet will call GAS.Transfer(from, to, amount, data)
   // - from: user's wallet address (filled by wallet at signing time)
   // - to: PaymentHub contract address

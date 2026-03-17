@@ -4,7 +4,7 @@ import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { useDoomsdayGame } from "@/composables/useDoomsdayGame";
 import { useDoomsdayTimer } from "@/composables/useDoomsdayTimer";
 
@@ -13,7 +13,6 @@ export function useDoomsdayActions() {
   const { handleError, canRetry, clearError } = useErrorHandler();
   const game = useDoomsdayGame();
   const timer = useDoomsdayTimer();
-  const { processPayment } = usePaymentFlow(game.APP_ID);
 
   const { status: errorStatus, setStatus: setErrorStatus, clearStatus: clearErrorStatus } = useStatusMessage(5000);
   const errorMessage = computed(() => errorStatus.value?.msg ?? null);
@@ -82,18 +81,29 @@ export function useDoomsdayActions() {
     }
     lastOperation.value = "buyKeys";
     try {
-      await game.ensureContractAddress();
+      const contractHash = await game.ensureContractAddress();
       const costRaw = game.estimatedCostRaw.value;
-      const costGas = Number(costRaw) / 1e8;
-      const { receiptId } = await processPayment(costGas.toString(), `keys:${game.roundId.value}:${count}`);
-      if (!receiptId) {
-        throw new Error(t("error"));
-      }
+
+      await game.invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: game.address.value as string },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: costRaw.toString() },
+          { type: "String", value: `${game.APP_ID}:buy:${game.roundId.value}:${count}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+
+      // The contract consumes direct prepaid GAS credit. Wait briefly so the
+      // transfer is indexed before calling buyKeysWithCost.
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
       await game.invokeDirectly("buyKeysWithCost", [
         { type: "Hash160", value: game.address.value as string },
         { type: "Integer", value: count },
         { type: "Integer", value: costRaw.toString() },
-        { type: "Integer", value: String(receiptId) },
+        { type: "Integer", value: "0" },
       ]);
       game.keyCount.value = "1";
       showStatus(t("keysPurchased"), "success");
