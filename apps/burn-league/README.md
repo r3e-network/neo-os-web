@@ -105,11 +105,17 @@ npm run build
 
 Burn League operates on a deflationary tokenomics model:
 
-1. **Token Burning**: Users permanently destroy GAS tokens by sending them to the burn contract
+1. **Direct Prepaid Funding**: Users prepay GAS directly to the MiniApp contract
 2. **Leaderboard System**: All burns are tracked and ranked on a public leaderboard
 3. **Reward Distribution**: Platform equity is distributed to burners based on their contribution
 4. **Deflationary Effect**: As GAS is burned, the circulating supply decreases, potentially increasing value
 5. **Transparency**: All burn events are recorded on-chain and publicly verifiable
+
+## Funding Model
+
+- direct prepaid GAS to the MiniApp contract
+- no PaymentHub receipt path
+- wallet signs the transfer first, then calls `burnGas`
 
 ## Assets
 

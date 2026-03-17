@@ -12,14 +12,14 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Burn GAS to earn points in current season.
         /// </summary>
-        public static void BurnGas(UInt160 burner, BigInteger amount, BigInteger receiptId)
+        public static void BurnGas(UInt160 burner, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount >= MIN_BURN, "min 0.1 GAS");
 
             ValidateUserOrAbstractAccount(burner);
 
-            ValidatePaymentReceipt(APP_ID, burner, amount, receiptId);
+            ConsumeDirectGasCredit(burner, amount);
 
             BigInteger seasonId = CurrentSeasonId();
             ExecutionEngine.Assert(seasonId > 0, "no active season");
@@ -53,6 +53,11 @@ namespace NeoMiniAppPlatform.Contracts
             UpdateBurnerStats(burner, amount, points, isNewBurner, isTier3);
 
             OnGasBurned(burner, amount, seasonId);
+        }
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
         }
 
         #endregion

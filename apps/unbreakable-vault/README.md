@@ -31,9 +31,10 @@ Hacker bounty vaults secured by SHA-256 hashes
 ## Usage Flow
 
 1. Creator chooses a secret, bounty amount, and difficulty.
-2. Vault is created and a vault ID is shared publicly.
-3. Challengers pay the attempt fee to try breaking the vault.
-4. Correct secret wins the bounty; expired vaults can be reclaimed by the creator.
+2. Creator prepays the bounty directly to the MiniApp contract and creates the vault.
+3. Vault is created and a vault ID is shared publicly.
+4. Challengers prepay the attempt fee directly to the MiniApp contract and try breaking the vault.
+5. Correct secret wins the bounty; expired vaults can be reclaimed by the creator.
 
 ## Fees
 
@@ -112,6 +113,12 @@ npm run build
 ## Assets
 
 - **Allowed Assets**: GAS
+
+## Funding Model
+
+- direct prepaid GAS to the MiniApp contract
+- no PaymentHub receipt path
+- wallet signs the transfer first, then the business call
 
 
 ## License

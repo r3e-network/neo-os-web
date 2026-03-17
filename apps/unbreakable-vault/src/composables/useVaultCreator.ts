@@ -4,8 +4,9 @@ import { normalizeScriptHash, addressToScriptHash, parseStackItem } from "@share
 import { toFixed8 } from "@shared/utils/format";
 import { sha256Hex } from "@shared/utils/hash";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { waitForListedEventByTransaction } from "@shared/utils";
 
 /** Handles vault creation with password hashing and GAS deposit. */
 export function useVaultCreator(
@@ -17,9 +18,9 @@ export function useVaultCreator(
     address,
     ensureWallet,
     ensureContractAddress,
+    invokeDirectly,
     isProcessing: isCreating,
   } = useContractInteraction({ appId: APP_ID, t });
-  const { processPayment } = usePaymentFlow(APP_ID);
   const { list: listEvents } = useEvents();
 
   const myVaults = ref<{ id: string; bounty: number; created: number }[]>([]);
@@ -73,9 +74,21 @@ export function useVaultCreator(
       const amount = Number.parseFloat(form.bounty);
       const bountyInt = toFixed8(amount);
       const hash = form.secretHash || (await sha256Hex(form.secret));
-      const { receiptId, invoke } = await processPayment(String(amount), `vault:create:${hash.slice(0, 10)}`);
-      if (!receiptId) throw new Error(t("receiptMissing"));
-      const res = await invoke(
+
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: bountyInt },
+          { type: "String", value: `${APP_ID}:create:${hash.slice(0, 10)}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      const res = await invokeDirectly(
         "createVault",
         [
           { type: "Hash160", value: address.value as string },
@@ -84,14 +97,21 @@ export function useVaultCreator(
           { type: "Integer", value: String(form.difficulty) },
           { type: "String", value: form.title.trim().slice(0, 100) },
           { type: "String", value: form.description.trim().slice(0, 300) },
-          { type: "Integer", value: String(receiptId) },
         ],
         contract
       );
-      const resRecord = res as Record<string, unknown>;
-      const stackArr = resRecord?.stack as unknown[] | undefined;
-      const firstStackItem = stackArr?.[0] as Record<string, unknown> | undefined;
-      const vaultId = String(resRecord?.result || firstStackItem?.value || "");
+
+      const createdEvt = await waitForListedEventByTransaction<{ state?: unknown[]; tx_hash?: string }>(res.tx, {
+        listEvents: async () => {
+          const events = await listEvents({ app_id: APP_ID, event_name: "VaultCreated", limit: 20 });
+          return events.events || [];
+        },
+        timeoutMs: 30000,
+        pollIntervalMs: 1500,
+        errorMessage: t("vaultCreateFailed"),
+      });
+      const values = Array.isArray(createdEvt?.state) ? createdEvt.state.map(parseStackItem) : [];
+      const vaultId = String(values[0] ?? "");
       createdVaultId.value = vaultId || createdVaultId.value;
       setStatus(t("vaultCreated"), "success");
       onSuccess(vaultId);
