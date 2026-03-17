@@ -13,12 +13,11 @@ namespace NeoMiniAppPlatform.Contracts
         /// Legacy receipt-based key purchase entrypoint.
         ///
         /// CURRENT LIVE FLOW:
-        /// - the wallet sends GAS to PaymentHub
-        /// - PaymentHub emits a numeric receiptId
-        /// - the frontend passes that receiptId into this contract call
+        /// - the wallet prepays GAS directly to this contract with an APP_ID-prefixed memo
+        /// - the contract records direct GAS credit in OnNEP17Payment
+        /// - receiptId is retained only for ABI compatibility with older wrappers
         ///
         /// NOTE:
-        /// - receiptId is the on-chain PaymentHub receipt identifier, not the payment tx hash
         /// - newer frontend code prefers BuyKeysWithCost so the contract can verify the
         ///   user-visible price formula without looping
         /// </summary>
@@ -42,7 +41,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             // Calculate cost with dynamic pricing
             BigInteger cost = CalculateKeyCost(keyCount, round.TotalKeys);
-            ValidatePaymentReceipt(APP_ID, player, cost, receiptId);
+            ConsumeDirectGasCredit(player, cost);
 
             // Update round
             BigInteger potContribution = cost * (10000 - PLATFORM_FEE_BPS) / 10000;
@@ -71,6 +70,11 @@ namespace NeoMiniAppPlatform.Contracts
 
             OnKeysPurchased(player, keyCount, potContribution, roundId);
             OnTimeExtended(roundId, newEndTime, keyCount);
+        }
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
         }
 
         #endregion
