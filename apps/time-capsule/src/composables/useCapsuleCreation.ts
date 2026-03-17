@@ -5,6 +5,7 @@ import { messages } from "@/locale/messages";
 import { sha256Hex } from "@shared/utils/hash";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Capsule } from "../pages/index/components/CapsuleList.vue";
 
 const APP_ID = "miniapp-time-capsule";
@@ -28,7 +29,7 @@ export function useCapsuleCreation() {
     address,
     ensureWallet,
     ensureContractAddress,
-    invoke,
+    invokeDirectly,
     isProcessing: paymentProcessing,
   } = useContractInteraction({
     appId: APP_ID,
@@ -90,15 +91,29 @@ export function useCapsuleCreation() {
       const unlockTimestamp = Math.floor(unlockDate.getTime() / 1000);
       const content = newCapsule.value.content.trim();
       const contentHash = await sha256Hex(content);
+      const contractHash = await ensureContractAddress();
 
-      await invoke(BURY_FEE, `time-capsule:bury:${Date.now()}`, "bury", [
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: toFixed8(BURY_FEE) },
+          { type: "String", value: `time-capsule:bury:${Date.now()}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      await invokeDirectly("bury", [
         { type: "Hash160", value: address.value as string },
         { type: "String", value: contentHash },
         { type: "String", value: newCapsule.value.title.trim().slice(0, 100) },
         { type: "Integer", value: String(unlockTimestamp) },
         { type: "Boolean", value: newCapsule.value.isPublic },
         { type: "Integer", value: String(newCapsule.value.category) },
-      ]);
+      ], contractHash);
 
       saveLocalContent(contentHash, content);
 
