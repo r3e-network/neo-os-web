@@ -8,6 +8,7 @@
     "test": "npm run -s test:host-app && npm run -s test:admin-console",
     "test:go": "node -e \"console.log('Legacy Go service layer moved to external repos; root Go test suite is no longer part of neo-miniapps-platform.')\"",
     "test:testnet:direct": "bash deploy/scripts/verify_cross_repo_testnet.sh",
+    "test:testnet:full-stack": "bash deploy/scripts/run_full_stack_testnet_validation.sh",
     "test:flagship-miniapps": "node deploy/scripts/audit_flagship_miniapps.js",
     "test:flagship-deployed-abi": "node deploy/scripts/audit_flagship_deployed_abi.js",
     "test:flagship-active-state": "node deploy/scripts/verify_flagship_active_state.js",
