@@ -83,7 +83,7 @@ func resolveSignerWIF(targetNetwork string) string {
 var targets = []flagshipTarget{
 	{"LastSurvivor", "apps/last-survivor/neo-manifest.json", "contracts/build/MiniAppLastSurvivor.nef", "contracts/build/MiniAppLastSurvivor.manifest.json", "admin"},
 	{"GASBOX", "apps/gasbox/neo-manifest.json", "contracts/build/MiniAppGASBox.nef", "contracts/build/MiniAppGASBox.manifest.json", "admin"},
-	{"Red Envelope", "apps/red-envelope/neo-manifest.json", "contracts/build/MiniAppRedEnvelope.nef", "contracts/build/MiniAppRedEnvelope.manifest.json", "getOwner"},
+	{"Red Envelope", "apps/red-envelope/neo-manifest.json", "contracts/build/MiniAppRedEnvelope.nef", "contracts/build/MiniAppRedEnvelope.manifest.json", "admin"},
 	{"Daily Check-in", "apps/daily-checkin/neo-manifest.json", "contracts/build/MiniAppDailyCheckin.nef", "contracts/build/MiniAppDailyCheckin.manifest.json", "admin"},
 	{"FogPlay", "apps/fogplay/neo-manifest.json", "contracts/build/MiniAppFogPlay.nef", "contracts/build/MiniAppFogPlay.manifest.json", "admin"},
 	{"SelfLoan", "apps/self-loan/neo-manifest.json", "contracts/build/MiniAppSelfLoan.nef", "contracts/build/MiniAppSelfLoan.manifest.json", "admin"},

@@ -57,13 +57,16 @@ async function main() {
 
     try {
       const remote = await getContractState(networkConfig.rpcUrl, deployedHash);
-      const localMethods = buildManifest.abi.methods.map((m) => m.name);
-      const remoteMethods = (remote.manifest?.abi?.methods || []).map((m) => m.name);
-      const missing = localMethods.filter((m) => !remoteMethods.includes(m));
-      const extra = remoteMethods.filter((m) => !localMethods.includes(m));
+      const toSignature = (method) => `${method.name}/${Array.isArray(method.parameters) ? method.parameters.length : 0}`;
+      const localMethods = buildManifest.abi.methods || [];
+      const remoteMethods = remote.manifest?.abi?.methods || [];
+      const localSignatures = localMethods.map(toSignature);
+      const remoteSignatures = remoteMethods.map(toSignature);
+      const missing = localSignatures.filter((sig) => !remoteSignatures.includes(sig));
+      const extra = remoteSignatures.filter((sig) => !localSignatures.includes(sig));
       const problems = [];
-      if (missing.length) problems.push(`missing methods: ${missing.slice(0, 10).join(",")}`);
-      if (extra.length) problems.push(`extra methods: ${extra.slice(0, 10).join(",")}`);
+      if (missing.length) problems.push(`missing signatures: ${missing.slice(0, 10).join(",")}`);
+      if (extra.length) problems.push(`extra signatures: ${extra.slice(0, 10).join(",")}`);
       if (problems.length) failed = true;
 
       rows.push({
@@ -71,8 +74,8 @@ async function main() {
         targetNetwork: networkConfig.key,
         deployedHash,
         remoteContractName: remote.manifest?.name || null,
-        localMethodCount: localMethods.length,
-        remoteMethodCount: remoteMethods.length,
+        localMethodCount: localSignatures.length,
+        remoteMethodCount: remoteSignatures.length,
         problems,
       });
     } catch (error) {
