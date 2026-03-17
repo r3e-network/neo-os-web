@@ -148,8 +148,13 @@ namespace NeoMiniAppPlatform.Contracts
             if (Runtime.CallingScriptHash == GAS.Hash)
             {
                 if (from == Runtime.ExecutingScriptHash) return;
-                if (memo != APP_ID + ":pool") return;
                 ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+                if (memo.StartsWith(APP_ID + ":repay"))
+                {
+                    CreditDirectGasPayment(APP_ID, from, amount, data);
+                    return;
+                }
+                if (memo != APP_ID + ":pool") return;
                 return;
             }
 
