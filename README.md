@@ -243,7 +243,7 @@ FLAGSHIP_LIVE_WIF=<funded-testnet-wif> \
 ./deploy/scripts/verify_testnet_workflows.sh --env-file .env
 
 # Cross-repo preferred path verification
-AA_TEST_WIF=<funded-aa-testnet-wif> \
+AA_TEST_WIF=<funded-aa-testnet-wif-that-controls-PAYMASTER_ACCOUNT_ID> \
   ./deploy/scripts/verify_cross_repo_testnet.sh
 
 # PriceFeed freshness for current required symbols
@@ -257,6 +257,7 @@ Notes:
 - `live_validate_flagship_user_flows.js` is the current end-to-end flagship testnet proof path.
 - `verify_cross_repo_testnet.sh` is the preferred validation entrypoint.
 - `verify_testnet_workflows.sh` is legacy / compatibility-oriented.
+- `verify_cross_repo_testnet.sh` expects `AA_TEST_WIF` to control the configured `PAYMASTER_ACCOUNT_ID` for the stable allowlisted paymaster path.
 
 ## Environment Variables
 
