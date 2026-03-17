@@ -34,7 +34,7 @@ It does **not** implement ServiceLayerGateway anymore. Oracle callbacks are expe
 - `DepositItemToken(...)`
 - `WithdrawItem(...)`
 - `WithdrawItemToken(...)`
-- `PlayMachine(player, machineId, receiptId)`
+- `PlayMachine(player, machineId)`
 
 ## Key Read Methods
 

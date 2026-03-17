@@ -25,7 +25,7 @@ The contract is responsible for:
 
 ## Core Methods
 
-- `placeBet(UInt160 player, BigInteger amount, bool choice, BigInteger receiptId)`
+- `placeBet(UInt160 player, BigInteger amount, bool choice)`
 - `getBet(BigInteger betId)`
 - `onOracleResult(BigInteger requestId, string requestType, bool success, ByteString result, string error)`
 
