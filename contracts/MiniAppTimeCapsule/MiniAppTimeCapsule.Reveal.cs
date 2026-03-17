@@ -46,13 +46,13 @@ namespace NeoMiniAppPlatform.Contracts
         /// Frontend searches off-chain using GetCapsuleFishStatus(), then calls FishWithId().
         /// Fish for a random public capsule that is unlocked.
         /// </summary>
-        public static BigInteger Fish(UInt160 fisher, BigInteger receiptId)
+        public static BigInteger Fish(UInt160 fisher)
         {
             ValidateNotGloballyPaused(APP_ID);
 
             ValidateUserOrAbstractAccount(fisher);
 
-            ValidatePaymentReceipt(APP_ID, fisher, FISH_FEE, receiptId);
+            ConsumeDirectGasCredit(fisher, FISH_FEE);
 
             BigInteger total = TotalCapsules();
             ExecutionEngine.Assert(total > 0, "no capsules");

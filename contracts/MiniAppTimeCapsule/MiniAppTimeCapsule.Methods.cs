@@ -13,7 +13,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Bury a new time capsule with category and title.
         /// </summary>
-        public static BigInteger Bury(UInt160 owner, string contentHash, string title, BigInteger unlockTime, bool isPublic, BigInteger category, BigInteger receiptId)
+        public static BigInteger Bury(UInt160 owner, string contentHash, string title, BigInteger unlockTime, bool isPublic, BigInteger category)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(contentHash.Length > 0, "empty content hash");
@@ -26,7 +26,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(owner);
 
-            ValidatePaymentReceipt(APP_ID, owner, BURY_FEE, receiptId);
+            ConsumeDirectGasCredit(owner, BURY_FEE);
 
             BigInteger capsuleId = NextItemId();
 
@@ -67,6 +67,11 @@ namespace NeoMiniAppPlatform.Contracts
 
             OnCapsuleBuried(owner, capsuleId, unlockTime, isPublic, category);
             return capsuleId;
+        }
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
         }
 
         #endregion

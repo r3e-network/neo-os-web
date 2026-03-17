@@ -5,6 +5,7 @@ import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Capsule } from "../pages/index/components/CapsuleList.vue";
 
@@ -20,7 +21,6 @@ export function useCapsuleUnlock() {
     ensureWallet,
     ensureContractAddress,
     invokeDirectly,
-    invoke,
     read,
     isProcessing: paymentProcessing,
     parseInvokeResult,
@@ -109,10 +109,24 @@ export function useCapsuleUnlock() {
       const requestStartedAt = Date.now();
 
       await ensureWallet();
+      const contractHash = await ensureContractAddress();
 
-      await invoke(FISH_FEE, `time-capsule:fish:${Date.now()}`, "fish", [
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: "5000000" },
+          { type: "String", value: `time-capsule:fish:${Date.now()}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      await invokeDirectly("fish", [
         { type: "Hash160", value: address.value as string },
-      ]);
+      ], contractHash);
 
       const fishEvents = await listAllEvents("CapsuleFished");
       const match = fishEvents.find((evt) => {
