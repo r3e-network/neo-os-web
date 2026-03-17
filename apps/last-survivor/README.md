@@ -43,7 +43,7 @@ Built as a Neo N3 MiniApp, LastSurvivor uses direct prepaid GAS transfers plus K
 ### Service Layer Technologies
 
 - **Keeper (Automation)**: Automatically triggers prize distribution when the 24-hour countdown expires. No manual intervention needed — the contract settles trustlessly.
-- **Direct Prepaid GAS**: The wallet prepays the exact key cost directly to the MiniApp contract, then calls `buyKeysWithCost`. The `receiptId` argument is retained only for ABI compatibility and is passed as `0` in the live flow.
+- **Direct Prepaid GAS**: The wallet prepays the exact key cost directly to the MiniApp contract, then calls `buyKeysWithCost`.
 
 ### Contract Methods
 
@@ -52,7 +52,7 @@ Built as a Neo N3 MiniApp, LastSurvivor uses direct prepaid GAS transfers plus K
 | `getGameStatus`   | Query  | —                                 | Returns round ID, pot size, active status, last buyer, remaining time, total keys |
 | `getPlayerKeys`   | Query  | `player`, `roundId`               | Returns key count for a specific player in a specific round                       |
 | `getRoundDetails` | Query  | `roundId`                         | Returns detailed information about a specific round                               |
-| `buyKeysWithCost` | Action | `player`, `keyCount`, `submittedCost`, `receiptId` | Purchase keys for the current round using direct prepaid GAS credit plus formula-verified price (`receiptId` is a placeholder in the live flow) |
+| `buyKeysWithCost` | Action | `player`, `keyCount`, `submittedCost` | Purchase keys for the current round using direct prepaid GAS credit plus formula-verified price |
 
 ## Getting Started
 

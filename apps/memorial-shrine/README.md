@@ -15,7 +15,7 @@ Create eternal digital memorials for loved ones on the blockchain.
 
 - **Eternal Memorials**: Permanent on-chain tributes
 - **Photo & Message Storage**: IPFS-backed media
-- **Virtual Offerings**: Digital incense and flowers
+- **Virtual Offerings**: Digital incense and flowers funded by direct prepaid GAS
 - **Family Sharing**: Multi-user memorial access
 - **Anniversary Reminders**: Automated notifications
 
@@ -52,6 +52,7 @@ Create eternal digital memorials for loved ones on the blockchain.
 3. **Permanent Tribute**: Memorials exist forever on the Neo blockchain
 4. **Collaborative**: Multiple people can contribute to one shrine
 5. **Privacy Controls**: Set who can view and edit each memorial
+6. **Direct Funding**: offerings are prepaid directly to the MiniApp contract
 
 ## Technical Details
 

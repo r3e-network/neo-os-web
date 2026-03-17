@@ -253,7 +253,7 @@ namespace NeoMiniAppPlatform.Contracts
             OnMachineSaleListed(machineId, 0);
         }
 
-        public static void BuyMachine(UInt160 buyer, BigInteger machineId, BigInteger receiptId)
+        public static void BuyMachine(UInt160 buyer, BigInteger machineId)
         {
             ValidateNotGloballyPaused(APP_ID);
             ValidateAddress(buyer);
@@ -267,7 +267,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUserOrAbstractAccount(buyer);
 
             BigInteger price = machine.SalePrice;
-            ValidatePaymentReceipt(APP_ID, buyer, price, receiptId);
+            ConsumeDirectGasCredit(buyer, price);
 
             UInt160 seller = machine.Owner;
             BigInteger platformFee = price * PLATFORM_FEE_BPS / 10000;
@@ -283,7 +283,7 @@ namespace NeoMiniAppPlatform.Contracts
             OnMachineSold(machineId, seller, buyer, price, platformFee, creatorRoyalty);
         }
 
-        public static object[] InitiatePlay(UInt160 player, BigInteger machineId, BigInteger receiptId)
+        public static object[] InitiatePlay(UInt160 player, BigInteger machineId)
         {
             MachineData machine = LoadMachine(machineId);
             ExecutionEngine.Assert(machine.Creator != UInt160.Zero, "machine not found");
@@ -291,7 +291,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger availableWeight = CalculateAvailableWeight(machineId, machine.ItemCount);
             BigInteger sampleItemIndex = FindFirstAvailableItemIndex(machineId, machine.ItemCount);
 
-            return InitiatePlayOptimized(player, machineId, receiptId, availableWeight, sampleItemIndex);
+            return InitiatePlayOptimized(player, machineId, availableWeight, sampleItemIndex);
         }
 
         public static void SettlePlay(UInt160 player, BigInteger playId, BigInteger selectedIndex)

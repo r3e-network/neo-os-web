@@ -71,13 +71,11 @@ namespace NeoMiniAppPlatform.Contracts
         ///
         /// NOTE:
         /// - the live flow consumes direct prepaid GAS credit already held by the contract
-        /// - receiptId is retained only for ABI compatibility with older wrappers
         /// Returns: [playId, seed, scriptName]
         /// </summary>
         public static object[] InitiatePlayOptimized(
             UInt160 player,
             BigInteger machineId,
-            BigInteger receiptId,
             BigInteger calculatedAvailableWeight,
             BigInteger sampleItemIndex)
         {

@@ -116,10 +116,9 @@ namespace NeoMiniAppPlatform.Contracts
         /// Create a new red envelope with RNG-generated amounts from direct prepaid GAS credit.
         ///
         /// NOTE:
-        /// - receiptId remains in the ABI for compatibility, but the live flow consumes direct
-        ///   GAS credit recorded by OnNEP17Payment
+        /// - the live flow consumes direct GAS credit recorded by OnNEP17Payment
         /// </summary>
-        public static BigInteger CreateEnvelope(UInt160 creator, BigInteger totalAmount, BigInteger packetCount, BigInteger expiryDurationMs, BigInteger receiptId)
+        public static BigInteger CreateEnvelope(UInt160 creator, BigInteger totalAmount, BigInteger packetCount, BigInteger expiryDurationMs)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(totalAmount >= MIN_AMOUNT, "min amount 0.1 GAS");

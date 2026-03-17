@@ -107,7 +107,6 @@ export function useGachaPlay() {
         [
           { type: "Hash160", value: address.value as string },
           { type: "Integer", value: machine.id },
-          { type: "Integer", value: "0" },
         ],
         contract
       );
@@ -233,18 +232,24 @@ export function useGachaPlay() {
       const contract = await options.ensureContract();
       if (!contract) return;
 
-      const { receiptId, invoke } = await processPayment(
-        gasInputFromRaw(machine.salePriceRaw),
-        `gacha-sale:${machine.id}`
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: String(machine.salePriceRaw) },
+          { type: "String", value: `${APP_ID}:sale:${machine.id}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH
       );
-      if (!receiptId) throw new Error(t("receiptMissing"));
 
-      await invoke(
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      await invokeDirectly(
         "buyMachine",
         [
           { type: "Hash160", value: address.value as string },
           { type: "Integer", value: machine.id },
-          { type: "Integer", value: String(receiptId) },
         ],
         contract
       );
