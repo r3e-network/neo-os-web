@@ -254,7 +254,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static BigInteger RequestRng(UInt160 requester, BigInteger envelopeId, BigInteger packetCount)
         {
             ByteString payload = StdLib.Serialize(new object[] { envelopeId, packetCount });
-            return RequestOracleForCallback(requester, "rng", payload);
+            return RequestOracleForCallback(requester, "vrf_random", payload);
         }
 
         public static void OnOracleResult(
