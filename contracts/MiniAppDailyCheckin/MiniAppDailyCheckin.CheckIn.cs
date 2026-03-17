@@ -9,7 +9,7 @@ namespace NeoMiniAppPlatform.Contracts
     {
         #region Check-in Logic
 
-        public static void CheckIn(UInt160 user, BigInteger receiptId)
+        public static void CheckIn(UInt160 user)
         {
             ValidateUserOrAbstractAccount(user);
             ValidateNotPaused();

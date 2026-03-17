@@ -4,8 +4,8 @@
   "name": "Timestamp Proof",
   "name_zh": "时间戳证明",
   "version": "1.0.0",
-  "description": "Timestamp Proof miniapp on Neo N3",
-  "description_zh": "时间戳证明 — 为任何数据生成不可篡改的链上时间戳证明",
+  "description": "Local SHA-256 timestamp journal and proof lookup workspace.",
+  "description_zh": "时间戳证明 — 本地 SHA-256 时间戳记录与证明查询工具",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -48,8 +48,8 @@
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-03-18T01:00:00Z"
 }
