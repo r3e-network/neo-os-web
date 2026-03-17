@@ -278,6 +278,34 @@ function getDefinitionsDir(): string {
   return path.join(process.cwd(), "public", "miniapp-definitions");
 }
 
+function getMiniAppManifestPath(slug: string): string {
+  return path.resolve(process.cwd(), "..", "..", "apps", slug, "neo-manifest.json");
+}
+
+async function loadBundledManifest(slug: string): Promise<Dict | null> {
+  const manifestPath = getMiniAppManifestPath(slug);
+  try {
+    const content = await fs.readFile(manifestPath, "utf-8");
+    const parsed = JSON.parse(content);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Dict) : null;
+  } catch {
+    return null;
+  }
+}
+
+function mergeBundledManifest(raw: unknown, bundledManifest: Dict | null): Dict {
+  const obj = asObject(raw);
+  if (!bundledManifest) return obj;
+  return {
+    ...bundledManifest,
+    ...obj,
+    manifest: {
+      ...bundledManifest,
+      ...asObject(obj.manifest),
+    },
+  };
+}
+
 function getSlugFromFilename(fileName: string): string {
   return path.parse(fileName).name.trim();
 }
@@ -316,7 +344,8 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
           throw new Error("definition payload must be a JSON/YAML object");
         }
-        const normalized = normalizeRawDefinition(parsed, slug);
+        const bundledManifest = await loadBundledManifest(slug);
+        const normalized = normalizeRawDefinition(mergeBundledManifest(parsed, bundledManifest), slug);
         definitions.push({
           fileName,
           slug,
