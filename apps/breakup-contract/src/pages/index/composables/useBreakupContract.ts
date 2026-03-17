@@ -4,6 +4,7 @@ import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { parseGas, toFixed8 } from "@shared/utils/format";
 import { parseStackItem } from "@shared/utils/neo";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -21,7 +22,6 @@ export function useBreakupContract(t: (key: string) => string) {
     address,
     ensureWallet,
     read,
-    invoke,
     invokeDirectly,
     ensureContractAddress,
     isProcessing: isLoading,
@@ -185,15 +185,29 @@ export function useBreakupContract(t: (key: string) => string) {
     }
     try {
       await ensureWallet();
+      const contractHash = await ensureContractAddress();
 
-      await invoke(stakeAmount.value, `contract:${partnerValue.slice(0, 10)}`, "createContract", [
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: toFixed8(stakeAmount.value) },
+          { type: "String", value: `${APP_ID}:create:${partnerValue.slice(0, 10)}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      await invokeDirectly("createContract", [
         { type: "Hash160", value: address.value as string },
         { type: "Hash160", value: partnerValue },
         { type: "Integer", value: toFixed8(stakeAmount.value) },
         { type: "Integer", value: durationDays },
         { type: "String", value: titleValue },
         { type: "String", value: termsValue },
-      ]);
+      ], contractHash);
       setStatus(t("contractCreated"), "success");
       partnerAddress.value = "";
       stakeAmount.value = "";
@@ -209,10 +223,25 @@ export function useBreakupContract(t: (key: string) => string) {
   const signContract = async (contract: RelationshipContractView) => {
     if (isLoading.value || !address.value) return;
     try {
-      await invoke(contract.stake.toFixed(8), `contract:sign:${contract.id}`, "signContract", [
+      const contractHash = await ensureContractAddress();
+
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: toFixed8(contract.stake.toFixed(8)) },
+          { type: "String", value: `${APP_ID}:sign:${contract.id}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      await invokeDirectly("signContract", [
         { type: "Integer", value: contract.id },
         { type: "Hash160", value: address.value },
-      ]);
+      ], contractHash);
       setStatus(t("contractSigned"), "success");
       await loadContracts();
     } catch (e: unknown) {

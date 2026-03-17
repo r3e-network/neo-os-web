@@ -20,8 +20,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger stake,
             BigInteger durationDays,
             string title,
-            string terms,
-            BigInteger receiptId)
+            string terms)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(party1.IsValid && party2.IsValid, "invalid address");
@@ -33,7 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(party1);
 
-            ValidatePaymentReceipt(APP_ID, party1, stake, receiptId);
+            ConsumeDirectGasCredit(party1, stake);
 
             BigInteger contractId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_CONTRACT_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_CONTRACT_ID, contractId);
@@ -73,7 +72,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Party2 signs the contract and stakes their GAS.
         /// </summary>
-        public static void SignContract(BigInteger contractId, UInt160 party, BigInteger receiptId)
+        public static void SignContract(BigInteger contractId, UInt160 party)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -86,7 +85,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(party);
 
-            ValidatePaymentReceipt(APP_ID, party, contract.Stake, receiptId);
+            ConsumeDirectGasCredit(party, contract.Stake);
 
             contract.Party2Signed = true;
             contract.Active = true;
@@ -97,6 +96,11 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_STAKED, totalStaked + contract.Stake);
 
             OnContractSigned(contractId, party);
+        }
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
         }
 
         /// <summary>
