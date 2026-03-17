@@ -4,7 +4,6 @@ import { useRouter } from "next/router";
 import { LayoutGrid, List, Clock, ChevronDown, Star, ArrowDownAZ } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@/components/features/miniapp";
-import { FLAGSHIP_MINIAPP_IDS } from "@/lib/miniapp-registry";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -65,13 +64,9 @@ export default function MiniAppsPage() {
       fetch("/api/miniapps/community", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
     ]).then(([catalogData, communityData]) => {
       if (!catalogData && !communityData) setFetchError(true);
-      const list = Array.isArray(catalogData?.apps)
-        ? catalogData.apps.filter((app: MiniAppInfo) => FLAGSHIP_MINIAPP_IDS.includes(app.app_id))
-        : [];
+      const list = Array.isArray(catalogData?.apps) ? catalogData.apps : [];
       setApps(list);
-      const communityList = Array.isArray(communityData?.apps)
-        ? communityData.apps.filter((app: MiniAppInfo) => FLAGSHIP_MINIAPP_IDS.includes(app.app_id))
-        : [];
+      const communityList = Array.isArray(communityData?.apps) ? communityData.apps : [];
       setCommunityApps(communityList);
     }).finally(() => setLoading(false));
   }, []);

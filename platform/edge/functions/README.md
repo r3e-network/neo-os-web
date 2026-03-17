@@ -75,7 +75,7 @@ Gas bank (delegated payments):
 
 On-chain invocations (wallet-signed):
 
-- `pay-gas`: returns a legacy GAS `transfer` invocation to `PaymentHub` for receipt-based flows (**GAS only**). Direct prepaid flagship apps often transfer to the MiniApp contract instead.
+- `pay-gas`: returns a GAS `transfer` invocation that prefers the MiniApp contract when `contract_hash` is present, and falls back to `PaymentHub` for legacy receipt-based flows (**GAS only**).
 - `vote-bneo`: returns a `Governance.vote` invocation (**bNEO only**).
 - `app-register`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.registerApp` invocation (developer wallet-signed).
 - `app-update-manifest`: validates a `manifest` payload, computes `manifest_hash`, and returns an `AppRegistry.updateApp` invocation (developer wallet-signed).
