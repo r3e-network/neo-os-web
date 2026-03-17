@@ -88,6 +88,8 @@ if [[ -z "${NEO_TESTNET_WIF:-}" ]]; then
   exit 1
 fi
 
+ORACLE_TEST_WIF="${ORACLE_TEST_WIF:-${AA_TEST_WIF:-${FLAGSHIP_LIVE_WIF:-${NEO_TESTNET_WIF}}}}"
+
 PHALA_API_TOKEN="$(load_env_key "$MORPHEUS_DIR/.env" PHALA_API_TOKEN)"
 if [[ -z "$PHALA_API_TOKEN" ]]; then
   PHALA_API_TOKEN="$(load_env_key "$MORPHEUS_DIR/.env" PHALA_SHARED_SECRET)"
@@ -113,7 +115,8 @@ echo "=== Direct Oracle: neo-morpheus-oracle testnet smoke ==="
     MORPHEUS_NETWORK=testnet \
     NEO_RPC_URL=https://testnet1.neo.coz.io:443 \
     NEO_NETWORK_MAGIC=894710606 \
-    NEO_N3_WIF="$NEO_TESTNET_WIF" \
+    NEO_N3_WIF="$ORACLE_TEST_WIF" \
+    NEO_TESTNET_WIF="$ORACLE_TEST_WIF" \
     CONTRACT_MORPHEUS_ORACLE_HASH="$MORPHEUS_ORACLE_HASH" \
     CONTRACT_ORACLE_CALLBACK_CONSUMER_HASH="$MORPHEUS_CALLBACK_HASH" \
     node scripts/smoke-oracle-n3.mjs)
