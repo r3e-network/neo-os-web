@@ -60,7 +60,7 @@ SelfLoan 最精妙之处在于它不可能被清算。传统 DeFi 借贷中，�
 | `CreateLoan`       | 操作 | `borrower`, `collateral`, `ltvTier` | 锁定 NEO 并获得 GAS                         |
 | `GetLoanDetails`   | 查询 | `loanId`                            | 获取贷款状态（抵押品、债务、活跃状态、LTV） |
 | `GetPlatformStats` | 查询 | —                                   | 获取平台 LTV 档位、最短期限、费率           |
-| `RepayDebt`        | 操作 | `loanId`, `payer`, `amount`, `receiptId` | 合约层手动还款路径 |
+| `RepayDebt`        | 操作 | `loanId`, `payer`, `amount` | 使用直接预付 GAS 的合约层手动还款路径 |
 
 ## 快速开始
 

@@ -63,7 +63,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Repay debt manually with GAS.
         /// </summary>
-        public static void RepayDebt(BigInteger loanId, UInt160 payer, BigInteger amount, BigInteger receiptId)
+        public static void RepayDebt(BigInteger loanId, UInt160 payer, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -75,7 +75,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ExecutionEngine.Assert(Runtime.Time >= loan.CreatedTime + MIN_LOAN_DURATION_SECONDS, "min 24h loan duration");
 
-            ValidatePaymentReceipt(APP_ID, payer, amount, receiptId);
+            ConsumeDirectGasCredit(payer, amount);
 
             BigInteger repayAmount = amount > loan.Debt ? loan.Debt : amount;
 
