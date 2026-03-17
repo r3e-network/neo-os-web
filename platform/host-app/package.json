@@ -21,7 +21,6 @@
     "@tanstack/react-query": "^5.90.13",
     "@web3auth/base": "^8.12.4",
     "@web3auth/ethereum-provider": "^8.12.4",
-    "@web3auth/metamask-adapter": "^8.12.4",
     "@web3auth/modal": "^8.12.4",
     "autoprefixer": "^10.4.23",
     "class-variance-authority": "^0.7.1",
