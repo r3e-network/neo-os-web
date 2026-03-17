@@ -8,7 +8,7 @@ NeoPay is a streaming payment protocol that brings the power of programmable mon
 
 Think of it as the Web3 equivalent of a programmable vesting or subscription vault: funds are locked in a smart contract, released on schedule, and claimable by the beneficiary at any time. The sender retains the ability to cancel and reclaim unreleased funds, while the beneficiary has full assurance that released funds cannot be revoked.
 
-> **Current status**: the `MiniAppNeoPay` smart contract is deployed on testnet and matches the current frontend ABI. Mainnet deployment is still pending.
+> **Current status**: the `MiniAppNeoPay` smart contract is deployed on both testnet and mainnet, and the current frontend targets the network-specific contract address from the manifest.
 
 ## How to Use
 
@@ -50,7 +50,7 @@ Think of it as the Web3 equivalent of a programmable vesting or subscription vau
 | **Blockchain**       | Neo N3                                  |
 | **Supported Assets** | GAS, NEO                                |
 | **Interval Range**   | 1–365 days                              |
-| **Status**           | Testnet deployed, mainnet pending        |
+| **Status**           | Testnet and mainnet deployed             |
 
 ### Current Boundary
 
