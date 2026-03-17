@@ -50,7 +50,7 @@ FogPlay 的重点不只是速度，更是流程足够清楚。翻转、赢、输
 
 | 方法                    | 类型 | 参数                                   | 说明                          |
 | ----------------------- | ---- | -------------------------------------- | ----------------------------- |
-| `placeBet`              | 操作 | `player`, `amount`, `choice`, `receiptId` | 用户预付 GAS 后下注，并触发预言机随机数请求 |
+| `placeBet`              | 操作 | `player`, `amount`, `choice` | 用户预付 GAS 后下注，并触发预言机随机数请求 |
 | `onOracleResult`        | 操作 | `requestId`, `requestType`, `success`, `result`, `error` | 预言机回调并完成结算 |
 | `getBet`                | 查询 | `betId`                                    | 获取特定投注详情 |
 | `getPlayerDailyBet`     | 查询 | `player`                                   | 获取玩家当日下注总额 |

@@ -41,14 +41,12 @@ namespace NeoMiniAppPlatform.Contracts
         /// LIVE FLOW:
         /// - frontend calculates the exact key cost with CalculateKeyCostFormula
         /// - wallet prepays that amount directly to this contract with an APP_ID memo
-        /// - frontend passes a placeholder receiptId for ABI compatibility
         /// - contract rechecks the formula and consumes the user's direct GAS credit
         /// </summary>
         public static void BuyKeysWithCost(
             UInt160 player,
             BigInteger keyCount,
-            BigInteger submittedCost,
-            BigInteger receiptId)
+            BigInteger submittedCost)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(keyCount >= MIN_KEYS, "min 1 key");

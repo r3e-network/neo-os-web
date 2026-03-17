@@ -1,13 +1,12 @@
 import { ref } from "vue";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const APP_ID = "miniapp-memorial-shrine";
 
 export function useMemorialContract(t: (key: string) => string) {
   const { ensureWallet, invokeDirectly, address, ensureContractAddress } = useContractInteraction({ appId: APP_ID, t });
-  const { processPayment } = usePaymentFlow(APP_ID);
 
   const isSubmitting = ref(false);
   const isPaying = ref(false);
@@ -60,18 +59,26 @@ export function useMemorialContract(t: (key: string) => string) {
     try {
       const addr = await ensureWallet();
       const contract = await ensureContractAddress();
+      const offeringAmount = String(Math.round(Number(offeringCost) * 1e8));
 
-      const { receiptId, invoke: invokeWithReceipt } = await processPayment(
-        String(offeringCost),
-        `tribute:${memorialId}:${offeringType}`
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: addr },
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: offeringAmount },
+          { type: "String", value: `${APP_ID}:tribute:${memorialId}:${offeringType}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
       );
 
-      await invokeWithReceipt(contract, "PayTribute", [
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      await invokeDirectly("PayTribute", [
         { type: "Hash160", value: addr },
         { type: "Integer", value: String(memorialId) },
         { type: "Integer", value: String(offeringType) },
         { type: "String", value: message },
-        { type: "Integer", value: String(receiptId) },
       ]);
 
       setStatus(t("tributeSuccess"), "success");

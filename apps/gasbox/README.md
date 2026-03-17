@@ -49,9 +49,9 @@ What makes GASBOX special is the transparency of the machine itself. Prize table
 
 | Method              | Type   | Parameters                          | Description                                          |
 | ------------------- | ------ | ----------------------------------- | ---------------------------------------------------- |
-| `initiatePlay`      | Action | `player`, `machineId`, `receiptId`  | Start a gacha draw after the user prepays GAS directly to the contract (`receiptId` is passed as `0` in the live flow) |
+| `initiatePlay`      | Action | `player`, `machineId`               | Start a gacha draw after the user prepays GAS directly to the contract |
 | `settlePlay`        | Action | `player`, `playId`, `selectedIndex` | Settle the draw — verify selection, distribute prize |
-| `buyMachine`        | Action | `player`, `machineId`, `receiptId`  | Purchase a machine listed for sale; this resale path still uses receipt-style compatibility wiring |
+| `buyMachine`        | Action | `player`, `machineId`               | Purchase a machine listed for sale using direct prepaid GAS |
 | `getMachineDetails` | Query  | `machineId`                         | Get machine info (items, prices, stock)              |
 
 ## Getting Started

@@ -50,7 +50,7 @@ Every flip is provably fair at the contract boundary. The bet is stored on-chain
 
 | Method                  | Type   | Parameters                             | Description                                         |
 | ----------------------- | ------ | -------------------------------------- | --------------------------------------------------- |
-| `placeBet`              | Action | `player`, `amount`, `choice`, `receiptId`             | Place a bet after prepaying GAS to the miniapp contract and trigger an oracle randomness request |
+| `placeBet`              | Action | `player`, `amount`, `choice`                          | Place a bet after prepaying GAS to the miniapp contract and trigger an oracle randomness request |
 | `onOracleResult`        | Action | `requestId`, `requestType`, `success`, `result`, `error` | Oracle callback that resolves the bet |
 | `getBet`                | Query  | `betId`                                             | Get details of a specific bet |
 | `getPlayerDailyBet`     | Query  | `player`                                            | Get the player's daily wager total |

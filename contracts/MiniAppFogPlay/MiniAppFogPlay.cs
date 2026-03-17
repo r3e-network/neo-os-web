@@ -131,12 +131,9 @@ namespace NeoMiniAppPlatform.Contracts
         /// - Bet data stored BEFORE requesting RNG (prevents manipulation)
         /// - Minimum bet prevents dust attacks
         ///
-        /// NOTE:
-        /// - receiptId is retained for ABI compatibility but the live flow uses direct prepaid GAS
-        ///
         /// RETURNS: betId for tracking
         /// </summary>
-        public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice, BigInteger receiptId)
+        public static BigInteger PlaceBet(UInt160 player, BigInteger amount, bool choice)
         {
             ValidateNotGloballyPaused(APP_ID);
             ValidateUserOrAbstractAccount(player);

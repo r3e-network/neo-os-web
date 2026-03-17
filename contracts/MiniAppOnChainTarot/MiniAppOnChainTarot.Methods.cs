@@ -13,8 +13,11 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// [DEPRECATED] Uses service callback - use InitiateReading/SettleReading instead.
         /// InitiateReading generates seed, frontend calculates cards, SettleReading verifies.
+        ///
+        /// LIVE FUNDING MODEL:
+        /// - the wallet prepays the reading fee directly to this contract
         /// </summary>
-        public static BigInteger RequestReading(UInt160 user, string question, BigInteger spreadType, BigInteger category, BigInteger receiptId)
+        public static BigInteger RequestReading(UInt160 user, string question, BigInteger spreadType, BigInteger category)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(question.Length > 0 && question.Length <= MAX_QUESTION_LENGTH, "invalid question");
@@ -24,7 +27,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUserOrAbstractAccount(user);
 
             BigInteger fee = GetSpreadFee(spreadType);
-            ValidatePaymentReceipt(APP_ID, user, fee, receiptId);
+            ConsumeDirectGasCredit(user, fee);
 
             BigInteger readingId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_READING_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_READING_ID, readingId);
@@ -140,6 +143,11 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         #endregion
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
+        }
 
         #region Admin Methods
 

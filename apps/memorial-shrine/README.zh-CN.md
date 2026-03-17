@@ -9,7 +9,7 @@
 ## 功能
 
 - **创建灵位**：记录逝者姓名、照片、人生日期、传记与讣告
-- **祭奠缅怀**：使用虚拟供品（香、烛、花等）祭拜，链上留痕
+- **祭奠缅怀**：使用虚拟供品（香、烛、花等）祭拜，采用直接预付 GAS，链上留痕
 - **永久存储**：所有数据永久保存于区块链
 - **讣告板**：主页展示最新讣告
 - **访问记录**：追踪已祭拜的灵位
@@ -42,10 +42,13 @@ PayTribute(
   visitor: Hash160,
   memorialId: int,
   offeringType: int,
-  message: string,
-  receiptId: int
+  message: string
 ) → tributeId
 ```
+
+说明：
+
+- 祭拜费用当前直接预付到 MiniApp 合约
 
 ### 供品列表
 
