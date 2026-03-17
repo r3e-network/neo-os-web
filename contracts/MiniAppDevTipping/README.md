@@ -71,7 +71,7 @@
 
 ### User Functions | 用户函数
 
-#### `Tip(tipper, devId, amount, message, tipperName, receiptId)`
+#### `Tip(tipper, devId, amount, message, tipperName)`
 
 **English**: Send a tip to a developer.
 
@@ -80,7 +80,7 @@
 - `amount`: Tip amount (minimum 0.001 GAS)
 - `message`: Optional message (max 256 chars)
 - `tipperName`: Display name (max 64 chars, uses address if empty)
-- `receiptId`: Payment receipt ID
+- direct prepaid GAS must already be credited to the MiniApp contract
 
 **中文**: 向开发者发送打赏。
 
@@ -89,7 +89,7 @@
 - `amount`: 打赏金额（最低0.001 GAS）
 - `message`: 可选消息（最多256字符）
 - `tipperName`: 显示名称（最多64字符，为空则使用地址）
-- `receiptId`: 支付收据ID
+- 调用前需先将 GAS 直接预付到 MiniApp 合约
 
 #### `Withdraw(devId)`
 

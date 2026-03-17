@@ -18,7 +18,7 @@ GAS 燃烧排位赛是一个通缩型奖励系统，用户通过燃烧 GAS 来�
 #### 1. 燃烧 GAS (BurnGas)
 
 ```csharp
-public static void BurnGas(UInt160 burner, BigInteger amount, BigInteger receiptId)
+public static void BurnGas(UInt160 burner, BigInteger amount)
 ```
 
 - 用户支付 GAS 进行燃烧
@@ -74,7 +74,7 @@ Burn League is a deflationary reward system where users burn GAS to earn platfor
 #### 1. Burn GAS
 
 ```csharp
-public static void BurnGas(UInt160 burner, BigInteger amount, BigInteger receiptId)
+public static void BurnGas(UInt160 burner, BigInteger amount)
 ```
 
 - Users pay GAS to burn
