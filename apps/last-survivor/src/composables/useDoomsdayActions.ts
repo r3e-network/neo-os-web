@@ -103,7 +103,6 @@ export function useDoomsdayActions() {
         { type: "Hash160", value: game.address.value as string },
         { type: "Integer", value: count },
         { type: "Integer", value: costRaw.toString() },
-        { type: "Integer", value: "0" },
       ]);
       game.keyCount.value = "1";
       showStatus(t("keysPurchased"), "success");
