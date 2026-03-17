@@ -8,7 +8,7 @@ LastSurvivor is a high-stakes social game built on Neo N3 where psychology meets
 
 The beauty lies in its simplicity. There are no complex rules, no hidden mechanics — just a timer, a growing prize pool, and the eternal question: _will someone else press the button, or is this my moment?_ The game creates a natural crescendo of tension as the pot swells and the timer winds down, turning every participant into both ally (growing the pot) and rival (competing for the final position).
 
-Built as a Neo N3 MiniApp, LastSurvivor uses direct on-chain purchases plus Keeper automation to guarantee fair, trustless prize distribution the instant the clock hits zero.
+Built as a Neo N3 MiniApp, LastSurvivor uses direct prepaid GAS transfers plus Keeper automation to guarantee fair, trustless prize distribution the instant the clock hits zero.
 
 ## How to Play
 
@@ -43,6 +43,7 @@ Built as a Neo N3 MiniApp, LastSurvivor uses direct on-chain purchases plus Keep
 ### Service Layer Technologies
 
 - **Keeper (Automation)**: Automatically triggers prize distribution when the 24-hour countdown expires. No manual intervention needed — the contract settles trustlessly.
+- **Direct Prepaid GAS**: The wallet prepays the exact key cost directly to the MiniApp contract, then calls `buyKeysWithCost`. The `receiptId` argument is retained only for ABI compatibility and is passed as `0` in the live flow.
 
 ### Contract Methods
 
@@ -51,7 +52,7 @@ Built as a Neo N3 MiniApp, LastSurvivor uses direct on-chain purchases plus Keep
 | `getGameStatus`   | Query  | —                                 | Returns round ID, pot size, active status, last buyer, remaining time, total keys |
 | `getPlayerKeys`   | Query  | `player`, `roundId`               | Returns key count for a specific player in a specific round                       |
 | `getRoundDetails` | Query  | `roundId`                         | Returns detailed information about a specific round                               |
-| `buyKeysWithCost` | Action | `player`, `keyCount`, `submittedCost`, `receiptId` | Purchase keys for the current round using a PaymentHub receipt plus formula-verified price |
+| `buyKeysWithCost` | Action | `player`, `keyCount`, `submittedCost`, `receiptId` | Purchase keys for the current round using direct prepaid GAS credit plus formula-verified price (`receiptId` is a placeholder in the live flow) |
 
 ## Getting Started
 
@@ -93,7 +94,7 @@ npm run build
 | Smart Contract | C# / Neo N3                        |
 | Interaction    | Direct wallet invocation           |
 | Automation     | Keeper (Timer Expiry Trigger)      |
-| Payment        | PaymentHub (GAS)                   |
+| Payment        | Direct prepaid GAS to the miniapp contract |
 
 ## License
 

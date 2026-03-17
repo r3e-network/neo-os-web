@@ -119,6 +119,7 @@ This is the **correct business workflow** for MiniApps that involve payments
 1. **USER ACTION: SDK prepares the correct transfer**
     - direct prepaid apps return a transfer intent targeting the MiniApp contract
     - legacy receipt apps return a transfer intent targeting `PaymentHub`
+    - hybrid direct-prepaid apps may still pass `receiptId=0` later for ABI compatibility
     - the wallet signs and broadcasts the transfer
 
 2. **USER ACTION: call the MiniApp contract**
@@ -161,6 +162,7 @@ Contract transfers prize and emits PlayResolved
 
 - users sign both value transfer and MiniApp contract calls when required
 - MiniApp contracts own app-specific state and settlement logic
+- some flagship contracts still keep a legacy `receiptId` argument for ABI stability even though the live funding path is direct prepaid GAS
 - `PaymentHub` is a compatibility path, not the universal payment path
 - Oracle callback apps may require separate prepaid fee credit for the callback contract
 
