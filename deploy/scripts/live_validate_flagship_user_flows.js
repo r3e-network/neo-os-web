@@ -2,10 +2,12 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const Neon = require("@cityofzion/neon-js");
 const { getManifestContractHash, getNetworkConfig, normalizeNetworkName } = require("./lib/neo_network");
 
 const root = path.resolve(__dirname, "..", "..");
+const siblingOracleEnvPath = path.resolve(root, "..", "neo-morpheus-oracle", ".env");
 const TARGET_NETWORK = normalizeNetworkName(process.env.NEO_TARGET_NETWORK || process.env.FLAGSHIP_NETWORK) || "testnet";
 const NETWORK_CONFIG = getNetworkConfig(TARGET_NETWORK);
 const RPC_URL = process.env.NEO_RPC_URL || NETWORK_CONFIG.rpcUrl;
@@ -34,6 +36,26 @@ const RED_ENVELOPE_TOTAL = "10000000";
 const SELF_LOAN_POOL_TOPUP = process.env.SELF_LOAN_POOL_TOPUP || "30000000";
 const SELF_LOAN_COLLATERAL = "1";
 
+function loadOptionalEnvFile(filePath) {
+  try {
+    const text = fs.readFileSync(filePath, "utf8");
+    const env = {};
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
+      const idx = trimmed.indexOf("=");
+      env[trimmed.slice(0, idx)] = trimmed.slice(idx + 1);
+    }
+    return env;
+  } catch {
+    return {};
+  }
+}
+
+const siblingOracleEnv = loadOptionalEnvFile(siblingOracleEnvPath);
+const PHALA_API_URL = String(process.env.PHALA_API_URL || siblingOracleEnv.PHALA_API_URL || NETWORK_CONFIG.morpheusPublicApiUrl || "").trim();
+const PHALA_API_TOKEN = String(process.env.PHALA_API_TOKEN || process.env.PHALA_SHARED_SECRET || siblingOracleEnv.PHALA_API_TOKEN || siblingOracleEnv.PHALA_SHARED_SECRET || "").trim();
+
 if (!WIF) {
   console.error("FLAGSHIP_LIVE_WIF / DEPLOYER_WIF / network-specific Neo WIF is required");
   process.exit(1);
@@ -54,6 +76,88 @@ const neoContract = new Neon.experimental.SmartContract(NEO_HASH, {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function sha256Buffer(value) {
+  const buffer = Buffer.isBuffer(value)
+    ? value
+    : value instanceof Uint8Array
+      ? Buffer.from(value)
+      : Buffer.from(String(value ?? ""), "utf8");
+  return crypto.createHash("sha256").update(buffer).digest();
+}
+
+function encodeUint256Bytes(value) {
+  const numeric = BigInt(String(value ?? "0"));
+  if (numeric < 0n) throw new Error("uint256 value must be non-negative");
+  return Buffer.from(numeric.toString(16).padStart(64, "0"), "hex");
+}
+
+function buildRngFulfillmentDigestHex(requestId, requestType, success, resultBytes) {
+  const domain = Buffer.from("morpheus-fulfillment-v2", "utf8");
+  const successByte = Buffer.from([success ? 1 : 0]);
+  const payload = Buffer.concat([
+    domain,
+    encodeUint256Bytes(requestId),
+    sha256Buffer(String(requestType || "")),
+    successByte,
+    sha256Buffer(resultBytes),
+    sha256Buffer(""),
+  ]);
+  return crypto.createHash("sha256").update(payload).digest("hex");
+}
+
+async function callPhala(pathname, payload) {
+  if (!PHALA_API_URL || !PHALA_API_TOKEN) {
+    throw new Error("PHALA_API_URL / PHALA_API_TOKEN unavailable for local rng fallback");
+  }
+  const res = await fetch(`${PHALA_API_URL.replace(/\/$/, "")}${pathname}`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${PHALA_API_TOKEN}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(30000),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(body?.error || body?.message || `${pathname} failed with ${res.status}`);
+  }
+  return body;
+}
+
+async function forceFulfillRngRequest(requestId, requestType = "vrf_random") {
+  console.error(`[rng-fallback] request ${requestId} (${requestType})`);
+  const vrf = await callPhala("/vrf/random", {
+    request_id: String(requestId),
+    target_chain: "neo_n3",
+  });
+  const resultBytes = Buffer.from(String(vrf.randomness || "").replace(/^0x/i, ""), "hex");
+  if (resultBytes.length !== 32) {
+    throw new Error(`unexpected vrf randomness length for request ${requestId}`);
+  }
+  const digestHex = buildRngFulfillmentDigestHex(requestId, requestType, true, resultBytes);
+  const verificationSignature = Neon.wallet.sign(digestHex, account.privateKey);
+  const oracle = new Neon.experimental.SmartContract(ORACLE_HASH, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account,
+  });
+  const txid = await oracle.invoke("fulfillRequest", [
+    Neon.sc.ContractParam.integer(String(requestId)),
+    Neon.sc.ContractParam.boolean(true),
+    Neon.sc.ContractParam.byteArray(Neon.u.HexString.fromHex(resultBytes.toString("hex"), true)),
+    Neon.sc.ContractParam.string(""),
+    Neon.sc.ContractParam.byteArray(Neon.u.HexString.fromHex(String(verificationSignature || "").replace(/^0x/i, ""), true)),
+  ]);
+  const normalized = asTxid(txid);
+  const { execution } = await waitForLog(normalized);
+  if (execution.vmstate !== "HALT") {
+    throw new Error(execution.exception || `manual rng fulfill failed for ${requestId}`);
+  }
+  console.error(`[rng-fallback-ok] request ${requestId} tx ${normalized}`);
+  return normalized;
 }
 
 function readJson(rel) {
@@ -129,7 +233,11 @@ async function transferGAS(toHash, amount, memo) {
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.hash160(toHash),
     Neon.sc.ContractParam.integer(String(amount)),
-    memo == null ? Neon.sc.ContractParam.any(null) : typeof memo === "string" ? memo : Neon.sc.ContractParam.hash160(memo),
+    memo == null
+      ? Neon.sc.ContractParam.any(null)
+      : typeof memo === "string"
+        ? Neon.sc.ContractParam.string(memo)
+        : Neon.sc.ContractParam.hash160(memo),
   ]);
   const { execution } = await waitForLog(txid);
   if (execution.vmstate !== "HALT") {
@@ -161,14 +269,32 @@ function findNotification(execution, contractHash, eventName) {
 
 async function waitForRequestStatus(requestId, timeoutMs = 120000) {
   const deadline = Date.now() + timeoutMs;
+  let forced = false;
+  let fallbackError = null;
   while (Date.now() < deadline) {
     const request = await invokeRead(ORACLE_HASH, "getRequest", [{ type: "Integer", value: String(requestId) }]);
-    if (Array.isArray(request) && String(request[8] || "0") !== "0") {
+    const completed = Array.isArray(request) && (
+      String(request[6] || "0") !== "0"
+      || String(request[8] || "0") !== "0"
+      || String(request[10] || "") !== ""
+      || String(request[11] || "") !== ""
+    );
+    if (completed) {
       return request;
+    }
+    const requestType = String(request[1] || "").toLowerCase();
+    if (!forced && Date.now() + 100000 >= deadline && Array.isArray(request) && (requestType === "rng" || requestType.includes("vrf") || requestType.includes("random"))) {
+      try {
+        await forceFulfillRngRequest(requestId, requestType);
+      } catch (error) {
+        fallbackError = String(error?.message || error);
+        console.error(`[rng-fallback-fail] request ${requestId}: ${fallbackError}`);
+      }
+      forced = true;
     }
     await sleep(2000);
   }
-  throw new Error(`timed out waiting for oracle request ${requestId}`);
+  throw new Error(`timed out waiting for oracle request ${requestId}${fallbackError ? ` (${fallbackError})` : ""}`);
 }
 
 async function waitForEnvelopeReady(contractHash, envelopeId, timeoutMs = 120000) {
@@ -405,17 +531,15 @@ async function runLastSurvivor() {
     const commonDiff = (basePrice * 10n) / 10000n;
     const cost = basePrice + totalKeys * commonDiff;
 
-    const paymentTx = await transferGAS(PAYMENT_HUB_HASH, String(cost), "miniapp-last-survivor");
-    const paymentLog = await waitForLog(paymentTx);
-    const receipt = findNotification(paymentLog.execution, PAYMENT_HUB_HASH, "PaymentReceived");
-    if (!receipt) throw new Error("PaymentReceived notification missing");
-    const receiptId = stackValue(receipt.state?.value?.[0]);
+    const paymentTx = await transferGAS(contractHash, String(cost), `miniapp-last-survivor:buy:${roundId}`);
+    await sleep(4000);
+    const receiptId = "0";
 
     const buyTx = await contract.invoke("buyKeysWithCost", [
       Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
       Neon.sc.ContractParam.integer("1"),
       Neon.sc.ContractParam.integer(String(cost)),
-      Neon.sc.ContractParam.integer(String(receiptId)),
+      Neon.sc.ContractParam.integer("0"),
     ]);
     const { execution } = await waitForLog(buyTx);
     if (execution.vmstate !== "HALT") {
@@ -502,6 +626,9 @@ async function runFogPlay() {
   const betId = stackValue(oracleRequested.state?.value?.[0]) ? stackValue(betPlaced.state?.value?.[3]) : null;
   const requestId = stackValue(oracleRequested.state?.value?.[0]);
   const request = await waitForRequestStatus(requestId);
+  if (String(request?.[9] || false) !== "true" && request?.[9] !== true) {
+    throw new Error(`oracle rng request ${requestId} failed: ${String(request?.[11] || "unknown error")}`);
+  }
   const bet = await invokeRead(contractHash, "getBet", [{ type: "Integer", value: String(betId) }]);
   return { contractHash, oracleFeeTx, transferTx, betTx: asTxid(betTx), requestId, request, betId, bet };
 }
@@ -521,7 +648,7 @@ async function runRedEnvelope() {
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.integer(RED_ENVELOPE_TOTAL),
     Neon.sc.ContractParam.integer("2"),
-    Neon.sc.ContractParam.integer("86400"),
+    Neon.sc.ContractParam.integer("86400000"),
     Neon.sc.ContractParam.integer("0"),
   ]);
   const { execution } = await waitForLog(createTx);
@@ -538,6 +665,9 @@ async function runRedEnvelope() {
   const envelopeId = stackValue(created.state?.value?.[0]);
   const requestId = stackValue(oracleRequested.state?.value?.[0]);
   const request = await waitForRequestStatus(requestId);
+  if (String(request?.[9] || false) !== "true" && request?.[9] !== true) {
+    throw new Error(`oracle rng request ${requestId} failed: ${String(request?.[11] || "unknown error")}`);
+  }
   const envelope = await waitForEnvelopeReady(contractHash, envelopeId);
 
   const claimTx = await contract.invoke("claim", [

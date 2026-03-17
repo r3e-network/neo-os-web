@@ -36,13 +36,13 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
-        /// Buy keys with frontend-calculated pricing plus a real PaymentHub receipt.
+        /// Buy keys with frontend-calculated pricing and direct prepaid GAS credit.
         ///
-        /// LIVE TESTNET FLOW:
+        /// LIVE FLOW:
         /// - frontend calculates the exact key cost with CalculateKeyCostFormula
-        /// - wallet prepays that amount into PaymentHub
-        /// - frontend passes the resulting numeric receiptId here
-        /// - contract rechecks the formula and validates the PaymentHub receipt
+        /// - wallet prepays that amount directly to this contract with an APP_ID memo
+        /// - frontend passes a placeholder receiptId for ABI compatibility
+        /// - contract rechecks the formula and consumes the user's direct GAS credit
         /// </summary>
         public static void BuyKeysWithCost(
             UInt160 player,
@@ -70,7 +70,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger expectedCost = CalculateKeyCostFormula(keyCount, round.TotalKeys);
             ExecutionEngine.Assert(submittedCost == expectedCost, "cost mismatch");
 
-            ValidatePaymentReceipt(APP_ID, player, expectedCost, receiptId);
+            ConsumeDirectGasCredit(player, expectedCost);
 
             // Update round
             BigInteger potContribution = expectedCost * (10000 - PLATFORM_FEE_BPS) / 10000;

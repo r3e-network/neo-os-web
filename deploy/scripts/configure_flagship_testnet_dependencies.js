@@ -34,6 +34,10 @@ function hash160Arg(value) {
   return Neon.sc.ContractParam.hash160(value);
 }
 
+function hash160JsonArg(value) {
+  return { type: "Hash160", value };
+}
+
 async function waitForTx(txid, timeoutMs = 120000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -54,7 +58,10 @@ async function invokePersisted(scriptHash, operation, values) {
     networkMagic: NETWORK_MAGIC,
     account,
   });
-  const args = values.map((value) => hash160Arg(value));
+  const args = values.map((value) => {
+    if (value && typeof value === "object" && value.type && value.value !== undefined) return value;
+    return hash160Arg(value);
+  });
   const txid = await contract.invoke(operation, args);
   const normalized = String(txid).startsWith("0x") ? String(txid) : `0x${txid}`;
   const execution = await waitForTx(normalized);
@@ -70,11 +77,13 @@ async function transferGas(toHash, amount, data) {
     networkMagic: NETWORK_MAGIC,
     account,
   });
+  const callbackHash = String(data || "").replace(/^0x/i, "");
+  const callbackBytes = callbackHash ? Buffer.from(callbackHash, "hex").reverse() : null;
   const txid = await contract.invoke("transfer", [
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.hash160(toHash),
     Neon.sc.ContractParam.integer(String(amount)),
-    data ? Neon.sc.ContractParam.hash160(data) : Neon.sc.ContractParam.any(null),
+    callbackBytes ? Neon.sc.ContractParam.byteArray(callbackBytes.toString("base64")) : Neon.sc.ContractParam.any(null),
   ]);
   const normalized = String(txid).startsWith("0x") ? String(txid) : `0x${txid}`;
   const execution = await waitForTx(normalized);
@@ -85,11 +94,7 @@ async function transferGas(toHash, amount, data) {
 }
 
 async function readBool(scriptHash, operation, args = []) {
-  const query = new Neon.rpc.Query({
-    method: "invokefunction",
-    params: [scriptHash, operation, args],
-  });
-  const result = await rpcClient.execute(query);
+  const result = await rpcClient.invokeFunction(scriptHash, operation, args);
   const item = result?.stack?.[0];
   if (!item) return false;
   if (item.type === "Boolean") return Boolean(item.value);
@@ -98,21 +103,13 @@ async function readBool(scriptHash, operation, args = []) {
 }
 
 async function readInteger(scriptHash, operation, args = []) {
-  const query = new Neon.rpc.Query({
-    method: "invokefunction",
-    params: [scriptHash, operation, args],
-  });
-  const result = await rpcClient.execute(query);
+  const result = await rpcClient.invokeFunction(scriptHash, operation, args);
   const item = result?.stack?.[0];
   return BigInt(item?.value || "0");
 }
 
 async function readOracle(scriptHash) {
-  const query = new Neon.rpc.Query({
-    method: "invokefunction",
-    params: [scriptHash, "oracle", []],
-  });
-  const result = await rpcClient.execute(query);
+  const result = await rpcClient.invokeFunction(scriptHash, "oracle", []);
   const item = result?.stack?.[0];
   if (!item || item.type !== "ByteString" || !item.value) return "";
   const hex = Buffer.from(item.value, "base64").toString("hex");
@@ -134,17 +131,17 @@ async function main() {
     for (const [method, args] of target.methods) {
       txids.push(await invokePersisted(contractHash, method, args));
     }
-    const callbackAllowedBefore = await readBool(ORACLE_HASH, "isAllowedCallback", [hash160Arg(contractHash)]);
+    const callbackAllowedBefore = await readBool(ORACLE_HASH, "isAllowedCallback", [hash160JsonArg(contractHash)]);
     if (!callbackAllowedBefore) {
       txids.push(await invokePersisted(ORACLE_HASH, "addAllowedCallback", [contractHash]));
     }
-    const creditBefore = await readInteger(ORACLE_HASH, "feeCreditOf", [hash160Arg(contractHash)]);
+    const creditBefore = await readInteger(ORACLE_HASH, "feeCreditOf", [hash160JsonArg(contractHash)]);
     if (target.callbackCredit && creditBefore < MIN_ORACLE_CREDIT) {
       txids.push(await transferGas(ORACLE_HASH, MIN_ORACLE_CREDIT - creditBefore, contractHash));
     }
     const after = await readOracle(contractHash);
-    const callbackAllowedAfter = await readBool(ORACLE_HASH, "isAllowedCallback", [hash160Arg(contractHash)]);
-    const creditAfter = await readInteger(ORACLE_HASH, "feeCreditOf", [hash160Arg(contractHash)]);
+    const callbackAllowedAfter = await readBool(ORACLE_HASH, "isAllowedCallback", [hash160JsonArg(contractHash)]);
+    const creditAfter = await readInteger(ORACLE_HASH, "feeCreditOf", [hash160JsonArg(contractHash)]);
     rows.push({
       brand: target.brand,
       contractHash,

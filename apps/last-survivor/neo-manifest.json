@@ -23,7 +23,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
-    "neo-n3-testnet": "0xf0914d411877c8393c029f48ec0c4c64d44f1b49"
+    "neo-n3-testnet": "0xd55df731978582ea81719a5d87ce49b248e91275"
   },
   "supported_networks": [
     "neo-n3-mainnet",
