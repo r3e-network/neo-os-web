@@ -13,7 +13,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Gift a capsule to another user.
         /// </summary>
-        public static void GiftCapsule(BigInteger capsuleId, UInt160 newOwner, BigInteger receiptId)
+        public static void GiftCapsule(BigInteger capsuleId, UInt160 newOwner)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -24,7 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(capsule.Owner), "not owner");
             ValidateAddress(newOwner);
 
-            ValidatePaymentReceipt(APP_ID, capsule.Owner, GIFT_FEE, receiptId);
+            ConsumeDirectGasCredit(capsule.Owner, GIFT_FEE);
 
             UInt160 previousOwner = capsule.Owner;
 

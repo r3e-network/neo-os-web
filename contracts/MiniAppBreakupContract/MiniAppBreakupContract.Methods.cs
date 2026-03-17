@@ -314,8 +314,8 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger contractId,
             BigInteger additionalDays,
             BigInteger additionalStake,
-            BigInteger receiptId1,
-            BigInteger receiptId2)
+            BigInteger prepaidParty1,
+            BigInteger prepaidParty2)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -328,8 +328,10 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (additionalStake > 0)
             {
-                ValidatePaymentReceipt(APP_ID, contract.Party1, additionalStake, receiptId1);
-                ValidatePaymentReceipt(APP_ID, contract.Party2, additionalStake, receiptId2);
+                ExecutionEngine.Assert(prepaidParty1 == additionalStake, "party1 prepaid mismatch");
+                ExecutionEngine.Assert(prepaidParty2 == additionalStake, "party2 prepaid mismatch");
+                ConsumeDirectGasCredit(contract.Party1, additionalStake);
+                ConsumeDirectGasCredit(contract.Party2, additionalStake);
                 contract.Stake += additionalStake;
 
                 BigInteger totalStaked = TotalStaked();
@@ -349,14 +351,14 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Add funds to the reward pool (admin or anyone can contribute).
         /// </summary>
-        public static void ContributeToRewardPool(UInt160 contributor, BigInteger amount, BigInteger receiptId)
+        public static void ContributeToRewardPool(UInt160 contributor, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount > 0, "invalid amount");
 
             ValidateUserOrAbstractAccount(contributor);
 
-            ValidatePaymentReceipt(APP_ID, contributor, amount, receiptId);
+            ConsumeDirectGasCredit(contributor, amount);
 
             BigInteger pool = RewardPool();
             Storage.Put(Storage.CurrentContext, PREFIX_REWARD_POOL, pool + amount);
