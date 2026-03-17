@@ -34,6 +34,52 @@ type appManifest struct {
 	Contracts map[string]string `json:"contracts"`
 }
 
+func resolveTargetNetwork() string {
+	raw := strings.ToLower(strings.TrimSpace(os.Getenv("NEO_TARGET_NETWORK")))
+	switch raw {
+	case "", "testnet", "neo-n3-testnet":
+		return "neo-n3-testnet"
+	case "mainnet", "neo-n3-mainnet":
+		return "neo-n3-mainnet"
+	default:
+		return raw
+	}
+}
+
+func resolveDefaultRPC(targetNetwork string) string {
+	if targetNetwork == "neo-n3-mainnet" {
+		return "https://mainnet1.neo.coz.io:443"
+	}
+	return "https://testnet1.neo.coz.io:443"
+}
+
+func resolveRPCTimeout() time.Duration {
+	raw := strings.TrimSpace(os.Getenv("NEO_RPC_TIMEOUT"))
+	if raw == "" {
+		return 20 * time.Second
+	}
+	if d, err := time.ParseDuration(raw); err == nil {
+		return d
+	}
+	return 20 * time.Second
+}
+
+func resolveSignerWIF(targetNetwork string) string {
+	if explicit := strings.TrimSpace(os.Getenv("FLAGSHIP_WIF")); explicit != "" {
+		return explicit
+	}
+	if targetNetwork == "neo-n3-mainnet" {
+		if explicit := strings.TrimSpace(os.Getenv("FLAGSHIP_MAINNET_WIF")); explicit != "" {
+			return explicit
+		}
+		return strings.TrimSpace(os.Getenv("NEO_MAINNET_WIF"))
+	}
+	if explicit := strings.TrimSpace(os.Getenv("FLAGSHIP_TESTNET_WIF")); explicit != "" {
+		return explicit
+	}
+	return strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
+}
+
 var targets = []flagshipTarget{
 	{"LastSurvivor", "apps/last-survivor/neo-manifest.json", "contracts/build/MiniAppLastSurvivor.nef", "contracts/build/MiniAppLastSurvivor.manifest.json", "admin"},
 	{"GASBOX", "apps/gasbox/neo-manifest.json", "contracts/build/MiniAppGASBox.nef", "contracts/build/MiniAppGASBox.manifest.json", "admin"},
@@ -46,17 +92,16 @@ var targets = []flagshipTarget{
 
 func main() {
 	ctx := context.Background()
+	targetNetwork := resolveTargetNetwork()
 	rpcURL := strings.TrimSpace(os.Getenv("NEO_RPC_URL"))
 	if rpcURL == "" {
-		rpcURL = "https://testnet1.neo.coz.io:443"
+		rpcURL = resolveDefaultRPC(targetNetwork)
 	}
+	rpcTimeout := resolveRPCTimeout()
 
-	wif := strings.TrimSpace(os.Getenv("FLAGSHIP_TESTNET_WIF"))
+	wif := resolveSignerWIF(targetNetwork)
 	if wif == "" {
-		wif = strings.TrimSpace(os.Getenv("NEO_TESTNET_WIF"))
-	}
-	if wif == "" {
-		fmt.Println("FLAGSHIP_TESTNET_WIF or NEO_TESTNET_WIF is required")
+		fmt.Println("FLAGSHIP_WIF or network-scoped flagship/mainnet/testnet WIF is required")
 		os.Exit(1)
 	}
 
@@ -72,7 +117,10 @@ func main() {
 		}
 	}
 
-	client, err := rpcclient.New(ctx, rpcURL, rpcclient.Options{})
+	client, err := rpcclient.New(ctx, rpcURL, rpcclient.Options{
+		DialTimeout:    rpcTimeout,
+		RequestTimeout: rpcTimeout,
+	})
 	if err != nil {
 		fmt.Printf("RPC connect failed: %v\n", err)
 		os.Exit(1)
@@ -91,13 +139,15 @@ func main() {
 	}
 
 	signerAddress := acc.Address
+	fmt.Printf("Target network: %s\n", targetNetwork)
 	fmt.Printf("Signer: %s\n", signerAddress)
 	fmt.Printf("Mode: %s\n\n", map[bool]string{true: "apply", false: "dry-run"}[apply])
 
 	type resultRow struct {
 		Brand         string `json:"brand"`
 		AppID         string `json:"app_id"`
-		TestnetHash   string `json:"testnet_hash"`
+		TargetNetwork string `json:"target_network"`
+		ContractHash  string `json:"contract_hash"`
 		AdminMethod   string `json:"admin_method"`
 		AdminAddress  string `json:"admin_address,omitempty"`
 		SignerAddress string `json:"signer_address"`
@@ -118,6 +168,7 @@ func main() {
 			Brand:         target.Brand,
 			SignerAddress: signerAddress,
 			AdminMethod:   target.AdminMethod,
+			TargetNetwork: targetNetwork,
 			Action:        "skip",
 		}
 
@@ -136,15 +187,15 @@ func main() {
 			continue
 		}
 		row.AppID = app.ID
-		row.TestnetHash = app.Contracts["neo-n3-testnet"]
-		if row.TestnetHash == "" {
-			row.Error = "missing neo-n3-testnet hash in app manifest"
+		row.ContractHash = app.Contracts[targetNetwork]
+		if row.ContractHash == "" {
+			row.Error = fmt.Sprintf("missing %s hash in app manifest", targetNetwork)
 			rows = append(rows, row)
 			failed = true
 			continue
 		}
 
-		contractHash, err := util.Uint160DecodeStringLE(strings.TrimPrefix(row.TestnetHash, "0x"))
+		contractHash, err := util.Uint160DecodeStringLE(strings.TrimPrefix(row.ContractHash, "0x"))
 		if err != nil {
 			row.Error = fmt.Sprintf("invalid contract hash: %v", err)
 			rows = append(rows, row)
@@ -159,7 +210,7 @@ func main() {
 			failed = true
 			continue
 		}
-		adminAddr, err := parseHash160ToAddress(adminRes.Stack)
+		adminAddr, err := parseHash160ToAddress(adminRes.Stack, signerAddress)
 		if err == nil {
 			row.AdminAddress = adminAddr
 		}
@@ -212,7 +263,25 @@ func main() {
 			continue
 		}
 
-		txHash, vub, err := act.SendCall(contractHash, "update", nefBytes, string(manifestText))
+		updateArity, err := resolveUpdateArity(ctx, client, contractHash)
+		if err != nil {
+			row.Action = "apply-failed"
+			row.Error = fmt.Sprintf("resolve update arity failed: %v", err)
+			rows = append(rows, row)
+			failed = true
+			continue
+		}
+
+		var txHash util.Uint256
+		var vub uint32
+		switch updateArity {
+		case 2:
+			txHash, vub, err = act.SendCall(contractHash, "update", nefBytes, string(manifestText))
+		case 3:
+			txHash, vub, err = act.SendCall(contractHash, "update", nefBytes, string(manifestText), nil)
+		default:
+			err = fmt.Errorf("unsupported update arity %d", updateArity)
+		}
 		if err != nil {
 			row.Action = "apply-failed"
 			row.Error = fmt.Sprintf("send update failed: %v", err)
@@ -274,7 +343,7 @@ func pathExt(v string) string {
 	return v[idx:]
 }
 
-func parseHash160ToAddress(stack []stackitem.Item) (string, error) {
+func parseHash160ToAddress(stack []stackitem.Item, preferredAddress string) (string, error) {
 	if len(stack) == 0 {
 		return "", fmt.Errorf("empty stack")
 	}
@@ -285,13 +354,43 @@ func parseHash160ToAddress(stack []stackitem.Item) (string, error) {
 	if len(raw) != util.Uint160Size {
 		return "", fmt.Errorf("unexpected hash160 length %d", len(raw))
 	}
-	hash, err := util.Uint160DecodeBytesLE(raw)
-	if err == nil {
-		return address.Uint160ToString(hash), nil
+	var candidates []string
+	if hash, err := util.Uint160DecodeBytesBE(raw); err == nil {
+		candidates = append(candidates, address.Uint160ToString(hash))
 	}
-	hash, err = util.Uint160DecodeBytesBE(raw)
+	if hash, err := util.Uint160DecodeBytesLE(raw); err == nil {
+		addr := address.Uint160ToString(hash)
+		alreadySeen := false
+		for _, existing := range candidates {
+			if existing == addr {
+				alreadySeen = true
+				break
+			}
+		}
+		if !alreadySeen {
+			candidates = append(candidates, addr)
+		}
+	}
+	if len(candidates) == 0 {
+		return "", fmt.Errorf("unable to decode hash160")
+	}
+	for _, candidate := range candidates {
+		if preferredAddress != "" && candidate == preferredAddress {
+			return candidate, nil
+		}
+	}
+	return candidates[0], nil
+}
+
+func resolveUpdateArity(ctx context.Context, client *rpcclient.Client, contractHash util.Uint160) (int, error) {
+	state, err := client.GetContractStateByHash(contractHash)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return address.Uint160ToString(hash), nil
+	for _, method := range state.Manifest.ABI.Methods {
+		if method.Name == "update" {
+			return len(method.Parameters), nil
+		}
+	}
+	return 0, fmt.Errorf("update method not found in remote manifest")
 }
