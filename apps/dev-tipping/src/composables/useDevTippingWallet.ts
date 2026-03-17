@@ -4,14 +4,13 @@ import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 export function useDevTippingWallet(APP_ID: string) {
   const { t } = createUseI18n(messages)();
   const {
     address,
     ensureWallet,
-    invokeDirectly,
+    invokeWithDirectPrepaidGas,
     isProcessing: isLoading,
     ensureContractAddress,
   } = useContractInteraction({ appId: APP_ID, t });
@@ -44,27 +43,20 @@ export function useDevTippingWallet(APP_ID: string) {
       const amountInt = toFixed8(tipAmount);
       const contract = await ensureContractAddress();
 
-      await invokeDirectly(
-        "transfer",
+      await invokeWithDirectPrepaidGas(
+        amountInt,
+        `${APP_ID}:tip:${selectedDevId}`,
+        "Tip",
         [
           { type: "Hash160", value: address.value as string },
-          { type: "Hash160", value: contract },
+          { type: "Integer", value: String(selectedDevId) },
           { type: "Integer", value: amountInt },
-          { type: "String", value: `${APP_ID}:tip:${selectedDevId}` },
+          { type: "String", value: tipMessage || "" },
+          { type: "String", value: tipperName || "" },
+          { type: "Boolean", value: anonymous },
         ],
-        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+        contract,
       );
-
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-
-      await invokeDirectly("Tip", [
-        { type: "Hash160", value: address.value as string },
-        { type: "Integer", value: String(selectedDevId) },
-        { type: "Integer", value: amountInt },
-        { type: "String", value: tipMessage || "" },
-        { type: "String", value: tipperName || "" },
-        { type: "Boolean", value: anonymous },
-      ], contract);
 
       setStatus(t("tipSent"), "success");
       if (onSuccess) onSuccess();
