@@ -72,6 +72,22 @@ function readJson(rel) {
   return JSON.parse(fs.readFileSync(path.join(root, rel), "utf8"));
 }
 
+function resolveDefinitionHash(definition, manifest, targetNetwork) {
+  const manifestContracts = definition?.manifest?.contracts && typeof definition.manifest.contracts === "object"
+    ? definition.manifest.contracts
+    : manifest?.contracts && typeof manifest.contracts === "object"
+      ? manifest.contracts
+      : {};
+  const resolvedNetworkKey = targetNetwork === "testnet"
+    ? "neo-n3-testnet"
+    : targetNetwork === "mainnet"
+      ? "neo-n3-mainnet"
+      : targetNetwork;
+  const direct = String(definition?.contract?.contract_hash || definition?.contract_hash || "").trim();
+  const networkSpecific = String(manifestContracts?.[resolvedNetworkKey] || manifestContracts?.[targetNetwork] || "").trim();
+  return networkSpecific || direct;
+}
+
 async function rpc(rpcUrl, method, params) {
   const response = await fetch(rpcUrl, {
     method: "POST",
@@ -101,13 +117,14 @@ async function main() {
     const networkConfig = getNetworkConfig(targetNetwork);
     const network = networkConfig.key;
     const contractHash = getManifestContractHash(manifest, targetNetwork);
+    const definitionHash = resolveDefinitionHash(definition, manifest, targetNetwork);
 
     const row = {
       brand: app.brand,
       manifestId: manifest.id,
       network,
       contractHash: contractHash || "missing",
-      definitionHash: definition?.contract?.contract_hash || "missing",
+      definitionHash: definitionHash || "missing",
       remoteContractName: null,
       readChecks: [],
       problems: [],

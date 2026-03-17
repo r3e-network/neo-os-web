@@ -5,10 +5,12 @@ import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
 
 describe("miniapp-definitions loader", () => {
   const prevDir = process.env.MINIAPP_DEFINITIONS_DIR;
+  const prevTargetNetwork = process.env.NEO_TARGET_NETWORK;
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "miniapp-defs-"));
 
   afterAll(() => {
     process.env.MINIAPP_DEFINITIONS_DIR = prevDir;
+    process.env.NEO_TARGET_NETWORK = prevTargetNetwork;
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
@@ -109,6 +111,39 @@ describe("miniapp-definitions loader", () => {
         }),
       }),
     );
+  });
+
+  it("resolves the current network contract hash from manifest contracts", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-network-aware");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+    process.env.NEO_TARGET_NETWORK = "testnet";
+
+    fs.writeFileSync(
+      path.join(definitionsDir, "network-aware.json"),
+      JSON.stringify(
+        {
+          app_id: "miniapp-network-aware",
+          name: "Network Aware",
+          entry_url: "mf://manifest?app=miniapp-network-aware",
+          contract_hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          manifest: {
+            default_network: "neo-n3-mainnet",
+            contracts: {
+              "neo-n3-mainnet": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "neo-n3-testnet": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    expect(apps).toHaveLength(1);
+    expect(apps[0]?.contract_hash).toBe("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
   });
 
   it("loads yaml definitions and preserves template/i18n metadata", async () => {

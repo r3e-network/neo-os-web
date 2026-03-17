@@ -15,6 +15,60 @@ function toString(value: unknown, fallback = ""): string {
   return String(value);
 }
 
+function normalizeNetworkKey(value: unknown): string {
+  const raw = toString(value).trim().toLowerCase();
+  if (raw === "mainnet" || raw === "neo-n3-mainnet") return "neo-n3-mainnet";
+  if (raw === "testnet" || raw === "neo-n3-testnet") return "neo-n3-testnet";
+  return raw;
+}
+
+function resolveManifestTargetNetwork(manifest: Record<string, unknown>): string {
+  const override = normalizeNetworkKey(
+    process.env.NEO_TARGET_NETWORK
+      ?? process.env.FLAGSHIP_NETWORK
+      ?? process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK
+      ?? process.env.NEXT_PUBLIC_FLAGSHIP_NETWORK,
+  );
+  if (override) return override;
+
+  const defaultNetwork = normalizeNetworkKey(manifest.default_network);
+  if (defaultNetwork) return defaultNetwork;
+
+  if (Array.isArray(manifest.supported_networks)) {
+    const firstSupported = manifest.supported_networks
+      .map((entry) => normalizeNetworkKey(entry))
+      .find(Boolean);
+    if (firstSupported) return firstSupported;
+  }
+
+  const contracts = asObject(manifest.contracts);
+  const firstContractNetwork = Object.keys(contracts)
+    .map((entry) => normalizeNetworkKey(entry))
+    .find(Boolean);
+  return firstContractNetwork || "";
+}
+
+function resolveManifestContractHash(manifest: Record<string, unknown>): string {
+  const contracts = asObject(manifest.contracts);
+  const targetNetwork = resolveManifestTargetNetwork(manifest);
+  if (targetNetwork) {
+    const direct = toString(contracts[targetNetwork]).trim();
+    if (direct) return direct;
+  }
+
+  const alternateKey = targetNetwork === "neo-n3-testnet"
+    ? "testnet"
+    : targetNetwork === "neo-n3-mainnet"
+      ? "mainnet"
+      : "";
+  if (alternateKey) {
+    const alternate = toString(contracts[alternateKey]).trim();
+    if (alternate) return alternate;
+  }
+
+  return "";
+}
+
 function normalizeEntryUrl(raw: unknown, appId: string): string {
   const input = toString(raw).trim();
   if (!input) return `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`;
@@ -137,7 +191,10 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   const description = toString(obj.description ?? manifestCandidate.description ?? fallback?.description ?? "").trim();
   const icon = toString(obj.icon ?? manifestCandidate.icon ?? fallback?.icon ?? "🧩").trim() || "🧩";
   const category = normalizeCategory(obj.category ?? manifestCandidate.category ?? fallback?.category);
-  const contractHash = toString(obj.contract_hash ?? manifestCandidate.contract_hash ?? fallback?.contract_hash ?? "").trim();
+  const manifestContractHash = resolveManifestContractHash(manifestCandidate);
+  const contractHash = toString(
+    manifestContractHash || (obj.contract_hash ?? manifestCandidate.contract_hash ?? fallback?.contract_hash ?? ""),
+  ).trim();
   const permissions = normalizePermissions(
     obj.permissions ?? manifestCandidate.permissions ?? fallback?.permissions,
     fallback?.permissions,
