@@ -13,14 +13,14 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Create a public memorial for tributes.
         /// </summary>
-        public static BigInteger CreateMemorial(UInt160 creator, string title, string description, BigInteger receiptId)
+        public static BigInteger CreateMemorial(UInt160 creator, string title, string description)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(title.Length > 0 && title.Length <= MAX_TITLE_LENGTH, "invalid title");
 
             ValidateUserOrAbstractAccount(creator);
 
-            ValidatePaymentReceipt(APP_ID, creator, MEMORIAL_FEE, receiptId);
+            ConsumeDirectGasCredit(creator, MEMORIAL_FEE);
 
             UserStats stats = GetUserStatsData(creator);
             bool isNewUser = stats.JoinTime == 0;
@@ -49,7 +49,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Add a tribute to a memorial.
         /// </summary>
-        public static void AddTribute(BigInteger memorialId, UInt160 sender, BigInteger amount, BigInteger receiptId)
+        public static void AddTribute(BigInteger memorialId, UInt160 sender, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount >= MIN_TRIBUTE, "min 0.1 GAS");
@@ -59,7 +59,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(sender);
 
-            ValidatePaymentReceipt(APP_ID, sender, amount, receiptId);
+            ConsumeDirectGasCredit(sender, amount);
 
             memorial.TotalTributes += amount;
             memorial.TributeCount += 1;
