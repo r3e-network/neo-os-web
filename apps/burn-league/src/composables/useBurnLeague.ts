@@ -3,21 +3,20 @@ import { useEvents } from "@shared/utils/wallet-sdk";
 import { parseGas, toFixed8 } from "@shared/utils/format";
 import { parseStackItem } from "@shared/utils/neo";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { waitForEventByTransaction } from "@shared/utils";
+import { waitForListedEventByTransaction } from "@shared/utils";
 import type { LeaderEntry } from "../pages/index/components/LeaderboardList.vue";
 
 const APP_ID = "miniapp-burn-league";
 
 /** Manages GAS burn actions, leaderboard, and stats for the burn league miniapp. */
 export function useBurnLeague(t: (key: string) => string) {
-  const { address, ensureWallet, read, ensureContractAddress, contractAddress } = useContractInteraction({
+  const { address, ensureWallet, read, ensureContractAddress, contractAddress, invokeDirectly } = useContractInteraction({
     appId: APP_ID,
     t,
   });
-  const { processPayment, isProcessing: paymentProcessing } = usePaymentFlow(APP_ID);
   const { list: listEvents } = useEvents();
   const { listAllEvents } = useAllEvents(listEvents, APP_ID);
 
@@ -27,8 +26,9 @@ export function useBurnLeague(t: (key: string) => string) {
   const rank = ref(0);
   const burnCount = ref(0);
   const leaderboard = ref<LeaderEntry[]>([]);
+  const isBurning = ref(false);
 
-  const isLoading = computed(() => paymentProcessing.value);
+  const isLoading = computed(() => isBurning.value);
 
   const loadStats = async () => {
     await ensureContractAddress();
@@ -93,23 +93,44 @@ export function useBurnLeague(t: (key: string) => string) {
     try {
       await ensureWallet();
       await ensureContractAddress();
+      isBurning.value = true;
       setStatus(t("burning"), "loading");
 
-      const { receiptId, invoke: invokeWithReceipt, waitForEvent } = await processPayment(burnAmount, "burn");
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contractAddress.value as string },
+          { type: "Integer", value: toFixed8(burnAmount) },
+          { type: "String", value: `${APP_ID}:burn` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
 
-      const result = await invokeWithReceipt(contractAddress.value as string, "burnGas", [
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      const result = await invokeDirectly("burnGas", [
         { type: "Hash160", value: address.value as string },
         { type: "Integer", value: toFixed8(burnAmount) },
-        { type: "Integer", value: String(receiptId) },
-      ]);
+      ], contractAddress.value as string);
 
-      await waitForEventByTransaction(result, "GasBurned", waitForEvent);
+      await waitForListedEventByTransaction<{ tx_hash?: string }>(result.tx, {
+        listEvents: async () => {
+          const events = await listEvents({ app_id: APP_ID, event_name: "GasBurned", limit: 20 });
+          return events.events || [];
+        },
+        timeoutMs: 30000,
+        pollIntervalMs: 1500,
+        errorMessage: t("loadFailed"),
+      });
 
       setStatus(`${t("burned")} ${amount} GAS ${t("success")}`, "success");
       onSuccess();
       await refreshData();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
+    } finally {
+      isBurning.value = false;
     }
   };
 

@@ -3,8 +3,10 @@ import { useEvents } from "@shared/utils/wallet-sdk";
 import { parseStackItem, normalizeScriptHash } from "@shared/utils/neo";
 import { bytesToHex, formatGas, toFixed8 } from "@shared/utils/format";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { waitForListedEventByTransaction } from "@shared/utils";
 
 const ATTEMPT_FEE = 0.1;
 
@@ -16,7 +18,7 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     ensureContractAddress,
     contractAddress,
     read,
-    invoke,
+    invokeDirectly,
     isProcessing: isLoading,
   } = useContractInteraction({ appId: APP_ID, t });
   const { list: listEvents } = useEvents();
@@ -130,16 +132,38 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     clearStatus();
     try {
       await ensureWallet();
+      const contract = await ensureContractAddress();
       const feeBase = vaultDetails.value?.attemptFee ?? toFixed8(ATTEMPT_FEE);
-      const result = await invoke(formatGas(feeBase), `vault:attempt:${vaultIdInput.value}`, "attemptBreak", [
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: String(feeBase) },
+          { type: "String", value: `${APP_ID}:attempt:${vaultIdInput.value}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      const result = await invokeDirectly("attemptBreak", [
         { type: "Integer", value: vaultIdInput.value },
         { type: "Hash160", value: address.value as string },
         { type: "ByteArray", value: toHex(attemptSecret.value) },
-      ]);
-      const resRecord = result?.tx as Record<string, unknown> | undefined;
-      const stackArr = resRecord?.stack as unknown[] | undefined;
-      const firstItem = stackArr?.[0] as Record<string, unknown> | undefined;
-      const success = Boolean(firstItem?.value ?? resRecord?.result);
+      ], contract);
+
+      const attemptEvt = await waitForListedEventByTransaction<{ state?: unknown[]; tx_hash?: string }>(result.tx, {
+        listEvents: async () => {
+          const events = await listEvents({ app_id: APP_ID, event_name: "AttemptMade", limit: 20 });
+          return events.events || [];
+        },
+        timeoutMs: 30000,
+        pollIntervalMs: 1500,
+        errorMessage: t("vaultAttemptFailed"),
+      });
+      const values = Array.isArray(attemptEvt?.state) ? attemptEvt.state.map(parseStackItem) : [];
+      const success = Boolean(values[2] ?? false);
       setStatus(success ? t("broken") : t("vaultAttemptFailed"), success ? "success" : "error");
       attemptSecret.value = "";
       await loadVault();

@@ -57,7 +57,6 @@ namespace NeoMiniAppPlatform.Contracts
         public static void BurnGasWithCalculation(
             UInt160 burner,
             BigInteger amount,
-            BigInteger receiptId,
             BigInteger calculatedPoints,
             BigInteger calculatedNewStreak,
             bool calculatedStreakContinued)
@@ -67,7 +66,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(burner);
 
-            ValidatePaymentReceipt(APP_ID, burner, amount, receiptId);
+            ConsumeDirectGasCredit(burner, amount);
 
             BigInteger seasonId = CurrentSeasonId();
             ExecutionEngine.Assert(seasonId > 0, "no active season");
