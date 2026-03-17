@@ -182,7 +182,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Send a tip to a developer.
         /// </summary>
-        public static void Tip(UInt160 tipper, BigInteger devId, BigInteger amount, string message, string tipperName, BigInteger receiptId)
+        public static void Tip(UInt160 tipper, BigInteger devId, BigInteger amount, string message, string tipperName)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(devId > 0 && devId <= TotalDevelopers(), "invalid dev");
@@ -192,7 +192,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(tipper);
 
-            ValidatePaymentReceipt(APP_ID, tipper, amount, receiptId);
+            ConsumeDirectGasCredit(tipper, amount);
 
             // Use tipper address if name not provided
             string displayName = tipperName.Length > 0 ? tipperName : tipper.ToAddress(53);
