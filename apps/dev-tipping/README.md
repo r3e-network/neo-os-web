@@ -38,6 +38,12 @@ Support ecosystem developers with tips
 5. **Confirm**: Review and sign the transaction
 6. **Done**: Your tip is delivered instantly
 
+## Funding Model
+
+- direct prepaid GAS to the MiniApp contract
+- no PaymentHub receipt path
+- wallet signs the transfer first, then calls `Tip`
+
 ### Finding Developers
 
 - **By Project**: Filter by the project the developer works on
