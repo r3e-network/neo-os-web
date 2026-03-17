@@ -122,7 +122,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// FLOW:
         /// 1. Validate player signature and bet amount
         /// 2. Store bet data on-chain
-        /// 3. Call MorpheusOracle.requestFromCallback("rng") with callback
+        /// 3. Call MorpheusOracle.requestFromCallback("vrf_random") with callback
         /// 4. Store request-to-bet mapping for callback resolution
         ///
         /// SECURITY:
@@ -210,7 +210,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static BigInteger RequestRng(UInt160 requester, BigInteger betId)
         {
             ByteString payload = StdLib.Serialize(new object[] { betId });
-            return RequestOracleForCallback(requester, "rng", payload);
+            return RequestOracleForCallback(requester, "vrf_random", payload);
         }
 
         /// <summary>
