@@ -58,6 +58,8 @@
     "typescript": "^5.8.2"
   },
   "overrides": {
+    "@aws-sdk/xml-builder": "3.972.11",
+    "fast-xml-parser": "5.5.6",
     "glob": "^11.0.0",
     "minimatch": "^10.2.1"
   }
