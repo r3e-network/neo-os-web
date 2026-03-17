@@ -16,7 +16,7 @@
 The contract is responsible for:
 
 - tracking current streak, highest streak, total check-ins, and reward balances
-- validating the PaymentHub receipt used for each check-in
+- consuming direct prepaid GAS credit for the live check-in flow
 - paying rewards into the user's unclaimed balance
 - resetting the streak after the 14-day cycle completes
 - emitting milestone and badge events for indexing / UI
@@ -25,8 +25,8 @@ It does **not** handle wallet onboarding or fee sponsorship itself. Those flows 
 
 ## Core Methods
 
-- `CheckIn(UInt160 user, BigInteger receiptId)`
-  Records a daily check-in, updates streak state, awards the day-7 / day-14 reward, and resets the stored streak after the 14-day completion event.
+- `CheckIn(UInt160 user)`
+  Manual entry point that consumes direct prepaid GAS credit already recorded for the user.
 - `ClaimRewards(UInt160 user)`
   Claims accumulated unclaimed GAS rewards.
 - `GetCheckinStatus(UInt160 user)`
@@ -35,6 +35,8 @@ It does **not** handle wallet onboarding or fee sponsorship itself. Those flows 
   Returns streak, highest streak, reward balances, resets, and total participation.
 - `GetPlatformStats()`
   Returns total users, total check-ins, total rewards, check-in fee, 7-day reward, 14-day reward, and the reset cycle length.
+- `OnNEP17Payment(UInt160 from, BigInteger amount, object data)`
+  Records prepaid GAS credit and, when the memo is `miniapp-dailycheckin:checkin`, can execute the check-in immediately in the same transfer path.
 
 ## Reward Constants
 
@@ -58,6 +60,7 @@ Badges are intended to reflect ongoing loyalty, not just one uninterrupted strea
 - The canonical app id is `miniapp-dailycheckin`.
 - Frontend, manifest, and host definitions are expected to use the same reward schedule:
   `day 7 -> 1 GAS`, `day 14 -> 2 GAS`, `then reset`.
+- The primary frontend path is direct `GAS.transfer(...)` into the contract, not PaymentHub.
 - AA session keys are the preferred execution path for the production UX.
 
 ## Known Boundaries

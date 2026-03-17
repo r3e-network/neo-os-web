@@ -5,7 +5,6 @@ import { useContractInteraction } from "@shared/composables/useContractInteracti
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useEvents } from "@shared/utils/wallet-sdk";
 import { waitForEventByTransaction } from "@shared/utils/transaction";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -17,7 +16,6 @@ export function useGachaPlay() {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
   const { address, invokeDirectly } = useContractInteraction({ appId: APP_ID, t });
-  const { processPayment } = usePaymentFlow(APP_ID);
   const { list: listEvents } = useEvents();
 
   const isPlaying = ref(false);

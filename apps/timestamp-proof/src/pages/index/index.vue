@@ -63,11 +63,15 @@
 import { ref, computed, onMounted } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, StatsDisplay, HeroSection } from "@shared/components";
+import type { StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useTimestampProofContract } from "@/composables/useTimestampProof";
 import ProofList from "./components/ProofList.vue";
+import ProofCreateForm from "./components/ProofCreateForm.vue";
+import ProofVerify from "./components/ProofVerify.vue";
 
 const proofContent = ref("");
+const verifyId = ref("");
 const {
   t,
   templateConfig,
@@ -108,6 +112,16 @@ const createProof = async () => {
     proofContent.value = "";
   });
 };
+
+const verifyProof = async () => {
+  await proof.verifyProofById(verifyId.value);
+  if (proof.verifyError.value) {
+    setErrorStatus(t("verifyFailed"), "error");
+    return;
+  }
+  setErrorStatus(t("validProof"), "success");
+};
+
 onMounted(async () => {
   await loadProofs();
 });

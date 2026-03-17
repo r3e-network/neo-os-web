@@ -1,93 +1,45 @@
-# Timestamp Proof 时间戳证明
+# Timestamp Proof | 时间戳证明
 
-Immutable proof of existence on Neo N3 blockchain. Create verifiable, tamper-proof records that a document or data existed at a specific point in time.
+`Timestamp Proof` is currently a stateless **local proof journal**, not a deployed on-chain contract flow.
 
-## Overview
+## Current Behavior
 
-Timestamp Proof creates cryptographically secure evidence that a document existed at a specific time by storing its SHA-256 hash on the Neo N3 blockchain. Perfect for intellectual property protection, legal documentation, and creative works registration.
+- hashes content locally in the browser with `SHA-256`
+- stores proof entries in browser local storage on the current device
+- assigns a local proof id for later lookup
+- lets the user re-open and verify saved proofs by id
 
-## Features
+## What It Does Not Do
 
-- **Document Hashing**: SHA-256 hash stored permanently on-chain
-- **Instant Verification**: Verify document existence and timestamp instantly
-- **Legal Evidence**: Court-admissible proof of existence timestamps
-- **Privacy Preserving**: Only the hash is stored, not the document content
-- **Batch Processing**: Process multiple documents efficiently
-- **Certificate Generation**: Downloadable proof certificates with QR codes
-- **Offline Verification**: Verify proofs without internet connection
+- it does **not** submit a transaction
+- it does **not** write hashes to Neo N3
+- it does **not** depend on PaymentHub, Oracle, or AA for its current runtime path
+
+## Why This Was Changed
+
+The app manifest already marked Timestamp Proof as `stateless`, but the old frontend still tried to call a missing contract. That mismatch made the app unreliable. The current implementation matches the manifest and keeps the tool usable until a real contract-backed version is added.
 
 ## Usage
 
-### Creating a Timestamp Proof
+1. Enter text, a hash, or a short proof note.
+2. Create a proof entry.
+3. The app stores the entry locally with a generated proof id and timestamp.
+4. Use the `Verify` tab and the proof id to re-open that saved entry later.
 
-1. **Prepare Document**: Have your document ready (PDF, image, text, or any file)
-2. **Create Proof**: Enter document content or hash in the proof creation form
-3. **Confirm Transaction**: Sign the blockchain transaction with your Neo wallet
-4. **Save Certificate**: Download and store your proof certificate safely
-5. **Record Proof ID**: Note the proof ID for future verification
+## Security Notes
 
-### Verifying a Timestamp
-
-1. **Enter Proof ID**: Input the proof ID from the certificate
-2. **Upload Document**: Provide the original document for hash comparison
-3. **Instant Verification**: System confirms if document matches the stored hash
-4. **View Details**: See exact timestamp and block information
-
-## How It Works
-
-1. **Document Processing**: Document hash is calculated locally in your browser
-2. **Hash Storage**: Only the SHA-256 hash (not the document) is stored on Neo N3
-3. **Blockchain Record**: Hash is permanently recorded with block timestamp
-4. **Proof Generation**: Certificate contains proof ID, hash, and timestamp
-5. **Verification**: Any party can verify by comparing document hash to stored hash
-
-## Use Cases
-
-- **Intellectual Property**: Prove invention or creation date
-- **Legal Documents**: Contract signing timestamps and evidence
-- **Research Data**: Integrity verification for scientific data
-- **Creative Works**: Copyright and ownership proof
-- **Audit Trails**: Immutable record of document versions
-- **Compliance**: Regulatory requirement for data retention
+- hashing happens locally in the browser
+- raw content is never uploaded by this app
+- proofs are only available on the device/browser profile that created them
+- clearing browser storage removes saved proofs
 
 ## Architecture
 
-- **Type**: Frontend-only application
-- **Network**: Neo N3 Mainnet/Testnet
-- **Hash Algorithm**: SHA-256
-- **Storage**: Document hashes stored on Neo N3 blockchain
-- **Privacy**: Original documents never leave your device
-- **Verification**: Can be verified by anyone with the proof ID
+- Type: frontend-only stateless tool
+- Hash function: `SHA-256`
+- Storage: browser local storage
+- Network dependency: none for the core proof path
 
-## Technical Details
+## Next Upgrade Path
 
-- **Category**: Utility/Tool
-- **Network**: Neo N3 Mainnet
-- **Hash Function**: SHA-256
-- **SDK**: @shared/utils/wallet-sdk
-- **Permissions**: invoke:primary, read:blockchain
-
-## Development
-
-```bash
-cd apps/timestamp-proof
-pnpm install
-pnpm dev
-```
-
-### Project Structure
-
-- `src/pages/index/index.vue` - Main interface (create and verify proofs)
-- `src/composables/useI18n.ts` - Internationalization (EN/ZH)
-- `src/static/` - Assets and certificates
-
-## Security
-
-- **Client-Side Hashing**: Documents are hashed locally, content never uploaded
-- **Immutable Records**: Once recorded, timestamps cannot be altered
-- **Cryptographic Proof**: SHA-256 provides collision-resistant hashing
-- **Decentralized**: Proof exists on Neo N3 blockchain, not centralized servers
-
-## License
-
-MIT License - R3E Network
+If Timestamp Proof needs a real Neo N3 anchoring flow later, add a dedicated contract first and then switch the frontend + manifest together in the same change. Do not reintroduce pseudo-contract calls without a deployed source of truth.

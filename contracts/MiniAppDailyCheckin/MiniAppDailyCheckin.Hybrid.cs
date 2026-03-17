@@ -47,7 +47,6 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         public static void CheckInWithCalculation(
             UInt160 user,
-            BigInteger receiptId,
             BigInteger calculatedNewStreak,
             BigInteger calculatedReward,
             bool calculatedStreakReset)
