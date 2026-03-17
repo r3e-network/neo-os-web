@@ -1,6 +1,16 @@
 import { coerceMiniAppInfo } from "@/lib/miniapp";
 
 describe("miniapp coercion", () => {
+  const originalTargetNetwork = process.env.NEO_TARGET_NETWORK;
+
+  afterEach(() => {
+    if (originalTargetNetwork === undefined) {
+      delete process.env.NEO_TARGET_NETWORK;
+    } else {
+      process.env.NEO_TARGET_NETWORK = originalTargetNetwork;
+    }
+  });
+
   it("reads presentation + stats flags from manifest fallback fields", () => {
     const app = coerceMiniAppInfo({
       app_id: "miniapp-manifest-fallback",
@@ -30,5 +40,28 @@ describe("miniapp coercion", () => {
     expect(app.logo_url).toBe("https://cdn.example.com/logo.png");
     expect(app.banner_url).toBe("https://cdn.example.com/banner.png");
     expect(app.docs_url).toBe("https://docs.example.com/app");
+  });
+
+  it("prefers manifest network contracts over a stale top-level contract hash", () => {
+    process.env.NEO_TARGET_NETWORK = "testnet";
+
+    const app = coerceMiniAppInfo({
+      app_id: "miniapp-network-aware",
+      entry_url: "https://example.com/network-aware",
+      contract_hash: "0x1111111111111111111111111111111111111111",
+      manifest: {
+        default_network: "neo-n3-mainnet",
+        contracts: {
+          "neo-n3-mainnet": "0x1111111111111111111111111111111111111111",
+          "neo-n3-testnet": "0x2222222222222222222222222222222222222222",
+        },
+      },
+      permissions: {},
+    });
+
+    expect(app).not.toBeNull();
+    if (!app) return;
+
+    expect(app.contract_hash).toBe("0x2222222222222222222222222222222222222222");
   });
 });
