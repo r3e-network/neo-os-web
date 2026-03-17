@@ -12,14 +12,14 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Place a bid for the current epoch's voting power.
         /// </summary>
-        public static void PlaceBid(UInt160 candidate, BigInteger bidAmount, BigInteger receiptId)
+        public static void PlaceBid(UInt160 candidate, BigInteger bidAmount)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(bidAmount >= MIN_BID, "min 0.1 GAS bid");
 
             ValidateUserOrAbstractAccount(candidate);
 
-            ValidatePaymentReceipt(APP_ID, candidate, bidAmount, receiptId);
+            ConsumeDirectGasCredit(candidate, bidAmount);
 
             BigInteger epochId = GetCurrentEpochId();
             Epoch epoch = GetEpoch(epochId);
@@ -46,6 +46,11 @@ namespace NeoMiniAppPlatform.Contracts
             UpdateBidderStatsOnBid(candidate, bidAmount, isFirstBidInEpoch);
 
             OnBidPlaced(epochId, candidate, newBid);
+        }
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
         }
 
         #endregion
