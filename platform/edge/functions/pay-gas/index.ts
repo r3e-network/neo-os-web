@@ -24,11 +24,10 @@ const NEO_TESTNET_GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 // - returns an invocation "intent" for the SDK/wallet to sign and submit
 //
 // Current scope:
-// - this route is the legacy receipt-oriented payment helper
-// - it transfers GAS to PaymentHub and expects the downstream app flow to use a
-//   numeric receiptId
-// - direct prepaid flagship apps usually bypass this helper and transfer GAS
-//   straight to the MiniApp contract instead
+// - prefer direct prepaid GAS transfer to the MiniApp contract when the
+//   registered manifest exposes a contract hash
+// - fall back to the legacy PaymentHub path when a receipt-oriented app still
+//   lacks a direct contract target
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -77,15 +76,18 @@ export async function handler(req: Request): Promise<Response> {
   });
   if (usageErr) return usageErr;
 
-  const paymentHubHash = normalizeUInt160(mustGetEnv("CONTRACT_PAYMENTHUB_HASH"));
   const gasContractHash = normalizeUInt160(getEnv("CONTRACT_GAS_HASH") ?? NEO_TESTNET_GAS_HASH);
+  const paymentHubHash = normalizeUInt160(mustGetEnv("CONTRACT_PAYMENTHUB_HASH"));
+  const directTargetHash = normalizeUInt160(policy?.contractHash ?? "");
+  const targetHash = directTargetHash || paymentHubHash;
+  const paymentMode = directTargetHash ? "direct_prepaid" : "legacy_receipt";
 
   const requestId = crypto.randomUUID();
 
-  // Legacy receipt GAS.Transfer flow:
+  // GAS.Transfer flow:
   // The wallet will call GAS.Transfer(from, to, amount, data)
   // - from: user's wallet address (filled by wallet at signing time)
-  // - to: PaymentHub contract address
+  // - to: MiniApp contract for direct prepaid flows, otherwise PaymentHub
   // - amount: payment amount in GAS fractions (8 decimals)
   // - data: appId string (used by OnNEP17Payment to identify the MiniApp)
   //
@@ -96,15 +98,18 @@ export async function handler(req: Request): Promise<Response> {
       request_id: requestId,
       user_id: auth.userId,
       intent: "payments",
-      constraints: { settlement: "GAS_ONLY" },
+      constraints: {
+        settlement: "GAS_ONLY",
+        payment_mode: paymentMode,
+      },
       invocation: {
         contract_hash: gasContractHash,
         method: "transfer",
         params: [
           // from: will be filled by wallet with user's address
           { type: "Hash160", value: "SENDER" },
-          // to: PaymentHub contract
-          { type: "Hash160", value: paymentHubHash },
+          // to: MiniApp contract for direct prepaid flows, otherwise PaymentHub
+          { type: "Hash160", value: targetHash },
           // amount: GAS amount in fractions (8 decimals)
           { type: "Integer", value: amount.toString() },
           // data: appId for OnNEP17Payment callback
