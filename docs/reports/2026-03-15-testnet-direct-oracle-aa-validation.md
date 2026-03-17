@@ -3,6 +3,16 @@
 Date: 2026-03-15
 Network: Neo N3 Testnet
 
+Refresh note on 2026-03-17:
+
+- testnet Morpheus Oracle `updater` was corrected on-chain with tx `0x944d44a176f989aef282c4359647ae08db26890ef733365f0da6fdd9be4620eb`
+- testnet Morpheus Oracle verifier public key was corrected on-chain with tx `0x6070d6b0684df3531a9b1b9d9bbd60b149cfdd08af02960afe837b7458f223c6`
+- a fresh direct Oracle smoke succeeded with request tx `0x8c8b6f09de54aad0b1c5cb52a5627b2c3cd3b0a6324c006ffd8afdd7843e1d64` and request id `3877`
+- a fresh cross-repo direct Oracle smoke succeeded with request tx `0x7203b7a4781237bb8f255766b56d4f2718cf12cf9b8e686383832e8e724b3ef6` and request id `3878`
+- the stable direct AA + paymaster + relay replay succeeded with tx `0xa7beaa775bcf9fee4f077f41b4fa3cddc08a66ee8913187e30864d953c99b6dd`
+- the stable cross-repo direct AA + paymaster + relay replay succeeded with tx `0xd433d9dbc435dc83835aa8ff7eb36e757d2a77499728ad6d09cb599044172e20`
+- `AA_TEST_WIF` must control `PAYMASTER_ACCOUNT_ID` when using the stable allowlisted paymaster account path
+
 ## Purpose
 
 This report records the current MiniApp-platform integration path:
@@ -55,6 +65,17 @@ Latest replay through the cross-repo validation helper:
 - extracted value:
   `2.897`
 
+Latest recovery replay on 2026-03-17:
+
+- request tx:
+  `0x7203b7a4781237bb8f255766b56d4f2718cf12cf9b8e686383832e8e724b3ef6`
+- request id:
+  `3878`
+- callback result:
+  `success = true`
+- extracted value:
+  `2.841`
+
 Conclusion:
 
 - external Morpheus worker + relayer are healthy for the direct Oracle path
@@ -100,6 +121,13 @@ Latest replay through the cross-repo validation helper:
 - relay-backed `executeUserOp`:
   `0x75535272af4332eec7543039a466c91f6f2586676204ed16b57a40884e969188`
 
+Latest stable replay on 2026-03-17 using the canonical allowlisted test account:
+
+- `updateVerifier`:
+  `0xd54fe4813693df0f244ada1c1daf8966ba70d0ced76bcdefc5e9fa6ba05aab2d`
+- relay-backed `executeUserOp`:
+  `0xd433d9dbc435dc83835aa8ff7eb36e757d2a77499728ad6d09cb599044172e20`
+
 Relay result:
 
 - paymaster approval:
@@ -116,6 +144,7 @@ Conclusion:
 - direct AA relay is working on testnet
 - direct Morpheus paymaster pre-authorization is working on testnet
 - the corrected paymaster configuration now supports the clean shared AA testnet anchor
+- the corrected Oracle updater/verifier configuration now supports fresh direct callback fulfillment again on testnet
 
 ## Platform Direction
 

@@ -16,6 +16,9 @@ AA_DIR="${AA_DIR:-$(cd "$REPO_ROOT/.." && pwd)/neo-abstract-account}"
 PAYMASTER_APP_ID="${MORPHEUS_PAYMASTER_APP_ID:-28294e89d490924b79c85cdee057ce55723b3d56}"
 PAYMASTER_ACCOUNT_ID="${PAYMASTER_ACCOUNT_ID:-0x37298bb6bbb4580fdca24903d67b385ef2268e25}"
 AA_TEST_WIF="${AA_TEST_WIF:-}"
+if [[ -z "${SKIP_PAYMASTER_ALLOWLIST_UPDATE:-}" && "$PAYMASTER_ACCOUNT_ID" == "0x37298bb6bbb4580fdca24903d67b385ef2268e25" ]]; then
+  SKIP_PAYMASTER_ALLOWLIST_UPDATE=1
+fi
 
 usage() {
   cat <<'EOF'
@@ -32,6 +35,8 @@ Environment overrides:
 
 Notes:
   - This script validates the preferred direct Oracle / direct AA testnet path.
+  - AA_TEST_WIF must control PAYMASTER_ACCOUNT_ID when using the stable allowlisted account path.
+  - The stable default paymaster account path auto-enables SKIP_PAYMASTER_ALLOWLIST_UPDATE=1.
 EOF
 }
 
@@ -94,6 +99,7 @@ fi
 
 if [[ -z "$AA_TEST_WIF" ]]; then
   echo "AA_TEST_WIF is required for the direct AA relay validation" >&2
+  echo "AA_TEST_WIF must control PAYMASTER_ACCOUNT_ID ($PAYMASTER_ACCOUNT_ID) when using the stable allowlisted account path" >&2
   exit 1
 fi
 
