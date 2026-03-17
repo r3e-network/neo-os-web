@@ -1,12 +1,15 @@
 /**
  * Payment Flow Composable
  *
- * Standardizes the payment flow process:
+ * Standardizes the legacy receipt-oriented payment flow process:
  * 1. Check wallet connection
- * 2. Pay GAS (if needed)
- * 3. Get receipt ID
+ * 2. Pay GAS through the configured settlement path
+ * 3. Read a receipt ID when the app still needs one
  * 4. Invoke contract operation
  * 5. Wait for event confirmation
+ *
+ * For newer flagship flows that use direct prepaid GAS with `receiptId = 0`
+ * placeholders, prefer explicit transfer + invoke logic in the app composable.
  */
 
 import { ref } from "vue";
