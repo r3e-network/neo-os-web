@@ -66,14 +66,14 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Fund the reward pool.
         /// </summary>
-        public static void FundRewardPool(UInt160 funder, BigInteger amount, BigInteger receiptId)
+        public static void FundRewardPool(UInt160 funder, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount > 0, "invalid amount");
 
             ValidateUserOrAbstractAccount(funder);
 
-            ValidatePaymentReceipt(APP_ID, funder, amount, receiptId);
+            ConsumeDirectGasCredit(funder, amount);
 
             BigInteger pool = RewardPool();
             Storage.Put(Storage.CurrentContext, PREFIX_REWARD_POOL, pool + amount);
