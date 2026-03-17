@@ -28,8 +28,8 @@ Encrypted memory burial with paid forgetting
 ## Usage Flow
 
 1. Enter the encrypted content hash and select a memory type.
-2. Pay the burial fee to anchor the hash on-chain.
-3. Optional: pay the forgetting fee to erase the hash and trigger TEE key destruction.
+2. Prepay the burial fee directly to the MiniApp contract and anchor the hash on-chain.
+3. Optional: prepay the forgetting fee directly to the MiniApp contract, erase the hash, and trigger TEE key destruction.
 
 ## Fees
 
@@ -111,6 +111,12 @@ npm run build
 ## Assets
 
 - **Allowed Assets**: GAS
+
+## Funding Model
+
+- direct prepaid GAS to the MiniApp contract
+- no PaymentHub receipt path
+- wallet signs the transfer first, then the business call
 
 
 ## License

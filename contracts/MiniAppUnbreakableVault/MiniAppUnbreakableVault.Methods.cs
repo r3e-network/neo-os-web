@@ -19,8 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger bounty,
             BigInteger difficulty,
             string title,
-            string description,
-            BigInteger receiptId)
+            string description)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(bounty >= MIN_BOUNTY, "min 1 GAS bounty");
@@ -30,7 +29,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(creator);
 
-            ValidatePaymentReceipt(APP_ID, creator, bounty, receiptId);
+            ConsumeDirectGasCredit(creator, bounty);
 
             CreatorStats creatorStats = GetCreatorStats(creator);
             bool isNewCreator = creatorStats.JoinTime == 0;
@@ -67,7 +66,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Attempt to break a vault by providing the secret.
         /// </summary>
-        public static bool AttemptBreak(BigInteger vaultId, UInt160 attacker, ByteString secret, BigInteger receiptId)
+        public static bool AttemptBreak(BigInteger vaultId, UInt160 attacker, ByteString secret)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -79,7 +78,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUserOrAbstractAccount(attacker);
 
             BigInteger attemptFee = GetAttemptFee(vault.Difficulty);
-            ValidatePaymentReceipt(APP_ID, attacker, attemptFee, receiptId);
+            ConsumeDirectGasCredit(attacker, attemptFee);
 
             HackerStats hackerStats = GetHackerStats(attacker);
             bool isNewHacker = hackerStats.JoinTime == 0;
@@ -121,7 +120,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Increase bounty on existing vault.
         /// </summary>
-        public static void IncreaseBounty(BigInteger vaultId, BigInteger amount, BigInteger receiptId)
+        public static void IncreaseBounty(BigInteger vaultId, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -131,7 +130,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(vault.Creator);
 
-            ValidatePaymentReceipt(APP_ID, vault.Creator, amount, receiptId);
+            ConsumeDirectGasCredit(vault.Creator, amount);
 
             vault.Bounty += amount;
             StoreVault(vaultId, vault);
@@ -174,6 +173,11 @@ namespace NeoMiniAppPlatform.Contracts
         {
             UInt160 anchor = AutomationAnchor();
             ExecutionEngine.Assert(anchor != UInt160.Zero && Runtime.CallingScriptHash == anchor, "unauthorized");
+        }
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
         }
 
         #endregion

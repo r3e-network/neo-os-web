@@ -89,6 +89,12 @@ npm run build
 
 - **允许的资产**: GAS
 
+## 资金路径
+
+- 直接预付 GAS 到 MiniApp 合约
+- 不再依赖 PaymentHub 收据
+- 钱包先签转账，再签 `burnGas`
+
 
 ## 许可证
 

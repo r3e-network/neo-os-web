@@ -6,7 +6,8 @@ import { parseStackItem } from "@shared/utils/neo";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { isTxEventPendingError, waitForEventByTransaction } from "@shared/utils/transaction";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { waitForListedEventByTransaction } from "@shared/utils/transaction";
 import type { HistoryItem } from "@/types";
 
 const APP_ID = "miniapp-graveyard";
@@ -17,7 +18,7 @@ export function useGraveyardActions() {
     address,
     ensureWallet,
     read,
-    invoke,
+    invokeDirectly,
     contractAddress,
     ensureContractAddress,
     isProcessing: isLoading,
@@ -64,31 +65,36 @@ export function useGraveyardActions() {
 
     try {
       await ensureWallet();
+      const contract = await ensureContractAddress();
 
-      const { txid, waitForEvent } = await invoke(
-        "0.1",
-        `graveyard:bury:${assetHash.value.slice(0, 10)}`,
-        "BuryMemory",
+      await invokeDirectly(
+        "transfer",
         [
           { type: "Hash160", value: address.value as string },
-          { type: "String", value: assetHash.value },
-          { type: "Integer", value: String(memoryType.value) },
-        ]
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: "10000000" },
+          { type: "String", value: `graveyard:bury:${assetHash.value.slice(0, 10)}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
       );
 
-      let evt: { created_at?: string; state?: unknown[] } | null = null;
-      try {
-        evt = (await waitForEventByTransaction({ txid, receiptId: "" }, "MemoryBuried", waitForEvent)) as {
-          created_at?: string;
-          state?: unknown[];
-        } | null;
-      } catch (e: unknown) {
-        if (isTxEventPendingError(e, "MemoryBuried")) {
-          evt = null;
-        } else {
-          throw e;
-        }
-      }
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      const result = await invokeDirectly("BuryMemory", [
+        { type: "Hash160", value: address.value as string },
+          { type: "String", value: assetHash.value },
+          { type: "Integer", value: String(memoryType.value) },
+      ], contract);
+
+      const evt = await waitForListedEventByTransaction<{ created_at?: string; state?: unknown[]; tx_hash?: string }>(result.tx, {
+        listEvents: async () => {
+          const res = await listEvents({ app_id: APP_ID, event_name: "MemoryBuried", limit: 20 });
+          return res.events || [];
+        },
+        timeoutMs: 30000,
+        pollIntervalMs: 1500,
+        errorMessage: t("buryPending"),
+      });
       if (!evt) throw new Error(t("buryPending"));
 
       const evtRecord = evt as unknown as Record<string, unknown>;
@@ -199,11 +205,35 @@ export function useGraveyardActions() {
     forgettingId.value = item.id;
     try {
       await ensureWallet();
+      const contract = await ensureContractAddress();
 
-      await invoke("1", `graveyard:forget:${item.id}`, "ForgetMemory", [
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: contract },
+          { type: "Integer", value: "100000000" },
+          { type: "String", value: `${APP_ID}:forget:${item.id}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      const result = await invokeDirectly("ForgetMemory", [
         { type: "Hash160", value: address.value as string },
         { type: "Integer", value: String(item.id) },
-      ]);
+      ], contract);
+
+      await waitForListedEventByTransaction<{ tx_hash?: string }>(result.tx, {
+        listEvents: async () => {
+          const res = await listEvents({ app_id: APP_ID, event_name: "MemoryForgotten", limit: 20 });
+          return res.events || [];
+        },
+        timeoutMs: 30000,
+        pollIntervalMs: 1500,
+        errorMessage: t("error"),
+      });
 
       history.value = history.value.map((entry) => (entry.id === item.id ? { ...entry, forgotten: true } : entry));
       setStatus(t("forgetSuccess"), "success");
