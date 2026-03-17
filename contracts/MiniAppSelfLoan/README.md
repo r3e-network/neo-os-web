@@ -34,7 +34,7 @@ fails if the contract balance cannot cover the net GAS payout.
 
 - `CreateLoan(UInt160 borrower, BigInteger neoAmount, BigInteger ltvTier)`
   Creates a new loan using the selected LTV tier.
-- `RepayDebt(BigInteger loanId, UInt160 payer, BigInteger amount, BigInteger receiptId)`
+- `RepayDebt(BigInteger loanId, UInt160 payer, BigInteger amount)`
   Repays debt manually.
 - `AddCollateral(BigInteger loanId, UInt160 depositor, BigInteger neoAmount)`
   Adds more NEO collateral to an active loan.

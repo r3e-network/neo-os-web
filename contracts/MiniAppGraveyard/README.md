@@ -18,7 +18,7 @@
 #### 1. 埋葬记忆 (BuryMemory)
 
 ```csharp
-public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigInteger memoryType, BigInteger receiptId)
+public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigInteger memoryType)
 ```
 
 - 支付 0.1 GAS 存储数据哈希
@@ -29,7 +29,7 @@ public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigIntege
 #### 2. 遗忘记忆 (ForgetMemory)
 
 ```csharp
-public static void ForgetMemory(UInt160 owner, BigInteger memoryId, BigInteger receiptId)
+public static void ForgetMemory(UInt160 owner, BigInteger memoryId)
 ```
 
 - 支付 1 GAS 永久删除
@@ -85,7 +85,7 @@ Digital Graveyard is a paid data deletion service where users pay GAS to permane
 #### 1. Bury Memory
 
 ```csharp
-public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigInteger memoryType, BigInteger receiptId)
+public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigInteger memoryType)
 ```
 
 - Pay 0.1 GAS to store data hash
@@ -96,7 +96,7 @@ public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigIntege
 #### 2. Forget Memory
 
 ```csharp
-public static void ForgetMemory(UInt160 owner, BigInteger memoryId, BigInteger receiptId)
+public static void ForgetMemory(UInt160 owner, BigInteger memoryId)
 ```
 
 - Pay 1 GAS to permanently delete

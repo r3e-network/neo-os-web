@@ -22,7 +22,7 @@ The contract is responsible for:
 ## Core Methods
 
 - `startNewRound()`
-- `buyKeys(UInt160 player, BigInteger keyCount, BigInteger receiptId)`
+- `buyKeys(UInt160 player, BigInteger keyCount)`
 - `checkAndEndRound()`
 - `getGameStatus()`
 - `getRoundDetails(BigInteger roundId)`

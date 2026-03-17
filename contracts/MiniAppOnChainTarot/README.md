@@ -33,7 +33,7 @@ Blockchain fortune telling with verifiable randomness and transparent interpreta
 #### RequestReading
 
 ```csharp
-public static BigInteger RequestReading(UInt160 user, string question, BigInteger spreadType, BigInteger category, BigInteger receiptId)
+public static BigInteger RequestReading(UInt160 user, string question, BigInteger spreadType, BigInteger category)
 ```
 
 | 参数 | 类型 | 描述 |
@@ -42,7 +42,7 @@ public static BigInteger RequestReading(UInt160 user, string question, BigIntege
 | `question` | String | 占卜问题 (最多200字符) |
 | `spreadType` | Integer | 牌阵类型 (0=单牌) |
 | `category` | Integer | 问题类别 (0=通用) |
-| `receiptId` | Integer | PaymentHub 支付收据 ID |
+| funding | Direct prepaid GAS | 先将 GAS 预付到 MiniApp 合约 |
 
 ## English
 
@@ -73,7 +73,7 @@ public static BigInteger RequestReading(UInt160 user, string question, BigIntege
 #### RequestReading
 
 ```csharp
-public static BigInteger RequestReading(UInt160 user, string question, BigInteger spreadType, BigInteger category, BigInteger receiptId)
+public static BigInteger RequestReading(UInt160 user, string question, BigInteger spreadType, BigInteger category)
 ```
 
 | Parameter | Type | Description |
@@ -82,7 +82,7 @@ public static BigInteger RequestReading(UInt160 user, string question, BigIntege
 | `question` | String | Reading question (max 200 chars) |
 | `spreadType` | Integer | Spread type (0=single card) |
 | `category` | Integer | Question category (0=general) |
-| `receiptId` | Integer | PaymentHub payment receipt ID |
+| funding | Direct prepaid GAS | GAS must be prepaid to the MiniApp contract first |
 
 ## Technical
 
