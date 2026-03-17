@@ -10,18 +10,17 @@ namespace NeoMiniAppPlatform.Contracts
         #region User Methods
 
         /// <summary>
-        /// Legacy receipt-based key purchase entrypoint.
+        /// Direct key purchase entrypoint backed by prepaid GAS credit.
         ///
         /// CURRENT LIVE FLOW:
         /// - the wallet prepays GAS directly to this contract with an APP_ID-prefixed memo
         /// - the contract records direct GAS credit in OnNEP17Payment
-        /// - receiptId is retained only for ABI compatibility with older wrappers
         ///
         /// NOTE:
         /// - newer frontend code prefers BuyKeysWithCost so the contract can verify the
         ///   user-visible price formula without looping
         /// </summary>
-        public static void BuyKeys(UInt160 player, BigInteger keyCount, BigInteger receiptId)
+        public static void BuyKeys(UInt160 player, BigInteger keyCount)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(keyCount >= MIN_KEYS, "min 1 key");

@@ -6,7 +6,7 @@ import { useContractInteraction } from "@shared/composables/useContractInteracti
 import { messages } from "@/locale/messages";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { waitForEventByTransaction } from "@shared/utils/transaction";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { useEvents } from "@shared/utils/wallet-sdk";
 
 const APP_ID = "miniapp-gasbox";
 
@@ -33,7 +33,7 @@ interface MachineData {
 export function useGachaPublish() {
   const { t } = createUseI18n(messages)();
   const { address, ensureContractAddress, invokeDirectly, read } = useContractInteraction({ appId: APP_ID, t });
-  const { waitForEvent } = usePaymentFlow(APP_ID);
+  const { list: listEvents } = useEvents();
 
   const isPublishing = ref(false);
 
@@ -52,6 +52,23 @@ export function useGachaPublish() {
     }
     const scriptHash = addressToScriptHash(trimmed);
     return scriptHash ? `0x${scriptHash}` : "";
+  };
+
+  const waitForAppEvent = async (txid: string, eventName: string, timeoutMs = 30000) => {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const result = await listEvents({
+        app_id: APP_ID,
+        event_name: eventName,
+        limit: 20,
+        tx_hash: txid,
+      });
+      if (result.events.length > 0) {
+        return result.events[0] as unknown as Record<string, unknown>;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+    }
+    throw new Error(`${eventName} pending`);
   };
 
   const publishMachine = async (
@@ -84,7 +101,7 @@ export function useGachaPublish() {
         { type: "Integer", value: priceRaw },
       ]);
 
-      const createdEvent = await waitForEventByTransaction(createResult.tx, "MachineCreated", waitForEvent);
+      const createdEvent = await waitForEventByTransaction(createResult.tx, "MachineCreated", waitForAppEvent);
       if (!createdEvent) {
         throw new Error(t("createPending"));
       }
@@ -128,7 +145,7 @@ export function useGachaPublish() {
           { type: "String", value: tokenId },
         ]);
 
-        await waitForEventByTransaction(itemResult.tx, "MachineItemAdded", waitForEvent);
+        await waitForEventByTransaction(itemResult.tx, "MachineItemAdded", waitForAppEvent);
       }
 
       options.setStatus(t("publishSuccess"), "success");
