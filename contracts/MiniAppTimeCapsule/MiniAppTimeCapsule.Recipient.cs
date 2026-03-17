@@ -44,7 +44,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Extend the unlock time of a capsule.
         /// </summary>
-        public static void ExtendUnlockTime(BigInteger capsuleId, BigInteger newUnlockTime, BigInteger receiptId)
+        public static void ExtendUnlockTime(BigInteger capsuleId, BigInteger newUnlockTime)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -57,7 +57,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger newDuration = newUnlockTime - capsule.CreateTime;
             ExecutionEngine.Assert(newDuration <= MAX_LOCK_DURATION_SECONDS, "exceeds max duration");
 
-            ValidatePaymentReceipt(APP_ID, capsule.Owner, EXTEND_FEE, receiptId);
+            ConsumeDirectGasCredit(capsule.Owner, EXTEND_FEE);
 
             capsule.UnlockTime = newUnlockTime;
             capsule.ExtensionCount += 1;
