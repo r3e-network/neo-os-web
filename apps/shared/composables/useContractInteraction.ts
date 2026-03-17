@@ -31,6 +31,7 @@ import { useContractAddress } from "./useContractAddress";
 import { usePaymentFlow } from "./usePaymentFlow";
 import { parseInvokeResult, parseStackItem } from "../utils/neo";
 import { extractTxid } from "../utils/transaction";
+import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
 
 type InvokeArg = {
   type: string;
@@ -140,6 +141,41 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     return { txid, tx };
   };
 
+  /**
+   * Preferred direct-prepaid GAS flow for modern miniapps.
+   *
+   * 1. Ensures wallet connection
+   * 2. Transfers GAS directly to the target MiniApp contract with an app-specific memo
+   * 3. Waits briefly for the credit to be indexed on-chain
+   * 4. Calls the target contract method
+   */
+  const invokeWithDirectPrepaidGas = async (
+    paymentAmountBaseUnits: string,
+    paymentMemo: string,
+    operation: string,
+    args: InvokeArg[],
+    scriptHash?: string,
+    waitMs = 4000,
+  ) => {
+    await ensureWallet();
+    const contract = scriptHash ?? (await ensureContractAddress());
+
+    await invokeContract({
+      scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      operation: "transfer",
+      args: [
+        { type: "Hash160", value: address.value as string },
+        { type: "Hash160", value: contract },
+        { type: "Integer", value: paymentAmountBaseUnits },
+        { type: "String", value: paymentMemo },
+      ],
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, waitMs || TIME_CONSTANTS.SECOND_MS * 4));
+
+    return invokeDirectly(operation, args, contract);
+  };
+
   return {
     // Wallet state
     address,
@@ -157,6 +193,7 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     // Write operations
     invoke,
     invokeDirectly,
+    invokeWithDirectPrepaidGas,
 
     // Payment flow state
     isProcessing,
