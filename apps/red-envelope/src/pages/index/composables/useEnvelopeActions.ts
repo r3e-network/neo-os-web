@@ -104,7 +104,6 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
           { type: "Integer", value: toFixed8(deps.amount.value) },
           { type: "Integer", value: String(packetCount) },
           { type: "Integer", value: String(Math.round(expiryValue * 3600)) },
-          { type: "Integer", value: "0" },
         ],
         contract
       );

@@ -109,13 +109,15 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// 祭拜 - 以虔诚之心，献上祭品
         /// 祭拜费用仅用于覆盖区块链运行成本
+        ///
+        /// LIVE FUNDING MODEL:
+        /// - the wallet prepays the offering directly to this contract
         /// </summary>
         public static BigInteger PayTribute(
             UInt160 visitor,
             BigInteger memorialId,
             BigInteger offeringType,
-            string message,
-            BigInteger receiptId)
+            string message)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -128,8 +130,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(cost > 0, "invalid offering");
             ExecutionEngine.Assert(message.Length <= 200, "message too long");
 
-            // 验证支付
-            ValidatePaymentReceipt(APP_ID, visitor, cost, receiptId);
+            ConsumeDirectGasCredit(visitor, cost);
 
             // 生成祭拜记录ID
             BigInteger tributeId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TRIBUTE_ID) + 1;
@@ -173,10 +174,14 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         public static BigInteger OfferIncense(
             UInt160 visitor,
-            BigInteger memorialId,
-            BigInteger receiptId)
+            BigInteger memorialId)
         {
-            return PayTribute(visitor, memorialId, TYPE_INCENSE, "", receiptId);
+            return PayTribute(visitor, memorialId, TYPE_INCENSE, "");
+        }
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            CreditDirectGasPayment(APP_ID, from, amount, data);
         }
 
         #endregion

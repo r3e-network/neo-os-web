@@ -449,7 +449,6 @@ async function runGasBox() {
   const initiateTx = await contract.invoke("initiatePlay", [
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.integer(String(machineId)),
-    Neon.sc.ContractParam.integer("0"),
   ]);
   const initiateLog = await waitForLog(initiateTx);
   if (initiateLog.execution.vmstate !== "HALT") {
@@ -533,13 +532,10 @@ async function runLastSurvivor() {
 
     const paymentTx = await transferGAS(contractHash, String(cost), `miniapp-last-survivor:buy:${roundId}`);
     await sleep(4000);
-    const receiptId = "0";
-
     const buyTx = await contract.invoke("buyKeysWithCost", [
       Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
       Neon.sc.ContractParam.integer("1"),
       Neon.sc.ContractParam.integer(String(cost)),
-      Neon.sc.ContractParam.integer("0"),
     ]);
     const { execution } = await waitForLog(buyTx);
     if (execution.vmstate !== "HALT") {
@@ -548,7 +544,6 @@ async function runLastSurvivor() {
     return {
       cost: String(cost),
       paymentTx,
-      receiptId,
       buyTx: asTxid(buyTx),
       purchased: !!findNotification(execution, contractHash, "KeysPurchased"),
       extended: !!findNotification(execution, contractHash, "TimeExtended"),
@@ -588,7 +583,6 @@ async function runLastSurvivor() {
     roundId,
     cost: result.cost,
     paymentTx: result.paymentTx,
-    receiptId: result.receiptId,
     buyTx: result.buyTx,
     after,
     userKeys,
@@ -610,7 +604,6 @@ async function runFogPlay() {
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.integer(FOGPLAY_BET),
     Neon.sc.ContractParam.boolean(false),
-    Neon.sc.ContractParam.integer("0"),
   ]);
   const { execution } = await waitForLog(betTx);
   if (execution.vmstate !== "HALT") {
@@ -649,7 +642,6 @@ async function runRedEnvelope() {
     Neon.sc.ContractParam.integer(RED_ENVELOPE_TOTAL),
     Neon.sc.ContractParam.integer("2"),
     Neon.sc.ContractParam.integer("86400000"),
-    Neon.sc.ContractParam.integer("0"),
   ]);
   const { execution } = await waitForLog(createTx);
   if (execution.vmstate !== "HALT") {

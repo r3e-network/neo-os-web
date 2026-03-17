@@ -129,7 +129,6 @@ export function useFogPlayGame(wallet: WalletSDK, t: (key: string) => string) {
           { type: "Hash160", value: address.value as string },
           { type: "Integer", value: amountBase },
           { type: "Boolean", value: choice.value === "heads" },
-          { type: "Integer", value: "0" },
         ],
       });
 

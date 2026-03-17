@@ -82,11 +82,11 @@ import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { messages } from "@/locale/messages";
 import { parseStackItem } from "@shared/utils/neo";
 import { MiniAppPage, HeroSection } from "@shared/components";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage, pollForEvent } from "@shared/utils/errorHandling";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { waitForListedEventByTransaction } from "@shared/utils";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
@@ -94,9 +94,9 @@ import type { Card } from "./components/TarotCard.vue";
 import { TAROT_DECK } from "./components/tarot-data";
 
 const APP_ID = "miniapp-onchaintarot";
-const { address, connect } = useWallet() as WalletSDK;
-const { processPayment, isLoading } = usePaymentFlow(APP_ID);
+const { address, connect, invokeContract } = useWallet() as WalletSDK;
 const { list: listEvents } = useEvents();
+const isLoading = ref(false);
 
 // Use the imported full deck
 const tarotDeck = TAROT_DECK;
@@ -172,26 +172,39 @@ const waitForReading = async (readingId: string) => {
 const draw = async () => {
   if (isLoading.value) return;
   try {
+    isLoading.value = true;
     setStatus(t("drawingCards"), "loading");
     if (!address.value) await connect();
     if (!address.value) throw new Error(t("connectWallet"));
     const contract = await ensureContractAddress();
+    const readingFee = "0.05";
+    const readingFeeFixed8 = String(Math.round(Number.parseFloat(readingFee) * 1e8));
 
-    const { receiptId, invoke } = await processPayment("0.05", `tarot:${Date.now()}`);
+    await invokeContract({
+      scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      operation: "transfer",
+      args: [
+        { type: "Hash160", value: address.value },
+        { type: "Hash160", value: contract },
+        { type: "Integer", value: readingFeeFixed8 },
+        { type: "String", value: `${APP_ID}:reading:${Date.now()}` },
+      ],
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 4000));
 
     const prompt = question.value.trim() || t("defaultQuestion");
-    // Contract signature: RequestReading(user, question, spreadType, category, receiptId)
-    const tx = await invoke(
-      "requestReading",
-      [
+    // Contract signature: RequestReading(user, question, spreadType, category)
+    const tx = await invokeContract({
+      scriptHash: contract,
+      operation: "requestReading",
+      args: [
         { type: "Hash160", value: address.value },
         { type: "String", value: prompt.slice(0, 200) },
         { type: "Integer", value: "0" }, // spreadType: 0 = single card
         { type: "Integer", value: "0" }, // category: 0 = general
-        { type: "Integer", value: receiptId },
       ],
-      contract,
-    );
+    });
     const requestedEvt = await waitForEventByTx(tx, "ReadingRequested");
     if (!requestedEvt) throw new Error(t("readingPending"));
     const requestedRecord = requestedEvt as unknown as Record<string, unknown>;
@@ -220,6 +233,8 @@ const draw = async () => {
     setStatus(t("cardsDrawn"), "success");
   } catch (e: unknown) {
     setStatus(formatErrorMessage(e, t("error")), "error");
+  } finally {
+    isLoading.value = false;
   }
 };
 

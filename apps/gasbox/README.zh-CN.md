@@ -49,9 +49,9 @@ GASBOX 最大的亮点在于机器本身的透明度。奖品表、库存和配�
 
 | 方法                | 类型 | 参数                                | 说明                             |
 | ------------------- | ---- | ----------------------------------- | -------------------------------- |
-| `initiatePlay`      | 操作 | `player`, `machineId`, `receiptId`  | 用户先向合约预付 GAS，再发起抽奖并生成 VRF 种子 |
+| `initiatePlay`      | 操作 | `player`, `machineId`               | 用户先向合约预付 GAS，再发起抽奖并生成 VRF 种子 |
 | `settlePlay`        | 操作 | `player`, `playId`, `selectedIndex` | 结算抽奖——验证选择并分发奖品     |
-| `buyMachine`        | 操作 | `player`, `machineId`, `receiptId`  | 购买挂牌出售的扭蛋机             |
+| `buyMachine`        | 操作 | `player`, `machineId`               | 使用直接预付 GAS 购买挂牌出售的扭蛋机 |
 | `getMachineDetails` | 查询 | `machineId`                         | 获取机器信息（奖品、价格、库存） |
 
 ## 快速开始

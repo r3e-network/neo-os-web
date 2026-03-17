@@ -43,7 +43,7 @@ LastSurvivor 是一款构建在 Neo N3 上的社交博弈游戏，灵感来源�
 ### 服务层技术
 
 - **Keeper（自动化）**：24 小时倒计时到期后自动触发奖池结算，去信任化、无需人工操作。
-- **直接预付 GAS**：钱包先将精确钥匙成本直接转入 MiniApp 合约，再调用 `buyKeysWithCost`。`receiptId` 参数仅为 ABI 兼容保留，实网流程传 `0`。
+- **直接预付 GAS**：钱包先将精确钥匙成本直接转入 MiniApp 合约，再调用 `buyKeysWithCost`。
 
 ### 合约接口
 
@@ -52,7 +52,7 @@ LastSurvivor 是一款构建在 Neo N3 上的社交博弈游戏，灵感来源�
 | `getGameStatus`   | 查询 | —                                 | 返回轮次 ID、奖池金额、活跃状态、最后买家、剩余时间 |
 | `getPlayerKeys`   | 查询 | `player`, `roundId`               | 查询玩家在指定轮次的钥匙数量                        |
 | `getRoundDetails` | 查询 | `roundId`                         | 返回指定轮次的详细信息                              |
-| `buyKeysWithCost` | 操作 | `player`, `keyCount`, `submittedCost`, `receiptId` | 使用直接预付的 GAS 余额和公式校验价格购买当前轮次钥匙（`receiptId` 在实网流程中仅作占位） |
+| `buyKeysWithCost` | 操作 | `player`, `keyCount`, `submittedCost` | 使用直接预付的 GAS 余额和公式校验价格购买当前轮次钥匙 |
 
 ## 快速开始
 
