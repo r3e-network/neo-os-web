@@ -3,6 +3,7 @@ import { useEvents } from "@shared/utils/wallet-sdk";
 import { formatNum, parseGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -146,7 +147,20 @@ export function useGovMercPool(t: (key: string) => string) {
     }
     try {
       await ensureConnectedAddress();
-      await invoke(bidAmount.value, `bid:${currentEpoch.value}`, "placeBid", [
+      await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: await ensureContractAddress() },
+          { type: "Integer", value: toFixed8(bidAmount.value) },
+          { type: "String", value: `${APP_ID}:bid:${currentEpoch.value}` },
+        ],
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+
+      await invokeDirectly("placeBid", [
         { type: "Hash160", value: address.value as string },
         { type: "Integer", value: toFixed8(bidAmount.value) },
       ]);

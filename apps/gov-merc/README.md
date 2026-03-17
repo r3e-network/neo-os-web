@@ -99,7 +99,7 @@ npm run build
 
 1. Browse available vote listings from council members
 2. Select a listing that meets your needs
-3. Pay the specified GAS amount to acquire voting rights
+3. Prepay the specified GAS amount directly to the MiniApp contract
 4. Use acquired votes to influence governance proposals
 5. Votes automatically return to owner after rental period
 
@@ -117,6 +117,12 @@ Gov Merc creates a marketplace for governance voting power:
 ## Assets
 
 - **Allowed Assets**: GAS
+
+## Funding Model
+
+- direct prepaid GAS to the MiniApp contract
+- no PaymentHub receipt path
+- wallet signs the transfer first, then calls `placeBid`
 
 
 ## License
