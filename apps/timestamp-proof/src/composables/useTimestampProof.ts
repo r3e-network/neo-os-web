@@ -1,10 +1,9 @@
-import { ref, computed } from "vue";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { usePaymentFlow } from "@shared/composables/usePaymentFlow";
+import { computed, ref } from "vue";
+import { useWallet } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { waitForEventByTransaction } from "@shared/utils";
 
-const APP_ID = "miniapp-timestamp-proof";
+const STORAGE_KEY = "miniapp-timestamp-proof:proofs:v2";
+const MAX_PROOFS = 200;
 
 export interface TimestampProof {
   id: number;
@@ -15,9 +14,41 @@ export interface TimestampProof {
   txHash: string;
 }
 
+function sanitizeProof(item: Partial<TimestampProof>): TimestampProof {
+  return {
+    id: Number(item.id || 0),
+    content: String(item.content || ""),
+    contentHash: String(item.contentHash || ""),
+    timestamp: Number(item.timestamp || 0),
+    creator: String(item.creator || "local"),
+    txHash: String(item.txHash || ""),
+  };
+}
+
+function readStoredProofs(): TimestampProof[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => sanitizeProof(item as Partial<TimestampProof>))
+      .filter((item) => item.id > 0 && item.contentHash.length > 0 && item.timestamp > 0)
+      .sort((a, b) => b.id - a.id)
+      .slice(0, MAX_PROOFS);
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredProofs(items: TimestampProof[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
 export function useTimestampProofContract(t: (key: string) => string) {
-  const { address, read, ensureContractAddress, contractAddress } = useContractInteraction({ appId: APP_ID, t });
-  const { processPayment } = usePaymentFlow(APP_ID);
+  const { address } = useWallet();
 
   const proofs = ref<TimestampProof[]>([]);
   const verifiedProof = ref<TimestampProof | null>(null);
@@ -25,75 +56,63 @@ export function useTimestampProofContract(t: (key: string) => string) {
   const isCreating = ref(false);
   const isVerifying = ref(false);
 
-  const myProofsCount = computed(() => {
-    if (!address.value) return 0;
-    return proofs.value.filter((p) => p.creator === address.value).length;
-  });
-
-  const parseProofItem = (item: Record<string, unknown>): TimestampProof => ({
-    id: Number(item.id || 0),
-    content: String(item.content || ""),
-    contentHash: String(item.contentHash || ""),
-    timestamp: Number(item.timestamp || 0) * 1000,
-    creator: String(item.creator || ""),
-    txHash: String(item.txHash || ""),
-  });
+  const currentActor = () => String(address.value || "local");
 
   const loadProofs = async () => {
-    try {
-      await ensureContractAddress();
-      const parsed = (await read("getProofs")) as unknown[];
-      if (Array.isArray(parsed)) {
-        proofs.value = parsed.map((p: unknown) => parseProofItem(p as Record<string, unknown>));
-      }
-    } catch (_e: unknown) {
-      // Proof load failure handled silently
-    }
+    proofs.value = readStoredProofs();
   };
+
+  const persistProofs = (items: TimestampProof[]) => {
+    const next = items
+      .map((item) => sanitizeProof(item))
+      .filter((item) => item.id > 0 && item.contentHash.length > 0 && item.timestamp > 0)
+      .sort((a, b) => b.id - a.id)
+      .slice(0, MAX_PROOFS);
+    proofs.value = next;
+    writeStoredProofs(next);
+  };
+
+  const myProofsCount = computed(() => proofs.value.filter((item) => item.creator === currentActor()).length);
 
   const hashContent = async (content: string): Promise<string> => {
     const encoder = new TextEncoder();
     const data = encoder.encode(content);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    return hashArray.map((byte) => byte.toString(16).padStart(2, "0")).join("");
   };
 
   const createProof = async (
     content: string,
     setStatus: (msg: string, type: string) => void,
-    onSuccess: () => void
+    onSuccess: () => void,
   ) => {
-    if (!address.value) {
-      setStatus(t("wpTitle"), "error");
-      return;
-    }
-    try {
-      await ensureContractAddress();
-    } catch {
+    const normalizedContent = content.trim();
+    if (!normalizedContent) {
+      setStatus(t("enterContent"), "error");
       return;
     }
 
     try {
       isCreating.value = true;
-      const hash = await hashContent(content);
-      const { receiptId, invoke, waitForEvent } = await processPayment("0.5", `proof:${hash.slice(0, 16)}`);
+      const contentHash = await hashContent(normalizedContent);
+      const currentProofs = readStoredProofs();
+      const nextId = currentProofs.length > 0 ? Math.max(...currentProofs.map((item) => item.id)) + 1 : 1;
 
-      const tx = await invoke(
-        "createProof",
-        [
-          { type: "String", value: content },
-          { type: "String", value: hash },
-          { type: "Integer", value: String(receiptId) },
-        ],
-        contractAddress.value as string
-      );
+      const proof: TimestampProof = {
+        id: nextId,
+        content: normalizedContent,
+        contentHash,
+        timestamp: Date.now(),
+        creator: currentActor(),
+        txHash: `local:${contentHash.slice(0, 16)}`,
+      };
 
-      const proofEvent = await waitForEventByTransaction(tx, "ProofCreated", waitForEvent);
-      if (proofEvent) {
-        onSuccess();
-        await loadProofs();
-      }
+      persistProofs([proof, ...currentProofs]);
+      verifiedProof.value = proof;
+      verifyError.value = false;
+      setStatus(t("createSuccess"), "success");
+      onSuccess();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
@@ -103,23 +122,25 @@ export function useTimestampProofContract(t: (key: string) => string) {
 
   const verifyProofById = async (id: string) => {
     try {
-      await ensureContractAddress();
-    } catch {
-      return;
-    }
-
-    try {
       isVerifying.value = true;
       verifyError.value = false;
       verifiedProof.value = null;
 
-      const parsed = await read("getProof", [{ type: "Integer", value: id }]);
-      if (parsed) {
-        verifiedProof.value = parseProofItem(parsed as Record<string, unknown>);
-      } else {
+      const proofId = Number(id);
+      if (!Number.isInteger(proofId) || proofId <= 0) {
         verifyError.value = true;
+        return;
       }
-    } catch (_e: unknown) {
+
+      const matched = readStoredProofs().find((item) => item.id === proofId) || null;
+      if (!matched) {
+        verifyError.value = true;
+        return;
+      }
+
+      proofs.value = readStoredProofs();
+      verifiedProof.value = matched;
+    } catch {
       verifyError.value = true;
     } finally {
       isVerifying.value = false;
@@ -137,6 +158,5 @@ export function useTimestampProofContract(t: (key: string) => string) {
     loadProofs,
     createProof,
     verifyProofById,
-    ensureContractAddress,
   };
 }

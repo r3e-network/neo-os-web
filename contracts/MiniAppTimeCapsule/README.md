@@ -53,9 +53,9 @@
 
 ### User Functions | 用户函数
 
-#### `Bury(owner, contentHash, title, unlockTime, isPublic, category, receiptId)`
+#### `Bury(owner, contentHash, title, unlockTime, isPublic, category)`
 
-**English**: Bury a new time capsule.
+**English**: Bury a new time capsule using direct prepaid GAS credit.
 
 - `owner`: Owner address
 - `contentHash`: Encrypted content hash
@@ -63,9 +63,7 @@
 - `unlockTime`: Unix timestamp for unlock (seconds)
 - `isPublic`: true for public, false for private
 - `category`: 1=personal, 2=gift, 3=memorial, 4=announcement, 5=secret
-- `receiptId`: Payment receipt (0.2 GAS)
-
-**中文**: 埋藏新时间胶囊。
+**中文**: 使用直充 GAS 信用埋藏新时间胶囊。
 
 - `owner`: 所有者地址
 - `contentHash`: 加密内容哈希
@@ -73,8 +71,6 @@
 - `unlockTime`: 解锁的Unix时间戳（秒）
 - `isPublic`: true为公开，false为私密
 - `category`: 1=私人, 2=礼物, 3=纪念, 4=公告, 5=秘密
-- `receiptId`: 支付收据（0.2 GAS）
-
 #### `Reveal(revealer, capsuleId)`
 
 **English**: Reveal capsule content after unlock time.
@@ -87,17 +83,21 @@
 - `revealer`: 揭示者地址
 - `capsuleId`: 胶囊ID
 
-#### `Fish(fisher, receiptId)`
+#### `Fish(fisher)`
 
-**English**: Fish for a random public capsule.
+**English**: Fish for a random public capsule using direct prepaid GAS credit.
 
 - `fisher`: Fisher address
-- `receiptId`: Payment receipt (0.05 GAS)
 
-**中文**: 钓取随机公开胶囊。
+**中文**: 使用直充 GAS 信用钓取随机公开胶囊。
 
 - `fisher`: 钓鱼者地址
-- `receiptId`: 支付收据（0.05 GAS）
+
+#### `OnNEP17Payment(from, amount, data)`
+
+**English**: Records direct prepaid GAS credit for bury / fish / related operations.
+
+**中文**: 记录用于埋藏、钓鱼等操作的直充 GAS 信用。
 
 ### Query Functions | 查询函数
 
@@ -147,6 +147,7 @@
 - **Fish Fee**: 0.05 GAS per attempt
 - **No Expiry**: Capsules stored permanently
 - **Public Discovery**: Random fishing mechanism
+- **Funding Model**: direct prepaid GAS to the contract, no PaymentHub receipt
 
 ### 中文
 
@@ -154,6 +155,7 @@
 - **钓鱼费用**: 每次尝试0.05 GAS
 - **无过期**: 胶囊永久存储
 - **公开发现**: 随机钓鱼机制
+- **资金模型**: 直接向合约预存 GAS，不再使用 PaymentHub 收据
 
 ## Use Cases | 使用场景
 
