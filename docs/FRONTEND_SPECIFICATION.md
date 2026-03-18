@@ -71,6 +71,8 @@ Operational/API routes currently implemented include:
 - `/api/rpc/relay`
 - `/api/rpc/sponsor`
 - `/api/aa/relay`
+- `/api/morpheus/oracle/*`
+- `/api/morpheus/confidential/*`
 - `/api/morpheus/neodid/*`
 - `/api/miniapps/*`
 - `/api/cron/*`
@@ -145,7 +147,7 @@ for:
 - `miniapp-aa-relay-console`
 - `miniapp-aa-session-key-lab`
 - `miniapp-oracle-price-console`
-- `miniapp-oracle-seal-console`
+- `miniapp-oracle-seal-console` (local sealing + `encrypted_*_ref` preparation)
 - `miniapp-oracle-neodid-console`
 - `miniapp-oracle-http-console`
 - `miniapp-oracle-compute-lab`
