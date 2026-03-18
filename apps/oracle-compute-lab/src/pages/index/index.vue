@@ -1,36 +1,42 @@
 <template>
-  <MiniAppPage name="oracle-compute-lab" :config="templateConfig" :state="appState" :t="t" :status-message="status"
-    :sidebar-items="sidebarItems" :sidebar-title="sidebarTitle" :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError" :on-boundary-retry="runJob">
-    <template #content>
-      <HeroSection variant="erobo" icon="🧠" compact>
-        <template #stats><HeroStatsStrip :items="heroStats" compact /></template>
-      </HeroSection>
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-      <NeoCard variant="erobo" :title="t('latestJob')" class="px-1">
-        <div class="result-grid">
-          <div><span class="label">Status</span><span class="value">{{ latestJob?.status || "—" }}</span></div>
-          <div><span class="label">Job</span><span class="value">{{ latestJob?.job_id || "—" }}</span></div>
-          <div><span class="label">Attestation</span><span class="value">{{ latestJob?.attestation || "—" }}</span></div>
-          <div><span class="label">Output</span><span class="value">{{ latestOutput }}</span></div>
-        </div>
-      </NeoCard>
+  <OracleConsoleMiniApp
+    page-name="oracle-compute-lab"
+    :template-config="templateConfig"
+    :app-state="appState"
+    :t="t"
+    :status="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="runJob"
+    hero-icon="🧠"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('latestJob')"
+    :operation-title="t('execute')"
+  >
+    <template #result>
+      <div class="result-grid">
+        <div><span class="label">Status</span><span class="value">{{ latestJob?.status || "—" }}</span></div>
+        <div><span class="label">Job</span><span class="value">{{ latestJob?.job_id || "—" }}</span></div>
+        <div><span class="label">Attestation</span><span class="value">{{ latestJob?.attestation || "—" }}</span></div>
+        <div><span class="label">Output</span><span class="value">{{ latestOutput }}</span></div>
+      </div>
     </template>
     <template #operation>
-      <NeoCard variant="erobo" :title="t('execute')" class="px-1">
-        <div class="stack">
-          <NeoInput v-model="scriptName" :label="t('scriptName')" :placeholder="t('scriptNamePlaceholder')" />
-          <label class="textarea-label">{{ t("inputJson") }}</label>
-          <textarea v-model="inputJson" class="json-box" rows="8"></textarea>
-          <NeoButton variant="primary" :loading="oracle.isRequesting" @click="runJob">{{ t("execute") }}</NeoButton>
-        </div>
-      </NeoCard>
+      <div class="stack">
+        <NeoInput v-model="scriptName" :label="t('scriptName')" :placeholder="t('scriptNamePlaceholder')" />
+        <label class="textarea-label">{{ t("inputJson") }}</label>
+        <textarea v-model="inputJson" class="json-box" rows="8"></textarea>
+        <NeoButton variant="primary" :loading="oracle.isRequesting" @click="runJob">{{ t("execute") }}</NeoButton>
+      </div>
     </template>
-  </MiniAppPage>
+  </OracleConsoleMiniApp>
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { HeroStatsStrip, NeoButton, NeoInput, OracleConsoleMiniApp } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
