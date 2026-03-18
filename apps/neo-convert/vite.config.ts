@@ -1,8 +1,12 @@
 import { createAppConfig } from "../vite.shared";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+import path from "path";
 
 declare const __dirname: string;
 export default createAppConfig(__dirname, {
+  alias: {
+    html2canvas: path.resolve(__dirname, "../shared/shims/html2canvas-stub.js"),
+  },
   plugins: [
     nodePolyfills({
       include: ["buffer", "process", "util", "stream", "events", "string_decoder"],
