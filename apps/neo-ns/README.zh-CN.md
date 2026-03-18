@@ -61,9 +61,9 @@ Neo 域名服务让您注册易记的 .neo 域名，映射到您的钱包地址�
 
 | 属性 | 值 |
 |------|-----|
-| **合约地址** | 未部署 |
+| **合约地址** | `0x50ac1c37690cc2cfc594472833cf57505d5f46de` |
 | **RPC 节点** | `https://mainnet1.neo.coz.io:443` |
-| **区块浏览器** | [NeoTube](https://neotube.io) |
+| **区块浏览器** | [在 NeoTube 查看](https://neotube.io/contract/0x50ac1c37690cc2cfc594472833cf57505d5f46de) |
 | **网络魔数** | `860833102` |
 
 ## 资产
