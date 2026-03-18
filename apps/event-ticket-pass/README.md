@@ -52,7 +52,7 @@ NEP-11 event tickets with QR check-in.
 |----------|-------|
 | **Contract** | `0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72) |
 
 ### Mainnet
 
@@ -60,7 +60,7 @@ NEP-11 event tickets with QR check-in.
 |----------|-------|
 | **Contract** | `Pending deployment` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | `https://neotube.io` |
+| **Explorer** | `https://www.neo3scan.com` |
 
 > Testnet is now live and verified. Mainnet stays intentionally blank until a separate rollout is completed.
 

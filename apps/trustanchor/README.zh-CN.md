@@ -49,7 +49,7 @@ TrustAnchor 正在重构为 **verification-script agent 账户** 模型，而不
 |------|----|
 | **合约** | `0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **浏览器** | [在 NeoTube 查看](https://testnet.neotube.io/contract/0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2) |
+| **浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2) |
 | **网络魔数** | `894710606` |
 
 ### 主网
@@ -58,7 +58,7 @@ TrustAnchor 正在重构为 **verification-script agent 账户** 模型，而不
 |------|----|
 | **合约** | `verification-script agent 账户版本待上线` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **浏览器** | `https://neotube.io` |
+| **浏览器** | `https://www.neo3scan.com` |
 | **网络魔数** | `860833102` |
 
 > 测试网单合约版本已经上线。主网地址仍然故意留空，等待 verification-script agent 账户运维模型进一步验证后再上线。

@@ -54,7 +54,7 @@ Gas Sponsor 为低余额的 Neo 新用户提供免费 GAS。每天可请求最�
 |------|-----|
 | **合约地址** | `0xae47f11a368ceb778839e80e3ad0ecb952e9c058` |
 | **RPC 节点** | `https://testnet1.neo.coz.io:443` |
-| **区块浏览器** | [在 NeoTube 查看](https://testnet.neotube.io/contract/0xae47f11a368ceb778839e80e3ad0ecb952e9c058) |
+| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xae47f11a368ceb778839e80e3ad0ecb952e9c058) |
 | **网络魔数** | `894710606` |
 
 ### 主网 (Mainnet)
@@ -63,7 +63,7 @@ Gas Sponsor 为低余额的 Neo 新用户提供免费 GAS。每天可请求最�
 |------|-----|
 | **合约地址** | `0x80ea8435a88334b9b80077220097d88c440615f1` |
 | **RPC 节点** | `https://mainnet1.neo.coz.io:443` |
-| **区块浏览器** | [在 NeoTube 查看](https://neotube.io/contract/0x80ea8435a88334b9b80077220097d88c440615f1) |
+| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x80ea8435a88334b9b80077220097d88c440615f1) |
 | **网络魔数** | `860833102` |
 
 ## 资产
