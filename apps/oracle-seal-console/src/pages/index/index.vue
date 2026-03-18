@@ -1,25 +1,23 @@
 <template>
-  <MiniAppPage
-    name="oracle-seal-console"
-    :config="templateConfig"
-    :state="appState"
+  <ConsoleMiniApp
+    page-name="oracle-seal-console"
+    :template-config="templateConfig"
+    :app-state="appState"
     :t="t"
-    :status-message="status"
+    :status="status"
     :sidebar-items="sidebarItems"
     :sidebar-title="sidebarTitle"
     :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="loadKey"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="loadKey"
+    hero-icon="🔐"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('outputTitle')"
+    :operation-title="t('payloadInputTitle')"
+    :wrap-result-card="false"
   >
-    <template #content>
-      <HeroSection variant="erobo" icon="🔐" compact>
-        <template #stats>
-          <HeroStatsStrip :items="heroStats" compact />
-        </template>
-      </HeroSection>
-
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-
+    <template #result>
       <NeoCard variant="erobo" :title="t('publicKeyTitle')" class="mb-6">
         <div class="details-grid">
           <div><span class="label">{{ t("algorithm") }}</span><span class="value">{{ keyMeta?.algorithm || "—" }}</span></div>
@@ -64,44 +62,42 @@
     </template>
 
     <template #operation>
-      <NeoCard variant="erobo" :title="t('payloadInputTitle')" class="px-1">
-        <div class="stack">
-          <div class="button-row">
-            <NeoButton :variant="inputMode === 'json' ? 'primary' : 'secondary'" @click="inputMode = 'json'">{{ t("jsonMode") }}</NeoButton>
-            <NeoButton :variant="inputMode === 'text' ? 'primary' : 'secondary'" @click="inputMode = 'text'">{{ t("textMode") }}</NeoButton>
-          </div>
-
-          <div class="button-row button-row--three">
-            <NeoButton :variant="fieldName === 'encrypted_payload' ? 'primary' : 'secondary'" @click="fieldName = 'encrypted_payload'">{{ t("encryptedPayload") }}</NeoButton>
-            <NeoButton :variant="fieldName === 'encrypted_params' ? 'primary' : 'secondary'" @click="fieldName = 'encrypted_params'">{{ t("encryptedParams") }}</NeoButton>
-            <NeoButton :variant="fieldName === 'encrypted_token' ? 'primary' : 'secondary'" @click="fieldName = 'encrypted_token'">{{ t("encryptedToken") }}</NeoButton>
-          </div>
-
-          <NeoInput
-            v-model="confidentialInput"
-            type="textarea"
-            :label="t('plaintextLabel')"
-            :hint="t('helperNote')"
-            placeholder="{&#10;  &quot;mode&quot;: &quot;builtin&quot;,&#10;  &quot;function&quot;: &quot;math.modexp&quot;,&#10;  &quot;input&quot;: { &quot;base&quot;: &quot;2&quot;, &quot;exponent&quot;: &quot;10&quot;, &quot;modulus&quot;: &quot;17&quot; }&#10;}"
-          />
-
-          <NeoInput v-model="storageName" :label="t('storageName')" placeholder="oracle-compute-demo" />
-          <NeoInput v-model="projectSlug" :label="t('projectSlug')" placeholder="optional" />
-          <NeoInput v-model="boundRequester" :label="t('requesterScriptHash')" placeholder="0x... optional" />
-          <NeoInput v-model="boundCallbackContract" :label="t('callbackContract')" placeholder="0x... optional" />
-
-          <NeoButton variant="secondary" :loading="isLoadingKey" @click="loadKey">{{ t("refreshKey") }}</NeoButton>
-          <NeoButton variant="primary" :loading="isSealing" :disabled="!canSeal" @click="sealPayload">{{ t("sealNow") }}</NeoButton>
-          <NeoButton variant="secondary" :loading="isStoring" :disabled="!canStoreRef" @click="storeCiphertextRef">{{ t("storeRef") }}</NeoButton>
+      <div class="stack">
+        <div class="button-row">
+          <NeoButton :variant="inputMode === 'json' ? 'primary' : 'secondary'" @click="inputMode = 'json'">{{ t("jsonMode") }}</NeoButton>
+          <NeoButton :variant="inputMode === 'text' ? 'primary' : 'secondary'" @click="inputMode = 'text'">{{ t("textMode") }}</NeoButton>
         </div>
-      </NeoCard>
+
+        <div class="button-row button-row--three">
+          <NeoButton :variant="fieldName === 'encrypted_payload' ? 'primary' : 'secondary'" @click="fieldName = 'encrypted_payload'">{{ t("encryptedPayload") }}</NeoButton>
+          <NeoButton :variant="fieldName === 'encrypted_params' ? 'primary' : 'secondary'" @click="fieldName = 'encrypted_params'">{{ t("encryptedParams") }}</NeoButton>
+          <NeoButton :variant="fieldName === 'encrypted_token' ? 'primary' : 'secondary'" @click="fieldName = 'encrypted_token'">{{ t("encryptedToken") }}</NeoButton>
+        </div>
+
+        <NeoInput
+          v-model="confidentialInput"
+          type="textarea"
+          :label="t('plaintextLabel')"
+          :hint="t('helperNote')"
+          placeholder="{&#10;  &quot;mode&quot;: &quot;builtin&quot;,&#10;  &quot;function&quot;: &quot;math.modexp&quot;,&#10;  &quot;input&quot;: { &quot;base&quot;: &quot;2&quot;, &quot;exponent&quot;: &quot;10&quot;, &quot;modulus&quot;: &quot;17&quot; }&#10;}"
+        />
+
+        <NeoInput v-model="storageName" :label="t('storageName')" placeholder="oracle-compute-demo" />
+        <NeoInput v-model="projectSlug" :label="t('projectSlug')" placeholder="optional" />
+        <NeoInput v-model="boundRequester" :label="t('requesterScriptHash')" placeholder="0x... optional" />
+        <NeoInput v-model="boundCallbackContract" :label="t('callbackContract')" placeholder="0x... optional" />
+
+        <NeoButton variant="secondary" :loading="isLoadingKey" @click="loadKey">{{ t("refreshKey") }}</NeoButton>
+        <NeoButton variant="primary" :loading="isSealing" :disabled="!canSeal" @click="sealPayload">{{ t("sealNow") }}</NeoButton>
+        <NeoButton variant="secondary" :loading="isStoring" :disabled="!canStoreRef" @click="storeCiphertextRef">{{ t("storeRef") }}</NeoButton>
+      </div>
     </template>
-  </MiniAppPage>
+  </ConsoleMiniApp>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { useOracle, type ConfidentialStoreResponse, type OraclePublicKeyResponse } from "@shared/composables/useOracle";
