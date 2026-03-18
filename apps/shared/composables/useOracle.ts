@@ -74,6 +74,16 @@ export interface NeoDidProvidersResponse {
   [key: string]: unknown;
 }
 
+export interface OraclePublicKeyResponse {
+  network: string;
+  source?: string;
+  contract?: string;
+  rpc_url?: string;
+  algorithm: string;
+  public_key: string;
+  public_key_format?: string;
+}
+
 export interface ComputeExecuteRequest {
   script: string;
   entry_point?: string;
@@ -437,6 +447,18 @@ export function useOracle(config: OracleConfig = {}) {
     }
   };
 
+  const getOraclePublicKey = async (): Promise<OraclePublicKeyResponse> => {
+    error.value = null;
+    try {
+      return await requestExternalJson<OraclePublicKeyResponse>(
+        `/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`,
+      );
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : "Oracle public key request failed";
+      throw e;
+    }
+  };
+
   return {
     integration,
     network,
@@ -464,5 +486,6 @@ export function useOracle(config: OracleConfig = {}) {
     executeRegisteredScript,
     resolveNeoDid,
     getNeoDidProviders,
+    getOraclePublicKey,
   };
 }
