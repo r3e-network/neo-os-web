@@ -5,11 +5,10 @@ import { formatNumber } from "@shared/utils/format";
 import { NeoCard } from "@shared/components";
 import type { TrustAnchorStats } from "../composables/useTrustAnchor";
 
-interface Props {
+defineProps<{
   stats: TrustAnchorStats | null;
-}
-
-defineProps<Props>();
+  slotCount: number;
+}>();
 
 const { t } = createUseI18n(messages)();
 const formatNum = (n: number | string) => formatNumber(n, 2);
@@ -20,26 +19,29 @@ const formatNum = (n: number | string) => formatNumber(n, 2);
     <div class="section-header mb-4">
       <span class="section-title">{{ t("philosophy") }}</span>
     </div>
-    <span class="philosophy-text">{{ t("philosophyText") }}</span>
+    <span class="copy-text">{{ t("philosophyText") }}</span>
   </NeoCard>
 
   <NeoCard variant="erobo" class="mt-4 px-1">
     <div class="section-header mb-4">
-      <span class="section-title">{{ t("statsTitle") }}</span>
+      <span class="section-title">{{ t("liveAccountingTitle") }}</span>
     </div>
-
     <div class="stats-detail">
       <div class="stat-row">
         <span class="stat-label">{{ t("totalStaked") }}</span>
         <span class="stat-value">{{ formatNum(stats?.totalStaked ?? 0) }} NEO</span>
       </div>
       <div class="stat-row">
-        <span class="stat-label">{{ t("agentsLabel") }}</span>
-        <span class="stat-value">{{ stats?.agentCount ?? 0 }}</span>
+        <span class="stat-label">{{ t("rewardPerStake") }}</span>
+        <span class="stat-value">{{ stats?.rps ?? "0" }}</span>
       </div>
       <div class="stat-row">
-        <span class="stat-label">{{ t("rpsLabel") }}</span>
-        <span class="stat-value">{{ stats?.rps ?? "0" }}</span>
+        <span class="stat-label">{{ t("routingSlotsLabel") }}</span>
+        <span class="stat-value">{{ slotCount }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">{{ t("defaultIngressLabel") }}</span>
+        <span class="stat-value">21</span>
       </div>
     </div>
   </NeoCard>
@@ -67,11 +69,20 @@ const formatNum = (n: number | string) => formatNumber(n, 2);
       </div>
     </div>
   </NeoCard>
+
+  <NeoCard variant="erobo" class="mt-4 px-1">
+    <div class="section-header mb-4">
+      <span class="section-title">{{ t("adminControlTitle") }}</span>
+    </div>
+    <div class="admin-points">
+      <span class="admin-point">{{ t("adminControl1") }}</span>
+      <span class="admin-point">{{ t("adminControl2") }}</span>
+      <span class="admin-point">{{ t("adminControl3") }}</span>
+    </div>
+  </NeoCard>
 </template>
 
 <style lang="scss" scoped>
-@use "@shared/styles/tokens.scss" as *;
-
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -80,12 +91,12 @@ const formatNum = (n: number | string) => formatNumber(n, 2);
 
 .section-title {
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 800;
 }
 
-.philosophy-text {
+.copy-text {
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.7;
   opacity: 0.9;
 }
 
@@ -98,23 +109,31 @@ const formatNum = (n: number | string) => formatNumber(n, 2);
 .stat-row {
   display: flex;
   justify-content: space-between;
+  gap: 16px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .stat-row:last-child {
   border-bottom: none;
 }
 
-.mt-4 {
-  margin-top: 16px;
+.stat-label {
+  font-size: 12px;
+  opacity: 0.66;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
-.text-green {
-  color: var(--trustanchor-success);
+.stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
 }
 
-.steps-list {
+.steps-list,
+.admin-points {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -132,14 +151,17 @@ const formatNum = (n: number | string) => formatNumber(n, 2);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--erobo-purple);
   border-radius: 50%;
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 800;
 }
 
-.step-text {
+.step-text,
+.admin-point {
   font-size: 14px;
+  line-height: 1.6;
   opacity: 0.9;
 }
 </style>
