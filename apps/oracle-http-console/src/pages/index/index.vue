@@ -1,38 +1,44 @@
 <template>
-  <MiniAppPage name="oracle-http-console" :config="templateConfig" :state="appState" :t="t" :status-message="status"
-    :sidebar-items="sidebarItems" :sidebar-title="sidebarTitle" :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError" :on-boundary-retry="runQuery">
-    <template #content>
-      <HeroSection variant="erobo" icon="🌐" compact>
-        <template #stats><HeroStatsStrip :items="heroStats" compact /></template>
-      </HeroSection>
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-      <NeoCard variant="erobo" :title="t('latestResponse')" class="px-1">
-        <div class="response-grid">
-          <div><span class="label">Status</span><span class="value">{{ response?.status_code ?? "—" }}</span></div>
-          <div><span class="label">Headers</span><span class="value">{{ responseHeaders }}</span></div>
-          <div><span class="label">Body</span><span class="value">{{ responseBody }}</span></div>
-        </div>
-      </NeoCard>
+  <OracleConsoleMiniApp
+    page-name="oracle-http-console"
+    :template-config="templateConfig"
+    :app-state="appState"
+    :t="t"
+    :status="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="runQuery"
+    hero-icon="🌐"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('latestResponse')"
+    :operation-title="t('runQuery')"
+  >
+    <template #result>
+      <div class="response-grid">
+        <div><span class="label">Status</span><span class="value">{{ response?.status_code ?? "—" }}</span></div>
+        <div><span class="label">Headers</span><span class="value">{{ responseHeaders }}</span></div>
+        <div><span class="label">Body</span><span class="value">{{ responseBody }}</span></div>
+      </div>
     </template>
     <template #operation>
-      <NeoCard variant="erobo" :title="t('runQuery')" class="px-1">
-        <div class="stack">
-          <NeoInput v-model="form.url" :label="t('url')" placeholder="https://api.binance.com/api/v3/ticker/price?symbol=NEOUSDT" />
-          <NeoInput v-model="form.method" :label="t('method')" placeholder="GET" />
-          <NeoInput v-model="form.secretName" :label="t('secretName')" placeholder="optional" />
-          <NeoInput v-model="form.secretAsKey" :label="t('secretAsKey')" placeholder="Authorization / X-API-Key" />
-          <label class="textarea-label">{{ t("body") }}</label>
-          <textarea v-model="form.body" class="json-box" rows="6"></textarea>
-          <NeoButton variant="primary" :loading="oracle.isRequesting" @click="runQuery">{{ t("runQuery") }}</NeoButton>
-        </div>
-      </NeoCard>
+      <div class="stack">
+        <NeoInput v-model="form.url" :label="t('url')" placeholder="https://api.binance.com/api/v3/ticker/price?symbol=NEOUSDT" />
+        <NeoInput v-model="form.method" :label="t('method')" placeholder="GET" />
+        <NeoInput v-model="form.secretName" :label="t('secretName')" placeholder="optional" />
+        <NeoInput v-model="form.secretAsKey" :label="t('secretAsKey')" placeholder="Authorization / X-API-Key" />
+        <label class="textarea-label">{{ t("body") }}</label>
+        <textarea v-model="form.body" class="json-box" rows="6"></textarea>
+        <NeoButton variant="primary" :loading="oracle.isRequesting" @click="runQuery">{{ t("runQuery") }}</NeoButton>
+      </div>
     </template>
-  </MiniAppPage>
+  </OracleConsoleMiniApp>
 </template>
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { HeroStatsStrip, NeoButton, NeoInput, OracleConsoleMiniApp } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";

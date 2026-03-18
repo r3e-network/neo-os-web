@@ -1,51 +1,43 @@
 <template>
-  <MiniAppPage
-    name="oracle-neodid-console"
-    :config="templateConfig"
-    :state="appState"
+  <OracleConsoleMiniApp
+    page-name="oracle-neodid-console"
+    :template-config="templateConfig"
+    :app-state="appState"
     :t="t"
-    :status-message="status"
+    :status="status"
     :sidebar-items="sidebarItems"
     :sidebar-title="sidebarTitle"
     :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="resolveDid"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="resolveDid"
+    hero-icon="🪪"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('latestDocument')"
+    :operation-title="t('resolveDid')"
   >
-    <template #content>
-      <HeroSection variant="erobo" icon="🪪" compact>
-        <template #stats>
-          <HeroStatsStrip :items="heroStats" compact />
-        </template>
-      </HeroSection>
-
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-
-      <NeoCard variant="erobo" :title="t('latestDocument')" class="px-1">
-        <pre class="json-box">{{ renderedPayload }}</pre>
-      </NeoCard>
+    <template #result>
+      <pre class="json-box">{{ renderedPayload }}</pre>
     </template>
-
     <template #operation>
-      <NeoCard variant="erobo" :title="t('resolveDid')" class="px-1">
-        <div class="stack">
-          <NeoInput v-model="did" :label="t('did')" placeholder="did:morpheus:neo_n3:service:neodid" />
-          <NeoInput v-model="format" :label="t('format')" placeholder="resolution / document" />
-          <div class="button-row">
-            <NeoButton variant="secondary" @click="applyExample('service')">{{ t("serviceDid") }}</NeoButton>
-            <NeoButton variant="secondary" @click="applyExample('vault')">{{ t("vaultDid") }}</NeoButton>
-            <NeoButton variant="secondary" @click="applyExample('aa')">{{ t("aaDid") }}</NeoButton>
-          </div>
-          <NeoButton variant="primary" :loading="oracle.isRequesting" @click="resolveDid">{{ t("resolveDid") }}</NeoButton>
-          <NeoButton variant="secondary" :loading="oracle.isRequesting" @click="loadProviders">{{ t("loadProviders") }}</NeoButton>
+      <div class="stack">
+        <NeoInput v-model="did" :label="t('did')" placeholder="did:morpheus:neo_n3:service:neodid" />
+        <NeoInput v-model="format" :label="t('format')" placeholder="resolution / document" />
+        <div class="button-row">
+          <NeoButton variant="secondary" @click="applyExample('service')">{{ t("serviceDid") }}</NeoButton>
+          <NeoButton variant="secondary" @click="applyExample('vault')">{{ t("vaultDid") }}</NeoButton>
+          <NeoButton variant="secondary" @click="applyExample('aa')">{{ t("aaDid") }}</NeoButton>
         </div>
-      </NeoCard>
+        <NeoButton variant="primary" :loading="oracle.isRequesting" @click="resolveDid">{{ t("resolveDid") }}</NeoButton>
+        <NeoButton variant="secondary" :loading="oracle.isRequesting" @click="loadProviders">{{ t("loadProviders") }}</NeoButton>
+      </div>
     </template>
-  </MiniAppPage>
+  </OracleConsoleMiniApp>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { HeroStatsStrip, NeoButton, NeoInput, OracleConsoleMiniApp } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
