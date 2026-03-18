@@ -29,9 +29,9 @@
 
 | 属性 | 值 |
 |------|----|
-| **合约** | `待部署` |
+| **合约** | `0x4c6cd496a8487ee4d4725751c1f2e7be2da23599` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **浏览器** | `https://testnet.neotube.io` |
+| **浏览器** | [在 NeoTube 查看](https://testnet.neotube.io/contract/0x4c6cd496a8487ee4d4725751c1f2e7be2da23599) |
 
 ### Mainnet
 
@@ -41,4 +41,4 @@
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **浏览器** | `https://neotube.io` |
 
-> `neo-manifest.json` 会继续保持空合约地址，直到正式部署完成。前端仍可展示项目与轮次信息，但链上募资流程会保持禁用。
+> 测试网现已部署并验证通过。主网地址仍保持为空，等待后续单独上线。
