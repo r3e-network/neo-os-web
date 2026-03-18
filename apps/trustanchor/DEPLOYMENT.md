@@ -32,4 +32,18 @@ The target architecture is:
 
 The trustanchor miniapp frontend has already been refactored to the verification-script agent-account model.
 
-The live trustanchor contract is intentionally still unset in this repository until the new agent-account model is finalized and tested end-to-end.
+The testnet contract is live at `0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2`.
+
+All 21 verification-script agent accounts have been generated from one admin key and written into the testnet contract state.
+
+Current verified behavior:
+
+- fresh user stake auto-routes into agent 21
+- withdraw can queue when core liquidity is unavailable
+- reward accounting follows the single-contract RPS model
+
+Still pending before mainnet:
+
+- production operating procedure for returning NEO from agent accounts to the core contract
+- fee strategy for agent-account initiated return transactions
+- full operator playbook for rebalancing and pending-withdraw settlement

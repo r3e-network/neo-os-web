@@ -104,6 +104,17 @@
               {{ t("claim") }}
             </NeoButton>
           </div>
+
+          <div class="claim-panel claim-panel--withdraw">
+            <div class="claim-panel__copy">
+              <span class="claim-panel__label">{{ t("pendingWithdrawLabel") }}</span>
+              <span class="claim-panel__value">{{ formatNum(pendingWithdraw) }} NEO</span>
+              <span class="claim-panel__hint">{{ t("withdrawQueueDesc") }}</span>
+            </div>
+            <NeoButton variant="secondary" :disabled="pendingWithdraw <= 0" @click="handleClaimPendingWithdraw">
+              {{ t("claimPendingWithdraw") }}
+            </NeoButton>
+          </div>
         </div>
 
         <div v-else class="connect-prompt">
@@ -153,10 +164,12 @@ const {
   stats,
   myStake,
   pendingRewards,
+  pendingWithdraw,
   loadAll,
   stake,
   unstake,
   claimRewards,
+  claimPendingWithdraw,
 } = useTrustAnchor((key: string) => t(key));
 
 const agentAccounts = TRUSTANCHOR_AGENT_ACCOUNTS;
@@ -194,6 +207,7 @@ const contractReady = ref(false);
 const appState = computed(() => ({
   myStake: myStake.value,
   pendingRewards: pendingRewards.value,
+  pendingWithdraw: pendingWithdraw.value,
   agentAccounts: agentAccounts.length,
   defaultIngressAgent: 21,
 }));
@@ -257,6 +271,11 @@ const handleClaim = async () => {
   } finally {
     isClaiming.value = false;
   }
+};
+
+const handleClaimPendingWithdraw = async () => {
+  if (pendingWithdraw.value <= 0) return;
+  await claimPendingWithdraw();
 };
 
 const resetAndReload = async () => {

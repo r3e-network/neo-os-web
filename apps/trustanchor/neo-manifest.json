@@ -23,7 +23,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "",
-    "neo-n3-testnet": ""
+    "neo-n3-testnet": "0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2"
   },
   "supported_networks": [
     "neo-n3-testnet"
@@ -39,7 +39,7 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://trustanchor"
   },
@@ -57,5 +57,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T03:15:00Z"
+  "updatedAt": "2026-03-18T04:10:00Z"
 }

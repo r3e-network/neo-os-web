@@ -19,6 +19,8 @@ TrustAnchor is being rebuilt around **verification-script agent accounts**, not 
 - Admin adjusts vote exposure only by moving **real NEO** from agent A to agent B.
 - There is **no** per-candidate child contract in the target architecture. Each candidate is represented by a numbered agent account instead.
 - GAS rewards remain a pool-level accounting problem and are distributed pro rata to stakers.
+- If the core contract has enough NEO liquidity, withdraw can settle immediately.
+- If liquidity is still sitting inside agent accounts, withdraw enters a pending queue until enough NEO returns to the core contract.
 
 ## Why This Refactor Exists
 
@@ -45,9 +47,9 @@ There is no candidate ranking page and no old agent-contract management page any
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Pending verification-script agent-account rollout` |
+| **Contract** | `0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | `https://testnet.neotube.io` |
+| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -59,7 +61,14 @@ There is no candidate ranking page and no old agent-contract management page any
 | **Explorer** | `https://neotube.io` |
 | **Network Magic** | `860833102` |
 
-> The miniapp UI has already been refactored to the new model. The live contract remains intentionally unset until the verification-script agent-account rollout is finalized.
+> Testnet single-contract rollout is now live. Mainnet remains intentionally unset until the verification-script agent-account operations model is validated further.
+
+## Verified Testnet Flows
+
+- User deposit updates `stakeOf(user)` and auto-routes the same NEO amount into `agent 21`.
+- User withdraw reduces `stakeOf(user)` immediately.
+- If core liquidity is unavailable, the same withdraw is recorded in `pendingWithdrawOf(user)`.
+- Reward accounting uses an RPS accumulator and is covered by automated model tests in [TrustAnchorRewardModelTest.cs](/Users/jinghuiliao/git/neo-miniapps-platform/contracts/__tests__/TrustAnchorRewardModelTest.cs).
 
 ## Assets
 
