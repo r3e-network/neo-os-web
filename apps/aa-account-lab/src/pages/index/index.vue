@@ -1,57 +1,50 @@
 <template>
-  <MiniAppPage
-    name="aa-account-lab"
-    :config="templateConfig"
-    :state="appState"
+  <ConsoleMiniApp
+    page-name="aa-account-lab"
+    :template-config="templateConfig"
+    :app-state="appState"
     :t="t"
-    :status-message="status"
+    :status="status"
     :sidebar-items="sidebarItems"
     :sidebar-title="sidebarTitle"
     :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="inspectAccount"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="inspectAccount"
+    hero-icon="🪪"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('inspectorTitle')"
+    :operation-title="t('registerTitle')"
   >
-    <template #content>
-      <HeroSection variant="erobo" icon="🪪" compact>
-        <template #stats>
-          <HeroStatsStrip :items="heroStats" compact />
-        </template>
-      </HeroSection>
-
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-
-      <NeoCard variant="erobo" :title="t('inspectorTitle')" class="px-1">
-        <div class="field-stack">
-          <NeoInput v-model="inspectForm.accountIdInput" :label="t('accountId')" :placeholder="t('accountIdPlaceholder')" />
-          <div class="actions-row">
-            <NeoButton variant="primary" :loading="isInspecting" @click="inspectAccount">{{ t("inspect") }}</NeoButton>
-            <NeoButton variant="secondary" @click="connect">{{ t("connectWallet") }}</NeoButton>
-          </div>
+    <template #result>
+      <div class="field-stack">
+        <NeoInput v-model="inspectForm.accountIdInput" :label="t('accountId')" :placeholder="t('accountIdPlaceholder')" />
+        <div class="actions-row">
+          <NeoButton variant="primary" :loading="isInspecting" @click="inspectAccount">{{ t("inspect") }}</NeoButton>
+          <NeoButton variant="secondary" @click="connect">{{ t("connectWallet") }}</NeoButton>
         </div>
+      </div>
 
-        <DetailCardGrid :items="detailItems" />
-      </NeoCard>
+      <DetailCardGrid :items="detailItems" />
     </template>
 
     <template #operation>
-      <NeoCard variant="erobo" :title="t('registerTitle')" class="px-1">
-        <div class="field-stack">
-          <NeoInput v-model="registerForm.accountIdInput" :label="t('accountId')" :placeholder="t('accountIdPlaceholder')" />
-          <NeoInput v-model="registerForm.verifierHash" :label="t('verifier')" placeholder="0x..." />
-          <NeoInput v-model="registerForm.verifierParamsHex" :label="t('verifierParams')" placeholder="hex payload" />
-          <NeoInput v-model="registerForm.hookHash" :label="t('hook')" placeholder="0x... or empty" />
-          <NeoInput v-model="registerForm.backupOwner" :label="t('backupOwner')" placeholder="N... or 0x..." />
-          <NeoInput v-model="registerForm.escapeTimelock" :label="t('timelock')" placeholder="2592000" />
-          <NeoButton variant="primary" :loading="isSubmitting" @click="submitRegister">{{ t("register") }}</NeoButton>
-        </div>
-      </NeoCard>
+      <div class="field-stack">
+        <NeoInput v-model="registerForm.accountIdInput" :label="t('accountId')" :placeholder="t('accountIdPlaceholder')" />
+        <NeoInput v-model="registerForm.verifierHash" :label="t('verifier')" placeholder="0x..." />
+        <NeoInput v-model="registerForm.verifierParamsHex" :label="t('verifierParams')" placeholder="hex payload" />
+        <NeoInput v-model="registerForm.hookHash" :label="t('hook')" placeholder="0x... or empty" />
+        <NeoInput v-model="registerForm.backupOwner" :label="t('backupOwner')" placeholder="N... or 0x..." />
+        <NeoInput v-model="registerForm.escapeTimelock" :label="t('timelock')" placeholder="2592000" />
+        <NeoButton variant="primary" :loading="isSubmitting" @click="submitRegister">{{ t("register") }}</NeoButton>
+      </div>
     </template>
-  </MiniAppPage>
+  </ConsoleMiniApp>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import { DetailCardGrid, HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { ConsoleMiniApp, DetailCardGrid, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";

@@ -1,29 +1,30 @@
 <template>
-  <MiniAppPage
-    name="aa-permissions-lab"
-    :config="templateConfig"
-    :state="appState"
+  <ConsoleMiniApp
+    page-name="aa-permissions-lab"
+    :template-config="templateConfig"
+    :app-state="appState"
     :t="t"
-    :status-message="status"
+    :status="status"
     :sidebar-items="sidebarItems"
     :sidebar-title="sidebarTitle"
     :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="refreshState"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="refreshState"
+    hero-icon="🧩"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('updateVerifier')"
+    :operation-title="t('updateVerifier')"
+    :wrap-operation-card="false"
   >
-    <template #content>
-      <HeroSection variant="erobo" icon="🧩" compact>
-        <template #stats><HeroStatsStrip :items="heroStats" compact /></template>
-      </HeroSection>
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-      <NeoCard variant="erobo" class="px-1">
-        <div class="stack">
-          <NeoInput v-model="form.accountIdHash" :label="t('accountId')" placeholder="20-byte hash" />
-          <NeoButton variant="secondary" :loading="isRefreshing" @click="refreshState">{{ t("inspect") }}</NeoButton>
-        </div>
-        <DetailCardGrid :items="detailItems" :columns="3" />
-      </NeoCard>
+    <template #result>
+      <div class="stack">
+        <NeoInput v-model="form.accountIdHash" :label="t('accountId')" placeholder="20-byte hash" />
+        <NeoButton variant="secondary" :loading="isRefreshing" @click="refreshState">{{ t("inspect") }}</NeoButton>
+      </div>
+      <DetailCardGrid :items="detailItems" :columns="3" />
     </template>
+
     <template #operation>
       <NeoCard variant="erobo" :title="t('updateVerifier')" class="mb-4 px-1">
         <div class="stack">
@@ -39,12 +40,12 @@
         </div>
       </NeoCard>
     </template>
-  </MiniAppPage>
+  </ConsoleMiniApp>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import { DetailCardGrid, HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { ConsoleMiniApp, DetailCardGrid, HeroStatsStrip, NeoButton, NeoCard, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
