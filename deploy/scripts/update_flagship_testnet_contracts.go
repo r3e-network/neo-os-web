@@ -88,6 +88,10 @@ var targets = []flagshipTarget{
 	{"FogPlay", "apps/fogplay/neo-manifest.json", "contracts/build/MiniAppFogPlay.nef", "contracts/build/MiniAppFogPlay.manifest.json", "admin"},
 	{"SelfLoan", "apps/self-loan/neo-manifest.json", "contracts/build/MiniAppSelfLoan.nef", "contracts/build/MiniAppSelfLoan.manifest.json", "admin"},
 	{"NeoPay", "apps/neo-pay/neo-manifest.json", "contracts/build/MiniAppNeoPay.nef", "contracts/build/MiniAppNeoPay.manifest.json", "admin"},
+	{"FlashLoan", "apps/flashloan/neo-manifest.json", "contracts/build/MiniAppFlashLoan.nef", "contracts/build/MiniAppFlashLoan.manifest.json", "admin"},
+	{"BurnLeague", "apps/burn-league/neo-manifest.json", "contracts/build/MiniAppBurnLeague.nef", "contracts/build/MiniAppBurnLeague.manifest.json", "admin"},
+	{"BreakupContract", "apps/breakup-contract/neo-manifest.json", "contracts/build/MiniAppBreakupContract.nef", "contracts/build/MiniAppBreakupContract.manifest.json", "admin"},
+	{"DevTipping", "apps/dev-tipping/neo-manifest.json", "contracts/build/MiniAppDevTipping.nef", "contracts/build/MiniAppDevTipping.manifest.json", "admin"},
 }
 
 func main() {
