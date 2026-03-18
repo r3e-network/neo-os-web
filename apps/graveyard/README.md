@@ -74,7 +74,7 @@ Encrypted memory burial with paid forgetting
 ### Current Integration Surface
 
 - direct prepaid GAS to the MiniApp contract
-- no PaymentHub receipt path
+- direct contract invocation only
 - optional Oracle / AA integrations remain external
 
 ## Development
@@ -97,7 +97,7 @@ npm run build
 ## Funding Model
 
 - direct prepaid GAS to the MiniApp contract
-- no PaymentHub receipt path
+- direct contract invocation only
 - wallet signs the transfer first, then the business call
 
 

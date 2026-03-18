@@ -7,7 +7,7 @@
 | 属性 | 值 |
 |------|----|
 | **App ID** | `miniapp-event-ticket-pass` |
-| **分类** | utility |
+| **分类** | 社交 |
 | **版本** | 1.0.0 |
 | **框架** | Vue 3 (uni-app) |
 
@@ -50,16 +50,16 @@
 
 | 属性 | 值 |
 |------|----|
-| **合约** | `未部署` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
+| **合约** | `待部署` |
+| **RPC** | `https://n3seed1.ngd.network:20332` |
 | **浏览器** | `https://testnet.neotube.io` |
 
 ### Mainnet
 
 | 属性 | 值 |
 |------|----|
-| **合约** | `未部署` |
+| **合约** | `待部署` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **浏览器** | `https://neotube.io` |
 
-> 合约部署尚未完成，`neo-manifest.json` 将保持空地址直到部署完成。
+> `neo-manifest.json` 会继续保持空合约地址，直到正式部署完成。前端现在会明确展示“待部署”状态，而不是继续发起无效链上请求。

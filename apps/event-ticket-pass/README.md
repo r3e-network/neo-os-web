@@ -7,7 +7,7 @@ NEP-11 event tickets with QR check-in.
 | Property | Value |
 |----------|-------|
 | **App ID** | `miniapp-event-ticket-pass` |
-| **Category** | utility |
+| **Category** | Social |
 | **Version** | 1.0.0 |
 | **Framework** | Vue 3 (uni-app) |
 
@@ -50,19 +50,19 @@ NEP-11 event tickets with QR check-in.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Not deployed` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
+| **Contract** | `Pending deployment` |
+| **RPC** | `https://n3seed1.ngd.network:20332` |
 | **Explorer** | `https://testnet.neotube.io` |
 
 ### Mainnet
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Not deployed` |
+| **Contract** | `Pending deployment` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **Explorer** | `https://neotube.io` |
 
-> Contract deployment is pending; `neo-manifest.json` keeps empty addresses until deployment.
+> `neo-manifest.json` intentionally keeps both contract hashes empty until a real rollout happens. The frontend now renders a deployment-pending state instead of attempting broken chain calls.
 
 ## Usage
 

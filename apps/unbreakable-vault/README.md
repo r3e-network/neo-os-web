@@ -76,7 +76,7 @@ Hacker bounty vaults secured by SHA-256 hashes
 ### Current Integration Surface
 
 - direct prepaid GAS to the MiniApp contract
-- no PaymentHub receipt path
+- direct contract invocation only
 - Oracle / AA integrations remain external and configurable
 
 ## Development
@@ -99,7 +99,7 @@ npm run build
 ## Funding Model
 
 - direct prepaid GAS to the MiniApp contract
-- no PaymentHub receipt path
+- direct contract invocation only
 - wallet signs the transfer first, then the business call
 
 

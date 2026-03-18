@@ -148,7 +148,7 @@ For technical issues, contact the Neo MiniApp team.
 
 - The request path currently uses the platform sponsorship API exposed by the wallet SDK.
 - Donate / send actions are normal wallet-signed transfers.
-- The current runtime does not rely on PaymentHub receipts.
+- The current runtime uses direct contract invocation only.
 
 ## Network Configuration
 

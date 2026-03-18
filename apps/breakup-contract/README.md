@@ -107,7 +107,7 @@ Relationship commitment with GAS stakes
 ### Current Integration Surface
 
 - direct prepaid GAS to the MiniApp contract for create/sign
-- no PaymentHub receipt path on the main user flow
+- direct contract invocation on the main user flow
 - optional Oracle / AA integrations remain external
 
 ## Development
