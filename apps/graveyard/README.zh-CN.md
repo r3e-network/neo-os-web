@@ -47,9 +47,9 @@
 
 | 属性 | 值 |
 |------|-----|
-| **合约地址** | `0xe88938b2c2032483cf5edcdab7e4bde981e5fb24` |
+| **合约地址** | `0xb55aa635b10a5abb5cbac169db26a38df739778e` |
 | **RPC 节点** | `https://testnet1.neo.coz.io:443` |
-| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xe88938b2c2032483cf5edcdab7e4bde981e5fb24) |
+| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xb55aa635b10a5abb5cbac169db26a38df739778e) |
 | **网络魔数** | `894710606` |
 
 ### 主网 (Mainnet)
