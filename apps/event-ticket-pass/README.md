@@ -50,9 +50,9 @@ NEP-11 event tickets with QR check-in.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Pending deployment` |
+| **Contract** | `0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | `https://testnet.neotube.io` |
+| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72) |
 
 ### Mainnet
 
@@ -62,7 +62,7 @@ NEP-11 event tickets with QR check-in.
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **Explorer** | `https://neotube.io` |
 
-> `neo-manifest.json` intentionally keeps both contract hashes empty until a real rollout happens. The frontend now renders a deployment-pending state instead of attempting broken chain calls.
+> Testnet is now live and verified. Mainnet stays intentionally blank until a separate rollout is completed.
 
 ## Usage
 

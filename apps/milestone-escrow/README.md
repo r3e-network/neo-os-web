@@ -189,9 +189,9 @@ For technical issues, contact the Neo MiniApp team.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Pending deployment` |
+| **Contract** | `0x2a3691aa2da68512e9bf1363f383f354b6a02aad` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | `https://testnet.neotube.io` |
+| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x2a3691aa2da68512e9bf1363f383f354b6a02aad) |
 
 ### Mainnet
 
@@ -201,4 +201,4 @@ For technical issues, contact the Neo MiniApp team.
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **Explorer** | `https://neotube.io` |
 
-> `neo-manifest.json` intentionally keeps both contract hashes empty until a real rollout happens. The frontend now renders a deployment-pending state instead of attempting broken chain calls.
+> Testnet is now live and verified. Mainnet stays intentionally blank until a separate rollout is completed.

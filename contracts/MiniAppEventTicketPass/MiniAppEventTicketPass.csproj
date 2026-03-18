@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="../MiniApp.DevPack/MiniAppContractUsings.cs" Link="MiniAppContractUsings.cs" />
+    <Compile Include="../MiniApp.DevPack/MiniAppCompactBase.cs" Link="MiniAppCompactBase.cs" />
+  </ItemGroup>
+</Project>

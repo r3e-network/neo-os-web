@@ -21,12 +21,12 @@
   },
   "contracts": {
     "neo-n3-mainnet": "",
-    "neo-n3-testnet": ""
+    "neo-n3-testnet": "0x14a4101b5098c38a18bebeb79dc809c80ff87f9e"
   },
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/soulbound-certificate/index.html",
     "icon": "/miniapps/soulbound-certificate/logo.jpg",
@@ -37,13 +37,13 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://soulbound-certificate"
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-mainnet",
+    "chain": "neo-n3-testnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -55,5 +55,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-03-18T03:00:00Z"
 }
