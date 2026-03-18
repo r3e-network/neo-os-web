@@ -1,32 +1,38 @@
 <template>
-  <MiniAppPage name="oracle-price-console" :config="templateConfig" :state="appState" :t="t" :status-message="status"
-    :sidebar-items="sidebarItems" :sidebar-title="sidebarTitle" :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError" :on-boundary-retry="fetchPrice">
-    <template #content>
-      <HeroSection variant="erobo" icon="📈" compact>
-        <template #stats><HeroStatsStrip :items="heroStats" compact /></template>
-      </HeroSection>
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-      <NeoCard variant="erobo" :title="t('latestPrice')" class="px-1">
-        <div class="result-card">
-          <span class="result-symbol">{{ asset }}</span>
-          <span class="result-price">{{ priceDisplay }}</span>
-        </div>
-      </NeoCard>
+  <OracleConsoleMiniApp
+    page-name="oracle-price-console"
+    :template-config="templateConfig"
+    :app-state="appState"
+    :t="t"
+    :status="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="fetchPrice"
+    hero-icon="📈"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('latestPrice')"
+    :operation-title="t('fetchPrice')"
+  >
+    <template #result>
+      <div class="result-card">
+        <span class="result-symbol">{{ asset }}</span>
+        <span class="result-price">{{ priceDisplay }}</span>
+      </div>
     </template>
     <template #operation>
-      <NeoCard variant="erobo" :title="t('fetchPrice')" class="px-1">
-        <div class="stack">
-          <NeoInput v-model="asset" :label="t('asset')" :placeholder="t('assetPlaceholder')" />
-          <NeoButton variant="primary" :loading="oracle.isRequesting" @click="fetchPrice">{{ t("fetchPrice") }}</NeoButton>
-        </div>
-      </NeoCard>
+      <div class="stack">
+        <NeoInput v-model="asset" :label="t('asset')" :placeholder="t('assetPlaceholder')" />
+        <NeoButton variant="primary" :loading="oracle.isRequesting" @click="fetchPrice">{{ t("fetchPrice") }}</NeoButton>
+      </div>
     </template>
-  </MiniAppPage>
+  </OracleConsoleMiniApp>
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { HeroStatsStrip, NeoButton, NeoInput, OracleConsoleMiniApp } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
