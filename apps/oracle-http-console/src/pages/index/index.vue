@@ -78,4 +78,12 @@ const responseHeaders = computed(() => JSON.stringify(response.value?.headers ??
 const responseBody = computed(() => String(response.value?.body ?? "—"));
 const appState = computed(() => ({ url: form.url, status: response.value?.status_code ?? null }));
 </script>
-<style scoped>.stack{display:flex;flex-direction:column;gap:14px}.json-box{width:100%;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,.08);padding:12px;color:inherit;font-family:var(--font-mono,monospace)}.textarea-label,.label{display:block;font-size:11px;opacity:.6;text-transform:uppercase}.value{display:block;margin-top:6px;font-size:13px;word-break:break-all;white-space:pre-wrap}.response-grid{display:grid;grid-template-columns:1fr;gap:12px}</style>
+<style scoped lang="scss">
+@use "@shared/styles/console-common" as console;
+
+.stack { @include console.stack; }
+.json-box { @include console.json-box; }
+.textarea-label, .label { @include console.label; }
+.value { @include console.value; }
+.response-grid { @include console.single-column-grid; }
+</style>

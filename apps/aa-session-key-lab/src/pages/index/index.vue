@@ -119,12 +119,13 @@ const overviewStats = computed<StatsDisplayItem[]>(() => [
 const appState = computed(() => ({ aaAddress: aaAddress.value, session: aa.hasActiveSession.value }));
 </script>
 
-<style scoped>
-.stack{display:flex;flex-direction:column;gap:14px}
-.actions-row{display:flex;gap:12px;flex-wrap:wrap}
-.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.detail-card{padding:14px;border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08)}
-.detail-label{display:block;font-size:11px;opacity:.6;text-transform:uppercase}
-.detail-value{display:block;margin-top:8px;font-size:13px;word-break:break-all;white-space:pre-wrap}
-@media (max-width: 767px){.detail-grid{grid-template-columns:1fr}}
+<style scoped lang="scss">
+@use "@shared/styles/console-common" as console;
+
+.stack { @include console.stack; }
+.actions-row { @include console.actions-row; }
+.detail-grid { @include console.detail-grid; }
+.detail-card { @include console.detail-card; }
+.detail-label { @include console.label; }
+.detail-value { @include console.value; margin-top: 8px; }
 </style>
