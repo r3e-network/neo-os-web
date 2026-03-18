@@ -96,7 +96,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Deposit liquidity to the flash loan pool.
         /// </summary>
-        public static void Deposit(UInt160 depositor, BigInteger amount, BigInteger receiptId)
+        public static void Deposit(UInt160 depositor, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
             ValidateUserOrAbstractAccount(depositor);

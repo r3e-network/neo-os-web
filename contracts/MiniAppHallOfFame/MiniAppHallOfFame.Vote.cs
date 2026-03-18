@@ -9,7 +9,7 @@ namespace NeoMiniAppPlatform.Contracts
     {
         #region Vote Method
 
-        public static void Vote(UInt160 voter, string category, string nominee, BigInteger amount, BigInteger receiptId)
+        public static void Vote(UInt160 voter, string category, string nominee, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount >= MIN_VOTE, "min 0.1 GAS");
@@ -24,7 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
             Nominee nom = GetNominee(category, nominee);
             ExecutionEngine.Assert(nom.AddedBy != UInt160.Zero, "invalid nominee");
 
-            ValidatePaymentReceipt(APP_ID, voter, amount, receiptId);
+            ConsumeDirectGasCredit(voter, amount);
 
             nom.TotalVotes += amount;
             nom.VoteCount += 1;

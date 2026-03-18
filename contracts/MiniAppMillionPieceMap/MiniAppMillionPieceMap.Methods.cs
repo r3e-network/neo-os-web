@@ -13,7 +13,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Claim an unclaimed piece on the map.
         /// </summary>
-        public static void ClaimPiece(UInt160 owner, BigInteger x, BigInteger y, BigInteger receiptId)
+        public static void ClaimPiece(UInt160 owner, BigInteger x, BigInteger y)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(x >= 0 && x < MAP_WIDTH, "invalid x");
@@ -24,7 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(owner);
 
-            ValidatePaymentReceipt(APP_ID, owner, PIECE_PRICE, receiptId);
+            ConsumeDirectGasCredit(owner, PIECE_PRICE);
 
             BigInteger regionId = GetRegionId(x, y);
 

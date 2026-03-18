@@ -12,7 +12,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Verify a record (requires verification fee).
         /// </summary>
-        public static void VerifyRecord(BigInteger recordId, UInt160 verifier, BigInteger receiptId)
+        public static void VerifyRecord(BigInteger recordId, UInt160 verifier)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -24,7 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(verifier);
 
-            ValidatePaymentReceipt(APP_ID, verifier, VERIFY_FEE, receiptId);
+            ConsumeDirectGasCredit(verifier, VERIFY_FEE);
 
             record.Verified = true;
             record.Verifier = verifier;

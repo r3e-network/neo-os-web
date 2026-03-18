@@ -26,12 +26,13 @@
 
 Starts and finishes the flash loan atomically in one transaction.
 
-### `deposit(UInt160 depositor, BigInteger amount, BigInteger receiptId)`
+### `deposit(UInt160 depositor, BigInteger amount)`
 
 Credits direct prepaid GAS into pool liquidity.
 
 Note:
-- `receiptId` is kept for ABI continuity, but the live funding path is direct prepaid GAS credit.
+- send GAS to the contract first with memo prefix `miniapp-flashloan:`
+- then call `deposit` with the same `amount`
 
 ### `withdraw(UInt160 provider, BigInteger amount)`
 

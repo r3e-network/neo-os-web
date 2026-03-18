@@ -15,7 +15,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void DeleteRecord(BigInteger recordId, UInt160 owner)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             RecordData record = GetRecord(recordId);
             ExecutionEngine.Assert(record.Creator == owner, "not owner");

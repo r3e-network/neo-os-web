@@ -17,7 +17,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(price > 0, "invalid price");
-            ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             PieceData piece = GetPiece(x, y);
             ExecutionEngine.Assert(piece.Owner == owner, "not owner");
@@ -34,7 +34,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void DelistPiece(BigInteger x, BigInteger y, UInt160 owner)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             PieceData piece = GetPiece(x, y);
             ExecutionEngine.Assert(piece.Owner == owner, "not owner");
@@ -50,7 +50,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Buy a listed piece.
         /// </summary>
-        public static void BuyPiece(BigInteger x, BigInteger y, UInt160 buyer, BigInteger receiptId)
+        public static void BuyPiece(BigInteger x, BigInteger y, UInt160 buyer)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -66,7 +66,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(buyer);
 
-            ValidatePaymentReceipt(APP_ID, buyer, price, receiptId);
+            ConsumeDirectGasCredit(buyer, price);
 
             piece.Owner = buyer;
             piece.Price = price;
@@ -81,6 +81,8 @@ namespace NeoMiniAppPlatform.Contracts
 
             UpdateUserStatsOnBuy(buyer, price);
             UpdateUserStatsOnSell(previousOwner, price);
+
+            ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, previousOwner, price, "piece-sale"));
 
             BigInteger totalTraded = TotalTraded();
             Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_TRADED, totalTraded + 1);

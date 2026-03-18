@@ -84,6 +84,22 @@ namespace NeoMiniAppPlatform.Contracts
         public static event PeriodicExecutionTriggeredHandler OnPeriodicExecutionTriggered;
         #endregion
 
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            if (Runtime.CallingScriptHash != GAS.Hash)
+            {
+                ExecutionEngine.Assert(false, "unsupported asset");
+            }
+
+            if (from == Runtime.ExecutingScriptHash || amount <= 0) return;
+
+            string memo = ReadPaymentMemo(data);
+            if (memo.StartsWith(APP_ID + ":"))
+            {
+                CreditDirectGasPayment(APP_ID, from, amount, data);
+            }
+        }
+
         #region Lifecycle
         public static void _deploy(object data, bool update)
         {
@@ -101,13 +117,16 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger PlaceBet(UInt160 player, BigInteger chosenNumber, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(player), "unauthorized");
+            ValidateUserOrAbstractAccount(player);
             ExecutionEngine.Assert(chosenNumber >= 1 && chosenNumber <= 6, "choose 1-6");
             ExecutionEngine.Assert(amount >= MIN_BET, "min bet 0.05 GAS");
             ExecutionEngine.Assert(amount <= MAX_BET, "max bet 20 GAS (anti-Martingale)");
+            ConsumeDirectGasCredit(player, amount);
 
             // Anti-Martingale: Validate bet limits
             ValidateBetLimits(player, amount);
+            BigInteger maxPayout = amount * 6 * (100 - PLATFORM_FEE_PERCENT) / 100;
+            ExecutionEngine.Assert(GAS.BalanceOf(Runtime.ExecutingScriptHash) >= maxPayout, "insufficient payout liquidity");
 
             BigInteger betId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_BET_ID) + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_BET_ID, betId);
@@ -125,7 +144,7 @@ namespace NeoMiniAppPlatform.Contracts
             // Record bet for anti-Martingale tracking
             RecordBet(player, amount);
 
-            BigInteger requestId = RequestRng(betId);
+            BigInteger requestId = RequestRng(player, betId);
             Storage.Put(Storage.CurrentContext,
                 Helper.Concat(PREFIX_REQUEST_TO_BET, (ByteString)requestId.ToByteArray()),
                 betId);
@@ -148,17 +167,10 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Service Request Methods
 
-        private static BigInteger RequestRng(BigInteger betId)
+        private static BigInteger RequestRng(UInt160 requester, BigInteger betId)
         {
-            UInt160 oracle = Oracle();
-            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
-
             ByteString payload = StdLib.Serialize(new object[] { betId });
-            return (BigInteger)Contract.Call(
-                oracle, "request", CallFlags.All,
-                "rng", payload,
-                Runtime.ExecutingScriptHash, "onOracleResult"
-            );
+            return RequestOracleForCallback(requester, "rng", payload);
         }
 
         public static void OnOracleResult(
@@ -180,7 +192,10 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 bet.Resolved = true;
                 StoreBet(betId, bet);
-                OnDiceRolled(bet.Player!, bet.ChosenNumber, 0, 0, betId);
+                Storage.Delete(Storage.CurrentContext,
+                    Helper.Concat(PREFIX_REQUEST_TO_BET, (ByteString)requestId.ToByteArray()));
+                ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, bet.Player!, bet.Amount, "rng-refund"));
+                OnDiceRolled(bet.Player!, bet.ChosenNumber, 0, bet.Amount, betId);
                 return;
             }
 
@@ -194,6 +209,12 @@ namespace NeoMiniAppPlatform.Contracts
             StoreBet(betId, bet);
             Storage.Delete(Storage.CurrentContext,
                 Helper.Concat(PREFIX_REQUEST_TO_BET, (ByteString)requestId.ToByteArray()));
+
+            if (payout > 0)
+            {
+                ExecutionEngine.Assert(GAS.BalanceOf(Runtime.ExecutingScriptHash) >= payout, "insufficient payout liquidity");
+                ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, bet.Player!, payout, "dice-win"));
+            }
 
             OnDiceRolled(bet.Player!, bet.ChosenNumber, rolled, payout, betId);
         }

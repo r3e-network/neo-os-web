@@ -12,7 +12,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Report a record for inappropriate content.
         /// </summary>
-        public static void ReportRecord(BigInteger recordId, UInt160 reporter, string reason, BigInteger receiptId)
+        public static void ReportRecord(BigInteger recordId, UInt160 reporter, string reason)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(reason.Length > 0 && reason.Length <= MAX_REASON_LENGTH, "invalid reason");
@@ -24,7 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(reporter);
 
-            ValidatePaymentReceipt(APP_ID, reporter, REPORT_FEE, receiptId);
+            ConsumeDirectGasCredit(reporter, REPORT_FEE);
 
             record.ReportCount += 1;
             StoreRecord(recordId, record);
