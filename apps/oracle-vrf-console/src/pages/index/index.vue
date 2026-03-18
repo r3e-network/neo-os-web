@@ -1,5 +1,5 @@
 <template>
-  <OracleConsoleMiniApp
+  <ConsoleMiniApp
     page-name="oracle-vrf-console"
     :template-config="templateConfig"
     :app-state="appState"
@@ -26,11 +26,11 @@
     <template #operation>
       <NeoButton variant="primary" :loading="oracle.isRequesting" @click="requestRandom">{{ t("requestRandom") }}</NeoButton>
     </template>
-  </OracleConsoleMiniApp>
+  </ConsoleMiniApp>
 </template>
 <script setup lang="ts">
 import { computed } from "vue";
-import { HeroStatsStrip, NeoButton, OracleConsoleMiniApp } from "@shared/components";
+import { ConsoleMiniApp, HeroStatsStrip, NeoButton } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";

@@ -1,56 +1,48 @@
 <template>
-  <MiniAppPage
-    name="aa-session-key-lab"
-    :config="templateConfig"
-    :state="appState"
+  <ConsoleMiniApp
+    page-name="aa-session-key-lab"
+    :template-config="templateConfig"
+    :app-state="appState"
     :t="t"
-    :status-message="status"
+    :status="status"
     :sidebar-items="sidebarItems"
     :sidebar-title="sidebarTitle"
     :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="checkSponsor"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="checkSponsor"
+    hero-icon="🔑"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('latestState')"
+    :operation-title="t('createSession')"
   >
-    <template #content>
-      <HeroSection variant="erobo" icon="🔑" compact>
-        <template #stats>
-          <HeroStatsStrip :items="heroStats" compact />
-        </template>
-      </HeroSection>
-
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-
-      <NeoCard variant="erobo" :title="t('latestState')" class="px-1">
-        <div class="detail-grid">
-          <div class="detail-card"><span class="detail-label">AA</span><span class="detail-value">{{ aa.aaAddress.value || "—" }}</span></div>
-          <div class="detail-card"><span class="detail-label">Session</span><span class="detail-value">{{ aa.hasActiveSession.value ? "active" : "none" }}</span></div>
-          <div class="detail-card"><span class="detail-label">Sponsorship</span><span class="detail-value">{{ sponsorshipState }}</span></div>
-          <div class="detail-card"><span class="detail-label">Relay</span><span class="detail-value">{{ relayState }}</span></div>
-        </div>
-      </NeoCard>
+    <template #result>
+      <div class="detail-grid">
+        <div class="detail-card"><span class="detail-label">AA</span><span class="detail-value">{{ aa.aaAddress.value || "—" }}</span></div>
+        <div class="detail-card"><span class="detail-label">Session</span><span class="detail-value">{{ aa.hasActiveSession.value ? "active" : "none" }}</span></div>
+        <div class="detail-card"><span class="detail-label">Sponsorship</span><span class="detail-value">{{ sponsorshipState }}</span></div>
+        <div class="detail-card"><span class="detail-label">Relay</span><span class="detail-value">{{ relayState }}</span></div>
+      </div>
     </template>
-
     <template #operation>
-      <NeoCard variant="erobo" :title="t('createSession')" class="px-1">
-        <div class="stack">
-          <NeoInput v-model="aaAddress" :label="t('aaAddress')" placeholder="N..." />
-          <NeoInput v-model="scope.contractHash" :label="t('contractHash')" placeholder="0x..." />
-          <NeoInput v-model="scope.methods" :label="t('methods')" placeholder="symbol,balanceOf" />
-          <NeoInput v-model="scope.maxInvocations" :label="t('maxInvocations')" placeholder="100" />
-          <div class="actions-row">
-            <NeoButton variant="secondary" :loading="aa.isCheckingSponsorship.value" @click="checkSponsor">{{ t("checkSponsor") }}</NeoButton>
-            <NeoButton variant="secondary" :loading="aa.isCheckingSponsorship.value" @click="requestSponsor">{{ t("requestSponsor") }}</NeoButton>
-            <NeoButton variant="primary" @click="createSession">{{ t("createSession") }}</NeoButton>
-          </div>
+      <div class="stack">
+        <NeoInput v-model="aaAddress" :label="t('aaAddress')" placeholder="N..." />
+        <NeoInput v-model="scope.contractHash" :label="t('contractHash')" placeholder="0x..." />
+        <NeoInput v-model="scope.methods" :label="t('methods')" placeholder="symbol,balanceOf" />
+        <NeoInput v-model="scope.maxInvocations" :label="t('maxInvocations')" placeholder="100" />
+        <div class="actions-row">
+          <NeoButton variant="secondary" :loading="aa.isCheckingSponsorship.value" @click="checkSponsor">{{ t("checkSponsor") }}</NeoButton>
+          <NeoButton variant="secondary" :loading="aa.isCheckingSponsorship.value" @click="requestSponsor">{{ t("requestSponsor") }}</NeoButton>
+          <NeoButton variant="primary" @click="createSession">{{ t("createSession") }}</NeoButton>
         </div>
-      </NeoCard>
+      </div>
     </template>
-  </MiniAppPage>
+  </ConsoleMiniApp>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";

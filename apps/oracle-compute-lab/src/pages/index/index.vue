@@ -1,5 +1,5 @@
 <template>
-  <OracleConsoleMiniApp
+  <ConsoleMiniApp
     page-name="oracle-compute-lab"
     :template-config="templateConfig"
     :app-state="appState"
@@ -32,11 +32,11 @@
         <NeoButton variant="primary" :loading="oracle.isRequesting" @click="runJob">{{ t("execute") }}</NeoButton>
       </div>
     </template>
-  </OracleConsoleMiniApp>
+  </ConsoleMiniApp>
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { HeroStatsStrip, NeoButton, NeoInput, OracleConsoleMiniApp } from "@shared/components";
+import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
