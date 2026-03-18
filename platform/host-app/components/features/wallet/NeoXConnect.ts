@@ -1,17 +1,17 @@
 export const NEO_X_MAINNET = {
-  chainId: '0x12d3f', // 77119
-  chainName: 'Neo X Mainnet',
+  chainId: '0xba93', // 47763
+  chainName: 'Neo X MainNet',
   nativeCurrency: { name: 'GAS', symbol: 'GAS', decimals: 18 },
   rpcUrls: ['https://mainnet-1.rpc.banelabs.org'],
-  blockExplorerUrls: ['https://explorer.neo-x.network']
+  blockExplorerUrls: ['https://xexplorer.neo.org']
 };
 
 export const NEO_X_TESTNET = {
-  chainId: '0x122a', // 4650
-  chainName: 'Neo X Testnet',
+  chainId: '0xba9304', // 12227332
+  chainName: 'Neo X TestNet',
   nativeCurrency: { name: 'GAS', symbol: 'GAS', decimals: 18 },
-  rpcUrls: ['https://testnet.rpc.banelabs.org'],
-  blockExplorerUrls: ['https://explorer.neo-x.testnet.network']
+  rpcUrls: ['https://neoxt4seed1.ngd.network'],
+  blockExplorerUrls: ['https://xt4scan.ngd.network']
 };
 
 export async function connectNeoX(isTestnet = false) {
