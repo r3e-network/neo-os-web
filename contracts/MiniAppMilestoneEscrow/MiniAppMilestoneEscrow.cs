@@ -224,6 +224,22 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_LOCKED, 0);
             Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_RELEASED, 0);
         }
+
+        /// <summary>
+        /// Accepts inbound NEO / GAS transfers used by escrow funding.
+        ///
+        /// The contract pulls funds inside `CreateEscrow(...)` via native token
+        /// `Transfer(...)` calls. Neo N3 will invoke `onNEP17Payment` on the
+        /// recipient contract, so this callback must exist even though the
+        /// contract does not need to mutate extra deposit state here.
+        /// </summary>
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            ExecutionEngine.Assert(
+                Runtime.CallingScriptHash == NEO.Hash || Runtime.CallingScriptHash == GAS.Hash,
+                "unsupported asset");
+            ExecutionEngine.Assert(amount > 0, "amount required");
+        }
         #endregion
 
         #region Read Methods

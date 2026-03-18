@@ -26,7 +26,7 @@
  */
 
 import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { useContractAddress } from "./useContractAddress";
 import { usePaymentFlow } from "./usePaymentFlow";
 import { parseInvokeResult, parseStackItem } from "../utils/neo";
@@ -127,7 +127,12 @@ export function useContractInteraction(options: ContractInteractionOptions) {
    * Direct contract invocation without payment flow.
    * For operations that don't require a GAS payment (e.g. settle, claim).
    */
-  const invokeDirectly = async (operation: string, args: InvokeArg[], scriptHash?: string) => {
+  const invokeDirectly = async (
+    operation: string,
+    args: InvokeArg[],
+    scriptHash?: string,
+    signers?: WalletSigner[],
+  ) => {
     await ensureWallet();
     const contract = scriptHash ?? (await ensureContractAddress());
 
@@ -135,6 +140,7 @@ export function useContractInteraction(options: ContractInteractionOptions) {
       scriptHash: contract,
       operation,
       args,
+      ...(signers && signers.length ? { signers } : {}),
     });
 
     const txid = extractTxid(tx as unknown);
@@ -156,6 +162,7 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     args: InvokeArg[],
     scriptHash?: string,
     waitMs = 4000,
+    signers?: WalletSigner[],
   ) => {
     await ensureWallet();
     const contract = scriptHash ?? (await ensureContractAddress());
@@ -173,7 +180,7 @@ export function useContractInteraction(options: ContractInteractionOptions) {
 
     await new Promise((resolve) => setTimeout(resolve, waitMs || TIME_CONSTANTS.SECOND_MS * 4));
 
-    return invokeDirectly(operation, args, contract);
+    return invokeDirectly(operation, args, contract, signers);
   };
 
   return {
