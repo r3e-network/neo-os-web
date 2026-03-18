@@ -15,12 +15,7 @@
       <div class="hero-container">
         <HeroSection variant="erobo-neo" icon="🌐" compact>
           <template #stats>
-            <div class="hero-stats">
-              <div class="hero-stat">
-                <span class="hero-stat-value">{{ myDomains.length }}</span>
-                <span class="hero-stat-label">{{ t("tabDomains") }}</span>
-              </div>
-            </div>
+            <HeroStatsStrip :items="heroStatsItems" />
           </template>
         </HeroSection>
       </div>
@@ -46,7 +41,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, HeroSection } from "@shared/components";
+import { MiniAppPage, HeroSection, HeroStatsStrip } from "@shared/components";
+import type { HeroStatsStripItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useNeoNS } from "@/composables/useNeoNS";
 import DomainManagement from "./components/DomainManagement.vue";
@@ -82,6 +78,9 @@ const appState = computed(() => ({
   domainCount: myDomains.value.length,
   walletConnected: !!address.value,
 }));
+const heroStatsItems = computed<HeroStatsStripItem[]>(() => [
+  { value: myDomains.value.length, label: t("tabDomains") },
+]);
 
 function showManage(domain: Domain) {
   managingDomain.value = domain;
@@ -143,37 +142,6 @@ const resetAndReload = async () => {
 
 .hero-container {
   margin-bottom: 20px;
-}
-
-.hero-stats {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-}
-
-.hero-stat {
-  text-align: center;
-  padding: 8px 16px;
-  background: rgba(0, 229, 153, 0.08);
-  border-radius: 8px;
-  border: 1px solid rgba(0, 229, 153, 0.15);
-}
-
-.hero-stat-value {
-  display: block;
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.hero-stat-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 1px;
-  margin-top: 2px;
 }
 
 /* ── Neo NS Hero Enhancements ── */
@@ -238,9 +206,10 @@ const resetAndReload = async () => {
   }
 }
 
-.hero-stat {
+:deep(.hero-stats-strip__item) {
+  --hero-stat-bg: rgba(0, 188, 212, 0.12);
+  --hero-stat-border: rgba(0, 188, 212, 0.15);
   animation: ns-dns-pulse 3s ease-in-out infinite;
   box-shadow: 0 0 16px rgba(0, 188, 212, 0.1);
-  background: linear-gradient(135deg, rgba(0, 188, 212, 0.12), rgba(0, 229, 153, 0.06));
 }
 </style>

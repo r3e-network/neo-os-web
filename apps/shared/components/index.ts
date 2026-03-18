@@ -30,6 +30,7 @@ export { default as WalletPrompt } from "./WalletPrompt.vue";
 export { default as ChainWarning } from "./ChainWarning.vue";
 export { default as SidebarPanel } from "./SidebarPanel.vue";
 export { default as HeroSection } from "./HeroSection.vue";
+export { default as HeroStatsStrip } from "./HeroStatsStrip.vue";
 export { default as CountdownTimer } from "./CountdownTimer.vue";
 
 // ── Data Display ──
@@ -44,6 +45,7 @@ export type { CardVariant } from "./NeoCard.vue";
 export type { StatsDisplayItem, StatsDisplayLayout } from "./StatsDisplay.vue";
 export type { ActionModalVariant, ActionModalSize } from "./ActionModal.vue";
 export type { HeroVariant } from "./HeroSection.vue";
+export type { HeroStatsStripItem } from "./HeroStatsStrip.vue";
 export type { BadgeStatus } from "./StatusBadge.vue";
 
 // ── Restored ──
