@@ -88,7 +88,7 @@ npm run build
 
 | Network | Address            |
 | ------- | ------------------ |
-| Testnet | `0x89d2499928e3035247186f412934d6b0e0b665ef` |
+| Testnet | `0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e` |
 | Mainnet | `0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34` |
 
 > The current miniapp is now deployed on mainnet and should use the correct network-specific contract and Oracle / AA configuration.
