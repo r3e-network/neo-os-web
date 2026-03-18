@@ -2,8 +2,8 @@ package service
 
 import (
 	"bytes"
-	"errors"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
