@@ -581,7 +581,17 @@ export function useEvents() {
     if (params.app_id) {
       try {
         const network = getNetwork() as NeoNetwork;
-        const contractHash = getMiniAppContractHash(params.app_id, network);
+        let contractHash = getMiniAppContractHash(params.app_id, network);
+        if (!contractHash) {
+          const manifest = await loadCurrentMiniAppManifest();
+          const requestedAppId = String(params.app_id || "").trim();
+          if (manifest?.id === requestedAppId) {
+            contractHash =
+              manifest.contracts?.[`neo-n3-${network}`] ||
+              manifest.contracts?.[network] ||
+              "";
+          }
+        }
         if (!contractHash) {
           throw new Error(`missing contract hash for ${params.app_id}`);
         }

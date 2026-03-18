@@ -285,7 +285,7 @@ export function useFlashloanCore() {
 
       await invokeContract({
         scriptHash: contract,
-        operation: "RequestLoan",
+        operation: "requestLoan",
         args: [
           { type: "Hash160", value: address.value },
           { type: "Integer", value: amountInt },

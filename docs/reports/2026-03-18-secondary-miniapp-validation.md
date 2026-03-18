@@ -70,16 +70,36 @@ Additional real write-path validation now confirmed for testnet-only apps:
   - inbound token funding bug fixed by adding `OnNEP17Payment`
   - testnet update tx: `0x35723b356336309b3d503b7e1797d53c43548c55a04e22afb14e0580a9410eec`
   - `createRound -> registerProject -> contribute` succeeded with the signer scope required by the current deployment
+- `burn-league`
+  - redeployed to `0x0946e3c3db8abdd2fa14bbae4978992015473c09`
+  - `startSeason -> burnGas` succeeded
+  - current season and user burn totals now update on-chain
+- `breakup-contract`
+  - redeployed to `0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8`
+  - `createContract -> signContract -> triggerBreakup` succeeded across two real testnet accounts
+  - `getContractDetails` now reflects the completed breakup state
+- `on-chain-tarot`
+  - redeployed to `0x5cdf29c30727ce06696736ae0fb49abd9fd79730`
+  - fixed Oracle request path to use `requestFromCallback`
+  - fixed callback decoding to consume raw RNG bytes from Morpheus relayer
+  - fixed frontend request args to `spreadType=2`, `category=1`, and `0.1 GAS`
+  - `requestReading` now completes and stores cards on-chain
+- `unbreakable-vault`
+  - redeployed to `0x78fbd57ccfae14fff4b043a82eb491de542d8eb0`
+  - `createVault -> attemptBreak` succeeded
+  - `getVaultDetails` reflects bounty growth and attempt count correctly
+- `flashloan`
+  - redeployed to `0xde8e595d8d3c293731db499367ee2a768e1e458b`
+  - refactored away from legacy PaymentHub-funded liquidity and async Oracle execution
+  - new test harness deployed at `0x7aa01290d33f6b2313a7efd6acde58f3e64b636f`
+  - `deposit -> requestLoan -> callback execute -> exact repayment` succeeded
+  - `getLoanDetails`, `getPoolBalance`, and harness callback state all matched the executed transaction
 
 ### Needs deeper investigation on testnet
 
 The following apps still require deeper investigation on testnet:
 
-- `breakup-contract`
-- `burn-league`
-- `on-chain-tarot`
-- `unbreakable-vault`
-- `flashloan` is no longer a read-path concern, but still needs a proper live user-flow smoke to move from “ABI-compatible” to “validated”
+- no additional source-owned secondary miniapp remains blocked in this wave
 
 This does **not** yet prove that each app is fully broken for users, but it
 does prove that these deployments are weaker than the already-validated
@@ -99,6 +119,5 @@ As of 2026-03-18:
 
 - flagship apps are the most validated production-ready set
 - Oracle / AA tool miniapps are buildable and integrated
-- the next highest-value engineering work is to deeply validate and, where
-  needed, repair the five testnet apps listed above that still show read-path
-  `FAULT`s
+- the highest-value remaining work has shifted away from these secondary
+  contracts and back toward broader cross-miniapp UX and integration polish

@@ -98,7 +98,7 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     if (!vaultIdInput.value) return;
     clearStatus();
     try {
-      const parsed = await read("GetVaultDetails", [{ type: "Integer", value: vaultIdInput.value }]);
+      const parsed = await read("getVaultDetails", [{ type: "Integer", value: vaultIdInput.value }]);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(t("vaultNotFound"));
       const data = parsed as Record<string, unknown>;
       const creator = String(data.creator || "");

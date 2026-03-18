@@ -12,12 +12,12 @@ namespace NeoMiniAppPlatform.Contracts
         #region User-Facing Methods
 
         /// <summary>
-        /// Request a flash loan with callback verification.
+        /// Request and execute an atomic flash loan in a single transaction.
         /// </summary>
         public static BigInteger RequestLoan(UInt160 borrower, BigInteger amount, UInt160 callbackContract, string callbackMethod)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(borrower), "unauthorized");
+            ValidateUserOrAbstractAccount(borrower);
             ExecutionEngine.Assert(amount >= MIN_LOAN, "min loan 1 GAS");
             ExecutionEngine.Assert(amount <= MAX_LOAN, "max loan 100000 GAS");
             ExecutionEngine.Assert(callbackContract != null && callbackContract.IsValid, "callback contract required");
@@ -28,6 +28,8 @@ namespace NeoMiniAppPlatform.Contracts
 
             BigInteger poolBalance = GetPoolBalance();
             ExecutionEngine.Assert(amount <= poolBalance, "insufficient pool balance");
+            BigInteger contractGasBefore = GAS.BalanceOf(Runtime.ExecutingScriptHash);
+            ExecutionEngine.Assert(contractGasBefore >= amount, "insufficient GAS backing");
 
             // Record loan for rate limiting
             RecordLoanRequest(borrower);
@@ -45,19 +47,32 @@ namespace NeoMiniAppPlatform.Contracts
                 CallbackContract = callbackContract,
                 CallbackMethod = callbackMethod,
                 Timestamp = Runtime.Time,
-                Executed = false,
+                Executed = true,
                 Success = false
             };
-            StoreLoan(loanId, loan);
-
-            // Request TEE to verify callback will repay
-            BigInteger requestId = RequestTeeVerification(loanId, amount, callbackContract, callbackMethod);
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_LOAN, (ByteString)requestId.ToByteArray()),
-                loanId);
+            BorrowerStats borrowerStats = GetBorrowerStats(loan.Borrower);
+            bool isNewBorrower = borrowerStats.JoinTime == 0;
 
             OnLoanRequested(loanId, borrower, amount);
-            OnLoanVerification(loanId, requestId);
+            bool funded = GAS.Transfer(
+                Runtime.ExecutingScriptHash,
+                callbackContract,
+                amount,
+                StdLib.Serialize(new object[] { loanId, borrower, amount, fee })
+            );
+            ExecutionEngine.Assert(funded, "loan transfer failed");
+
+            Contract.Call(callbackContract, callbackMethod, CallFlags.All, borrower, amount, fee, loanId);
+
+            BigInteger contractGasAfter = GAS.BalanceOf(Runtime.ExecutingScriptHash);
+            ExecutionEngine.Assert(contractGasAfter == contractGasBefore + fee, "loan not repaid with exact fee");
+
+            loan.Success = true;
+            StoreLoan(loanId, loan);
+            Storage.Put(Storage.CurrentContext, PREFIX_POOL_BALANCE, poolBalance + fee);
+
+            UpdateBorrowerStatsOnLoan(loan.Borrower, loan.Amount, loan.Fee, loan.Success, isNewBorrower);
+            OnLoanExecuted(loanId, loan.Borrower, loan.Amount, loan.Fee, loan.Success);
             return loanId;
         }
 
@@ -84,22 +99,18 @@ namespace NeoMiniAppPlatform.Contracts
         public static void Deposit(UInt160 depositor, BigInteger amount, BigInteger receiptId)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(depositor), "unauthorized");
+            ValidateUserOrAbstractAccount(depositor);
             ExecutionEngine.Assert(amount > 0, "amount required");
 
-            ValidatePaymentReceipt(APP_ID, depositor, amount, receiptId);
+            ConsumeDirectGasCredit(depositor, amount);
 
-            // Check if new provider
             ProviderStats stats = GetProviderStats(depositor);
             bool isNewProvider = stats.JoinTime == 0;
 
             BigInteger poolBalance = GetPoolBalance();
             Storage.Put(Storage.CurrentContext, PREFIX_POOL_BALANCE, poolBalance + amount);
 
-            // Update provider stats
             UpdateProviderStatsOnDeposit(depositor, amount, isNewProvider);
-
-            // Check badges
             CheckProviderBadges(depositor);
 
             OnLiquidityDeposited(depositor, amount, stats.TotalDeposited + amount);
@@ -111,7 +122,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void Withdraw(UInt160 provider, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(provider), "unauthorized");
+            ValidateUserOrAbstractAccount(provider);
             ExecutionEngine.Assert(amount > 0, "amount required");
 
             ProviderStats stats = GetProviderStats(provider);
@@ -120,10 +131,11 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger poolBalance = GetPoolBalance();
             ExecutionEngine.Assert(poolBalance >= amount, "insufficient pool balance");
 
-            // Update pool balance
+            bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, provider, amount, null);
+            ExecutionEngine.Assert(transferred, "withdraw transfer failed");
+
             Storage.Put(Storage.CurrentContext, PREFIX_POOL_BALANCE, poolBalance - amount);
 
-            // Update provider stats
             stats.CurrentBalance -= amount;
             stats.TotalWithdrawn += amount;
             stats.LastActivityTime = Runtime.Time;
@@ -144,76 +156,21 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(totalFees > 0, "no fees to distribute");
 
             BigInteger providerShare = totalFees * PROVIDER_FEE_SHARE / 100;
-
-            // Reset total fees
             Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_FEES, 0);
 
             OnFeesDistributed(totalFees, providerShare);
         }
 
-        #endregion
-
-        #region Service Request Methods
-
-        private static BigInteger RequestTeeVerification(BigInteger loanId, BigInteger amount, UInt160 callbackContract, string callbackMethod)
-        {
-            UInt160 oracle = Oracle();
-            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
-
-            ByteString payload = StdLib.Serialize(new object[] { loanId, amount, callbackContract, callbackMethod });
-            return (BigInteger)Contract.Call(
-                oracle, "request", CallFlags.All,
-                "compute", payload,
-                Runtime.ExecutingScriptHash, "onOracleResult"
-            );
-        }
-
+        /// <summary>
+        /// Deprecated async Oracle callback path.
+        /// FlashLoan now executes atomically inside RequestLoan.
+        /// </summary>
         public static void OnOracleResult(
             BigInteger requestId, string requestType,
             bool success, ByteString result, string error)
         {
             ValidateOracle();
-
-            ByteString loanIdData = Storage.Get(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_LOAN, (ByteString)requestId.ToByteArray()));
-            ExecutionEngine.Assert(loanIdData != null, "unknown request");
-
-            BigInteger loanId = (BigInteger)loanIdData;
-            LoanData loan = GetLoan(loanId);
-            ExecutionEngine.Assert(!loan.Executed, "already executed");
-            ExecutionEngine.Assert(loan.Borrower != null, "loan not found");
-
-            Storage.Delete(Storage.CurrentContext,
-                Helper.Concat(PREFIX_REQUEST_TO_LOAN, (ByteString)requestId.ToByteArray()));
-
-            // Check if new borrower
-            BorrowerStats borrowerStats = GetBorrowerStats(loan.Borrower);
-            bool isNewBorrower = borrowerStats.JoinTime == 0;
-
-            loan.Executed = true;
-
-            if (success && result != null && result.Length > 0)
-            {
-                // TEE verified callback will repay
-                bool verified = (bool)StdLib.Deserialize(result);
-
-                if (verified)
-                {
-                    // Execute the flash loan
-                    loan.Success = true;
-
-                    // Collect fee into pool
-                    BigInteger poolBalance = GetPoolBalance();
-                    Storage.Put(Storage.CurrentContext, PREFIX_POOL_BALANCE, poolBalance + loan.Fee);
-                }
-            }
-
-            StoreLoan(loanId, loan);
-
-            // Update borrower stats
-            UpdateBorrowerStatsOnLoan(loan.Borrower, loan.Amount, loan.Fee, loan.Success, isNewBorrower);
-
-            OnLoanExecuted(loanId, loan.Borrower, loan.Amount, loan.Fee, loan.Success);
+            ExecutionEngine.Assert(false, "flashloan no longer uses oracle callbacks");
         }
 
         #endregion
@@ -290,6 +247,18 @@ namespace NeoMiniAppPlatform.Contracts
             // 2. Check collateral ratios or time-based defaults
             // 3. Liquidate loans that meet liquidation criteria
             // 4. Update pool balances accordingly
+        }
+
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == GAS.Hash, "unsupported asset");
+            if (from == Runtime.ExecutingScriptHash) return;
+
+            string memo = ReadPaymentMemo(data);
+            if (memo.StartsWith(APP_ID + ":"))
+            {
+                CreditDirectGasPayment(APP_ID, from, amount, data);
+            }
         }
 
         #endregion
