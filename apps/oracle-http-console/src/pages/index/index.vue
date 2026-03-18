@@ -40,15 +40,15 @@
 import { computed, reactive, ref } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
 const oracle = useOracle({ appId: "miniapp-oracle-http-console" });
 const form = reactive({ url: "", method: "GET", secretName: "", secretAsKey: "", body: "" });
 const response = ref<any>(null);
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "oracle-http-console", messages,
-  template: { tabs: [{ key: "oracle", labelKey: "latestResponse", icon: "🌐", default: true }], docSubtitleKey: "docsSubtitle", docFeatureCount: 3 },
+  tab: { key: "oracle", labelKey: "latestResponse", icon: "🌐" },
   sidebarItems: [{ labelKey: "method", value: () => form.method }, { labelKey: "latestResponse", value: () => String(response.value?.status_code ?? "—") }],
 });
 async function runQuery() {
