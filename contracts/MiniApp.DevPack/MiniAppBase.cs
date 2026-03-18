@@ -351,7 +351,12 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_ABSTRACT_ACCOUNT, abstractAccount);
         }
 
-        
+        public static void SetAutomationAnchor(UInt160 automationAnchor)
+        {
+            ValidateAdmin();
+            ValidateAddress(automationAnchor);
+            Storage.Put(Storage.CurrentContext, PREFIX_AUTOMATION_ANCHOR, automationAnchor);
+        }
 
         #endregion
 
