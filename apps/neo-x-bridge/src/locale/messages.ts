@@ -1,0 +1,65 @@
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  title: { en: "Neo X Bridge", zh: "Neo X 跨链桥" },
+  subtitle: { en: "Official Neo N3 ↔ Neo X bridge entry", zh: "官方 Neo N3 ↔ Neo X 跨链桥入口" },
+  heroBlurb: {
+    en: "Use the official bridge UI and official network parameters. This miniapp does not reimplement bridge contracts or routing.",
+    zh: "使用官方桥接界面和官方网络参数。本小程序不重写桥合约，也不自己做桥接路由。",
+  },
+  tabBridge: { en: "Bridge", zh: "桥接" },
+  tabNetworks: { en: "Networks", zh: "网络" },
+  officialOnly: { en: "Official Only", zh: "仅官方入口" },
+  supportedRoute: { en: "Route", zh: "路径" },
+  supportedRouteValue: { en: "Neo N3 ↔ Neo X", zh: "Neo N3 ↔ Neo X" },
+  supportedAsset: { en: "Current Asset", zh: "当前资产" },
+  supportedAssetValue: { en: "GAS", zh: "GAS" },
+  bridgeMode: { en: "Integration Mode", zh: "接入方式" },
+  bridgeModeValue: { en: "Official bridge launcher", zh: "官方桥入口包装" },
+  selectedNetwork: { en: "Selected Network", zh: "当前网络" },
+  mainnet: { en: "Mainnet", zh: "主网" },
+  testnet: { en: "Testnet", zh: "测试网" },
+  officialBridge: { en: "Open Official Bridge", zh: "打开官方桥" },
+  addWallet: { en: "Add Neo X To Wallet", zh: "添加 Neo X 到钱包" },
+  openExplorer: { en: "Open Explorer", zh: "打开浏览器" },
+  openDocs: { en: "Open Official Docs", zh: "打开官方文档" },
+  bridgeNotes: { en: "Bridge Notes", zh: "桥接说明" },
+  bridgeNotesText: {
+    en: "Bridge availability, supported assets, limits, and confirmation flow are determined by the official bridge UI. Follow the official flow instead of reproducing it locally.",
+    zh: "桥接可用性、支持资产、限额和确认流程以官方桥接界面为准。请直接走官方流程，不要在本地重复实现。",
+  },
+  walletNotice: { en: "Wallet Notice", zh: "钱包提示" },
+  walletNoticeText: {
+    en: "Adding Neo X only configures your EVM wallet. The actual bridge step still happens on the official bridge site.",
+    zh: "添加 Neo X 只是在 EVM 钱包中写入网络参数。真正的桥接步骤仍然发生在官方桥站点。",
+  },
+  chainId: { en: "Chain ID", zh: "链 ID" },
+  rpcUrl: { en: "RPC URL", zh: "RPC 地址" },
+  explorer: { en: "Explorer", zh: "浏览器" },
+  bridgeUrl: { en: "Bridge URL", zh: "桥接地址" },
+  networkName: { en: "Network Name", zh: "网络名称" },
+  docsSubtitle: { en: "Official Neo X bridge access", zh: "官方 Neo X 桥接入口" },
+  feature1Name: { en: "Official URLs", zh: "官方地址" },
+  feature1Desc: {
+    en: "Launch the official Neo X bridge instead of reimplementing bridge logic in-platform.",
+    zh: "直接打开官方 Neo X 桥，而不是在平台里重写桥接逻辑。",
+  },
+  feature2Name: { en: "Wallet Setup", zh: "钱包配置" },
+  feature2Desc: {
+    en: "Add official Neo X mainnet and testnet parameters to MetaMask-compatible wallets.",
+    zh: "将官方 Neo X 主网和测试网参数写入兼容 MetaMask 的钱包。",
+  },
+  feature3Name: { en: "Clear Separation", zh: "边界清晰" },
+  feature3Desc: {
+    en: "This miniapp is a launcher and guide, not a custom bridge implementation.",
+    zh: "这个小程序是桥接入口和指南，不是自定义桥实现。",
+  },
+  addWalletSuccess: { en: "Neo X network added or switched successfully", zh: "Neo X 网络已成功添加或切换" },
+  addWalletMissing: { en: "MetaMask or a compatible EVM wallet is required", zh: "需要 MetaMask 或兼容的 EVM 钱包" },
+  openMainnetBridge: { en: "Open mainnet bridge", zh: "打开主网桥" },
+  openTestnetBridge: { en: "Open testnet bridge", zh: "打开测试网桥" },
+  mainnetBridgeUrl: { en: "https://xbridge.neo.org/", zh: "https://xbridge.neo.org/" },
+  testnetBridgeUrl: { en: "https://testnet.bridge.banelabs.org/", zh: "https://testnet.bridge.banelabs.org/" },
+} as const;
+
+export const messages = mergeMessages(appMessages);

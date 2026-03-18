@@ -7,6 +7,8 @@ Preferred architecture note:
 - user-facing integrations should prefer direct Oracle / direct AA
 - callback-specific manifest fields only matter for MiniApps that still use the
   legacy on-chain callback gateway pattern
+- some MiniApps may be pure launcher / adapter surfaces for external official
+  protocol frontends and therefore intentionally ship without owned contracts
 
 ## Goals
 
@@ -223,6 +225,25 @@ Aliases (normalized at registration):
 - `category` (if present) must be one of `gaming`, `defi`, `governance`, `utility`, `social`, `nft`, `data`, `other`.
 - `contract_hash` must be a valid Hash160 (0x-prefixed or raw hex) and is required
   unless `news_integration=false` and no stats are requested.
+
+## External Launcher MiniApps
+
+The current platform also supports a lightweight class of MiniApps that act as
+official launchers for third-party protocol frontends.
+
+Examples now present in the repository include:
+
+- Neo X official bridge launcher
+- Flamingo Finance product launchers
+
+For these launcher MiniApps:
+
+- `contracts` may be empty
+- `transactions` should generally be `false`
+- the MiniApp should clearly state that execution occurs on the official
+  external surface
+- the MiniApp should not claim ownership of the third-party protocol logic or
+  contract behavior
 # Note
 
 This manifest spec still references older `PaymentHub`-specific payment wiring

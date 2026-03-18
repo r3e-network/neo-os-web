@@ -126,7 +126,7 @@ The frontend must never treat a payment tx hash as a `receiptId`.
 
 ## Featured Catalog Policy
 
-The repository currently contains **46** miniapp manifests under `apps/*`.
+The repository currently contains **52** miniapp manifests under `apps/*`.
 
 The current flagship 7 shown as primary market-facing apps are:
 
@@ -152,6 +152,18 @@ for:
 - `miniapp-oracle-http-console`
 - `miniapp-oracle-compute-lab`
 - `miniapp-oracle-vrf-console`
+- `miniapp-neo-x-bridge`
+- `miniapp-flamingo-swap`
+- `miniapp-flamingo-lend`
+- `miniapp-flamingo-earn`
+- `miniapp-flamingo-analytics`
+- `miniapp-flamingo-action-center`
+
+These newer integration miniapps are **launcher / adapter surfaces**:
+
+- they intentionally do not reimplement third-party protocol logic
+- they provide curated discovery, official launch URLs, and wallet/network guidance
+- bridge execution and Flamingo protocol execution remain on the official third-party surfaces
 
 Current flagship payment matrix:
 
