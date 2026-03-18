@@ -70,7 +70,7 @@
 import { computed, reactive, ref } from "vue";
 import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
@@ -94,14 +94,10 @@ const {
   status,
   setStatus,
   handleBoundaryError,
-} = createMiniApp({
+} = createConsolePage({
   name: "aa-account-lab",
   messages,
-  template: {
-    tabs: [{ key: "register", labelKey: "register", icon: "🪪", default: true }],
-    docSubtitleKey: "docsSubtitle",
-    docFeatureCount: 3,
-  },
+  tab: { key: "register", labelKey: "register", icon: "🪪" },
   sidebarItems: [
     { labelKey: "currentVerifier", value: () => inspected.verifier || "—" },
     { labelKey: "currentHook", value: () => inspected.hook || "—" },
