@@ -20,15 +20,17 @@
 
       <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
 
-      <NeoCard variant="erobo" :title="resultTitle" class="px-1">
+      <NeoCard v-if="wrapResultCard" variant="erobo" :title="resultTitle" class="px-1">
         <slot name="result" />
       </NeoCard>
+      <slot v-else name="result" />
     </template>
 
     <template #operation>
-      <NeoCard variant="erobo" :title="operationTitle" class="px-1">
+      <NeoCard v-if="wrapOperationCard" variant="erobo" :title="operationTitle" class="px-1">
         <slot name="operation" />
       </NeoCard>
+      <slot v-else name="operation" />
     </template>
   </MiniAppPage>
 </template>
@@ -37,7 +39,7 @@
 import { HeroSection, HeroStatsStrip, MiniAppPage, NeoCard, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 
-defineProps<{
+withDefaults(defineProps<{
   pageName: string;
   templateConfig: object;
   appState: Record<string, unknown>;
@@ -53,5 +55,10 @@ defineProps<{
   overviewStats: StatsDisplayItem[];
   resultTitle: string;
   operationTitle: string;
-}>();
+  wrapResultCard?: boolean;
+  wrapOperationCard?: boolean;
+}>(), {
+  wrapResultCard: true,
+  wrapOperationCard: true,
+});
 </script>
