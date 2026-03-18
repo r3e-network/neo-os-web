@@ -18,8 +18,8 @@ Neo 理事会成员的去中心化治理。仅前 21 名理事会成员可创建
 
 | 网络 | 状态 | 地址 |
 | ---- | ---- | ---- |
-| neo-n3-mainnet | ❌ 未部署 | - |
-| neo-n3-testnet | ✅ 已部署 | `0xab120f4586e5691e909aae23d36e73dc5395e6a1` |
+| neo-n3-mainnet | ✅ 已部署 | `0xc7e50e67589df63302cbea1a6b00beb649ee74d8` |
+| neo-n3-testnet | ✅ 已部署 | `0x4c61e5575ae9e151027f6724d07fac127d4cc25f` |
 
 ## 部署要求
 
