@@ -12,7 +12,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void AddNominee(UInt160 caller, string category, string nominee, string description)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(caller), "unauthorized");
+            ValidateUserOrAbstractAccount(caller);
             ExecutionEngine.Assert(IsCategoryActive(category), "invalid category");
             ExecutionEngine.Assert(nominee.Length > 0 && nominee.Length <= MAX_NOMINEE_LENGTH, "invalid nominee");
 

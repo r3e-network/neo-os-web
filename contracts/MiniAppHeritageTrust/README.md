@@ -11,17 +11,17 @@
 - **生前收益**：存入 NEO，定期领取 GAS 收益
 - **心跳检测**：每 30 天需发送心跳证明存活
 - **自动继承**：心跳超时后本金转给继承人
-- **平台费用**：最终收益收取 5% 手续费
+- **平台费用**：执行信托时收取 1% 本金手续费
 
 ### 主要功能
 
 #### 1. 创建信托 (CreateTrust)
 
 ```csharp
-public static void CreateTrust(UInt160 owner, UInt160 heir, BigInteger neoAmount, BigInteger heartbeatIntervalDays, string trustName, string notes, BigInteger receiptId)
+public static void CreateTrust(UInt160 owner, UInt160 heir, BigInteger neoAmount, BigInteger heartbeatIntervalDays, string trustName, string notes)
 ```
 
-- 存入 NEO 创建信托
+- 先向合约预付 NEO（memo 前缀 `miniapp-heritage-trust:`），再创建信托
 - 设置继承人地址与心跳间隔（天）
 - 可填写信托名称与备注
 - 触发 `TrustCreated` 事件
@@ -66,15 +66,15 @@ public static void ExecuteTrust(BigInteger trustId)
 ### 技术特性
 
 - **心跳间隔**：可配置（天）
-- **平台费率**：5%
+- **平台费率**：1%
 - **自动执行**：超时自动触发
 - **收益分离**：本金和收益分开管理
 
 ### 参数说明
 
 - **HEARTBEAT_INTERVAL**: 2592000 (30 天)
-- **PLATFORM_FEE_PERCENT**: 5%
-- **最低存款**: 无限制
+- **PLATFORM_FEE_BPS**: 100 (1%)
+- **最低存款**: 1 NEO
 
 ### 事件
 
@@ -95,17 +95,17 @@ Heritage Trust DAO is a living trust system where users deposit NEO assets, enjo
 - **Lifetime Yields**: Deposit NEO, periodically claim GAS yields
 - **Heartbeat Detection**: Must send heartbeat every 30 days to prove alive
 - **Auto Inheritance**: Principal transfers to heir after heartbeat timeout
-- **Platform Fee**: 5% fee on final yields
+- **Platform Fee**: 1% principal fee when the trust is executed
 
 ### Main Functions
 
 #### 1. Create Trust
 
 ```csharp
-public static void CreateTrust(UInt160 owner, UInt160 heir, BigInteger neoAmount, BigInteger heartbeatIntervalDays, string trustName, string notes, BigInteger receiptId)
+public static void CreateTrust(UInt160 owner, UInt160 heir, BigInteger neoAmount, BigInteger heartbeatIntervalDays, string trustName, string notes)
 ```
 
-- Deposit NEO to create trust
+- Prepay NEO to the contract with memo prefix `miniapp-heritage-trust:` and then create the trust
 - Set heir address and heartbeat interval (days)
 - Optional trust name and notes
 - Triggers `TrustCreated` event
@@ -150,15 +150,15 @@ public static void ExecuteTrust(BigInteger trustId)
 ### Technical Features
 
 - **Heartbeat Interval**: Configurable (days)
-- **Platform Fee**: 5%
+- **Platform Fee**: 1%
 - **Auto Execution**: Timeout triggers automatically
 - **Yield Separation**: Principal and yields managed separately
 
 ### Parameters
 
 - **HEARTBEAT_INTERVAL**: 2592000 (30 days)
-- **PLATFORM_FEE_PERCENT**: 5%
-- **Minimum Deposit**: No limit
+- **PLATFORM_FEE_BPS**: 100 (1%)
+- **Minimum Deposit**: 1 NEO
 
 ### Events
 
@@ -169,5 +169,5 @@ public static void ExecuteTrust(BigInteger trustId)
 ### Contract Information
 
 - **App ID**: `miniapp-heritage-trust`
-- **Version**: 1.0.0
+- **Version**: 2.0.0
 - **Author**: R3E Network

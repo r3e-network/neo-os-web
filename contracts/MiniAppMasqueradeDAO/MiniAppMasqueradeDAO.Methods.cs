@@ -13,7 +13,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Create a new anonymous mask identity.
         /// </summary>
-        public static BigInteger CreateMask(UInt160 owner, ByteString identityHash, BigInteger maskType, BigInteger receiptId)
+        public static BigInteger CreateMask(UInt160 owner, ByteString identityHash, BigInteger maskType)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(identityHash.Length == 32, "invalid hash");
@@ -22,7 +22,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUserOrAbstractAccount(owner);
 
             BigInteger fee = maskType == 2 ? PREMIUM_MASK_FEE : MASK_FEE;
-            ValidatePaymentReceipt(APP_ID, owner, fee, receiptId);
+            ConsumeDirectGasCredit(owner, fee);
 
             BigInteger maskId = TotalMasks() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_MASK_ID, maskId);
@@ -54,7 +54,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Create a new proposal.
         /// </summary>
-        public static BigInteger CreateProposal(BigInteger maskId, string title, string description, BigInteger category, BigInteger receiptId)
+        public static BigInteger CreateProposal(BigInteger maskId, string title, string description, BigInteger category)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(title.Length > 0 && title.Length <= MAX_TITLE_LENGTH, "invalid title");
@@ -63,9 +63,9 @@ namespace NeoMiniAppPlatform.Contracts
 
             MaskData mask = GetMask(maskId);
             ExecutionEngine.Assert(mask.Active, "mask not active");
-            ExecutionEngine.Assert(Runtime.CheckWitness(mask.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(mask.Owner);
 
-            ValidatePaymentReceipt(APP_ID, mask.Owner, PROPOSAL_FEE, receiptId);
+            ConsumeDirectGasCredit(mask.Owner, PROPOSAL_FEE);
 
             BigInteger proposalId = TotalProposals() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_PROPOSAL_ID, proposalId);
@@ -106,14 +106,14 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Submit a vote on a proposal.
         /// </summary>
-        public static void SubmitVote(BigInteger proposalId, BigInteger maskId, BigInteger choice, BigInteger receiptId)
+        public static void SubmitVote(BigInteger proposalId, BigInteger maskId, BigInteger choice)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(choice >= 1 && choice <= 3, "invalid choice");
 
             MaskData mask = GetMask(maskId);
             ExecutionEngine.Assert(mask.Active, "mask not active");
-            ExecutionEngine.Assert(Runtime.CheckWitness(mask.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(mask.Owner);
 
             ProposalData proposal = GetProposal(proposalId);
             ExecutionEngine.Assert(proposal.Id > 0, "proposal not found");
@@ -123,7 +123,7 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString voteKey = GetVoteKey(proposalId, maskId);
             ExecutionEngine.Assert(Storage.Get(Storage.CurrentContext, voteKey) == null, "already voted");
 
-            ValidatePaymentReceipt(APP_ID, mask.Owner, VOTE_FEE, receiptId);
+            ConsumeDirectGasCredit(mask.Owner, VOTE_FEE);
 
             BigInteger effectiveVotingPower = GetEffectiveVotingPower(maskId);
 
@@ -164,7 +164,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             MaskData fromMask = GetMask(fromMaskId);
             ExecutionEngine.Assert(fromMask.Active, "from mask not active");
-            ExecutionEngine.Assert(Runtime.CheckWitness(fromMask.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(fromMask.Owner);
 
             if (toMaskId > 0)
             {
@@ -243,7 +243,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             MaskData mask = GetMask(maskId);
             ExecutionEngine.Assert(mask.Active, "already inactive");
-            ExecutionEngine.Assert(Runtime.CheckWitness(mask.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(mask.Owner);
 
             mask.Active = false;
             StoreMask(maskId, mask);

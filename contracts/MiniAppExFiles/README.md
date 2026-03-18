@@ -15,10 +15,11 @@ Anonymous ex-partner database with encrypted records and privacy-preserving quer
 
 ### 使用方法
 
-1. 支付0.1 GAS创建匿名记录（数据哈希+评分）
-2. 支付0.05 GAS通过哈希查询记录
-3. 查看评分和查询次数统计
-4. 记录创建者可删除自己的记录
+1. 先向合约预付 GAS（memo 前缀 `miniapp-exfiles:`）
+2. 调用 `CreateRecord` 创建匿名记录（数据哈希+评分）
+3. 调用 `QueryByHash` 通过哈希查询记录
+4. 查看评分和查询次数统计
+5. 记录创建者可删除自己的记录
 
 ### 技术细节
 
@@ -31,7 +32,7 @@ Anonymous ex-partner database with encrypted records and privacy-preserving quer
 #### CreateRecord
 
 ```csharp
-public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigInteger rating, BigInteger category, BigInteger receiptId)
+public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigInteger rating, BigInteger category)
 ```
 
 | 参数 | 类型 | 描述 |
@@ -40,7 +41,11 @@ public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigI
 | `dataHash` | ByteString | 数据哈希 |
 | `rating` | Integer | 评分 (1-5) |
 | `category` | Integer | 类别 (0=默认) |
-| `receiptId` | Integer | PaymentHub 支付收据 ID |
+
+当前支付模式：
+
+- 合约不再依赖 PaymentHub
+- 用户先向合约预付 GAS，再调用业务方法消费预付余额
 
 ## English
 
@@ -53,10 +58,11 @@ public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigI
 
 ### Usage
 
-1. Pay 0.1 GAS to create anonymous record (data hash + rating)
-2. Pay 0.05 GAS to query records by hash
-3. View rating and query count statistics
-4. Record creators can delete their own records
+1. Prepay GAS to the contract with memo prefix `miniapp-exfiles:`
+2. Call `CreateRecord` to create an anonymous record (data hash + rating)
+3. Call `QueryByHash` to query records by hash
+4. View rating and query count statistics
+5. Record creators can delete their own records
 
 ### Technical Details
 
@@ -69,7 +75,7 @@ public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigI
 #### CreateRecord
 
 ```csharp
-public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigInteger rating, BigInteger category, BigInteger receiptId)
+public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigInteger rating, BigInteger category)
 ```
 
 | Parameter | Type | Description |
@@ -78,7 +84,11 @@ public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigI
 | `dataHash` | ByteString | Data hash |
 | `rating` | Integer | Rating (1-5) |
 | `category` | Integer | Category (0=default) |
-| `receiptId` | Integer | PaymentHub payment receipt ID |
+
+Current payment model:
+
+- the contract no longer depends on PaymentHub
+- users prepay GAS to the contract and business methods consume prepaid balance
 
 ## Technical
 

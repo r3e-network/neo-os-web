@@ -74,8 +74,8 @@ MillionPieceMap is a **collaborative world map ownership game** on the Neo N3 bl
 const x = 50; // Column (0-99)
 const y = 25; // Row (0-99)
 
-const receipt = await paymentHub.payGAS(0.1);
-await contract.invoke("ClaimPiece", [walletAddress, x, y, receipt.id]);
+await gasToken.transfer(contractHash, 0.1 * 100000000, "miniapp-millionpiecemap:claim");
+await contract.invoke("ClaimPiece", [walletAddress, x, y]);
 
 console.log(`Claimed piece at (${x}, ${y})!`);
 ```
@@ -98,10 +98,10 @@ console.log(`Listed (${x}, ${y}) for 0.5 GAS`);
 // Buy a piece that's listed for sale
 const x = 50;
 const y = 25;
-const price = 0.5; // Listed price
+const price = 0.5 * 100000000; // Listed price in datoshi
 
-const receipt = await paymentHub.payGAS(price);
-await contract.invoke("BuyPiece", [x, y, walletAddress, receipt.id]);
+await gasToken.transfer(contractHash, price, "miniapp-millionpiecemap:buy");
+await contract.invoke("BuyPiece", [x, y, walletAddress]);
 console.log(`Bought piece at (${x}, ${y})!`);
 ```
 
@@ -152,8 +152,7 @@ Claims an unclaimed piece.
 void ClaimPiece(
     UInt160 owner,
     BigInteger x,
-    BigInteger y,
-    BigInteger receiptId
+    BigInteger y
 )
 ```
 
@@ -180,8 +179,7 @@ Buys a listed piece.
 void BuyPiece(
     BigInteger x,
     BigInteger y,
-    UInt160 buyer,
-    BigInteger receiptId
+    UInt160 buyer
 )
 ```
 
@@ -200,12 +198,12 @@ void BuyPiece(
 
 | Aspect            | Protection                  |
 | ----------------- | --------------------------- |
-| **Ownership**     | On-chain verified ownership |
-| **No Duplicates** | Each coordinate unique      |
-| **Fair Trading**  | Buyer pays listed price     |
+| **Ownership**     | On-chain verified ownership              |
+| **No Duplicates** | Each coordinate unique                   |
+| **Fair Trading**  | Buyer prepays listed price, seller paid directly |
 
 ---
 
 **Contract**: MiniAppMillionPieceMap
 **Author**: R3E Network
-**Version**: 1.0.0
+**Version**: 2.0.0

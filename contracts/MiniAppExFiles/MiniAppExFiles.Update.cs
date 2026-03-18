@@ -12,7 +12,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Update a record's rating.
         /// </summary>
-        public static void UpdateRecord(BigInteger recordId, BigInteger newRating, string reason, BigInteger receiptId)
+        public static void UpdateRecord(BigInteger recordId, BigInteger newRating, string reason)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(newRating >= 1 && newRating <= 5, "rating 1-5");
@@ -21,9 +21,9 @@ namespace NeoMiniAppPlatform.Contracts
             RecordData record = GetRecord(recordId);
             ExecutionEngine.Assert(record.Creator != UInt160.Zero, "record not found");
             ExecutionEngine.Assert(record.Active, "record inactive");
-            ExecutionEngine.Assert(Runtime.CheckWitness(record.Creator), "not owner");
+            ValidateUserOrAbstractAccount(record.Creator);
 
-            ValidatePaymentReceipt(APP_ID, record.Creator, UPDATE_FEE, receiptId);
+            ConsumeDirectGasCredit(record.Creator, UPDATE_FEE);
 
             record.Rating = newRating;
             record.UpdateTime = Runtime.Time;

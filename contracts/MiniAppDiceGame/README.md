@@ -56,7 +56,7 @@ Sets the Morpheus Oracle address. Only admin can call.
 
 #### `SetPaymentHub(UInt160 hub)`
 
-Sets the PaymentHub address for payment processing. Only admin can call.
+Legacy compatibility hook inherited from the base contract. The live dice flow does not use PaymentHub.
 
 #### `SetPaused(bool paused)`
 
@@ -78,7 +78,7 @@ Returns the oracle address.
 
 #### `PaymentHub() → UInt160`
 
-Returns the payment hub address.
+Returns the legacy PaymentHub setting, which is unused by the live dice flow.
 
 #### `IsPaused() → bool`
 
@@ -104,15 +104,15 @@ Emitted when a dice roll is completed.
 ```
 1. Player initiates game through frontend
    ↓
-2. Frontend calls Gateway with bet and chosen number
+2. Player prepays GAS to the contract with memo prefix `miniapp-dicegame:`
    ↓
-3. Gateway requests VRF randomness
+3. Frontend calls `PlaceBet()` with chosen number and bet amount
    ↓
-4. Gateway calls Roll() with randomness
+4. Contract requests VRF randomness from Morpheus Oracle
    ↓
-5. Contract calculates result and emits DiceRolled event
+5. Oracle calls back `OnOracleResult()`
    ↓
-6. PaymentHub processes payout if player won
+6. Contract transfers payout on win, or refunds the stake if RNG request fails
    ↓
 7. Frontend displays result to player
 ```
@@ -124,7 +124,7 @@ Emitted when a dice roll is completed.
    ↓
 2. Admin calls SetOracle() with oracle address
    ↓
-3. Admin calls SetPaymentHub() with payment hub address
+3. Ensure contract GAS liquidity is funded for payouts
    ↓
 4. Register with AppRegistry
    ↓
@@ -183,8 +183,8 @@ This contract supports periodic automation via AutomationAnchor integration.
 ## Integration Notes
 
 - Contract must be registered with AppRegistry
-- Gateway must be configured before gameplay
-- PaymentHub must be set for automatic payouts
+- Oracle must be configured before gameplay
+- Contract balance must hold enough GAS to cover peak payouts
 - Frontend should listen to `DiceRolled` events for real-time updates
 - Randomness must be at least 1 byte in length
 
@@ -207,11 +207,11 @@ MiniAppDiceGame 是一个可证明公平的掷骰子游戏,玩家选择 1-6 之�
 
 ```
 1. 玩家通过前端发起游戏
-2. 前端调用 Gateway 传入赌注和所选数字
-3. Gateway 请求 VRF 随机性
-4. Gateway 使用随机性调用 Roll()
-5. 合约计算结果并发出 DiceRolled 事件
-6. PaymentHub 处理支付(如果玩家获胜)
+2. 玩家先向合约预付 GAS（memo 前缀 `miniapp-dicegame:`）
+3. 前端调用 `PlaceBet()` 传入赌注和所选数字
+4. 合约向 Morpheus Oracle 请求 VRF 随机性
+5. Oracle 回调 `OnOracleResult()`
+6. 合约在链上结算并在获胜时直接转账；如果随机请求失败则退款
 7. 前端向玩家显示结果
 ```
 
