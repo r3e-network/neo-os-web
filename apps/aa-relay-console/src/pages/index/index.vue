@@ -44,6 +44,7 @@ import { computed, ref, watch } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
+import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useAbstractAccount } from "@shared/composables/useAbstractAccount";
 const aaAddress = ref("");
@@ -60,16 +61,21 @@ watch(aaAddress, (next) => aa.setAAAddress(next));
 async function checkSponsor() { try { sponsorResult.value = await aa.checkGasSponsorship(); setStatus("sponsor check complete", "success"); } catch (e) { setStatus(String((e as Error)?.message || e), "error"); } }
 async function requestSponsor() { try { sponsorResult.value = await aa.requestGasSponsorship("0.1"); setStatus("sponsor request submitted", "success"); } catch (e) { setStatus(String((e as Error)?.message || e), "error"); } }
 async function submitRelay() { try { const payload = JSON.parse(payloadJson.value); const response = await aa.submitRelayTransaction(payload); sponsorResult.value = response; setStatus("relay submitted", "success"); } catch (e) { setStatus(String((e as Error)?.message || e), "error"); } }
-const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: "AA Core", value: aa.AA_MASTER_CONTRACT_TESTNET.slice(0, 10) + "…" },
-  { label: "Relay", value: aa.relayUrl },
-  { label: "Network", value: aa.network },
-]);
-const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: "AA Core", value: aa.AA_MASTER_CONTRACT_TESTNET, variant: "accent" },
-  { label: "Relay", value: aa.relayUrl, variant: "success" },
-  { label: "Paymaster", value: dappId.value || "unset", variant: "erobo" },
-]);
+const heroStats = computed<HeroStatsStripItem[]>(() =>
+  buildAAHeroStats({
+    aaCore: aa.AA_MASTER_CONTRACT_TESTNET,
+    middleLabel: "Relay",
+    middleValue: aa.relayUrl,
+    trailingLabel: "Network",
+    trailingValue: aa.network,
+  }),
+);
+const overviewStats = computed<StatsDisplayItem[]>(() =>
+  buildAAOverviewStats({
+    aaCore: aa.AA_MASTER_CONTRACT_TESTNET,
+    extra: { label: "Paymaster", value: dappId.value || "unset", variant: "erobo" },
+  }).concat([{ label: "Relay", value: aa.relayUrl, variant: "success" }]),
+);
 const sponsorState = computed(() => JSON.stringify(sponsorResult.value ?? {}, null, 2));
 const relayResponse = computed(() => JSON.stringify(aa.lastRelayResponse.value ?? {}, null, 2));
 const appState = computed(() => ({ aaAddress: aaAddress.value }));

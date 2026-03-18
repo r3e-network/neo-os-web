@@ -33,6 +33,7 @@ import { computed } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
+import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
 const oracle = useOracle({ appId: "miniapp-oracle-vrf-console" });
@@ -43,15 +44,20 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
 });
 const lastRandom = oracle.lastRandom;
 async function requestRandom() { try { await oracle.requestRandomness(); setStatus("randomness requested", "success"); } catch (e) { setStatus(String((e as Error)?.message || e), "error"); } }
-const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: "Oracle", value: oracle.integration.contracts.morpheusOracle.slice(0, 10) + "…" },
-  { label: "VRF", value: "direct" },
-  { label: "Network", value: oracle.network },
-]);
-const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: "Oracle", value: oracle.integration.contracts.morpheusOracle, variant: "accent" },
-  { label: "Public API", value: oracle.integration.morpheusPublicApiUrl, variant: "success" },
-]);
+const heroStats = computed<HeroStatsStripItem[]>(() =>
+  buildOracleHeroStats({
+    oracleHash: oracle.integration.contracts.morpheusOracle,
+    network: oracle.network,
+    middleLabel: "VRF",
+    middleValue: "direct",
+  }),
+);
+const overviewStats = computed<StatsDisplayItem[]>(() =>
+  buildOracleOverviewStats({
+    oracleHash: oracle.integration.contracts.morpheusOracle,
+    publicApiUrl: oracle.integration.morpheusPublicApiUrl,
+  }),
+);
 const appState = computed(() => ({ requestId: oracle.lastRandom.value?.requestId || "" }));
 </script>
 <style scoped>.result-grid{display:grid;grid-template-columns:1fr;gap:12px}.label{display:block;font-size:11px;opacity:.6;text-transform:uppercase}.value{display:block;margin-top:6px;font-size:13px;word-break:break-all}</style>

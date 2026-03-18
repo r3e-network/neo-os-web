@@ -41,6 +41,7 @@ import { computed, reactive, ref } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
+import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
 const oracle = useOracle({ appId: "miniapp-oracle-http-console" });
@@ -65,15 +66,20 @@ async function runQuery() {
     setStatus(String((e as Error)?.message || e), "error");
   }
 }
-const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: "Oracle", value: oracle.integration.contracts.morpheusOracle.slice(0, 10) + "…" },
-  { label: "Mode", value: form.method || "GET" },
-  { label: "Network", value: oracle.network },
-]);
-const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: "Oracle", value: oracle.integration.contracts.morpheusOracle, variant: "accent" },
-  { label: "Public API", value: oracle.integration.morpheusPublicApiUrl, variant: "success" },
-]);
+const heroStats = computed<HeroStatsStripItem[]>(() =>
+  buildOracleHeroStats({
+    oracleHash: oracle.integration.contracts.morpheusOracle,
+    network: oracle.network,
+    middleLabel: "Mode",
+    middleValue: form.method || "GET",
+  }),
+);
+const overviewStats = computed<StatsDisplayItem[]>(() =>
+  buildOracleOverviewStats({
+    oracleHash: oracle.integration.contracts.morpheusOracle,
+    publicApiUrl: oracle.integration.morpheusPublicApiUrl,
+  }),
+);
 const responseHeaders = computed(() => JSON.stringify(response.value?.headers ?? {}, null, 2));
 const responseBody = computed(() => String(response.value?.body ?? "—"));
 const appState = computed(() => ({ url: form.url, status: response.value?.status_code ?? null }));

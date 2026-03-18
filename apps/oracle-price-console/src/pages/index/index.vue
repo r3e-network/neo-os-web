@@ -35,6 +35,7 @@ import { computed, ref } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
+import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
 const oracle = useOracle({ appId: "miniapp-oracle-price-console" });
@@ -47,16 +48,21 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
 });
 async function fetchPrice() { try { latestPrice.value = await oracle.getPrice(asset.value); setStatus("price loaded", "success"); } catch (e) { setStatus(String((e as Error)?.message || e), "error"); } }
 const priceDisplay = computed(() => latestPrice.value == null ? "—" : `$${latestPrice.value.toFixed(4)}`);
-const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: "Oracle", value: oracle.integration.contracts.morpheusOracle.slice(0, 10) + "…" },
-  { label: "Feed", value: oracle.integration.contracts.morpheusDatafeed.slice(0, 10) + "…" },
-  { label: "Network", value: oracle.network },
-]);
-const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: "Oracle", value: oracle.integration.contracts.morpheusOracle, variant: "accent" },
-  { label: "DataFeed", value: oracle.integration.contracts.morpheusDatafeed, variant: "erobo" },
-  { label: "Public API", value: oracle.integration.morpheusPublicApiUrl, variant: "success" },
-]);
+const heroStats = computed<HeroStatsStripItem[]>(() =>
+  buildOracleHeroStats({
+    oracleHash: oracle.integration.contracts.morpheusOracle,
+    network: oracle.network,
+    middleLabel: "Feed",
+    middleValue: `${oracle.integration.contracts.morpheusDatafeed.slice(0, 10)}…`,
+  }),
+);
+const overviewStats = computed<StatsDisplayItem[]>(() =>
+  buildOracleOverviewStats({
+    oracleHash: oracle.integration.contracts.morpheusOracle,
+    publicApiUrl: oracle.integration.morpheusPublicApiUrl,
+    extra: { label: "DataFeed", value: oracle.integration.contracts.morpheusDatafeed, variant: "erobo" },
+  }),
+);
 const appState = computed(() => ({ asset: asset.value, latestPrice: latestPrice.value }));
 </script>
 <style scoped>.stack{display:flex;flex-direction:column;gap:14px}.result-card{display:flex;flex-direction:column;gap:8px;align-items:flex-start}.result-symbol{font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:.12em}.result-price{font-size:32px;font-weight:900}</style>
