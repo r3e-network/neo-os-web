@@ -1,6 +1,6 @@
 import { ref, computed, watch } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -99,6 +99,12 @@ export function useQuadraticRounds() {
       description: String(raw.description || ""),
     };
   };
+
+  const globalSignerForCurrentWallet = (): WalletSigner[] => (
+    address.value
+      ? [{ account: address.value, scopes: "Global" }]
+      : []
+  );
 
   const fetchRoundIds = async () => {
     const contract = await ensureContractAddress();
@@ -209,6 +215,7 @@ export function useQuadraticRounds() {
           { type: "String", value: title },
           { type: "String", value: description },
         ],
+        signers: globalSignerForCurrentWallet(),
       });
 
       setStatus(t("roundCreated"), "success");
@@ -251,6 +258,7 @@ export function useQuadraticRounds() {
           { type: "Integer", value: selectedRound.value.id },
           { type: "Integer", value: parsedAmount },
         ],
+        signers: globalSignerForCurrentWallet(),
       });
 
       setStatus(t("matchingAdded"), "success");

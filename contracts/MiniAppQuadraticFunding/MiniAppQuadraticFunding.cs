@@ -153,6 +153,22 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, PREFIX_ROUND_ID, 0);
             Storage.Put(Storage.CurrentContext, PREFIX_PROJECT_ID, 0);
         }
+
+        /// <summary>
+        /// Accept inbound NEO / GAS transfers used by matching-pool funding and
+        /// direct contributions.
+        ///
+        /// CreateRound / AddMatchingPool / Contribute move assets into the
+        /// contract through native token `Transfer(...)` calls, so the contract
+        /// must implement `onNEP17Payment` to receive them successfully.
+        /// </summary>
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            ExecutionEngine.Assert(
+                Runtime.CallingScriptHash == NEO.Hash || Runtime.CallingScriptHash == GAS.Hash,
+                "unsupported asset");
+            ExecutionEngine.Assert(amount > 0, "amount required");
+        }
         #endregion
 
         #region Read Methods
