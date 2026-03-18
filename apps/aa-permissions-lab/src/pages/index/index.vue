@@ -50,7 +50,7 @@
 import { computed, reactive, ref } from "vue";
 import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
@@ -62,10 +62,10 @@ const wallet = useWallet() as WalletSDK;
 const { address, connect, invokeRead, invokeContract } = wallet;
 const aaCore = getExternalIntegrationConfig("testnet").contracts.aaCore;
 
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "aa-permissions-lab",
   messages,
-  template: { tabs: [{ key: "permissions", labelKey: "updateVerifier", icon: "🧩", default: true }], docSubtitleKey: "docsSubtitle", docFeatureCount: 3 },
+  tab: { key: "permissions", labelKey: "updateVerifier", icon: "🧩" },
   sidebarItems: [
     { labelKey: "currentVerifier", value: () => current.verifier || "—" },
     { labelKey: "currentHook", value: () => current.hook || "—" },

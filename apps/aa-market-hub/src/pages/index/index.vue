@@ -192,7 +192,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import {
   buyAddressListing,
   cancelAddressListing,
@@ -227,10 +227,10 @@ const isLoading = ref(false);
 const isSubmitting = ref(false);
 const isWalletConnecting = ref(false);
 
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "aa-market-hub",
   messages,
-  template: { tabs: [{ key: "market", labelKey: "totalListings", icon: "🏪", default: true }], docSubtitleKey: "docsSubtitle", docFeatureCount: 3 },
+  tab: { key: "market", labelKey: "totalListings", icon: "🏪" },
   sidebarItems: [
     { labelKey: "totalListings", value: () => listings.value.length },
     { labelKey: "marketHash", value: () => marketHash.value || "—" },
