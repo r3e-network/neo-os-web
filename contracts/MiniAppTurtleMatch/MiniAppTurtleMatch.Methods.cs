@@ -29,7 +29,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// Hybrid Architecture: Register operation with deterministic seed.
         /// Flow: StartGame (on-chain) → Frontend calculates using seed → SettleGame (on-chain verifies)
         /// </summary>
-        public static BigInteger StartGame(UInt160 player, BigInteger boxCount, BigInteger receiptId)
+        public static BigInteger StartGame(UInt160 player, BigInteger boxCount)
         {
             // Authorization check
             ValidateUserOrAbstractAccount(player);
@@ -39,7 +39,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             // Calculate payment
             BigInteger payment = boxCount * BLINDBOX_PRICE;
-            ValidatePaymentReceipt(APP_ID, player, payment, receiptId);
+            ConsumeDirectGasCredit(player, payment);
 
             // Register bet and validate limits (MiniAppGameComputeBase)
             ValidateGameBetLimits(player, payment);

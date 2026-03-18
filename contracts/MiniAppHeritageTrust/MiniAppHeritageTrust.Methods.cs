@@ -19,8 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger neoAmount,
             BigInteger heartbeatIntervalDays,
             string trustName,
-            string notes,
-            BigInteger receiptId)
+            string notes)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(heir.IsValid && heir != owner, "invalid heir");
@@ -32,7 +31,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger intervalSeconds = heartbeatIntervalDays * 86400;
             ExecutionEngine.Assert(intervalSeconds >= MIN_HEARTBEAT_SECONDS && intervalSeconds <= MAX_HEARTBEAT_SECONDS, "invalid interval");
 
-            ValidatePaymentReceipt(APP_ID, owner, neoAmount, receiptId);
+            ConsumeDirectAssetCredit(NEO.Hash, owner, neoAmount);
 
             BigInteger trustId = TotalTrusts() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_TRUST_ID, trustId);
@@ -74,7 +73,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             Trust trust = GetTrust(trustId);
             ExecutionEngine.Assert(trust.Active, "trust not active");
-            ExecutionEngine.Assert(Runtime.CheckWitness(trust.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(trust.Owner);
 
             trust.LastHeartbeat = Runtime.Time;
             trust.Deadline = Runtime.Time + trust.HeartbeatInterval;
@@ -94,8 +93,9 @@ namespace NeoMiniAppPlatform.Contracts
 
             Trust trust = GetTrust(trustId);
             ExecutionEngine.Assert(trust.Active, "trust not active");
-            ExecutionEngine.Assert(Runtime.CheckWitness(trust.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(trust.Owner);
             ExecutionEngine.Assert(trust.AccruedYield > 0, "no yield to claim");
+            ExecutionEngine.Assert(GAS.BalanceOf(Runtime.ExecutingScriptHash) >= trust.AccruedYield, "insufficient yield liquidity");
 
             BigInteger yieldAmount = trust.AccruedYield;
             trust.AccruedYield = 0;
@@ -124,9 +124,10 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger graceDeadline = trust.Deadline + GRACE_PERIOD_SECONDS;
             ExecutionEngine.Assert(Runtime.Time >= graceDeadline, "owner still alive");
 
-            bool isHeir = Runtime.CheckWitness(trust.PrimaryHeir);
+            bool isHeir = IsUserOrAbstractAccountAuthorized(trust.PrimaryHeir);
             bool isGuardian = IsGuardian(trustId, Runtime.Transaction.Sender);
             ExecutionEngine.Assert(isHeir || isGuardian, "unauthorized executor");
+            ExecutionEngine.Assert(NEO.BalanceOf(Runtime.ExecutingScriptHash) >= trust.Principal, "insufficient trust liquidity");
 
             BigInteger platformFee = trust.Principal * PLATFORM_FEE_BPS / 10000;
             BigInteger heirAmount = trust.Principal - platformFee;
@@ -163,7 +164,8 @@ namespace NeoMiniAppPlatform.Contracts
             Trust trust = GetTrust(trustId);
             ExecutionEngine.Assert(trust.Active, "trust not active");
             ExecutionEngine.Assert(!trust.Executed, "already executed");
-            ExecutionEngine.Assert(Runtime.CheckWitness(trust.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(trust.Owner);
+            ExecutionEngine.Assert(NEO.BalanceOf(Runtime.ExecutingScriptHash) >= trust.Principal, "insufficient trust liquidity");
 
             BigInteger penalty = trust.Principal * CANCEL_PENALTY_BPS / 10000;
             BigInteger refundAmount = trust.Principal - penalty;
@@ -199,7 +201,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             Trust trust = GetTrust(trustId);
             ExecutionEngine.Assert(trust.Active, "trust not active");
-            ExecutionEngine.Assert(Runtime.CheckWitness(trust.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(trust.Owner);
             ExecutionEngine.Assert(newHeir.IsValid && newHeir != trust.Owner, "invalid heir");
 
             UInt160 oldHeir = trust.PrimaryHeir;
@@ -216,16 +218,16 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Add additional principal to an existing trust.
         /// </summary>
-        public static void AddPrincipal(BigInteger trustId, BigInteger neoAmount, BigInteger receiptId)
+        public static void AddPrincipal(BigInteger trustId, BigInteger neoAmount)
         {
             ValidateNotGloballyPaused(APP_ID);
 
             Trust trust = GetTrust(trustId);
             ExecutionEngine.Assert(trust.Active, "trust not active");
-            ExecutionEngine.Assert(Runtime.CheckWitness(trust.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(trust.Owner);
             ExecutionEngine.Assert(neoAmount > 0, "invalid amount");
 
-            ValidatePaymentReceipt(APP_ID, trust.Owner, neoAmount, receiptId);
+            ConsumeDirectAssetCredit(NEO.Hash, trust.Owner, neoAmount);
 
             trust.Principal += neoAmount;
             StoreTrust(trustId, trust);
@@ -246,7 +248,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             Trust trust = GetTrust(trustId);
             ExecutionEngine.Assert(trust.Active, "trust not active");
-            ExecutionEngine.Assert(Runtime.CheckWitness(trust.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(trust.Owner);
             ExecutionEngine.Assert(guardian.IsValid && guardian != trust.Owner, "invalid guardian");
             ExecutionEngine.Assert(!IsGuardian(trustId, guardian), "already guardian");
 
@@ -270,7 +272,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             Trust trust = GetTrust(trustId);
             ExecutionEngine.Assert(trust.Active, "trust not active");
-            ExecutionEngine.Assert(Runtime.CheckWitness(trust.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(trust.Owner);
 
             BigInteger intervalSeconds = newIntervalDays * 86400;
             ExecutionEngine.Assert(intervalSeconds >= MIN_HEARTBEAT_SECONDS && intervalSeconds <= MAX_HEARTBEAT_SECONDS, "invalid interval");

@@ -106,7 +106,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static void CreateProposal(string proposalId, UInt160 creator, string description, BigInteger durationMs)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(creator), "unauthorized");
+            ValidateUserOrAbstractAccount(creator);
             ExecutionEngine.Assert(proposalId != null && proposalId.Length > 0, "proposal id required");
             ExecutionEngine.Assert(durationMs > 0, "duration required");
 
@@ -142,7 +142,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger SubmitVote(string proposalId, UInt160 voter, ByteString encryptedVote)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(voter), "unauthorized");
+            ValidateUserOrAbstractAccount(voter);
 
             ProposalData proposal = GetProposal(proposalId);
             ExecutionEngine.Assert(proposal.Creator != null, "proposal not found");
@@ -185,12 +185,12 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(!proposal.Tallied, "already tallied");
             ExecutionEngine.Assert(Runtime.Time > (ulong)proposal.EndTime, "voting not ended");
             ExecutionEngine.Assert(
-                Runtime.CheckWitness(proposal.Creator) || Runtime.CheckWitness(Admin()),
+                IsUserOrAbstractAccountAuthorized(proposal.Creator) || Runtime.CheckWitness(Admin()),
                 "unauthorized"
             );
 
             // Request TEE computation to decrypt and tally votes
-            BigInteger requestId = RequestTeeCompute(proposalId, proposal.VoteCount);
+            BigInteger requestId = RequestTeeCompute(proposal.Creator, proposalId, proposal.VoteCount);
             Storage.Put(Storage.CurrentContext,
                 Helper.Concat((ByteString)PREFIX_REQUEST_TO_PROPOSAL, (ByteString)requestId.ToByteArray()),
                 proposalId);
@@ -220,17 +220,10 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Service Request Methods
 
-        private static BigInteger RequestTeeCompute(string proposalId, BigInteger voteCount)
+        private static BigInteger RequestTeeCompute(UInt160 requester, string proposalId, BigInteger voteCount)
         {
-            UInt160 oracle = Oracle();
-            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
-
             ByteString payload = StdLib.Serialize(new object[] { proposalId, voteCount });
-            return (BigInteger)Contract.Call(
-                oracle, "request", CallFlags.All,
-                "compute", payload,
-                Runtime.ExecutingScriptHash, "onOracleResult"
-            );
+            return RequestOracleForCallback(requester, "compute", payload);
         }
 
         public static void OnOracleResult(
@@ -390,7 +383,7 @@ namespace NeoMiniAppPlatform.Contracts
                 if (Runtime.Time > (ulong)proposal.EndTime)
                 {
                     // Request TEE computation to decrypt and tally votes
-                    BigInteger requestId = RequestTeeCompute(proposalId, proposal.VoteCount);
+                    BigInteger requestId = RequestTeeCompute(proposal.Creator, proposalId, proposal.VoteCount);
                     Storage.Put(Storage.CurrentContext,
                         Helper.Concat((ByteString)PREFIX_REQUEST_TO_PROPOSAL, (ByteString)requestId.ToByteArray()),
                         proposalId);

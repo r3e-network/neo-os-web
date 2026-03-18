@@ -120,8 +120,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger maskId,
             BigInteger proposalId,
             BigInteger choice,
-            BigInteger calculatedEffectivePower,
-            BigInteger receiptId)
+            BigInteger calculatedEffectivePower)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -140,7 +139,7 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString voteKey = GetVoteKey(proposalId, maskId);
             ExecutionEngine.Assert(Storage.Get(Storage.CurrentContext, voteKey) == null, "already voted");
 
-            ValidatePaymentReceipt(APP_ID, voter, VOTE_FEE, receiptId);
+            ConsumeDirectGasCredit(voter, VOTE_FEE);
 
             // O(1) verification of effective voting power
             BigInteger basePower = mask.VotingPower;
