@@ -57,6 +57,7 @@ The platform does **not** embed the Morpheus Oracle runtime or the AA runtime an
 | VRF / randomness | `neo-morpheus-oracle` | `rng-request` |
 | Compute / TEE | `neo-morpheus-oracle` | `compute-execute`, `compute-app-execute` |
 | Paymaster / sponsorship | `neo-morpheus-oracle` | GAS sponsor gateway plus AA relay paymaster metadata |
+| NeoDID public resolution / providers | `neo-morpheus-oracle` | host-side `/api/morpheus/neodid/*` proxy + shared `useOracle()` |
 | AA core / verifiers / relay | `neo-abstract-account` | host `AA_RELAY_URL`, shared `useAbstractAccount()`, canonical domains / hashes |
 
 Primary integration rule:
