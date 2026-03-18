@@ -32,13 +32,13 @@
 import { computed } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
 const oracle = useOracle({ appId: "miniapp-oracle-vrf-console" });
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "oracle-vrf-console", messages,
-  template: { tabs: [{ key: "vrf", labelKey: "latestResult", icon: "🎲", default: true }], docSubtitleKey: "docsSubtitle", docFeatureCount: 3 },
+  tab: { key: "vrf", labelKey: "latestResult", icon: "🎲" },
   sidebarItems: [{ labelKey: "latestResult", value: () => oracle.lastRandom.value?.requestId || "—" }],
 });
 const lastRandom = oracle.lastRandom;

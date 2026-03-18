@@ -34,15 +34,15 @@
 import { computed, ref } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
 const oracle = useOracle({ appId: "miniapp-oracle-price-console" });
 const asset = ref("NEO");
 const latestPrice = ref<number | null>(null);
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "oracle-price-console", messages,
-  template: { tabs: [{ key: "price", labelKey: "latestPrice", icon: "📈", default: true }], docSubtitleKey: "docsSubtitle", docFeatureCount: 3 },
+  tab: { key: "price", labelKey: "latestPrice", icon: "📈" },
   sidebarItems: [{ labelKey: "asset", value: () => asset.value }, { labelKey: "latestPrice", value: () => priceDisplay.value }],
 });
 async function fetchPrice() { try { latestPrice.value = await oracle.getPrice(asset.value); setStatus("price loaded", "success"); } catch (e) { setStatus(String((e as Error)?.message || e), "error"); } }

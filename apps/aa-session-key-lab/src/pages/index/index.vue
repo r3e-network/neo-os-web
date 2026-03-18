@@ -44,7 +44,7 @@
 import { computed, reactive, ref, watch } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useAbstractAccount } from "@shared/composables/useAbstractAccount";
 
@@ -63,14 +63,10 @@ const aa = useAbstractAccount({
 });
 watch(aaAddress, (next) => aa.setAAAddress(next));
 
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "aa-session-key-lab",
   messages,
-  template: {
-    tabs: [{ key: "session", labelKey: "latestState", icon: "🔑", default: true }],
-    docSubtitleKey: "docsSubtitle",
-    docFeatureCount: 3,
-  },
+  tab: { key: "session", labelKey: "latestState", icon: "🔑" },
   sidebarItems: [
     { labelKey: "aaAddress", value: () => aaAddress.value || "—" },
     { labelKey: "latestState", value: () => (aa.hasActiveSession.value ? "active" : "none") },
