@@ -53,3 +53,4 @@ export type { BadgeStatus } from "./StatusBadge.vue";
 export { default as FormCard } from "./FormCard.vue";
 export { default as ConfiguredOperationPanel } from "./ConfiguredOperationPanel.vue";
 export { default as ScrollReveal } from "./ScrollReveal.vue";
+export { default as OfficialLauncherMiniApp } from "./OfficialLauncherMiniApp.vue";
