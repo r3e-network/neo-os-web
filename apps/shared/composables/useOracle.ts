@@ -411,12 +411,11 @@ export function useOracle(config: OracleConfig = {}) {
     isRequesting.value = true;
     error.value = null;
     try {
-      const url = new URL("/api/neodid/resolve", integration.morpheusPublicApiUrl);
-      url.searchParams.set("did", trimmedDid);
-      if (format === "document") {
-        url.searchParams.set("format", "document");
-      }
-      return await requestExternalJson<NeoDidResolveResponse>(url.toString());
+      const params = new URLSearchParams();
+      params.set("did", trimmedDid);
+      params.set("network", network);
+      if (format === "document") params.set("format", "document");
+      return await requestExternalJson<NeoDidResolveResponse>(`/api/morpheus/neodid/resolve?${params.toString()}`);
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : "NeoDID resolution failed";
       throw e;
@@ -429,8 +428,7 @@ export function useOracle(config: OracleConfig = {}) {
     isRequesting.value = true;
     error.value = null;
     try {
-      const url = new URL("/api/neodid/providers", integration.morpheusPublicApiUrl);
-      return await requestExternalJson<NeoDidProvidersResponse>(url.toString());
+      return await requestExternalJson<NeoDidProvidersResponse>(`/api/morpheus/neodid/providers?network=${encodeURIComponent(network)}`);
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : "NeoDID providers request failed";
       throw e;

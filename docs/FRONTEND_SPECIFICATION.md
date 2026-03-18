@@ -71,6 +71,7 @@ Operational/API routes currently implemented include:
 - `/api/rpc/relay`
 - `/api/rpc/sponsor`
 - `/api/aa/relay`
+- `/api/morpheus/neodid/*`
 - `/api/miniapps/*`
 - `/api/cron/*`
 - `/api/platform/stats`
