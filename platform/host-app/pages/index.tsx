@@ -30,6 +30,18 @@ import {
 } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 
+const TOOL_MINIAPP_IDS = [
+  "miniapp-aa-account-lab",
+  "miniapp-aa-permissions-lab",
+  "miniapp-aa-market-hub",
+  "miniapp-aa-relay-console",
+  "miniapp-aa-session-key-lab",
+  "miniapp-oracle-price-console",
+  "miniapp-oracle-http-console",
+  "miniapp-oracle-compute-lab",
+  "miniapp-oracle-vrf-console",
+] as const;
+
 // Category definitions with icons
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ size?: number | string; className?: string }>> = {
   all: LayoutGrid,
@@ -47,6 +59,7 @@ export default function LandingPage() {
   const [sortBy, setSortBy] = useState<"featured" | "recent" | "name">("featured");
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogApps, setCatalogApps] = useState<MiniAppInfo[]>([]);
+  const [toolApps, setToolApps] = useState<MiniAppInfo[]>([]);
 
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 1000], [0, 200]);
@@ -61,10 +74,9 @@ export default function LandingPage() {
         if (!res.ok) return;
         const data = await res.json();
         if (!active) return;
-        const apps = Array.isArray(data?.apps)
-          ? data.apps.filter((app: MiniAppInfo) => FLAGSHIP_MINIAPP_IDS.includes(app.app_id))
-          : [];
-        setCatalogApps(apps);
+        const allApps = Array.isArray(data?.apps) ? data.apps : [];
+        setCatalogApps(allApps.filter((app: MiniAppInfo) => FLAGSHIP_MINIAPP_IDS.includes(app.app_id)));
+        setToolApps(allApps.filter((app: MiniAppInfo) => TOOL_MINIAPP_IDS.includes(app.app_id as (typeof TOOL_MINIAPP_IDS)[number])));
       } catch (err) {
         logger.error("Failed to fetch miniapp catalog:", err);
       } finally {
@@ -277,6 +289,40 @@ export default function LandingPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Account & Oracle Tools */}
+      <section className="py-20 px-4">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 flex items-end justify-between gap-6">
+            <div>
+              <Badge variant="outline" className="mb-4 border-sky-400/30 bg-sky-500/5 px-4 py-1 text-sky-300">Operator Toolkit</Badge>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white">
+                Account & Oracle Tools
+              </h2>
+              <p className="mt-4 max-w-3xl text-base md:text-lg text-gray-600 dark:text-gray-400 font-medium">
+                Focused miniapps for AA registration, permissions, relay checks, and Morpheus Oracle interaction.
+              </p>
+            </div>
+            <Link href="/miniapps">
+              <Button variant="outline" className="rounded-full border-gray-200 dark:border-white/10">Browse All Tools</Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {toolApps.map((app, idx) => (
+              <motion.div
+                key={app.app_id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.4, delay: idx * 0.04 }}
+              >
+                <MiniAppCard app={app} />
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
