@@ -11,10 +11,11 @@
     :on-boundary-error="handleBoundaryError"
     :on-boundary-retry="resetAndReload"
   >
-    <!-- Overview Tab (default) -->
     <template #content>
       <div class="hero-container">
         <span class="hero-label">{{ t("appName") }}</span>
+        <span class="hero-description">{{ t("heroDescription") }}</span>
+
         <div class="hero-gauge">
           <svg viewBox="0 0 200 120" class="gauge-svg">
             <path
@@ -46,51 +47,25 @@
             <span class="gauge-unit">NEO</span>
           </div>
         </div>
-        <div class="hero-stats-row">
-          <div class="hero-stat">
-            <span class="hero-stat-label">{{ t("myStake") }}</span>
-            <span class="hero-stat-value">{{ formatNum(myStake) }} NEO</span>
-          </div>
-          <div class="hero-stat-divider" />
-          <div class="hero-stat">
-            <span class="hero-stat-label">{{ t("pendingRewards") }}</span>
-            <span class="hero-stat-value hero-stat-value--accent">{{ formatNum(pendingRewards) }} GAS</span>
-          </div>
-        </div>
+
+        <HeroStatsStrip :items="heroStatsItems" compact />
       </div>
 
-      <ContractAvailabilityCard
-        v-if="!contractReady"
-        :title="t('deploymentPendingTitle')"
-        :description="t('deploymentPendingDesc')"
-      />
-      <template v-else>
-        <StatsDisplay :items="trustStats" layout="grid" class="mb-6" />
+      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
 
-        <NeoCard variant="erobo" class="mb-4 px-1">
-          <div class="section-header mb-4">
-            <span class="section-title">{{ t("voteForReputation") }}</span>
-          </div>
-          <span class="section-desc mb-4">{{ t("voteForReputationDesc") }}</span>
+      <NeoCard variant="erobo" class="mb-4 px-1">
+        <div class="section-header mb-4">
+          <span class="section-title">{{ t("routingSummaryTitle") }}</span>
+        </div>
+        <span class="section-desc">{{ t("routingSummaryDesc") }}</span>
+      </NeoCard>
 
-          <div class="section-header section-header--spaced mb-4">
-            <span class="section-title">{{ t("notForProfit") }}</span>
-          </div>
-          <span class="section-desc">{{ t("notForProfitDesc") }}</span>
-        </NeoCard>
-
-        <NeoCard variant="erobo" class="px-1">
-          <div class="section-header mb-4">
-            <span class="section-title">{{ t("claim") }}</span>
-          </div>
-          <div class="claim-section">
-            <span class="claim-amount">{{ formatNum(pendingRewards) }} GAS</span>
-            <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
-              {{ t("claim") }}
-            </NeoButton>
-          </div>
-        </NeoCard>
-      </template>
+      <NeoCard variant="erobo" class="px-1">
+        <div class="section-header mb-4">
+          <span class="section-title">{{ t("rebalanceTitle") }}</span>
+        </div>
+        <span class="section-desc">{{ t("rebalanceDesc") }}</span>
+      </NeoCard>
     </template>
 
     <template #operation>
@@ -104,20 +79,30 @@
         <div v-if="address" class="stake-form">
           <div class="input-group mb-4">
             <div class="input-row">
-              <NeoInput type="number" v-model="stakeAmount" :label="t('stake NEO')" :placeholder="t('amount')" />
+              <NeoInput type="number" v-model="stakeAmount" :label="t('stake')" :placeholder="t('amount')" />
               <NeoButton variant="primary" :loading="isStaking" @click="handleStake">
                 {{ t("stake") }}
               </NeoButton>
             </div>
           </div>
 
-          <div class="input-group">
+          <div class="input-group mb-4">
             <div class="input-row">
               <NeoInput type="number" v-model="unstakeAmount" :label="t('unstake')" :placeholder="t('amount')" />
               <NeoButton variant="secondary" :loading="isUnstaking" @click="handleUnstake">
                 {{ t("unstake") }}
               </NeoButton>
             </div>
+          </div>
+
+          <div class="claim-panel">
+            <div class="claim-panel__copy">
+              <span class="claim-panel__label">{{ t("pendingRewards") }}</span>
+              <span class="claim-panel__value">{{ formatNum(pendingRewards) }} GAS</span>
+            </div>
+            <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
+              {{ t("claim") }}
+            </NeoButton>
           </div>
         </div>
 
@@ -129,24 +114,12 @@
       </NeoCard>
     </template>
 
-    <!-- Agents Tab -->
-    <template #tab-agents>
-      <ContractAvailabilityCard
-        v-if="!contractReady"
-        :title="t('deploymentPendingTitle')"
-        :description="t('deploymentPendingDesc')"
-      />
-      <AgentsTab v-else :agents="agents" />
+    <template #tab-routing>
+      <RoutingSlotsTab :slots="routingSlots" />
     </template>
 
-    <!-- History Tab -->
-    <template #tab-history>
-      <ContractAvailabilityCard
-        v-if="!contractReady"
-        :title="t('deploymentPendingTitle')"
-        :description="t('deploymentPendingDesc')"
-      />
-      <HistoryTab v-else :stats="stats" />
+    <template #tab-architecture>
+      <ArchitectureTab :stats="stats" :slot-count="routingSlots.length" />
     </template>
   </MiniAppPage>
 </template>
@@ -156,11 +129,37 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { formatNumber } from "@shared/utils/format";
-import { MiniAppPage, StatsDisplay, NeoButton, NeoCard, NeoInput, ContractAvailabilityCard } from "@shared/components";
+import {
+  MiniAppPage,
+  StatsDisplay,
+  NeoButton,
+  NeoCard,
+  NeoInput,
+  ContractAvailabilityCard,
+  HeroStatsStrip,
+} from "@shared/components";
+import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
 import { useTrustAnchor } from "./composables/useTrustAnchor";
+import ArchitectureTab from "./components/ArchitectureTab.vue";
+import RoutingSlotsTab from "./components/RoutingSlotsTab.vue";
+import { TRUSTANCHOR_ROUTING_SLOTS } from "./data/routingSlots";
+
+const formatNum = (n: number | string) => formatNumber(n, 2);
+
+const {
+  stats,
+  myStake,
+  pendingRewards,
+  loadAll,
+  stake,
+  unstake,
+  claimRewards,
+} = useTrustAnchor((key: string) => t(key));
+
+const routingSlots = TRUSTANCHOR_ROUTING_SLOTS;
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
   name: "trustanchor",
@@ -168,24 +167,22 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   template: {
     tabs: [
       { key: "overview", labelKey: "tabOverview", icon: "layout", default: true },
-      { key: "agents", labelKey: "tabAgents", icon: "users" },
-      { key: "history", labelKey: "tabHistory", icon: "clock" },
+      { key: "routing", labelKey: "tabRouting", icon: "grid" },
+      { key: "architecture", labelKey: "tabArchitecture", icon: "layers" },
     ],
     docSubtitleKey: "docsSubtitle",
     docFeatureCount: 3,
   },
   sidebarItems: [
-    { labelKey: "stake", value: () => `${formatNum(myStake.value)} NEO` },
-    { labelKey: "claim", value: () => `${formatNum(pendingRewards.value)} GAS` },
-    { labelKey: "totalStaked", value: () => `${formatNum(stats.value?.totalStaked ?? 0)} NEO` },
-    { labelKey: "agentsLabel", value: () => stats.value?.agentCount ?? 0 },
+    { labelKey: "myStake", value: () => `${formatNum(myStake.value)} NEO` },
+    { labelKey: "pendingRewards", value: () => `${formatNum(pendingRewards.value)} GAS` },
+    { labelKey: "routingSlotsLabel", value: () => routingSlots.length },
+    { labelKey: "defaultIngressLabel", value: () => 21 },
   ],
 });
+
 const { address, connect } = useWallet() as WalletSDK;
 const { ensureSafe: ensureContractSafe } = useContractAddress(t);
-
-const { agents, stats, myStake, pendingRewards, totalRewards, setError, loadAll, stake, unstake, claimRewards } =
-  useTrustAnchor(t);
 
 const isClaiming = ref(false);
 const isStaking = ref(false);
@@ -197,32 +194,37 @@ const contractReady = ref(false);
 const appState = computed(() => ({
   myStake: myStake.value,
   pendingRewards: pendingRewards.value,
-  totalRewards: totalRewards.value,
+  routingSlots: routingSlots.length,
+  defaultIngressSlot: 21,
 }));
 
-const formatNum = (n: number | string) => formatNumber(n, 2);
-
-// Gauge: half-circle arc length for r=80 is π * 80 ≈ 251.3
 const GAUGE_ARC = Math.PI * 80;
 const gaugeCircumference = GAUGE_ARC;
-const MAX_STAKED = 10_000_000; // normalise gauge to 10M NEO
+const MAX_STAKED = 10_000_000;
 const gaugePercent = computed(() => {
   const total = stats.value?.totalStaked ?? 0;
   return Math.min(total / MAX_STAKED, 1);
 });
 const gaugeOffset = computed(() => GAUGE_ARC - gaugePercent.value * GAUGE_ARC);
 
+const heroStatsItems = computed<HeroStatsStripItem[]>(() => [
+  { label: t("routingSlotsLabel"), value: routingSlots.length, icon: "🧱" },
+  { label: t("defaultIngressLabel"), value: 21, icon: "↘" },
+  { label: t("noAgentContractsLabel"), value: 0, icon: "∅" },
+]);
+
+const overviewStats = computed<StatsDisplayItem[]>(() => [
+  { label: t("zeroFee"), value: t("zeroFeeDesc"), variant: "success" },
+  { label: t("verificationAccountsTitle"), value: t("verificationAccountsDesc"), variant: "erobo" },
+  { label: t("verificationScriptTitle"), value: t("verificationScriptDesc"), variant: "accent" },
+  { label: t("rebalanceTitle"), value: t("rebalanceMetricDesc"), variant: "erobo" },
+]);
+
 const ensureContractReady = async () => {
   contractReady.value = await ensureContractSafe({ silentChainCheck: true });
   return contractReady.value;
 };
 
-const trustStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("myStake"), value: `${formatNum(myStake.value)} NEO` },
-  { label: t("pendingRewards"), value: `${formatNum(pendingRewards.value)} GAS`, variant: "success" },
-  { label: t("totalRewards"), value: `${formatNum(totalRewards.value)} GAS`, variant: "accent" },
-  { label: t("zeroFee"), value: t("zeroFeeDesc"), variant: "erobo" },
-]);
 const handleStake = async () => {
   const amount = parseInt(stakeAmount.value, 10);
   if (!amount || amount <= 0) return;
@@ -277,24 +279,42 @@ onMounted(async () => {
   background: var(--bg-primary);
 }
 
+.hero-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.hero-label {
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.hero-description {
+  max-width: 700px;
+  font-size: 14px;
+  line-height: 1.7;
+  opacity: 0.82;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
-  &--spaced {
-    margin-top: 16px;
-  }
 }
 
 .section-title {
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 800;
 }
 
 .section-desc {
   font-size: 14px;
-  opacity: 0.8;
+  opacity: 0.82;
+  line-height: 1.7;
   display: block;
 }
 
@@ -304,14 +324,36 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.input-label {
-  font-size: 12px;
-  opacity: 0.7;
-}
-
 .input-row {
   display: flex;
   gap: 12px;
+}
+
+.claim-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.claim-panel__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.claim-panel__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.6;
+}
+
+.claim-panel__value {
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .claim-section {
