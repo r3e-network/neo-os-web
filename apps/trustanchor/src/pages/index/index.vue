@@ -9,7 +9,7 @@
     :sidebar-title="sidebarTitle"
     :fallback-message="fallbackMessage"
     :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="loadAll"
+    :on-boundary-retry="resetAndReload"
   >
     <!-- Overview Tab (default) -->
     <template #content>
@@ -59,35 +59,48 @@
         </div>
       </div>
 
-      <StatsDisplay :items="trustStats" layout="grid" class="mb-6" />
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
+      />
+      <template v-else>
+        <StatsDisplay :items="trustStats" layout="grid" class="mb-6" />
 
-      <NeoCard variant="erobo" class="mb-4 px-1">
-        <div class="section-header mb-4">
-          <span class="section-title">{{ t("voteForReputation") }}</span>
-        </div>
-        <span class="section-desc mb-4">{{ t("voteForReputationDesc") }}</span>
+        <NeoCard variant="erobo" class="mb-4 px-1">
+          <div class="section-header mb-4">
+            <span class="section-title">{{ t("voteForReputation") }}</span>
+          </div>
+          <span class="section-desc mb-4">{{ t("voteForReputationDesc") }}</span>
 
-        <div class="section-header section-header--spaced mb-4">
-          <span class="section-title">{{ t("notForProfit") }}</span>
-        </div>
-        <span class="section-desc">{{ t("notForProfitDesc") }}</span>
-      </NeoCard>
+          <div class="section-header section-header--spaced mb-4">
+            <span class="section-title">{{ t("notForProfit") }}</span>
+          </div>
+          <span class="section-desc">{{ t("notForProfitDesc") }}</span>
+        </NeoCard>
 
-      <NeoCard variant="erobo" class="px-1">
-        <div class="section-header mb-4">
-          <span class="section-title">{{ t("claim") }}</span>
-        </div>
-        <div class="claim-section">
-          <span class="claim-amount">{{ formatNum(pendingRewards) }} GAS</span>
-          <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
-            {{ t("claim") }}
-          </NeoButton>
-        </div>
-      </NeoCard>
+        <NeoCard variant="erobo" class="px-1">
+          <div class="section-header mb-4">
+            <span class="section-title">{{ t("claim") }}</span>
+          </div>
+          <div class="claim-section">
+            <span class="claim-amount">{{ formatNum(pendingRewards) }} GAS</span>
+            <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
+              {{ t("claim") }}
+            </NeoButton>
+          </div>
+        </NeoCard>
+      </template>
     </template>
 
     <template #operation>
-      <NeoCard variant="erobo" :title="t('stake')" class="mb-4 px-1">
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
+        compact
+      />
+      <NeoCard v-else variant="erobo" :title="t('stake')" class="mb-4 px-1">
         <div v-if="address" class="stake-form">
           <div class="input-group mb-4">
             <div class="input-row">
@@ -118,12 +131,22 @@
 
     <!-- Agents Tab -->
     <template #tab-agents>
-      <AgentsTab :agents="agents" />
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
+      />
+      <AgentsTab v-else :agents="agents" />
     </template>
 
     <!-- History Tab -->
     <template #tab-history>
-      <HistoryTab :stats="stats" />
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
+      />
+      <HistoryTab v-else :stats="stats" />
     </template>
   </MiniAppPage>
 </template>
@@ -133,7 +156,8 @@ import { ref, computed, onMounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { formatNumber } from "@shared/utils/format";
-import { MiniAppPage, StatsDisplay, NeoButton, NeoCard, NeoInput } from "@shared/components";
+import { MiniAppPage, StatsDisplay, NeoButton, NeoCard, NeoInput, ContractAvailabilityCard } from "@shared/components";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
 import { useTrustAnchor } from "./composables/useTrustAnchor";
@@ -158,6 +182,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   ],
 });
 const { address, connect } = useWallet() as WalletSDK;
+const { ensureSafe: ensureContractSafe } = useContractAddress(t);
 
 const { agents, stats, myStake, pendingRewards, totalRewards, setError, loadAll, stake, unstake, claimRewards } =
   useTrustAnchor(t);
@@ -167,6 +192,7 @@ const isStaking = ref(false);
 const isUnstaking = ref(false);
 const stakeAmount = ref("");
 const unstakeAmount = ref("");
+const contractReady = ref(false);
 
 const appState = computed(() => ({
   myStake: myStake.value,
@@ -185,6 +211,11 @@ const gaugePercent = computed(() => {
   return Math.min(total / MAX_STAKED, 1);
 });
 const gaugeOffset = computed(() => GAUGE_ARC - gaugePercent.value * GAUGE_ARC);
+
+const ensureContractReady = async () => {
+  contractReady.value = await ensureContractSafe({ silentChainCheck: true });
+  return contractReady.value;
+};
 
 const trustStats = computed<StatsDisplayItem[]>(() => [
   { label: t("myStake"), value: `${formatNum(myStake.value)} NEO` },
@@ -226,8 +257,13 @@ const handleClaim = async () => {
   }
 };
 
-onMounted(() => {
-  loadAll();
+const resetAndReload = async () => {
+  if (!(await ensureContractReady())) return;
+  await loadAll();
+};
+
+onMounted(async () => {
+  await resetAndReload();
 });
 </script>
 

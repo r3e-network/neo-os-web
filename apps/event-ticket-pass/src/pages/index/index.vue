@@ -39,7 +39,13 @@
         </HeroSection>
       </div>
 
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
+      />
       <EventList
+        v-else
         :address="address"
         :events="contract.events"
         :is-refreshing="contract.isRefreshing"
@@ -52,11 +58,23 @@
     </template>
 
     <template #operation>
-      <EventCreateForm v-model:form="contract.form" :is-creating="contract.isCreating" @create="contract.createEvent" />
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
+        compact
+      />
+      <EventCreateForm v-else v-model:form="contract.form" :is-creating="contract.isCreating" @create="contract.createEvent" />
     </template>
 
     <template #tab-tickets>
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
+      />
       <TicketManagement
+        v-else
         :address="address"
         :tickets="contract.tickets"
         :ticket-qrs="contract.ticketQrs"
@@ -68,7 +86,13 @@
     </template>
 
     <template #tab-checkin>
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
+      />
       <CheckinTab
+        v-else
         v-model:token-id="contract.checkin.tokenId"
         :lookup="contract.lookup"
         :is-looking-up="contract.isLookingUp"
@@ -80,6 +104,7 @@
     </template>
   </MiniAppPage>
   <TicketIssueModal
+    v-if="contractReady"
     :visible="contract.issueModalOpen"
     v-model:recipient="contract.issueForm.recipient"
     v-model:seat="contract.issueForm.seat"
@@ -94,7 +119,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, HeroSection } from "@shared/components";
+import { MiniAppPage, HeroSection, ContractAvailabilityCard } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useEventTicketContract } from "@/composables/useEventTicketContract";
@@ -130,9 +155,10 @@ const {
 
 const wallet = useWallet() as WalletSDK;
 const { address, connect } = wallet;
-const { ensure: ensureContractAddress } = useContractAddress(t);
+const { ensure: ensureContractAddress, ensureSafe: ensureContractSafe } = useContractAddress(t);
 
 const contract = useEventTicketContract(wallet, ensureContractAddress, setStatus, t);
+const contractReady = ref(false);
 
 const activeTab = ref("create");
 
@@ -145,8 +171,14 @@ const appState = computed(() => ({
   ticketsCount: contract.tickets.value.length,
 }));
 
+const ensureContractReady = async () => {
+  contractReady.value = await ensureContractSafe({ silentChainCheck: true });
+  return contractReady.value;
+};
+
 const onTabChange = async (tab: string) => {
   activeTab.value = tab;
+  if (!contractReady.value) return;
   if (tab === "tickets") {
     await contract.refreshTickets();
   }
@@ -156,6 +188,12 @@ const onTabChange = async (tab: string) => {
 };
 
 const resetAndReload = async () => {
+  if (!(await ensureContractReady())) {
+    contract.events.value = [];
+    contract.tickets.value = [];
+    contract.lookup.value = null;
+    return;
+  }
   if (address.value) {
     await contract.refreshEvents();
     await contract.refreshTickets();
@@ -163,6 +201,7 @@ const resetAndReload = async () => {
 };
 
 onMounted(async () => {
+  if (!(await ensureContractReady())) return;
   await connect();
   if (address.value) {
     await contract.refreshEvents();
@@ -171,6 +210,12 @@ onMounted(async () => {
 });
 
 watch(address, async (newAddr) => {
+  if (!(await ensureContractReady())) {
+    contract.events.value = [];
+    contract.tickets.value = [];
+    contract.lookup.value = null;
+    return;
+  }
   if (newAddr) {
     await contract.refreshEvents();
     await contract.refreshTickets();

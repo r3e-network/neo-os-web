@@ -29,16 +29,16 @@
 
 | 属性 | 值 |
 |------|----|
-| **合约** | `未部署` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
+| **合约** | `待部署` |
+| **RPC** | `https://n3seed1.ngd.network:20332` |
 | **浏览器** | `https://testnet.neotube.io` |
 
 ### Mainnet
 
 | 属性 | 值 |
 |------|----|
-| **合约** | `未部署` |
+| **合约** | `待部署` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **浏览器** | `https://neotube.io` |
 
-> 合约部署尚未完成，`neo-manifest.json` 将保持空地址直到部署完成。
+> `neo-manifest.json` 会继续保持空合约地址，直到正式部署完成。前端仍可展示项目与轮次信息，但链上募资流程会保持禁用。

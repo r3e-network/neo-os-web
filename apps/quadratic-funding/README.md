@@ -197,19 +197,19 @@ Round creators have access to:
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Not deployed` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
+| **Contract** | `Pending deployment` |
+| **RPC** | `https://n3seed1.ngd.network:20332` |
 | **Explorer** | `https://testnet.neotube.io` |
 
 ### Mainnet
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Not deployed` |
+| **Contract** | `Pending deployment` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **Explorer** | `https://neotube.io` |
 
-> Contract deployment is pending; `neo-manifest.json` keeps empty addresses until deployment.
+> `neo-manifest.json` intentionally keeps empty contract hashes until a real rollout happens. The frontend remains available, but on-chain funding rounds stay disabled until deployment is completed.
 
 ## Platform Contracts
 
@@ -217,7 +217,6 @@ Round creators have access to:
 
 | Contract | Address |
 | --- | --- |
-| PaymentHub | `0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193` |
 | Governance | `0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05` |
 | PriceFeed | `0xc5d9117d255054489d1cf59b2c1d188c01bc9954` |
 | RandomnessLog | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` |
@@ -229,7 +228,6 @@ Round creators have access to:
 
 | Contract | Address |
 | --- | --- |
-| PaymentHub | `0xc700fa6001a654efcd63e15a3833fbea7baaa3a3` |
 | Governance | `0x705615e903d92abf8f6f459086b83f51096aa413` |
 | PriceFeed | `0x9e889922d2f64fa0c06a28d179c60fe1af915d27` |
 | RandomnessLog | `0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25` |

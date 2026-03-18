@@ -9,7 +9,7 @@ const appMessages = {
   escrowNamePlaceholder: { en: "Website delivery escrow", zh: "项目交付托管" },
   beneficiary: { en: "Beneficiary address", zh: "受益人地址" },
   beneficiaryPlaceholder: { en: "Enter Neo N3 address", zh: "输入 Neo N3 地址" },
-  assetType: { en: "Asset (GAS only)", zh: "资产（仅 GAS）" },
+  assetType: { en: "Asset", zh: "资产" },
   assetNeo: { en: "NEO", zh: "NEO" },
   assetGas: { en: "GAS", zh: "GAS" },
   milestones: { en: "Milestones", zh: "里程碑" },
@@ -25,6 +25,11 @@ const appMessages = {
   escrowCreated: { en: "Escrow created", zh: "托管已创建" },
 
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
+  deploymentPendingTitle: { en: "Contract deployment pending", zh: "合约待部署" },
+  deploymentPendingDesc: {
+    en: "This miniapp remains visible for product review, but no live escrow contract is configured on testnet or mainnet yet. Creation and release actions stay disabled until deployment is completed.",
+    zh: "此小程序目前仅保留产品展示，测试网和主网都还没有配置正式托管合约。创建、审批与领取操作会保持禁用，直到部署完成。",
+  },
 
   invalidAddress: { en: "Invalid beneficiary address", zh: "受益人地址无效" },
   invalidAmount: { en: "Enter a valid amount", zh: "请输入有效金额" },

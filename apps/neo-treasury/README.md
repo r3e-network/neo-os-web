@@ -172,7 +172,7 @@ No on-chain contract is deployed.
 
 - No miniapp contract is deployed for this app.
 - Portfolio analysis and treasury views are assembled from chain reads and local calculations.
-- The runtime does not use PaymentHub receipts.
+- The runtime uses direct contract invocation only.
 
 ## Assets
 

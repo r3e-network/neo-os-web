@@ -41,40 +41,53 @@
         </div>
       </div>
 
-      <div class="escrows-header">
-        <span class="section-title">{{ t("escrowsTab") }}</span>
-        <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
-          {{ t("refresh") }}
-        </NeoButton>
-      </div>
-
-      <div v-if="!address" class="empty-state">
-        <NeoCard variant="erobo" class="p-6 text-center">
-          <span class="mb-3 block text-sm">{{ t("walletNotConnected") }}</span>
-          <NeoButton size="sm" variant="primary" @click="connectWallet">
-            {{ t("connectWallet") }}
-          </NeoButton>
-        </NeoCard>
-      </div>
-
-      <EscrowList
-        v-else
-        :creator-escrows="creatorEscrows"
-        :beneficiary-escrows="beneficiaryEscrows"
-        :approving-id="approvingId"
-        :cancelling-id="cancellingId"
-        :claiming-id="claimingId"
-        :status-label-func="statusLabel"
-        :format-amount-func="formatAmount"
-        :format-address-func="formatAddress"
-        @approve="approveMilestone"
-        @cancel="cancelEscrow"
-        @claim="claimMilestone"
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
       />
+      <template v-else>
+        <div class="escrows-header">
+          <span class="section-title">{{ t("escrowsTab") }}</span>
+          <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
+            {{ t("refresh") }}
+          </NeoButton>
+        </div>
+
+        <div v-if="!address" class="empty-state">
+          <NeoCard variant="erobo" class="p-6 text-center">
+            <span class="mb-3 block text-sm">{{ t("walletNotConnected") }}</span>
+            <NeoButton size="sm" variant="primary" @click="connectWallet">
+              {{ t("connectWallet") }}
+            </NeoButton>
+          </NeoCard>
+        </div>
+
+        <EscrowList
+          v-else
+          :creator-escrows="creatorEscrows"
+          :beneficiary-escrows="beneficiaryEscrows"
+          :approving-id="approvingId"
+          :cancelling-id="cancellingId"
+          :claiming-id="claimingId"
+          :status-label-func="statusLabel"
+          :format-amount-func="formatAmount"
+          :format-address-func="formatAddress"
+          @approve="approveMilestone"
+          @cancel="cancelEscrow"
+          @claim="claimMilestone"
+        />
+      </template>
     </template>
 
     <template #operation>
-      <EscrowForm @create="onCreateEscrow" ref="escrowFormRef" />
+      <ContractAvailabilityCard
+        v-if="!contractReady"
+        :title="t('deploymentPendingTitle')"
+        :description="t('deploymentPendingDesc')"
+        compact
+      />
+      <EscrowForm v-else @create="onCreateEscrow" ref="escrowFormRef" />
     </template>
   </MiniAppPage>
 </template>
@@ -82,7 +95,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, NeoCard, NeoButton } from "@shared/components";
+import { MiniAppPage, NeoCard, NeoButton, ContractAvailabilityCard } from "@shared/components";
+import { useContractAddress } from "@shared/composables/useContractAddress";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import EscrowList from "./components/EscrowList.vue";
 import { useEscrowContract } from "@/composables/useEscrowContract";
@@ -122,6 +136,8 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBo
   ],
 });
 const activeTab = ref("create");
+const contractReady = ref(false);
+const { ensureSafe: ensureContractSafe } = useContractAddress(t);
 
 const activeCount = computed(() => creatorEscrows.value.filter((e) => e.status === "active").length);
 const completedCount = computed(() => creatorEscrows.value.filter((e) => e.status === "completed").length);
@@ -146,20 +162,27 @@ const appState = computed(() => ({
   creatorEscrows: creatorEscrows.value.length,
   beneficiaryEscrows: beneficiaryEscrows.value.length,
 }));
+const ensureContractReady = async () => {
+  contractReady.value = await ensureContractSafe({ silentChainCheck: true });
+  return contractReady.value;
+};
+
 const resetAndReload = async () => {
+  if (!(await ensureContractReady())) return;
   if (address.value) {
     await refreshEscrows();
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  if (!(await ensureContractReady())) return;
   if (address.value) {
-    refreshEscrows();
+    await refreshEscrows();
   }
 });
 
 watch(activeTab, (next) => {
-  if (next === "escrows" && address.value) {
+  if (next === "escrows" && address.value && contractReady.value) {
     refreshEscrows();
   }
 });

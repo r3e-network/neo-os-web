@@ -22,8 +22,8 @@
     "website": "https://r3e.network"
   },
   "contracts": {
-    "neo-n3-mainnet": "0x8b7f3e4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f",
-    "neo-n3-testnet": "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
+    "neo-n3-mainnet": "",
+    "neo-n3-testnet": ""
   },
   "supported_networks": [
     "neo-n3-mainnet"

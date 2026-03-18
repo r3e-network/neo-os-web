@@ -41,7 +41,7 @@ Support ecosystem developers with tips
 ## Funding Model
 
 - direct prepaid GAS to the MiniApp contract
-- no PaymentHub receipt path
+- direct contract invocation only
 - wallet signs the transfer first, then calls `Tip`
 
 ### Finding Developers
@@ -104,7 +104,7 @@ Support ecosystem developers with tips
 ### Current Integration Surface
 
 - direct prepaid GAS to the MiniApp contract
-- no PaymentHub receipt path
+- direct contract invocation only
 - optional Oracle / AA integrations are external to this repo and configured by environment
 
 ## Development

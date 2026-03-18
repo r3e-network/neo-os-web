@@ -182,7 +182,7 @@ Neo Name Service is built on Neo N3 as a NEP-11 (NFT) contract:
 
 - The app talks directly to the configured NNS contract.
 - Registration, renewal, target updates, and NFT transfers are wallet-signed contract calls.
-- The current runtime does not use PaymentHub receipts or Morpheus callback flows.
+- The current runtime does not use legacy receipt relays or Morpheus callback flows.
 
 ## Network Configuration
 
