@@ -29,7 +29,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
 
   const myStake = ref(0);
   const pendingRewards = ref(0);
-  const totalRewards = ref(0);
+  const pendingWithdraw = ref(0);
   const stats = ref<TrustAnchorStats | null>(null);
 
   const setError = (message: string) => {
@@ -100,6 +100,22 @@ export function useTrustAnchor(_t: (key: string) => string) {
     }
   };
 
+  const loadPendingWithdraw = async () => {
+    if (!address.value) {
+      pendingWithdraw.value = 0;
+      return;
+    }
+
+    const result = await handleAsync(
+      async () => readContract("pendingWithdrawOf", [{ type: "Hash160", value: address.value }]),
+      { context: "Loading pending withdraw", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) },
+    );
+
+    if (result.success && result.data != null) {
+      pendingWithdraw.value = Number(result.data);
+    }
+  };
+
   /** Load global accounting stats: totalStake and reward-per-stake accumulator. */
   const loadStats = async () => {
     const result = await handleAsync(
@@ -127,7 +143,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
     clearError();
 
     try {
-      await Promise.all([loadMyStake(), loadPendingRewards(), loadStats()]);
+      await Promise.all([loadMyStake(), loadPendingRewards(), loadPendingWithdraw(), loadStats()]);
     } finally {
       isLoading.value = false;
     }
@@ -177,10 +193,9 @@ export function useTrustAnchor(_t: (key: string) => string) {
   };
 
   // ------------------------------------------
-  // Write: unstake (withdraw)
+  // Write: unstake (withdraw request or immediate payout)
   // ------------------------------------------
 
-  /** Call `withdraw(account, neoAmount)` to unstake NEO */
   const unstake = async (amount: number) => {
     if (!address.value) {
       setError(_t("connectWallet") || "Connect wallet first");
@@ -206,6 +221,32 @@ export function useTrustAnchor(_t: (key: string) => string) {
         return res;
       },
       { context: "Withdrawing NEO", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) },
+    );
+
+    if (result.success) {
+      await loadAll();
+    }
+    return result;
+  };
+
+  const claimPendingWithdraw = async () => {
+    if (!address.value) {
+      setError(_t("connectWallet") || "Connect wallet first");
+      return { success: false };
+    }
+
+    const contractAddr = await getContractAddress();
+
+    const result = await handleAsync(
+      async () => {
+        const res = await invokeContract({
+          scriptHash: contractAddr,
+          operation: "claimWithdraw",
+          args: [{ type: "Hash160", value: address.value }],
+        });
+        return res;
+      },
+      { context: "Claiming pending withdraw", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) },
     );
 
     if (result.success) {
@@ -255,7 +296,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
     // User data
     myStake,
     pendingRewards,
-    totalRewards,
+    pendingWithdraw,
     stats,
 
     // Actions
@@ -265,5 +306,6 @@ export function useTrustAnchor(_t: (key: string) => string) {
     stake,
     unstake,
     claimRewards,
+    claimPendingWithdraw,
   };
 }
