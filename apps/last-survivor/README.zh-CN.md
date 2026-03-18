@@ -74,12 +74,12 @@ npm run build
 
 | 网络   | 地址                                         |
 | ------ | -------------------------------------------- |
-| 测试网 | `0xf0914d411877c8393c029f48ec0c4c64d44f1b49` |
+| 测试网 | `0xd55df731978582ea81719a5d87ce49b248e91275` |
 | 主网   | `0x180a3a35c088eab4feded508c2ccb1556e07a840` |
 
 ### 区块浏览器
 
-- **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0xf0914d411877c8393c029f48ec0c4c64d44f1b49)
+- **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0xd55df731978582ea81719a5d87ce49b248e91275)
 - **主网**：[在 NeoTube 查看](https://neotube.io/contract/0x180a3a35c088eab4feded508c2ccb1556e07a840)
 
 ## 域名
