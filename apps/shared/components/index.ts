@@ -32,6 +32,7 @@ export { default as SidebarPanel } from "./SidebarPanel.vue";
 export { default as HeroSection } from "./HeroSection.vue";
 export { default as HeroStatsStrip } from "./HeroStatsStrip.vue";
 export { default as CountdownTimer } from "./CountdownTimer.vue";
+export { default as ContractAvailabilityCard } from "./ContractAvailabilityCard.vue";
 
 // ── Data Display ──
 export { default as StatsDisplay } from "./StatsDisplay.vue";

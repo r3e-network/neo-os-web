@@ -63,6 +63,11 @@ const appMessages = {
   warningTitle: { en: "Wrong Network", zh: "网络错误" },
   warningMessage: { en: "TrustAnchor requires Neo N3 network.", zh: "TrustAnchor 需要 Neo N3 网络。" },
   switchButton: { en: "Switch to Neo", zh: "切换到 Neo" },
+  deploymentPendingTitle: { en: "Contract deployment pending", zh: "合约待部署" },
+  deploymentPendingDesc: {
+    en: "TrustAnchor stays listed for product review, but no live governance contract is configured on testnet or mainnet yet. Staking and claim actions stay disabled until deployment is completed.",
+    zh: "TrustAnchor 当前仅保留产品展示，测试网和主网都还没有配置正式治理合约。质押与领取操作会保持禁用，直到部署完成。",
+  },
 
   error: { en: "Operation failed", zh: "操作失败" },
   errorInvalidStakeAmount: { en: "Invalid stake amount", zh: "无效的质押数量" },

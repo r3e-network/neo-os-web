@@ -217,7 +217,7 @@ No on-chain contract is deployed.
 
 - No miniapp contract is deployed for this app.
 - Signing and verification flows happen through wallet or local browser cryptography.
-- The runtime does not use PaymentHub or Morpheus callback contracts.
+- The runtime does not use legacy receipt relays or Morpheus callback contracts.
 
 ## Assets
 

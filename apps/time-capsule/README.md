@@ -83,7 +83,7 @@ Time-locked message hashes with public fishing and local content storage
 ### Current Integration Surface
 
 - direct prepaid GAS to the MiniApp contract
-- no PaymentHub receipt path for bury / fish
+- direct contract invocation for bury / fish
 - optional Oracle / AA integrations remain external
 
 ## Development

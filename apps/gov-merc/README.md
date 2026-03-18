@@ -51,7 +51,7 @@ Governance mercenary - vote rental marketplace like Curve War
 ### Current Integration Surface
 
 - direct prepaid GAS to the MiniApp contract
-- no PaymentHub receipt path
+- direct contract invocation only
 - governance logic remains on-chain; Oracle / AA integrations stay external
 
 ## Development
@@ -103,7 +103,7 @@ Gov Merc creates a marketplace for governance voting power:
 ## Funding Model
 
 - direct prepaid GAS to the MiniApp contract
-- no PaymentHub receipt path
+- direct contract invocation only
 - wallet signs the transfer first, then calls `placeBid`
 
 

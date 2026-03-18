@@ -119,7 +119,7 @@ Neo Explorer operates as a lightweight blockchain data viewer with the following
 ## On-chain behavior
 
 - No miniapp contract is deployed.
-- The app reads chain data from public RPC / indexer sources and does not depend on PaymentHub or Morpheus callbacks.
+- The app reads chain data from public RPC / indexer sources and does not depend on legacy receipt relays or Morpheus callbacks.
 
 ## Network Configuration
 

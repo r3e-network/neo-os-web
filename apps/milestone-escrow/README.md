@@ -7,7 +7,7 @@ Staged escrow releases with explicit milestone approvals.
 | Property | Value |
 |----------|-------|
 | **App ID** | `miniapp-milestone-escrow` |
-| **Category** | defi |
+| **Category** | Finance |
 | **Version** | 1.0.0 |
 | **Framework** | Vue 3 (uni-app) |
 
@@ -21,7 +21,7 @@ Staged escrow releases with explicit milestone approvals.
 5. **Dispute Resolution**: Unresolved issues can be escalated
 ## Features
 
-- Lock GAS in escrow
+- Lock NEO or GAS in escrow
 - Creator approves each milestone
 - Beneficiary claims on approval
 - Creator can cancel and refund remaining funds
@@ -52,13 +52,14 @@ Staged escrow releases with explicit milestone approvals.
    | 3 | Z GAS | Final deliverable |
 
 2. **Set Details**:
+   - Select NEO or GAS as the escrow asset
    - Total amount (sum of all milestones)
    - Beneficiary address (who receives funds)
    - Milestone descriptions
    - Title and notes
 
 3. **Deposit Funds**:
-   - Lock total GAS in contract
+   - Lock the total selected asset amount in contract
    - Funds held securely
    - Creator retains control
 
@@ -188,16 +189,16 @@ For technical issues, contact the Neo MiniApp team.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Not deployed` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
+| **Contract** | `Pending deployment` |
+| **RPC** | `https://n3seed1.ngd.network:20332` |
 | **Explorer** | `https://testnet.neotube.io` |
 
 ### Mainnet
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Not deployed` |
+| **Contract** | `Pending deployment` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **Explorer** | `https://neotube.io` |
 
-> Contract deployment is pending; `neo-manifest.json` keeps empty addresses until deployment.
+> `neo-manifest.json` intentionally keeps both contract hashes empty until a real rollout happens. The frontend now renders a deployment-pending state instead of attempting broken chain calls.

@@ -182,7 +182,7 @@ No on-chain contract is deployed.
 
 - No miniapp contract is deployed for this app.
 - Proposal assembly and signer collection happen in the app runtime.
-- The runtime does not use PaymentHub receipts.
+- The runtime uses direct contract invocation only.
 
 ## Assets
 
