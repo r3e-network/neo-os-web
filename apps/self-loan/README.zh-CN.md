@@ -87,8 +87,8 @@ npm run build
 
 ### 区块浏览器
 
-- **测试网**：[在 NeoTube 查看](https://testnet.neotube.io/contract/0xd097c63ea89251d23632826ebed99a7e7ce536f7)
-- **主网**：[在 NeoTube 查看](https://neotube.io/contract/0x942da575b31f39cbb59e64b5813b128739b44c25)
+- **测试网**：[在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xd097c63ea89251d23632826ebed99a7e7ce536f7)
+- **主网**：[在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x942da575b31f39cbb59e64b5813b128739b44c25)
 
 ## 域名
 

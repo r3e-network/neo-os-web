@@ -55,7 +55,7 @@ Neo Swap 提供 NEO 与 GAS 的直接兑换，通过 Flamingo 链上路由执行
 |------|-----|
 | **合约地址** | `0x77b4349e5a62b3f77390afa50962096d66b0ab99` |
 | **RPC 节点** | `https://testnet1.neo.coz.io:443` |
-| **区块浏览器** | [在 NeoTube 查看](https://testnet.neotube.io/contract/0x77b4349e5a62b3f77390afa50962096d66b0ab99) |
+| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x77b4349e5a62b3f77390afa50962096d66b0ab99) |
 | **网络魔数** | `894710606` |
 
 ### 主网 (Mainnet)
@@ -64,7 +64,7 @@ Neo Swap 提供 NEO 与 GAS 的直接兑换，通过 Flamingo 链上路由执行
 |------|-----|
 | **合约地址** | `0xf970f4ccecd765b63732b821775dc38c25d74f23` |
 | **RPC 节点** | `https://mainnet1.neo.coz.io:443` |
-| **区块浏览器** | [在 NeoTube 查看](https://neotube.io/contract/0xf970f4ccecd765b63732b821775dc38c25d74f23) |
+| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xf970f4ccecd765b63732b821775dc38c25d74f23) |
 | **网络魔数** | `860833102` |
 
 ## 平台合约

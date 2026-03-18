@@ -49,7 +49,7 @@ There is no candidate ranking page and no old agent-contract management page any
 |----------|-------|
 | **Contract** | `0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -58,7 +58,7 @@ There is no candidate ranking page and no old agent-contract management page any
 |----------|-------|
 | **Contract** | `Pending verification-script agent-account rollout` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | `https://neotube.io` |
+| **Explorer** | `https://www.neo3scan.com` |
 | **Network Magic** | `860833102` |
 
 > Testnet single-contract rollout is now live. Mainnet remains intentionally unset until the verification-script agent-account operations model is validated further.

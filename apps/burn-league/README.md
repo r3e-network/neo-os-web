@@ -32,9 +32,9 @@ Burn-to-earn league - destroy GAS for platform equity
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x8db1b8c67b52e02592d2ee7ceb47dea908ab0e46` |
+| **Contract** | `0xf1aa73e2fb00664e8ef100dac083fc42be6aaf85` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x8db1b8c67b52e02592d2ee7ceb47dea908ab0e46) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xf1aa73e2fb00664e8ef100dac083fc42be6aaf85) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -43,7 +43,7 @@ Burn-to-earn league - destroy GAS for platform equity
 |----------|-------|
 | **Contract** | `0xd829b7a8c0d9fa3c67a29c703a277de3f922f173` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0xd829b7a8c0d9fa3c67a29c703a277de3f922f173) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xd829b7a8c0d9fa3c67a29c703a277de3f922f173) |
 | **Network Magic** | `860833102` |
 
 ## Platform Contracts
