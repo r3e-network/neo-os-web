@@ -199,7 +199,7 @@ Round creators have access to:
 |----------|-------|
 | **Contract** | `0x4c6cd496a8487ee4d4725751c1f2e7be2da23599` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x4c6cd496a8487ee4d4725751c1f2e7be2da23599) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x4c6cd496a8487ee4d4725751c1f2e7be2da23599) |
 
 ### Mainnet
 
@@ -207,7 +207,7 @@ Round creators have access to:
 |----------|-------|
 | **Contract** | `Pending deployment` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | `https://neotube.io` |
+| **Explorer** | `https://www.neo3scan.com` |
 
 > Testnet is now live and verified. Mainnet stays intentionally blank until a separate rollout is completed.
 

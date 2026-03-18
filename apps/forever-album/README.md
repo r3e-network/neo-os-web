@@ -42,7 +42,7 @@ Store photo memories on Neo per wallet address, with optional AES-GCM encryption
 |----------|-------|
 | **Contract** | `0x74dc4a954e6bccfd66500b8124e4c404154b9fb9` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x74dc4a954e6bccfd66500b8124e4c404154b9fb9) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x74dc4a954e6bccfd66500b8124e4c404154b9fb9) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -51,7 +51,7 @@ Store photo memories on Neo per wallet address, with optional AES-GCM encryption
 |----------|-------|
 | **Contract** | `0x254421a4aeb4e731f89182776b7bc6042c40c797` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0x254421a4aeb4e731f89182776b7bc6042c40c797) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x254421a4aeb4e731f89182776b7bc6042c40c797) |
 | **Network Magic** | `860833102` |
 
 ## Usage Flow

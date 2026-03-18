@@ -156,9 +156,9 @@ For technical issues, contact the Neo MiniApp team.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0xae47f11a368ceb778839e80e3ad0ecb952e9c058` |
+| **Contract** | `0x31888679572bf2de61462ff9934b6265d60284f2` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0xae47f11a368ceb778839e80e3ad0ecb952e9c058) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x31888679572bf2de61462ff9934b6265d60284f2) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -167,7 +167,7 @@ For technical issues, contact the Neo MiniApp team.
 |----------|-------|
 | **Contract** | `0x80ea8435a88334b9b80077220097d88c440615f1` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0x80ea8435a88334b9b80077220097d88c440615f1) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x80ea8435a88334b9b80077220097d88c440615f1) |
 | **Network Magic** | `860833102` |
 
 ## Assets

@@ -64,9 +64,9 @@ Time-locked message hashes with public fishing and local content storage
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x0108b2d8d020f921d9bdc82ffda5e55f9b749823` |
+| **Contract** | `0x119763e1402d7190728191d83c95c5b8e995abcd` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x0108b2d8d020f921d9bdc82ffda5e55f9b749823) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x119763e1402d7190728191d83c95c5b8e995abcd) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -75,7 +75,7 @@ Time-locked message hashes with public fishing and local content storage
 |----------|-------|
 | **Contract** | `0xd853a4ac293ff96e7f70f774c2155d846f91a989` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0xd853a4ac293ff96e7f70f774c2155d846f91a989) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xd853a4ac293ff96e7f70f774c2155d846f91a989) |
 | **Network Magic** | `860833102` |
 
 ## Platform Contracts

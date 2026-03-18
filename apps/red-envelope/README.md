@@ -79,8 +79,8 @@ npm run build
 
 ### Explorer Links
 
-- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0xfa1b7240fead2a63999c02defa3aec5eb274a919)
-- **Mainnet**: [View on NeoTube](https://neotube.io/contract/0x5f371cc50116bb13d79554d96ccdd6e246cd5d59)
+- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xfa1b7240fead2a63999c02defa3aec5eb274a919)
+- **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x5f371cc50116bb13d79554d96ccdd6e246cd5d59)
 
 ## Domains
 

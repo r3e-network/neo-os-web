@@ -77,7 +77,7 @@ For permanent, on-chain proof:
 
 4. **Verify on Explorer**:
    - Copy transaction hash
-   - View on NeoTube or other explorers
+   - View on Neo3Scan or other explorers
    - Message visible in transaction data
 
 ### Common Use Cases

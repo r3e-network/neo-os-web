@@ -85,9 +85,9 @@ Support ecosystem developers with tips
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x93d2406a73e060d43cbe28fb26d863e5ac4744a2` |
+| **Contract** | `0x38ec54ce12e9cbf041cc7e31534eccae0eaa38dc` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x93d2406a73e060d43cbe28fb26d863e5ac4744a2) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x38ec54ce12e9cbf041cc7e31534eccae0eaa38dc) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -96,7 +96,7 @@ Support ecosystem developers with tips
 |----------|-------|
 | **Contract** | `0x1d476b067a180bc54ee4f90c91489ffa123759a4` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0x1d476b067a180bc54ee4f90c91489ffa123759a4) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x1d476b067a180bc54ee4f90c91489ffa123759a4) |
 | **Network Magic** | `860833102` |
 
 ## Platform Contracts

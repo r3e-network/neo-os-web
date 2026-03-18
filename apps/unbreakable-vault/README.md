@@ -57,9 +57,9 @@ Hacker bounty vaults secured by SHA-256 hashes
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0xcf4c6eb16baad22292fb3ced6e570c31fadddd4e` |
+| **Contract** | `0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0xcf4c6eb16baad22292fb3ced6e570c31fadddd4e) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -68,7 +68,7 @@ Hacker bounty vaults secured by SHA-256 hashes
 |----------|-------|
 | **Contract** | `0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa) |
 | **Network Magic** | `860833102` |
 
 ## Platform Contracts
