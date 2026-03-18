@@ -103,7 +103,7 @@
 import { computed, onMounted, ref } from "vue";
 import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { useOracle, type ConfidentialStoreResponse, type OraclePublicKeyResponse } from "@shared/composables/useOracle";
 import { encryptJsonWithOraclePublicKey, encryptTextWithOraclePublicKey } from "@shared/utils/morpheus-encryption";
 import { messages } from "@/locale/messages";
@@ -124,10 +124,10 @@ const boundRequester = ref("");
 const boundCallbackContract = ref("");
 const storedRef = ref<ConfidentialStoreResponse | null>(null);
 
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "oracle-seal-console",
   messages,
-  template: { tabs: [{ key: "seal", labelKey: "outputTitle", icon: "🔐", default: true }], docSubtitleKey: "docsSubtitle", docFeatureCount: 3 },
+  tab: { key: "seal", labelKey: "outputTitle", icon: "🔐" },
   sidebarItems: [
     { labelKey: "modeLabel", value: () => inputMode.value },
     { labelKey: "fieldTypeTitle", value: () => fieldName.value },
