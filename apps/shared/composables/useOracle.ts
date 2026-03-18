@@ -84,6 +84,26 @@ export interface OraclePublicKeyResponse {
   public_key_format?: string;
 }
 
+export interface ConfidentialStoreRequest {
+  ciphertext: string;
+  name?: string;
+  project_slug?: string;
+  requester_script_hash?: string;
+  callback_contract?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ConfidentialStoreResponse {
+  secret_ref: string;
+  network: string;
+  name: string;
+  target_chain: string;
+  encryption_algorithm: string;
+  created_at?: string;
+  bound_requester?: string;
+  bound_callback_contract?: string;
+}
+
 export interface ComputeExecuteRequest {
   script: string;
   entry_point?: string;
@@ -459,6 +479,33 @@ export function useOracle(config: OracleConfig = {}) {
     }
   };
 
+  const storeConfidentialCiphertext = async (params: ConfidentialStoreRequest): Promise<ConfidentialStoreResponse> => {
+    isRequesting.value = true;
+    error.value = null;
+    try {
+      return await requestJson<ConfidentialStoreResponse>("/api/morpheus/confidential/store", {
+        method: "POST",
+        body: {
+          ciphertext: params.ciphertext,
+          target_chain: "neo_n3",
+          network,
+          name: params.name,
+          project_slug: params.project_slug,
+          requester_script_hash: params.requester_script_hash,
+          callback_contract: params.callback_contract,
+          metadata: params.metadata,
+        },
+        getAuthToken: config.getAuthToken,
+        getAPIKey: config.getAPIKey,
+      });
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : "Confidential store request failed";
+      throw e;
+    } finally {
+      isRequesting.value = false;
+    }
+  };
+
   return {
     integration,
     network,
@@ -487,5 +534,6 @@ export function useOracle(config: OracleConfig = {}) {
     resolveNeoDid,
     getNeoDidProviders,
     getOraclePublicKey,
+    storeConfidentialCiphertext,
   };
 }

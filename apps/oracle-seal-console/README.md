@@ -7,6 +7,7 @@ Local confidential payload sealing tool for Morpheus privacy Oracle and confiden
 - reads the current Oracle X25519 public key from the Neo N3 Oracle contract
 - encrypts either a JSON payload patch or plain confidential text entirely in the browser
 - produces ready-to-paste wrappers for `encrypted_payload`, `encrypted_params`, or `encrypted_token`
+- can store large ciphertext blobs through Morpheus confidential storage and return a short `encrypted_*_ref`
 - helps users prepare private Oracle and compute requests without hand-rolling ciphertext envelopes
 
 ## Notes
