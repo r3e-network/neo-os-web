@@ -21,11 +21,7 @@
           <NeoInput v-model="form.accountIdHash" :label="t('accountId')" placeholder="20-byte hash" />
           <NeoButton variant="secondary" :loading="isRefreshing" @click="refreshState">{{ t("inspect") }}</NeoButton>
         </div>
-        <div class="detail-grid">
-          <div class="detail-card"><span class="detail-label">{{ t("currentVerifier") }}</span><span class="detail-value">{{ current.verifier || "—" }}</span></div>
-          <div class="detail-card"><span class="detail-label">{{ t("currentHook") }}</span><span class="detail-value">{{ current.hook || "—" }}</span></div>
-          <div class="detail-card"><span class="detail-label">{{ t("currentBackupOwner") }}</span><span class="detail-value">{{ current.backupOwner || "—" }}</span></div>
-        </div>
+        <DetailCardGrid :items="detailItems" :columns="3" />
       </NeoCard>
     </template>
     <template #operation>
@@ -48,7 +44,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { DetailCardGrid, HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
@@ -157,6 +153,11 @@ const overviewStats = computed<StatsDisplayItem[]>(() =>
     walletValue: address.value || "not connected",
   }),
 );
+const detailItems = computed(() => [
+  { label: t("currentVerifier"), value: current.verifier || "—" },
+  { label: t("currentHook"), value: current.hook || "—" },
+  { label: t("currentBackupOwner"), value: current.backupOwner || "—" },
+]);
 const appState = computed(() => ({ address: address.value, accountId: form.accountIdHash }));
 </script>
 
@@ -164,8 +165,4 @@ const appState = computed(() => ({ address: address.value, accountId: form.accou
 @use "@shared/styles/console-common" as console;
 
 .stack { @include console.stack; }
-.detail-grid { @include console.detail-grid(3, 900px); margin-top: 16px; }
-.detail-card { @include console.detail-card; }
-.detail-label { @include console.label; letter-spacing: .12em; }
-.detail-value { @include console.value; margin-top: 8px; }
 </style>

@@ -29,24 +29,7 @@
           </div>
         </div>
 
-        <div class="detail-grid">
-          <div class="detail-card">
-            <span class="detail-label">{{ t("currentVerifier") }}</span>
-            <span class="detail-value">{{ inspected.verifier || "—" }}</span>
-          </div>
-          <div class="detail-card">
-            <span class="detail-label">{{ t("currentHook") }}</span>
-            <span class="detail-value">{{ inspected.hook || "—" }}</span>
-          </div>
-          <div class="detail-card">
-            <span class="detail-label">{{ t("currentBackupOwner") }}</span>
-            <span class="detail-value">{{ inspected.backupOwner || "—" }}</span>
-          </div>
-          <div class="detail-card">
-            <span class="detail-label">AA Core</span>
-            <span class="detail-value">{{ aaCore }}</span>
-          </div>
-        </div>
+        <DetailCardGrid :items="detailItems" />
       </NeoCard>
     </template>
 
@@ -68,7 +51,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { DetailCardGrid, HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
@@ -218,6 +201,13 @@ const overviewStats = computed<StatsDisplayItem[]>(() =>
   }),
 );
 
+const detailItems = computed(() => [
+  { label: t("currentVerifier"), value: inspected.verifier || "—" },
+  { label: t("currentHook"), value: inspected.hook || "—" },
+  { label: t("currentBackupOwner"), value: inspected.backupOwner || "—" },
+  { label: "AA Core", value: aaCore },
+]);
+
 const appState = computed(() => ({ address: address.value, accountId: inspected.accountIdHash }));
 </script>
 
@@ -226,8 +216,4 @@ const appState = computed(() => ({ address: address.value, accountId: inspected.
 
 .field-stack { @include console.stack; }
 .actions-row { @include console.actions-row; }
-.detail-grid { @include console.detail-grid; margin-top: 18px; }
-.detail-card { @include console.detail-card; }
-.detail-label { @include console.label; letter-spacing: 0.12em; }
-.detail-value { @include console.value; margin-top: 8px; }
 </style>

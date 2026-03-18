@@ -55,3 +55,4 @@ export { default as ConfiguredOperationPanel } from "./ConfiguredOperationPanel.
 export { default as ScrollReveal } from "./ScrollReveal.vue";
 export { default as OfficialLauncherMiniApp } from "./OfficialLauncherMiniApp.vue";
 export { default as ConsoleMiniApp } from "./ConsoleMiniApp.vue";
+export { default as DetailCardGrid } from "./DetailCardGrid.vue";
