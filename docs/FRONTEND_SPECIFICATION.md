@@ -124,7 +124,7 @@ The frontend must never treat a payment tx hash as a `receiptId`.
 
 ## Featured Catalog Policy
 
-The repository currently contains **45** miniapp manifests under `apps/*`.
+The repository currently contains **46** miniapp manifests under `apps/*`.
 
 The current flagship 7 shown as primary market-facing apps are:
 
@@ -145,6 +145,7 @@ for:
 - `miniapp-aa-relay-console`
 - `miniapp-aa-session-key-lab`
 - `miniapp-oracle-price-console`
+- `miniapp-oracle-seal-console`
 - `miniapp-oracle-neodid-console`
 - `miniapp-oracle-http-console`
 - `miniapp-oracle-compute-lab`
