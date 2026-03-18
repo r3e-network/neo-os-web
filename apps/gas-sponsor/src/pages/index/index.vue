@@ -16,18 +16,7 @@
       <div class="hero-container">
         <HeroSection variant="erobo-neo" compact>
           <template #stats>
-            <div class="hero-stats">
-              <div class="hero-stat">
-                <span class="hero-stat-icon">⛽</span>
-                <span class="hero-stat-value">{{ Math.round(fuelLevelPercent) }}%</span>
-                <span class="hero-stat-label">{{ t("sidebarTankLevel") }}</span>
-              </div>
-              <div class="hero-stat">
-                <span class="hero-stat-icon">💰</span>
-                <span class="hero-stat-value">{{ gasBalance }}</span>
-                <span class="hero-stat-label">{{ t("gasBalance") }}</span>
-              </div>
-            </div>
+            <HeroStatsStrip :items="heroStatsItems" />
           </template>
         </HeroSection>
       </div>
@@ -99,7 +88,8 @@ import { useWallet, useGasSponsor } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { messages } from "@/locale/messages";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { MiniAppPage, HeroSection } from "@shared/components";
+import { MiniAppPage, HeroSection, HeroStatsStrip } from "@shared/components";
+import type { HeroStatsStripItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useGasTransfers } from "@/composables/useGasTransfers";
 import GasTank from "./components/GasTank.vue";
@@ -151,6 +141,10 @@ const appState = computed(() => ({
   isEligible: isEligible.value,
   isLoading: loading.value,
 }));
+const heroStatsItems = computed<HeroStatsStripItem[]>(() => [
+  { icon: "⛽", value: `${Math.round(fuelLevelPercent.value)}%`, label: t("sidebarTankLevel") },
+  { icon: "💰", value: gasBalance.value, label: t("gasBalance") },
+]);
 const loadUserData = async () => {
   loading.value = true;
   try {
@@ -222,41 +216,9 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.hero-stats {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-}
-
-.hero-stat {
-  text-align: center;
-  padding: 8px 16px;
-  background: rgba(0, 229, 153, 0.08);
-  border-radius: 8px;
-  border: 1px solid rgba(0, 229, 153, 0.15);
-}
-
-.hero-stat-icon {
-  display: block;
-  font-size: 20px;
-  margin-bottom: 4px;
-}
-
-.hero-stat-value {
-  display: block;
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.hero-stat-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 1px;
-  margin-top: 2px;
+:deep(.hero-stats-strip__item) {
+  --hero-stat-bg: rgba(0, 229, 153, 0.08);
+  --hero-stat-border: rgba(0, 229, 153, 0.15);
 }
 
 /* ── Gas Sponsor Hero Enhancements ── */
