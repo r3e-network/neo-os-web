@@ -108,3 +108,22 @@ As of 2026-03-18:
 - the remaining incomplete flagship mainnet live flow (`SelfLoan`) is blocked by
   missing NEO collateral in the available testing wallets, not by a known
   contract defect
+
+## Additional Mainnet ABI Alignment
+
+After the flagship set was aligned, a second ABI audit was performed on the
+next source-owned, dual-network app tier:
+
+- `FlashLoan`
+- `BurnLeague`
+- `BreakupContract`
+- `DevTipping`
+
+Mainnet update transactions:
+
+- `FlashLoan`: `0xdec59891319405c4c6b34b10d4dbc9385cd8c7623247d1e5ffc3d3831c885578`
+- `BurnLeague`: `0x7fbe1cce829cd95709c3474f24e06d3e217d4b80490ab006118073f1c3307464`
+- `BreakupContract`: `0x2c5fba5c6d862c69c2bda088494653467df2cc1f2fc91196c5bee793643ff101`
+- `DevTipping`: `0xfaad491d7c0dd77d9f4798a8dd6630d8b479eee8d90d805d7dde5c9ef3151085`
+
+Post-update ABI verification for those four contracts returned zero problems.
