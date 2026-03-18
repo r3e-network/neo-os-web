@@ -267,7 +267,7 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | ------------------ | -------------------------------------------- | --------- |
 | MiniAppLottery     | `0x3e330b4c396b40aa08d49912c0179319831b3a6e` | ✅ Active |
 | MiniAppFogPlay    | `0xbd4c9203495048900e34cd9c4618c05994e86cc0` | ✅ Active |
-| MiniAppDiceGame    | `0xfacff9abd201dca86e6a63acfb5d60da278da8ea` | ✅ Active |
+| MiniAppDiceGame    | `0x1e448bf07a742da74084d4c64a61052980beb496` | ✅ Active |
 | MiniAppScratchCard | `0x2674ef3b4d8c006201d1e7e473316592f6cde5f2` | ✅ Active |
 
 **Phase 2 - DeFi & Social:**
@@ -275,12 +275,12 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | Contract                | Hash                                         | Status    |
 | ----------------------- | -------------------------------------------- | --------- |
 | MiniAppPredictionMarket | `0x64118096bd004a2bcb010f4371aba45121eca790` | ✅ Active |
-| MiniAppFlashLoan        | `0xee51e5b399f7727267b7d296ff34ec6bb9283131` | ✅ Active |
+| MiniAppFlashLoan        | `0xde8e595d8d3c293731db499367ee2a768e1e458b` | ✅ Active |
 | MiniAppPriceTicker      | `0x838bd5dd3d257a844fadddb5af2b9dac45e1d320` | ✅ Active |
 | MiniAppSecretVote       | `0x7763ce957515f6acef6d093376977ac6c1cbc47d` | ✅ Active |
 | MiniAppSecretPoker      | `0xa27348cc0a79c776699a028244250b4f3d6bbe0c` | ✅ Active |
 | MiniAppRedEnvelope      | `0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e` | ✅ Active |
-| MiniAppGasCircle        | `0x7736c8d1ff918f94d26adc688dac4d4bc084bd39` | ✅ Active |
+| MiniAppGasCircle        | `0x4630b40a4e67882cfab3d3f5041c1da597b0c7b6` | ✅ Active |
 | MiniAppCanvas           | `0x53f9c7b86fa2f8336839ef5073d964d644cbb46c` | ✅ Active |
 
 **Phase 3 - Advanced:**
@@ -329,10 +329,10 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | ---------------------- | -------------------------------------------- | --------- |
 | MiniAppAISoulmate      | `0x5df263b8d65fa5cc755b46acf8a7866f5dc05b92` | ✅ Active |
 | MiniAppDeadSwitch      | `0x87dbc02162b5681dd4788061c1f411c7abce0e66` | ✅ Active |
-| MiniAppHeritageTrust   | `0xd59eea851cd8e5dd57efe80646ff53fa274600f8` | ✅ Active |
+| MiniAppHeritageTrust   | `0x42e14d04c17dad0b1d76ee7509e537791230431b` | ✅ Active |
 | MiniAppDarkRadio       | `0x2652053354c3d2c574a0bc74e21a92a5dd94a42d` | ✅ Active |
 | MiniAppZKBadge         | `0x70915211c56fe3323b22043d3073765a7b633d3f` | ✅ Active |
-| MiniAppGraveyard       | `0xe88938b2c2032483cf5edcdab7e4bde981e5fb24` | ✅ Active |
+| MiniAppGraveyard       | `0xb55aa635b10a5abb5cbac169db26a38df739778e` | ✅ Active |
 | MiniAppCompoundCapsule | `0xba302bebace6c2bd0f610228b56bd3d3de07dbd7` | ✅ Active |
 | MiniAppSelfLoan        | `0x5ed7d8c85f24f4aa16b328aca776e09be5241296` | ✅ Active |
 | MiniAppDarkPool        | `0xf25a43e726c58ae5ec9468ff42caeaeeadd78128` | ✅ Active |
@@ -345,7 +345,7 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | ----------------------- | -------------------------------------------- | --------- |
 | MiniAppQuantumSwap      | `0x99fd1213d1d73181b84270ec3458bb46b9c4aab3` | ✅ Active |
 | MiniAppOnChainTarot     | `0xc2bb26d21f357f125a0e49cbca7718b6aa5c3b1e` | ✅ Active |
-| MiniAppExFiles          | `0xb45cd9f5869f75f3a7ac9e71587909262cbb96a5` | ✅ Active |
+| MiniAppExFiles          | `0xb55358f282a519762ad8c7db57dff2f01bb8cd2a` | ✅ Active |
 | MiniAppScreamToEarn     | `0xe94d5f6815b0574c7c685f1a460f3d05273b5e63` | ✅ Active |
 | MiniAppBreakupContract  | `0x84a3864028b7b71e9f420056e1eae2e3e3113a0c` | ✅ Active |
 | MiniAppGeoSpotlight     | `0x925959dc2360bd2fed7dd52ac3d29b76ff24c5dd` | ✅ Active |
@@ -353,13 +353,15 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | MiniAppNFTChimera       | `0x200996e599a2e3dba781438826a4f3622560dddd` | ✅ Active |
 | MiniAppWorldPiano       | `0x946d0afa22c7661734288002fd7cb0dc6e765663` | ✅ Active |
 | MiniAppBountyHunter     | `0x7b3929e7d7881c5929d29953d194c833178a0887` | ✅ Active |
-| MiniAppMasqueradeDAO    | `0x36873ae952147150e065ad2ba8d23731ffd00d5a` | ✅ Active |
+| MiniAppMasqueradeDAO    | `0xa79f897c8f1d6b1450b7204668b82cffd1bad4a0` | ✅ Active |
 | MiniAppMeltingAsset     | `0x964994b4ce9d77c7af303c6c762192d4184313ee` | ✅ Active |
 | MiniAppUnbreakableVault | `0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4` | ✅ Active |
 | MiniAppWhisperChain     | `0xbd51b0aee399ed00645c4a698c18806d2797fe64` | ✅ Active |
-| MiniAppMillionPieceMap  | `0xdf787aaf8a70dd2612521de69f12c7bf5a8d0d6d` | ✅ Active |
+| MiniAppMillionPieceMap  | `0x4cac0ac79bac3b94c388fe0f27a9ed1a8e476cbf` | ✅ Active |
 | MiniAppFogPuzzle        | `0xde0615f83fb3f0f80ef7b4e40b06e64b0d5ffa2a` | ✅ Active |
 | MiniAppCryptoRiddle     | `0x35718d58fff23aed609df196d7954cbeb8ac3d7c` | ✅ Active |
+| MiniAppHallOfFame       | `0x00d44aefa345f72c0eb15036129a32a56c765474` | ✅ Active |
+| MiniAppTurtleMatch      | `0x4750b2d55de0282579e66c2b1b6c07d9138380ad` | ✅ Active |
 
 ## MiniApp Automation Support
 
