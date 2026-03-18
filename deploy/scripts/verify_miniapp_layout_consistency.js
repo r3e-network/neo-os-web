@@ -8,7 +8,6 @@ const APPS_DIR = path.join(ROOT, "apps");
 const ACCEPTED_MARKERS = [
   "<MiniAppPage",
   "<OfficialLauncherMiniApp",
-  "<FlamingoProductMiniApp",
 ];
 
 function hasAcceptedLayout(filePath) {
