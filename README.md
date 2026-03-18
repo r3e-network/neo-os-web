@@ -167,7 +167,7 @@ flagship admin:
 
 ## MiniApps
 
-The repository currently contains **35 Neo N3 miniapp manifests** under `apps/*`.
+The repository currently contains **45 Neo N3 miniapp manifests** under `apps/*`.
 Those manifests are the practical source of truth for the current catalog.
 
 Category spread:
@@ -176,7 +176,7 @@ Category spread:
 - `finance`: 7
 - `social`: 8
 - `governance`: 3
-- `tools`: 11
+- `tools`: 21
 
 Current featured flagship 7:
 
@@ -192,6 +192,19 @@ Current featured flagship 7:
 
 For current verified testnet behavior of these flagship apps, see
 [`docs/reports/2026-03-16-flagship-live-user-flows.md`](docs/reports/2026-03-16-flagship-live-user-flows.md).
+
+Current AA / Oracle operator tools surfaced directly on the host home page:
+
+- `miniapp-aa-account-lab`
+- `miniapp-aa-permissions-lab`
+- `miniapp-aa-market-hub` (interactive trustless escrow listing / repricing / settlement)
+- `miniapp-aa-relay-console`
+- `miniapp-aa-session-key-lab`
+- `miniapp-oracle-price-console`
+- `miniapp-oracle-neodid-console`
+- `miniapp-oracle-http-console`
+- `miniapp-oracle-compute-lab`
+- `miniapp-oracle-vrf-console`
 
 ## Quick Start
 
