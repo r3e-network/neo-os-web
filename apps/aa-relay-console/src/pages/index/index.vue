@@ -1,41 +1,47 @@
 <template>
-  <MiniAppPage name="aa-relay-console" :config="templateConfig" :state="appState" :t="t" :status-message="status"
-    :sidebar-items="sidebarItems" :sidebar-title="sidebarTitle" :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError" :on-boundary-retry="checkSponsor">
-    <template #content>
-      <HeroSection variant="erobo" icon="📡" compact>
-        <template #stats><HeroStatsStrip :items="heroStats" compact /></template>
-      </HeroSection>
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-      <NeoCard variant="erobo" :title="t('latestRelay')" class="px-1">
-        <div class="response-grid">
-          <div><span class="label">AA</span><span class="value">{{ aa.aaAddress.value || "—" }}</span></div>
-          <div><span class="label">Session</span><span class="value">{{ aa.hasActiveSession.value ? "active" : "none" }}</span></div>
-          <div><span class="label">Sponsor</span><span class="value">{{ sponsorState }}</span></div>
-          <div><span class="label">Relay</span><span class="value">{{ relayResponse }}</span></div>
-        </div>
-      </NeoCard>
+  <ConsoleMiniApp
+    page-name="aa-relay-console"
+    :template-config="templateConfig"
+    :app-state="appState"
+    :t="t"
+    :status="status"
+    :sidebar-items="sidebarItems"
+    :sidebar-title="sidebarTitle"
+    :fallback-message="fallbackMessage"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="checkSponsor"
+    hero-icon="📡"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('latestRelay')"
+    :operation-title="t('submitRelay')"
+  >
+    <template #result>
+      <div class="response-grid">
+        <div><span class="label">AA</span><span class="value">{{ aa.aaAddress.value || "—" }}</span></div>
+        <div><span class="label">Session</span><span class="value">{{ aa.hasActiveSession.value ? "active" : "none" }}</span></div>
+        <div><span class="label">Sponsor</span><span class="value">{{ sponsorState }}</span></div>
+        <div><span class="label">Relay</span><span class="value">{{ relayResponse }}</span></div>
+      </div>
     </template>
     <template #operation>
-      <NeoCard variant="erobo" :title="t('submitRelay')" class="px-1">
-        <div class="stack">
-          <NeoInput v-model="aaAddress" :label="t('aaAddress')" placeholder="N..." />
-          <NeoInput v-model="dappId" :label="t('dappId')" placeholder="optional dapp id" />
-          <label class="textarea-label">{{ t("payloadJson") }}</label>
-          <textarea v-model="payloadJson" class="json-box" rows="10"></textarea>
-          <div class="actions-row">
-            <NeoButton variant="secondary" :loading="aa.isCheckingSponsorship.value" @click="checkSponsor">{{ t("sponsorCheck") }}</NeoButton>
-            <NeoButton variant="secondary" :loading="aa.isCheckingSponsorship.value" @click="requestSponsor">{{ t("sponsorRequest") }}</NeoButton>
-            <NeoButton variant="primary" :loading="aa.isRelaying.value" @click="submitRelay">{{ t("submitRelay") }}</NeoButton>
-          </div>
+      <div class="stack">
+        <NeoInput v-model="aaAddress" :label="t('aaAddress')" placeholder="N..." />
+        <NeoInput v-model="dappId" :label="t('dappId')" placeholder="optional dapp id" />
+        <label class="textarea-label">{{ t("payloadJson") }}</label>
+        <textarea v-model="payloadJson" class="json-box" rows="10"></textarea>
+        <div class="actions-row">
+          <NeoButton variant="secondary" :loading="aa.isCheckingSponsorship.value" @click="checkSponsor">{{ t("sponsorCheck") }}</NeoButton>
+          <NeoButton variant="secondary" :loading="aa.isCheckingSponsorship.value" @click="requestSponsor">{{ t("sponsorRequest") }}</NeoButton>
+          <NeoButton variant="primary" :loading="aa.isRelaying.value" @click="submitRelay">{{ t("submitRelay") }}</NeoButton>
         </div>
-      </NeoCard>
+      </div>
     </template>
-  </MiniAppPage>
+  </ConsoleMiniApp>
 </template>
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";

@@ -54,4 +54,4 @@ export { default as FormCard } from "./FormCard.vue";
 export { default as ConfiguredOperationPanel } from "./ConfiguredOperationPanel.vue";
 export { default as ScrollReveal } from "./ScrollReveal.vue";
 export { default as OfficialLauncherMiniApp } from "./OfficialLauncherMiniApp.vue";
-export { default as OracleConsoleMiniApp } from "./OracleConsoleMiniApp.vue";
+export { default as ConsoleMiniApp } from "./ConsoleMiniApp.vue";
