@@ -13,16 +13,16 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Customize a piece with metadata.
         /// </summary>
-        public static void CustomizePiece(BigInteger x, BigInteger y, UInt160 owner, string metadata, BigInteger receiptId)
+        public static void CustomizePiece(BigInteger x, BigInteger y, UInt160 owner, string metadata)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(metadata.Length <= MAX_METADATA_LENGTH, "metadata too long");
-            ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
+            ValidateUserOrAbstractAccount(owner);
 
             PieceData piece = GetPiece(x, y);
             ExecutionEngine.Assert(piece.Owner == owner, "not owner");
 
-            ValidatePaymentReceipt(APP_ID, owner, CUSTOMIZE_FEE, receiptId);
+            ConsumeDirectGasCredit(owner, CUSTOMIZE_FEE);
 
             piece.Metadata = metadata;
             StorePiece(x, y, piece);

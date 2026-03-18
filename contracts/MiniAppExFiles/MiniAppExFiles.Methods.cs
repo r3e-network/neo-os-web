@@ -12,7 +12,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Create a new anonymous record.
         /// </summary>
-        public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigInteger rating, BigInteger category, BigInteger receiptId)
+        public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigInteger rating, BigInteger category)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(dataHash.Length == 32, "invalid hash");
@@ -21,7 +21,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(creator);
 
-            ValidatePaymentReceipt(APP_ID, creator, CREATE_FEE, receiptId);
+            ConsumeDirectGasCredit(creator, CREATE_FEE);
 
             // Check if new user
             UserStats stats = GetUserStats(creator);

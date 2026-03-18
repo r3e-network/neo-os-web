@@ -13,7 +13,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Bury a new encrypted memory on-chain.
         /// </summary>
-        public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigInteger memoryType, BigInteger receiptId)
+        public static BigInteger BuryMemory(UInt160 owner, string contentHash, BigInteger memoryType)
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(contentHash.Length > 0, "invalid content");
@@ -21,7 +21,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(owner);
 
-            ValidatePaymentReceipt(APP_ID, owner, BURY_FEE, receiptId);
+            ConsumeDirectGasCredit(owner, BURY_FEE);
 
             UserStats stats = GetUserStatsData(owner);
             bool isNewUser = stats.JoinTime == 0;
@@ -52,7 +52,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Permanently forget a memory.
         /// </summary>
-        public static void ForgetMemory(UInt160 owner, BigInteger memoryId, BigInteger receiptId)
+        public static void ForgetMemory(UInt160 owner, BigInteger memoryId)
         {
             ValidateNotGloballyPaused(APP_ID);
 
@@ -62,7 +62,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             ValidateUserOrAbstractAccount(owner);
 
-            ValidatePaymentReceipt(APP_ID, owner, FORGET_FEE, receiptId);
+            ConsumeDirectGasCredit(owner, FORGET_FEE);
 
             memory.Forgotten = true;
             memory.ForgottenTime = Runtime.Time;
@@ -84,7 +84,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(epitaph.Length > 0 && epitaph.Length <= MAX_EPITAPH_LENGTH, "invalid epitaph");
 
             Memory memory = GetMemory(memoryId);
-            ExecutionEngine.Assert(Runtime.CheckWitness(memory.Owner), "unauthorized");
+            ValidateUserOrAbstractAccount(memory.Owner);
             ExecutionEngine.Assert(!memory.Forgotten, "memory forgotten");
 
             memory.Epitaph = epitaph;

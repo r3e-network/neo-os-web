@@ -97,9 +97,18 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            if (Runtime.CallingScriptHash != GAS.Hash) throw new Exception("Only GAS accepted");
-            if (from == Runtime.ExecutingScriptHash) return;
-            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            if (Runtime.CallingScriptHash != GAS.Hash)
+            {
+                ExecutionEngine.Assert(false, "unsupported asset");
+            }
+
+            if (from == Runtime.ExecutingScriptHash || amount <= 0) return;
+
+            string memo = ReadPaymentMemo(data);
+            if (memo.StartsWith(APP_ID + ":"))
+            {
+                CreditDirectGasPayment(APP_ID, from, amount, data);
+            }
         }
 
         #region Lifecycle
@@ -116,7 +125,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger CreateCircle(UInt160 creator, BigInteger dailyAmount, BigInteger maxMembers)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(creator), "unauthorized");
+            ValidateUserOrAbstractAccount(creator);
             ExecutionEngine.Assert(dailyAmount >= MIN_DAILY_AMOUNT, "min daily 0.1 GAS");
             ExecutionEngine.Assert(maxMembers >= 2 && maxMembers <= MAX_MEMBERS, "2-30 members");
 
@@ -142,7 +151,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger JoinCircle(BigInteger circleId, UInt160 member)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(member), "unauthorized");
+            ValidateUserOrAbstractAccount(member);
 
             CircleData circle = GetCircle(circleId);
             ExecutionEngine.Assert(circle.Creator != null, "circle not found");
@@ -174,16 +183,16 @@ namespace NeoMiniAppPlatform.Contracts
         public static void MakeDeposit(BigInteger circleId, UInt160 member)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(member), "unauthorized");
+            ValidateUserOrAbstractAccount(member);
 
             CircleData circle = GetCircle(circleId);
             ExecutionEngine.Assert(circle.Creator != null, "circle not found");
             ExecutionEngine.Assert(circle.Active, "circle not active");
+            ExecutionEngine.Assert(IsCircleMember(circleId, member), "not circle member");
+            ConsumeDirectGasCredit(member, circle.DailyAmount);
 
             // Check member is part of circle and hasn't deposited today
-            ByteString depositKey = Helper.Concat(
-                Helper.Concat((ByteString)PREFIX_DEPOSITS, (ByteString)circleId.ToByteArray()),
-                Helper.Concat((ByteString)circle.CurrentDay.ToByteArray(), (ByteString)member));
+            ByteString depositKey = GetDepositKey(circleId, circle.CurrentDay, member);
             ExecutionEngine.Assert(Storage.Get(Storage.CurrentContext, depositKey) == null, "already deposited today");
 
             Storage.Put(Storage.CurrentContext, depositKey, circle.DailyAmount);
@@ -201,12 +210,13 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(circle.Active, "circle not active");
             ExecutionEngine.Assert(circle.CurrentDay <= circle.MaxMembers, "circle completed");
             ExecutionEngine.Assert(
-                Runtime.CheckWitness(circle.Creator) || Runtime.CheckWitness(Admin()),
+                IsUserOrAbstractAccountAuthorized(circle.Creator) || Runtime.CheckWitness(Admin()),
                 "unauthorized"
             );
+            ExecutionEngine.Assert(AllMembersDeposited(circleId, circle.CurrentDay, circle.MemberCount), "pending member deposits");
 
             // Request automation to verify all deposits and process payout
-            BigInteger requestId = RequestAutomation(circleId, circle.CurrentDay);
+            BigInteger requestId = RequestAutomation(circle.Creator, circleId, circle.CurrentDay);
             Storage.Put(Storage.CurrentContext,
                 Helper.Concat((ByteString)PREFIX_REQUEST_TO_CIRCLE, (ByteString)requestId.ToByteArray()),
                 circleId);
@@ -238,17 +248,10 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Service Request Methods
 
-        private static BigInteger RequestAutomation(BigInteger circleId, BigInteger day)
+        private static BigInteger RequestAutomation(UInt160 requester, BigInteger circleId, BigInteger day)
         {
-            UInt160 oracle = Oracle();
-            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
-
             ByteString payload = StdLib.Serialize(new object[] { circleId, day });
-            return (BigInteger)Contract.Call(
-                oracle, "request", CallFlags.All,
-                "automation_register", payload,
-                Runtime.ExecutingScriptHash, "onOracleResult"
-            );
+            return RequestOracleForCallback(requester, "automation_register", payload);
         }
 
         public static void OnOracleResult(
@@ -273,19 +276,12 @@ namespace NeoMiniAppPlatform.Contracts
                 return;
             }
 
-            // Get today's recipient (slot = currentDay)
-            UInt160 recipient = GetMember(circleId, circle.CurrentDay);
-            BigInteger payoutAmount = circle.DailyAmount * circle.MemberCount;
-
-            // Advance to next day
-            circle.CurrentDay = circle.CurrentDay + 1;
-            if (circle.CurrentDay > circle.MaxMembers)
+            if (!AllMembersDeposited(circleId, circle.CurrentDay, circle.MemberCount))
             {
-                circle.Active = false; // Circle completed
+                return;
             }
-            StoreCircle(circleId, circle);
 
-            OnPayoutCompleted(circleId, recipient, circle.CurrentDay - 1, payoutAmount);
+            ProcessPayout(circleId, circle);
         }
 
         #endregion
@@ -297,6 +293,64 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext,
                 Helper.Concat((ByteString)PREFIX_CIRCLES, (ByteString)circleId.ToByteArray()),
                 StdLib.Serialize(circle));
+        }
+
+        private static ByteString GetDepositKey(BigInteger circleId, BigInteger day, UInt160 member) =>
+            Helper.Concat(
+                Helper.Concat((ByteString)PREFIX_DEPOSITS, (ByteString)circleId.ToByteArray()),
+                Helper.Concat((ByteString)day.ToByteArray(), (ByteString)member));
+
+        private static bool IsCircleMember(BigInteger circleId, UInt160 member)
+        {
+            CircleData circle = GetCircle(circleId);
+            for (BigInteger slot = 1; slot <= circle.MemberCount; slot++)
+            {
+                if (GetMember(circleId, slot) == member)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool AllMembersDeposited(BigInteger circleId, BigInteger day, BigInteger memberCount)
+        {
+            for (BigInteger slot = 1; slot <= memberCount; slot++)
+            {
+                UInt160 member = GetMember(circleId, slot);
+                if (member == UInt160.Zero)
+                {
+                    return false;
+                }
+
+                if (Storage.Get(Storage.CurrentContext, GetDepositKey(circleId, day, member)) == null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static void ProcessPayout(BigInteger circleId, CircleData circle)
+        {
+            UInt160 recipient = GetMember(circleId, circle.CurrentDay);
+            ExecutionEngine.Assert(recipient != UInt160.Zero, "invalid recipient");
+
+            BigInteger payoutDay = circle.CurrentDay;
+            BigInteger payoutAmount = circle.DailyAmount * circle.MemberCount;
+            ExecutionEngine.Assert(GAS.BalanceOf(Runtime.ExecutingScriptHash) >= payoutAmount, "insufficient pool liquidity");
+            ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, recipient, payoutAmount, "circle-payout"));
+
+            circle.CurrentDay = circle.CurrentDay + 1;
+            if (circle.CurrentDay > circle.MaxMembers)
+            {
+                circle.Active = false;
+            }
+
+            StoreCircle(circleId, circle);
+            OnPayoutCompleted(circleId, recipient, payoutDay, payoutAmount);
         }
 
         #endregion
@@ -336,27 +390,25 @@ namespace NeoMiniAppPlatform.Contracts
 
             OnPeriodicExecutionTriggered(taskId);
 
-            // Extract circleId from payload (if provided)
-            // For simplicity, we iterate through active circles or use a default circle ID
-            // In production, payload could contain the circleId to process
+            BigInteger totalCircles = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_CIRCLE_ID);
+            BigInteger processed = 0;
 
-            // For this implementation, we'll process circle ID 1 as an example
-            // In a real scenario, you'd maintain a list of active circles to process
-            BigInteger circleId = 1;
-
-            CircleData circle = GetCircle(circleId);
-            if (circle.Creator == null || !circle.Active)
+            for (BigInteger circleId = 1; circleId <= totalCircles && processed < 10; circleId++)
             {
-                return; // Circle not found or not active
-            }
+                CircleData circle = GetCircle(circleId);
+                if (circle.Creator == null || !circle.Active || circle.CurrentDay > circle.MaxMembers)
+                {
+                    continue;
+                }
 
-            if (circle.CurrentDay > circle.MaxMembers)
-            {
-                return; // Circle already completed
-            }
+                if (!AllMembersDeposited(circleId, circle.CurrentDay, circle.MemberCount))
+                {
+                    continue;
+                }
 
-            // Trigger automated payout processing
-            ProcessAutomatedPayout(circleId);
+                ProcessPayout(circleId, circle);
+                processed += 1;
+            }
         }
 
         /// <summary>
@@ -414,24 +466,12 @@ namespace NeoMiniAppPlatform.Contracts
                 return; // Circle completed
             }
 
-            // Get today's recipient (slot = currentDay)
-            UInt160 recipient = GetMember(circleId, circle.CurrentDay);
-            if (recipient == UInt160.Zero)
+            if (!AllMembersDeposited(circleId, circle.CurrentDay, circle.MemberCount))
             {
-                return; // Invalid recipient
+                return;
             }
 
-            BigInteger payoutAmount = circle.DailyAmount * circle.MemberCount;
-
-            // Advance to next day
-            circle.CurrentDay = circle.CurrentDay + 1;
-            if (circle.CurrentDay > circle.MaxMembers)
-            {
-                circle.Active = false; // Circle completed
-            }
-            StoreCircle(circleId, circle);
-
-            OnPayoutCompleted(circleId, recipient, circle.CurrentDay - 1, payoutAmount);
+            ProcessPayout(circleId, circle);
         }
 
         #endregion

@@ -91,7 +91,7 @@ Configures the Morpheus Oracle address for service integration.
 
 #### `SetPaymentHub(UInt160 hub)`
 
-Sets the PaymentHub contract address for payment processing.
+Legacy compatibility hook inherited from the base contract. The live GasCircle flow does not use PaymentHub.
 
 #### `SetPaused(bool paused)`
 
@@ -109,7 +109,7 @@ Returns the configured Oracle address.
 
 #### `PaymentHub() → UInt160`
 
-Returns the PaymentHub contract address.
+Returns the legacy PaymentHub setting, which is unused by the live GasCircle flow.
 
 #### `IsPaused() → bool`
 
@@ -160,8 +160,8 @@ The automation service automatically processes savings circle deposits and payou
 2. At deposit period start, sends reminders to members
 3. At payout period, calculates total pool
 4. Service determines next recipient based on rotation
-5. Service calls Gateway to process payout
-6. PaymentHub transfers pool to recipient
+5. Oracle/automation callback confirms payout processing
+6. Contract transfers the pooled GAS directly to the scheduled recipient
 7. `CirclePayout` event emitted (if implemented)
 
 **Benefits:**
@@ -216,7 +216,7 @@ The automation service automatically processes savings circle deposits and payou
    Service → Sum All Deposits → Calculate Payout Amount
 
 3. Payout Execution
-   Service → Gateway → PaymentHub → Transfer to Recipient
+   Oracle / Automation Callback → Contract → Transfer to Recipient
 
 4. Notification
    Payout Complete → Notify Members → Update Circle Status
@@ -240,7 +240,7 @@ The automation service automatically processes savings circle deposits and payou
 3. **Payout Phase (Rotating)**
    - Service determines next recipient based on rotation schedule
    - Service calculates total pool from deposits
-   - PaymentHub transfers pool amount to recipient
+   - Contract transfers pool amount to recipient
    - Recipient receives lump sum payout
    - Circle advances to next rotation
 
@@ -290,15 +290,14 @@ The automation service automatically processes savings circle deposits and payou
 ### Prerequisites
 
 1. **Morpheus Oracle**: Deployed and configured
-2. **PaymentHub**: Deployed for handling deposits and payouts
-3. **Circle Management Service**: Off-chain service for tracking and coordination
-4. **Notification Service**: For reminding members of deposit schedules
+2. **Circle Management Service**: Off-chain service for tracking and coordination
+3. **Notification Service**: For reminding members of deposit schedules
 
 ### Configuration Steps
 
 1. Deploy MiniAppGasCircle contract
 2. Call `SetOracle(gatewayAddress)` to configure Oracle integration
-3. Call `SetPaymentHub(hubAddress)` to enable payment processing
+3. Ensure members prepay GAS to the contract with memo prefix `miniapp-gascircle:`
 4. Configure circle management service with contract address
 5. Set up notification system for deposit reminders
 
@@ -459,7 +458,7 @@ MiniAppGasCircle 是一个每日储蓄互助圈（ROSCA - 轮流储蓄和信贷�
 
 1. 服务根据轮流计划确定下一个接收者
 2. 服务计算存款总额
-3. PaymentHub 将资金池金额转给接收者
+3. 合约将资金池金额直接转给接收者
 4. 接收者获得一次性支付
 5. 互助圈进入下一轮
 
@@ -493,14 +492,14 @@ MakeDeposit(UInt160 member, BigInteger amount)
 
 - `SetAdmin(UInt160 a)`: 更新合约管理员地址
 - `SetOracle(UInt160 g)`: 配置 Morpheus Oracle 地址
-- `SetPaymentHub(UInt160 hub)`: 设置 PaymentHub 合约地址
+- `SetPaymentHub(UInt160 hub)`: 兼容保留接口，当前业务流未使用
 - `SetPaused(bool paused)`: 启用或禁用合约操作
 
 #### 查询方法
 
 - `Admin()`: 返回当前管理员地址
 - `Oracle()`: 返回配置的网关地址
-- `PaymentHub()`: 返回 PaymentHub 合约地址
+- `PaymentHub()`: 返回兼容保留的旧配置，当前业务流未使用
 - `IsPaused()`: 返回合约是否暂停
 
 ### 使用场景

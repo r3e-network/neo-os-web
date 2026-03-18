@@ -8,6 +8,7 @@ const APPS_DIR = path.join(ROOT, "apps");
 const ACCEPTED_MARKERS = [
   "<MiniAppPage",
   "<OfficialLauncherMiniApp",
+  "<ConsoleMiniApp",
 ];
 
 function hasAcceptedLayout(filePath) {

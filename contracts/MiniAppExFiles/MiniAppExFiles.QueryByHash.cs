@@ -12,12 +12,12 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Query a record by its data hash.
         /// </summary>
-        public static RecordData QueryByHash(UInt160 querier, ByteString dataHash, BigInteger receiptId)
+        public static RecordData QueryByHash(UInt160 querier, ByteString dataHash)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(querier), "unauthorized");
+            ValidateUserOrAbstractAccount(querier);
 
-            ValidatePaymentReceipt(APP_ID, querier, QUERY_FEE, receiptId);
+            ConsumeDirectGasCredit(querier, QUERY_FEE);
 
             ByteString recordIdData = Storage.Get(Storage.CurrentContext,
                 Helper.Concat((ByteString)PREFIX_HASH_INDEX, dataHash));

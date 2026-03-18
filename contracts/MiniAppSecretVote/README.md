@@ -73,7 +73,7 @@ Configures the Morpheus Oracle address for service integration.
 
 #### `SetPaymentHub(UInt160 hub)`
 
-Sets the PaymentHub contract address for payment processing.
+Legacy compatibility hook inherited from the base contract. SecretVote does not use PaymentHub.
 
 #### `SetPaused(bool paused)`
 
@@ -91,7 +91,7 @@ Returns the configured Oracle address.
 
 #### `PaymentHub() → UInt160`
 
-Returns the PaymentHub contract address.
+Returns the legacy PaymentHub setting, which is unused by SecretVote.
 
 #### `IsPaused() → bool`
 
@@ -194,15 +194,13 @@ User → MiniApp Frontend → CastVote() → VoteCast Event → Gateway Service 
 ### Prerequisites
 
 1. Morpheus Oracle contract deployed and configured
-2. PaymentHub contract deployed (if payment features are used)
-3. Off-chain voting service configured to process `VoteCast` events
+2. Off-chain voting service configured to process `VoteCast` events
 
 ### Configuration Steps
 
 1. Deploy MiniAppSecretVote contract
 2. Call `SetOracle(gatewayAddress)` to configure Oracle integration
-3. Call `SetPaymentHub(hubAddress)` to enable payment features
-4. Configure off-chain service to monitor and process voting events
+3. Configure off-chain service to monitor and process voting events
 
 ## Contract Metadata
 
@@ -268,14 +266,14 @@ CastVote(UInt160 voter, string proposalId)
 
 - `SetAdmin(UInt160 a)`: 更新合约管理员地址
 - `SetOracle(UInt160 g)`: 配置 Morpheus Oracle 地址
-- `SetPaymentHub(UInt160 hub)`: 设置 PaymentHub 合约地址
+- `SetPaymentHub(UInt160 hub)`: 兼容保留接口，当前业务流未使用
 - `SetPaused(bool paused)`: 启用或禁用合约操作
 
 #### 查询方法
 
 - `Admin()`: 返回当前管理员地址
 - `Oracle()`: 返回配置的网关地址
-- `PaymentHub()`: 返回 PaymentHub 合约地址
+- `PaymentHub()`: 返回兼容保留的旧配置，当前业务流未使用
 - `IsPaused()`: 返回合约是否暂停
 
 ### 安全考虑
