@@ -203,12 +203,8 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger RequestRng(BigInteger readingId, BigInteger cardCount)
         {
-            UInt160 oracle = Oracle();
-            ExecutionEngine.Assert(oracle != null && oracle.IsValid, "oracle not set");
-
             ByteString payload = StdLib.Serialize(new object[] { readingId, cardCount });
-            return (BigInteger)Contract.Call(oracle, "request", CallFlags.All,
-                "rng", payload, Runtime.ExecutingScriptHash, "onOracleResult");
+            return RequestOracleForCallback(Runtime.Transaction.Sender, "rng", payload);
         }
 
         public static void OnOracleResult(BigInteger requestId, string requestType,
@@ -225,14 +221,8 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (success && result != null)
             {
-                object[] rngResult = (object[])StdLib.Deserialize(result);
                 BigInteger cardCount = GetCardCount(reading.SpreadType);
-                BigInteger[] cards = new BigInteger[(int)cardCount];
-
-                for (int i = 0; i < (int)cardCount; i++)
-                {
-                    cards[i] = (BigInteger)rngResult[i] % TOTAL_CARDS;
-                }
+                BigInteger[] cards = CalculateCardsFromSeed(result, cardCount);
                 reading.Cards = cards;
                 reading.Completed = true;
                 StoreReading(readingId, reading);

@@ -177,7 +177,7 @@ const draw = async () => {
     if (!address.value) await connect();
     if (!address.value) throw new Error(t("connectWallet"));
     const contract = await ensureContractAddress();
-    const readingFee = "0.05";
+    const readingFee = "0.1";
     const readingFeeFixed8 = String(Math.round(Number.parseFloat(readingFee) * 1e8));
 
     await invokeContract({
@@ -201,8 +201,8 @@ const draw = async () => {
       args: [
         { type: "Hash160", value: address.value },
         { type: "String", value: prompt.slice(0, 200) },
-        { type: "Integer", value: "0" }, // spreadType: 0 = single card
-        { type: "Integer", value: "0" }, // category: 0 = general
+        { type: "Integer", value: "2" }, // spreadType: 2 = three-card
+        { type: "Integer", value: "1" }, // category: 1 = general/default
       ],
     });
     const requestedEvt = await waitForEventByTx(tx, "ReadingRequested");

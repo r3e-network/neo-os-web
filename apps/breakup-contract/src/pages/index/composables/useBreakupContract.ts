@@ -138,7 +138,7 @@ export function useBreakupContract(t: (key: string) => string) {
 
       const contractViews: RelationshipContractView[] = [];
       for (const id of Array.from(ids).sort((a, b) => b - a)) {
-        const parsed = await read("GetContractDetails", [{ type: "Integer", value: id }]);
+        const parsed = await read("getContractDetails", [{ type: "Integer", value: id }]);
         const view = parseContract(id, parsed as Record<string, unknown> | unknown[] | null);
         if (view) contractViews.push(view);
       }
@@ -255,7 +255,7 @@ export function useBreakupContract(t: (key: string) => string) {
       return;
     }
     try {
-      await invokeDirectly("TriggerBreakup", [
+      await invokeDirectly("triggerBreakup", [
         { type: "Integer", value: contract.id },
         { type: "Hash160", value: address.value },
       ]);
