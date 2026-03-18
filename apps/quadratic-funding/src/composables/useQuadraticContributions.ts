@@ -1,7 +1,7 @@
 import type { Ref } from "vue";
 import { ref, reactive } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
@@ -20,6 +20,12 @@ export function useQuadraticContributions(
   const { address, connect, invokeContract, chainType } = useWallet() as WalletSDK;
 
   const isContributing = ref(false);
+
+  const globalSignerForCurrentWallet = (): WalletSigner[] => (
+    address.value
+      ? [{ account: address.value, scopes: "Global" }]
+      : []
+  );
 
   const contributeForm = reactive({
     roundId: "",
@@ -85,6 +91,7 @@ export function useQuadraticContributions(
           { type: "Integer", value: amount },
           { type: "String", value: memo },
         ],
+        signers: globalSignerForCurrentWallet(),
       });
 
       setStatus(t("contributionSent"), "success");

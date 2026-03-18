@@ -52,16 +52,34 @@ The following apps returned successful `HALT` reads in the latest probe:
 - `soulbound-certificate`
 - `trustanchor`
 
+Additional real write-path validation now confirmed for testnet-only apps:
+
+- `event-ticket-pass`
+  - `createEvent` succeeded
+  - `issueTicket` succeeded
+  - `getEventDetails` and `getTicketDetails` returned the created state
+- `soulbound-certificate`
+  - `createTemplate` succeeded
+  - `issueCertificate` succeeded
+  - `getTemplateDetails` and `getCertificateDetails` returned the created state
+- `milestone-escrow`
+  - inbound token funding bug fixed by adding `OnNEP17Payment`
+  - testnet update tx: `0x0ce7a07ef63721ec5541054448ff48b85090b4daa7de1e7f1e060453ce336536`
+  - `createEscrow -> approveMilestone -> claimMilestone` succeeded with the signer scope required by the current deployment
+- `quadratic-funding`
+  - inbound token funding bug fixed by adding `OnNEP17Payment`
+  - testnet update tx: `0x35723b356336309b3d503b7e1797d53c43548c55a04e22afb14e0580a9410eec`
+  - `createRound -> registerProject -> contribute` succeeded with the signer scope required by the current deployment
+
 ### Needs deeper investigation on testnet
 
-The following apps still returned `FAULT` even on low-risk read probes and
-should be treated as the next debugging set:
+The following apps still require deeper investigation on testnet:
 
 - `breakup-contract`
 - `burn-league`
-- `flashloan`
 - `on-chain-tarot`
 - `unbreakable-vault`
+- `flashloan` is no longer a read-path concern, but still needs a proper live user-flow smoke to move from “ABI-compatible” to “validated”
 
 This does **not** yet prove that each app is fully broken for users, but it
 does prove that these deployments are weaker than the already-validated
