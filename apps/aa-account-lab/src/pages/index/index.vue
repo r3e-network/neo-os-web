@@ -71,6 +71,7 @@ import { computed, reactive, ref } from "vue";
 import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
+import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
@@ -199,27 +200,34 @@ async function submitRegister() {
   }
 }
 
-const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: "AA Core", value: aaCore.slice(0, 10) + "…" },
-  { label: "Verifier", value: defaultVerifier.slice(0, 10) + "…" },
-  { label: "Network", value: "Testnet" },
-]);
+const heroStats = computed<HeroStatsStripItem[]>(() =>
+  buildAAHeroStats({
+    aaCore,
+    middleLabel: "Verifier",
+    middleValue: `${defaultVerifier.slice(0, 10)}…`,
+    trailingLabel: "Network",
+    trailingValue: "Testnet",
+  }),
+);
 
-const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: "AA Core", value: aaCore, variant: "accent" },
-  { label: "Default Verifier", value: defaultVerifier, variant: "erobo" },
-  { label: "Wallet", value: address.value || "not connected", variant: "success" },
-]);
+const overviewStats = computed<StatsDisplayItem[]>(() =>
+  buildAAOverviewStats({
+    aaCore,
+    walletValue: address.value || "not connected",
+    extra: { label: "Default Verifier", value: defaultVerifier, variant: "erobo" },
+  }),
+);
 
 const appState = computed(() => ({ address: address.value, accountId: inspected.accountIdHash }));
 </script>
 
 <style lang="scss" scoped>
-.field-stack { display: flex; flex-direction: column; gap: 14px; }
-.actions-row { display: flex; gap: 12px; flex-wrap: wrap; }
-.detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
-.detail-card { padding: 14px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); }
-.detail-label { display: block; font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.12em; }
-.detail-value { display: block; margin-top: 8px; font-size: 13px; word-break: break-all; }
-@media (max-width: 767px) { .detail-grid { grid-template-columns: 1fr; } }
+@use "@shared/styles/console-common" as console;
+
+.field-stack { @include console.stack; }
+.actions-row { @include console.actions-row; }
+.detail-grid { @include console.detail-grid; margin-top: 18px; }
+.detail-card { @include console.detail-card; }
+.detail-label { @include console.label; letter-spacing: 0.12em; }
+.detail-value { @include console.value; margin-top: 8px; }
 </style>
