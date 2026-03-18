@@ -190,6 +190,14 @@ async function waitForLog(txid, timeoutMs = 120000) {
   throw new Error(`timed out waiting for ${normalized}`);
 }
 
+function executionReturnedTrue(execution) {
+  const item = execution?.stack?.[0];
+  if (!item) return false;
+  if (item.type === "Boolean") return item.value === true;
+  if (item.type === "Integer") return String(item.value || "0") !== "0";
+  return false;
+}
+
 function stackValue(item) {
   if (!item || typeof item !== "object") return null;
   switch (item.type) {
@@ -243,6 +251,9 @@ async function transferGAS(toHash, amount, memo) {
   if (execution.vmstate !== "HALT") {
     throw new Error(execution.exception || `GAS transfer failed for ${toHash}`);
   }
+  if (!executionReturnedTrue(execution)) {
+    throw new Error(`GAS transfer returned false for ${toHash}`);
+  }
   return asTxid(txid);
 }
 
@@ -256,6 +267,9 @@ async function transferNEO(toHash, amount, memo) {
   const { execution } = await waitForLog(txid);
   if (execution.vmstate !== "HALT") {
     throw new Error(execution.exception || `NEO transfer failed for ${toHash}`);
+  }
+  if (!executionReturnedTrue(execution)) {
+    throw new Error(`NEO transfer returned false for ${toHash}`);
   }
   return asTxid(txid);
 }
@@ -695,6 +709,18 @@ async function runSelfLoan() {
     networkMagic: NETWORK_MAGIC,
     account,
   });
+
+  const neoBalance = await rpcClient.execute(new Neon.rpc.Query({
+    method: "getnep17balances",
+    params: [account.address],
+  }));
+  const neoAsset = Array.isArray(neoBalance?.balance)
+    ? neoBalance.balance.find((entry) => String(entry.assethash || "").toLowerCase() === NEO_HASH.toLowerCase())
+    : null;
+  const availableNeo = Number(neoAsset?.amount || "0");
+  if (!Number.isFinite(availableNeo) || availableNeo < Number(SELF_LOAN_COLLATERAL)) {
+    throw new Error(`insufficient wallet NEO balance for selfLoan collateral: need ${SELF_LOAN_COLLATERAL}, have ${neoAsset?.amount || "0"}`);
+  }
 
   const poolTx = await transferGAS(contractHash, SELF_LOAN_POOL_TOPUP, "miniapp-self-loan:pool");
   const collateralTx = await transferNEO(contractHash, SELF_LOAN_COLLATERAL, "miniapp-self-loan:collateral");
