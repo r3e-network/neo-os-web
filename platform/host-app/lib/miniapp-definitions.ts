@@ -3,6 +3,7 @@ import path from "path";
 import yaml from "js-yaml";
 import type { MiniAppInfo } from "@/components/types";
 import { coerceMiniAppInfo } from "./miniapp";
+import { applyBuiltInMiniAppDefaults } from "./miniapp-builtins";
 import { logger } from "./logger";
 import { canonicalizeMiniAppId } from "./miniapp-id";
 
@@ -440,7 +441,27 @@ export async function loadMiniAppDefinitions(): Promise<MiniAppInfo[]> {
   for (const definition of loaded.definitions) {
     const app = coerceMiniAppInfo(definition.payload);
     if (!app) continue;
-    apps.push({ ...app, source: "miniapp" });
+    apps.push({ ...applyBuiltInMiniAppDefaults(app), source: "miniapp" });
   }
   return apps;
+}
+
+export async function loadBundledMiniAppById(appId: string): Promise<MiniAppInfo | null> {
+  const normalizedTarget = canonicalizeMiniAppId(appId) || String(appId || "").trim();
+  if (!normalizedTarget) return null;
+
+  const slugs = await listBundledManifestSlugs();
+  for (const slug of slugs) {
+    const bundledManifest = await loadBundledManifest(slug);
+    if (!bundledManifest) continue;
+
+    const manifestAppId = canonicalizeAppId(bundledManifest.id, slug);
+    if (manifestAppId !== normalizedTarget) continue;
+
+    const app = coerceMiniAppInfo(normalizeRawDefinition(buildManifestOnlyDefinition(slug, bundledManifest), slug));
+    if (!app) return null;
+    return { ...applyBuiltInMiniAppDefaults(app), source: "miniapp" };
+  }
+
+  return null;
 }

@@ -1,5 +1,4 @@
 import type { MiniAppInfo } from "@/components/types";
-import { MINIAPP_REGISTRY } from "./miniapp-registry";
 import { coerceMiniAppInfo } from "./miniapp";
 import { loadMiniAppDefinitions } from "./miniapp-definitions";
 import { canonicalizeMiniAppId } from "./miniapp-id";
@@ -100,19 +99,7 @@ export async function loadMiniAppCatalog(
   options: LoadMiniAppCatalogOptions = {},
 ): Promise<MiniAppInfo[]> {
   const definitionApps = await loadMiniAppDefinitions();
-  const mergedMiniAppsMap = new Map(MINIAPP_REGISTRY.map((app) => [canonicalizeMiniAppId(app.app_id) || app.app_id, app]));
-  for (const definitionApp of definitionApps) {
-    const appId = canonicalizeMiniAppId(definitionApp.app_id) || definitionApp.app_id;
-    const fallback = mergedMiniAppsMap.get(appId);
-    mergedMiniAppsMap.set(appId, {
-      ...(fallback || {}),
-      ...definitionApp,
-      app_id: appId,
-      source: "miniapp",
-    });
-  }
-  const mergedMiniApps = Array.from(mergedMiniAppsMap.values());
-  const miniAppById = new Map(mergedMiniApps.map((app) => [canonicalizeMiniAppId(app.app_id) || app.app_id, app]));
+  const miniAppById = new Map(definitionApps.map((app) => [canonicalizeMiniAppId(app.app_id) || app.app_id, app]));
   const dbApps = await fetchMiniAppsFromSupabase(status, options);
 
   const merged: MiniAppInfo[] = [];
@@ -128,7 +115,7 @@ export async function loadMiniAppCatalog(
   // Static miniapps represent the active catalog and should not leak into
   // pending/disabled status views.
   if (status === "active") {
-    for (const miniapp of mergedMiniApps) {
+    for (const miniapp of definitionApps) {
       if (seen.has(miniapp.app_id)) continue;
       merged.push({ ...miniapp, source: "miniapp" });
     }
