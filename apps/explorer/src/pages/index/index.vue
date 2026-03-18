@@ -16,16 +16,7 @@
       <div class="hero-container">
         <HeroSection variant="erobo-neo" compact>
           <template #stats>
-            <div class="hero-stats">
-              <div class="hero-stat">
-                <span class="hero-stat-label">{{ t("tabSearch") }}</span>
-                <span class="hero-stat-value">{{ mainnetStats?.[0]?.value ?? "—" }}</span>
-              </div>
-              <div class="hero-stat">
-                <span class="hero-stat-label">{{ t("tabHistory") }}</span>
-                <span class="hero-stat-value">{{ recentTxs.length }}</span>
-              </div>
-            </div>
+            <HeroStatsStrip :items="heroStatsItems" />
           </template>
         </HeroSection>
       </div>
@@ -63,7 +54,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, HeroSection } from "@shared/components";
+import { MiniAppPage, HeroSection, HeroStatsStrip } from "@shared/components";
+import type { HeroStatsStripItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import SearchPanel from "./components/SearchPanel.vue";
 import SearchResult from "./components/SearchResult.vue";
@@ -97,6 +89,10 @@ const {
 } = useExplorerData(t);
 
 const activeTab = ref("search");
+const heroStatsItems = computed<HeroStatsStripItem[]>(() => [
+  { label: t("tabSearch"), value: mainnetStats.value?.[0]?.value ?? "—" },
+  { label: t("tabHistory"), value: recentTxs.value.length },
+]);
 const appState = computed(() => ({
   activeTab: activeTab.value,
   isLoading: isLoading.value,
@@ -138,36 +134,10 @@ onUnmounted(() => {
   margin-bottom: 20px;
 }
 
-.hero-stats {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-}
-
-.hero-stat {
-  text-align: center;
-  padding: 8px 16px;
-  background: rgba(0, 229, 153, 0.08);
-  border-radius: 8px;
-  border: 1px solid rgba(0, 229, 153, 0.15);
-}
-
-.hero-stat-value {
-  display: block;
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--text-primary);
-  font-family: var(--matrix-font, monospace);
-}
-
-.hero-stat-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 1px;
-  margin-top: 2px;
+:deep(.hero-stats-strip__item) {
+  --hero-stat-bg: rgba(0, 229, 153, 0.08);
+  --hero-stat-border: rgba(0, 229, 153, 0.15);
+  --hero-stat-value-font: var(--matrix-font, monospace);
 }
 
 .loading {

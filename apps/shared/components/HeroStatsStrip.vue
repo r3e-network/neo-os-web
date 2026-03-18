@@ -1,0 +1,93 @@
+<template>
+  <div class="hero-stats-strip" :class="compact ? 'hero-stats-strip--compact' : ''" role="list" :aria-label="ariaLabel">
+    <div
+      v-for="item in items"
+      :key="`${item.label}:${item.value}`"
+      class="hero-stats-strip__item"
+      role="listitem"
+      :aria-label="`${item.label}: ${item.value}`"
+    >
+      <span v-if="item.icon" class="hero-stats-strip__icon" aria-hidden="true">{{ item.icon }}</span>
+      <span class="hero-stats-strip__value">{{ item.value }}</span>
+      <span class="hero-stats-strip__label">{{ item.label }}</span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+export interface HeroStatsStripItem {
+  label: string;
+  value: string | number;
+  icon?: string;
+}
+
+withDefaults(
+  defineProps<{
+    items: HeroStatsStripItem[];
+    compact?: boolean;
+    ariaLabel?: string;
+  }>(),
+  {
+    compact: false,
+    ariaLabel: "Hero statistics",
+  },
+);
+</script>
+
+<style lang="scss">
+@use "../styles/tokens.scss" as *;
+
+.hero-stats-strip {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  &__item {
+    min-width: 92px;
+    text-align: center;
+    padding: 8px 16px;
+    background: var(--hero-stat-bg, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    border: 1px solid var(--hero-stat-border, rgba(255, 255, 255, 0.15));
+    box-shadow: var(--hero-stat-shadow, none);
+  }
+
+  &__icon {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  &__value {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--hero-stat-value-color, var(--text-primary, #fff));
+    font-family: var(--hero-stat-value-font, $font-family);
+  }
+
+  &__label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--hero-stat-label-color, var(--text-secondary, rgba(255, 255, 255, 0.6)));
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  &--compact {
+    gap: 12px;
+
+    .hero-stats-strip__item {
+      padding: 8px 12px;
+      min-width: 84px;
+    }
+
+    .hero-stats-strip__value {
+      font-size: 18px;
+    }
+  }
+}
+</style>
