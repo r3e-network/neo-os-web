@@ -24,10 +24,10 @@ const rpcURL = "https://testnet1.neo.coz.io:443"
 // Contract addresses (new v2.0 platform contracts).
 // Prefer environment overrides to avoid stale hardcoded hashes.
 var contracts = map[string]string{
-	"PriceFeed":           envOrDefault("CONTRACT_PRICEFEED_HASH", "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"),
-	"RandomnessLog":       envOrDefault("CONTRACT_RANDOMNESSLOG_HASH", "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"),
-	"PaymentHub":          envOrDefault("CONTRACT_PAYMENTHUB_HASH", "0x45777109546ceaacfbeed9336d695bb8b8bd77ca"),
-	"AutomationAnchor":    envOrDefault("CONTRACT_AUTOMATIONANCHOR_HASH", "0x1c888d699ce76b0824028af310d90c3c18adeab5"),
+	"PriceFeed":        envOrDefault("CONTRACT_PRICEFEED_HASH", "0xc5d9117d255054489d1cf59b2c1d188c01bc9954"),
+	"RandomnessLog":    envOrDefault("CONTRACT_RANDOMNESSLOG_HASH", "0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39"),
+	"PaymentHub":       envOrDefault("CONTRACT_PAYMENTHUB_HASH", "0x45777109546ceaacfbeed9336d695bb8b8bd77ca"),
+	"AutomationAnchor": envOrDefault("CONTRACT_AUTOMATIONANCHOR_HASH", "0x1c888d699ce76b0824028af310d90c3c18adeab5"),
 }
 
 func envOrDefault(key, fallback string) string {
