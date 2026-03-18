@@ -87,6 +87,11 @@ const APP_ICONS: Record<string, LucideIcon> = {
 
   // DeFi
   "miniapp-flashloan": Zap,
+  "miniapp-flamingo-swap": Repeat,
+  "miniapp-flamingo-lend": HandCoins,
+  "miniapp-flamingo-earn": Coins,
+  "miniapp-flamingo-analytics": BarChart3,
+  "miniapp-flamingo-action-center": ClipboardList,
   "miniapp-aitrader": Brain,
   "miniapp-gridbot": Grid3X3,
   "miniapp-bridgeguardian": Shield,
@@ -139,6 +144,7 @@ const APP_ICONS: Record<string, LucideIcon> = {
   "miniapp-guardianpolicy": ClipboardList,
   "miniapp-unbreakablevault": Lock,
   "miniapp-zkbadge": Award,
+  "miniapp-neo-x-bridge": Repeat,
 };
 
 // Category fallback icons

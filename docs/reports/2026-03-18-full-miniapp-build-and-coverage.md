@@ -21,7 +21,7 @@ Validation approach:
 
 Build sweep result:
 
-- total `apps/*` packages with `package.json`: `47`
+- total `apps/*` packages with `package.json`: `53`
 - build failures: `0`
 - `shared/` was skipped because it has no standalone build script
 
@@ -58,11 +58,11 @@ Coverage audit summary:
 
 Current manifest count:
 
-- `46` miniapp manifests under `apps/*`
+- `52` miniapp manifests under `apps/*`
 
 Current package count:
 
-- `47` app packages under `apps/*`
+- `53` app packages under `apps/*`
 - the additional package is `apps/shared`
 
 ## Interpretation
@@ -74,6 +74,8 @@ act as integration consoles or utilities. Examples include:
 
 - AA tools
 - Oracle tools
+- Neo X bridge launcher
+- Flamingo product launchers
 - explorer / wallet-health style tools
 
 ### testnet+mainnet apps
