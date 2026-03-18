@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { getMiniApp } from "./miniapp-registry";
 
 export type SecretStatus = "active" | "expired" | "revoked";
 
@@ -72,12 +71,10 @@ export const useSecretsStore = create<SecretsState>((set) => ({
     }
 
     const existing = readTokensFromStorage();
-    const app = scopedAppId === "global" ? undefined : getMiniApp(scopedAppId);
     const token: SecretToken = {
       id: generateTokenId(),
       name: trimmedName,
       appId: scopedAppId,
-      appName: app?.name,
       secretType: String(secretType || "custom"),
       status: "active",
       createdAt: nowISO(),
