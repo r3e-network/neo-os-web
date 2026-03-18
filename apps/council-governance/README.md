@@ -18,8 +18,8 @@ Decentralized governance for Neo Council members. Only top 21 committee members 
 
 | Network        | Status          | Address                                      |
 | -------------- | --------------- | -------------------------------------------- |
-| neo-n3-mainnet | ❌ Not Deployed | -                                            |
-| neo-n3-testnet | ✅ Deployed     | `0xab120f4586e5691e909aae23d36e73dc5395e6a1` |
+| neo-n3-mainnet | ✅ Deployed     | `0xc7e50e67589df63302cbea1a6b00beb649ee74d8` |
+| neo-n3-testnet | ✅ Deployed     | `0x4c61e5575ae9e151027f6724d07fac127d4cc25f` |
 
 ## Deployment Requirements
 
@@ -43,7 +43,7 @@ Decentralized governance for Neo Council members. Only top 21 committee members 
    ```
 
 2. **Update contract addresses**:
-   After deployment, add the contract address to `scripts/sync-contract-addresses.js`:
+   After deployment, add the contract address to the app manifest and any host-side registry that mirrors deployment state:
 
    ```javascript
    MiniAppCouncilGovernance: "0x...", // Add deployed address
@@ -56,7 +56,7 @@ Decentralized governance for Neo Council members. Only top 21 committee members 
    ```
 
 4. **Verify deployment**:
-   - Check `neo-manifest.json` has the correct contract address
+   - Check `neo-manifest.json` has the correct network-specific contract address
    - Test the miniapp in the host-app
 
 ## API Dependencies

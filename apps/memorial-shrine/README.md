@@ -9,7 +9,7 @@ Create eternal digital memorials for loved ones on the blockchain.
 | **App ID** | `miniapp-memorial-shrine` |
 | **Category** | Social |
 | **Version** | 1.0.0 |
-| **Network** | Neo N3 Mainnet |
+| **Network** | Neo N3 Mainnet / Testnet |
 
 ## Features
 
@@ -56,6 +56,7 @@ Create eternal digital memorials for loved ones on the blockchain.
 
 ## Technical Details
 
-- **Contract**: `0xee7a548b71c69364fcb0e45a63a40f141b938e42`
+- **Mainnet Contract**: `0xee7a548b71c69364fcb0e45a63a40f141b938e42`
+- **Testnet Contract**: `0x87f0fe2ba69cd973a3274471234d3cc13ef943c5`
 - **Storage**: IPFS for media, Neo blockchain for metadata
 - **Standards**: NEP-11 for memorial NFTs
