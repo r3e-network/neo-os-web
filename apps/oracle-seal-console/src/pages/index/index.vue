@@ -46,6 +46,21 @@
           </NeoButton>
         </div>
       </NeoCard>
+
+      <NeoCard variant="erobo" :title="t('refTitle')" class="mb-6">
+        <div class="stack">
+          <div class="details-grid">
+            <div><span class="label">{{ t("secretRef") }}</span><span class="value">{{ storedRef?.secret_ref || "—" }}</span></div>
+            <div><span class="label">{{ t("storageName") }}</span><span class="value">{{ storedRef?.name || storageName || "—" }}</span></div>
+          </div>
+
+          <label class="label">{{ t("copyRefWrapper") }}</label>
+          <textarea :value="refWrapperJson" class="json-box" rows="5" readonly />
+          <NeoButton variant="secondary" :disabled="!storedRef?.secret_ref" @click="copyText(refWrapperJson, 'ref')">
+            {{ copiedKey === "ref" ? t("copied") : t("copyRefWrapper") }}
+          </NeoButton>
+        </div>
+      </NeoCard>
     </template>
 
     <template #operation>
@@ -70,8 +85,14 @@
             placeholder="{&#10;  &quot;mode&quot;: &quot;builtin&quot;,&#10;  &quot;function&quot;: &quot;math.modexp&quot;,&#10;  &quot;input&quot;: { &quot;base&quot;: &quot;2&quot;, &quot;exponent&quot;: &quot;10&quot;, &quot;modulus&quot;: &quot;17&quot; }&#10;}"
           />
 
+          <NeoInput v-model="storageName" :label="t('storageName')" placeholder="oracle-compute-demo" />
+          <NeoInput v-model="projectSlug" :label="t('projectSlug')" placeholder="optional" />
+          <NeoInput v-model="boundRequester" :label="t('requesterScriptHash')" placeholder="0x... optional" />
+          <NeoInput v-model="boundCallbackContract" :label="t('callbackContract')" placeholder="0x... optional" />
+
           <NeoButton variant="secondary" :loading="isLoadingKey" @click="loadKey">{{ t("refreshKey") }}</NeoButton>
           <NeoButton variant="primary" :loading="isSealing" :disabled="!canSeal" @click="sealPayload">{{ t("sealNow") }}</NeoButton>
+          <NeoButton variant="secondary" :loading="isStoring" :disabled="!canStoreRef" @click="storeCiphertextRef">{{ t("storeRef") }}</NeoButton>
         </div>
       </NeoCard>
     </template>
@@ -83,7 +104,7 @@ import { computed, onMounted, ref } from "vue";
 import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
-import { useOracle, type OraclePublicKeyResponse } from "@shared/composables/useOracle";
+import { useOracle, type ConfidentialStoreResponse, type OraclePublicKeyResponse } from "@shared/composables/useOracle";
 import { encryptJsonWithOraclePublicKey, encryptTextWithOraclePublicKey } from "@shared/utils/morpheus-encryption";
 import { messages } from "@/locale/messages";
 
@@ -95,7 +116,13 @@ const confidentialInput = ref(`{\n  "mode": "builtin",\n  "function": "math.mode
 const ciphertext = ref("");
 const isLoadingKey = ref(false);
 const isSealing = ref(false);
-const copiedKey = ref<"cipher" | "wrapper" | null>(null);
+const isStoring = ref(false);
+const copiedKey = ref<"cipher" | "wrapper" | "ref" | null>(null);
+const storageName = ref("");
+const projectSlug = ref("");
+const boundRequester = ref("");
+const boundCallbackContract = ref("");
+const storedRef = ref<ConfidentialStoreResponse | null>(null);
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
   name: "oracle-seal-console",
@@ -110,6 +137,11 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
 
 const canSeal = computed(() => Boolean(keyMeta.value?.public_key && confidentialInput.value.trim()));
 const wrapperJson = computed(() => ciphertext.value ? JSON.stringify({ [fieldName.value]: ciphertext.value }, null, 2) : "");
+const refFieldName = computed(() => fieldName.value === "encrypted_payload" ? "encrypted_payload_ref" : fieldName.value === "encrypted_params" ? "encrypted_params_ref" : "");
+const canStoreRef = computed(() => Boolean(ciphertext.value && refFieldName.value));
+const refWrapperJson = computed(() => storedRef.value?.secret_ref && refFieldName.value
+  ? JSON.stringify({ [refFieldName.value]: storedRef.value.secret_ref }, null, 2)
+  : "");
 
 async function loadKey() {
   try {
@@ -132,6 +164,7 @@ async function sealPayload() {
     ciphertext.value = inputMode.value === "json"
       ? await encryptJsonWithOraclePublicKey(keyMeta.value.public_key, confidentialInput.value)
       : await encryptTextWithOraclePublicKey(keyMeta.value.public_key, confidentialInput.value);
+    storedRef.value = null;
     setStatus(t("sealed"), "success");
   } catch (error) {
     setStatus(String((error as Error)?.message || error), "error");
@@ -140,7 +173,35 @@ async function sealPayload() {
   }
 }
 
-async function copyText(value: string, key: "cipher" | "wrapper") {
+async function storeCiphertextRef() {
+  try {
+    if (!refFieldName.value) {
+      throw new Error(t("refUnavailableForToken"));
+    }
+    if (!ciphertext.value) {
+      throw new Error("Ciphertext is required.");
+    }
+    isStoring.value = true;
+    storedRef.value = await oracle.storeConfidentialCiphertext({
+      ciphertext: ciphertext.value,
+      name: storageName.value || undefined,
+      project_slug: projectSlug.value || undefined,
+      requester_script_hash: boundRequester.value || undefined,
+      callback_contract: boundCallbackContract.value || undefined,
+      metadata: {
+        app_id: "miniapp-oracle-seal-console",
+        field: fieldName.value,
+      },
+    });
+    setStatus(t("stored"), "success");
+  } catch (error) {
+    setStatus(String((error as Error)?.message || error), "error");
+  } finally {
+    isStoring.value = false;
+  }
+}
+
+async function copyText(value: string, key: "cipher" | "wrapper" | "ref") {
   if (!value) return;
   await navigator.clipboard.writeText(value);
   copiedKey.value = key;
@@ -169,6 +230,7 @@ const appState = computed(() => ({
   mode: inputMode.value,
   field: fieldName.value,
   hasCiphertext: Boolean(ciphertext.value),
+  secretRef: storedRef.value?.secret_ref || null,
 }));
 </script>
 
