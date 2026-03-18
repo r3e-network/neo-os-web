@@ -36,7 +36,7 @@ const formatNum = (n: number | string) => formatNumber(n, 2);
         <span class="stat-value">{{ stats?.rps ?? "0" }}</span>
       </div>
       <div class="stat-row">
-        <span class="stat-label">{{ t("routingSlotsLabel") }}</span>
+        <span class="stat-label">{{ t("agentAccountsLabel") }}</span>
         <span class="stat-value">{{ slotCount }}</span>
       </div>
       <div class="stat-row">
