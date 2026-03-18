@@ -115,11 +115,11 @@
     </template>
 
     <template #tab-routing>
-      <RoutingSlotsTab :slots="routingSlots" />
+      <AgentAccountsTab :agents="agentAccounts" />
     </template>
 
     <template #tab-architecture>
-      <ArchitectureTab :stats="stats" :slot-count="routingSlots.length" />
+      <ArchitectureTab :stats="stats" :slot-count="agentAccounts.length" />
     </template>
   </MiniAppPage>
 </template>
@@ -144,8 +144,8 @@ import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
 import { useTrustAnchor } from "./composables/useTrustAnchor";
 import ArchitectureTab from "./components/ArchitectureTab.vue";
-import RoutingSlotsTab from "./components/RoutingSlotsTab.vue";
-import { TRUSTANCHOR_ROUTING_SLOTS } from "./data/routingSlots";
+import AgentAccountsTab from "./components/AgentAccountsTab.vue";
+import { TRUSTANCHOR_AGENT_ACCOUNTS } from "./data/agentAccounts";
 
 const formatNum = (n: number | string) => formatNumber(n, 2);
 
@@ -159,7 +159,7 @@ const {
   claimRewards,
 } = useTrustAnchor((key: string) => t(key));
 
-const routingSlots = TRUSTANCHOR_ROUTING_SLOTS;
+const agentAccounts = TRUSTANCHOR_AGENT_ACCOUNTS;
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
   name: "trustanchor",
@@ -176,7 +176,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   sidebarItems: [
     { labelKey: "myStake", value: () => `${formatNum(myStake.value)} NEO` },
     { labelKey: "pendingRewards", value: () => `${formatNum(pendingRewards.value)} GAS` },
-    { labelKey: "routingSlotsLabel", value: () => routingSlots.length },
+    { labelKey: "agentAccountsLabel", value: () => agentAccounts.length },
     { labelKey: "defaultIngressLabel", value: () => 21 },
   ],
 });
@@ -194,8 +194,8 @@ const contractReady = ref(false);
 const appState = computed(() => ({
   myStake: myStake.value,
   pendingRewards: pendingRewards.value,
-  routingSlots: routingSlots.length,
-  defaultIngressSlot: 21,
+  agentAccounts: agentAccounts.length,
+  defaultIngressAgent: 21,
 }));
 
 const GAUGE_ARC = Math.PI * 80;
@@ -208,7 +208,7 @@ const gaugePercent = computed(() => {
 const gaugeOffset = computed(() => GAUGE_ARC - gaugePercent.value * GAUGE_ARC);
 
 const heroStatsItems = computed<HeroStatsStripItem[]>(() => [
-  { label: t("routingSlotsLabel"), value: routingSlots.length, icon: "🧱" },
+  { label: t("agentAccountsLabel"), value: agentAccounts.length, icon: "🧱" },
   { label: t("defaultIngressLabel"), value: 21, icon: "↘" },
   { label: t("noAgentContractsLabel"), value: 0, icon: "∅" },
 ]);
