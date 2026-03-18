@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-aa-session-key-lab",
+  "name": "AA Session Key Lab",
+  "name_zh": "AA Session Key 实验室",
+  "version": "1.0.0",
+  "description": "Inspect AA session-key scope and sponsorship state from a focused miniapp.",
+  "description_zh": "用专用小程序检查 AA session-key 作用域与赞助状态。",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": ["aa", "session-key", "relay", "sponsor"],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": ["neo-n3-testnet"],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/aa-session-key-lab/index.html",
+    "icon": "/miniapps/explorer/logo.jpg",
+    "banner": "/miniapps/explorer/banner.jpg"
+  },
+  "permissions": ["read:blockchain"],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://aa-session-key-lab"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-testnet",
+    "endpoints": ["https://api.n3index.dev"]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-03-18T05:20:00Z",
+  "updatedAt": "2026-03-18T05:20:00Z"
+}

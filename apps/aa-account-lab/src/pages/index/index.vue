@@ -77,8 +77,7 @@ import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { getExternalIntegrationConfig } from "@shared/constants/rpc";
-import { sha256 } from "@shared/shims/noble-hashes-sha256.js";
-import { ripemd160 } from "@shared/shims/noble-hashes-ripemd160.js";
+import { deriveAAAccountIdHash } from "@shared/utils/aa";
 
 const wallet = useWallet() as WalletSDK;
 const { address, connect, invokeRead, invokeContract } = wallet;
@@ -130,18 +129,12 @@ const inspected = reactive({
 const isInspecting = ref(false);
 const isSubmitting = ref(false);
 
-function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function deriveAccountIdHash(input: string): string {
-  const trimmed = input.trim();
-  const normalized = normalizeScriptHash(trimmed).replace(/^0x/, "");
-  if (/^[0-9a-f]{40}$/i.test(normalized)) return normalized.toLowerCase();
-  if (!trimmed) throw new Error(t("invalidAccountId"));
-  const seed = new TextEncoder().encode(trimmed);
-  const first = sha256(seed);
-  return toHex(ripemd160(first));
+  try {
+    return deriveAAAccountIdHash(input);
+  } catch {
+    throw new Error(t("invalidAccountId"));
+  }
 }
 
 function normalizeHashOrZero(value: string): string {
