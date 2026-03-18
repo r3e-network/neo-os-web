@@ -1,6 +1,6 @@
 # TrustAnchor MiniApp
 
-TrustAnchor is being rebuilt around **verification-script routing accounts**, not per-candidate agent contracts.
+TrustAnchor is being rebuilt around **verification-script agent accounts**, not per-candidate agent contracts.
 
 ## Overview
 
@@ -13,19 +13,19 @@ TrustAnchor is being rebuilt around **verification-script routing accounts**, no
 
 ## Current Product Model
 
-- 21 routing slots exist in the staking model.
-- Each slot maps to one candidate target and one verification-script account.
-- Fresh user inflows always land in **slot 21** first.
-- Admin adjusts vote exposure only by moving **real NEO** from slot A to slot B.
-- There is **no** per-candidate child contract / agent contract in the target architecture.
+- 21 verification-script agent accounts exist in the staking model.
+- Each agent account maps to one candidate target.
+- Fresh user inflows always land in the **agent account for candidate 21** first.
+- Admin adjusts vote exposure only by moving **real NEO** from agent A to agent B.
+- There is **no** per-candidate child contract in the target architecture. Each candidate is represented by a numbered agent account instead.
 - GAS rewards remain a pool-level accounting problem and are distributed pro rata to stakers.
 
 ## Why This Refactor Exists
 
 The old agent-contract model added unnecessary deployment surface and extra moving parts. The new TrustAnchor miniapp is being aligned to a simpler operational model:
 
-1. Use verification-script accounts as routing buckets.
-2. Bind one candidate public key to each routing bucket.
+1. Use verification-script agent accounts as voting buckets.
+2. Bind one candidate public key to each agent account.
 3. Treat rebalancing as an actual asset transfer between buckets.
 4. Keep fee policy simple: 0% fee, 100% rewards returned to stakers.
 
@@ -34,10 +34,10 @@ The old agent-contract model added unnecessary deployment surface and extra movi
 The refactored miniapp now focuses on three views:
 
 - **Overview**: pool accounting, zero-fee policy, and routing summary.
-- **Routing**: all 21 routing slots, with slot 21 highlighted as the default ingress path.
-- **Architecture**: explains the verification-script account model and admin transfer rules.
+- **Routing**: all 21 verification-script agent accounts, with candidate 21 highlighted as the default ingress path.
+- **Architecture**: explains the verification-script agent-account model and admin transfer rules.
 
-There is no candidate ranking page and no agent management page anymore.
+There is no candidate ranking page and no old agent-contract management page anymore.
 
 ## Network Configuration
 
@@ -45,7 +45,7 @@ There is no candidate ranking page and no agent management page anymore.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Pending verification-script rollout` |
+| **Contract** | `Pending verification-script agent-account rollout` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
 | **Explorer** | `https://testnet.neotube.io` |
 | **Network Magic** | `894710606` |
@@ -54,12 +54,12 @@ There is no candidate ranking page and no agent management page anymore.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Pending verification-script rollout` |
+| **Contract** | `Pending verification-script agent-account rollout` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **Explorer** | `https://neotube.io` |
 | **Network Magic** | `860833102` |
 
-> The miniapp UI has already been refactored to the new model. The live contract remains intentionally unset until the verification-script based rollout is finalized.
+> The miniapp UI has already been refactored to the new model. The live contract remains intentionally unset until the verification-script agent-account rollout is finalized.
 
 ## Assets
 

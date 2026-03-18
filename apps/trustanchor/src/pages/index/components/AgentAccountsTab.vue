@@ -2,10 +2,10 @@
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { NeoCard } from "@shared/components";
-import type { RoutingSlotInfo } from "../data/routingSlots";
+import type { AgentAccountInfo } from "../data/agentAccounts";
 
 defineProps<{
-  slots: RoutingSlotInfo[];
+  agents: AgentAccountInfo[];
 }>();
 
 const { t } = createUseI18n(messages)();
@@ -19,42 +19,42 @@ const { t } = createUseI18n(messages)();
 
   <div class="slots-grid">
     <NeoCard
-      v-for="slot in slots"
-      :key="slot.slot"
+      v-for="agent in agents"
+      :key="agent.agentId"
       variant="erobo"
       class="slot-card"
-      :class="{ 'slot-card--ingress': slot.isDefaultIngress }"
+      :class="{ 'slot-card--ingress': agent.isDefaultIngress }"
     >
       <div class="slot-top">
-        <span class="slot-eyebrow">{{ t("slotLabel") }} {{ slot.slot }}</span>
-        <span class="slot-badge">{{ slot.isDefaultIngress ? t("defaultIngressShort") : t("rebalanceShort") }}</span>
+        <span class="slot-eyebrow">{{ t("agentLabel") }} {{ agent.agentId }}</span>
+        <span class="slot-badge">{{ agent.isDefaultIngress ? t("defaultIngressShort") : t("rebalanceShort") }}</span>
       </div>
 
       <div class="slot-main">
-        <span class="slot-name">{{ slot.label }}</span>
-        <span class="slot-summary">{{ slot.summary }}</span>
+        <span class="slot-name">{{ agent.label }}</span>
+        <span class="slot-summary">{{ agent.summary }}</span>
       </div>
 
       <div class="slot-rows">
         <div class="slot-row">
-          <span class="slot-row-label">{{ t("slotRole") }}</span>
-          <span class="slot-row-value">{{ slot.role }}</span>
+          <span class="slot-row-label">{{ t("agentRole") }}</span>
+          <span class="slot-row-value">{{ agent.role }}</span>
         </div>
         <div class="slot-row">
-          <span class="slot-row-label">{{ t("slotTarget") }}</span>
-          <span class="slot-row-value">{{ slot.candidateTarget }}</span>
+          <span class="slot-row-label">{{ t("agentTarget") }}</span>
+          <span class="slot-row-value">{{ agent.candidateTarget }}</span>
         </div>
         <div class="slot-row">
-          <span class="slot-row-label">{{ t("slotFundingPath") }}</span>
-          <span class="slot-row-value">{{ slot.fundingPath }}</span>
+          <span class="slot-row-label">{{ t("agentFundingPath") }}</span>
+          <span class="slot-row-value">{{ agent.fundingPath }}</span>
         </div>
         <div class="slot-row">
-          <span class="slot-row-label">{{ t("slotAccount") }}</span>
-          <span class="slot-row-value">{{ slot.accountAddress }}</span>
+          <span class="slot-row-label">{{ t("agentAccount") }}</span>
+          <span class="slot-row-value">{{ agent.accountAddress }}</span>
         </div>
         <div class="slot-row">
-          <span class="slot-row-label">{{ t("slotVerificationScript") }}</span>
-          <span class="slot-row-value">{{ slot.verificationScript }}</span>
+          <span class="slot-row-label">{{ t("agentVerificationScript") }}</span>
+          <span class="slot-row-value">{{ agent.verificationScript }}</span>
         </div>
       </div>
     </NeoCard>

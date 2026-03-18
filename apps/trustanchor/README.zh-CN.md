@@ -1,6 +1,6 @@
 # TrustAnchor MiniApp
 
-TrustAnchor 正在重构为 **verification-script 路由账户** 模型，而不是每个候选人一个 agent 合约。
+TrustAnchor 正在重构为 **verification-script agent 账户** 模型，而不是每个候选人一个 agent 合约。
 
 ## 概览
 
@@ -13,19 +13,19 @@ TrustAnchor 正在重构为 **verification-script 路由账户** 模型，而不
 
 ## 当前产品模型
 
-- 整个质押路由被拆成 21 个槽位。
-- 每个槽位绑定一个候选人目标和一个 verification-script 账户。
-- 所有新流入默认先进入 **21 号槽位**。
-- 管理员调整投票敞口的方式不是改一个抽象权重，而是把 **真实 NEO** 从 A 槽位转到 B 槽位。
-- 新架构里不再存在每个候选人一个子合约 / agent 合约。
+- 整个质押路由被拆成 21 个 verification-script agent 账户。
+- 每个 agent 账户绑定一个候选人目标。
+- 所有新流入默认先进入 **candidate 21 对应的 agent 账户**。
+- 管理员调整投票敞口的方式不是改一个抽象权重，而是把 **真实 NEO** 从 agent A 转到 agent B。
+- 新架构里不再存在每个候选人一个子合约；每个候选人只对应一个编号化的 agent 账户。
 - GAS 奖励仍按池级别统一记账，再按比例分配给质押者。
 
 ## 为什么要这样重构
 
 旧的 agent 合约模型部署面太大、运维链路太重。新的 TrustAnchor 小程序只保留更直接的逻辑：
 
-1. 用 verification-script 账户做路由桶。
-2. 每个路由桶只绑定一个候选人公钥目标。
+1. 用 verification-script agent 账户做投票桶。
+2. 每个 agent 账户只绑定一个候选人公钥目标。
 3. 调仓必须对应一次真实资产转移。
 4. 费用策略保持最简单的 0% 费率、100% 奖励返还。
 
@@ -34,10 +34,10 @@ TrustAnchor 正在重构为 **verification-script 路由账户** 模型，而不
 当前重构后的界面只保留 3 个页面：
 
 - **概览**：池级别记账、零费率说明、默认路由摘要。
-- **路由**：展示 21 个路由槽位，明确 21 号槽位是默认入口。
-- **架构**：解释 verification-script 账户模型和管理员转仓规则。
+- **路由**：展示 21 个 verification-script agent 账户，明确 candidate 21 是默认入口。
+- **架构**：解释 verification-script agent 账户模型和管理员转仓规则。
 
-不再保留候选人排名页，也不再保留 agent 管理页。
+不再保留候选人排名页，也不再保留旧的 agent 合约管理页。
 
 ## 网络配置
 
@@ -45,7 +45,7 @@ TrustAnchor 正在重构为 **verification-script 路由账户** 模型，而不
 
 | 属性 | 值 |
 |------|----|
-| **合约** | `verification-script 版本待上线` |
+| **合约** | `verification-script agent 账户版本待上线` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
 | **浏览器** | `https://testnet.neotube.io` |
 | **网络魔数** | `894710606` |
@@ -54,9 +54,9 @@ TrustAnchor 正在重构为 **verification-script 路由账户** 模型，而不
 
 | 属性 | 值 |
 |------|----|
-| **合约** | `verification-script 版本待上线` |
+| **合约** | `verification-script agent 账户版本待上线` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
 | **浏览器** | `https://neotube.io` |
 | **网络魔数** | `860833102` |
 
-> 小程序前端已经切换到新模型，但链上的 verification-script 版本合约仍然故意留空，等最终测试网版本完成后再回填。
+> 小程序前端已经切换到新模型，但链上的 verification-script agent 账户版本合约仍然故意留空，等最终测试网版本完成后再回填。
