@@ -1,15 +1,15 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "id": "miniapp-aa-market-hub",
-  "name": "AA Market Hub",
-  "name_zh": "AA 地址市场",
-  "version": "1.1.0",
-  "description": "Create, manage, and settle trustless escrow listings for Neo Abstract Account addresses.",
-  "description_zh": "为 Neo 抽象账户地址创建、管理并结算无信任托管 listing。",
+  "id": "miniapp-oracle-neodid-console",
+  "name": "Oracle NeoDID Console",
+  "name_zh": "预言机 NeoDID 控制台",
+  "version": "1.0.0",
+  "description": "Resolve Morpheus NeoDID documents and inspect public NeoDID providers.",
+  "description_zh": "解析 Morpheus NeoDID 文档并查看公开的 NeoDID provider 列表。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": ["aa", "market", "escrow", "listings", "wallet"],
+  "tags": ["oracle", "neodid", "did", "resolver", "identity"],
   "developer": {
     "name": "R3E Network",
     "email": "dev@r3e.network",
@@ -19,18 +19,18 @@
   "supported_networks": ["neo-n3-testnet"],
   "default_network": "neo-n3-testnet",
   "urls": {
-    "entry": "/miniapps/aa-market-hub/index.html",
+    "entry": "/miniapps/oracle-neodid-console/index.html",
     "icon": "/miniapps/explorer/logo.jpg",
     "banner": "/miniapps/explorer/banner.jpg"
   },
-  "permissions": ["read:blockchain", "write:blockchain"],
+  "permissions": ["read:blockchain"],
   "features": {
-    "stateless": false,
+    "stateless": true,
     "offlineSupport": false,
-    "deeplink": "neomainapp://aa-market-hub"
+    "deeplink": "neomainapp://oracle-neodid-console"
   },
   "stateSource": {
-    "type": "n3index",
+    "type": "api",
     "chain": "neo-n3-testnet",
     "endpoints": ["https://api.n3index.dev"]
   },
@@ -38,8 +38,8 @@
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
-  "createdAt": "2026-03-18T05:00:00Z",
-  "updatedAt": "2026-03-18T12:45:00Z"
+  "createdAt": "2026-03-18T13:10:00Z",
+  "updatedAt": "2026-03-18T13:10:00Z"
 }

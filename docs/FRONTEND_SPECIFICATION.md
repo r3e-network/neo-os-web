@@ -123,7 +123,7 @@ The frontend must never treat a payment tx hash as a `receiptId`.
 
 ## Featured Catalog Policy
 
-The repository currently contains **35** miniapp manifests under `apps/*`.
+The repository currently contains **45** miniapp manifests under `apps/*`.
 
 The current flagship 7 shown as primary market-facing apps are:
 
@@ -134,6 +134,20 @@ The current flagship 7 shown as primary market-facing apps are:
 - `miniapp-last-survivor`
 - `miniapp-neo-pay`
 - `miniapp-gasbox`
+
+The current host homepage also surfaces a dedicated Account & Oracle Tools strip
+for:
+
+- `miniapp-aa-account-lab`
+- `miniapp-aa-permissions-lab`
+- `miniapp-aa-market-hub` (interactive trustless escrow market UI)
+- `miniapp-aa-relay-console`
+- `miniapp-aa-session-key-lab`
+- `miniapp-oracle-price-console`
+- `miniapp-oracle-neodid-console`
+- `miniapp-oracle-http-console`
+- `miniapp-oracle-compute-lab`
+- `miniapp-oracle-vrf-console`
 
 Current flagship payment matrix:
 

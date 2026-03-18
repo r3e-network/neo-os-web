@@ -37,6 +37,7 @@ const TOOL_MINIAPP_IDS = [
   "miniapp-aa-relay-console",
   "miniapp-aa-session-key-lab",
   "miniapp-oracle-price-console",
+  "miniapp-oracle-neodid-console",
   "miniapp-oracle-http-console",
   "miniapp-oracle-compute-lab",
   "miniapp-oracle-vrf-console",
