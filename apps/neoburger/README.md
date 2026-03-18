@@ -182,7 +182,7 @@ For technical issues, contact the Neo MiniApp team.
 |----------|-------|
 | **Contract** | `0x833b3d6854d5bc44cab40ab9b46560d25c72562c` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x833b3d6854d5bc44cab40ab9b46560d25c72562c) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x833b3d6854d5bc44cab40ab9b46560d25c72562c) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -191,7 +191,7 @@ For technical issues, contact the Neo MiniApp team.
 |----------|-------|
 | **Contract** | `0x48c40d4666f93408be1bef038b6722404d9a4c2a` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0x48c40d4666f93408be1bef038b6722404d9a4c2a) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x48c40d4666f93408be1bef038b6722404d9a4c2a) |
 | **Network Magic** | `860833102` |
 
 ## Platform Contracts

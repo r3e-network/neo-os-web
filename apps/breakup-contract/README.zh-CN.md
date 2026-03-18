@@ -34,7 +34,7 @@
 |------|-----|
 | **合约地址** | `0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f` |
 | **RPC 节点** | `https://testnet1.neo.coz.io:443` |
-| **区块浏览器** | [在 NeoTube 查看](https://testnet.neotube.io/contract/0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f) |
+| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x20ebda5a9ed93e3ae29489e2ad329a29cdd5ba6f) |
 | **网络魔数** | `894710606` |
 
 ### 主网 (Mainnet)
@@ -43,7 +43,7 @@
 |------|-----|
 | **合约地址** | `0x7742a80565ef04c0b7487d1679e6efbeb2d0c6a9` |
 | **RPC 节点** | `https://mainnet1.neo.coz.io:443` |
-| **区块浏览器** | [在 NeoTube 查看](https://neotube.io/contract/0x7742a80565ef04c0b7487d1679e6efbeb2d0c6a9) |
+| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x7742a80565ef04c0b7487d1679e6efbeb2d0c6a9) |
 | **网络魔数** | `860833102` |
 
 ## 平台合约

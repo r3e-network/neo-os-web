@@ -185,7 +185,7 @@ Note: Wallet access is required to sign the swap transaction.
 |----------|-------|
 | **Contract** | `0x77b4349e5a62b3f77390afa50962096d66b0ab99` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x77b4349e5a62b3f77390afa50962096d66b0ab99) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x77b4349e5a62b3f77390afa50962096d66b0ab99) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -194,7 +194,7 @@ Note: Wallet access is required to sign the swap transaction.
 |----------|-------|
 | **Contract** | `0xf970f4ccecd765b63732b821775dc38c25d74f23` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0xf970f4ccecd765b63732b821775dc38c25d74f23) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xf970f4ccecd765b63732b821775dc38c25d74f23) |
 | **Network Magic** | `860833102` |
 
 ## Platform Contracts

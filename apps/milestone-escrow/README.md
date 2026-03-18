@@ -191,7 +191,7 @@ For technical issues, contact the Neo MiniApp team.
 |----------|-------|
 | **Contract** | `0x2a3691aa2da68512e9bf1363f383f354b6a02aad` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x2a3691aa2da68512e9bf1363f383f354b6a02aad) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x2a3691aa2da68512e9bf1363f383f354b6a02aad) |
 
 ### Mainnet
 
@@ -199,6 +199,6 @@ For technical issues, contact the Neo MiniApp team.
 |----------|-------|
 | **Contract** | `Pending deployment` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | `https://neotube.io` |
+| **Explorer** | `https://www.neo3scan.com` |
 
 > Testnet is now live and verified. Mainnet stays intentionally blank until a separate rollout is completed.

@@ -32,9 +32,9 @@ Blockchain fortune telling with verifiable randomness
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0xfff9616dd3d9e863bc72bf26ff0a0da2d698e767` |
+| **Contract** | `0xc2bb26d21f357f125a0e49cbca7718b6aa5c3b1e` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0xfff9616dd3d9e863bc72bf26ff0a0da2d698e767) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xc2bb26d21f357f125a0e49cbca7718b6aa5c3b1e) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -43,7 +43,7 @@ Blockchain fortune telling with verifiable randomness
 |----------|-------|
 | **Contract** | `0xfb5d6b25c974a301e34c570dd038de8c25f3ae56` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0xfb5d6b25c974a301e34c570dd038de8c25f3ae56) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xfb5d6b25c974a301e34c570dd038de8c25f3ae56) |
 | **Network Magic** | `860833102` |
 
 ## Integration Notes

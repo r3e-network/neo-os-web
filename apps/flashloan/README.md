@@ -77,7 +77,7 @@ Flash loans enable borrowing without collateral by leveraging atomic transaction
 |----------|-------|
 | **Contract** | `0xee51e5b399f7727267b7d296ff34ec6bb9283131` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0xee51e5b399f7727267b7d296ff34ec6bb9283131) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xee51e5b399f7727267b7d296ff34ec6bb9283131) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -86,7 +86,7 @@ Flash loans enable borrowing without collateral by leveraging atomic transaction
 |----------|-------|
 | **Contract** | `0xb5d8fb0dc2319edc4be3104304b4136b925df6e4` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0xb5d8fb0dc2319edc4be3104304b4136b925df6e4) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xb5d8fb0dc2319edc4be3104304b4136b925df6e4) |
 | **Network Magic** | `860833102` |
 
 ## Platform Contracts

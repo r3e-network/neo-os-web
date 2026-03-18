@@ -55,9 +55,9 @@ Encrypted memory burial with paid forgetting
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x8cf45cdc1d879710c2b88fd8705696fe6f5aacb5` |
+| **Contract** | `0xe88938b2c2032483cf5edcdab7e4bde981e5fb24` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://testnet.neotube.io/contract/0x8cf45cdc1d879710c2b88fd8705696fe6f5aacb5) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xe88938b2c2032483cf5edcdab7e4bde981e5fb24) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
@@ -66,7 +66,7 @@ Encrypted memory burial with paid forgetting
 |----------|-------|
 | **Contract** | `0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **Explorer** | [View on NeoTube](https://neotube.io/contract/0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1) |
 | **Network Magic** | `860833102` |
 
 ## Platform Contracts

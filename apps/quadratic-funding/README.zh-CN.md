@@ -31,7 +31,7 @@
 |------|----|
 | **合约** | `0x4c6cd496a8487ee4d4725751c1f2e7be2da23599` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **浏览器** | [在 NeoTube 查看](https://testnet.neotube.io/contract/0x4c6cd496a8487ee4d4725751c1f2e7be2da23599) |
+| **浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x4c6cd496a8487ee4d4725751c1f2e7be2da23599) |
 
 ### Mainnet
 
@@ -39,6 +39,6 @@
 |------|----|
 | **合约** | `待部署` |
 | **RPC** | `https://mainnet1.neo.coz.io:443` |
-| **浏览器** | `https://neotube.io` |
+| **浏览器** | `https://www.neo3scan.com` |
 
 > 测试网现已部署并验证通过。主网地址仍保持为空，等待后续单独上线。

@@ -29,6 +29,20 @@ function readReadme(appName, fileName = "README.md") {
   return fs.readFileSync(filePath, "utf8");
 }
 
+function sectionIncludesHash(text, sectionHeading, hash) {
+  const normalizedHash = String(hash || "").trim().toLowerCase();
+  if (!text || !sectionHeading || !normalizedHash) return true;
+
+  const normalized = String(text).toLowerCase();
+  const marker = sectionHeading.toLowerCase();
+  const sectionStart = normalized.indexOf(marker);
+  if (sectionStart === -1) return true;
+
+  const nextHeading = normalized.indexOf("\n##", sectionStart + marker.length);
+  const section = normalized.slice(sectionStart, nextHeading === -1 ? normalized.length : nextHeading);
+  return section.includes(normalizedHash);
+}
+
 async function contractExists(rpcUrl, hash) {
   if (!hash) return { exists: false, name: null, error: null };
   try {
@@ -89,6 +103,12 @@ async function main() {
     const staleReadmeFlags = [];
     if (/Not deployed|未部署/.test(readme) || /未部署/.test(readmeZh)) staleReadmeFlags.push("not-deployed-marker");
     if (/PaymentHub/.test(readme) || /PaymentHub/.test(readmeZh)) staleReadmeFlags.push("paymenthub-reference");
+    if (testnetHash && (!sectionIncludesHash(readme, "### Testnet", testnetHash) || !sectionIncludesHash(readmeZh, "### Testnet", testnetHash))) {
+      staleReadmeFlags.push("testnet-contract-hash-mismatch");
+    }
+    if (mainnetHash && (!sectionIncludesHash(readme, "### Mainnet", mainnetHash) || !sectionIncludesHash(readmeZh, "### Mainnet", mainnetHash))) {
+      staleReadmeFlags.push("mainnet-contract-hash-mismatch");
+    }
 
     rows.push({
       app,
