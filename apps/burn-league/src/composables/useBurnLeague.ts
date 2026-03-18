@@ -32,10 +32,10 @@ export function useBurnLeague(t: (key: string) => string) {
 
   const loadStats = async () => {
     await ensureContractAddress();
-    totalBurned.value = parseGas(await read("TotalBurned"));
-    rewardPool.value = parseGas(await read("RewardPool"));
+    totalBurned.value = parseGas(await read("totalBurned"));
+    rewardPool.value = parseGas(await read("rewardPool"));
     if (address.value) {
-      userBurned.value = parseGas(await read("GetUserTotalBurned", [{ type: "Hash160", value: address.value }]));
+      userBurned.value = parseGas(await read("getUserTotalBurned", [{ type: "Hash160", value: address.value }]));
     } else {
       userBurned.value = 0;
     }
