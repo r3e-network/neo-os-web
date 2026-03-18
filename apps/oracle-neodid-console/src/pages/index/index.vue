@@ -125,31 +125,13 @@ const appState = computed(() => ({
 }));
 </script>
 
-<style scoped>
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+<style scoped lang="scss">
+@use "@shared/styles/console-common" as console;
 
-.button-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
+.stack { @include console.stack; }
+.button-row { @include console.button-grid(3); }
 .json-box {
-  width: 100%;
-  max-height: 520px;
-  overflow: auto;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 12px;
-  color: inherit;
-  font-family: var(--font-mono, monospace);
-  font-size: 12px;
-  line-height: 1.6;
+  @include console.json-box(520px);
   white-space: pre-wrap;
   word-break: break-word;
 }

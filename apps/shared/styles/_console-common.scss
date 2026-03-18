@@ -1,0 +1,82 @@
+@mixin stack($gap: 14px) {
+  display: flex;
+  flex-direction: column;
+  gap: $gap;
+}
+
+@mixin json-box($max-height: null) {
+  width: 100%;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px;
+  color: inherit;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  line-height: 1.6;
+
+  @if $max-height != null {
+    max-height: $max-height;
+    overflow: auto;
+  }
+}
+
+@mixin label {
+  display: block;
+  font-size: 11px;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+@mixin value {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+@mixin single-column-grid($gap: 12px) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $gap;
+}
+
+@mixin actions-row($gap: 12px) {
+  display: flex;
+  gap: $gap;
+  flex-wrap: wrap;
+}
+
+@mixin button-grid($columns, $gap: 8px) {
+  display: grid;
+  grid-template-columns: repeat($columns, minmax(0, 1fr));
+  gap: $gap;
+}
+
+@mixin detail-grid($desktop-columns: 2, $mobile-breakpoint: 767px, $gap: 12px) {
+  display: grid;
+  grid-template-columns: repeat($desktop-columns, minmax(0, 1fr));
+  gap: $gap;
+
+  @media (max-width: $mobile-breakpoint) {
+    grid-template-columns: 1fr;
+  }
+}
+
+@mixin detail-grid-min($desktop-columns: 2, $min-width: 960px, $gap: 12px) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $gap;
+
+  @media (min-width: $min-width) {
+    grid-template-columns: repeat($desktop-columns, minmax(0, 1fr));
+  }
+}
+
+@mixin detail-card {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
