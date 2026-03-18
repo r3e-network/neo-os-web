@@ -45,6 +45,7 @@ import { computed, reactive, ref, watch } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
+import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useAbstractAccount } from "@shared/composables/useAbstractAccount";
 
@@ -106,16 +107,21 @@ async function createSession() {
 
 const sponsorshipState = computed(() => JSON.stringify(sponsorship.value ?? {}, null, 2));
 const relayState = computed(() => JSON.stringify(aa.lastRelayResponse.value ?? {}, null, 2));
-const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: "AA Core", value: aa.AA_MASTER_CONTRACT_TESTNET.slice(0, 10) + "…" },
-  { label: "Session", value: aa.hasActiveSession.value ? "active" : "none" },
-  { label: "Relay", value: aa.relayUrl },
-]);
-const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: "AA Core", value: aa.AA_MASTER_CONTRACT_TESTNET, variant: "accent" },
-  { label: "Relay", value: aa.relayUrl, variant: "success" },
-  { label: "Session Verifier", value: aa.integration.contracts.aaSessionKeyVerifier || "unset", variant: "erobo" },
-]);
+const heroStats = computed<HeroStatsStripItem[]>(() =>
+  buildAAHeroStats({
+    aaCore: aa.AA_MASTER_CONTRACT_TESTNET,
+    middleLabel: "Session",
+    middleValue: aa.hasActiveSession.value ? "active" : "none",
+    trailingLabel: "Relay",
+    trailingValue: aa.relayUrl,
+  }),
+);
+const overviewStats = computed<StatsDisplayItem[]>(() =>
+  buildAAOverviewStats({
+    aaCore: aa.AA_MASTER_CONTRACT_TESTNET,
+    extra: { label: "Session Verifier", value: aa.integration.contracts.aaSessionKeyVerifier || "unset", variant: "erobo" },
+  }).concat([{ label: "Relay", value: aa.relayUrl, variant: "success" }]),
+);
 const appState = computed(() => ({ aaAddress: aaAddress.value, session: aa.hasActiveSession.value }));
 </script>
 
