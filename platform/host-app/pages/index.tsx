@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { MiniAppCard, MiniAppListItem } from "@/components/features/miniapp";
 import type { MiniAppInfo } from "@/components/types";
-import { FLAGSHIP_MINIAPP_IDS } from "@/lib/miniapp-registry";
+import { FLAGSHIP_MINIAPP_IDS } from "@/lib/miniapp-builtins";
 import {
   Rocket,
   Shield,

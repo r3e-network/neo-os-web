@@ -22,7 +22,7 @@ import { ForumTab } from "../../components/features/forum";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { coerceMiniAppInfo } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
-import { getMiniApp } from "../../lib/miniapp-registry";
+import { loadBundledMiniAppById } from "../../lib/miniapp-definitions";
 import { logger } from "../../lib/logger";
 import type { InvokeParams } from "../../lib/wallet/adapters/base";
 import { getWalletAdapter, useWalletStore } from "../../lib/wallet/store";
@@ -533,8 +533,7 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
   const { id } = context.params as { id: string };
   const encodedId = encodeURIComponent(id);
 
-  // First check if it's a registry miniapp - return immediately if found
-  const fallback = getMiniApp(id);
+  const fallback = await loadBundledMiniAppById(id);
 
   try {
     const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
