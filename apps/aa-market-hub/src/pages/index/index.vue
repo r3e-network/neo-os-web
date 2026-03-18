@@ -1,25 +1,24 @@
 <template>
-  <MiniAppPage
-    name="aa-market-hub"
-    :config="templateConfig"
-    :state="appState"
+  <ConsoleMiniApp
+    page-name="aa-market-hub"
+    :template-config="templateConfig"
+    :app-state="appState"
     :t="t"
-    :status-message="status"
+    :status="status"
     :sidebar-items="sidebarItems"
     :sidebar-title="sidebarTitle"
     :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="loadListings"
+    :handle-boundary-error="handleBoundaryError"
+    :on-retry="loadListings"
+    hero-icon="🏪"
+    :hero-stats="heroStats"
+    :overview-stats="overviewStats"
+    :result-title="t('totalListings')"
+    :operation-title="t('walletAndMarket')"
+    :wrap-result-card="false"
+    :wrap-operation-card="false"
   >
-    <template #content>
-      <HeroSection variant="erobo" icon="🏪" compact>
-        <template #stats>
-          <HeroStatsStrip :items="heroStats" compact />
-        </template>
-      </HeroSection>
-
-      <StatsDisplay :items="overviewStats" layout="grid" class="mb-6" />
-
+    <template #result>
       <NeoCard variant="erobo" class="mb-6">
         <p class="summary">
           Trade deterministic Neo Abstract Account addresses through a trustless GAS escrow market. Settlement
@@ -185,12 +184,12 @@
         </p>
       </NeoCard>
     </template>
-  </MiniAppPage>
+  </ConsoleMiniApp>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { HeroSection, HeroStatsStrip, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import {
