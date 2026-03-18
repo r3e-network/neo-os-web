@@ -32,137 +32,135 @@ direct answer to the practical question:
 
 ## Results
 
-### `flashloan`
+### `burn-league`
 
-Testnet deployed contract:
+Superseding testnet deployment:
 
-- contract: `0xee51e5b399f7727267b7d296ff34ec6bb9283131`
-- remote name: `MiniAppFlashLoan`
+- contract: `0x0946e3c3db8abdd2fa14bbae4978992015473c09`
+- remote name: `MiniAppBurnLeague`
 
-Frontend compatibility:
+Frontend / contract alignment:
 
-- `getPoolBalance` → present
-- `getLoan` → present
-- `requestLoan/4` → present
+- frontend now calls `totalBurned`
+- frontend now calls `rewardPool`
+- frontend now calls `getUserTotalBurned`
+- `burnGas/2` matches the current deployment
+
+Live smoke:
+
+- `startSeason -> burnGas` succeeded
+- `totalBurned` and `getUserTotalBurned` both advanced on-chain
 
 Assessment:
 
-- current frontend ABI matches current testnet deployment
-- `flashloan` is a valid next candidate for deeper live-flow validation
+- current frontend and current testnet deployment are aligned
+- current write path is validated
 
 ### `breakup-contract`
 
-Testnet deployed contract:
+Superseding testnet deployment:
 
-- contract: `0x84a3864028b7b71e9f420056e1eae2e3e3113a0c`
+- contract: `0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8`
 - remote name: `MiniAppBreakupContract`
 
-Frontend mismatch:
+Frontend / contract alignment:
 
-- frontend expects `GetContractDetails`
-- deployed contract exposes `getContract`
-- frontend expects `createContract/6`
-- deployed contract exposes `createContract/5`
-- frontend expects `signContract/2`
-- deployed contract exposes `signContract/3`
-- frontend expects `TriggerBreakup/2`
-- deployed contract exposes `triggerBreakup/2`
+- frontend now calls `getContractDetails`
+- frontend now calls `triggerBreakup`
+- `createContract/6` and `signContract/2` match the current deployment
 
-Assessment:
+Live smoke:
 
-- current testnet deployment is not compatible with the current frontend
-- this is a real user-facing blocker, not a probing artifact
-
-### `burn-league`
-
-Testnet deployed contract:
-
-- contract: `0xf1aa73e2fb00664e8ef100dac083fc42be6aaf85`
-- remote name: `MiniAppBurnLeague`
-
-Frontend mismatch:
-
-- frontend calls `TotalBurned`
-- deployed contract exposes `totalBurned`
-- frontend calls `RewardPool`
-- deployed contract exposes `rewardPool`
-- frontend calls `GetUserTotalBurned`
-- deployed contract exposes `getUserBurned`
-- frontend calls `burnGas/2`
-- deployed contract exposes `burnGas/3`
+- `createContract -> signContract -> triggerBreakup` succeeded
+- `getContractDetails` reflects a completed breakup with penalty accounting
 
 Assessment:
 
-- current testnet deployment is still on an older ABI generation
-- current frontend should be treated as incompatible with that deployment
+- current frontend and current testnet deployment are aligned
+- current write path is validated
 
 ### `on-chain-tarot`
 
-Testnet deployed contract:
+Superseding testnet deployment:
 
-- contract: `0xc2bb26d21f357f125a0e49cbca7718b6aa5c3b1e`
+- contract: `0x5cdf29c30727ce06696736ae0fb49abd9fd79730`
 - remote name: `MiniAppOnChainTarot`
 
-Frontend mismatch:
+Frontend / contract alignment:
 
-- frontend calls `requestReading/4`
-- deployed contract exposes `requestReading/3`
-- `getReading/1` is present
+- frontend now pays the correct `0.1 GAS` for the three-card spread
+- frontend now submits `spreadType=2` and `category=1`
+- current deployment uses `requestFromCallback` semantics for Oracle RNG
+- current callback decoder consumes raw randomness bytes from Morpheus relayer
+
+Live smoke:
+
+- `requestReading/4` succeeded
+- `getReadingDetails` returned `completed=true`
+- cards were written on-chain for the request
 
 Assessment:
 
-- read path exists
-- write path is ABI-incompatible
-- current testnet reading requests should be treated as blocked until the
-  deployment is updated
+- current frontend and current testnet deployment are aligned
+- Oracle-backed write path is validated
 
 ### `unbreakable-vault`
 
-Testnet deployed contract:
+Superseding testnet deployment:
 
-- contract: `0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4`
+- contract: `0x78fbd57ccfae14fff4b043a82eb491de542d8eb0`
 - remote name: `MiniAppUnbreakableVault`
 
-Frontend mismatch:
+Frontend / contract alignment:
 
-- frontend calls `createVault/6`
-- deployed contract exposes `createVault/4`
-- frontend calls `attemptBreak/3`
-- deployed contract exposes `attemptBreak/4`
-- frontend calls `GetVaultDetails`
-- deployed contract exposes `getVault`
+- frontend now calls `getVaultDetails`
+- `createVault/6` and `attemptBreak/3` match the current deployment
+
+Live smoke:
+
+- `createVault -> attemptBreak` succeeded
+- `getVaultDetails` reflects the increased bounty and incremented attempt count
 
 Assessment:
 
-- current frontend and current testnet deployment are ABI-incompatible
-- current testnet write path should be treated as blocked
+- current frontend and current testnet deployment are aligned
+- current write path is validated
 
-## Admin / Update Constraint
+### `flashloan`
 
-For the incompatible testnet contracts above, the current on-chain admin
-address is:
+Superseding testnet deployment:
 
-- `NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu`
+- contract: `0xde8e595d8d3c293731db499367ee2a768e1e458b`
+- remote name: `MiniAppFlashLoan`
 
-That admin address does **not** match the currently available testnet operator
-WIFs in this workspace, so these contracts cannot be updated from the currently
-available credentials.
+Frontend / contract alignment:
+
+- frontend now targets `requestLoan`
+- current deployment uses direct prepaid GAS pool funding rather than
+  `PaymentHub` receipt validation
+- the live model is self-contained atomic callback execution
+
+Live smoke:
+
+- callback harness: `0x7aa01290d33f6b2313a7efd6acde58f3e64b636f`
+- `deposit -> requestLoan -> callback execute -> exact repayment` succeeded
+- `getLoanDetails` returned `success=true`
+- `getPoolBalance` increased by the expected fee amount
+
+Assessment:
+
+- current frontend and current testnet deployment are aligned
+- current write path is validated
 
 ## Practical Conclusion
 
 ### Testnet-compatible right now
 
 - `flashloan`
-
-### Testnet deployments that need update before frontend parity can be claimed
-
-- `breakup-contract`
 - `burn-league`
+- `breakup-contract`
 - `on-chain-tarot`
 - `unbreakable-vault`
 
-This means the phrase “all miniapps work on testnet” is still too strong unless
-these legacy testnet deployments are either:
-
-1. updated to the current frontend ABI, or
-2. the frontend is intentionally downgraded to match the old deployed ABI
+This means the phrase “all source-owned secondary miniapps covered in this
+report work on testnet” is now justified for the current deployment set.
