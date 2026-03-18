@@ -1,6 +1,6 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
@@ -78,6 +78,12 @@ export function useEscrowContract() {
       active: Boolean(raw.active),
     };
   };
+
+  const globalSignerForCurrentWallet = (): WalletSigner[] => (
+    address.value
+      ? [{ account: address.value, scopes: "Global" }]
+      : []
+  );
 
   const fetchEscrowDetails = async (escrowId: string) => {
     const contract = await ensureContractAddress();
@@ -220,6 +226,7 @@ export function useEscrowContract() {
           { type: "String", value: title },
           { type: "String", value: notes },
         ],
+        signers: globalSignerForCurrentWallet(),
       });
 
       setStatus(t("escrowCreated"), "success");
@@ -248,6 +255,7 @@ export function useEscrowContract() {
           { type: "Integer", value: escrow.id },
           { type: "Integer", value: String(milestoneIndex) },
         ],
+        signers: globalSignerForCurrentWallet(),
       });
       await refreshEscrows();
     } catch (e: unknown) {
@@ -272,6 +280,7 @@ export function useEscrowContract() {
           { type: "Integer", value: escrow.id },
           { type: "Integer", value: String(milestoneIndex) },
         ],
+        signers: globalSignerForCurrentWallet(),
       });
       await refreshEscrows();
     } catch (e: unknown) {
@@ -295,6 +304,7 @@ export function useEscrowContract() {
           { type: "Hash160", value: address.value },
           { type: "Integer", value: escrow.id },
         ],
+        signers: globalSignerForCurrentWallet(),
       });
       await refreshEscrows();
     } catch (e: unknown) {
