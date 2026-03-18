@@ -30,11 +30,21 @@ const appMessages = {
   ciphertext: { en: "Ciphertext", zh: "密文" },
   copyCiphertext: { en: "Copy Ciphertext", zh: "复制密文" },
   copyWrapper: { en: "Copy Wrapper", zh: "复制包装" },
+  copyRefWrapper: { en: "Copy Ref Wrapper", zh: "复制引用包装" },
   copied: { en: "Copied", zh: "已复制" },
   loaded: { en: "Oracle key loaded", zh: "Oracle 公钥已加载" },
   sealed: { en: "Confidential payload sealed locally", zh: "私密载荷已在本地密封" },
   modeLabel: { en: "Mode", zh: "模式" },
   helperNote: { en: "Use JSON mode for private payload patches, and plain text mode for standalone tokens or secrets.", zh: "私密 payload patch 用 JSON 模式，单独 token 或 secret 用纯文本模式。" },
+  storeRef: { en: "Store As Ref", zh: "存为引用" },
+  refTitle: { en: "Stored Reference", zh: "已存引用" },
+  secretRef: { en: "Secret Ref", zh: "Secret Ref" },
+  storageName: { en: "Storage Name", zh: "存储名称" },
+  projectSlug: { en: "Project Slug", zh: "项目标识" },
+  requesterScriptHash: { en: "Bound Requester", zh: "绑定请求者" },
+  callbackContract: { en: "Bound Callback Contract", zh: "绑定回调合约" },
+  refUnavailableForToken: { en: "Reference mode currently supports encrypted_payload or encrypted_params, not encrypted_token.", zh: "引用模式当前只支持 encrypted_payload 或 encrypted_params，不支持 encrypted_token。" },
+  stored: { en: "Ciphertext stored as confidential reference", zh: "密文已存为 confidential reference" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
