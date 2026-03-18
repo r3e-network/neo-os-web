@@ -13,7 +13,7 @@ const NETWORK_MAGIC = parseInt(
 const TRUSTANCHOR_HASH = String(process.env.TRUSTANCHOR_TESTNET_HASH || "0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2").trim();
 const ADMIN_WIF = String(process.env.TRUSTANCHOR_ADMIN_WIF || "").trim();
 const SPONSORED_WIF = String(process.env.SPONSORED_WIF || "").trim();
-const CHECKSIG_CODE = sc.generateInteropServiceCode("System.Crypto.CheckSig");
+const CHECKSIG_CODE = sc.InteropServiceCode.SYSTEM_CRYPTO_CHECKSIG;
 const MAX_AGENT_ID = 21;
 
 type AgentReturnBody = {
@@ -30,7 +30,7 @@ function parsePositiveInteger(value: unknown): number | null {
   return null;
 }
 
-function buildAgentAccount(adminAccount: wallet.Account, agentId: number) {
+function buildAgentAccount(adminAccount: InstanceType<typeof wallet.Account>, agentId: number) {
   const builder = new sc.ScriptBuilder();
   builder.emitNumber(agentId);
   builder.emit(sc.OpCode.DROP);

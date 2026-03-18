@@ -66,6 +66,14 @@ export interface OracleQueryResponse {
   body: string;
 }
 
+export interface NeoDidResolveResponse {
+  [key: string]: unknown;
+}
+
+export interface NeoDidProvidersResponse {
+  [key: string]: unknown;
+}
+
 export interface ComputeExecuteRequest {
   script: string;
   entry_point?: string;
@@ -194,6 +202,31 @@ async function requestEdgeJSON<T>(
     return JSON.parse(text) as T;
   } catch {
     throw new Error(`invalid JSON response from ${path}`);
+  }
+}
+
+async function requestExternalJson<T>(url: string): Promise<T> {
+  const response = await fetch(url, {
+    method: "GET",
+    credentials: "omit",
+    headers: {
+      accept: "application/json, application/did+ld+json, application/ld+json",
+    },
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(text || `GET ${url} failed (${response.status})`);
+  }
+
+  if (!text) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`invalid JSON response from ${url}`);
   }
 }
 
@@ -369,6 +402,43 @@ export function useOracle(config: OracleConfig = {}) {
     }
   };
 
+  const resolveNeoDid = async (did: string, format?: "resolution" | "document"): Promise<NeoDidResolveResponse> => {
+    const trimmedDid = String(did ?? "").trim();
+    if (!trimmedDid) {
+      throw new Error("did is required");
+    }
+
+    isRequesting.value = true;
+    error.value = null;
+    try {
+      const url = new URL("/api/neodid/resolve", integration.morpheusPublicApiUrl);
+      url.searchParams.set("did", trimmedDid);
+      if (format === "document") {
+        url.searchParams.set("format", "document");
+      }
+      return await requestExternalJson<NeoDidResolveResponse>(url.toString());
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : "NeoDID resolution failed";
+      throw e;
+    } finally {
+      isRequesting.value = false;
+    }
+  };
+
+  const getNeoDidProviders = async (): Promise<NeoDidProvidersResponse> => {
+    isRequesting.value = true;
+    error.value = null;
+    try {
+      const url = new URL("/api/neodid/providers", integration.morpheusPublicApiUrl);
+      return await requestExternalJson<NeoDidProvidersResponse>(url.toString());
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : "NeoDID providers request failed";
+      throw e;
+    } finally {
+      isRequesting.value = false;
+    }
+  };
+
   return {
     integration,
     network,
@@ -394,5 +464,7 @@ export function useOracle(config: OracleConfig = {}) {
     queryAllowlistedUrl,
     executeTEE,
     executeRegisteredScript,
+    resolveNeoDid,
+    getNeoDidProviders,
   };
 }

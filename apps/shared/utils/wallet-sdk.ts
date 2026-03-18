@@ -18,6 +18,7 @@ export interface WalletSDK {
   chainType: Ref<string>;
   connect: () => Promise<void>;
   invokeContract: (params: InvokeParams) => Promise<InvokeResult>;
+  invokeMultiple: (params: BatchInvokeParams) => Promise<InvokeResult>;
   invokeRead: (params: InvokeParams) => Promise<InvokeResult>;
   getBalance: (asset: string) => Promise<string | number>;
   getContractAddress: () => Promise<string>;
@@ -27,12 +28,25 @@ export interface InvokeParams {
   scriptHash: string;
   operation: string;
   args?: ContractArg[];
-  signers?: Array<{ account: string; scopes: string }>;
+  signers?: WalletSigner[];
+}
+
+export interface BatchInvokeParams {
+  invokeArgs: InvokeParams[];
+  signers?: WalletSigner[];
 }
 
 export interface ContractArg {
   type: string;
   value: unknown;
+}
+
+export interface WalletSigner {
+  account: string;
+  scopes: string | number;
+  allowedContracts?: string[];
+  allowedGroups?: string[];
+  rules?: unknown[];
 }
 
 export interface InvokeResult {
@@ -87,7 +101,41 @@ interface NeoLineN3 {
     scriptHash: string;
     operation: string;
     args: ContractArg[];
-    signers?: Array<{ account: string; scopes: number }>;
+    signers?: Array<{
+      account: string;
+      scopes: number;
+      allowedContracts?: string[];
+      allowedGroups?: string[];
+      rules?: unknown[];
+    }>;
+  }) => Promise<{ txid: string }>;
+  invokeMultiple?: (params: {
+    invokeArgs: Array<{
+      scriptHash: string;
+      operation: string;
+      args: ContractArg[];
+    }>;
+    signers?: Array<{
+      account: string;
+      scopes: number;
+      allowedContracts?: string[];
+      allowedGroups?: string[];
+      rules?: unknown[];
+    }>;
+  }) => Promise<{ txid: string }>;
+  invokeMulti?: (params: {
+    invokeArgs: Array<{
+      scriptHash: string;
+      operation: string;
+      args: ContractArg[];
+    }>;
+    signers?: Array<{
+      account: string;
+      scopes: number;
+      allowedContracts?: string[];
+      allowedGroups?: string[];
+      rules?: unknown[];
+    }>;
   }) => Promise<{ txid: string }>;
   invokeRead: (params: { scriptHash: string; operation: string; args?: ContractArg[] }) => Promise<InvokeResult>;
   getBalance: (params: {
@@ -136,10 +184,42 @@ async function fetchEvents(params: EventsListParams): Promise<EventsListResponse
 
 let walletInstance: WalletSDK | null = null;
 
+const SIGNER_SCOPE_MAP: Record<string, number> = {
+  none: 0,
+  calledbyentry: 1,
+  customcontracts: 16,
+  customgroups: 32,
+  rules: 64,
+  global: 128,
+};
+
 function normalizeOperationName(operation: string): string {
   const raw = String(operation || "").trim();
   if (!raw) return raw;
   return raw.charAt(0).toLowerCase() + raw.slice(1);
+}
+
+function normalizeSignerScope(scope: string | number): number {
+  if (typeof scope === "number" && Number.isFinite(scope)) {
+    return scope;
+  }
+
+  const raw = String(scope ?? "").trim();
+  if (/^\d+$/.test(raw)) {
+    return parseInt(raw, 10);
+  }
+
+  return SIGNER_SCOPE_MAP[raw.toLowerCase()] ?? 1;
+}
+
+function mapSigners(signers?: WalletSigner[]) {
+  return signers?.map((signer) => ({
+    account: signer.account,
+    scopes: normalizeSignerScope(signer.scopes),
+    ...(signer.allowedContracts?.length ? { allowedContracts: signer.allowedContracts } : {}),
+    ...(signer.allowedGroups?.length ? { allowedGroups: signer.allowedGroups } : {}),
+    ...(signer.rules?.length ? { rules: signer.rules } : {}),
+  }));
 }
 
 let cachedManifest: MiniAppManifest | null | undefined;
@@ -215,10 +295,27 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       scriptHash: params.scriptHash,
       operation: normalizeOperationName(params.operation),
       args: params.args ?? [],
-      signers: params.signers?.map((s) => ({
-        account: s.account,
-        scopes: parseInt(s.scopes) || 1,
+      signers: mapSigners(params.signers),
+    });
+    return { txid: result.txid, tx: result.txid };
+  };
+
+  const invokeMultiple = async (params: BatchInvokeParams): Promise<InvokeResult> => {
+    const nl = await ensureNeoLine();
+    if (!address.value) await connect();
+
+    const provider = nl.invokeMultiple || nl.invokeMulti;
+    if (!provider) {
+      throw new Error("Connected Neo wallet does not support invokeMultiple.");
+    }
+
+    const result = await provider.call(nl, {
+      invokeArgs: (params.invokeArgs ?? []).map((entry) => ({
+        scriptHash: entry.scriptHash,
+        operation: normalizeOperationName(entry.operation),
+        args: entry.args ?? [],
       })),
+      signers: mapSigners(params.signers),
     });
     return { txid: result.txid, tx: result.txid };
   };
@@ -272,6 +369,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     chainType,
     connect,
     invokeContract,
+    invokeMultiple,
     invokeRead,
     getBalance,
     getContractAddress,
