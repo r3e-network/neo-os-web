@@ -1,96 +1,33 @@
 <template>
-  <MiniAppPage
-    name="neo-x-bridge"
-    :config="templateConfig"
-    :state="appState"
+  <OfficialLauncherMiniApp
+    page-name="neo-x-bridge"
+    :template-config="templateConfig"
+    :app-state="appState"
     :t="t"
-    :status-message="status"
+    :status="status"
     :sidebar-items="sidebarItems"
     :sidebar-title="sidebarTitle"
     :fallback-message="fallbackMessage"
-    :on-boundary-error="handleBoundaryError"
-    :on-boundary-retry="resetStatus"
-  >
-    <template #content>
-      <div class="hero-shell">
-        <HeroSection variant="accent" compact>
-          <template #background>
-            <div class="bridge-scene" aria-hidden="true">
-              <div class="bridge-orb bridge-orb--left">N3</div>
-              <div class="bridge-link" />
-              <div class="bridge-orb bridge-orb--right">X</div>
-            </div>
-          </template>
-        </HeroSection>
-        <div class="hero-copy">
-          <span class="hero-kicker">{{ t("officialOnly") }}</span>
-          <h1 class="hero-title">{{ t("title") }}</h1>
-          <p class="hero-subtitle">{{ t("heroBlurb") }}</p>
-        </div>
-      </div>
-
-      <StatsDisplay :items="overviewStats" layout="grid" :columns="3" class="mb-6" />
-
-      <NeoCard variant="erobo" :title="selectedBridge.networkName">
-        <StatsDisplay :items="selectedNetworkStats" layout="rows" />
-      </NeoCard>
-
-      <NeoCard variant="erobo-neo" :title="t('bridgeNotes')" class="notes-card">
-        <p class="note-text">{{ t("bridgeNotesText") }}</p>
-        <p class="note-text">{{ t("walletNoticeText") }}</p>
-      </NeoCard>
-    </template>
-
-    <template #tab-networks>
-      <NeoCard variant="erobo" :title="mainnetBridge.networkName" class="network-card">
-        <StatsDisplay :items="networkStats(mainnetBridge)" layout="rows" />
-      </NeoCard>
-      <NeoCard variant="erobo" :title="testnetBridge.networkName" class="network-card">
-        <StatsDisplay :items="networkStats(testnetBridge)" layout="rows" />
-      </NeoCard>
-    </template>
-
-    <template #operation>
-      <NeoCard variant="erobo" :title="t('selectedNetwork')">
-        <div class="toggle-row">
-          <NeoButton
-            size="sm"
-            :variant="selectedKey === 'mainnet' ? 'primary' : 'secondary'"
-            @click="selectedKey = 'mainnet'"
-          >
-            {{ t("mainnet") }}
-          </NeoButton>
-          <NeoButton
-            size="sm"
-            :variant="selectedKey === 'testnet' ? 'primary' : 'secondary'"
-            @click="selectedKey = 'testnet'"
-          >
-            {{ t("testnet") }}
-          </NeoButton>
-        </div>
-
-        <div class="action-stack">
-          <NeoButton variant="primary" @click="openExternal(selectedBridge.bridgeUrl)">
-            {{ t("officialBridge") }}
-          </NeoButton>
-          <NeoButton variant="secondary" @click="addNetwork(selectedBridge)">
-            {{ t("addWallet") }}
-          </NeoButton>
-          <NeoButton variant="secondary" @click="openExternal(selectedBridge.explorer)">
-            {{ t("openExplorer") }}
-          </NeoButton>
-          <NeoButton variant="secondary" @click="openExternal(docsUrl)">
-            {{ t("openDocs") }}
-          </NeoButton>
-        </div>
-      </NeoCard>
-    </template>
-  </MiniAppPage>
+    :handle-boundary-error="handleBoundaryError"
+    :reset-status="resetStatus"
+    hero-mode="bridge"
+    bridge-left-label="N3"
+    bridge-right-label="X"
+    :hero-kicker="t('officialOnly')"
+    :hero-title="t('title')"
+    :hero-blurb="t('heroBlurb')"
+    :overview-stats="overviewStats"
+    :main-cards="mainCards"
+    :detail-cards="detailCards"
+    :operation-title="t('selectedNetwork')"
+    :operation-toggle="operationToggle"
+    :operation-actions="operationActions"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { HeroSection, MiniAppPage, NeoButton, NeoCard, StatsDisplay } from "@shared/components";
+import { OfficialLauncherMiniApp } from "@shared/components";
 import type { StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
@@ -175,6 +112,50 @@ const appState = computed(() => ({
   chainId: selectedBridge.value.chainIdDecimal,
 }));
 
+const mainCards = computed(() => [
+  {
+    title: selectedBridge.value.networkName,
+    variant: "erobo" as const,
+    stats: selectedNetworkStats.value,
+  },
+  {
+    title: t("bridgeNotes"),
+    variant: "erobo-neo" as const,
+    className: "notes-card",
+    paragraphs: [t("bridgeNotesText"), t("walletNoticeText")],
+  },
+]);
+
+const detailCards = computed(() => [
+  {
+    title: mainnetBridge.networkName,
+    variant: "erobo" as const,
+    className: "network-card",
+    stats: networkStats(mainnetBridge),
+  },
+  {
+    title: testnetBridge.networkName,
+    variant: "erobo" as const,
+    className: "network-card",
+    stats: networkStats(testnetBridge),
+  },
+]);
+
+const operationToggle = computed(() => ({
+  selectedKey: selectedKey.value,
+  options: [
+    { key: "mainnet", label: t("mainnet"), onSelect: () => { selectedKey.value = "mainnet"; } },
+    { key: "testnet", label: t("testnet"), onSelect: () => { selectedKey.value = "testnet"; } },
+  ],
+}));
+
+const operationActions = computed(() => [
+  { label: t("officialBridge"), variant: "primary" as const, onClick: () => openExternal(selectedBridge.value.bridgeUrl) },
+  { label: t("addWallet"), variant: "secondary" as const, onClick: () => { void addNetwork(selectedBridge.value); } },
+  { label: t("openExplorer"), variant: "secondary" as const, onClick: () => openExternal(selectedBridge.value.explorer) },
+  { label: t("openDocs"), variant: "secondary" as const, onClick: () => openExternal(docsUrl) },
+]);
+
 function openExternal(url: string) {
   if (!url) return;
   if (typeof window !== "undefined" && window.open) {
@@ -224,94 +205,3 @@ function resetStatus() {
   clearStatus();
 }
 </script>
-
-<style lang="scss" scoped>
-.hero-shell {
-  display: grid;
-  gap: 18px;
-  margin-bottom: 24px;
-}
-
-.bridge-scene {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  min-height: 96px;
-}
-
-.bridge-orb {
-  width: 66px;
-  height: 66px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: 0.08em;
-  border: 1px solid var(--bridge-border);
-  background: linear-gradient(180deg, rgba(79, 209, 255, 0.18), rgba(79, 209, 255, 0.05));
-  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.24);
-}
-
-.bridge-link {
-  width: 90px;
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(79, 209, 255, 0.22), rgba(79, 209, 255, 0.9), rgba(79, 209, 255, 0.22));
-}
-
-.hero-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.hero-kicker {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--bridge-accent);
-}
-
-.hero-title {
-  font-size: 30px;
-  line-height: 1.05;
-}
-
-.hero-subtitle {
-  font-size: 14px;
-  line-height: 1.65;
-  color: var(--bridge-text-muted);
-}
-
-.toggle-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.action-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.notes-card,
-.network-card {
-  margin-top: 18px;
-}
-
-.note-text {
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--bridge-text-muted);
-}
-
-.note-text + .note-text {
-  margin-top: 10px;
-}
-</style>
