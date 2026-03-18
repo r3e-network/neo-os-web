@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-aa-account-lab",
+  "name": "AA Account Lab",
+  "name_zh": "AA 注册实验室",
+  "version": "1.0.0",
+  "description": "Register and inspect Neo Abstract Accounts against the shared AA core.",
+  "description_zh": "基于共享 AA Core 注册和查询 Neo 抽象账户。",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": ["aa", "register", "account", "wallet"],
+  "developer": { "name": "R3E Network", "email": "dev@r3e.network", "website": "https://r3e.network" },
+  "contracts": {},
+  "supported_networks": ["neo-n3-testnet"],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/aa-account-lab/index.html",
+    "icon": "/miniapps/explorer/logo.jpg",
+    "banner": "/miniapps/explorer/banner.jpg"
+  },
+  "permissions": ["invoke:primary", "read:blockchain"],
+  "features": { "stateless": true, "offlineSupport": false, "deeplink": "neomainapp://aa-account-lab" },
+  "stateSource": { "type": "n3index", "chain": "neo-n3-testnet", "endpoints": ["https://api.n3index.dev"] },
+  "platform": { "analytics": true, "comments": true, "ratings": true, "transactions": true },
+  "createdAt": "2026-03-18T05:00:00Z",
+  "updatedAt": "2026-03-18T05:00:00Z"
+}

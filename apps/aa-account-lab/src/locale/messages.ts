@@ -1,0 +1,33 @@
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  appName: { en: "AA Account Lab", zh: "AA 注册实验室" },
+  accountId: { en: "AccountId Hash", zh: "AccountId Hash" },
+  accountIdPlaceholder: { en: "20-byte hash, pubkey, or seed text", zh: "20 字节哈希、公钥或 seed 文本" },
+  verifier: { en: "Verifier Hash", zh: "Verifier Hash" },
+  verifierParams: { en: "Verifier Params Hex", zh: "Verifier 参数 Hex" },
+  hook: { en: "Hook Hash", zh: "Hook Hash" },
+  backupOwner: { en: "Backup Owner", zh: "Backup Owner" },
+  timelock: { en: "Escape Timelock", zh: "逃生锁定期" },
+  inspect: { en: "Inspect Account", zh: "查询账户" },
+  register: { en: "Register Account", zh: "注册账户" },
+  inspectorTitle: { en: "AA Core Inspector", zh: "AA Core 查询器" },
+  registerTitle: { en: "Register New Account", zh: "注册新账户" },
+  currentVerifier: { en: "Current Verifier", zh: "当前 Verifier" },
+  currentHook: { en: "Current Hook", zh: "当前 Hook" },
+  currentBackupOwner: { en: "Current Backup Owner", zh: "当前 Backup Owner" },
+  registerSuccess: { en: "Register transaction submitted", zh: "注册交易已提交" },
+  inspectSuccess: { en: "Account state loaded", zh: "账户状态已加载" },
+  invalidAccountId: { en: "Invalid accountId hash or seed input", zh: "无效的 accountId 哈希或 seed 输入" },
+  invalidHash: { en: "Expected a Neo hash or empty value", zh: "请输入 Neo 哈希或留空" },
+  invalidBackupOwner: { en: "Backup owner must be a Neo address or hash", zh: "Backup owner 必须是 Neo 地址或哈希" },
+  docsSubtitle: { en: "Register and inspect Neo AA accounts", zh: "注册并查询 Neo AA 账户" },
+  feature1Name: { en: "Register", zh: "注册" },
+  feature1Desc: { en: "Submit registerAccount against the shared AA core.", zh: "对共享 AA Core 提交 registerAccount。" },
+  feature2Name: { en: "Inspect", zh: "查询" },
+  feature2Desc: { en: "Read verifier, hook, and backup owner state.", zh: "读取 verifier、hook 和 backup owner 状态。" },
+  feature3Name: { en: "Testnet First", zh: "测试网优先" },
+  feature3Desc: { en: "Uses the canonical shared AA testnet anchors.", zh: "使用当前共享的 AA 测试网锚点。" },
+} as const;
+
+export const messages = mergeMessages(appMessages);
