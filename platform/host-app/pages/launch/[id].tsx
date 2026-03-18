@@ -9,7 +9,7 @@ import { WalletState, MiniAppInfo } from "../../components/types";
 import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { logger } from "../../lib/logger";
 import { resolveInternalBaseUrl } from "../../lib/edge";
-import { getMiniApp } from "../../lib/miniapp-registry";
+import { loadBundledMiniAppById } from "../../lib/miniapp-definitions";
 import { resolveMiniAppDetailConfig } from "../../lib/miniapp-template";
 import { OperationPanel } from "../../components/OperationPanel";
 import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
@@ -221,14 +221,14 @@ function ManifestRuntime({ app }: { app: MiniAppInfo }) {
 // SSR: Fetch app info from API or static catalog
 export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (context) => {
   const { id } = context.params as { id: string };
-  const fallback = getMiniApp(id);
+  const fallback = await loadBundledMiniAppById(id);
 
   try {
     const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
     const catalogRes = await fetch(`${baseUrl}/api/miniapps/catalog?app_id=${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(10000) });
     const catalogPayload = await catalogRes.json().catch(() => null);
     const raw = catalogPayload?.app || null;
-    const app = coerceMiniAppInfo(raw, fallback) ?? fallback ?? null;
+    const app = coerceMiniAppInfo(raw, fallback ?? undefined) ?? fallback ?? null;
     if (!app) {
       return { notFound: true };
     }
