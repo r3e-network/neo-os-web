@@ -278,6 +278,10 @@ function getDefinitionsDir(): string {
   return path.join(process.cwd(), "public", "miniapp-definitions");
 }
 
+function getBundledAppsDir(): string {
+  return path.resolve(process.cwd(), "..", "..", "apps");
+}
+
 function getMiniAppManifestPath(slug: string): string {
   return path.resolve(process.cwd(), "..", "..", "apps", slug, "neo-manifest.json");
 }
@@ -303,6 +307,38 @@ function mergeBundledManifest(raw: unknown, bundledManifest: Dict | null): Dict 
       ...bundledManifest,
       ...asObject(obj.manifest),
     },
+  };
+}
+
+async function listBundledManifestSlugs(): Promise<string[]> {
+  const appsDir = getBundledAppsDir();
+  try {
+    const entries = await fs.readdir(appsDir, { withFileTypes: true });
+    const slugs: string[] = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const slug = entry.name.trim();
+      if (!slug || slug === "shared") continue;
+      const manifestPath = path.join(appsDir, slug, "neo-manifest.json");
+      if (!existsSync(manifestPath) || !statSync(manifestPath).isFile()) continue;
+      slugs.push(slug);
+    }
+    return slugs.sort();
+  } catch {
+    return [];
+  }
+}
+
+function buildManifestOnlyDefinition(slug: string, bundledManifest: Dict): Dict {
+  const appId = canonicalizeAppId(bundledManifest.id, slug);
+  return {
+    app_id: appId,
+    name: asString(bundledManifest.name) || titleCase(slug),
+    description: asString(bundledManifest.description),
+    category: asString(bundledManifest.category) || "utility",
+    entry_url: `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`,
+    status: "active",
+    manifest: bundledManifest,
   };
 }
 
@@ -359,6 +395,30 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
           fileName,
           slug,
           fullPath,
+          error: message,
+        });
+      }
+    }
+
+    const definitionSlugs = new Set(definitions.map((definition) => definition.slug));
+    const bundledSlugs = await listBundledManifestSlugs();
+    for (const slug of bundledSlugs) {
+      if (definitionSlugs.has(slug)) continue;
+      try {
+        const bundledManifest = await loadBundledManifest(slug);
+        if (!bundledManifest) continue;
+        definitions.push({
+          fileName: `${slug}/neo-manifest.json`,
+          slug,
+          fullPath: getMiniAppManifestPath(slug),
+          payload: normalizeRawDefinition(buildManifestOnlyDefinition(slug, bundledManifest), slug),
+        });
+      } catch (error) {
+        const message = getErrorMessage(error);
+        errors.push({
+          fileName: `${slug}/neo-manifest.json`,
+          slug,
+          fullPath: getMiniAppManifestPath(slug),
           error: message,
         });
       }
