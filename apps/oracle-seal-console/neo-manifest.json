@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-oracle-seal-console",
+  "name": "Oracle Seal Console",
+  "name_zh": "预言机密封控制台",
+  "version": "1.0.0",
+  "description": "Seal private Oracle and compute parameters locally with the current Morpheus Oracle public key.",
+  "description_zh": "使用当前 Morpheus Oracle 公钥在本地密封私密预言机和计算参数。",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": ["oracle", "privacy", "compute", "encryption", "confidential"],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": ["neo-n3-testnet"],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/oracle-seal-console/index.html",
+    "icon": "/miniapps/explorer/logo.jpg",
+    "banner": "/miniapps/explorer/banner.jpg"
+  },
+  "permissions": ["read:blockchain"],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://oracle-seal-console"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-testnet",
+    "endpoints": ["https://api.n3index.dev"]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-03-18T18:20:00Z",
+  "updatedAt": "2026-03-18T18:20:00Z"
+}
