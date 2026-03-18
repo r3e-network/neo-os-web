@@ -38,6 +38,7 @@ export type ExternalIntegrationConfig = {
   networkMagic: number;
   n3indexApi: string;
   morpheusPublicApiUrl: string;
+  morpheusRuntimeUrl: string;
   contracts: {
     neo: string;
     gas: string;
@@ -103,7 +104,8 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     rpcUrl: NEO_MAINNET_RPC,
     networkMagic: MAINNET_MAGIC,
     n3indexApi: N3INDEX_API,
-    morpheusPublicApiUrl: "https://966f16610bdfe1794a503e16c5ae0bc69a1d92f1-80.dstack-pha-prod9.phala.network",
+    morpheusPublicApiUrl: "https://neo-morpheus-oracle-web.vercel.app",
+    morpheusRuntimeUrl: "https://966f16610bdfe1794a503e16c5ae0bc69a1d92f1-80.dstack-pha-prod9.phala.network",
     contracts: {
       neo: NEO_HASH,
       gas: GAS_HASH,
@@ -133,7 +135,8 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     rpcUrl: NEO_TESTNET_RPC,
     networkMagic: TESTNET_MAGIC,
     n3indexApi: N3INDEX_API,
-    morpheusPublicApiUrl: "https://28294e89d490924b79c85cdee057ce55723b3d56-3000.dstack-pha-prod9.phala.network",
+    morpheusPublicApiUrl: "https://neo-morpheus-oracle-web.vercel.app",
+    morpheusRuntimeUrl: "https://28294e89d490924b79c85cdee057ce55723b3d56-3000.dstack-pha-prod9.phala.network",
     contracts: {
       neo: NEO_HASH,
       gas: GAS_HASH,
