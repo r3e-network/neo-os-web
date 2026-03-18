@@ -13,7 +13,7 @@
 
 - it does **not** submit a transaction
 - it does **not** write hashes to Neo N3
-- it does **not** depend on PaymentHub, Oracle, or AA for its current runtime path
+- it does **not** depend on legacy receipt relays, Oracle, or AA for its current runtime path
 
 ## Why This Was Changed
 

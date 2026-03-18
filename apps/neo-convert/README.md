@@ -158,7 +158,7 @@ Neo Convert performs all cryptographic operations locally using:
 
 - No miniapp contract is deployed.
 - All key generation, conversion, disassembly, and PDF export run locally in the browser.
-- The app does not depend on PaymentHub, Oracle, AA, or any platform callback contract.
+- The app does not depend on legacy receipt relays, Oracle, AA, or any platform callback contract.
 
 ## Network Configuration
 

@@ -43,7 +43,7 @@ NeoBurger 是一个流动性质押协议，让您质押 NEO 并获得 bNEO 代�
 ## 链上行为
 
 - 调用 NeoBurger 的 bNEO 合约进行质押/赎回（第三方部署）。
-- 使用标准合约调用流程（不涉及 PaymentHub 收据）。
+- 使用标准直接合约调用流程。
 
 ## 网络配置
 
@@ -71,7 +71,6 @@ NeoBurger 是一个流动性质押协议，让您质押 NEO 并获得 bNEO 代�
 
 | 合约 | 地址 |
 | --- | --- |
-| PaymentHub | `0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193` |
 | Governance | `0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05` |
 | PriceFeed | `0xc5d9117d255054489d1cf59b2c1d188c01bc9954` |
 | RandomnessLog | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` |
@@ -83,7 +82,6 @@ NeoBurger 是一个流动性质押协议，让您质押 NEO 并获得 bNEO 代�
 
 | 合约 | 地址 |
 | --- | --- |
-| PaymentHub | `0xc700fa6001a654efcd63e15a3833fbea7baaa3a3` |
 | Governance | `0x705615e903d92abf8f6f459086b83f51096aa413` |
 | PriceFeed | `0x9e889922d2f64fa0c06a28d179c60fe1af915d27` |
 | RandomnessLog | `0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25` |

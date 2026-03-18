@@ -227,7 +227,7 @@ return 'High Risk';
 ## On-chain behavior
 
 - No miniapp contract is deployed.
-- The app reads wallet balances and derives checklist results locally; it does not use PaymentHub or Morpheus callback contracts.
+- The app reads wallet balances and derives checklist results locally; it does not use legacy receipt relays or Morpheus callback contracts.
 
 ## Network Configuration
 

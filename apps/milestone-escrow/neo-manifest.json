@@ -20,7 +20,7 @@
     "website": "https://r3e.network"
   },
   "contracts": {
-    "neo-n3-mainnet": "0x7f4e2ddba33a4f32e41f4c9c953a3ddc5f1ae6b1",
+    "neo-n3-mainnet": "",
     "neo-n3-testnet": ""
   },
   "supported_networks": [

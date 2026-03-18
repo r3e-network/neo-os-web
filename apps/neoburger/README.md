@@ -172,7 +172,7 @@ For technical issues, contact the Neo MiniApp team.
 ## On-chain behavior
 
 - Calls the NeoBurger bNEO contract to stake/unstake NEO (third-party deployment).
-- Uses standard contract invocation flows (no PaymentHub receipts).
+- Uses standard direct contract invocation flows.
 
 ## Network Configuration
 
@@ -200,7 +200,6 @@ For technical issues, contact the Neo MiniApp team.
 
 | Contract | Address |
 | --- | --- |
-| PaymentHub | `0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193` |
 | Governance | `0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05` |
 | PriceFeed | `0xc5d9117d255054489d1cf59b2c1d188c01bc9954` |
 | RandomnessLog | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` |
@@ -212,7 +211,6 @@ For technical issues, contact the Neo MiniApp team.
 
 | Contract | Address |
 | --- | --- |
-| PaymentHub | `0xc700fa6001a654efcd63e15a3833fbea7baaa3a3` |
 | Governance | `0x705615e903d92abf8f6f459086b83f51096aa413` |
 | PriceFeed | `0x9e889922d2f64fa0c06a28d179c60fe1af915d27` |
 | RandomnessLog | `0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25` |
