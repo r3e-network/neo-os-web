@@ -43,16 +43,16 @@
 import { computed, ref, watch } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useAbstractAccount } from "@shared/composables/useAbstractAccount";
 const aaAddress = ref("");
 const dappId = ref("");
 const payloadJson = ref("{\n  \"metaInvocation\": {\n    \"scriptHash\": \"0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38\"\n  }\n}");
 const sponsorResult = ref<any>(null);
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "aa-relay-console", messages,
-  template: { tabs: [{ key: "relay", labelKey: "latestRelay", icon: "📡", default: true }], docSubtitleKey: "docsSubtitle", docFeatureCount: 3 },
+  tab: { key: "relay", labelKey: "latestRelay", icon: "📡" },
   sidebarItems: [{ labelKey: "aaAddress", value: () => aaAddress.value || "—" }, { labelKey: "latestRelay", value: () => relayResponse.value }],
 });
 const aa = useAbstractAccount({ network: "testnet", aaAddress: aaAddress.value, paymasterDappId: dappId.value || undefined });
