@@ -74,12 +74,12 @@ npm run build
 
 | Network | Address                                      |
 | ------- | -------------------------------------------- |
-| Testnet | `0xf0914d411877c8393c029f48ec0c4c64d44f1b49` |
+| Testnet | `0xd55df731978582ea81719a5d87ce49b248e91275` |
 | Mainnet | `0x180a3a35c088eab4feded508c2ccb1556e07a840` |
 
 ### Explorer Links
 
-- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0xf0914d411877c8393c029f48ec0c4c64d44f1b49)
+- **Testnet**: [View on NeoTube](https://testnet.neotube.io/contract/0xd55df731978582ea81719a5d87ce49b248e91275)
 - **Mainnet**: [View on NeoTube](https://neotube.io/contract/0x180a3a35c088eab4feded508c2ccb1556e07a840)
 
 ## Domains
