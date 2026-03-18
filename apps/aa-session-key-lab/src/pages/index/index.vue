@@ -17,12 +17,7 @@
     :operation-title="t('createSession')"
   >
     <template #result>
-      <div class="detail-grid">
-        <div class="detail-card"><span class="detail-label">AA</span><span class="detail-value">{{ aa.aaAddress.value || "—" }}</span></div>
-        <div class="detail-card"><span class="detail-label">Session</span><span class="detail-value">{{ aa.hasActiveSession.value ? "active" : "none" }}</span></div>
-        <div class="detail-card"><span class="detail-label">Sponsorship</span><span class="detail-value">{{ sponsorshipState }}</span></div>
-        <div class="detail-card"><span class="detail-label">Relay</span><span class="detail-value">{{ relayState }}</span></div>
-      </div>
+      <DetailCardGrid :items="detailItems" />
     </template>
     <template #operation>
       <div class="stack">
@@ -42,7 +37,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
+import { ConsoleMiniApp, DetailCardGrid, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
@@ -122,6 +117,12 @@ const overviewStats = computed<StatsDisplayItem[]>(() =>
     extra: { label: "Session Verifier", value: aa.integration.contracts.aaSessionKeyVerifier || "unset", variant: "erobo" },
   }).concat([{ label: "Relay", value: aa.relayUrl, variant: "success" }]),
 );
+const detailItems = computed(() => [
+  { label: "AA", value: aa.aaAddress.value || "—" },
+  { label: "Session", value: aa.hasActiveSession.value ? "active" : "none" },
+  { label: "Sponsorship", value: sponsorshipState.value },
+  { label: "Relay", value: relayState.value },
+]);
 const appState = computed(() => ({ aaAddress: aaAddress.value, session: aa.hasActiveSession.value }));
 </script>
 
@@ -130,8 +131,4 @@ const appState = computed(() => ({ aaAddress: aaAddress.value, session: aa.hasAc
 
 .stack { @include console.stack; }
 .actions-row { @include console.actions-row; }
-.detail-grid { @include console.detail-grid; }
-.detail-card { @include console.detail-card; }
-.detail-label { @include console.label; }
-.detail-value { @include console.value; margin-top: 8px; }
 </style>
