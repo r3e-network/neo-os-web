@@ -34,7 +34,7 @@ export type StackItem =
   | { type: "Any"; value: null };
 
 const RPC_ENDPOINTS = {
-  testnet: process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443",
+  testnet: process.env.NEO_RPC_TESTNET || "https://n3seed1.ngd.network:20332",
   mainnet: process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443",
 } as const;
 
