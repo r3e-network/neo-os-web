@@ -6,20 +6,11 @@ import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
 import { parseInvokeResult } from "@shared/utils/neo";
 
 // ============================================
-// Types — matches the real TrustAnchor contract
+// Types — simplified trustanchor accounting surface
 // ============================================
-
-export interface AgentInfo {
-  index: number;
-  address: string;
-  target: string;
-  name: string;
-  votingWeight: number;
-}
 
 export interface TrustAnchorStats {
   totalStaked: number;
-  agentCount: number;
   rps: string;
 }
 
@@ -39,7 +30,6 @@ export function useTrustAnchor(_t: (key: string) => string) {
   const myStake = ref(0);
   const pendingRewards = ref(0);
   const totalRewards = ref(0);
-  const agents = ref<AgentInfo[]>([]);
   const stats = ref<TrustAnchorStats | null>(null);
 
   const setError = (message: string) => {
@@ -110,56 +100,13 @@ export function useTrustAnchor(_t: (key: string) => string) {
     }
   };
 
-  // ------------------------------------------
-  // Read: global contract state
-  // ------------------------------------------
-
-  /** Load agents list via `agentCount` + `agentInfo(i)` */
-  const loadAgents = async () => {
-    const countResult = await handleAsync(async () => readContract("agentCount"), {
-      context: "Loading agent count",
-      onError: (e: Error) => setError(formatErrorMessage(e, e.message)),
-    });
-
-    if (!countResult.success || countResult.data == null) return;
-
-    const count = Number(countResult.data);
-    const agentList: AgentInfo[] = [];
-
-    for (let i = 0; i < count; i++) {
-      const infoResult = await handleAsync(async () => readContract("agentInfo", [{ type: "Integer", value: i }]), {
-        context: `Loading agent ${i}`,
-        onError: () => null,
-      });
-
-      if (infoResult.success && infoResult.data) {
-        const arr = infoResult.data as unknown[];
-        // agentInfo returns: [index, address, target, name, votingWeight]
-        agentList.push({
-          index: Number(arr[0] ?? i),
-          address: String(arr[1] ?? ""),
-          target: String(arr[2] ?? ""),
-          name: String(arr[3] ?? ""),
-          votingWeight: Number(arr[4] ?? 0),
-        });
-      }
-    }
-
-    agents.value = agentList;
-  };
-
-  /** Load global stats: totalStake, agentCount, rps */
+  /** Load global accounting stats: totalStake and reward-per-stake accumulator. */
   const loadStats = async () => {
     const result = await handleAsync(
       async () => {
-        const [totalStake, agentCount, rps] = await Promise.all([
-          readContract("totalStake"),
-          readContract("agentCount"),
-          readContract("rps"),
-        ]);
+        const [totalStake, rps] = await Promise.all([readContract("totalStake"), readContract("rps")]);
         return {
           totalStaked: Number(totalStake ?? 0),
-          agentCount: Number(agentCount ?? 0),
           rps: String(rps ?? "0"),
         };
       },
@@ -180,7 +127,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
     clearError();
 
     try {
-      await Promise.all([loadMyStake(), loadPendingRewards(), loadAgents(), loadStats()]);
+      await Promise.all([loadMyStake(), loadPendingRewards(), loadStats()]);
     } finally {
       isLoading.value = false;
     }
@@ -309,9 +256,6 @@ export function useTrustAnchor(_t: (key: string) => string) {
     myStake,
     pendingRewards,
     totalRewards,
-
-    // Contract data
-    agents,
     stats,
 
     // Actions

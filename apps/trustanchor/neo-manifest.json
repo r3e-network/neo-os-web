@@ -4,17 +4,17 @@
   "name": "Trust Anchor",
   "name_zh": "信任锚点",
   "version": "1.0.0",
-  "description": "Non-profit voting delegation for Neo N3 governance. Delegate your voting power to candidates with proven reputation and active contribution. Zero fees, 100% of GAS rewards to stakers.",
-  "description_zh": "信任锚 — 去中心化身份验证和信任评估系统",
+  "description": "Zero-fee Neo staking pool that routes deposits through verification-script accounts instead of per-candidate agent contracts.",
+  "description_zh": "信任锚 — 使用 verification-script 路由账户而不是 agent 合约的零费率 Neo 质押池。",
   "category": "governance",
   "category_name": "Governance",
   "category_name_zh": "治理",
   "tags": [
     "staking",
     "voting",
-    "delegation",
     "governance",
-    "reputation"
+    "verification-script",
+    "zero-fee"
   ],
   "developer": {
     "name": "R3E Network",
@@ -26,9 +26,9 @@
     "neo-n3-testnet": ""
   },
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/trustanchor/index.html",
     "icon": "/miniapps/trustanchor/logo.jpg",
@@ -45,7 +45,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-mainnet",
+    "chain": "neo-n3-testnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -57,5 +57,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-03-18T03:15:00Z"
 }
