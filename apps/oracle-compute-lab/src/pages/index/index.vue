@@ -38,16 +38,16 @@
 import { computed, ref } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
 const oracle = useOracle({ appId: "miniapp-oracle-compute-lab" });
 const scriptName = ref("health_check");
 const inputJson = ref("{\n  \"message\": \"hello from miniapp\"\n}");
 const latestJob = oracle.lastComputeResult;
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "oracle-compute-lab", messages,
-  template: { tabs: [{ key: "compute", labelKey: "latestJob", icon: "🧠", default: true }], docSubtitleKey: "docsSubtitle", docFeatureCount: 3 },
+  tab: { key: "compute", labelKey: "latestJob", icon: "🧠" },
   sidebarItems: [{ labelKey: "latestJob", value: () => latestJob.value?.status || "—" }, { labelKey: "scriptName", value: () => scriptName.value }],
 });
 async function runJob() {

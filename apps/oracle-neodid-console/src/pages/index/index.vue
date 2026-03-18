@@ -39,7 +39,7 @@
 import { computed, ref } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
 
@@ -49,10 +49,10 @@ const format = ref("resolution");
 const latestPayload = ref<Record<string, unknown> | null>(null);
 const providersPayload = ref<Record<string, unknown> | null>(null);
 
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "oracle-neodid-console",
   messages,
-  template: { tabs: [{ key: "neodid", labelKey: "latestDocument", icon: "🪪", default: true }], docSubtitleKey: "docsSubtitle", docFeatureCount: 3 },
+  tab: { key: "neodid", labelKey: "latestDocument", icon: "🪪" },
   sidebarItems: [
     { labelKey: "did", value: () => did.value },
     { labelKey: "format", value: () => format.value },
