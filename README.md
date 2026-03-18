@@ -274,6 +274,7 @@ Notes:
 - `verify_testnet_workflows.sh` is legacy / compatibility-oriented.
 - `verify_cross_repo_testnet.sh` expects `AA_TEST_WIF` to control the configured `PAYMASTER_ACCOUNT_ID` for the stable allowlisted paymaster path.
 - The current stable default `PAYMASTER_ACCOUNT_ID` used by `verify_cross_repo_testnet.sh` is `0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56`.
+- Mainnet flagship alignment and post-update validation are recorded in `docs/reports/2026-03-18-mainnet-flagship-alignment.md`.
 
 ## Environment Variables
 
