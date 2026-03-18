@@ -4,18 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSecretsStore } from "@/lib/secrets";
 import { useWalletStore } from "@/lib/wallet/store";
-import { MINIAPP_REGISTRY } from "@/lib/miniapp-registry";
 import { CreateTokenForm } from "./CreateTokenForm";
 import { TokenList } from "./TokenList";
 import { InfoCard } from "./InfoCard";
-
-const CONFIDENTIAL_APPS = MINIAPP_REGISTRY.filter((app) => app.permissions?.confidential);
 
 export default function SecretsContent() {
   const { connected } = useWalletStore();
   const { tokens, loading, error, fetchTokens, revokeToken, clearError } = useSecretsStore();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedApp, setSelectedApp] = useState<string>("all");
+
+  const appScopes = Array.from(
+    new Set(
+      tokens
+        .map((token) => token.appId)
+        .filter((appId) => appId && appId !== "global"),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
 
   useEffect(() => {
     if (connected) {
@@ -70,9 +75,9 @@ export default function SecretsContent() {
             >
               <option value="all">All Apps</option>
               <option value="global">Global Secrets Only</option>
-              {CONFIDENTIAL_APPS.map((app) => (
-                <option key={app.app_id} value={app.app_id}>
-                  {app.name}
+              {appScopes.map((appId) => (
+                <option key={appId} value={appId}>
+                  {appId}
                 </option>
               ))}
             </select>
