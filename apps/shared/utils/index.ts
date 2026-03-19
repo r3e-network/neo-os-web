@@ -12,8 +12,6 @@ export * from "./transaction";
 export * from "./theme";
 export * from "./hash";
 export * from "./parsers";
-export * from "./createTemplateConfig";
 export * from "./createSidebarItems";
 export * from "./createMiniAppEntry";
-export * from "./runtimeConfig";
 export * from "./n3index";
