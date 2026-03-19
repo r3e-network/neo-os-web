@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "jest",
+    "test:e2e": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && playwright test --reporter=line",
+    "test:full": "npm run test -- --runInBand && npm run build && npm run test:e2e",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "quality:loop": "bash ./scripts/quality-loop.sh"
