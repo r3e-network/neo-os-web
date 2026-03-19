@@ -1,9 +1,9 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { useCrypto } from "@shared/composables";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { encryptPayload } from "../utils/crypto";
 import type { UploadItem } from "@/types";
 
 const MAX_PHOTOS_PER_UPLOAD = 5;
@@ -18,7 +18,6 @@ export function usePhotoUpload(
 ) {
   const { address, invokeContract } = useWallet() as WalletSDK;
   const { ensure: ensureContractAddress } = useContractAddress(t);
-  const { encryptPayload } = useCrypto();
 
   const showUpload = ref(false);
   const selectedImages = ref<UploadItem[]>([]);
