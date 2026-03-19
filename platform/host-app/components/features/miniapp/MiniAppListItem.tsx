@@ -4,7 +4,7 @@ import { memo } from "react";
 import Link from "next/link";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
-import type { MiniAppInfo } from "./MiniAppCard";
+import type { MiniAppInfo } from "@/components/types";
 import { cn } from "@/lib/utils";
 
 interface MiniAppListItemProps {

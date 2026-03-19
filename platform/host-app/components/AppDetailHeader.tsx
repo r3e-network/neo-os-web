@@ -1,6 +1,7 @@
 import React from "react";
 import { MiniAppInfo } from "./types";
 import { ArrowLeft } from "lucide-react";
+import { isFlagshipMiniApp } from "@/lib/miniapp-showcase";
 
 type Props = {
   app: MiniAppInfo;
@@ -8,6 +9,8 @@ type Props = {
 };
 
 export function AppDetailHeader({ app, onBack }: Props) {
+  const isFlagship = isFlagshipMiniApp(app.app_id);
+  const appSurface = app.contract_hash ? "Contract-backed" : "Launcher";
   let statusBadge = "Unavailable";
   let statusColor = "text-gray-500 bg-gray-100 border-gray-200 dark:text-gray-400 dark:bg-gray-800 dark:border-gray-700";
   if (app.status === "active") {
@@ -51,8 +54,16 @@ export function AppDetailHeader({ app, onBack }: Props) {
               {app.name}
             </h1>
             <div className="flex flex-wrap items-center gap-3">
+              {isFlagship && (
+                <span className="rounded-full border border-neo/30 bg-neo/10 px-3.5 py-1 text-xs font-black uppercase tracking-widest text-neo">
+                  Flagship
+                </span>
+              )}
               <span className="rounded-full bg-neo/15 px-3.5 py-1 text-xs font-black uppercase tracking-widest text-neo border border-neo/20 shadow-[inset_0_0_10px_rgba(0,229,153,0.1)]">
                 {app.category}
+              </span>
+              <span className="rounded-full border border-gray-200 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-gray-600 dark:border-white/10 dark:text-gray-300">
+                {appSurface}
               </span>
               <span className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold uppercase tracking-widest border ${statusColor}`}>
                 <span className="relative flex h-2 w-2">
