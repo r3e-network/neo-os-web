@@ -4,7 +4,11 @@ test.describe("Platform Pages", () => {
   test("should load docs and developer pages with unified hero copy", async ({ page }) => {
     await page.goto("/docs");
     await expect(page.getByRole("heading", { name: "Documentation" })).toBeVisible();
-    await expect(page.getByRole("textbox", { name: /search documentation/i })).toBeVisible();
+    const docsSearch = page.getByRole("textbox", { name: /search documentation/i });
+    await expect(docsSearch).toBeVisible();
+    await docsSearch.fill("oracle");
+    await expect(page.getByRole("button", { name: "Platform Services" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Getting Started" })).toHaveCount(0);
 
     await page.goto("/developer");
     await expect(page.getByRole("heading", { name: "Developer Portal" })).toBeVisible();

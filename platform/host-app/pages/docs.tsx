@@ -1,15 +1,13 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { Layout, PageHero } from "@/components/layout";
+import { CodeBlock, IconFeatureGrid } from "@/components/content";
 import { Button } from "@/components/ui/button";
 import {
   Search,
   Rocket,
   Code2,
-  ChevronRight,
-  Copy,
-  Check,
   Zap,
   Shield,
   FileCode,
@@ -24,42 +22,31 @@ import {
   Lock,
 } from "lucide-react";
 
-// Code block component with copy functionality
-function CodeBlock({ code, language = "bash" }: { code: string; language?: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="relative group rounded-3xl bg-gray-900/90 dark:bg-[#0A0B10]/80 backdrop-blur-2xl border border-gray-800 dark:border-white/10 overflow-hidden shadow-2xl my-6">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 dark:border-white/5 bg-gray-800/50 dark:bg-white/5 text-gray-300">
-        <span className="text-[10px] font-bold tracking-widest uppercase font-mono text-gray-400">{language}</span>
-        <button type="button" onClick={handleCopy} aria-label="Copy code" className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 hover:scale-105 transition-all cursor-pointer shadow-sm backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50">
-          {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-gray-300" />}
-        </button>
-      </div>
-      <pre className="p-5 overflow-x-auto text-sm">
-        <code className="text-[#a5d6ff] font-mono leading-relaxed tracking-wide">{code}</code>
-      </pre>
-    </div>
-  );
-}
-
 // Documentation sections
 const sections = [
-  { id: "getting-started", title: "Getting Started", icon: Rocket },
-  { id: "sdk-reference", title: "SDK Reference", icon: Code2 },
-  { id: "smart-contracts", title: "Smart Contracts", icon: FileCode },
-  { id: "platform-services", title: "Platform Services", icon: Layers },
+  { id: "getting-started", title: "Getting Started", icon: Rocket, keywords: ["start", "install", "wallet", "quick", "transaction"] },
+  { id: "sdk-reference", title: "SDK Reference", icon: Code2, keywords: ["sdk", "api", "wallet", "privacy", "events", "datafeed"] },
+  { id: "smart-contracts", title: "Smart Contracts", icon: FileCode, keywords: ["contract", "invoke", "deploy", "csharp", "neo"] },
+  { id: "platform-services", title: "Platform Services", icon: Layers, keywords: ["oracle", "aa", "tee", "vrf", "privacy", "relay"] },
 ];
 
 export default function DocsPage() {
   const [activeSection, setActiveSection] = useState("getting-started");
   const [searchQuery, setSearchQuery] = useState("");
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredSections = useMemo(() => {
+    if (!normalizedQuery) return sections;
+    return sections.filter((section) => {
+      const haystack = [section.title, ...section.keywords].join(" ").toLowerCase();
+      return haystack.includes(normalizedQuery);
+    });
+  }, [normalizedQuery]);
+
+  useEffect(() => {
+    if (!filteredSections.some((section) => section.id === activeSection)) {
+      setActiveSection(filteredSections[0]?.id || "getting-started");
+    }
+  }, [activeSection, filteredSections]);
 
   return (
     <Layout>
@@ -76,6 +63,7 @@ export default function DocsPage() {
           stats={[
             { label: "Sections", value: String(sections.length), hint: "Getting started, SDK, contracts, services" },
             { label: "Audience", value: "Builders", hint: "Platform operators and app developers" },
+            { label: "Matches", value: String(filteredSections.length), hint: normalizedQuery ? `Filtered by "${searchQuery}"` : "All sections visible" },
           ]}
         >
           <div className="relative mx-auto max-w-xl">
@@ -97,7 +85,7 @@ export default function DocsPage() {
             {/* Sidebar Navigation */}
             <aside className="lg:w-64 shrink-0">
               <nav aria-label="Documentation sections" className="sticky top-24 space-y-1">
-                {sections.map((section) => {
+                {filteredSections.map((section) => {
                   const Icon = section.icon;
                   const isActive = activeSection === section.id;
                   return (
@@ -140,15 +128,30 @@ export default function DocsPage() {
                     <ExternalLink size={14} className="ml-auto" aria-hidden="true" />
                   </a>
                 </div>
+                {!filteredSections.length && (
+                  <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-400">
+                    No documentation sections match the current search.
+                  </div>
+                )}
               </nav>
             </aside>
 
             {/* Content Area */}
             <main className="flex-1 min-w-0">
-              {activeSection === "getting-started" && <GettingStartedContent />}
-              {activeSection === "sdk-reference" && <SDKReferenceContent />}
-              {activeSection === "smart-contracts" && <SmartContractsContent />}
-              {activeSection === "platform-services" && <PlatformServicesContent />}
+              {!filteredSections.length ? (
+                <div className="rounded-3xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-400">
+                  Try searching for terms like <code className="rounded bg-white/60 px-1.5 py-0.5 dark:bg-white/10">oracle</code>,
+                  <code className="ml-1 rounded bg-white/60 px-1.5 py-0.5 dark:bg-white/10">wallet</code>, or
+                  <code className="ml-1 rounded bg-white/60 px-1.5 py-0.5 dark:bg-white/10">deploy</code>.
+                </div>
+              ) : (
+                <>
+                  {activeSection === "getting-started" && <GettingStartedContent />}
+                  {activeSection === "sdk-reference" && <SDKReferenceContent />}
+                  {activeSection === "smart-contracts" && <SmartContractsContent />}
+                  {activeSection === "platform-services" && <PlatformServicesContent />}
+                </>
+              )}
             </main>
           </div>
         </div>
@@ -238,29 +241,19 @@ function SDKReferenceContent() {
     <div className="prose prose-gray dark:prose-invert max-w-none">
       <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">SDK Reference</h2>
 
-      <div className="not-prose grid gap-4 mb-8">
-        {[
-          { icon: Key, title: "Wallet API", desc: "Connect wallets, sign transactions" },
-          { icon: Database, title: "Storage API", desc: "On-chain and off-chain storage" },
-          { icon: Zap, title: "Events API", desc: "Real-time blockchain events" },
-          { icon: Shield, title: "TEE API", desc: "Confidential computing" },
-          { icon: Lock, title: "Privacy API", desc: "Zero-knowledge asset transfers" },
-        ].map((item) => (
-          <div
-            key={item.title}
-            className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 transition-colors"
-          >
-            <div className="p-2 rounded-lg bg-neo/10">
-              <item.icon className="text-neo" size={20} aria-hidden="true" />
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 dark:text-white">{item.title}</h4>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
-            </div>
-            <ChevronRight className="ml-auto text-gray-500 dark:text-gray-400" size={16} aria-hidden="true" />
-          </div>
-        ))}
-      </div>
+      <IconFeatureGrid
+        className="not-prose mb-8"
+        columns={1}
+        compact
+        showChevron
+        items={[
+          { icon: Key, title: "Wallet API", description: "Connect wallets, sign transactions" },
+          { icon: Database, title: "Storage API", description: "On-chain and off-chain storage" },
+          { icon: Zap, title: "Events API", description: "Real-time blockchain events" },
+          { icon: Shield, title: "TEE API", description: "Confidential computing" },
+          { icon: Lock, title: "Privacy API", description: "Zero-knowledge asset transfers" },
+        ]}
+      />
 
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">MiniApp Class</h3>
       <p className="text-gray-600 dark:text-gray-400 mb-4">The main entry point for all SDK functionality:</p>
@@ -383,48 +376,37 @@ function PlatformServicesContent() {
     <div className="prose prose-gray dark:prose-invert max-w-none">
       <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Platform Services</h2>
 
-      <div className="not-prose grid md:grid-cols-2 gap-4 mb-8">
-        {[
+      <IconFeatureGrid
+        className="not-prose mb-8"
+        columns={2}
+        items={[
           {
             icon: Shield,
             title: "TEE (Confidential Computing)",
-            desc: "Run private logic in secure enclaves",
+            description: "Run private logic in secure enclaves",
             color: "from-purple-500 to-pink-500",
           },
           {
             icon: Zap,
             title: "VRF (Verifiable Randomness)",
-            desc: "Provably fair random numbers",
+            description: "Provably fair random numbers",
             color: "from-neo to-emerald-500",
           },
           {
             icon: Database,
             title: "Oracle Service",
-            desc: "Allowlisted external fetches plus on-chain callback flows",
+            description: "Allowlisted external fetches plus on-chain callback flows",
             color: "from-blue-500 to-cyan-500",
           },
           {
             icon: Key,
             title: "AA / Smart Wallet",
-            desc: "External AA relay, verifiers, and gas sponsorship hooks",
+            description: "External AA relay, verifiers, and gas sponsorship hooks",
             color: "from-amber-500 to-orange-500",
           },
-          { icon: Lock, title: "NeoPrivacy Relayer", desc: "Zero-knowledge gasless transfers", color: "from-gray-500 to-slate-800" },
-        ].map((item) => (
-          <div
-            key={item.title}
-            className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700"
-          >
-            <div
-              className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4`}
-            >
-              <item.icon className="text-white" size={24} aria-hidden="true" />
-            </div>
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{item.title}</h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
-          </div>
-        ))}
-      </div>
+          { icon: Lock, title: "NeoPrivacy Relayer", description: "Zero-knowledge gasless transfers", color: "from-gray-500 to-slate-800" },
+        ]}
+      />
 
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Using VRF</h3>
       <CodeBlock
