@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Layout, PageHero } from "@/components/layout";
+import { IconFeatureGrid } from "@/components/content";
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -715,25 +716,15 @@ export default function DeveloperPage() {
       <section className="py-12 px-4">
         <div className="mx-auto max-w-7xl">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Platform Features</h2>
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-            {features.map((f, idx) => (
-              <motion.div
-                key={f.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 * idx }}
-                className="group glass-card rounded-xl p-6 bg-gray-100 dark:bg-gray-900/30 hover:bg-gray-200 dark:hover:bg-gray-900/50 transition-all"
-              >
-                <div
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
-                >
-                  <f.icon className="text-white" size={24} aria-hidden="true" />
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-1">{f.title}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{f.desc}</p>
-              </motion.div>
-            ))}
-          </div>
+          <IconFeatureGrid
+            columns={4}
+            items={features.map((feature) => ({
+              icon: feature.icon,
+              title: feature.title,
+              description: feature.desc,
+              colorClass: `bg-gradient-to-br ${feature.color}`,
+            }))}
+          />
         </div>
       </section>
 
