@@ -7,8 +7,6 @@
 export { useChainValidation, isEvmChain, requireNeoChain } from "./useChainValidation";
 export { useContractAddress } from "./useContractAddress";
 export { useGameState } from "./useGameState";
-export { usePaymentFlow } from "./usePaymentFlow";
-export type { PaymentFlowOptions } from "./usePaymentFlow";
 export { useErrorHandler } from "./useErrorHandler";
 export type { ErrorCategory, ErrorContext, ErrorHandlerState } from "./useErrorHandler";
 export { useCrypto } from "./useCrypto";

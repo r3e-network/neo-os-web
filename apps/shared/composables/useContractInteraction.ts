@@ -27,11 +27,12 @@
 
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
+import { useEvents, usePayments } from "@shared/utils/wallet-sdk";
 import { useContractAddress } from "./useContractAddress";
-import { usePaymentFlow } from "./usePaymentFlow";
 import { parseInvokeResult, parseStackItem } from "../utils/neo";
-import { extractTxid } from "../utils/transaction";
+import { extractTxid, pollForTxEvent } from "../utils/transaction";
 import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
+import { ref } from "vue";
 
 type InvokeArg = {
   type: string;
@@ -53,7 +54,12 @@ export function useContractInteraction(options: ContractInteractionOptions) {
   const wallet = externalWallet ?? (useWallet() as WalletSDK);
   const { address, connect, invokeContract, invokeRead } = wallet;
   const { contractAddress, ensure: ensureContractAddress, ensureSafe } = useContractAddress(t);
-  const { processPayment, isProcessing, error: paymentError, success: paymentSuccess } = usePaymentFlow(appId);
+  const { payGAS } = usePayments(appId);
+  const { list: listEvents } = useEvents();
+
+  const isProcessing = ref(false);
+  const paymentError = ref<Error | null>(null);
+  const paymentSuccess = ref(false);
 
   /**
    * Ensure wallet is connected, connecting if needed.
@@ -110,17 +116,51 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     await ensureWallet();
     const contract = scriptHash ?? (await ensureContractAddress());
 
-    const {
-      receiptId,
-      invoke: invokeWithReceipt,
-      waitForEvent,
-      triggerSuccess,
-    } = await processPayment(paymentAmount, paymentMemo);
+    try {
+      isProcessing.value = true;
+      paymentError.value = null;
 
-    const tx = await invokeWithReceipt(contract, operation, args);
-    const txid = typeof tx === "object" && tx !== null ? extractTxid(tx) : "";
+      const payment = await payGAS(paymentAmount, paymentMemo);
+      const receiptId = payment.receipt_id || "";
 
-    return { txid, receiptId, waitForEvent, triggerSuccess, tx };
+      const tx = (await invokeContract({
+        scriptHash: contract,
+        operation,
+        args,
+      })) as unknown;
+
+      const txid = extractTxid(tx);
+
+      const waitForEvent = async (targetTxid: string, eventName: string, timeoutMs = 30000) => {
+        return pollForTxEvent({
+          listEvents: async () => {
+            const result = await listEvents({
+              app_id: appId,
+              event_name: eventName,
+              limit: 20,
+            });
+            return result.events || [];
+          },
+          txid: targetTxid,
+          timeoutMs,
+          errorMessage: `Event "${eventName}" not found for transaction ${targetTxid}`,
+        });
+      };
+
+      const triggerSuccess = () => {
+        paymentSuccess.value = true;
+        setTimeout(() => {
+          paymentSuccess.value = false;
+        }, 3500);
+      };
+
+      return { txid, receiptId, waitForEvent, triggerSuccess, tx };
+    } catch (error) {
+      paymentError.value = error instanceof Error ? error : new Error(String(error));
+      throw error;
+    } finally {
+      isProcessing.value = false;
+    }
   };
 
   /**
