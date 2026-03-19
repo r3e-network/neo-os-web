@@ -47,6 +47,11 @@ export function Navbar() {
     return () => document.removeEventListener("keydown", onKey);
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    const nextQuery = typeof router.query.q === "string" ? router.query.q : "";
+    setSearchQuery(nextQuery);
+  }, [router.query.q]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {

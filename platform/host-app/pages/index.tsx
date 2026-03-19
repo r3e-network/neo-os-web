@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { MiniAppCard, MiniAppListItem } from "@/components/features/miniapp";
 import type { MiniAppInfo } from "@/components/types";
-import { FLAGSHIP_MINIAPP_IDS } from "@/lib/miniapp-builtins";
+import { partitionMiniApps, buildCategoryCounts, filterMiniAppsByCategory, sortMiniApps } from "@/lib/miniapp-showcase";
 import {
   Rocket,
   Shield,
@@ -29,26 +29,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
-
-const TOOL_MINIAPP_IDS = [
-  "miniapp-aa-account-lab",
-  "miniapp-aa-permissions-lab",
-  "miniapp-aa-market-hub",
-  "miniapp-aa-relay-console",
-  "miniapp-aa-session-key-lab",
-  "miniapp-neo-x-bridge",
-  "miniapp-flamingo-swap",
-  "miniapp-flamingo-lend",
-  "miniapp-flamingo-earn",
-  "miniapp-flamingo-analytics",
-  "miniapp-flamingo-action-center",
-  "miniapp-oracle-price-console",
-  "miniapp-oracle-seal-console",
-  "miniapp-oracle-neodid-console",
-  "miniapp-oracle-http-console",
-  "miniapp-oracle-compute-lab",
-  "miniapp-oracle-vrf-console",
-] as const;
 
 // Category definitions with icons
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ size?: number | string; className?: string }>> = {
@@ -83,8 +63,9 @@ export default function LandingPage() {
         const data = await res.json();
         if (!active) return;
         const allApps = Array.isArray(data?.apps) ? data.apps : [];
-        setCatalogApps(allApps.filter((app: MiniAppInfo) => FLAGSHIP_MINIAPP_IDS.includes(app.app_id)));
-        setToolApps(allApps.filter((app: MiniAppInfo) => TOOL_MINIAPP_IDS.includes(app.app_id as (typeof TOOL_MINIAPP_IDS)[number])));
+        const partitions = partitionMiniApps(allApps as MiniAppInfo[]);
+        setCatalogApps(partitions.flagship);
+        setToolApps(partitions.tools);
       } catch (err) {
         logger.error("Failed to fetch miniapp catalog:", err);
       } finally {
@@ -95,10 +76,7 @@ export default function LandingPage() {
   }, []);
 
   const categories = useMemo(() => {
-    const counts: Record<string, number> = { all: catalogApps.length };
-    catalogApps.forEach((app) => {
-      counts[app.category] = (counts[app.category] || 0) + 1;
-    });
+    const counts = buildCategoryCounts(catalogApps);
     return [
       { id: "all", label: "All Apps", icon: CATEGORY_ICONS.all, count: counts.all },
       { id: "gaming", label: "Gaming", icon: CATEGORY_ICONS.gaming, count: counts.gaming || 0 },
@@ -111,13 +89,8 @@ export default function LandingPage() {
   }, [catalogApps]);
 
   const filteredApps = useMemo(() => {
-    let apps = selectedCategory === "all" ? catalogApps : catalogApps.filter((app) => app.category === selectedCategory);
-    if (sortBy === "name") {
-      apps = [...apps].sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy === "recent") {
-      apps = [...apps].reverse();
-    }
-    return apps.slice(0, 12);
+    const filtered = filterMiniAppsByCategory(catalogApps, selectedCategory);
+    return sortMiniApps(filtered, sortBy).slice(0, 12);
   }, [selectedCategory, sortBy, catalogApps]);
 
   return (

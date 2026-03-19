@@ -4,17 +4,16 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Wallet, Trophy, Zap, TrendingUp, Flame } from "lucide-react";
+import { Shield, Wallet, Link2, BookOpen } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import { useOAuthStore, oauthProviders } from "@/lib/oauth/store";
-import { useGamification } from "@/hooks/useGamification";
-import { BadgeGrid } from "@/components/features/gamification";
 import { cn } from "@/lib/utils";
 
 export default function AccountPage() {
   const { address } = useWalletStore();
   const { accounts, loading, linkAccount, unlinkAccount } = useOAuthStore();
-  const { stats, levelInfo } = useGamification(address);
+  const connectedProviders = accounts.length;
+  const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Not connected";
 
   return (
     <Layout>
@@ -51,9 +50,15 @@ export default function AccountPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Wallet Address</p>
-                    <p className="text-lg font-mono text-gray-900 dark:text-white truncate">{address.slice(0, 6)}...{address.slice(-4)}</p>
+                    <p className="text-lg font-mono text-gray-900 dark:text-white truncate">{shortAddress}</p>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white" onClick={() => navigator.clipboard.writeText(address)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    disabled={!address}
+                    onClick={() => address && navigator.clipboard.writeText(address)}
+                  >
                     Copy
                   </Button>
                 </div>
@@ -85,76 +90,55 @@ export default function AccountPage() {
             </Card>
           </div>
 
-          {/* Sidebar Stats */}
+          {/* Sidebar Guidance */}
           <div className="space-y-6">
-            {/* Reputation Card */}
             <Card className="glass-card overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-b border-gray-200 dark:border-gray-700">
+              <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Trophy size={16} className="text-emerald-500" aria-hidden="true" />
-                    Reputation
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                    <Shield size={16} className="text-emerald-500" aria-hidden="true" />
+                    Access Summary
                   </CardTitle>
-                  <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                    Lv.{stats?.level || 1}
+                  <Badge className="border-emerald-500/30 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    {address ? "Ready" : "Connect"}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-emerald-500">{stats?.xp || 0}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">{levelInfo?.name || "Newcomer"}</div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500 dark:text-gray-400">Progress to Lv.{(stats?.level || 1) + 1}</span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {stats?.xp || 0}/{levelInfo?.maxXP || 100}
-                    </span>
-                  </div>
-                  <div className="h-2 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all"
-                      style={{ width: `${levelInfo?.progress || 0}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <Link
-                    href="/leaderboard"
-                    className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-emerald-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
-                  >
-                    <TrendingUp size={12} aria-hidden="true" />
-                    <span>Rank #{stats?.rank || "-"}</span>
-                  </Link>
-                  <div className="flex items-center gap-1 text-xs text-amber-400">
-                    <Flame size={12} aria-hidden="true" />
-                    <span>{stats?.streak || 0} day streak</span>
-                  </div>
-                </div>
+                <InfoRow label="Wallet" value={address ? "Connected" : "Not connected"} />
+                <InfoRow label="Linked social accounts" value={String(connectedProviders)} />
+                <InfoRow label="Ratings and comments" value="Available in each miniapp" />
+                <InfoRow label="Platform statistics" value="Hidden from frontend" />
               </CardContent>
             </Card>
 
-            {/* Activity Stats */}
             <Card className="glass-card">
               <CardHeader>
-                <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Zap size={16} className="text-amber-500" aria-hidden="true" />
-                  Activity
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                  <Link2 size={16} className="text-amber-500" aria-hidden="true" />
+                  Next actions
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-3">
-                <StatItem label="Transactions" value={stats?.totalTx || 0} />
-                <StatItem label="Votes Cast" value={stats?.totalVotes || 0} />
-                <StatItem label="Apps Used" value={stats?.appsUsed || 0} />
-                <StatItem label="XP Earned" value={stats?.xp || 0} />
+              <CardContent className="space-y-3">
+                <Link href="/miniapps" className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800">
+                  Browse live miniapps
+                </Link>
+                <Link href="/docs" className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800">
+                  Read integration docs
+                </Link>
               </CardContent>
             </Card>
 
-            {/* Badges */}
             <Card className="glass-card">
-              <CardContent className="pt-4">
-                <BadgeGrid earnedBadges={stats?.badges || []} />
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                  <BookOpen size={16} className="text-indigo-400" aria-hidden="true" />
+                  Frontend policy
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                <p>The account page now focuses on identity, wallet access, and connected providers.</p>
+                <p>Platform statistics remain hidden until the data pipeline is rebuilt. Reviews and comments stay enabled inside each miniapp.</p>
               </CardContent>
             </Card>
 
@@ -171,6 +155,15 @@ export default function AccountPage() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl bg-gray-100 px-3 py-2 dark:bg-gray-900">
+      <span className="text-xs uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">{label}</span>
+      <span className="text-sm font-semibold text-gray-900 dark:text-white">{value}</span>
+    </div>
   );
 }
 
@@ -216,15 +209,6 @@ function OAuthBindingItem({
       >
         {isLoading ? "..." : isConnected ? "Disconnect" : "Connect"}
       </Button>
-    </div>
-  );
-}
-
-function StatItem({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-900 text-center">
-      <div className="text-lg font-bold text-gray-900 dark:text-white">{value}</div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
     </div>
   );
 }
