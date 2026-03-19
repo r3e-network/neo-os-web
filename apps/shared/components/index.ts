@@ -17,7 +17,6 @@ export { default as AppIcon } from "./AppIcon.vue";
 export { default as NeoCard } from "./NeoCard.vue";
 export { default as NeoButton } from "./NeoButton.vue";
 export { default as NeoInput } from "./NeoInput.vue";
-export { default as NeoDoc } from "./NeoDoc.vue";
 
 // ── Feedback ──
 export { default as ErrorBoundary } from "./ErrorBoundary.vue";
@@ -28,7 +27,6 @@ export { default as Fireworks } from "./Fireworks.vue";
 export { default as WalletPrompt } from "./WalletPrompt.vue";
 export { default as HeroSection } from "./HeroSection.vue";
 export { default as HeroStatsStrip } from "./HeroStatsStrip.vue";
-export { default as CountdownTimer } from "./CountdownTimer.vue";
 export { default as ContractAvailabilityCard } from "./ContractAvailabilityCard.vue";
 
 // ── Data Display ──
