@@ -111,6 +111,17 @@ describe("LaunchPage", () => {
       expect(screen.getByText("Layout")).toBeInTheDocument();
       expect(screen.getAllByText("Operations").length).toBeGreaterThan(0);
     });
+
+    it("should render external iframe runtimes for https entry urls", async () => {
+      await renderLaunchPage({
+        ...mockApp,
+        entry_url: "https://wallet.matrix/apps/test",
+      });
+
+      expect(document.querySelector("iframe")).toBeInTheDocument();
+      expect(document.querySelector("iframe")?.getAttribute("src")).toBe("https://wallet.matrix/apps/test");
+      expect(screen.queryByText("Manifest Runtime")).not.toBeInTheDocument();
+    });
   });
 
   describe("Network Latency Monitoring", () => {
