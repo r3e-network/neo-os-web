@@ -37,6 +37,21 @@ describe("miniapp-schema-validator", () => {
     expect(result.valid).toBe(true);
   });
 
+  it("accepts bare .matrix entry urls and aa permissions", () => {
+    const result = validateMiniAppDefinitionAgainstSchema({
+      app_id: "miniapp-matrix-aa",
+      name: "Matrix AA",
+      template_type: "utility",
+      category: "utility",
+      entry_url: "wallet.matrix/apps/aa",
+      permissions: {
+        aa: true,
+      },
+    });
+
+    expect(result.valid).toBe(true);
+  });
+
   it("accepts extended template/i18n/media variants payload", () => {
     const result = validateMiniAppDefinitionAgainstSchema({
       app_id: "miniapp-template-rich",

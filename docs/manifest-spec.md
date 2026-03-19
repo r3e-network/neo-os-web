@@ -137,11 +137,14 @@ High level:
 - `sandbox_flags` (array of strings): e.g. `no-eval`, `strict-csp`.
 - `attestation_required` (bool): host must enforce enclave attestation for sensitive services.
 
-`entry_url` supports two modes:
+`entry_url` supports three modes:
 
 - `https://...` for iframe-hosted MiniApps.
 - `mf://<remote>?app=<app_id>` for Module Federation miniapps. The host resolves
   `<remote>` via `NEXT_PUBLIC_MF_REMOTES` and loads `miniapp/App` without an iframe.
+- bare `*.matrix` / `*.neo` domains (for example `wallet.matrix/app` or
+  `smartwallet.neo/console`) which are normalized to `https://...` by the host
+  admin/runtime pipeline.
 
 ### Permissions
 
@@ -152,6 +155,7 @@ High level:
 - `permissions.governance`: enables bNEO governance calls via `Governance`.
 - `permissions.rng`: enables VRF/RNG requests via the TEE services.
 - `permissions.datafeed`: enables reading/subscribing to price feeds.
+- `permissions.aa`: enables AA relay / sponsorship / session-key driven flows.
 - `permissions.storage`: storage scopes (e.g. `kv`).
 
 If you use the shorthand array form (`"permissions": ["wallet", "payments"]`),
@@ -213,7 +217,8 @@ Aliases (normalized at registration):
 
 - `assets_allowed` must be exactly `["GAS"]`.
 - `governance_assets_allowed` must be exactly `["BNEO"]`.
-- `entry_url` must use `https://` in production unless it uses the `mf://` scheme.
+- `entry_url` must resolve to `https://...` in production unless it uses the `mf://` scheme.
+- bare `*.matrix` and `*.neo` domains are accepted and normalized to `https://...`.
 - `permissions` must be a strict subset of supported platform permissions.
 - `limits` must be within platform policy bounds (global caps set by governance).
 - `limits.daily_gas_cap_per_user` and `limits.governance_cap` are enforced by the gateway

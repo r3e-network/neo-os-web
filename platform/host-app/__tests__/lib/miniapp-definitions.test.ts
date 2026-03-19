@@ -276,7 +276,7 @@ describe("miniapp-definitions loader", () => {
     expect(byId.get("miniapp-dicegame")).toEqual(
       expect.objectContaining({
         app_id: "miniapp-dicegame",
-        entry_url: "mf://manifest?app=miniapp-dicegame",
+        entry_url: "https://example.com/dice-game",
       }),
     );
     expect(byId.get("miniapp-fogplay")).toEqual(

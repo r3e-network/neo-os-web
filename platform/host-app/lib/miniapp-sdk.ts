@@ -12,6 +12,7 @@ type MiniAppPermissions = {
   governance?: boolean;
   randomness?: boolean;
   datafeed?: boolean;
+  aa?: boolean;
 };
 
 type InstallOptions = {
@@ -88,6 +89,7 @@ function permissionsKey(permissions?: MiniAppPermissions): string {
     `governance:${permissions.governance ? 1 : 0}`,
     `randomness:${permissions.randomness ? 1 : 0}`,
     `datafeed:${permissions.datafeed ? 1 : 0}`,
+    `aa:${permissions.aa ? 1 : 0}`,
   ].join("|");
 }
 
