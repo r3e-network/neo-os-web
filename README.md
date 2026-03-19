@@ -117,6 +117,10 @@ For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | AA SessionKey verifier | `sessionkey.smartwallet.neo` | `0xe82b9d056c011819ff3652427682224daad0cd1f` |
 | AA SocialRecovery verifier | `recovery.smartwallet.neo` | `0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3` |
 
+Entry domains for MiniApps are not limited to `.neo`. The host runtime now
+accepts canonical `https://...`, `mf://...`, and bare `*.matrix` / `*.neo`
+entry domains, normalizing bare domains to `https://...` before launch.
+
 ### Testnet
 
 | Component | Hash |
