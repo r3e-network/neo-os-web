@@ -1,4 +1,5 @@
 import type { MiniAppCategory, MiniAppInfo } from "../components/types";
+import { resolveMiniAppEntryUrlOrManifest } from "./miniapp-entry-url";
 import { withMiniAppCardAssets } from "./miniapp-media";
 import { canonicalizeMiniAppId } from "./miniapp-id";
 import { resolveMiniAppDetailConfig } from "./miniapp-template";
@@ -7,8 +8,6 @@ function asObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
 }
-
-const MANIFEST_ENTRY_PREFIX = "mf://manifest?app=";
 
 function toString(value: unknown, fallback = ""): string {
   if (value === undefined || value === null) return fallback;
@@ -70,10 +69,7 @@ function resolveManifestContractHash(manifest: Record<string, unknown>): string 
 }
 
 function normalizeEntryUrl(raw: unknown, appId: string): string {
-  const input = toString(raw).trim();
-  if (!input) return `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`;
-  if (input.startsWith("mf://manifest?")) return input;
-  return `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`;
+  return resolveMiniAppEntryUrlOrManifest(raw, appId);
 }
 
 export function normalizeCategory(value: unknown): MiniAppCategory {
@@ -104,6 +100,7 @@ export function normalizePermissions(
   const randomness = has("randomness") || has("rng") ? (raw.randomness ?? raw.rng) : fallback?.randomness;
   const datafeed = has("datafeed") ? raw.datafeed : fallback?.datafeed;
   const confidential = has("confidential") ? raw.confidential : fallback?.confidential;
+  const aa = has("aa") || has("abstract_account") ? (raw.aa ?? raw.abstract_account) : fallback?.aa;
 
   return {
     payments: Boolean(payments),
@@ -111,6 +108,7 @@ export function normalizePermissions(
     randomness: Boolean(randomness),
     datafeed: Boolean(datafeed),
     confidential: Boolean(confidential),
+    aa: Boolean(aa),
   };
 }
 

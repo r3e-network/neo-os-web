@@ -4,12 +4,12 @@ import yaml from "js-yaml";
 import type { MiniAppInfo } from "@/components/types";
 import { coerceMiniAppInfo } from "./miniapp";
 import { applyBuiltInMiniAppDefaults } from "./miniapp-builtins";
+import { resolveMiniAppEntryUrlOrManifest } from "./miniapp-entry-url";
 import { logger } from "./logger";
 import { canonicalizeMiniAppId } from "./miniapp-id";
 
 type Dict = Record<string, unknown>;
 
-const MANIFEST_ENTRY_PREFIX = "mf://manifest?app=";
 const DEFINITION_EXTENSIONS = new Set([".json", ".yaml", ".yml"]);
 
 export type MiniAppDefinitionPayload = {
@@ -109,10 +109,7 @@ function fileHasSupportedDefinitionExtension(fileName: string): boolean {
 }
 
 function resolveManifestEntryUrl(rawEntryUrl: unknown, appId: string): string {
-  const input = asString(rawEntryUrl);
-  if (!input) return `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`;
-  if (input.startsWith("mf://manifest?")) return input;
-  return `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`;
+  return resolveMiniAppEntryUrlOrManifest(rawEntryUrl, appId);
 }
 
 function titleCase(input: string): string {
@@ -331,17 +328,17 @@ async function listBundledManifestSlugs(): Promise<string[]> {
 }
 
 function buildManifestOnlyDefinition(slug: string, bundledManifest: Dict): Dict {
-  const appId = canonicalizeAppId(bundledManifest.id, slug);
-  return {
-    app_id: appId,
-    name: asString(bundledManifest.name) || titleCase(slug),
-    description: asString(bundledManifest.description),
-    category: asString(bundledManifest.category) || "utility",
-    entry_url: `${MANIFEST_ENTRY_PREFIX}${encodeURIComponent(appId)}`,
-    status: "active",
-    manifest: bundledManifest,
-  };
-}
+    const appId = canonicalizeAppId(bundledManifest.id, slug);
+    return {
+      app_id: appId,
+      name: asString(bundledManifest.name) || titleCase(slug),
+      description: asString(bundledManifest.description),
+      category: asString(bundledManifest.category) || "utility",
+      entry_url: resolveMiniAppEntryUrlOrManifest(bundledManifest.entry_url, appId),
+      status: "active",
+      manifest: bundledManifest,
+    };
+  }
 
 function getSlugFromFilename(fileName: string): string {
   return path.parse(fileName).name.trim();

@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
+import { ExternalMiniAppFrame } from "../../components/ExternalMiniAppFrame";
 import { LaunchDock } from "../../components/LaunchDock";
 import { FederatedMiniApp } from "../../components/FederatedMiniApp";
 import { LiveChat } from "../../components/features/chat";
 import { WalletState, MiniAppInfo } from "../../components/types";
 import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
+import { isManifestMiniAppEntryUrl } from "../../lib/miniapp-entry-url";
 import { logger } from "../../lib/logger";
 import { resolveInternalBaseUrl } from "../../lib/edge";
 import { loadBundledMiniAppById } from "../../lib/miniapp-definitions";
@@ -36,8 +38,9 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   const [wallet, setWallet] = useState<WalletState>({ connected: false, address: "", provider: null });
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const isManifestMode = app.entry_url.startsWith("mf://manifest?");
+  const isManifestMode = isManifestMiniAppEntryUrl(app.entry_url);
   const federated = isManifestMode ? null : parseFederatedEntryUrl(app.entry_url, app.app_id);
+  const externalUrl = !isManifestMode && !federated ? app.entry_url : null;
 
   // Network latency monitoring
   useEffect(() => {
@@ -125,6 +128,14 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       {federated ? (
         <div className="absolute top-12 left-0 w-screen h-[calc(100vh-48px)] overflow-auto">
           <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
+        </div>
+      ) : externalUrl ? (
+        <div className="absolute top-12 left-0 w-screen h-[calc(100vh-48px)] overflow-auto">
+          <ExternalMiniAppFrame
+            src={externalUrl}
+            title={app.name}
+            className="w-screen h-[calc(100vh-48px)] overflow-hidden rounded-none border-0 shadow-none"
+          />
         </div>
       ) : (
         <ManifestRuntime app={app} />

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { withCsrfProtection } from "../../../lib/csrf";
 import { apiError } from "@/lib/api-response";
+import { normalizeMiniAppEntryUrl } from "@/lib/miniapp-entry-url";
 import { logger } from "@/lib/logger";
 import { strictLimit } from "@/lib/rate-limit";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
@@ -20,6 +21,7 @@ export interface SubmitMiniAppRequest {
     governance?: boolean;
     randomness?: boolean;
     datafeed?: boolean;
+    aa?: boolean;
   };
 }
 
@@ -58,12 +60,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   // URL validation
-  try {
-    const parsed = new URL(body.entry_url);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      return apiError.badRequest(res, "entry_url must be http or https");
-    }
-  } catch {
+  const normalizedEntryUrl = normalizeMiniAppEntryUrl(body.entry_url);
+  if (!normalizedEntryUrl) {
     return apiError.badRequest(res, "Invalid entry_url");
   }
 
@@ -98,7 +96,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         description: body.description,
         icon: body.icon || "📦",
         category: body.category || "utility",
-        entry_url: body.entry_url,
+        entry_url: normalizedEntryUrl,
         contract_hash: body.contract_hash,
         developer_address: body.developer_address,
         developer_name: body.developer_name,
