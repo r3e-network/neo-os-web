@@ -55,6 +55,9 @@ namespace NeoMiniAppPlatform.Contracts
             OnFundsDistributed(contractId, recipient, amount);
         }
 
+        private static bool HasPendingMutualBreakup(MutualBreakupRequest request) =>
+            request.Requester != null && request.Requester != UInt160.Zero;
+
         #endregion
     }
 }

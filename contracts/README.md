@@ -319,9 +319,9 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | --------------------- | -------------------------------------------- | --------- |
 | MiniAppSchrodingerNFT | `0x43165f491aa0584d402f4b360d667f3e0e3293e7` | ✅ Active |
 | MiniAppAlgoBattle     | `0xdeb2117b8db028e68e6acf2e9c67c26517d00a3e` | ✅ Active |
-| MiniAppTimeCapsule    | `0x119763e1402d7190728191d83c95c5b8e995abcd` | ✅ Active |
+| MiniAppTimeCapsule    | `0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489` | ✅ Active |
 | MiniAppGardenOfNeo    | `0xdb52b284d97973b01fed431dd6d143a4d04d9fa7` | ✅ Active |
-| MiniAppDevTipping     | `0x38ec54ce12e9cbf041cc7e31534eccae0eaa38dc` | ✅ Active |
+| MiniAppDevTipping     | `0x389aa2c619f0cfed5b495dd8638107d20f37e086` | ✅ Active |
 
 **Phase 7 - Advanced DeFi & Social:**
 
@@ -337,7 +337,7 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | MiniAppSelfLoan        | `0x5ed7d8c85f24f4aa16b328aca776e09be5241296` | ✅ Active |
 | MiniAppDarkPool        | `0xf25a43e726c58ae5ec9468ff42caeaeeadd78128` | ✅ Active |
 | MiniAppBurnLeague      | `0xf1aa73e2fb00664e8ef100dac083fc42be6aaf85` | ✅ Active |
-| MiniAppGovMerc         | `0x05d4ed2e60141043d6d20f5cde274704bd42c0dc` | ✅ Active |
+| MiniAppGovMerc         | `0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62` | ✅ Active |
 
 **Phase 8 - Creative & Social:**
 

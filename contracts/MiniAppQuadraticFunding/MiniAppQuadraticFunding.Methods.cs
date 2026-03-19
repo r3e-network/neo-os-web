@@ -41,10 +41,7 @@ namespace NeoMiniAppPlatform.Contracts
                 ExecutionEngine.Assert(matchingPool >= MIN_GAS, "min 0.1 GAS");
             }
 
-            bool transferred = IsNeo(asset)
-                ? NEO.Transfer(creator, Runtime.ExecutingScriptHash, matchingPool)
-                : GAS.Transfer(creator, Runtime.ExecutingScriptHash, matchingPool);
-            ExecutionEngine.Assert(transferred, "transfer failed");
+            ConsumeDirectAssetCredit(asset, creator, matchingPool);
 
             BigInteger roundId = TotalRounds() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_ROUND_ID, roundId);
@@ -89,10 +86,7 @@ namespace NeoMiniAppPlatform.Contracts
             bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
             ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(contributor), "unauthorized");
 
-            bool transferred = IsNeo(round.Asset)
-                ? NEO.Transfer(contributor, Runtime.ExecutingScriptHash, amount)
-                : GAS.Transfer(contributor, Runtime.ExecutingScriptHash, amount);
-            ExecutionEngine.Assert(transferred, "transfer failed");
+            ConsumeDirectAssetCredit(round.Asset, contributor, amount);
 
             round.MatchingPool += amount;
             StoreRound(roundId, round);
@@ -317,10 +311,7 @@ namespace NeoMiniAppPlatform.Contracts
             bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
             ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(contributor), "unauthorized");
 
-            bool transferred = IsNeo(round.Asset)
-                ? NEO.Transfer(contributor, Runtime.ExecutingScriptHash, amount)
-                : GAS.Transfer(contributor, Runtime.ExecutingScriptHash, amount);
-            ExecutionEngine.Assert(transferred, "transfer failed");
+            ConsumeDirectAssetCredit(round.Asset, contributor, amount);
 
             BigInteger current = GetContributionInternal(contributor, roundId, projectId);
             if (current == 0)

@@ -141,7 +141,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(requester == contract.Party1 || requester == contract.Party2, "not a party");
 
             MutualBreakupRequest existing = GetMutualBreakupRequest(contractId);
-            ExecutionEngine.Assert(existing.Requester == UInt160.Zero, "request already pending");
+            ExecutionEngine.Assert(!HasPendingMutualBreakup(existing), "request already pending");
 
             MutualBreakupRequest request = new MutualBreakupRequest
             {
@@ -167,7 +167,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(confirmer == contract.Party1 || confirmer == contract.Party2, "not a party");
 
             MutualBreakupRequest request = GetMutualBreakupRequest(contractId);
-            ExecutionEngine.Assert(request.Requester != UInt160.Zero, "no pending request");
+            ExecutionEngine.Assert(HasPendingMutualBreakup(request), "no pending request");
             ExecutionEngine.Assert(request.Requester != confirmer, "cannot confirm own request");
             ExecutionEngine.Assert(Runtime.Time <= request.RequestTime + MUTUAL_BREAKUP_COOLDOWN_SECONDS, "request expired");
 
