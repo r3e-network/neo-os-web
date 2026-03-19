@@ -54,10 +54,7 @@ namespace NeoMiniAppPlatform.Contracts
             }
             ExecutionEngine.Assert(sum == totalAmount, "milestone sum mismatch");
 
-            bool transferred = IsNeo(asset)
-                ? NEO.Transfer(creator, Runtime.ExecutingScriptHash, totalAmount)
-                : GAS.Transfer(creator, Runtime.ExecutingScriptHash, totalAmount);
-            ExecutionEngine.Assert(transferred, "transfer failed");
+            ConsumeDirectAssetCredit(asset, creator, totalAmount);
 
             BigInteger escrowId = TotalEscrows() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_ESCROW_ID, escrowId);

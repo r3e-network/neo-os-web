@@ -17,10 +17,18 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateNotGloballyPaused(APP_ID);
             ExecutionEngine.Assert(amount >= MIN_DEPOSIT, "min 1 NEO");
-            ExecutionEngine.Assert(Runtime.CheckWitness(depositor), "unauthorized");
+            ValidateUserOrAbstractAccount(depositor);
 
-            bool transferred = NEO.Transfer(depositor, Runtime.ExecutingScriptHash, amount);
-            ExecutionEngine.Assert(transferred, "transfer failed");
+            BigInteger credited = GetDirectAssetCredit(NEO.Hash, depositor);
+            if (credited >= amount)
+            {
+                ConsumeDirectAssetCredit(NEO.Hash, depositor, amount);
+            }
+            else
+            {
+                bool transferred = NEO.Transfer(depositor, Runtime.ExecutingScriptHash, amount);
+                ExecutionEngine.Assert(transferred, "transfer failed");
+            }
 
             Deposit deposit = GetDeposit(depositor);
             BigInteger currentEpoch = GetCurrentEpochId();

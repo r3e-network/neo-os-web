@@ -1,57 +1,8 @@
 [
   {
-    "name": "MiniAppDiceGame",
-    "hash": "0x1e448bf07a742da74084d4c64a61052980beb496",
-    "oracle_set": true,
-    "aa_set": true
-  },
-  {
-    "name": "MiniAppGasCircle",
-    "hash": "0x4630b40a4e67882cfab3d3f5041c1da597b0c7b6",
-    "oracle_set": true,
-    "aa_set": true
-  },
-  {
-    "name": "MiniAppExFiles",
-    "hash": "0xb55358f282a519762ad8c7db57dff2f01bb8cd2a",
-    "oracle_set": true,
-    "aa_set": true
-  },
-  {
-    "name": "MiniAppMasqueradeDAO",
-    "hash": "0xa79f897c8f1d6b1450b7204668b82cffd1bad4a0",
-    "oracle_set": true,
-    "aa_set": true
-  },
-  {
-    "name": "MiniAppMillionPieceMap",
-    "hash": "0x4cac0ac79bac3b94c388fe0f27a9ed1a8e476cbf",
-    "oracle_set": true,
-    "aa_set": true
-  },
-  {
-    "name": "MiniAppGraveyard",
-    "hash": "0xb55aa635b10a5abb5cbac169db26a38df739778e",
-    "app_manifest": "apps/graveyard/neo-manifest.json",
-    "oracle_set": true,
-    "aa_set": true
-  },
-  {
-    "name": "MiniAppHeritageTrust",
-    "hash": "0x42e14d04c17dad0b1d76ee7509e537791230431b",
-    "oracle_set": true,
-    "aa_set": true
-  },
-  {
-    "name": "MiniAppHallOfFame",
-    "hash": "0x00d44aefa345f72c0eb15036129a32a56c765474",
-    "oracle_set": true,
-    "aa_set": true
-  },
-  {
-    "name": "MiniAppTurtleMatch",
-    "hash": "0x4750b2d55de0282579e66c2b1b6c07d9138380ad",
-    "oracle_set": true,
-    "aa_set": true
+    "name": "MiniAppGovMerc",
+    "hash": "0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62",
+    "app_manifest": "apps/gov-merc/neo-manifest.json",
+    "oracle_set": true
   }
 ]

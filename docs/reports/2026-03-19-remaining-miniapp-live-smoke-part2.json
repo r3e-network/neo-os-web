@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-03-19T02:56:42.313Z",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "adminAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  "userAddress": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+  "results": {
+    "eventticket": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72",
+        "eventId": "4",
+        "tokenId": "4-1",
+        "createTx": "0x77e51ea25da6f1cf756e0a28fbc1de5bfa9ca050495913fdf73208a3abe776b5",
+        "issueTx": "0xb1ca9717835ffe07c1e6163fbeeb7abbed140f43506c5268818e45b325813cf9",
+        "checkInTx": "0xc1981c11210eb45955fa7e17fdeb8d35735b3f83cf498debe5a6b578eb3dad62",
+        "details": {
+          "tokenId": "4-1",
+          "eventId": "4",
+          "owner": "0x69aa227309f35d7196d0d9f97fc22b33613a31eb",
+          "eventName": "Event-1773888698743-784071",
+          "venue": "NeoTokyo",
+          "startTime": "1773892298",
+          "endTime": "1773895898",
+          "seat": "A-1",
+          "memo": "codex smoke ticket",
+          "issuedTime": "1773888717474",
+          "used": true,
+          "usedTime": "1773888733035",
+          "active": true
+        }
+      }
+    },
+    "gassponsor": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x31888679572bf2de61462ff9934b6265d60284f2",
+        "poolId": "2",
+        "createTx": "0xfd0277453693e592e10dda81ce3acd3ac1bd5df7f5027a86f8cd697c53972091",
+        "claimTx": "0x87f127a02ae3ac307af091fc4a2bbe13314f5bd82515f4c276c479bf2d8d7e26",
+        "withdrawTx": "0x2cc3cc9ea610451f89319d05adb9fe2938cca699a19875f76af59cf5c7176932"
+      }
+    },
+    "memorial": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x87f0fe2ba69cd973a3274471234d3cc13ef943c5",
+        "memorialId": "2",
+        "createTx": "0xfb67053946fbd120c80ca534976f3f900f27bcd0151e765a7fb9eaed1c1efdbf",
+        "tributeTx": "0x80eaef07728161a8c315e07d13fa54fcf043939ea27c555e8332852352630763"
+      }
+    },
+    "milestone": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x2a3691aa2da68512e9bf1363f383f354b6a02aad",
+        "escrowId": "3",
+        "createTx": "0xa96c9995132c2286f83c8805a53767f0d619ee9979b38284d0138402b0414428",
+        "approveTx": "0x75c9a393a6affd8c120900896e5b1e3ab52c20fcebe1554c6733a43f343e0319",
+        "claimTx": "0x6a87c45d989131268e4db14bcd74d43bba66d0c6a3e656c65de3891d7c357f0e"
+      }
+    },
+    "soulbound": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x14a4101b5098c38a18bebeb79dc809c80ff87f9e",
+        "templateId": "3",
+        "tokenId": "3-1",
+        "createTx": "0xf2f65f9a98ba4ec3012ffdd19dfc7591841ab3090d2f46541833bd6b6b72d1c6",
+        "issueTx": "0xbb85aa28d136ff7f554014412786d068360ca165daf80ff8eb3c21dccf6dafa6",
+        "revokeTx": "0x47e52b38814ecea90c528d18bf73d5f20b080aa10ba080554786cce172232bf6"
+      }
+    },
+    "trustanchor": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2",
+        "depositTx": "0x6006c8ffeb24bbea955672f0652218033c2f357b2ad3a2c58064935d6d93e464",
+        "rewardDepositTx": "0xd5aaef826f6ec5d6361f82966d75116b56879955a616d8f17d7c895c85a815f8",
+        "reward": "1000000",
+        "claimRewardTx": "0x555fa770b6cf20afa9ef054fb65997f3c73c00dc0b5b6e16a86108ac3dffcff6"
+      }
+    }
+  }
+}

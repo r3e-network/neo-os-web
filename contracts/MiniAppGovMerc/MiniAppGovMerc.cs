@@ -47,7 +47,7 @@ namespace NeoMiniAppPlatform.Contracts
         #region App Constants
         private const string APP_ID = "miniapp-gov-merc";
         private const int EPOCH_DURATION_SECONDS = 604800;  // 7 days
-        private const long MIN_DEPOSIT = 100000000;       // 1 NEO minimum
+        private const long MIN_DEPOSIT = 1;               // 1 NEO minimum
         private const long MIN_BID = 10000000;            // 0.1 GAS minimum
         private const int PLATFORM_FEE_BPS = 500;         // 5% platform fee
         #endregion

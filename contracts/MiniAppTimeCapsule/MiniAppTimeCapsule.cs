@@ -35,8 +35,8 @@ namespace NeoMiniAppPlatform.Contracts
         private const long EXTEND_FEE = 10000000;       // 0.1 GAS
         private const long GIFT_FEE = 15000000;         // 0.15 GAS
         private const long FISH_REWARD = 2000000;       // 0.02 GAS reward
-        private const long MIN_LOCK_DURATION_SECONDS = 86400;  // 1 day minimum
-        private const long MAX_LOCK_DURATION_SECONDS = 31536000; // 10 years max
+        private const long MIN_LOCK_DURATION_SECONDS = 86400L * 1000L;         // 1 day minimum
+        private const long MAX_LOCK_DURATION_SECONDS = 315360000L * 1000L;     // 10 years max
         #endregion
 
         #region App Storage Prefixes (0x20+)

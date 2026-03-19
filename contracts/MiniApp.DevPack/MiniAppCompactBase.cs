@@ -22,6 +22,8 @@ namespace NeoMiniAppPlatform.Contracts
         protected static readonly byte[] PREFIX_PAUSED = new byte[] { 0x04 };
         protected static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
         protected static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x06 };
+        protected static readonly byte[] PREFIX_DIRECT_GAS_CREDIT = new byte[] { 0x70 };
+        protected static readonly byte[] PREFIX_DIRECT_ASSET_CREDIT = new byte[] { 0x71 };
 
         private static UInt160 ReadHash(byte[] key)
         {
@@ -120,6 +122,83 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ContractManagement.Update(nef, manifest, new object[0]);
+        }
+
+        protected static string ReadPaymentMemo(object data)
+        {
+            if (data == null) return "";
+            if (data is string text) return text ?? "";
+            if (data is ByteString byteString) return (string)byteString;
+            return data.ToString();
+        }
+
+        protected static void CreditDirectGasPayment(string appId, UInt160 from, BigInteger amount, object data)
+        {
+            if (from == Runtime.ExecutingScriptHash) return;
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == GAS.Hash, "unsupported asset");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            string memo = ReadPaymentMemo(data);
+            ExecutionEngine.Assert(memo.StartsWith(appId + ":"), "invalid payment memo");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
+            ByteString key = (ByteString)(byte[])from;
+            ByteString existing = credits.Get(key);
+            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+            credits.Put(key, balance + amount);
+        }
+
+        protected static void ConsumeDirectGasCredit(UInt160 payer, BigInteger amount)
+        {
+            ValidateAddress(payer);
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
+            ByteString key = (ByteString)(byte[])payer;
+            ByteString existing = credits.Get(key);
+            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid gas");
+
+            BigInteger next = balance - amount;
+            if (next == 0) credits.Delete(key);
+            else credits.Put(key, next);
+        }
+
+        private static ByteString GetDirectAssetCreditKey(UInt160 asset, UInt160 payer) =>
+            (ByteString)Helper.Concat((ByteString)(byte[])asset, (ByteString)(byte[])payer);
+
+        protected static void CreditDirectAssetPayment(string appId, UInt160 expectedAsset, UInt160 from, BigInteger amount, object data)
+        {
+            if (from == Runtime.ExecutingScriptHash) return;
+            ValidateAddress(expectedAsset);
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == expectedAsset, "unsupported asset");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            string memo = ReadPaymentMemo(data);
+            ExecutionEngine.Assert(memo.StartsWith(appId + ":"), "invalid payment memo");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
+            ByteString key = GetDirectAssetCreditKey(expectedAsset, from);
+            ByteString existing = credits.Get(key);
+            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+            credits.Put(key, balance + amount);
+        }
+
+        protected static void ConsumeDirectAssetCredit(UInt160 asset, UInt160 payer, BigInteger amount)
+        {
+            ValidateAddress(asset);
+            ValidateAddress(payer);
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
+            ByteString key = GetDirectAssetCreditKey(asset, payer);
+            ByteString existing = credits.Get(key);
+            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid asset");
+
+            BigInteger next = balance - amount;
+            if (next == 0) credits.Delete(key);
+            else credits.Put(key, next);
         }
 
         public static void Destroy()

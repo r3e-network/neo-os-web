@@ -85,9 +85,9 @@ Support ecosystem developers with tips
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x38ec54ce12e9cbf041cc7e31534eccae0eaa38dc` |
+| **Contract** | `0x389aa2c619f0cfed5b495dd8638107d20f37e086` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x38ec54ce12e9cbf041cc7e31534eccae0eaa38dc) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x389aa2c619f0cfed5b495dd8638107d20f37e086) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
