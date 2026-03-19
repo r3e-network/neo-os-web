@@ -3,7 +3,6 @@ import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { formatNum, sleep, toFixed8 } from "@shared/utils/format";
 import { parseStackItem } from "@shared/utils/neo";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { useGameState } from "@shared/composables/useGameState";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -21,8 +20,17 @@ export function useFogPlayGame(wallet: WalletSDK, t: (key: string) => string) {
   const { address, ensureWallet, ensureContractAddress } = useContractInteraction({ appId: APP_ID, t, wallet });
   const { handleError, canRetry, clearError } = useErrorHandler();
   const { status: errorStatus, setStatus: setErrorStatus } = useStatusMessage(5000);
-  const { wins, losses, totalGames, recordWin, recordLoss } = useGameState();
   const { list: listEvents } = useEvents();
+
+  const wins = ref(0);
+  const losses = ref(0);
+  const totalGames = computed(() => wins.value + losses.value);
+  const recordWin = () => {
+    wins.value += 1;
+  };
+  const recordLoss = () => {
+    losses.value += 1;
+  };
 
   const betAmount = ref("1");
   const choice = ref<"heads" | "tails">("heads");
