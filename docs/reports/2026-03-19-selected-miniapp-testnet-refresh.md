@@ -68,3 +68,40 @@ This report replaces the older secondary-miniapp testnet reports that referenced
 - `automationAnchor` was read back on-chain as `0xa016f7be94ad7c4d87ad2f8d38784797c2dc494b` for every refreshed contract in scope
 - `MiniAppFlashLoan` update transaction reached `HALT`
 - no active non-report docs remain with the superseded testnet hashes for these refreshed contracts
+
+## Post-refresh fixes
+
+During live smoke validation, four additional issues were found and fixed on the refreshed testnet set:
+
+1. `MiniAppHeritageTrust`
+   - `MIN_PRINCIPAL` used `100000000` instead of `1` for NEO units.
+   - fixed and updated in place with tx `0x6ace0b8575115ad66dcab8e426d4dc66fe10e53b4a9c629b813d38291b7d86d2`
+2. `MiniAppHallOfFame`
+   - nominee existence checks treated `null` `AddedBy` as already populated, blocking all new nominees.
+   - fixed and updated in place with tx `0x4716309e0b4899675e0369ce68429516b430811c5c2a5d09f7b5b095db390eb8`
+3. `MiniAppTurtleMatch`
+   - compute bridge exposed no public script-registration surface on the fresh deployment, blocking settlement.
+   - `GameStarted` event manifest also declared `String` while emitting `ByteString`.
+   - fixed and updated in place with tx `0xb1a34c17ee403193f7a38c64a73e7afa6365a21deba8825ac95a6d56d68f18fc`
+   - event-type follow-up update tx: `0x7ca44ab73202860404a7ce859ed36e60f325db0452c52ce13e9700e0997c0e17`
+4. Morpheus Oracle callback allowlist
+   - new `MiniAppDiceGame` and `MiniAppGasCircle` callback contracts were not yet allowlisted.
+   - allowlist add txs:
+     - `MiniAppDiceGame`: `0x5bac4dcc53d66f8f61cfe00b8c28b38612917190f00231aef849b1dc1098fbe4`
+     - `MiniAppGasCircle`: `0x9cf33f901c14a512f62639464fa39b42b28c348ee741aa6c566976d57c31e742`
+
+## Live smoke
+
+- full selected-miniapp live smoke report:
+  - [`2026-03-19-selected-miniapp-live-smoke.json`](/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/2026-03-19-selected-miniapp-live-smoke.json)
+- final status:
+  - `flashloan`: pass
+  - `exfiles`: pass
+  - `masqueradedao`: pass
+  - `millionpiecemap`: pass
+  - `graveyard`: pass
+  - `halloffame`: pass
+  - `heritagetrust`: pass
+  - `dicegame`: pass
+  - `gascircle`: pass
+  - `turtlematch`: pass

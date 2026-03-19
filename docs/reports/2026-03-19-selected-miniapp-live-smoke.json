@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-03-19T01:04:56.253Z",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "adminAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  "userAddress": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+  "oracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  "results": {
+    "flashloan": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xde8e595d8d3c293731db499367ee2a768e1e458b",
+        "transferTx": "0x1dcb7ad8f94a0b23b987629925117ff2d656ac023ff4d84f8e9d3f3288b03f2e",
+        "depositTx": "0x5c7e46508742dff6e21c5b1f5594eca366824042e9e22e78385fe99caf34e84d",
+        "withdrawTx": "0xfcbd6ad91ee5234a4f1c052b76b4725fe382a76fb7cdced739b2d41c0deb649b",
+        "before": "500090000",
+        "afterDeposit": "503090000",
+        "afterWithdraw": "500090000"
+      }
+    },
+    "exfiles": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xb55358f282a519762ad8c7db57dff2f01bb8cd2a",
+        "recordId": "2",
+        "createTx": "0x8ed42df918fb4c54a058b87903b0d8f68f83255dea3c704060251763a6e28001",
+        "queryTx": "0x4876b391506c89a700c6b31e680a13356421f82cc7c1ab774ef9d16cc8345763",
+        "verifyTx": "0xaf54be513744881a8824b64edda705b139956cd3fb48feb226267152ce44026d",
+        "reportTx": "0x0b2e1b9c6eec8ab3bf49b10aa583adb427090eaa935777cc129bef9c0b7cce62",
+        "updateTx": "0x3cb24e4b1d31c7adfa53446adb9637c1add8b9917083a130116c7e86a6ccb80f",
+        "deleteTx": "0xd8aa77adadcfb2f8878b682963256e8a6ae4c0f9c26dd1d6097231d89535f84b"
+      }
+    },
+    "masqueradedao": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xa79f897c8f1d6b1450b7204668b82cffd1bad4a0",
+        "maskA": "3",
+        "maskB": "4",
+        "proposalId": "2",
+        "createMaskAdminTx": "0x0cdcfb72a706de67986020de0745c6d56ec0232d3d77052647339ba9661c7c82",
+        "createMaskUserTx": "0xe832bedfb6d1fe0e142c848bde193604d6141799f3a090bb0f2dcbd3973f349f",
+        "proposalTx": "0x25e9915de48f15b5a23a23974a0e5ac90c6500d0f42aa6ff530a26b74e383fac",
+        "voteTx": "0x20bf462cb0d444a1e38ca31e65af3ddaae4deae8618187fc8f73b7a9381947fb"
+      }
+    },
+    "millionpiecemap": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x4cac0ac79bac3b94c388fe0f27a9ed1a8e476cbf",
+        "x": 81,
+        "y": 81,
+        "claimTx": "0x70fe35b07efe0a1c110b0e5a2759bb2c774ce31b7369be3b66f74d8baf380a33",
+        "listTx": "0x97556b37cfb5309e104fb082324e6d7f68c16b513c749e1582cb3477e8a9ad04",
+        "buyTx": "0xb26124e0bf9123074d3c27ecfe0c698ff664d5da9ddac2ea78bb29f12518a11a"
+      }
+    },
+    "graveyard": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xb55aa635b10a5abb5cbac169db26a38df739778e",
+        "memoryId": "2",
+        "buryTx": "0xecaf491ca67d068e346916d030aed6227fc2b20542bb790868c10afce0cc83d1",
+        "epitaphTx": "0xd5630c2a21f6c24b46cd8697d85fbcf8df6652b02e0fd693913f3c56159cb179",
+        "forgetTx": "0xc22a35049be68381b23f695233d3113c0cfaee4876572d142982208260fc338c"
+      }
+    },
+    "halloffame": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x00d44aefa345f72c0eb15036129a32a56c765474",
+        "seasonId": "1",
+        "startSeasonTx": null,
+        "addNomineeTx": "0x99879c2fa6834a988e4266b6c41e24f07f95a2e452f240c20ccc486e3d64d301",
+        "voteTx": "0xa86830cfb33a6bc2b6b3e6ee9b15724e9614419cb387d8709fe512b19d4dfbef",
+        "nominee": "codex-nominee-1773881853834-157604"
+      }
+    },
+    "heritagetrust": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x42e14d04c17dad0b1d76ee7509e537791230431b",
+        "trustId": "2",
+        "createTx": "0x6c9cf81fa1d6bdaabe09abbe39a110bbb5cf2103b789d0e2ec8a3190d6e2628c",
+        "guardianTx": "0xb9152380d97baa1f60d9c0bb6dc3eae117b856f99af922366a50b876495d1980",
+        "heartbeatTx": "0x589df2ee3a11d59fca257247ce94e24cf792dbb2dd0615a68ddc2b60d64e0e4f",
+        "cancelTx": "0x513cbbc5b6ab4b790749848d0cf721222aa63bc020b9778fd92c6e9f7fee6554"
+      }
+    },
+    "dicegame": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x1e448bf07a742da74084d4c64a61052980beb496",
+        "betId": "4",
+        "requestId": "4012",
+        "placeTx": "0xd6b2577cdead284d65bb7f453bd3852105ca274efd32d38acac77f74c46c69c0",
+        "fulfillTx": "0x7285d43a26d599d7a3dd8d383e73c6fe576212b6daea1b99c3e4d9ee4fc26608",
+        "rolled": "1",
+        "expectedPayout": "0"
+      }
+    },
+    "gascircle": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x4630b40a4e67882cfab3d3f5041c1da597b0c7b6",
+        "circleId": "4",
+        "createTx": "0x0b83b9f397da7f4f17e8d573bcd2ed57a33f7933ed0f1215a0de8827a2483204",
+        "joinAdminTx": "0x9906bd030416070706c5e6e484449b37e3409db11a1e693d38edc80c0b72e739",
+        "joinUserTx": "0xfc0b2f0fe034dea60ce05aca61d07b56ef0ccbb54f772737a26b8d95146ddb3c",
+        "payout1Tx": "0xfd5a619f18cfeac9e68161aa6da4901f10266bef252641d570574d4bd7440a90",
+        "fulfill1Tx": "0xeaf06d105d73b42c78d960186e1a0b56735e83651da8cfba4d4660ba7ed4e574",
+        "payout2Tx": "0x2c472121c4582dd679c95860bd2ded5d7565fef67bae4d084819765a7bd1e9cd",
+        "fulfill2Tx": "0x9091f329263e80e16b2690671dda7af068e582ca722a0f89338fd66ce71598a9"
+      }
+    },
+    "turtlematch": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x4750b2d55de0282579e66c2b1b6c07d9138380ad",
+        "sessionId": "4",
+        "matches": "2",
+        "reward": "35000000",
+        "startTx": "0x3f54dec14d960918f3845dd5f481a67f1cc551838eddf5cd83f905ee0794467f",
+        "settleTx": "0xe73f8f9a30418f232cff91856f6360e1025b3cb7b801a8c1157025f69fca1d1d"
+      }
+    }
+  }
+}

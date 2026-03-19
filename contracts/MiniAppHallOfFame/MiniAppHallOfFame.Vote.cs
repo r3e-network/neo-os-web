@@ -22,7 +22,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateUserOrAbstractAccount(voter);
 
             Nominee nom = GetNominee(category, nominee);
-            ExecutionEngine.Assert(nom.AddedBy != UInt160.Zero, "invalid nominee");
+            ExecutionEngine.Assert(HasStoredNominee(nom), "invalid nominee");
 
             ConsumeDirectGasCredit(voter, amount);
 
