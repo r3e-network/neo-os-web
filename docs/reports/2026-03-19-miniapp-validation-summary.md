@@ -8,9 +8,11 @@
 - remaining partial validation item: `council-governance`
 
 The only remaining gap is not a broken user flow on a normal account. It is the
-`passed / execute` path for `MiniAppCouncilGovernance`, which requires quorum
-from more live committee-candidate signers than the two currently available
-testnet candidate keys.
+`passed / execute` path for `MiniAppCouncilGovernance`, whose contract gates
+voters through `NEO.GetCommittee()` and hardcodes quorum as `21 * 30% = 6`.
+The current test workspace only has two live testnet committee signers
+available, so this path is blocked by external signer availability rather than a
+normal application regression.
 
 ### Frontend-only / launcher / console miniapps
 
@@ -66,8 +68,9 @@ testnet candidate keys.
     - `submitSignature`
     - `executeProposal`
   - blocker:
-    - quorum requires more live committee-candidate signers than the two
-      currently available testnet candidate keys
+    - contract treats only current Neo committee members as eligible voters
+    - quorum is fixed at `6` votes
+    - current workspace has only `2` live testnet committee signer keys
 
 ## Frontend-only / launcher / console miniapps
 
