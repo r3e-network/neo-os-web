@@ -5,7 +5,6 @@
  */
 
 export { useChainValidation, isEvmChain, requireNeoChain } from "./useChainValidation";
-export { useTheme, getThemeVariable, setThemeVariable, useThemeStyle } from "./useTheme";
 export { useContractAddress } from "./useContractAddress";
 export { useGameState } from "./useGameState";
 export { usePaymentFlow } from "./usePaymentFlow";
@@ -18,7 +17,6 @@ export { useResponsive } from "./useResponsive";
 export { useAllEvents } from "./useAllEvents";
 export { useStatusMessage } from "./useStatusMessage";
 export type { StatusMessage, StatusType } from "./useStatusMessage";
-export { useAppInit } from "./useAppInit";
 export { useTicker } from "./useTicker";
 export type { UseTickerOptions } from "./useTicker";
 export { useContractInteraction } from "./useContractInteraction";
@@ -29,5 +27,3 @@ export { useAbstractAccount } from "./useAbstractAccount";
 export type { AAConfig, SessionKey } from "./useAbstractAccount";
 export { useOracle } from "./useOracle";
 export type { OracleConfig, VRFResult, TEEResult } from "./useOracle";
-export { useKeeper } from "./useKeeper";
-export type { KeeperConfig, KeeperTask } from "./useKeeper";
