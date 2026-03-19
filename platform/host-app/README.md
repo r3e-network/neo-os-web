@@ -82,7 +82,10 @@ to expose.
 
 ## Public Read Proxies
 
-The host app also exposes read-only proxies for analytics and news:
+The host app exposes read-only proxy endpoints for runtime data and host-driven
+UI surfaces. Frontend statistics pages are intentionally hidden for now, but
+the underlying endpoints remain available for controlled host usage and future
+data-pipeline work:
 
 - `GET /api/miniapp-stats`
 - `GET /api/miniapp-notifications`
@@ -121,6 +124,21 @@ Open a manifest app via:
 
 - `http://localhost:3000/launch/<app_id>`
 - or `entry_url=mf://manifest?app=<app_id>`
+
+## Recommended Validation
+
+Run the host app regression stack in sequence so `next build` and Playwright do
+not race over the same `.next` directory:
+
+```bash
+npm run test:host-app:full
+```
+
+Inside `platform/host-app`, the equivalent command is:
+
+```bash
+npm run test:full
+```
 
 ## Module Federation (MiniApps)
 
@@ -183,7 +201,7 @@ Bridge methods exposed:
 - `governance.vote`
 - `rng.requestRandom`
 - `datafeed.getPrice`
-- `stats.getMyUsage`
+- `stats.getMyUsage` (authenticated usage endpoint, not a public stats page)
 - `events.list`
 - `transactions.list`
 

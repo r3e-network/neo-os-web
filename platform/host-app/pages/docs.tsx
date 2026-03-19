@@ -274,11 +274,13 @@ sdk.payments;
 sdk.governance;
 sdk.rng;
 sdk.datafeed;
-sdk.stats;
 sdk.events;
 sdk.transactions;
 sdk.gasSponsor;
 sdk.privacy;
+
+// Optional authenticated usage endpoint
+// sdk.stats.getMyUsage(appId, date);
 
 // Host-only modules are created separately via createHostSDK(...)
 // host.oracle
