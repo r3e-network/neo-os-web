@@ -3,9 +3,11 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import { LayoutGrid, List, Clock, ChevronDown, Star, ArrowDownAZ } from "lucide-react";
 import { Layout } from "@/components/layout";
-import { MiniAppGrid, MiniAppListItem, FilterSidebar, type MiniAppInfo } from "@/components/features/miniapp";
+import { MiniAppGrid, MiniAppListItem, FilterSidebar } from "@/components/features/miniapp";
+import type { MiniAppInfo } from "@/components/types";
 import { cn, sanitizeInput } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buildCategoryCounts, isFlagshipMiniApp, sortMiniApps } from "@/lib/miniapp-showcase";
 
 type SortOption = "featured" | "name" | "recent";
 type ViewMode = "grid" | "list";
@@ -14,33 +16,6 @@ const sortOptions: { value: SortOption; label: string; icon: typeof Star }[] = [
   { value: "featured", label: "Featured", icon: Star },
   { value: "name", label: "A to Z", icon: ArrowDownAZ },
   { value: "recent", label: "Recently Added", icon: Clock },
-];
-
-const filterSections = [
-  {
-    id: "category",
-    label: "Category",
-    options: [
-      { value: "gaming", label: "Gaming" },
-      { value: "defi", label: "DeFi" },
-      { value: "social", label: "Social" },
-      { value: "nft", label: "NFT" },
-      { value: "governance", label: "Governance" },
-      { value: "utility", label: "Utility" },
-      { value: "data", label: "Data" },
-      { value: "other", label: "Other" },
-    ],
-  },
-  {
-    id: "features",
-    label: "Features",
-    options: [
-      { value: "payments", label: "Payments" },
-      { value: "randomness", label: "Randomness" },
-      { value: "governance", label: "Governance" },
-      { value: "datafeed", label: "Data Feed" },
-    ],
-  },
 ];
 
 export default function MiniAppsPage() {
@@ -64,7 +39,7 @@ export default function MiniAppsPage() {
       fetch("/api/miniapps/community", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
     ]).then(([catalogData, communityData]) => {
       if (!catalogData && !communityData) setFetchError(true);
-      const list = Array.isArray(catalogData?.apps) ? catalogData.apps : [];
+      const list = Array.isArray(catalogData?.apps) ? sortMiniApps(catalogData.apps as MiniAppInfo[], "featured") : [];
       setApps(list);
       const communityList = Array.isArray(communityData?.apps) ? communityData.apps : [];
       setCommunityApps(communityList);
@@ -99,8 +74,45 @@ export default function MiniAppsPage() {
     setFilters((prev) => ({ ...prev, [sectionId]: values }));
   };
 
+  const allApps = useMemo(() => [...apps, ...communityApps], [apps, communityApps]);
+
+  const filterSections = useMemo(() => {
+    const counts = buildCategoryCounts(allApps);
+    return [
+      {
+        id: "category",
+        label: "Category",
+        options: [
+          { value: "gaming", label: "Gaming", count: counts.gaming },
+          { value: "defi", label: "DeFi", count: counts.defi },
+          { value: "social", label: "Social", count: counts.social },
+          { value: "nft", label: "NFT", count: counts.nft },
+          { value: "governance", label: "Governance", count: counts.governance },
+          { value: "utility", label: "Utility", count: counts.utility },
+          { value: "data", label: "Data", count: counts.data },
+          { value: "other", label: "Other", count: counts.other },
+        ],
+      },
+      {
+        id: "features",
+        label: "Features",
+        options: [
+          { value: "payments", label: "Payments" },
+          { value: "randomness", label: "Randomness" },
+          { value: "governance", label: "Governance" },
+          { value: "datafeed", label: "Data Feed" },
+        ],
+      },
+    ];
+  }, [allApps]);
+
+  const flagshipApps = useMemo(
+    () => sortMiniApps(apps.filter((app) => isFlagshipMiniApp(app.app_id)), "featured"),
+    [apps],
+  );
+
   const filteredAndSortedApps = useMemo(() => {
-    let result = [...apps, ...communityApps];
+    let result = [...allApps];
 
     // Search filter
     if (searchQuery) {
@@ -118,21 +130,14 @@ export default function MiniAppsPage() {
       result = result.filter((app) => filters.category.includes(app.category));
     }
 
-    // Sort
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case "name":
-          return a.name.localeCompare(b.name);
-        case "recent":
-          return 0; // Would need created_at field
-        case "featured":
-        default:
-          return 0;
-      }
-    });
+    return sortMiniApps(result, sortBy);
+  }, [allApps, searchQuery, filters, sortBy]);
 
-    return result;
-  }, [apps, communityApps, searchQuery, filters, sortBy]);
+  const hasActiveFilters = Boolean(searchQuery || filters.category?.length || filters.features?.length);
+  const showcaseApps = hasActiveFilters ? [] : flagshipApps;
+  const catalogResults = showcaseApps.length > 0
+    ? filteredAndSortedApps.filter((app) => !isFlagshipMiniApp(app.app_id))
+    : filteredAndSortedApps;
 
   const currentSort = sortOptions.find((s) => s.value === sortBy) || sortOptions[0];
 
@@ -142,9 +147,63 @@ export default function MiniAppsPage() {
         <title>MiniApps - R3E Network</title>
       </Head>
 
-      <div className="flex min-h-[calc(100vh-3.5rem)]">
-        {/* Sidebar */}
-        <FilterSidebar sections={filterSections} selected={filters} onChange={handleFilterChange} />
+      <div className="pt-20">
+        <section className="border-b border-gray-200/60 bg-white/80 px-4 py-10 backdrop-blur-xl dark:border-white/10 dark:bg-[#05050A]/80 sm:px-6">
+          <div className="mx-auto max-w-[1600px]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neo">Catalog</p>
+            <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+                <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white sm:text-5xl">
+                  One catalog. Seven flagship miniapps. The rest organized behind them.
+                </h1>
+                <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-400">
+                  Browse the flagship seven first, then drill into every production miniapp, AA console, and oracle tool with one consistent shell.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="text-xs uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Active apps</div>
+                  <div className="mt-2 text-2xl font-black text-gray-900 dark:text-white">{allApps.length}</div>
+                </div>
+                <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="text-xs uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Flagship</div>
+                  <div className="mt-2 text-2xl font-black text-gray-900 dark:text-white">{flagshipApps.length}</div>
+                </div>
+                <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="text-xs uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Search</div>
+                  <div className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">{searchQuery ? `"${searchQuery}"` : "Catalog-wide"}</div>
+                </div>
+                <div className="rounded-2xl border border-gray-200/70 bg-white px-4 py-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="text-xs uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Mode</div>
+                  <div className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">{viewMode === "grid" ? "Card grid" : "Compact list"}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {showcaseApps.length > 0 && (
+          <section className="px-4 py-8 sm:px-6">
+            <div className="mx-auto max-w-[1600px]">
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neo">Flagship 7</p>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-white">Primary miniapps</h2>
+                  <p className="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
+                    These are the core user-facing miniapps surfaced on the homepage. Everything else remains available in the full catalog below.
+                  </p>
+                </div>
+                <span className="rounded-full border border-gray-200/70 px-3 py-1 text-xs font-semibold text-gray-600 dark:border-white/10 dark:text-gray-300">
+                  Curated production set
+                </span>
+              </div>
+              <MiniAppGrid apps={showcaseApps} columns={3} />
+            </div>
+          </section>
+        )}
+
+        <div className="flex min-h-[calc(100vh-3.5rem)] border-t border-gray-200/50 dark:border-white/5">
+          <FilterSidebar sections={filterSections} selected={filters} onChange={handleFilterChange} />
 
         {/* Main Content */}
         <main className="flex-1 bg-transparent relative">
@@ -153,8 +212,12 @@ export default function MiniAppsPage() {
           <div className="sticky top-16 z-40 bg-white/80 dark:bg-[#05050A]/80 backdrop-blur-2xl border-b border-gray-200/50 dark:border-white/10 px-6 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <h1 className="text-lg font-bold text-gray-900 dark:text-white">MiniApps</h1>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{filteredAndSortedApps.length} apps</span>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">All MiniApps</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {catalogResults.length} result{catalogResults.length === 1 ? "" : "s"} across flagship, utility, AA, and oracle surfaces
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -263,20 +326,21 @@ export default function MiniAppsPage() {
               </div>
             ) : viewMode === "list" ? (
               <ul className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-                {filteredAndSortedApps.map((app) => (
+                {catalogResults.map((app) => (
                   <li key={app.app_id}>
                     <MiniAppListItem app={app} />
                   </li>
                 ))}
-                {filteredAndSortedApps.length === 0 && (
+                {catalogResults.length === 0 && (
                   <li className="py-12 text-center text-gray-500 dark:text-gray-400">No MiniApps found</li>
                 )}
               </ul>
             ) : (
-              <MiniAppGrid apps={filteredAndSortedApps} columns={3} />
+              <MiniAppGrid apps={catalogResults} columns={3} />
             )}
           </div>
         </main>
+      </div>
       </div>
     </Layout>
   );

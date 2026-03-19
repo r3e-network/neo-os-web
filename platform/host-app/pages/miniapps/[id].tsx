@@ -19,6 +19,7 @@ import { DetailContentBlocks } from "../../components/features/miniapp/DetailCon
 import { AppSecretsTab } from "../../components/features/secrets/AppSecretsTab";
 import { ReviewsTab } from "../../components/features/reviews";
 import { ForumTab } from "../../components/features/forum";
+import { Layout } from "../../components/layout";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { coerceMiniAppInfo } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
@@ -98,21 +99,23 @@ export default function MiniAppDetailPage({ app, notifications, error }: AppDeta
 
   if (error || !app) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-24">
-        <div className="flex flex-col items-center justify-center min-h-screen p-8">
-          <h1 className="text-[32px] font-extrabold text-gray-900 dark:text-white mb-4">App Not Found</h1>
-          <p className="text-base text-gray-500 dark:text-gray-400 mb-6">
-            {error || "The requested MiniApp does not exist."}
-          </p>
-          <button
-            type="button"
-            className="px-6 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-gray-900 dark:text-white text-sm cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-            onClick={() => router.push("/miniapps")}
-          >
-            ← Back to MiniApps
-          </button>
+      <Layout hideFooter>
+        <div className="min-h-screen bg-white pb-24 pt-20 text-gray-900 dark:bg-gray-950 dark:text-white">
+          <div className="flex min-h-[calc(100vh-5rem)] flex-col items-center justify-center p-8">
+            <h1 className="mb-4 text-[32px] font-extrabold text-gray-900 dark:text-white">App Not Found</h1>
+            <p className="mb-6 text-base text-gray-500 dark:text-gray-400">
+              {error || "The requested MiniApp does not exist."}
+            </p>
+            <button
+              type="button"
+              className="cursor-pointer rounded-lg border border-gray-200 bg-transparent px-6 py-3 text-sm text-gray-900 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800"
+              onClick={() => router.push("/miniapps")}
+            >
+              ← Back to MiniApps
+            </button>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
@@ -181,162 +184,169 @@ export default function MiniAppDetailPage({ app, notifications, error }: AppDeta
   const operationSubtitle = operationPanel?.subtitle;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white pb-16">
-      <Head>
-        <title>{`${app.name} - R3E MiniApps`}</title>
-      </Head>
-      <AppDetailHeader app={app} onBack={handleBack} />
+    <Layout hideFooter>
+      <div className="min-h-screen bg-white pb-16 pt-16 text-gray-900 dark:bg-gray-950 dark:text-white">
+        <Head>
+          <title>{`${app.name} - R3E MiniApps`}</title>
+        </Head>
+        <AppDetailHeader app={app} onBack={handleBack} />
 
-      <main className="max-w-[1280px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
-        <section className="mb-6">
-          {app.detail_template?.hero?.eyebrow && (
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-neo mb-2">
-              {app.detail_template.hero.eyebrow}
+        <main className="mx-auto max-w-[1440px] px-4 py-4 sm:px-6 sm:py-8">
+          <section className="mb-6 rounded-3xl border border-gray-200/70 bg-white/80 p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
+            {app.detail_template?.hero?.eyebrow && (
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-neo">
+                {app.detail_template.hero.eyebrow}
+              </p>
+            )}
+            <p className="break-words text-base leading-relaxed text-gray-500 dark:text-gray-400">
+              {app.description}
             </p>
-          )}
-          <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed break-words">
-            {app.description}
-          </p>
-          {app.detail_template?.hero?.disclaimer && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 break-words">
-              {app.detail_template.hero.disclaimer}
-            </p>
-          )}
-        </section>
-
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
-          <section className="space-y-6">
-            <section className="w-full relative z-10">
-              <MiniAppPlayfield app={app} />
-            </section>
-            
-            <section>
-              <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={140} scrollSpeed={20} />
-            </section>
-
-            <section>
-              <div role="tablist" className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 mb-6">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    role="tab"
-                    id={`tab-${tab.id}`}
-                    aria-selected={activeTabConfig?.id === tab.id}
-                    aria-controls={`tabpanel-${tab.id}`}
-                    tabIndex={activeTabConfig?.id === tab.id ? 0 : -1}
-                    className={`px-3 sm:px-5 py-2 sm:py-3 bg-transparent border-none border-b-2 text-sm font-semibold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
-                      activeTabConfig?.id === tab.id
-                        ? "border-neo text-neo"
-                        : "border-transparent text-gray-500 dark:text-gray-400"
-                    }`}
-                    onClick={() => setActiveTab(tab.id)}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              {activeTabConfig?.type === "content" && (
-                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
-                  <OverviewTab app={app} blocks={activeTabConfig.blocks} />
-                </div>
-              )}
-
-              {activeTabConfig?.type === "reviews" && (
-                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
-                  <ReviewsTab appId={app.app_id} />
-                </div>
-              )}
-
-              {activeTabConfig?.type === "forum" && (
-                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
-                  <ForumTab appId={app.app_id} />
-                </div>
-              )}
-
-              {activeTabConfig?.type === "news" && (
-                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
-                  {showNews ? (
-                    <AppNewsList notifications={notifications} />
-                  ) : (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
-                  )}
-                </div>
-              )}
-
-              {activeTabConfig?.type === "secrets" && (
-                <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
-                  {showSecrets ? (
-                    <AppSecretsTab appId={app.app_id} appName={app.name} />
-                  ) : (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Secrets are not enabled for this MiniApp.</p>
-                  )}
-                </div>
-              )}
-            </section>
+            {app.detail_template?.hero?.disclaimer && (
+              <p className="mt-2 break-words text-xs text-gray-500 dark:text-gray-400">
+                {app.detail_template.hero.disclaimer}
+              </p>
+            )}
           </section>
 
-          <aside className="xl:sticky xl:top-6 self-start space-y-4">
-            <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 p-4 sm:p-5">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{operationTitle}</h2>
-              {operationSubtitle && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 break-words">{operationSubtitle}</p>
-              )}
+          <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <section className="space-y-6">
+              <section className="relative z-10 w-full">
+                <MiniAppPlayfield app={app} />
+              </section>
 
-              {invokeFeedback && (
-                <div
-                  className={`mt-3 rounded-lg border px-3 py-2 text-xs break-words ${
-                    invokeFeedback.type === "success"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-900/20 dark:text-emerald-300"
-                      : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-900/20 dark:text-red-300"
-                  }`}
-                >
-                  {invokeFeedback.message}
+              <section>
+                <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={140} scrollSpeed={20} />
+              </section>
+
+              <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
+                <div role="tablist" className="mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-3 dark:border-gray-700">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      id={`tab-${tab.id}`}
+                      aria-selected={activeTabConfig?.id === tab.id}
+                      aria-controls={`tabpanel-${tab.id}`}
+                      tabIndex={activeTabConfig?.id === tab.id ? 0 : -1}
+                      className={`cursor-pointer border-b-2 border-none bg-transparent px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:px-5 sm:py-3 ${
+                        activeTabConfig?.id === tab.id
+                          ? "border-neo text-neo"
+                          : "border-transparent text-gray-500 dark:text-gray-400"
+                      }`}
+                      onClick={() => setActiveTab(tab.id)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
-              )}
 
-              {operations.length > 0 ? (
-                <OperationPanel
-                  operations={operations}
-                  onInvoke={handleInvoke}
-                  showTitle={false}
-                  className="mt-4"
-                />
-              ) : (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-                  No operation schema is configured for this MiniApp.
-                </p>
-              )}
+                {activeTabConfig?.type === "content" && (
+                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                    <OverviewTab app={app} blocks={activeTabConfig.blocks} />
+                  </div>
+                )}
 
-              {!walletConnected && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-                  Connect wallet from the top navigation to submit on-chain transactions.
-                </p>
-              )}
+                {activeTabConfig?.type === "reviews" && (
+                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                    <ReviewsTab appId={app.app_id} />
+                  </div>
+                )}
+
+                {activeTabConfig?.type === "forum" && (
+                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                    <ForumTab appId={app.app_id} />
+                  </div>
+                )}
+
+                {activeTabConfig?.type === "news" && (
+                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                    {showNews ? (
+                      <AppNewsList notifications={notifications} />
+                    ) : (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
+                    )}
+                  </div>
+                )}
+
+                {activeTabConfig?.type === "secrets" && (
+                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                    {showSecrets ? (
+                      <AppSecretsTab appId={app.app_id} appName={app.name} />
+                    ) : (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Secrets are not enabled for this MiniApp.</p>
+                    )}
+                  </div>
+                )}
+              </section>
             </section>
 
-            <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 p-4 sm:p-5">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Contract Details</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 my-1.5">
-                App ID: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[11px] font-mono text-neo break-all">{app.app_id}</code>
-              </p>
-              {app.contract_hash && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 my-1.5">
-                  Contract Hash:{" "}
-                  <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[11px] font-mono text-neo break-all">
-                    {app.contract_hash}
-                  </code>
+            <aside className="self-start space-y-4 xl:sticky xl:top-24">
+              <section className="rounded-3xl border border-gray-200/70 bg-gray-50 p-4 sm:p-5 dark:border-gray-700 dark:bg-gray-900/80">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">{operationTitle}</h2>
+                {operationSubtitle && (
+                  <p className="mt-1 break-words text-xs text-gray-500 dark:text-gray-400">{operationSubtitle}</p>
+                )}
+
+                {invokeFeedback && (
+                  <div
+                    className={`mt-3 rounded-lg border px-3 py-2 text-xs break-words ${
+                      invokeFeedback.type === "success"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-900/20 dark:text-emerald-300"
+                        : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/70 dark:bg-red-900/20 dark:text-red-300"
+                    }`}
+                  >
+                    {invokeFeedback.message}
+                  </div>
+                )}
+
+                {operations.length > 0 ? (
+                  <OperationPanel
+                    operations={operations}
+                    onInvoke={handleInvoke}
+                    showTitle={false}
+                    className="mt-4"
+                  />
+                ) : (
+                  <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                    No operation schema is configured for this MiniApp.
+                  </p>
+                )}
+
+                {!walletConnected && (
+                  <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    Connect wallet from the top navigation to submit on-chain transactions.
+                  </p>
+                )}
+              </section>
+
+              <section className="rounded-3xl border border-gray-200/70 bg-gray-50 p-4 sm:p-5 dark:border-gray-700 dark:bg-gray-900/80">
+                <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Contract Details</h3>
+                <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  App ID: <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">{app.app_id}</code>
                 </p>
-              )}
-              <p className="text-xs text-gray-500 dark:text-gray-400 my-1.5">
-                Entry URL: <code className="bg-neo/10 px-1.5 py-0.5 rounded text-[11px] font-mono text-neo break-all">{app.entry_url}</code>
-              </p>
-            </section>
-          </aside>
-        </div>
-      </main>
-    </div>
+                {app.contract_hash && (
+                  <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    Contract Hash:{" "}
+                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                      {app.contract_hash}
+                    </code>
+                  </p>
+                )}
+                <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  Entry URL: <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">{app.entry_url}</code>
+                </p>
+                {app.docs_url && (
+                  <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    Docs URL: <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">{app.docs_url}</code>
+                  </p>
+                )}
+              </section>
+            </aside>
+          </div>
+        </main>
+      </div>
+    </Layout>
   );
 }
 
