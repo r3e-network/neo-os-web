@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Layout, PageHero } from "@/components/layout";
 import { IconFeatureGrid } from "@/components/content";
+import { DefinitionActionBar, DefinitionModeToggle, TemplateMarketFilters } from "@/components/developer";
 import { SelectField, TextAreaField, TextField } from "@/components/forms";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import {
   TrendingUp,
   ChevronRight,
   ExternalLink,
-  Upload,
   Database,
   Store,
 } from "lucide-react";
@@ -598,59 +598,19 @@ export default function DeveloperPage() {
             </div>
           </div>
 
-          <div className="mb-4 grid gap-3 md:grid-cols-5">
-            <SelectField
-              variant="glass"
-              aria-label="Filter kind"
-              value={marketKind}
-              onChange={(e) => setMarketKind(e.target.value as "all" | MarketTemplateKind)}
-            >
-              <option value="all">All Kinds</option>
-              <option value="frontend">Frontend</option>
-              <option value="contract">Contract</option>
-            </SelectField>
-            <SelectField
-              variant="glass"
-              aria-label="Filter category"
-              value={marketCategory}
-              onChange={(e) => setMarketCategory(e.target.value as "all" | FormData["category"])}
-            >
-              <option value="all">All Categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </SelectField>
-            <SelectField
-              variant="glass"
-              aria-label="Filter source"
-              value={marketSource}
-              onChange={(e) => setMarketSource(e.target.value as "all" | MarketTemplateSource)}
-            >
-              <option value="all">All Sources</option>
-              <option value="community">Community</option>
-              <option value="verified">Verified</option>
-              <option value="miniapp">MiniApp</option>
-            </SelectField>
-            <SelectField
-              variant="glass"
-              aria-label="Filter verified"
-              value={marketVerified}
-              onChange={(e) => setMarketVerified(e.target.value as "all" | "true")}
-            >
-              <option value="all">All Verification</option>
-              <option value="true">Verified Only</option>
-            </SelectField>
-            <TextField
-              variant="glass"
-              aria-label="Search templates"
-              type="text"
-              value={marketSearch}
-              onChange={(e) => setMarketSearch(e.target.value)}
-              placeholder="Search ID/name..."
-            />
-          </div>
+          <TemplateMarketFilters
+            categories={categories}
+            marketKind={marketKind}
+            marketCategory={marketCategory}
+            marketSource={marketSource}
+            marketVerified={marketVerified}
+            marketSearch={marketSearch}
+            onMarketKindChange={(value) => setMarketKind(value as "all" | MarketTemplateKind)}
+            onMarketCategoryChange={(value) => setMarketCategory(value as "all" | FormData["category"])}
+            onMarketSourceChange={(value) => setMarketSource(value as "all" | MarketTemplateSource)}
+            onMarketVerifiedChange={(value) => setMarketVerified(value as "all" | "true")}
+            onMarketSearchChange={setMarketSearch}
+          />
 
           {marketError ? (
             <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/15 px-3 py-2 text-sm text-red-300">
@@ -989,48 +949,15 @@ export default function DeveloperPage() {
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">JSON / YAML Definition</h3>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className={`px-2.5 py-1 rounded-md text-xs border ${definitionMode === "json" ? "border-neo text-neo" : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300"}`}
-                        onClick={() => setDefinitionMode("json")}
-                      >
-                        JSON
-                      </button>
-                      <button
-                        type="button"
-                        className={`px-2.5 py-1 rounded-md text-xs border ${definitionMode === "yaml" ? "border-neo text-neo" : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300"}`}
-                        onClick={() => setDefinitionMode("yaml")}
-                      >
-                        YAML
-                      </button>
-                    </div>
+                    <DefinitionModeToggle mode={definitionMode} onChange={setDefinitionMode} />
                   </div>
 
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    <Button type="button" variant="secondary" size="sm" className="text-xs" onClick={handleGenerateDefinition}>
-                      <Database size={14} className="mr-1" />
-                      Generate From Form
-                    </Button>
-                    <Button type="button" variant="secondary" size="sm" className="text-xs" onClick={handlePreviewDefinition}>
-                      <Rocket size={14} className="mr-1" />
-                      {previewLoading ? "Previewing..." : "Schema + Runtime Preview"}
-                    </Button>
-                    <label className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10">
-                      <Upload size={14} className="mr-1" />
-                      Import File
-                      <input
-                        type="file"
-                        accept=".json,.yaml,.yml"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleImportDefinition(file);
-                          e.currentTarget.value = "";
-                        }}
-                      />
-                    </label>
-                  </div>
+                  <DefinitionActionBar
+                    previewLoading={previewLoading}
+                    onGenerate={handleGenerateDefinition}
+                    onPreview={handlePreviewDefinition}
+                    onImport={handleImportDefinition}
+                  />
 
                   <TextAreaField
                     rows={10}
