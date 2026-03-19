@@ -1,8 +1,4 @@
-import { createApp as createVueApp } from "vue";
 import App from "./App.vue";
+import { createMiniAppEntry } from "@shared/utils/createMiniAppEntry";
 
-const app = createVueApp(App);
-const container = document.getElementById("app");
-if (container) {
-  app.mount(container);
-}
+createMiniAppEntry(App);
