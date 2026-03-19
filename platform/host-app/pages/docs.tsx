@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
-import { Layout } from "@/components/layout";
+import { Layout, PageHero } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import {
   Search,
@@ -23,7 +23,6 @@ import {
   Cpu,
   Lock,
 } from "lucide-react";
-import { motion } from "framer-motion";
 
 // Code block component with copy functionality
 function CodeBlock({ code, language = "bash" }: { code: string; language?: string }) {
@@ -69,32 +68,28 @@ export default function DocsPage() {
       </Head>
 
       <div className="min-h-screen bg-white dark:bg-gray-950">
-        {/* Hero Header */}
-        <section className="relative py-16 border-b border-gray-200 dark:border-gray-700">
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-neo/10 blur-[120px] rounded-full" />
+        <PageHero
+          align="center"
+          eyebrow="Reference"
+          title="Documentation"
+          description="Everything you need to build powerful MiniApps on Neo N3 with the current AA, oracle, and host app architecture."
+          stats={[
+            { label: "Sections", value: String(sections.length), hint: "Getting started, SDK, contracts, services" },
+            { label: "Audience", value: "Builders", hint: "Platform operators and app developers" },
+          ]}
+        >
+          <div className="relative mx-auto max-w-xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" size={20} aria-hidden="true" />
+            <input
+              type="text"
+              aria-label="Search documentation"
+              placeholder="Search documentation..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-12 w-full rounded-xl border border-gray-200 bg-gray-100 pl-12 pr-4 text-gray-900 transition-all placeholder-gray-500 focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400"
+            />
           </div>
-          <div className="mx-auto max-w-7xl px-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-              <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4">Documentation</h1>
-              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
-                Everything you need to build powerful MiniApps on Neo N3
-              </p>
-              {/* Search */}
-              <div className="relative max-w-xl mx-auto">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" size={20} aria-hidden="true" />
-                <input
-                  type="text"
-                  aria-label="Search documentation"
-                  placeholder="Search documentation..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-12 pl-12 pr-4 rounded-xl bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-2 focus-visible:ring-neo/50 transition-all"
-                />
-              </div>
-            </motion.div>
-          </div>
-        </section>
+        </PageHero>
 
         {/* Main Content */}
         <div className="mx-auto max-w-7xl px-4 py-12">

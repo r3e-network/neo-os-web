@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Layout } from "@/components/layout";
+import { Layout, PageHero } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -498,32 +498,17 @@ export default function DeveloperPage() {
         <title>Developer Portal - Neo MiniApp Platform</title>
       </Head>
 
-      <section className="relative overflow-hidden py-20">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-neo/20 blur-[120px] rounded-full" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] bg-orange-500/20 blur-[120px] rounded-full" />
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neo/10 border border-neo/20 text-neo text-sm font-medium mb-6">
-              <Rocket size={16} aria-hidden="true" />
-              Template-first MiniApp Builder
-            </div>
-            <h1 className="text-2xl sm:text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white">
-              Developer <span className="neo-gradient-text">Portal</span>
-            </h1>
-            <p className="mt-6 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Build, configure, and publish MiniApps from JSON/YAML definitions with frontend and contract templates.
-            </p>
-          </motion.div>
-        </div>
-      </section>
+      <PageHero
+        align="center"
+        eyebrow="Template-first builder"
+        title="Developer Portal"
+        description="Build, configure, and publish MiniApps from JSON or YAML definitions with frontend templates, contract templates, and draft-first validation."
+        stats={[
+          { label: "Feature modules", value: String(features.length), hint: "SDK, schema, contracts, market" },
+          { label: "Builder modes", value: "JSON + YAML", hint: "Generate, preview, save draft" },
+          { label: "Marketplace", value: "Live", hint: "Install templates into builder" },
+        ]}
+      />
 
       <section className="py-12 px-4">
         <div className="mx-auto max-w-7xl">
