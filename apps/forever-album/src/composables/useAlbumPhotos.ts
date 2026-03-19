@@ -1,17 +1,16 @@
 import { ref, watch, onMounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { useCrypto } from "@shared/composables";
 import { parseInvokeResult } from "@shared/utils/neo";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { decryptPayload } from "../utils/crypto";
 import type { PhotoItem } from "@/types";
 
 export function useAlbumPhotos(t: (key: string) => string) {
   const { address, invokeRead } = useWallet() as WalletSDK;
   const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
-  const { decryptPayload } = useCrypto();
   const { status, setStatus } = useStatusMessage(5000);
 
   const loadingPhotos = ref(false);
