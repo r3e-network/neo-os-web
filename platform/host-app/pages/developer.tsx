@@ -1,9 +1,14 @@
 import Head from "next/head";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Layout, PageHero } from "@/components/layout";
 import { IconFeatureGrid } from "@/components/content";
-import { DefinitionActionBar, DefinitionModeToggle, TemplateMarketFilters } from "@/components/developer";
+import {
+  DefinitionActionBar,
+  DefinitionModeToggle,
+  DeveloperCalloutCard,
+  TemplateMarketCard,
+  TemplateMarketFilters,
+} from "@/components/developer";
 import { SelectField, TextAreaField, TextField } from "@/components/forms";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -14,8 +19,6 @@ import {
   Shield,
   Dice5,
   TrendingUp,
-  ChevronRight,
-  ExternalLink,
   Database,
   Store,
 } from "lucide-react";
@@ -520,64 +523,46 @@ export default function DeveloperPage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="glass-card rounded-3xl p-8 bg-white/60 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10 hover:shadow-[0_0_40px_rgba(0,229,153,0.15)]"
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neo to-emerald-600 flex items-center justify-center">
-                  <Code2 className="text-white" size={24} aria-hidden="true" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quick Start</h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">No-code + config-driven workflow</p>
-                </div>
-              </div>
-              <div className="rounded-xl bg-gray-900 dark:bg-[#12131C] border border-gray-800 dark:border-white/5 p-4 font-mono text-sm overflow-x-auto shadow-inner">
-                <div className="text-gray-400 dark:text-gray-500"># Build from templates</div>
-                <div className="text-neo">Generate JSON or YAML miniapp definition</div>
-                <div className="text-gray-400 dark:text-gray-500 mt-3"># Validate + save</div>
-                <div className="text-neo">POST /api/miniapps/admin/definition-preview</div>
-              </div>
-              <Link href="/docs">
-                <Button className="mt-6 bg-neo hover:bg-neo/90 text-gray-900 font-semibold">
-                  Read Documentation
-                  <ChevronRight size={16} className="ml-1" aria-hidden="true" />
-                </Button>
-              </Link>
+              <DeveloperCalloutCard
+                icon={Code2}
+                title="Quick Start"
+                subtitle="No-code + config-driven workflow"
+                accentClassName="bg-gradient-to-br from-neo to-emerald-600"
+                surfaceClassName="mt-6 bg-neo text-gray-900 font-semibold hover:bg-neo/90"
+                codeLines={[
+                  "# Build from templates",
+                  "Generate JSON or YAML miniapp definition",
+                  "# Validate + save",
+                  "POST /api/miniapps/admin/definition-preview",
+                ]}
+                href="/docs"
+                ctaLabel="Read Documentation"
+                ctaVariant="docs"
+              />
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="glass-card rounded-3xl p-8 bg-white/60 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10 hover:shadow-[0_0_40px_rgba(255,165,0,0.15)]"
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
-                  <Database className="text-white" size={24} aria-hidden="true" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Definition Builder</h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">JSON / YAML + template catalog</p>
-                </div>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Publish-like-article workflow: fill form, generate definition, preview, then save draft.
-              </p>
-              <ul className="space-y-2 mb-6">
-                {["Template type + template ID mapping", "Schema + runtime preview", "Banner/logo URL + variants ready"].map((item) => (
-                  <li key={item} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <div className="w-1.5 h-1.5 rounded-full bg-neo" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Button
+              <DeveloperCalloutCard
+                icon={Database}
+                title="Definition Builder"
+                subtitle="JSON / YAML + template catalog"
+                accentClassName="bg-gradient-to-br from-orange-500 to-red-600"
+                surfaceClassName="bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold hover:from-orange-600 hover:to-red-700"
+                description="Publish-like-article workflow: fill form, generate definition, preview, then save draft."
+                bullets={[
+                  "Template type + template ID mapping",
+                  "Schema + runtime preview",
+                  "Banner/logo URL + variants ready",
+                ]}
+                ctaLabel="Open Builder"
+                ctaVariant="builder"
                 onClick={() => setShowForm(true)}
-                className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold"
-              >
-                Open Builder
-                <ExternalLink size={16} className="ml-2" aria-hidden="true" />
-              </Button>
+              />
             </motion.div>
           </div>
         </div>
@@ -625,46 +610,22 @@ export default function DeveloperPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {marketTemplates.slice(0, 18).map((item) => (
-                <div
+                <TemplateMarketCard
                   key={`${item.template_kind}:${item.template_id}:${item.version}`}
-                  className="rounded-3xl border border-gray-200/50 dark:border-white/10 bg-white/60 dark:bg-[#0C0D14]/70 backdrop-blur-xl p-5 hover:border-neo/40 hover:shadow-[0_10px_30px_rgba(0,229,153,0.1)] transition-all"
-                >
-                  <div className="flex items-center gap-2 mb-2 text-xs">
-                    <span className={`rounded-full px-2 py-0.5 ${item.template_kind === "contract" ? "bg-orange-500/20 text-orange-300" : "bg-neo/20 text-neo"}`}>
-                      {item.template_kind}
-                    </span>
-                    <span className="rounded-full px-2 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
-                      {item.source_type}
-                    </span>
-                    {item.is_verified ? (
-                      <span className="rounded-full px-2 py-0.5 bg-emerald-500/20 text-emerald-300">verified</span>
-                    ) : null}
-                  </div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.name || item.template_id}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    <code>{item.template_id}</code> · v{item.version}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-2">
-                    {item.description || "No description"}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    {item.category} · usage {item.usage_count} · rating {item.rating_avg ?? "-"} ({item.rating_count})
-                  </p>
-                  {item.tags.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {item.tags.slice(0, 4).map((tag) => (
-                        <span key={`${item.template_id}-${tag}`} className="text-[11px] rounded-full bg-gray-100 dark:bg-white/10 px-2 py-0.5 text-gray-600 dark:text-gray-300">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="mt-3">
-                    <Button size="sm" onClick={() => handleApplyMarketTemplate(item)}>
-                      Install To Builder
-                    </Button>
-                  </div>
-                </div>
+                  templateKind={item.template_kind}
+                  templateId={item.template_id}
+                  version={item.version}
+                  name={item.name}
+                  description={item.description}
+                  category={item.category}
+                  sourceType={item.source_type}
+                  isVerified={item.is_verified}
+                  usageCount={item.usage_count}
+                  ratingAvg={item.rating_avg}
+                  ratingCount={item.rating_count}
+                  tags={item.tags}
+                  onInstall={() => handleApplyMarketTemplate(item)}
+                />
               ))}
               {!marketTemplates.length ? (
                 <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-4 text-sm text-gray-600 dark:text-gray-300">
