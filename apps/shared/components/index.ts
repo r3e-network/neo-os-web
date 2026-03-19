@@ -27,7 +27,6 @@ export { default as Fireworks } from "./Fireworks.vue";
 
 // ── Specialized ──
 export { default as WalletPrompt } from "./WalletPrompt.vue";
-export { default as ChainWarning } from "./ChainWarning.vue";
 export { default as SidebarPanel } from "./SidebarPanel.vue";
 export { default as HeroSection } from "./HeroSection.vue";
 export { default as HeroStatsStrip } from "./HeroStatsStrip.vue";
