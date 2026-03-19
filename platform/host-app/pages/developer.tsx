@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Layout, PageHero } from "@/components/layout";
 import { IconFeatureGrid } from "@/components/content";
+import { SelectField, TextAreaField, TextField } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -789,129 +790,103 @@ export default function DeveloperPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                <div>
-                  <label htmlFor="submit-app-id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">App ID</label>
-                  <input
-                    id="submit-app-id"
-                    type="text"
-                    placeholder="miniapp-my-app"
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                    value={form.app_id}
-                    onChange={(e) => setForm({ ...form, app_id: e.target.value })}
-                  />
-                </div>
+                <TextField
+                  id="submit-app-id"
+                  type="text"
+                  label="App ID"
+                  placeholder="miniapp-my-app"
+                  value={form.app_id}
+                  onChange={(e) => setForm({ ...form, app_id: e.target.value })}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="submit-app-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name *</label>
-                    <input
-                      id="submit-app-name"
-                      type="text"
-                      required
-                      placeholder="My MiniApp"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="submit-app-name-zh" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name (中文)</label>
-                    <input
-                      id="submit-app-name-zh"
-                      type="text"
-                      placeholder="可选"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                      value={form.name_zh}
-                      onChange={(e) => setForm({ ...form, name_zh: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="submit-app-desc" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description *</label>
-                  <textarea
-                    id="submit-app-desc"
+                  <TextField
+                    id="submit-app-name"
+                    type="text"
                     required
-                    rows={3}
-                    placeholder="Describe what your app does..."
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all resize-none"
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    label="Name *"
+                    placeholder="My MiniApp"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
+                  <TextField
+                    id="submit-app-name-zh"
+                    type="text"
+                    label="Name (中文)"
+                    placeholder="可选"
+                    value={form.name_zh}
+                    onChange={(e) => setForm({ ...form, name_zh: e.target.value })}
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="submit-app-desc-zh" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description (中文)</label>
-                  <textarea
-                    id="submit-app-desc-zh"
-                    rows={2}
-                    placeholder="可选"
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all resize-none"
-                    value={form.description_zh}
-                    onChange={(e) => setForm({ ...form, description_zh: e.target.value })}
-                  />
-                </div>
+                <TextAreaField
+                  id="submit-app-desc"
+                  required
+                  rows={3}
+                  label="Description *"
+                  placeholder="Describe what your app does..."
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                />
+
+                <TextAreaField
+                  id="submit-app-desc-zh"
+                  rows={2}
+                  label="Description (中文)"
+                  placeholder="可选"
+                  value={form.description_zh}
+                  onChange={(e) => setForm({ ...form, description_zh: e.target.value })}
+                />
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <label htmlFor="submit-app-icon" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Icon</label>
-                    <input
-                      id="submit-app-icon"
-                      type="text"
-                      placeholder="📦"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-center text-2xl placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                      value={form.icon}
-                      onChange={(e) => setForm({ ...form, icon: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="submit-app-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                    <select
-                      id="submit-app-category"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                      value={form.category}
-                      onChange={(e) => setForm({ ...form, category: e.target.value as FormData["category"] })}
-                    >
-                      {categories.map((c) => (
-                        <option key={c} value={c} className="bg-white dark:bg-gray-900">{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="submit-template-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Template Type</label>
-                    <select
-                      id="submit-template-type"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                      value={form.template_type}
-                      onChange={(e) => setForm({ ...form, template_type: e.target.value as FormData["template_type"] })}
-                    >
-                      {templateTypes.map((t) => (
-                        <option key={t} value={t} className="bg-white dark:bg-gray-900">{t}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="submit-contract-hash" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contract Hash</label>
-                    <input
-                      id="submit-contract-hash"
-                      type="text"
-                      placeholder="0x..."
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all font-mono text-sm"
-                      value={form.contract_hash}
-                      onChange={(e) => setForm({ ...form, contract_hash: e.target.value })}
-                    />
-                  </div>
+                  <TextField
+                    id="submit-app-icon"
+                    type="text"
+                    label="Icon"
+                    placeholder="📦"
+                    className="text-center text-2xl"
+                    value={form.icon}
+                    onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                  />
+                  <SelectField
+                    id="submit-app-category"
+                    label="Category"
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value as FormData["category"] })}
+                  >
+                    {categories.map((c) => (
+                      <option key={c} value={c} className="bg-white dark:bg-gray-900">{c}</option>
+                    ))}
+                  </SelectField>
+                  <SelectField
+                    id="submit-template-type"
+                    label="Template Type"
+                    value={form.template_type}
+                    onChange={(e) => setForm({ ...form, template_type: e.target.value as FormData["template_type"] })}
+                  >
+                    {templateTypes.map((t) => (
+                      <option key={t} value={t} className="bg-white dark:bg-gray-900">{t}</option>
+                    ))}
+                  </SelectField>
+                  <TextField
+                    id="submit-contract-hash"
+                    type="text"
+                    label="Contract Hash"
+                    placeholder="0x..."
+                    className="font-mono text-sm"
+                    value={form.contract_hash}
+                    onChange={(e) => setForm({ ...form, contract_hash: e.target.value })}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="submit-frontend-template-id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Frontend Template ID</label>
-                    <input
+                    <TextField
                       id="submit-frontend-template-id"
                       type="text"
                       list="frontend-template-options"
+                      label="Frontend Template ID"
                       placeholder="default"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
                       value={form.frontend_template_id}
                       onChange={(e) => setForm({ ...form, frontend_template_id: e.target.value })}
                     />
@@ -922,13 +897,12 @@ export default function DeveloperPage() {
                     </datalist>
                   </div>
                   <div>
-                    <label htmlFor="submit-contract-template-id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contract Template ID</label>
-                    <input
+                    <TextField
                       id="submit-contract-template-id"
                       type="text"
                       list="contract-template-options"
+                      label="Contract Template ID"
                       placeholder="prediction-binary"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
                       value={form.contract_template_id}
                       onChange={(e) => setForm({ ...form, contract_template_id: e.target.value })}
                     />
@@ -940,92 +914,73 @@ export default function DeveloperPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="submit-entry-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Entry URL *</label>
-                  <input
-                    id="submit-entry-url"
-                    type="url"
-                    required
-                    placeholder="https://your-app.com/miniapp"
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                    value={form.entry_url}
-                    onChange={(e) => setForm({ ...form, entry_url: e.target.value })}
-                  />
-                </div>
+                <TextField
+                  id="submit-entry-url"
+                  type="url"
+                  required
+                  label="Entry URL *"
+                  placeholder="https://your-app.com/miniapp"
+                  value={form.entry_url}
+                  onChange={(e) => setForm({ ...form, entry_url: e.target.value })}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label htmlFor="submit-logo-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Logo URL</label>
-                    <input
-                      id="submit-logo-url"
-                      type="url"
-                      placeholder="https://cdn/logo.png"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                      value={form.logo_url}
-                      onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="submit-banner-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Banner URL</label>
-                    <input
-                      id="submit-banner-url"
-                      type="url"
-                      placeholder="https://cdn/banner.png"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                      value={form.banner_url}
-                      onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="submit-docs-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Docs URL</label>
-                    <input
-                      id="submit-docs-url"
-                      type="url"
-                      placeholder="https://docs.example.com"
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                      value={form.docs_url}
-                      onChange={(e) => setForm({ ...form, docs_url: e.target.value })}
-                    />
-                  </div>
+                  <TextField
+                    id="submit-logo-url"
+                    type="url"
+                    label="Logo URL"
+                    placeholder="https://cdn/logo.png"
+                    value={form.logo_url}
+                    onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
+                  />
+                  <TextField
+                    id="submit-banner-url"
+                    type="url"
+                    label="Banner URL"
+                    placeholder="https://cdn/banner.png"
+                    value={form.banner_url}
+                    onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
+                  />
+                  <TextField
+                    id="submit-docs-url"
+                    type="url"
+                    label="Docs URL"
+                    placeholder="https://docs.example.com"
+                    value={form.docs_url}
+                    onChange={(e) => setForm({ ...form, docs_url: e.target.value })}
+                  />
                 </div>
 
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Developer Metadata</h3>
                   <div className="space-y-4">
-                    <div>
-                      <label htmlFor="submit-dev-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Developer Name</label>
-                      <input
-                        id="submit-dev-name"
-                        type="text"
-                        placeholder="Your name or team"
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all"
-                        value={form.developer_name}
-                        onChange={(e) => setForm({ ...form, developer_name: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="submit-dev-user-id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Developer User ID (UUID) *</label>
-                      <input
-                        id="submit-dev-user-id"
-                        type="text"
-                        required
-                        placeholder="123e4567-e89b-12d3-a456-426614174000"
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all font-mono text-sm"
-                        value={form.developer_user_id}
-                        onChange={(e) => setForm({ ...form, developer_user_id: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="submit-dev-pubkey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Developer PubKey</label>
-                      <input
-                        id="submit-dev-pubkey"
-                        type="text"
-                        placeholder="03ab..."
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all font-mono text-sm"
-                        value={form.developer_pubkey}
-                        onChange={(e) => setForm({ ...form, developer_pubkey: e.target.value })}
-                      />
-                    </div>
+                    <TextField
+                      id="submit-dev-name"
+                      type="text"
+                      label="Developer Name"
+                      placeholder="Your name or team"
+                      value={form.developer_name}
+                      onChange={(e) => setForm({ ...form, developer_name: e.target.value })}
+                    />
+                    <TextField
+                      id="submit-dev-user-id"
+                      type="text"
+                      required
+                      label="Developer User ID (UUID) *"
+                      placeholder="123e4567-e89b-12d3-a456-426614174000"
+                      className="font-mono text-sm"
+                      value={form.developer_user_id}
+                      onChange={(e) => setForm({ ...form, developer_user_id: e.target.value })}
+                    />
+                    <TextField
+                      id="submit-dev-pubkey"
+                      type="text"
+                      label="Developer PubKey"
+                      placeholder="03ab..."
+                      className="font-mono text-sm"
+                      value={form.developer_pubkey}
+                      onChange={(e) => setForm({ ...form, developer_pubkey: e.target.value })}
+                    />
                   </div>
                 </div>
 
