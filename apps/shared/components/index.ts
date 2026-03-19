@@ -17,7 +17,6 @@ export { default as AppIcon } from "./AppIcon.vue";
 export { default as NeoCard } from "./NeoCard.vue";
 export { default as NeoButton } from "./NeoButton.vue";
 export { default as NeoInput } from "./NeoInput.vue";
-export { default as NeoModal } from "./NeoModal.vue";
 export { default as NeoDoc } from "./NeoDoc.vue";
 
 // ── Feedback ──
@@ -27,7 +26,6 @@ export { default as Fireworks } from "./Fireworks.vue";
 
 // ── Specialized ──
 export { default as WalletPrompt } from "./WalletPrompt.vue";
-export { default as SidebarPanel } from "./SidebarPanel.vue";
 export { default as HeroSection } from "./HeroSection.vue";
 export { default as HeroStatsStrip } from "./HeroStatsStrip.vue";
 export { default as CountdownTimer } from "./CountdownTimer.vue";
@@ -50,7 +48,6 @@ export type { BadgeStatus } from "./StatusBadge.vue";
 
 // ── Restored ──
 export { default as FormCard } from "./FormCard.vue";
-export { default as ConfiguredOperationPanel } from "./ConfiguredOperationPanel.vue";
 export { default as ScrollReveal } from "./ScrollReveal.vue";
 export { default as OfficialLauncherMiniApp } from "./OfficialLauncherMiniApp.vue";
 export { default as ConsoleMiniApp } from "./ConsoleMiniApp.vue";
