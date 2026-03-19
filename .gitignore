@@ -50,6 +50,7 @@ cmd/marble/marble
 
 # Local test/output artifacts
 apps/dashboard/test-results/
+platform/host-app/playwright-report/
 postgres.test
 test.neo-express
 deploy/wallets/*
