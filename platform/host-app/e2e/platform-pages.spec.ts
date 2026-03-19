@@ -12,7 +12,13 @@ test.describe("Platform Pages", () => {
 
     await page.goto("/developer");
     await expect(page.getByRole("heading", { name: "Developer Portal" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /open builder/i })).toBeVisible();
+    const openBuilder = page.getByRole("button", { name: /open builder/i });
+    await expect(openBuilder).toBeVisible();
+    await openBuilder.click();
+    await expect(page.getByRole("dialog", { name: "Template Builder" })).toBeVisible();
+    await expect(page.getByLabel("App ID")).toBeVisible();
+    await expect(page.getByRole("button", { name: "JSON" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "YAML" })).toBeVisible();
   });
 
   test("should load explorer and leaderboard shells", async ({ page }) => {
