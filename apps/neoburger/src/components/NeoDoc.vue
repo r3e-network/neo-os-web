@@ -62,10 +62,11 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from "@shared/composables/useI18n";
-import ScrollReveal from "./ScrollReveal.vue";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+import ScrollReveal from "@shared/components/ScrollReveal.vue";
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 interface Feature {
   name: string;
@@ -82,7 +83,7 @@ defineProps<{
 </script>
 
 <style lang="scss" scoped>
-@use "../styles/tokens.scss" as *;
+@use "@shared/styles/tokens.scss" as *;
 
 .neo-doc {
   padding: 20px;
@@ -203,10 +204,7 @@ defineProps<{
 
 .feature-card {
   padding: 24px;
-  background: var(
-    --erobo-gradient,
-    linear-gradient(135deg, rgba(159, 157, 243, 0.12) 0%, rgba(247, 170, 199, 0.1) 100%)
-  );
+  background: var(--erobo-gradient, linear-gradient(135deg, rgba(159, 157, 243, 0.12) 0%, rgba(247, 170, 199, 0.1) 100%));
   border: 1px solid rgba(159, 157, 243, 0.2);
   border-radius: 20px;
   backdrop-filter: blur(20px);
