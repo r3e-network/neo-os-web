@@ -1,6 +1,7 @@
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
@@ -10,11 +11,19 @@ namespace NeoMiniAppPlatform.Contracts
         {
             internal static BigInteger NextId() => NextItemId();
 
-            internal static void PutUnlockTime(BigInteger itemId, BigInteger unlockTime) =>
-                SetUnlockTime(itemId, unlockTime);
+            internal static void PutUnlockTime(BigInteger itemId, BigInteger unlockTime)
+            {
+                ExecutionEngine.Assert(unlockTime > Runtime.Time, "unlock time must be future");
 
-            internal static void PutRevealed(BigInteger itemId, UInt160 revealer) =>
-                MarkRevealed(itemId, revealer);
+                byte[] key = Helper.Concat(PREFIX_ITEM_UNLOCK_TIME, (ByteString)itemId.ToByteArray());
+                Storage.Put(Storage.CurrentContext, key, unlockTime);
+            }
+
+            internal static void PutRevealed(BigInteger itemId, UInt160 revealer)
+            {
+                byte[] key = Helper.Concat(PREFIX_ITEM_REVEALED, (ByteString)itemId.ToByteArray());
+                Storage.Put(Storage.CurrentContext, key, 1);
+            }
         }
 
         private static BigInteger TotalItems() =>

@@ -1,59 +1,59 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "id": "miniapp-dev-tipping",
-  "name": "Developer Tipping",
-  "name_zh": "开发者打赏",
-  "version": "1.0.0",
-  "description": "Tip and appreciate developers with crypto",
-  "description_zh": "开发者打赏 — 为优秀的开源贡献者发送链上小费",
   "category": "social",
   "category_name": "Social",
   "category_name_zh": "社交",
-  "tags": [
-    "tipping",
-    "developers",
-    "appreciation"
-  ],
-  "developer": {
-    "name": "R3E Network",
-    "email": "dev@r3e.network",
-    "website": "https://r3e.network"
-  },
   "contracts": {
     "neo-n3-mainnet": "0x1d476b067a180bc54ee4f90c91489ffa123759a4",
-    "neo-n3-testnet": "0x38ec54ce12e9cbf041cc7e31534eccae0eaa38dc"
+    "neo-n3-testnet": "0x389aa2c619f0cfed5b495dd8638107d20f37e086"
   },
-  "supported_networks": [
-    "neo-n3-mainnet"
-  ],
+  "createdAt": "2026-01-01T00:00:00Z",
   "default_network": "neo-n3-mainnet",
-  "urls": {
-    "entry": "/miniapps/dev-tipping/index.html",
-    "icon": "/miniapps/dev-tipping/logo.jpg",
-    "banner": "/miniapps/dev-tipping/banner.jpg"
+  "description": "Tip and appreciate developers with crypto",
+  "description_zh": "开发者打赏 — 为优秀的开源贡献者发送链上小费",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "R3E Network",
+    "website": "https://r3e.network"
   },
+  "features": {
+    "deeplink": "neomainapp://dev-tipping",
+    "offlineSupport": false,
+    "stateless": true
+  },
+  "id": "miniapp-dev-tipping",
+  "name": "Developer Tipping",
+  "name_zh": "开发者打赏",
   "permissions": [
     "invoke:primary",
     "read:blockchain"
   ],
-  "features": {
-    "stateless": true,
-    "offlineSupport": false,
-    "deeplink": "neomainapp://dev-tipping"
-  },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
     "transactions": true
   },
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "stateSource": {
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ],
+    "type": "n3index"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "tags": [
+    "tipping",
+    "developers",
+    "appreciation"
+  ],
+  "updatedAt": "2026-01-26T12:00:00Z",
+  "urls": {
+    "banner": "/miniapps/dev-tipping/banner.jpg",
+    "entry": "/miniapps/dev-tipping/index.html",
+    "icon": "/miniapps/dev-tipping/logo.jpg"
+  },
+  "version": "1.0.0"
 }

@@ -45,13 +45,16 @@ type appManifest struct {
 
 var deployTargets = []deployTarget{
 	{"MiniAppDiceGame", "contracts/build/MiniAppDiceGame.nef", "contracts/build/MiniAppDiceGame.manifest.json", ""},
+	{"MiniAppDevTipping", "contracts/build/MiniAppDevTipping.nef", "contracts/build/MiniAppDevTipping.manifest.json", "apps/dev-tipping/neo-manifest.json"},
 	{"MiniAppGasCircle", "contracts/build/MiniAppGasCircle.nef", "contracts/build/MiniAppGasCircle.manifest.json", ""},
 	{"MiniAppExFiles", "contracts/build/MiniAppExFiles.nef", "contracts/build/MiniAppExFiles.manifest.json", ""},
+	{"MiniAppGovMerc", "contracts/build/MiniAppGovMerc.nef", "contracts/build/MiniAppGovMerc.manifest.json", "apps/gov-merc/neo-manifest.json"},
 	{"MiniAppMasqueradeDAO", "contracts/build/MiniAppMasqueradeDAO.nef", "contracts/build/MiniAppMasqueradeDAO.manifest.json", ""},
 	{"MiniAppMillionPieceMap", "contracts/build/MiniAppMillionPieceMap.nef", "contracts/build/MiniAppMillionPieceMap.manifest.json", ""},
 	{"MiniAppGraveyard", "contracts/build/MiniAppGraveyard.nef", "contracts/build/MiniAppGraveyard.manifest.json", "apps/graveyard/neo-manifest.json"},
 	{"MiniAppHeritageTrust", "contracts/build/MiniAppHeritageTrust.nef", "contracts/build/MiniAppHeritageTrust.manifest.json", ""},
 	{"MiniAppHallOfFame", "contracts/build/MiniAppHallOfFame.nef", "contracts/build/MiniAppHallOfFame.manifest.json", ""},
+	{"MiniAppTimeCapsule", "contracts/build/MiniAppTimeCapsule.nef", "contracts/build/MiniAppTimeCapsule.manifest.json", "apps/time-capsule/neo-manifest.json"},
 	{"MiniAppTurtleMatch", "contracts/build/MiniAppTurtleMatch.nef", "contracts/build/MiniAppTurtleMatch.manifest.json", ""},
 }
 

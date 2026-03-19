@@ -164,10 +164,18 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            ExecutionEngine.Assert(
-                Runtime.CallingScriptHash == NEO.Hash || Runtime.CallingScriptHash == GAS.Hash,
-                "unsupported asset");
-            ExecutionEngine.Assert(amount > 0, "amount required");
+            if (Runtime.CallingScriptHash == NEO.Hash)
+            {
+                CreditDirectAssetPayment(APP_ID, NEO.Hash, from, amount, data);
+                return;
+            }
+            if (Runtime.CallingScriptHash == GAS.Hash)
+            {
+                CreditDirectAssetPayment(APP_ID, GAS.Hash, from, amount, data);
+                return;
+            }
+
+            ExecutionEngine.Assert(false, "unsupported asset");
         }
         #endregion
 

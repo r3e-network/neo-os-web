@@ -51,6 +51,20 @@ var selectedTargets = []selectedTarget{
 		AdminMethod: "admin",
 	},
 	{
+		Name:        "MiniAppGasSponsor",
+		ContractHash: "0x31888679572bf2de61462ff9934b6265d60284f2",
+		BuildNEF:    "contracts/build/MiniAppGasSponsor.nef",
+		BuildMan:    "contracts/build/MiniAppGasSponsor.manifest.json",
+		AdminMethod: "admin",
+	},
+	{
+		Name:        "MiniAppGovMerc",
+		ContractHash: "0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62",
+		BuildNEF:    "contracts/build/MiniAppGovMerc.nef",
+		BuildMan:    "contracts/build/MiniAppGovMerc.manifest.json",
+		AdminMethod: "admin",
+	},
+	{
 		Name:        "MiniAppFlashLoan",
 		AppManifest: "apps/flashloan/neo-manifest.json",
 		BuildNEF:    "contracts/build/MiniAppFlashLoan.nef",
@@ -79,6 +93,20 @@ var selectedTargets = []selectedTarget{
 		AdminMethod: "admin",
 	},
 	{
+		Name:        "MiniAppMilestoneEscrow",
+		ContractHash: "0x2a3691aa2da68512e9bf1363f383f354b6a02aad",
+		BuildNEF:    "contracts/build/MiniAppMilestoneEscrow.nef",
+		BuildMan:    "contracts/build/MiniAppMilestoneEscrow.manifest.json",
+		AdminMethod: "admin",
+	},
+	{
+		Name:        "MiniAppQuadraticFunding",
+		ContractHash: "0x4c6cd496a8487ee4d4725751c1f2e7be2da23599",
+		BuildNEF:    "contracts/build/MiniAppQuadraticFunding.nef",
+		BuildMan:    "contracts/build/MiniAppQuadraticFunding.manifest.json",
+		AdminMethod: "admin",
+	},
+	{
 		Name:        "MiniAppGraveyard",
 		AppManifest: "apps/graveyard/neo-manifest.json",
 		BuildNEF:    "contracts/build/MiniAppGraveyard.nef",
@@ -97,6 +125,13 @@ var selectedTargets = []selectedTarget{
 		ContractHash: "0x00d44aefa345f72c0eb15036129a32a56c765474",
 		BuildNEF:     "contracts/build/MiniAppHallOfFame.nef",
 		BuildMan:     "contracts/build/MiniAppHallOfFame.manifest.json",
+		AdminMethod:  "admin",
+	},
+	{
+		Name:         "MiniAppTimeCapsule",
+		ContractHash: "0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489",
+		BuildNEF:     "contracts/build/MiniAppTimeCapsule.nef",
+		BuildMan:     "contracts/build/MiniAppTimeCapsule.manifest.json",
 		AdminMethod:  "admin",
 	},
 	{
