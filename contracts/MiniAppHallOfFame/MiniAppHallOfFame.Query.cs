@@ -15,7 +15,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             Nominee nom = GetNominee(category, nominee);
             Map<string, object> details = new Map<string, object>();
-            if (nom.AddedBy == UInt160.Zero) return details;
+            if (!HasStoredNominee(nom)) return details;
 
             details["name"] = nom.Name;
             details["category"] = nom.Category;

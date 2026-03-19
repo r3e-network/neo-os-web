@@ -42,6 +42,9 @@ namespace NeoMiniAppPlatform.Contracts
                 StdLib.Serialize(stats));
         }
 
+        private static bool HasStoredNominee(Nominee nominee) =>
+            nominee.AddedBy != null && nominee.AddedBy != UInt160.Zero;
+
         #endregion
     }
 }
