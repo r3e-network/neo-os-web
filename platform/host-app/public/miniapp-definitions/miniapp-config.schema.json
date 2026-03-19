@@ -118,8 +118,8 @@
     },
     "entry_url": {
       "type": "string",
-      "format": "uri",
-      "description": "External entry URL for the MiniApp"
+      "description": "External entry URL for the MiniApp. Supports https://, mf://, or bare .matrix/.neo hostnames that will be normalized to https://.",
+      "pattern": "^(?:mf://.+|https?://.+|(?:[a-z0-9-]+\\.)+(?:matrix|neo)(?::\\d+)?(?:[/?#].*)?|(?:localhost|127\\.0\\.0\\.1)(?::\\d+)?(?:[/?#].*)?)$"
     },
     "media": {
       "type": "object",
@@ -162,6 +162,7 @@
         "storage": { "type": "boolean", "default": false },
         "oracle": { "type": "boolean", "default": false },
         "randomness": { "type": "boolean", "default": false },
+        "aa": { "type": "boolean", "default": false },
         "cross_chain": { "type": "boolean", "default": false }
       },
       "default": {}

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import type { MiniAppCategory, MiniAppDetailTemplate, MiniAppInfo, OperationEntry } from "@/components/types";
 import { normalizeCategory, normalizePermissions, normalizeStatus } from "./miniapp";
 import { canonicalizeMiniAppId } from "./miniapp-id";
+import { normalizeMiniAppEntryUrl } from "./miniapp-entry-url";
 import { coerceOperationEntries, resolveMiniAppDetailConfig } from "./miniapp-template";
 import { stableStringify } from "../../shared/manifest";
 
@@ -159,26 +160,7 @@ function normalizeAppId(value: unknown): string | null {
 }
 
 function normalizeEntryUrl(value: unknown): string | null {
-  const raw = asTrimmedString(value);
-  if (!raw) return null;
-
-  if (raw.startsWith("mf://manifest?")) {
-    return raw;
-  }
-
-  if (raw.startsWith("mf://")) {
-    return raw;
-  }
-
-  try {
-    const parsed = new URL(raw);
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-      return null;
-    }
-    return parsed.toString();
-  } catch {
-    return null;
-  }
+  return normalizeMiniAppEntryUrl(value);
 }
 
 function buildManifestEntryUrl(appId: string): string {
@@ -655,9 +637,7 @@ export function normalizeMiniAppAdminPayload(
     normalizeEntryUrl(preparedInput.entry_url ?? existing?.entry_url) ??
     normalizeEntryUrl(existingManifest.entry_url) ??
     buildManifestEntryUrl(appId);
-  const entryUrl = entryUrlCandidate.startsWith("mf://manifest?")
-    ? entryUrlCandidate
-    : buildManifestEntryUrl(appId);
+  const entryUrl = entryUrlCandidate;
 
   const contractHashInput = preparedInput.contract_hash ?? existing?.contract_hash;
   const contractHash = normalizeContractHash(contractHashInput);

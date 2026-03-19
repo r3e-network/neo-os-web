@@ -34,6 +34,7 @@ export type MiniAppInfo = {
     randomness?: boolean;
     datafeed?: boolean;
     confidential?: boolean;
+    aa?: boolean;
   };
   limits?: {
     max_gas_per_tx?: string;

@@ -64,4 +64,20 @@ describe("miniapp coercion", () => {
 
     expect(app.contract_hash).toBe("0x2222222222222222222222222222222222222222");
   });
+
+  it("normalizes bare .matrix entry urls and preserves aa permissions", () => {
+    const app = coerceMiniAppInfo({
+      app_id: "miniapp-matrix-aa",
+      entry_url: "wallet.matrix/apps/aa",
+      permissions: {
+        aa: true,
+      },
+    });
+
+    expect(app).not.toBeNull();
+    if (!app) return;
+
+    expect(app.entry_url).toBe("https://wallet.matrix/apps/aa");
+    expect(app.permissions.aa).toBe(true);
+  });
 });

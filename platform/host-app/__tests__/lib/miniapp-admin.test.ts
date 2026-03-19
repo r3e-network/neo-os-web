@@ -57,6 +57,21 @@ describe("miniapp-admin normalization", () => {
     expect(result.row.status).toBe("active");
   });
 
+  it("accepts bare .matrix entry urls and aa permissions", () => {
+    const result = normalizeMiniAppAdminPayload({
+      app_id: "miniapp-matrix-aa",
+      name: "Matrix AA",
+      entry_url: "wallet.matrix/apps/aa",
+      developer_user_id: "123e4567-e89b-12d3-a456-426614174000",
+      permissions: { aa: true, payments: true },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.row.entry_url).toBe("https://wallet.matrix/apps/aa");
+    expect(result.row.permissions.aa).toBe(true);
+  });
+
   it("rejects non-GAS and non-BNEO allowlists", () => {
     const result = normalizeMiniAppAdminPayload({
       app_id: "miniapp-bad-assets",

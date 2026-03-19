@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
+import { ExternalMiniAppFrame } from "./ExternalMiniAppFrame";
 import { FederatedMiniApp } from "./FederatedMiniApp";
 import { parseFederatedEntryUrl } from "../lib/miniapp";
+import { isManifestMiniAppEntryUrl } from "../lib/miniapp-entry-url";
 import { MiniAppInfo } from "./types";
 import { resolveMiniAppDetailConfig } from "../lib/miniapp-template";
 import { DetailContentBlocks } from "./features/miniapp/DetailContentBlocks";
@@ -37,8 +39,9 @@ const ICONS = [
 ];
 
 export function MiniAppPlayfield({ app }: { app: MiniAppInfo }) {
-  const isManifestMode = app.entry_url.startsWith("mf://manifest?");
+  const isManifestMode = isManifestMiniAppEntryUrl(app.entry_url);
   const federated = isManifestMode ? null : parseFederatedEntryUrl(app.entry_url, app.app_id);
+  const externalUrl = !isManifestMode && !federated ? app.entry_url : null;
 
   if (federated) {
     return (
@@ -46,6 +49,10 @@ export function MiniAppPlayfield({ app }: { app: MiniAppInfo }) {
         <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
       </div>
     );
+  }
+
+  if (externalUrl) {
+    return <ExternalMiniAppFrame src={externalUrl} title={app.name} />;
   }
 
   // Manifest Runtime
