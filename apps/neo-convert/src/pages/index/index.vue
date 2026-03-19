@@ -70,14 +70,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { useResponsive } from "@shared/composables/useResponsive";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { MiniAppPage, ScrollReveal, HeroSection } from "@shared/components";
 import AccountGenerator from "./components/AccountGenerator.vue";
 import { messages } from "@/locale/messages";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 
-const { isMobile } = useResponsive();
+const windowWidth = ref(typeof window !== "undefined" ? window.innerWidth : 1024);
+const isMobile = computed(() => windowWidth.value < 768);
+const updateWindowWidth = () => {
+  if (typeof window !== "undefined") {
+    windowWidth.value = window.innerWidth;
+  }
+};
+
+onMounted(() => {
+  window.addEventListener("resize", updateWindowWidth);
+  window.addEventListener("orientationchange", updateWindowWidth);
+  updateWindowWidth();
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", updateWindowWidth);
+  window.removeEventListener("orientationchange", updateWindowWidth);
+});
+
 const activeTab = ref("generate");
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
