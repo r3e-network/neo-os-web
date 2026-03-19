@@ -4,27 +4,10 @@ import { memo, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import type { MiniAppInfo } from "@/components/types";
 import { buildMiniAppBannerSources } from "@/lib/miniapp-media";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { cn } from "@/lib/utils";
-
-export interface MiniAppInfo {
-  app_id: string;
-  name: string;
-  description: string;
-  icon: string;
-  entry_url?: string;
-  logo_url?: string | null;
-  banner_url?: string | null;
-  manifest?: Record<string, unknown> | null;
-  category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
-  source?: "miniapp" | "community" | "verified";
-  stats?: {
-    users?: number;
-    transactions?: number;
-    volume?: string;
-  };
-}
 
 const categoryColors = {
   gaming: "bg-purple-100 text-purple-800 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/20",

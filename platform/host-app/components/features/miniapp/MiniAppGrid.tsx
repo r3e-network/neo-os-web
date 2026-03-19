@@ -1,6 +1,7 @@
 "use client";
 
-import { MiniAppCard, type MiniAppInfo } from "./MiniAppCard";
+import type { MiniAppInfo } from "@/components/types";
+import { MiniAppCard } from "./MiniAppCard";
 
 interface MiniAppGridProps {
   apps: MiniAppInfo[];
