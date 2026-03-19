@@ -1,6 +1,7 @@
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
@@ -50,7 +51,28 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            CreditDirectGasPayment(APP_ID, from, amount, data);
+            if (from == null || !from.IsValid || from == Runtime.ExecutingScriptHash || amount <= 0) return;
+
+            if (Runtime.CallingScriptHash == GAS.Hash)
+            {
+                StorageMap gasCredits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
+                ByteString gasKey = (ByteString)(byte[])from;
+                ByteString existing = gasCredits.Get(gasKey);
+                BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+                gasCredits.Put(gasKey, balance + amount);
+                return;
+            }
+            if (Runtime.CallingScriptHash == NEO.Hash)
+            {
+                StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
+                ByteString key = (ByteString)Helper.Concat((ByteString)(byte[])NEO.Hash, (ByteString)(byte[])from);
+                ByteString existing = credits.Get(key);
+                BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+                credits.Put(key, balance + amount);
+                return;
+            }
+
+            ExecutionEngine.Assert(false, "unsupported asset");
         }
 
         #endregion

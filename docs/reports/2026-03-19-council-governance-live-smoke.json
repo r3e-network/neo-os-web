@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-03-19T03:28:40.901Z",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "adminAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  "userAddress": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+  "proposalId": "1",
+  "expiringProposalId": "2",
+  "proposalTx": "0x2c4f7c4701d22687aa8ff0420a2e9ce33f49b6c1dd5236351862e9e27142d3cd",
+  "voteAdminTx": "0x6198dfe030347472b0f1c5d34a0811857421b291130aa411f04fbf55da24f482",
+  "voteUserTx": "0x4e6b0f286044f3f7e58bca40f87c37ff0ae8b69e795cb7b1c50570de4146d5e2",
+  "delegationTx": "0x6c09aeff5986ed0b2e7893edd353a9d3e8a99f17e3d415087969aa0da27019cd",
+  "revokeDelegationTx": "0x3f7c870d5fd3ff1938e12f91f5d8bc88070e525e571c43f282b7d7a9f4becf98",
+  "revokeProposalTx": "0x6ec080b5cdff98998688ab5433346ba9dce7dea7a15cf47f6e22b72bd08a6c69",
+  "expiringProposalTx": "0xd71442ddc7960fe98efe4ca0fcd0c098f65b36330f4b30b054687a5009871dc3",
+  "finalizeTx": "0x5999a456b3c21f98b89ef5f1d79f62259a3ac511545b8106f03aa0da2a87aa1c",
+  "revokedDetails": {
+    "id": "1",
+    "creator": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+    "type": "0",
+    "title": "Codex Council 1773890709361",
+    "description": "Codex live smoke governance proposal",
+    "createTime": "1773890714281",
+    "expiryTime": "1773890804281",
+    "status": "4",
+    "yesVotes": "2",
+    "noVotes": "0",
+    "totalVotes": "2",
+    "quorumRequired": "6",
+    "quorumReached": false,
+    "statusString": "revoked"
+  },
+  "finalizedDetails": {
+    "id": "2",
+    "creator": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+    "type": "0",
+    "title": "Codex Expiring 1773890795701",
+    "description": "Codex quorum smoke",
+    "createTime": "1773890799981",
+    "expiryTime": "1773890889981",
+    "status": "5",
+    "yesVotes": "0",
+    "noVotes": "0",
+    "totalVotes": "0",
+    "quorumRequired": "6",
+    "quorumReached": false,
+    "statusString": "expired"
+  },
+  "limitations": [
+    "passed+execute path requires quorum > two available candidate signers",
+    "submitSignature/executeProposal for policy proposals not exercised because quorum cannot be met with current available keys"
+  ]
+}

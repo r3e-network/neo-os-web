@@ -32,9 +32,9 @@ Governance mercenary - vote rental marketplace like Curve War
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x05d4ed2e60141043d6d20f5cde274704bd42c0dc` |
+| **Contract** | `0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x05d4ed2e60141043d6d20f5cde274704bd42c0dc) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet

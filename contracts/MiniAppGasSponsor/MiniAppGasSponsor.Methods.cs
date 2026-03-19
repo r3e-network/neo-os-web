@@ -16,14 +16,13 @@ namespace NeoMiniAppPlatform.Contracts
         public static BigInteger CreatePool(UInt160 sponsor, BigInteger amount, BigInteger maxClaimPerUser, BigInteger poolType, string description)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(sponsor), "unauthorized");
+            ValidateUserOrAbstractAccount(sponsor);
             ExecutionEngine.Assert(amount >= MIN_SPONSORSHIP, "amount too low");
             ExecutionEngine.Assert(maxClaimPerUser > 0 && maxClaimPerUser <= MAX_CLAIM_PER_TX, "invalid max claim");
             ExecutionEngine.Assert(poolType >= 1 && poolType <= 3, "invalid pool type");
             ExecutionEngine.Assert(description.Length <= 200, "description too long");
 
-            bool transferred = GAS.Transfer(sponsor, Runtime.ExecutingScriptHash, amount);
-            ExecutionEngine.Assert(transferred, "GAS transfer failed");
+            ConsumeDirectGasCredit(sponsor, amount);
 
             BigInteger poolId = GetPoolCount() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_POOL_COUNT, poolId);
@@ -187,15 +186,14 @@ namespace NeoMiniAppPlatform.Contracts
         public static void TopUpPool(UInt160 sponsor, BigInteger poolId, BigInteger amount)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ExecutionEngine.Assert(Runtime.CheckWitness(sponsor), "unauthorized");
+            ValidateUserOrAbstractAccount(sponsor);
             ExecutionEngine.Assert(amount >= TOP_UP_MIN, "amount too low");
 
             PoolData pool = GetPoolData(poolId);
             ExecutionEngine.Assert(pool.Sponsor == sponsor, "not pool sponsor");
             ExecutionEngine.Assert(pool.Active, "pool not active");
 
-            bool transferred = GAS.Transfer(sponsor, Runtime.ExecutingScriptHash, amount);
-            ExecutionEngine.Assert(transferred, "GAS transfer failed");
+            ConsumeDirectGasCredit(sponsor, amount);
 
             pool.RemainingAmount += amount;
             pool.InitialAmount += amount;
@@ -231,7 +229,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            // Accept GAS deposits for sponsorship pools
+            CreditDirectGasPayment(APP_ID, from, amount, data);
         }
 
         #endregion

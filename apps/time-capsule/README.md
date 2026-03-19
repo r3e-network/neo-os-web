@@ -64,9 +64,9 @@ Time-locked message hashes with public fishing and local content storage
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x119763e1402d7190728191d83c95c5b8e995abcd` |
+| **Contract** | `0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x119763e1402d7190728191d83c95c5b8e995abcd) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
