@@ -26,6 +26,10 @@ test.describe("Platform Pages", () => {
     await expect(page.getByRole("heading", { name: "Neo N3 Explorer" })).toBeVisible();
     await expect(page.getByRole("textbox", { name: /search by transaction hash, address, or contract/i })).toBeVisible();
 
+    await page.goto("/account");
+    await expect(page.getByRole("heading", { name: "Profile Settings" })).toBeVisible();
+    await expect(page.getByText("Social Connections")).toBeVisible();
+
     await page.goto("/leaderboard");
     await expect(page.getByRole("heading", { name: "Community Leaderboard" })).toBeVisible();
   });
