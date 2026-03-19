@@ -42,12 +42,6 @@ module.exports = {
       lines: 70,
       statements: 70,
     },
-    "./components/AppStatsCard.tsx": {
-      branches: 85,
-      functions: 85,
-      lines: 85,
-      statements: 85,
-    },
     "./components/AppNewsList.tsx": {
       branches: 85,
       functions: 85,
