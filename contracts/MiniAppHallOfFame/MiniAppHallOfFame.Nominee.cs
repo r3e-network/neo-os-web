@@ -17,7 +17,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(nominee.Length > 0 && nominee.Length <= MAX_NOMINEE_LENGTH, "invalid nominee");
 
             Nominee existing = GetNominee(category, nominee);
-            ExecutionEngine.Assert(existing.AddedBy == UInt160.Zero, "nominee exists");
+            ExecutionEngine.Assert(!HasStoredNominee(existing), "nominee exists");
 
             Nominee newNominee = new Nominee
             {

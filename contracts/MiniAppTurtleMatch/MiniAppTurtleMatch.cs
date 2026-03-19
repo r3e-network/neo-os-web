@@ -11,7 +11,7 @@ namespace NeoMiniAppPlatform.Contracts
 {
     // Hybrid Architecture: Only initial state (StartGame) and final state (SettleGame) on-chain
     // Middle process (game calculation) happens on frontend using deterministic seed
-    public delegate void GameStartedHandler(UInt160 player, BigInteger sessionId, BigInteger boxCount, string seed);
+    public delegate void GameStartedHandler(UInt160 player, BigInteger sessionId, BigInteger boxCount, ByteString seed);
     public delegate void GameSettledHandler(UInt160 player, BigInteger sessionId, BigInteger totalMatches, BigInteger reward);
 
     [DisplayName("MiniAppTurtleMatch")]

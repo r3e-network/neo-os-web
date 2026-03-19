@@ -54,7 +54,7 @@ namespace NeoMiniAppPlatform.Contracts
         private const int HEARTBEAT_INTERVAL_SECONDS = 2592000;  // 30 days
         private const int MIN_HEARTBEAT_SECONDS = 604800;        // 7 days minimum
         private const int MAX_HEARTBEAT_SECONDS = 31536000;      // 365 days maximum
-        private const long MIN_PRINCIPAL = 100000000;         // 1 NEO minimum
+        private const long MIN_PRINCIPAL = 1;                 // 1 NEO minimum
         private const int PLATFORM_FEE_BPS = 100;             // 1% execution fee
         private const int CANCEL_PENALTY_BPS = 500;           // 5% early cancel penalty
         private const int GRACE_PERIOD_SECONDS = 604800;        // 7 days grace after deadline
