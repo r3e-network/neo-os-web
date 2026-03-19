@@ -1,6 +1,6 @@
-import { GAS_HASH, getExternalIntegrationConfig } from "../constants/rpc";
-import { addressToScriptHash, normalizeScriptHash, ownerMatchesAddress } from "./neo";
-import type { ContractArg, InvokeResult, WalletSDK } from "./wallet-sdk";
+import { GAS_HASH, getExternalIntegrationConfig } from "@shared/constants/rpc";
+import { addressToScriptHash, normalizeScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
+import type { ContractArg, InvokeResult, WalletSDK } from "@shared/utils/wallet-sdk";
 
 const LISTING_STATUS: Record<number, string> = {
   1: "active",
@@ -318,21 +318,7 @@ export async function createAddressListing(
     signers: [buildEscrowCreationSigner(address, marketHash, aaContractHash)],
   });
 
-  return { txid: result.txid || result.tx || "" };
-}
-
-export async function cancelAddressListing(
-  wallet: WalletSDK,
-  marketHash: string,
-  listingId: string,
-): Promise<{ txid: string }> {
-  await ensureWalletConnected(wallet);
-  const result = await wallet.invokeContract({
-    scriptHash: normalizeScriptHash(marketHash),
-    operation: "cancelListing",
-    args: [{ type: "Integer", value: String(listingId) }],
-  });
-  return { txid: result.txid || result.tx || "" };
+  return { txid: String(result?.txid ?? "") };
 }
 
 export async function updateAddressListingPrice(
@@ -341,7 +327,7 @@ export async function updateAddressListingPrice(
   listingId: string,
   priceGas: string,
 ): Promise<{ txid: string }> {
-  await ensureWalletConnected(wallet);
+  const address = await ensureWalletConnected(wallet);
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
     operation: "updateListingPrice",
@@ -349,8 +335,48 @@ export async function updateAddressListingPrice(
       { type: "Integer", value: String(listingId) },
       { type: "Integer", value: parseGasToFractions(priceGas) },
     ],
+    signers: [{ account: address, scopes: 1 }],
   });
-  return { txid: result.txid || result.tx || "" };
+
+  return { txid: String(result?.txid ?? "") };
+}
+
+export async function cancelAddressListing(
+  wallet: WalletSDK,
+  marketHash: string,
+  listingId: string,
+): Promise<{ txid: string }> {
+  const address = await ensureWalletConnected(wallet);
+  const result = await wallet.invokeContract({
+    scriptHash: normalizeScriptHash(marketHash),
+    operation: "cancelListing",
+    args: [{ type: "Integer", value: String(listingId) }],
+    signers: [{ account: address, scopes: 1 }],
+  });
+
+  return { txid: String(result?.txid ?? "") };
+}
+
+export async function buyAddressListing(
+  wallet: WalletSDK,
+  marketHash: string,
+  listingId: string,
+  options: { newBackupOwner?: string },
+): Promise<{ txid: string }> {
+  const address = await ensureWalletConnected(wallet);
+  const backupOwner = normalizeHash160Input(options.newBackupOwner || address, "Backup owner");
+  const result = await wallet.invokeContract({
+    scriptHash: normalizeScriptHash(marketHash),
+    operation: "buyListing",
+    args: [
+      { type: "Integer", value: String(listingId) },
+      { type: "Hash160", value: normalizeScriptHash(backupOwner) },
+      { type: "Hash160", value: normalizeScriptHash(GAS_HASH) },
+    ],
+    signers: [{ account: address, scopes: 1 }],
+  });
+
+  return { txid: String(result?.txid ?? "") };
 }
 
 export async function refundPendingAddressPurchase(
@@ -358,56 +384,13 @@ export async function refundPendingAddressPurchase(
   marketHash: string,
   listingId: string,
 ): Promise<{ txid: string }> {
-  const payerAddress = await ensureWalletConnected(wallet);
-  const payerHash = normalizeHash160Input(payerAddress, "Payer");
+  const address = await ensureWalletConnected(wallet);
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
-    operation: "refundPendingPayment",
-    args: [
-      { type: "Integer", value: String(listingId) },
-      { type: "Hash160", value: normalizeScriptHash(payerHash) },
-    ],
-  });
-  return { txid: result.txid || result.tx || "" };
-}
-
-export async function buyAddressListing(
-  wallet: WalletSDK,
-  marketHash: string,
-  listingId: string,
-  options: { newBackupOwner?: string } = {},
-): Promise<{ txid: string }> {
-  const payerAddress = await ensureWalletConnected(wallet);
-  const listing = await readAddressListing(wallet, marketHash, listingId, payerAddress);
-  if (listing.status !== "active") {
-    throw new Error("Listing is not active.");
-  }
-
-  const payerHash = normalizeHash160Input(payerAddress, "Payer");
-  const backupOwnerHash = normalizeHash160Input(options.newBackupOwner || payerAddress, "New backup owner");
-  const result = await wallet.invokeMultiple({
-    invokeArgs: [
-      {
-        scriptHash: GAS_HASH,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: normalizeScriptHash(payerHash) },
-          { type: "Hash160", value: normalizeScriptHash(marketHash) },
-          { type: "Integer", value: listing.priceRaw },
-          { type: "Integer", value: String(listingId) },
-        ],
-      },
-      {
-        scriptHash: normalizeScriptHash(marketHash),
-        operation: "settleListing",
-        args: [
-          { type: "Integer", value: String(listingId) },
-          { type: "Hash160", value: normalizeScriptHash(payerHash) },
-          { type: "Hash160", value: normalizeScriptHash(backupOwnerHash) },
-        ],
-      },
-    ],
+    operation: "refundPendingPurchase",
+    args: [{ type: "Integer", value: String(listingId) }],
+    signers: [{ account: address, scopes: 1 }],
   });
 
-  return { txid: result.txid || result.tx || "" };
+  return { txid: String(result?.txid ?? "") };
 }

@@ -1,8 +1,8 @@
-import { ripemd160 } from "../shims/noble-hashes-ripemd160.js";
-import { sha256 } from "../shims/noble-hashes-sha256.js";
-import { normalizeScriptHash } from "./neo";
+import { ripemd160 } from "@shared/shims/noble-hashes-ripemd160.js";
+import { sha256 } from "@shared/shims/noble-hashes-sha256.js";
+import { normalizeScriptHash } from "@shared/utils/neo";
 
-export function bytesToHex(bytes: Uint8Array): string {
+function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 

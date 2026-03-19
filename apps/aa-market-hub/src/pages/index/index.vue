@@ -202,7 +202,7 @@ import {
   refundPendingAddressPurchase,
   type MarketListing,
   updateAddressListingPrice,
-} from "@shared/utils/aa-market";
+} from "../../utils/aa-market";
 import { messages } from "@/locale/messages";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
