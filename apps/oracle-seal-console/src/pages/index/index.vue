@@ -101,7 +101,7 @@ import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoCard, NeoInput, StatsDisp
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { useOracle, type ConfidentialStoreResponse, type OraclePublicKeyResponse } from "@shared/composables/useOracle";
-import { encryptJsonWithOraclePublicKey, encryptTextWithOraclePublicKey } from "@shared/utils/morpheus-encryption";
+import { encryptJsonWithOraclePublicKey, encryptTextWithOraclePublicKey } from "../../utils/encryption";
 import { messages } from "@/locale/messages";
 
 const oracle = useOracle({ appId: "miniapp-oracle-seal-console" });
