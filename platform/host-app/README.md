@@ -14,7 +14,10 @@ Responsibilities:
 
 Current capabilities:
 
-- `pages/index.tsx` loads MiniApps via `entry_url` (supports `mf://` for Module Federation and `iframe` URLs).
+- `pages/index.tsx` loads MiniApps via `entry_url` and supports:
+  - `mf://...` Module Federation manifests
+  - canonical `https://...` iframe launches
+  - bare `*.matrix` / `*.neo` entry domains, normalized to `https://...`
 - `pages/federated.tsx` is a dedicated Module Federation loader.
 - `window.MiniAppSDK` is exposed for federated MiniApps and injected into same-origin iframes.
 - Settings UI includes wallet binding (`wallet-nonce` + `wallet-bind`) and intents (`pay-gas` / `vote-neo`).
@@ -125,6 +128,18 @@ Open a manifest app via:
 - `http://localhost:3000/launch/<app_id>`
 - or `entry_url=mf://manifest?app=<app_id>`
 
+### External Domain Runtime
+
+The host also supports external iframe launches through canonical URLs and
+normalized bare domains:
+
+- `https://wallet.matrix/apps/swap`
+- `wallet.matrix/apps/swap`
+- `smartwallet.neo/console`
+
+Bare `.matrix` / `.neo` domains are normalized to `https://...` during admin
+validation, catalog ingestion, and launch rendering.
+
 ## Recommended Validation
 
 Run the host app regression stack in sequence so `next build` and Playwright do
@@ -170,44 +185,16 @@ If `pay-gas` / `vote-neo` returns `WALLET_REQUIRED`, bind a wallet first.
 
 ## Cross-Origin MiniApps
 
-The host **cannot** directly inject JS into a cross-origin iframe. For production
-MiniApps hosted on a CDN, the SDK must be bundled into the MiniApp itself, or
-you must implement a postMessage bridge with strict origin allowlists.
+Cross-origin MiniApps launched from external domains run inside sandboxed
+iframes. The host currently guarantees:
 
-This host includes a minimal postMessage-based bridge:
+- launch support for `https://...`, bare `*.matrix`, and bare `*.neo` entry domains
+- CSP `frame-src` enforcement via `MINIAPP_FRAME_ORIGINS`
+- same-origin host routes for AA relay (`/api/aa/relay`) and edge RPC proxying
 
-- Host handler: `platform/host-app/pages/launch/[id].tsx`
-- MiniApp script: `platform/host-app/public/sdk/miniapp-bridge.js`
+The host does **not** currently ship a general postMessage wallet/AA bridge for
+cross-origin MiniApps. Cross-origin apps that need AA, oracle, or wallet flows
+must either:
 
-Bridge notes:
-
-- `payments.payGAS(...)` / `governance.vote(...)` return an `invocation` intent plus a `request_id`.
-- MiniApps can then call `wallet.invokeIntent(request_id)` to ask the host to submit that intent via NeoLine.
-  The host only allows invoking intents it previously created (in-memory, one-time).
-
-MiniApps can include the script from the host origin:
-
-```html
-<script src="https://<host>/sdk/miniapp-bridge.js"></script>
-```
-
-The host only responds to requests from the currently embedded iframe and the
-expected origin derived from `entry_url`.
-
-Bridge methods exposed:
-
-- `wallet.getAddress` / `wallet.invokeIntent`
-- `payments.payGAS`
-- `governance.vote`
-- `rng.requestRandom`
-- `datafeed.getPrice`
-- `stats.getMyUsage` (authenticated usage endpoint, not a public stats page)
-- `events.list`
-- `transactions.list`
-
-For authenticated endpoints (for example `stats.getMyUsage`), set a Supabase
-JWT in the host browser storage before loading the MiniApp:
-
-```js
-localStorage.setItem("neo_miniapp_auth_jwt", "<supabase-jwt>");
-```
+- integrate directly with the relevant public/host endpoints, or
+- ship their own bridge/client logic.
