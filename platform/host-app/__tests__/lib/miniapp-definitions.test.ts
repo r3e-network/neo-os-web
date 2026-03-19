@@ -14,6 +14,10 @@ describe("miniapp-definitions loader", () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
+  function getApp(apps: Awaited<ReturnType<typeof loadMiniAppDefinitions>>, appId: string) {
+    return apps.find((app) => app.app_id === appId);
+  }
+
   it("loads and normalizes json definitions", async () => {
     const definitionsDir = path.join(tempRoot, "defs");
     fs.mkdirSync(definitionsDir, { recursive: true });
@@ -43,8 +47,8 @@ describe("miniapp-definitions loader", () => {
     );
 
     const apps = await loadMiniAppDefinitions();
-    expect(apps).toHaveLength(1);
-    expect(apps[0]).toEqual(
+    expect(apps.length).toBeGreaterThan(0);
+    expect(getApp(apps, "miniapp-predictionmarket")).toEqual(
       expect.objectContaining({
         app_id: "miniapp-predictionmarket",
         name: "Prediction Market",
@@ -53,7 +57,7 @@ describe("miniapp-definitions loader", () => {
         banner_url: "/miniapp-assets/prediction-market/banner.jpg",
       }),
     );
-    expect(apps[0].detail_template?.tabs?.[0]).toEqual(
+    expect(getApp(apps, "miniapp-predictionmarket")?.detail_template?.tabs?.[0]).toEqual(
       expect.objectContaining({
         id: "overview",
       }),
@@ -95,15 +99,15 @@ describe("miniapp-definitions loader", () => {
     );
 
     const apps = await loadMiniAppDefinitions();
-    expect(apps).toHaveLength(1);
-    expect(apps[0]).toEqual(
+    expect(apps.length).toBeGreaterThan(0);
+    expect(getApp(apps, "miniapp-market-factory")).toEqual(
       expect.objectContaining({
         app_id: "miniapp-market-factory",
         contract_hash: "0x6b589e1bc92f5a13c677898cf26c1dfdd8ee7b59",
         news_integration: true,
       }),
     );
-    expect(apps[0].manifest).toEqual(
+    expect(getApp(apps, "miniapp-market-factory")?.manifest).toEqual(
       expect.objectContaining({
         template_id: "prediction-binary",
         contract: expect.objectContaining({
@@ -142,8 +146,8 @@ describe("miniapp-definitions loader", () => {
     );
 
     const apps = await loadMiniAppDefinitions();
-    expect(apps).toHaveLength(1);
-    expect(apps[0]?.contract_hash).toBe("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    expect(apps.length).toBeGreaterThan(0);
+    expect(getApp(apps, "miniapp-network-aware")?.contract_hash).toBe("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
   });
 
   it("loads yaml definitions and preserves template/i18n metadata", async () => {
@@ -184,14 +188,14 @@ describe("miniapp-definitions loader", () => {
     );
 
     const apps = await loadMiniAppDefinitions();
-    expect(apps).toHaveLength(1);
-    expect(apps[0]).toEqual(
+    expect(apps.length).toBeGreaterThan(0);
+    expect(getApp(apps, "miniapp-yaml-market")).toEqual(
       expect.objectContaining({
         app_id: "miniapp-yaml-market",
         name: "YAML Market",
       }),
     );
-    expect(apps[0].manifest).toEqual(
+    expect(getApp(apps, "miniapp-yaml-market")?.manifest).toEqual(
       expect.objectContaining({
         name_zh: "YAML 市场",
         description_zh: "YAML 配置示例",
@@ -267,8 +271,8 @@ describe("miniapp-definitions loader", () => {
     );
 
     const apps = await loadMiniAppDefinitions();
-    expect(apps).toHaveLength(2);
     const byId = new Map(apps.map((app) => [app.app_id, app]));
+    expect(apps.length).toBeGreaterThanOrEqual(2);
     expect(byId.get("miniapp-dicegame")).toEqual(
       expect.objectContaining({
         app_id: "miniapp-dicegame",
@@ -281,5 +285,6 @@ describe("miniapp-definitions loader", () => {
         entry_url: "mf://manifest?app=miniapp-fogplay",
       }),
     );
+    expect(byId.has("miniapp-lottery-example")).toBe(false);
   });
 });

@@ -14,7 +14,9 @@ test.describe("MiniApps List", () => {
   });
 
   test("should display MiniApps hero and controls", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: /^MiniApps$/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /One catalog\. Seven flagship miniapps\./i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Primary miniapps/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /All MiniApps/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Filters/i })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sort options" })).toBeVisible();
     await expect(page.getByRole("button", { name: "List view" })).toBeVisible();
