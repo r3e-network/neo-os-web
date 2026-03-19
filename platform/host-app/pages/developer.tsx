@@ -6,20 +6,20 @@ import {
   DefinitionActionBar,
   DefinitionModeToggle,
   DeveloperCalloutCard,
+  DeveloperDrawerFooter,
+  DeveloperDrawerHeader,
+  DeveloperStateCard,
   TemplateMarketCard,
   TemplateMarketFilters,
 } from "@/components/developer";
 import { SelectField, TextAreaField, TextField } from "@/components/forms";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
-  X,
   Code2,
-  Rocket,
+  Database,
   Shield,
   Dice5,
   TrendingUp,
-  Database,
   Store,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -604,9 +604,7 @@ export default function DeveloperPage() {
           ) : null}
 
           {marketLoading ? (
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-6 text-sm text-gray-600 dark:text-gray-400">
-              Loading template marketplace...
-            </div>
+            <DeveloperStateCard message="Loading template marketplace..." />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {marketTemplates.slice(0, 18).map((item) => (
@@ -628,9 +626,7 @@ export default function DeveloperPage() {
                 />
               ))}
               {!marketTemplates.length ? (
-                <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-4 text-sm text-gray-600 dark:text-gray-300">
-                  No templates matched current filters.
-                </div>
+                <DeveloperStateCard message="No templates matched current filters." />
               ) : null}
             </div>
           )}
@@ -695,22 +691,7 @@ export default function DeveloperPage() {
               className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-2xl bg-white dark:bg-gray-900/95 backdrop-blur-xl border-l border-gray-200 dark:border-gray-700 shadow-2xl overflow-y-auto"
               tabIndex={-1}
             >
-              <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">MiniApp Template Builder</h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">No-code style config + definition preview</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    aria-label="Close panel"
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-                  >
-                    <X className="text-gray-500 dark:text-gray-400" size={20} />
-                  </button>
-                </div>
-              </div>
+              <DeveloperDrawerHeader onClose={() => setShowForm(false)} />
 
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <TextField
@@ -941,30 +922,7 @@ export default function DeveloperPage() {
                   </Alert>
                 )}
 
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowForm(false)}
-                    className="flex-1 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1 bg-gradient-to-r from-neo to-emerald-600 hover:from-neo/90 hover:to-emerald-600/90 text-gray-900 font-semibold"
-                  >
-                    {submitting ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin" />
-                        Saving...
-                      </span>
-                    ) : (
-                      "Save Draft"
-                    )}
-                  </Button>
-                </div>
+                <DeveloperDrawerFooter submitting={submitting} onCancel={() => setShowForm(false)} />
               </form>
             </motion.div>
           </>
