@@ -54,7 +54,7 @@ import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { getExternalIntegrationConfig } from "@shared/constants/rpc";
-import { deriveAAAccountIdHash } from "@shared/utils/aa";
+import { deriveAAAccountIdHash } from "../../utils/aa";
 
 const wallet = useWallet() as WalletSDK;
 const { address, connect, invokeRead, invokeContract } = wallet;
