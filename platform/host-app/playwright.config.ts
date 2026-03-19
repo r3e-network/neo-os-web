@@ -29,7 +29,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev -- --port 3004",
+    command: "node -e \"require('fs').rmSync('.next', { recursive: true, force: true })\" && npm run dev -- --port 3004",
     env: {
       ...process.env,
       ...auth0TestEnv,
