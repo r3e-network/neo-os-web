@@ -5,7 +5,7 @@
  *   - i18n setup (createUseI18n)
  *   - Template config (createTemplateConfig)
  *   - Sidebar items (createSidebarItems)
- *   - Error boundary handler (useHandleBoundaryError)
+ *   - Error boundary handler binding
  *   - Status message (useStatusMessage)
  *
  * Each miniapp provides a declarative config; the factory returns
@@ -36,7 +36,6 @@ import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import type { ComputedRef } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useStatusMessage, type StatusMessage } from "@shared/composables/useStatusMessage";
-import { useHandleBoundaryError } from "@shared/composables/useHandleBoundaryError";
 import { createTemplateConfig } from "./createTemplateConfig";
 import { createSidebarItems } from "./createSidebarItems";
 import { buildRuntimeTemplateOverrides } from "./runtimeConfig";
@@ -110,7 +109,9 @@ export function createMiniApp(config: MiniAppFactoryConfig): MiniAppFactoryResul
   const { status, setStatus, clearStatus } = useStatusMessage(config.statusTimeoutMs);
 
   // --- Error boundary ---
-  const { handleBoundaryError } = useHandleBoundaryError(config.name);
+  const handleBoundaryError = (error: Error) => {
+    console.error(`[${config.name}] boundary error:`, error);
+  };
   const fallbackMessageKey = config.fallbackMessageKey ?? "errorFallback";
   const fallbackMessage = (t as (key: string) => string)(fallbackMessageKey);
 
