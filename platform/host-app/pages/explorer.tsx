@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { useState } from "react";
-import { Layout } from "@/components/layout";
+import { Layout, PageHero } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -92,31 +92,38 @@ export default function ExplorerPage() {
         <title>Neo Explorer | MiniApp Platform</title>
       </Head>
 
-      <div className="container mx-auto px-4 py-4 sm:py-8 max-w-6xl">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Neo N3 Explorer</h1>
-          <p className="text-gray-500 dark:text-gray-400">Search transactions, addresses, and contracts with execution traces</p>
-        </div>
+      <div className="pb-16 pt-20">
+        <PageHero
+          eyebrow="Infrastructure"
+          title="Neo N3 Explorer"
+          description="Search transactions, addresses, and contracts with execution traces from the host app instead of jumping to a separate tool for basic diagnosis."
+          stats={[
+            { label: "Search types", value: "3", hint: "Transactions, addresses, contracts" },
+            { label: "Execution detail", value: "Live", hint: "Opcode traces, calls, syscalls" },
+          ]}
+        />
 
-        {/* Search Bar */}
-        <div role="search" className="flex gap-2 mb-8 max-w-2xl mx-auto">
-          <Input
-            aria-label="Search by transaction hash, address, or contract"
-            placeholder="Search by tx hash, address, or contract..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="flex-1"
-          />
-          <Button aria-label="Search" onClick={handleSearch} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          </Button>
-        </div>
+        <div className="container mx-auto max-w-6xl px-4 py-8 sm:py-10">
+          {/* Search Bar */}
+          <div role="search" className="mb-8 flex max-w-2xl mx-auto gap-2">
+            <Input
+              aria-label="Search by transaction hash, address, or contract"
+              placeholder="Search by tx hash, address, or contract..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className="flex-1"
+            />
+            <Button aria-label="Search" onClick={handleSearch} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            </Button>
+          </div>
 
-        {error && <div role="alert" className="text-center text-sm text-red-600 dark:text-red-400 mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">{error}</div>}
+          {error && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-center text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">{error}</div>}
 
-        <div aria-live="polite">
-          {result && <SearchResults result={result} />}
+          <div aria-live="polite">
+            {result && <SearchResults result={result} />}
+          </div>
         </div>
       </div>
     </Layout>
