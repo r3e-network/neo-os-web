@@ -23,7 +23,7 @@
 import { computed } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { NeoDoc } from "@shared/components";
+import NeoDoc from "./NeoDoc.vue";
 
 const { t } = createUseI18n(messages)();
 

@@ -119,10 +119,11 @@
 
 <script setup lang="ts">
 import { messages } from "@/locale/messages";
-import { MiniAppPage, StatsTab, NeoCard, NeoButton, AppIcon, CountdownTimer } from "@shared/components";
+import { MiniAppPage, StatsTab, NeoCard, NeoButton, AppIcon } from "@shared/components";
 import { formatGas } from "@shared/utils/format";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useCheckinPage } from "./composables/useCheckinPage";
+import CountdownTimer from "../../components/CountdownTimer.vue";
 import RewardProgress from "./components/RewardProgress.vue";
 import UserRewards from "./components/UserRewards.vue";
 

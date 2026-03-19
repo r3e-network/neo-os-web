@@ -33,25 +33,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 
-const CIRCUMFERENCE = 2 * Math.PI * 99; // ~622
+const CIRCUMFERENCE = 2 * Math.PI * 99;
 
 const props = withDefaults(
   defineProps<{
-    /** Target timestamp in milliseconds */
     targetTime: number;
-    /** Optional label below the time display */
     label?: string;
-    /** Total duration in ms (for progress calculation). Defaults to time from mount to target. */
     totalDuration?: number;
-    /** Show days segment when remaining > 24h (default: true) */
     showDays?: boolean;
-    /** Always show hours even when 0 (default: true) */
     showHours?: boolean;
-    /** Hide the circular progress ring, show only text */
     textOnly?: boolean;
-    /** Accessibility label for screen readers */
     ariaLabel?: string;
   }>(),
   {
@@ -73,20 +66,13 @@ const isComplete = ref(false);
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let startTime = 0;
 
-const effectiveTotalDuration = computed(() => {
-  if (props.totalDuration > 0) return props.totalDuration;
-  return props.targetTime - startTime;
-});
-
+const effectiveTotalDuration = computed(() => (props.totalDuration > 0 ? props.totalDuration : props.targetTime - startTime));
 const progress = computed(() => {
   const total = effectiveTotalDuration.value;
   if (total <= 0) return 1;
   return Math.max(0, Math.min(1, 1 - remaining.value / total));
 });
-
-const strokeOffset = computed(() => {
-  return CIRCUMFERENCE * (1 - progress.value);
-});
+const strokeOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
 
 const display = computed(() => {
   const totalSec = Math.max(0, Math.ceil(remaining.value / 1000));
@@ -94,37 +80,28 @@ const display = computed(() => {
   const h = Math.floor((totalSec % 86400) / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-
   const pad = (n: number) => String(n).padStart(2, "0");
 
-  if (props.showDays && d > 0) {
-    return `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
-  }
+  if (props.showDays && d > 0) return `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
   const totalH = d * 24 + h;
-  if (props.showHours && totalH > 0) {
-    return `${pad(totalH)}:${pad(m)}:${pad(s)}`;
-  }
-  if (totalH > 0) {
-    return `${pad(totalH)}:${pad(m)}:${pad(s)}`;
-  }
+  if (props.showHours && totalH > 0) return `${pad(totalH)}:${pad(m)}:${pad(s)}`;
+  if (totalH > 0) return `${pad(totalH)}:${pad(m)}:${pad(s)}`;
   return `${pad(m)}:${pad(s)}`;
 });
-
-const tick = () => {
-  const now = Date.now();
-  remaining.value = Math.max(0, props.targetTime - now);
-
-  if (remaining.value <= 0 && !isComplete.value) {
-    isComplete.value = true;
-    emit("complete");
-    stop();
-  }
-};
 
 const stop = () => {
   if (intervalId !== null) {
     clearInterval(intervalId);
     intervalId = null;
+  }
+};
+
+const tick = () => {
+  remaining.value = Math.max(0, props.targetTime - Date.now());
+  if (remaining.value <= 0 && !isComplete.value) {
+    isComplete.value = true;
+    emit("complete");
+    stop();
   }
 };
 
@@ -137,13 +114,12 @@ const start = () => {
 };
 
 watch(() => props.targetTime, start);
-
 onMounted(start);
 onUnmounted(stop);
 </script>
 
 <style lang="scss">
-@use "../styles/tokens.scss" as *;
+@use "@shared/styles/tokens.scss" as *;
 
 .countdown-timer {
   display: flex;
