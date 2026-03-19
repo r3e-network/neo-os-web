@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Layout, PageHero } from "@/components/layout";
 import { IconFeatureGrid } from "@/components/content";
 import { SelectField, TextAreaField, TextField } from "@/components/forms";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -597,22 +598,22 @@ export default function DeveloperPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-5 mb-4">
-            <select
-              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all cursor-pointer"
+          <div className="mb-4 grid gap-3 md:grid-cols-5">
+            <SelectField
+              variant="glass"
+              aria-label="Filter kind"
               value={marketKind}
               onChange={(e) => setMarketKind(e.target.value as "all" | MarketTemplateKind)}
-              aria-label="Filter kind"
             >
               <option value="all">All Kinds</option>
               <option value="frontend">Frontend</option>
               <option value="contract">Contract</option>
-            </select>
-            <select
-              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all cursor-pointer"
+            </SelectField>
+            <SelectField
+              variant="glass"
+              aria-label="Filter category"
               value={marketCategory}
               onChange={(e) => setMarketCategory(e.target.value as "all" | FormData["category"])}
-              aria-label="Filter category"
             >
               <option value="all">All Categories</option>
               {categories.map((category) => (
@@ -620,33 +621,34 @@ export default function DeveloperPage() {
                   {category}
                 </option>
               ))}
-            </select>
-            <select
-              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all cursor-pointer"
+            </SelectField>
+            <SelectField
+              variant="glass"
+              aria-label="Filter source"
               value={marketSource}
               onChange={(e) => setMarketSource(e.target.value as "all" | MarketTemplateSource)}
-              aria-label="Filter source"
             >
               <option value="all">All Sources</option>
               <option value="community">Community</option>
               <option value="verified">Verified</option>
               <option value="miniapp">MiniApp</option>
-            </select>
-            <select
-              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all cursor-pointer"
+            </SelectField>
+            <SelectField
+              variant="glass"
+              aria-label="Filter verified"
               value={marketVerified}
               onChange={(e) => setMarketVerified(e.target.value as "all" | "true")}
-              aria-label="Filter verified"
             >
               <option value="all">All Verification</option>
               <option value="true">Verified Only</option>
-            </select>
-            <input
+            </SelectField>
+            <TextField
+              variant="glass"
+              aria-label="Search templates"
               type="text"
               value={marketSearch}
               onChange={(e) => setMarketSearch(e.target.value)}
               placeholder="Search ID/name..."
-              className="w-full rounded-xl bg-white/50 dark:bg-white/5 backdrop-blur-md border border-gray-200/80 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/50 transition-all"
             />
           </div>
 
@@ -1030,37 +1032,25 @@ export default function DeveloperPage() {
                     </label>
                   </div>
 
-                  <textarea
-                    value={definitionText}
-                    onChange={(e) => setDefinitionText(e.target.value)}
+                  <TextAreaField
                     rows={10}
                     placeholder={definitionMode === "json" ? "Paste miniapp definition JSON..." : "Paste miniapp definition YAML..."}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50 transition-all font-mono text-xs"
+                    value={definitionText}
+                    onChange={(e) => setDefinitionText(e.target.value)}
+                    className="font-mono text-xs"
                   />
 
                   {previewResult && (
-                    <div
-                      role="alert"
-                      className={`mt-3 rounded-xl p-3 text-xs ${previewResult.ok
-                          ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-300"
-                          : "bg-red-500/20 border border-red-500/30 text-red-300"
-                        }`}
-                    >
+                    <Alert variant={previewResult.ok ? "success" : "error"} className="mt-3 text-xs">
                       {previewResult.message}
-                    </div>
+                    </Alert>
                   )}
                 </div>
 
                 {result && (
-                  <div
-                    role="alert"
-                    className={`rounded-xl p-4 ${result.success
-                        ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
-                        : "bg-red-500/20 border border-red-500/30 text-red-400"
-                      }`}
-                  >
+                  <Alert variant={result.success ? "success" : "error"}>
                     {result.message}
-                  </div>
+                  </Alert>
                 )}
 
                 <div className="flex gap-3 pt-4">
