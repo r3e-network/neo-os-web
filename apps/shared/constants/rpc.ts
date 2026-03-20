@@ -110,7 +110,7 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     networkMagic: MAINNET_MAGIC,
     n3indexApi: N3INDEX_API,
     morpheusPublicApiUrl: "https://neo-morpheus-oracle-web.vercel.app",
-    morpheusRuntimeUrl: "https://966f16610bdfe1794a503e16c5ae0bc69a1d92f1-80.dstack-pha-prod9.phala.network",
+    morpheusRuntimeUrl: "https://morpheus-mainnet.meshmini.app",
     contracts: {
       neo: NEO_HASH,
       gas: GAS_HASH,
@@ -141,7 +141,7 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     networkMagic: TESTNET_MAGIC,
     n3indexApi: N3INDEX_API,
     morpheusPublicApiUrl: "https://neo-morpheus-oracle-web.vercel.app",
-    morpheusRuntimeUrl: "https://28294e89d490924b79c85cdee057ce55723b3d56-3000.dstack-pha-prod9.phala.network",
+    morpheusRuntimeUrl: "https://morpheus-testnet.meshmini.app",
     contracts: {
       neo: NEO_HASH,
       gas: GAS_HASH,

@@ -39,7 +39,7 @@ path:
 Source runtime:
 
 - Morpheus testnet public API:
-  `https://28294e89d490924b79c85cdee057ce55723b3d56-3000.dstack-pha-prod9.phala.network`
+  `https://morpheus-testnet.meshmini.app`
 - Morpheus Oracle contract:
   `0x4b882e94ed766807c4fd728768f972e13008ad52`
 
