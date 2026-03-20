@@ -5,6 +5,8 @@ import { standardLimit } from "@/lib/rate-limit";
 function resolveMorpheusPublicApiUrl(networkInput?: string | null) {
   const network = String(networkInput || "").trim().toLowerCase() === "testnet" ? "testnet" : "mainnet";
   const explicit = String(process.env.MORPHEUS_PUBLIC_API_URL || process.env.NEXT_PUBLIC_MORPHEUS_PUBLIC_API_URL || "").trim();
+  // Confidential store still lives behind the web gateway `/api/confidential/store`.
+  // The new Phala runtime domains are used for direct runtime calls, not this web-only route.
   const fallback = "https://neo-morpheus-oracle-web.vercel.app";
   return (explicit || fallback || "").replace(/\/$/, "");
 }
