@@ -75,7 +75,7 @@ describe("/api/morpheus/neodid/providers", () => {
     expect(payload.oracle.contract).toBe("0x4b882e94ed766807c4fd728768f972e13008ad52");
     expect(payload.aa.contract).toBe("0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38");
     expect(payload.runtime.runtime_url).toBe(
-      "https://28294e89d490924b79c85cdee057ce55723b3d56-3000.dstack-pha-prod9.phala.network",
+      "https://morpheus-testnet.meshmini.app",
     );
   });
 });
