@@ -10,6 +10,7 @@
             @input="$emit('update', { index, value: $event.target.value })"
             :placeholder="t('signerPlaceholder')"
             :aria-label="t('signerLabel')"
+            required
           />
           <button
             v-if="signers.length > 1"

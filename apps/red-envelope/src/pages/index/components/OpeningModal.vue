@@ -226,4 +226,10 @@ const handleOpen = () => {
     opacity: 0;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .packet.is-shaking {
+    animation: none;
+  }
+}
 </style>

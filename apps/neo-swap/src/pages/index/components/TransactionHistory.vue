@@ -25,7 +25,10 @@
           role="option"
           :aria-selected="isSelected(token)"
           :aria-label="token.symbol"
+          tabindex="0"
           @click="$emit('select', token)"
+          @keydown.enter="$emit('select', token)"
+          @keydown.space.prevent="$emit('select', token)"
         >
           <img
             :src="getTokenIcon(token.symbol)"

@@ -112,12 +112,12 @@
 
         <div class="form-group">
           <span class="label">{{ t("toAddressLabel") }}</span>
-          <input class="input" v-model="form.toAddress" :placeholder="t('toAddressPlaceholder')" :aria-label="t('toAddressLabel')" />
+          <input class="input" v-model="form.toAddress" :placeholder="t('toAddressPlaceholder')" :aria-label="t('toAddressLabel')" required />
         </div>
 
         <div class="form-group">
           <span class="label">{{ t("amountLabel") }}</span>
-          <input class="input" v-model="form.amount" type="digit" :placeholder="t('amountPlaceholder')" :aria-label="t('amountLabel')" />
+          <input class="input" v-model="form.amount" type="number" :placeholder="t('amountPlaceholder')" :aria-label="t('amountLabel')" required />
         </div>
 
         <div class="form-group">

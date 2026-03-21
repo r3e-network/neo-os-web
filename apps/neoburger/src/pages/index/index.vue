@@ -165,13 +165,17 @@ async function handlePrimaryAction() {
   try {
     if (walletConnected.value) {
       loading.value = true;
-      await swap.executeSwap();
+      const success = await swap.executeSwap();
       loading.value = false;
+      if (!success) {
+        showStatus(t("actionFailed"), "error");
+      }
     } else {
       await loadBalances();
     }
   } catch (_e: unknown) {
-    /* non-critical: primary action error */
+    loading.value = false;
+    showStatus(t("actionFailed"), "error");
   }
 }
 
@@ -191,7 +195,8 @@ async function handleJazzAction() {
       await loadBalances();
     }
   } catch (_e: unknown) {
-    /* non-critical: jazz action error */
+    loading.value = false;
+    showStatus(t("claimFailed"), "error");
   }
 }
 
@@ -294,8 +299,8 @@ const resetAndReload = async () => {
   align-items: center;
   gap: 16px;
   padding: 12px 24px;
-  background: var(--bg-card-hover, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
   border-radius: 16px;
 }
 
@@ -336,8 +341,8 @@ const resetAndReload = async () => {
   display: flex;
   align-items: center;
   gap: 20px;
-  background: var(--bg-card-hover, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
   border-radius: 16px;
   padding: 16px 24px;
 }
@@ -363,7 +368,7 @@ const resetAndReload = async () => {
 .hero-stat-divider {
   width: 1px;
   height: 36px;
-  background: var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--border-color, rgba(255, 255, 255, 0.1));
 }
 
 /* ── NeoBurger Hero Enhancements ── */

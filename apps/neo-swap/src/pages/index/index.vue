@@ -306,4 +306,11 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
 .hero-swap-display {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-container,
+  .hero-arrow {
+    animation: none;
+  }
+}
 </style>
