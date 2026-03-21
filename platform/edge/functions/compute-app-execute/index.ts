@@ -12,12 +12,13 @@
  */
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { readJsonBody } from "../_shared/request.ts";
-import { getEnv, mustGetEnv } from "../_shared/env.ts";
+import { getEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { postJSON } from "../_shared/tee.ts";
+import { resolveComputeExecuteUpstream } from "../_shared/morpheus.ts";
 
 type AppExecuteRequest = {
   app_id: string;
@@ -111,9 +112,9 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   // Forward to NeoCompute service
-  const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
+  const upstream = resolveComputeExecuteUpstream();
   const result = await postJSON(
-    `${neocomputeURL}/execute`,
+    upstream.url,
     {
       script: loaded.script,
       entry_point: loaded.entryPoint,
@@ -123,7 +124,11 @@ export async function handler(req: Request): Promise<Response> {
       app_id: appId,
       script_name: scriptName,
     },
-    { "X-User-ID": auth.userId },
+    {
+      "X-User-ID": auth.userId,
+      ...(upstream.authToken ? { Authorization: `Bearer ${upstream.authToken}` } : {}),
+      ...(upstream.authToken ? { "x-phala-token": upstream.authToken } : {}),
+    },
     req,
   );
 

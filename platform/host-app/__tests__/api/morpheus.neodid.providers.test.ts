@@ -9,6 +9,8 @@ describe("/api/morpheus/neodid/providers", () => {
     jest.clearAllMocks();
     mockFetch.mockReset();
     global.fetch = mockFetch;
+    delete process.env.MORPHEUS_TESTNET_RUNTIME_URL;
+    delete process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_URL;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_TOKEN;
     delete process.env.PHALA_API_URL;
@@ -16,11 +18,15 @@ describe("/api/morpheus/neodid/providers", () => {
   });
 
   it("returns provider data from the configured runtime when available", async () => {
-    process.env.MORPHEUS_TESTNET_PHALA_API_URL = "https://testnet-runtime.example";
-    process.env.MORPHEUS_TESTNET_PHALA_API_TOKEN = "testnet-token";
+    process.env.MORPHEUS_TESTNET_RUNTIME_URL = "https://testnet-runtime.example";
+    process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN = "testnet-token";
 
     mockFetch.mockResolvedValue({
       ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
+      text: async () => JSON.stringify({
+        providers: [{ id: "google", status: "active" }],
+      }),
       json: async () => ({
         providers: [{ id: "google", status: "active" }],
       }),
@@ -47,9 +53,11 @@ describe("/api/morpheus/neodid/providers", () => {
       }),
     );
     expect(res._getStatusCode()).toBe(200);
-    expect(JSON.parse(res._getData())).toEqual({
-      providers: [{ id: "google", status: "active" }],
-    });
+    expect(JSON.parse(res._getData())).toEqual(
+      expect.objectContaining({
+        providers: [{ id: "google", status: "active" }],
+      }),
+    );
   });
 
   it("falls back to canonical static metadata when runtime providers are unavailable", async () => {
@@ -77,5 +85,7 @@ describe("/api/morpheus/neodid/providers", () => {
     expect(payload.runtime.runtime_url).toBe(
       "https://morpheus-testnet.meshmini.app",
     );
+    expect(payload.runtime.edge_url).toBe("https://edge.meshmini.app/testnet");
+    expect(payload.runtime.control_plane_url).toBe("https://control.meshmini.app/testnet");
   });
 });

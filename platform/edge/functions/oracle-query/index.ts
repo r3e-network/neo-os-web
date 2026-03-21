@@ -1,11 +1,11 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { readJsonBody } from "../_shared/request.ts";
-import { mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
 import { requireAuth } from "../_shared/supabase.ts";
 import { postJSON } from "../_shared/tee.ts";
+import { resolveOracleQueryUpstream } from "../_shared/morpheus.ts";
 
 type OracleQueryRequest = {
   url: string;
@@ -64,9 +64,9 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid secret_as_key", "INVALID_SECRET_AS_KEY", req);
   }
 
-  const neooracleURL = mustGetEnv("NEOORACLE_URL").replace(/\/$/, "");
+  const upstream = resolveOracleQueryUpstream();
   const result = await postJSON(
-    `${neooracleURL}/query`,
+    upstream.url,
     {
       url,
       method: body.method,
@@ -75,7 +75,11 @@ export async function handler(req: Request): Promise<Response> {
       secret_as_key: body.secret_as_key,
       body: body.body,
     },
-    { "X-User-ID": auth.userId },
+    {
+      "X-User-ID": auth.userId,
+      ...(upstream.authToken ? { Authorization: `Bearer ${upstream.authToken}` } : {}),
+      ...(upstream.authToken ? { "x-phala-token": upstream.authToken } : {}),
+    },
     req,
   );
   if (result instanceof Response) return result;

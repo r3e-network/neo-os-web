@@ -8,6 +8,7 @@ import { requireScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { postJSON } from "../_shared/tee.ts";
 import { fetchMiniAppPolicy, permissionEnabled } from "../_shared/apps.ts";
+import { resolveVrfRandomUpstream } from "../_shared/morpheus.ts";
 
 type RNGRequest = {
   app_id: string;
@@ -44,11 +45,15 @@ export async function handler(req: Request): Promise<Response> {
 
   const requestId = crypto.randomUUID();
 
-  const neovrfURL = mustGetEnv("NEOVRF_URL");
+  const upstream = resolveVrfRandomUpstream();
   const vrfResult = await postJSON(
-    `${neovrfURL.replace(/\/$/, "")}/random`,
+    upstream.url,
     { request_id: requestId },
-    { "X-User-ID": auth.userId },
+    {
+      "X-User-ID": auth.userId,
+      ...(upstream.authToken ? { Authorization: `Bearer ${upstream.authToken}` } : {}),
+      ...(upstream.authToken ? { "x-phala-token": upstream.authToken } : {}),
+    },
     req,
   );
   if (vrfResult instanceof Response) return vrfResult;
