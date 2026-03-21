@@ -556,4 +556,12 @@ watch(
     width: 100px;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-machine,
+  .hero-capsule,
+  .slot-indicator.active {
+    animation: none;
+  }
+}
 </style>

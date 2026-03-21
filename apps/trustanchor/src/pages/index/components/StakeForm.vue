@@ -68,6 +68,8 @@ const handleUnstake = () => {
             class="amount-input"
             :placeholder="t('amount')"
             :aria-label="t('stake')"
+            min="0"
+            required
           />
           <NeoButton variant="primary" type="button" :loading="isStaking" @click="handleStake" :aria-label="t('stake')">
             {{ t("stake") }}
@@ -84,6 +86,8 @@ const handleUnstake = () => {
             class="amount-input"
             :placeholder="t('amount')"
             :aria-label="t('unstake')"
+            min="0"
+            required
           />
           <NeoButton variant="secondary" type="button" :loading="isUnstaking" @click="handleUnstake" :aria-label="t('unstake')">
             {{ t("unstake") }}

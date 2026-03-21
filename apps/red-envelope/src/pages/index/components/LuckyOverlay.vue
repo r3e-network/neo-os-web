@@ -245,4 +245,11 @@ defineEmits<{
     opacity: 0;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .amount-display::before,
+  .coin-item {
+    animation: none;
+  }
+}
 </style>

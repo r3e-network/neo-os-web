@@ -1170,4 +1170,10 @@ $radius-lg: 16px;
   opacity: 0;
   transform: translateX(-50%) translateY(-8px) scale(0.98);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-dot {
+    animation: none;
+  }
+}
 </style>
