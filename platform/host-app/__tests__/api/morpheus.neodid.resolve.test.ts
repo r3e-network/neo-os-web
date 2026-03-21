@@ -9,6 +9,8 @@ describe("/api/morpheus/neodid/resolve", () => {
     jest.clearAllMocks();
     mockFetch.mockReset();
     global.fetch = mockFetch;
+    delete process.env.MORPHEUS_TESTNET_RUNTIME_URL;
+    delete process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_URL;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_TOKEN;
     delete process.env.PHALA_API_URL;
@@ -16,11 +18,17 @@ describe("/api/morpheus/neodid/resolve", () => {
   });
 
   it("resolves the NeoDID service DID against testnet runtime metadata", async () => {
-    process.env.MORPHEUS_TESTNET_PHALA_API_URL = "https://testnet-runtime.example";
-    process.env.MORPHEUS_TESTNET_PHALA_API_TOKEN = "testnet-token";
+    process.env.MORPHEUS_TESTNET_RUNTIME_URL = "https://testnet-runtime.example";
+    process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN = "testnet-token";
 
     mockFetch.mockResolvedValue({
       ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
+      text: async () => JSON.stringify({
+        compose_hash: "compose-testnet-123",
+        verification_public_key: "03407c24a382011c16be1597699cd6460f54e49c25098d4943fdf0192c80cb6917",
+        verifier_curve: "secp256r1",
+      }),
       json: async () => ({
         compose_hash: "compose-testnet-123",
         verification_public_key: "03407c24a382011c16be1597699cd6460f54e49c25098d4943fdf0192c80cb6917",

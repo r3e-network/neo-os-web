@@ -38,7 +38,11 @@ export type ExternalIntegrationConfig = {
   networkMagic: number;
   n3indexApi: string;
   morpheusPublicApiUrl: string;
+  morpheusPublicApiUrls: string[];
   morpheusRuntimeUrl: string;
+  morpheusRuntimeUrls: string[];
+  morpheusEdgeUrl: string;
+  morpheusControlPlaneUrl: string;
   contracts: {
     neo: string;
     gas: string;
@@ -110,7 +114,14 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     networkMagic: MAINNET_MAGIC,
     n3indexApi: N3INDEX_API,
     morpheusPublicApiUrl: "https://neo-morpheus-oracle-web.vercel.app",
+    morpheusPublicApiUrls: ["https://neo-morpheus-oracle-web.vercel.app"],
     morpheusRuntimeUrl: "https://morpheus-mainnet.meshmini.app",
+    morpheusRuntimeUrls: [
+      "https://morpheus-mainnet.meshmini.app",
+      "https://edge.meshmini.app/mainnet",
+    ],
+    morpheusEdgeUrl: "https://edge.meshmini.app/mainnet",
+    morpheusControlPlaneUrl: "https://control.meshmini.app/mainnet",
     contracts: {
       neo: NEO_HASH,
       gas: GAS_HASH,
@@ -141,7 +152,14 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     networkMagic: TESTNET_MAGIC,
     n3indexApi: N3INDEX_API,
     morpheusPublicApiUrl: "https://neo-morpheus-oracle-web.vercel.app",
+    morpheusPublicApiUrls: ["https://neo-morpheus-oracle-web.vercel.app"],
     morpheusRuntimeUrl: "https://morpheus-testnet.meshmini.app",
+    morpheusRuntimeUrls: [
+      "https://morpheus-testnet.meshmini.app",
+      "https://edge.meshmini.app/testnet",
+    ],
+    morpheusEdgeUrl: "https://edge.meshmini.app/testnet",
+    morpheusControlPlaneUrl: "https://control.meshmini.app/testnet",
     contracts: {
       neo: NEO_HASH,
       gas: GAS_HASH,

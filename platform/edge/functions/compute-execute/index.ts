@@ -1,11 +1,11 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { readJsonBody } from "../_shared/request.ts";
-import { mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { postJSON } from "../_shared/tee.ts";
+import { resolveComputeExecuteUpstream } from "../_shared/morpheus.ts";
 
 type ComputeExecuteRequest = {
   script: string;
@@ -51,9 +51,9 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "entry_point must be a valid identifier", "INVALID_ENTRY_POINT", req);
   }
 
-  const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
+  const upstream = resolveComputeExecuteUpstream();
   const result = await postJSON(
-    `${neocomputeURL}/execute`,
+    upstream.url,
     {
       script,
       entry_point: entryPoint,
@@ -61,7 +61,11 @@ export async function handler(req: Request): Promise<Response> {
       secret_refs: secretRefs,
       timeout,
     },
-    { "X-User-ID": auth.userId },
+    {
+      "X-User-ID": auth.userId,
+      ...(upstream.authToken ? { Authorization: `Bearer ${upstream.authToken}` } : {}),
+      ...(upstream.authToken ? { "x-phala-token": upstream.authToken } : {}),
+    },
     req,
   );
   if (result instanceof Response) return result;
