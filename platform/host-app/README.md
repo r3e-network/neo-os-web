@@ -31,6 +31,9 @@ Current capabilities:
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL for `connect-src` allowlist.
 - `EDGE_RPC_ALLOWLIST`: comma-separated Edge function names that `/api/rpc/*` may call (`*` to allow all).
 - `AA_RELAY_URL`: external `neo-abstract-account` relay URL used by `/api/aa/relay`.
+- `MORPHEUS_PUBLIC_API_URL`: preferred Morpheus web/public API origin for host-side `/api/morpheus/*` proxies.
+- `MORPHEUS_<NETWORK>_RUNTIME_URL` / `MORPHEUS_RUNTIME_URL`: preferred Morpheus runtime origin for host-side NeoDID/runtime lookups.
+- `MORPHEUS_<NETWORK>_RUNTIME_TOKEN` / `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`: runtime auth for protected Morpheus endpoints.
 
 ### MiniApp Approval & Governance
 
@@ -78,6 +81,17 @@ forwards the remaining payload to the named Edge function.
 The `/api/aa/relay` route forwards relay-ready AA payloads to the configured
 external `AA_RELAY_URL`, keeping MiniApps on the same origin while the AA relay
 runtime remains external to this repo.
+
+Host-side Morpheus proxy routes now prefer the unified Morpheus runtime/public
+API model:
+
+- public/web API: `neo-morpheus-oracle-web.vercel.app`
+- runtime: `morpheus-mainnet.meshmini.app` / `morpheus-testnet.meshmini.app`
+- edge fallback: `edge.meshmini.app/<network>`
+- control-plane ingress: `control.meshmini.app/<network>`
+
+Legacy split-service env vars are still tolerated by the platform edge layer,
+but they are no longer the preferred production model.
 
 In production, `/api/rpc/*` requires `EDGE_RPC_ALLOWLIST` to be set. Use `*` to
 preserve the previous open-proxy behavior or list the exact functions you want
