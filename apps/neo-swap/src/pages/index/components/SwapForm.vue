@@ -7,12 +7,13 @@
     <div class="token-row">
       <TokenSelect :token="token" @click="$emit('select')" />
       <input
-        type="digit"
+        type="number"
         :value="modelValue"
         :placeholder="placeholder"
         class="amount-input"
         :disabled="disabled"
         :aria-label="label"
+        :required="!disabled"
         @input="onInput"
       />
     </div>

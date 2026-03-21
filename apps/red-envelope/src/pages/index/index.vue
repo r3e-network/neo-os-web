@@ -505,4 +505,11 @@ watch(activeTab, async (tab) => {
     padding: 16px 12px;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .envelope-seal,
+  .sparkle {
+    animation: none;
+  }
+}
 </style>

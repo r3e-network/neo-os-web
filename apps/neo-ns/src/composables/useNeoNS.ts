@@ -23,6 +23,7 @@ export function useNeoNS(nnsContract: string, t: (key: string) => string) {
       return;
     }
 
+    loading.value = true;
     try {
       const tokensResult = await invokeRead({
         scriptHash: nnsContract,
@@ -69,6 +70,8 @@ export function useNeoNS(nnsContract: string, t: (key: string) => string) {
       myDomains.value = domains.sort((a, b) => b.expiry - a.expiry);
     } catch (_e: unknown) {
       myDomains.value = [];
+    } finally {
+      loading.value = false;
     }
   };
 
@@ -117,9 +120,13 @@ export function useNeoNS(nnsContract: string, t: (key: string) => string) {
         "error",
         showStatus
       );
-      if (setTargetResult === null) return;
+      if (setTargetResult === null) {
+        loading.value = false;
+        return;
+      }
 
       showStatus(t("targetSet"), "success");
+      await loadMyDomains();
     } finally {
       loading.value = false;
     }

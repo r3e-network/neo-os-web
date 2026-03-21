@@ -80,7 +80,7 @@
         <div v-if="address" class="stake-form">
           <div class="input-group mb-4">
             <div class="input-row">
-              <NeoInput type="number" v-model="stakeAmount" :label="t('stake')" :placeholder="t('amount')" />
+              <NeoInput type="number" v-model="stakeAmount" :label="t('stake')" :placeholder="t('amount')" required />
               <NeoButton variant="primary" :loading="isStaking" @click="handleStake">
                 {{ t("stake") }}
               </NeoButton>
@@ -89,7 +89,7 @@
 
           <div class="input-group mb-4">
             <div class="input-row">
-              <NeoInput type="number" v-model="unstakeAmount" :label="t('unstake')" :placeholder="t('amount')" />
+              <NeoInput type="number" v-model="unstakeAmount" :label="t('unstake')" :placeholder="t('amount')" required />
               <NeoButton variant="secondary" :loading="isUnstaking" @click="handleUnstake">
                 {{ t("unstake") }}
               </NeoButton>

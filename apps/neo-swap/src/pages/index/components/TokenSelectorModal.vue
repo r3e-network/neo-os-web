@@ -8,7 +8,10 @@
         role="option"
         :aria-selected="token.symbol === currentSymbol"
         :aria-label="token.symbol"
+        tabindex="0"
         @click="$emit('select', token)"
+        @keydown.enter="$emit('select', token)"
+        @keydown.space.prevent="$emit('select', token)"
       >
         <AppIcon :name="token.symbol.toLowerCase()" :size="32" />
         <div class="token-info">

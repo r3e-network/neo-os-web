@@ -33,11 +33,14 @@
         :modelValue="name"
         @update:modelValue="$emit('update:name', $event)"
         :placeholder="t('namePlaceholder')"
+        required
+        :aria-label="t('namePlaceholder')"
       />
       <NeoInput
         :modelValue="description"
         @update:modelValue="$emit('update:description', $event)"
         :placeholder="t('defaultBlessing')"
+        :aria-label="t('defaultBlessing')"
       />
       <NeoInput
         :modelValue="amount"
@@ -45,12 +48,16 @@
         type="number"
         :placeholder="t('totalGasPlaceholder')"
         :suffix="t('tokenGas')"
+        required
+        :aria-label="t('totalGasPlaceholder')"
       />
       <NeoInput
         :modelValue="count"
         @update:modelValue="$emit('update:count', $event)"
         type="number"
         :placeholder="t('packetsPlaceholder')"
+        required
+        :aria-label="t('packetsPlaceholder')"
       />
       <NeoInput
         :modelValue="expiryHours"
@@ -58,6 +65,8 @@
         type="number"
         :placeholder="t('expiryPlaceholder')"
         :suffix="t('hoursSuffix')"
+        required
+        :aria-label="t('expiryPlaceholder')"
       />
       <div class="neo-gate-section">
         <span class="section-label">{{ t("neoRequirement") }}</span>
@@ -67,6 +76,7 @@
           type="number"
           :placeholder="t('minNeoPlaceholder')"
           :suffix="t('tokenNeo')"
+          :aria-label="t('minNeoPlaceholder')"
         />
         <NeoInput
           :modelValue="minHoldDays"
@@ -74,6 +84,7 @@
           type="number"
           :placeholder="t('minHoldDaysPlaceholder')"
           :suffix="t('daysSuffix')"
+          :aria-label="t('minHoldDaysPlaceholder')"
         />
       </div>
     </div>
