@@ -4,6 +4,7 @@
       <button
         type="button"
         class="type-btn"
+        :aria-label="t('typeSpreading')"
         :class="{ active: envelopeType === 'spreading' }"
         @click="$emit('update:envelopeType', 'spreading')"
       >
@@ -12,6 +13,7 @@
       <button
         type="button"
         class="type-btn"
+        :aria-label="t('typeLucky')"
         :class="{ active: envelopeType === 'lucky' }"
         @click="$emit('update:envelopeType', 'lucky')"
       >

@@ -1172,6 +1172,18 @@ $radius-lg: 16px;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .nav-item {
+    animation: none;
+  }
+
+  .stat-row {
+    animation: none;
+  }
+
+  .auto-stat-card {
+    animation: none;
+  }
+
   .toast-dot {
     animation: none;
   }

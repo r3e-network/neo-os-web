@@ -82,7 +82,7 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
 .bar-text-glass {
   font-size: 10px;
   font-weight: 800;
-  color: rgba(0, 0, 0, 0.7);
+  color: var(--checkbook-bar-text, rgba(0, 0, 0, 0.7));
   z-index: 2;
 }
 

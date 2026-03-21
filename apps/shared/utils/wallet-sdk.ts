@@ -240,7 +240,8 @@ async function loadCurrentMiniAppManifest(): Promise<MiniAppManifest | null> {
       cachedManifest = null;
       return null;
     }
-    cachedManifest = (await response.json()) as MiniAppManifest;
+    const text = await response.text();
+    cachedManifest = JSON.parse(text) as MiniAppManifest;
     return cachedManifest;
   } catch (_e: unknown) {
     cachedManifest = null;

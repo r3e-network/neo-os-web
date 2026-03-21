@@ -45,10 +45,12 @@
             variant="primary"
             size="lg"
             block
+            type="button"
             :disabled="isFlipping || !canBet"
             :loading="isFlipping"
             @click="$emit('flip')"
             class="premium-flip-btn"
+            :aria-label="isFlipping ? t('flipping') : t('flipCoin')"
           >
             <div class="btn-content">
               <span v-if="!isFlipping">{{ t("flipCoin") }}</span>

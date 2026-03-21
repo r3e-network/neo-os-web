@@ -245,7 +245,7 @@ onMounted(async () => {
 .flame {
   width: 12px;
   height: 20px;
-  background: radial-gradient(ellipse at bottom, #ffd700, #ff6b35, transparent);
+  background: radial-gradient(ellipse at bottom, var(--shrine-gold), var(--shrine-incense), transparent);
   border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
   animation: flicker 1.5s ease-in-out infinite alternate;
   filter: blur(1px);
@@ -254,7 +254,7 @@ onMounted(async () => {
 .flame-inner {
   width: 4px;
   height: 8px;
-  background: #fff8dc;
+  background: var(--shrine-gold-light);
   border-radius: 50%;
   margin: 6px auto 0;
   opacity: 0.9;

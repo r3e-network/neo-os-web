@@ -31,43 +31,51 @@ export function useBurnLeague(t: (key: string) => string) {
   const isLoading = computed(() => isBurning.value);
 
   const loadStats = async () => {
-    await ensureContractAddress();
-    totalBurned.value = parseGas(await read("totalBurned"));
-    rewardPool.value = parseGas(await read("rewardPool"));
-    if (address.value) {
-      userBurned.value = parseGas(await read("getUserTotalBurned", [{ type: "Hash160", value: address.value }]));
-    } else {
-      userBurned.value = 0;
+    try {
+      await ensureContractAddress();
+      totalBurned.value = parseGas(await read("totalBurned"));
+      rewardPool.value = parseGas(await read("rewardPool"));
+      if (address.value) {
+        userBurned.value = parseGas(await read("getUserTotalBurned", [{ type: "Hash160", value: address.value }]));
+      } else {
+        userBurned.value = 0;
+      }
+    } catch (e: unknown) {
+      // Stats load failure is non-critical - retain previous values
     }
   };
 
   const loadLeaderboard = async () => {
-    const events = await listAllEvents("GasBurned");
-    const totals: Record<string, number> = {};
-    let userBurns = 0;
-    events.forEach((evt) => {
-      const evtRecord = evt as unknown as Record<string, unknown>;
-      const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
-      const burner = String(values[0] ?? "");
-      const amount = Number(values[1] ?? 0);
-      if (!burner) return;
-      totals[burner] = (totals[burner] || 0) + amount;
-      if (address.value && burner === address.value) {
-        userBurns += 1;
-      }
-    });
-    const entries = Object.entries(totals)
-      .map(([addr, amount]) => ({
-        address: addr,
-        burned: parseGas(amount),
-        isUser: address.value ? addr === address.value : false,
-      }))
-      .sort((a, b) => b.burned - a.burned)
-      .map((entry, idx) => ({ rank: idx + 1, ...entry }));
-    leaderboard.value = entries;
-    const userEntry = entries.find((entry) => entry.isUser);
-    rank.value = userEntry ? userEntry.rank : 0;
-    burnCount.value = userBurns;
+    try {
+      const events = await listAllEvents("GasBurned");
+      const totals: Record<string, number> = {};
+      let userBurns = 0;
+      events.forEach((evt) => {
+        const evtRecord = evt as unknown as Record<string, unknown>;
+        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
+        const burner = String(values[0] ?? "");
+        const amount = Number(values[1] ?? 0);
+        if (!burner) return;
+        totals[burner] = (totals[burner] || 0) + amount;
+        if (address.value && burner === address.value) {
+          userBurns += 1;
+        }
+      });
+      const entries = Object.entries(totals)
+        .map(([addr, amount]) => ({
+          address: addr,
+          burned: parseGas(amount),
+          isUser: address.value ? addr === address.value : false,
+        }))
+        .sort((a, b) => b.burned - a.burned)
+        .map((entry, idx) => ({ rank: idx + 1, ...entry }));
+      leaderboard.value = entries;
+      const userEntry = entries.find((entry) => entry.isUser);
+      rank.value = userEntry ? userEntry.rank : 0;
+      burnCount.value = userBurns;
+    } catch (e: unknown) {
+      // Leaderboard load failure is non-critical - retain previous values
+    }
   };
 
   const refreshData = async (setStatus?: (msg: string, type: string) => void) => {

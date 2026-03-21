@@ -65,7 +65,7 @@ load_env_key() {
   local file="$1"
   local key="$2"
   if [[ ! -f "$file" ]]; then
-    exit 0
+    return 0
   fi
   node - <<'NODE' "$file" "$key"
 const fs = require('fs');
@@ -92,6 +92,13 @@ dequote_env_value() {
   raw="${raw%\'}"
   raw="${raw#\'}"
   printf '%s' "$raw"
+}
+
+load_miniapp_env_value() {
+  local key="$1"
+  local raw
+  raw="$(load_env_key "$MINIAPP_ENV_FILE" "$key")"
+  dequote_env_value "$raw"
 }
 
 resolve_morpheus_runtime_url() {
@@ -141,13 +148,18 @@ resolve_morpheus_runtime_url() {
   printf '%s' "$legacy"
 }
 
-set -a
-source "$MINIAPP_ENV_FILE"
-set +a
+NEO_TESTNET_WIF="${NEO_TESTNET_WIF:-$(load_miniapp_env_value NEO_TESTNET_WIF)}"
+FLAGSHIP_LIVE_WIF="${FLAGSHIP_LIVE_WIF:-$(load_miniapp_env_value FLAGSHIP_LIVE_WIF)}"
+AA_TEST_WIF="${AA_TEST_WIF:-$(load_miniapp_env_value AA_TEST_WIF)}"
+ORACLE_TEST_WIF="${ORACLE_TEST_WIF:-$(load_miniapp_env_value ORACLE_TEST_WIF)}"
 
 if [[ -z "${NEO_TESTNET_WIF:-}" ]]; then
   echo "NEO_TESTNET_WIF missing in $MINIAPP_ENV_FILE" >&2
   exit 1
+fi
+
+if [[ -z "${AA_TEST_WIF:-}" ]]; then
+  AA_TEST_WIF="$NEO_TESTNET_WIF"
 fi
 
 ORACLE_TEST_WIF="${ORACLE_TEST_WIF:-${AA_TEST_WIF:-${FLAGSHIP_LIVE_WIF:-${NEO_TESTNET_WIF}}}}"
@@ -171,7 +183,6 @@ fi
 
 if [[ -z "$AA_TEST_WIF" ]]; then
   echo "AA_TEST_WIF is required for the direct AA relay validation" >&2
-  echo "AA_TEST_WIF must control PAYMASTER_ACCOUNT_ID ($PAYMASTER_ACCOUNT_ID) when using the stable allowlisted account path" >&2
   exit 1
 fi
 

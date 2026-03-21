@@ -30,6 +30,10 @@
   --border-color: rgba(255, 255, 255, 0.1);
   --border-color-hover: rgba(255, 255, 255, 0.15);
   --border-color-active: rgba(255, 255, 255, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+
+  /* Card Background Colors - Dark Mode */
+  --bg-card-hover: rgba(255, 255, 255, 0.04);
 
   /* Accent Colors */
   --accent-primary: #3b82f6;
@@ -98,6 +102,10 @@
   --border-color: rgba(15, 23, 42, 0.1);
   --border-color-hover: rgba(15, 23, 42, 0.15);
   --border-color-active: rgba(15, 23, 42, 0.2);
+  --border-subtle: rgba(15, 23, 42, 0.08);
+
+  /* Card Background Colors - Light Mode */
+  --bg-card-hover: rgba(15, 23, 42, 0.04);
 
   /* Shadows - Light Mode */
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);

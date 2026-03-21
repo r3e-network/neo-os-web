@@ -112,8 +112,12 @@ export function useNeoburgerCore() {
   async function handleClaimRewards() {
     if (!requireNeoChain(chainType, t)) return false;
     try {
-      const sdk = await import("@shared/utils/wallet-sdk").then((m) => m.waitForSDK?.() || null);
-      if (!sdk?.invoke) return false;
+      const sdkModule = await import("@shared/utils/wallet-sdk");
+      const sdk = sdkModule.waitForSDK ? await sdkModule.waitForSDK() : null;
+      if (!sdk?.invoke) {
+        error.value = t("claimFailed");
+        return false;
+      }
       const bneoContract = await ensureBneoContract();
       if (!bneoContract) return false;
       await sdk.invoke("invokeFunction", { contract: bneoContract, method: "claim", args: [] });

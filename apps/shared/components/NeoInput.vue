@@ -14,7 +14,7 @@
         :aria-invalid="!!error || undefined"
         :aria-required="required || undefined"
         class="neo-input__field neo-input__textarea"
-        @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+        @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
         @focus="$emit('focus', $event)"
         @blur="$emit('blur', $event)"
       />
@@ -47,9 +47,9 @@
 
 <script setup lang="ts">
 import { AppIcon } from "./index";
+import { useId } from "vue";
 
-let globalInputCounter = 0;
-const inputId = `neo-input-${++globalInputCounter}`;
+const inputId = useId();
 
 defineProps<{
   modelValue?: string | number;
@@ -66,8 +66,8 @@ defineProps<{
   ariaLabel?: string;
 }>();
 
-defineEmits<{
-  (e: "update:modelValue", value: string): void;
+const emit = defineEmits<{
+  (e: "update:modelValue", value: string | number): void;
   (e: "focus", event: FocusEvent): void;
   (e: "blur", event: FocusEvent): void;
 }>();
