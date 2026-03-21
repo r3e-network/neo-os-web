@@ -1,10 +1,10 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { requireHostScope } from "../_shared/scopes.ts";
 import { requireAuth, requirePrimaryWallet } from "../_shared/supabase.ts";
 import { getJSON } from "../_shared/tee.ts";
+import { resolveComputeExecuteUpstream } from "../_shared/morpheus.ts";
 
 // Thin gateway to the NeoCompute service (/jobs).
 export async function handler(req: Request): Promise<Response> {
@@ -21,8 +21,17 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  const neocomputeURL = mustGetEnv("NEOCOMPUTE_URL").replace(/\/$/, "");
-  const result = await getJSON(`${neocomputeURL}/jobs`, { "X-User-ID": auth.userId }, req);
+  const upstream = resolveComputeExecuteUpstream();
+  const jobsUrl = upstream.url.replace(/\/execute$/, "/jobs");
+  const result = await getJSON(
+    jobsUrl,
+    {
+      "X-User-ID": auth.userId,
+      ...(upstream.authToken ? { Authorization: `Bearer ${upstream.authToken}` } : {}),
+      ...(upstream.authToken ? { "x-phala-token": upstream.authToken } : {}),
+    },
+    req,
+  );
   if (result instanceof Response) return result;
   return json(result, {}, req);
 }
