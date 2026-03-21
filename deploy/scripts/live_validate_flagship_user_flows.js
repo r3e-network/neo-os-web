@@ -171,7 +171,7 @@ function buildRngFulfillmentDigestHex(requestId, requestType, success, resultByt
 
 async function callPhala(pathname, payload) {
   if (!PHALA_API_URL || !PHALA_API_TOKEN) {
-    throw new Error("PHALA_API_URL / PHALA_API_TOKEN unavailable for local rng fallback");
+    throw new Error("MORPHEUS_RUNTIME_URL / MORPHEUS_RUNTIME_TOKEN unavailable for local rng fallback");
   }
   const res = await fetch(`${PHALA_API_URL.replace(/\/$/, "")}${pathname}`, {
     method: "POST",
